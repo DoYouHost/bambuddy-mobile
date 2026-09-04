@@ -22,7 +22,7 @@ class ConnectionModeChip extends ConsumerWidget {
         WsConnectionState.connected;
 
     final accent = live ? t.accentGreen : t.accentOrange;
-    final ink = live ? t.accentGreenInk : t.accentOrange;
+    final ink = live ? t.accentGreenInk : t.accentOrangeInk;
     final tooltip = live ? l10n.connLiveTooltip : l10n.connPollingTooltip;
     final label = live ? l10n.connLive : l10n.connPolling;
 

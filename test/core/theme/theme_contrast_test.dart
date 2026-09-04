@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/painting.dart' show HSLColor;
+
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -100,6 +102,31 @@ void main() {
     // swatch is `accentGreen` and is not measured against this.
     test('$theme: the accent is readable where it is a label', () {
       expectReadable('accentGreenInk', t.accentGreenInk, t);
+    });
+
+    // The warm accent is ink in the same places the green one is: a caveat's
+    // mark, a "paused"/"due" pill, the star on a favourite. `accentOrange`
+    // itself is the fill — a gauge, a chart slice, a chip's tint — and is not
+    // measured here for the same reason `accentGreen` is not.
+    test('$theme: the warm accent is readable where it is a label', () {
+      expectReadable('accentOrangeInk', t.accentOrangeInk, t);
+    });
+
+    // An ink is its accent darkened, not a different colour. Contrast cannot
+    // say so — it measures lightness alone, and two inks tuned to the same
+    // ratio come out identical by it — so the hue is what this checks: darken
+    // the warm accent far enough and it stops reading as amber and starts
+    // reading as brown, which is the failure worth catching.
+    test('$theme: each ink keeps the hue of the accent it darkens', () {
+      void sameHue(String what, Color accent, Color ink) {
+        final (a, i) = (HSLColor.fromColor(accent), HSLColor.fromColor(ink));
+        expect((a.hue - i.hue).abs(), lessThan(8),
+            reason: '$what drifted from ${a.hue.round()}° '
+                'to ${i.hue.round()}°');
+      }
+
+      sameHue('accentGreenInk', t.accentGreen, t.accentGreenInk);
+      sameHue('accentOrangeInk', t.accentOrange, t.accentOrangeInk);
     });
 
     // Three inks that all clear the floor still have to look like three, or the

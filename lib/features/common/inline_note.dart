@@ -47,7 +47,7 @@ class InlineNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final ink = urgent ? t.accentOrange : t.textTertiary;
+    final ink = urgent ? t.accentOrangeInk : t.textTertiary;
     final row = Padding(
       padding: padding,
       child: Row(

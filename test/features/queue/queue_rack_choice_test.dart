@@ -307,7 +307,9 @@ void main() {
     final tokens = DashTokens.of(tester.element(find.byType(QueueEditScreen)));
     final icon =
         tester.widget<Icon>(find.byIcon(Icons.warning_amber_rounded));
-    expect(icon.color, tokens.accentOrange);
+    // The ink, not the vivid swatch: the mark still reads amber, and the
+    // sentence beside it stays in tertiary ink so it clears 4.5:1.
+    expect(icon.color, tokens.accentOrangeInk);
     expect(icon.color, isNot(tokens.textTertiary));
   });
 

@@ -254,6 +254,7 @@ class _GroupHeader extends StatelessWidget {
                 DashPill(
                   label: l10n.groupsSystemPill,
                   accent: t.accentOrange,
+                  accentInk: t.accentOrangeInk,
                   icon: Icons.lock_outline,
                 ),
             ],

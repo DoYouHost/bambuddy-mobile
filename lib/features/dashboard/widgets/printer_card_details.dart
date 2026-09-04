@@ -984,7 +984,7 @@ class _AmsDryControl extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final drying = unit.isDrying;
     final remain = unit.dryTime ?? 0;
-    final color = drying ? t.accentOrange : t.textTertiary;
+    final color = drying ? t.accentOrangeInk : t.textTertiary;
     final label =
         drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
 
@@ -1252,7 +1252,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       Center(
         child: Column(
           children: [
-            Icon(Icons.local_fire_department, size: 32, color: t.accentOrange),
+            Icon(Icons.local_fire_department, size: 32, color: t.accentOrangeInk),
             const SizedBox(height: 8),
             Text(
               remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
@@ -1260,7 +1260,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: t.accentOrange,
+                color: t.accentOrangeInk,
               ),
             ),
           ],

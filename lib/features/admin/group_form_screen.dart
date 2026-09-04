@@ -204,6 +204,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       DashPill(
                         label: '$advancedSelected',
                         accent: t.accentOrange,
+                        accentInk: t.accentOrangeInk,
                       ),
                   ],
                 ),
@@ -409,7 +410,7 @@ class _LockedNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, size: 18, color: t.accentOrange),
+          Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

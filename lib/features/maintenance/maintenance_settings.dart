@@ -15,6 +15,7 @@ import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/system_insets.dart';
+import '../common/section_heading.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -160,7 +161,7 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(header: true, child: Text(title, style: t.titleMd)),
+        SectionHeading(title, style: t.titleMd),
         const SizedBox(height: 3),
         Text(
           subtitle,

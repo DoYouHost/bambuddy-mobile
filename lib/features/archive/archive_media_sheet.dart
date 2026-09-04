@@ -23,6 +23,7 @@ import '../common/device_files.dart';
 import '../common/file_export.dart';
 import '../common/format_bytes.dart';
 import '../common/inline_note.dart';
+import '../common/section_heading.dart';
 import '../files/printer_download_job.dart';
 import '../files/printer_selection_download.dart';
 
@@ -382,12 +383,9 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
               // A sheet has no app bar to carry the route's name, so nothing
               // marks its title as a heading unless it says so — and a heading
               // is what a screen reader jumps between.
-              Semantics(
-                header: true,
-                child: Text(
-                  l10n.archiveMediaAction,
-                  style: theme.textTheme.titleMedium,
-                ),
+              SectionHeading(
+                l10n.archiveMediaAction,
+                style: theme.textTheme.titleMedium,
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 2),
@@ -576,9 +574,7 @@ class _SectionHeader extends StatelessWidget {
         children: [
           // The words are the heading; the trailing control beside them is a
           // button and has to keep reading as one.
-          Expanded(
-            child: Semantics(header: true, child: Text(title, style: t.label)),
-          ),
+          Expanded(child: SectionHeading(title, style: t.label)),
           ?trailing,
         ],
       ),

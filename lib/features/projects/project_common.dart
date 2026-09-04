@@ -52,7 +52,7 @@ String projectPriorityLabel(AppLocalizations l10n, String priority) =>
 Color projectStatusColor(DashTokens t, String status) => switch (status) {
       'active' => t.accentGreenInk,
       'completed' => t.accentBlue,
-      'on_hold' => t.accentOrange,
+      'on_hold' => t.accentOrangeInk,
       'archived' => t.textTertiary,
       _ => t.textTertiary,
     };

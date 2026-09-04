@@ -30,6 +30,7 @@ class DashTokens {
     required this.accentGreen,
     required this.accentGreenInk,
     required this.accentOrange,
+    required this.accentOrangeInk,
     required this.accentBlue,
     required this.danger,
     required this.gaugeTrack,
@@ -95,6 +96,17 @@ class DashTokens {
   final Color accentOrange;
   final Color accentBlue;
 
+  /// The warm accent as **ink** — a caveat's mark, a "held"/"paused" label, the
+  /// star on a favourite. The vivid [accentOrange] reads 2.7:1 on the palest
+  /// card, which is under the 3:1 a meaningful mark has to clear and nowhere
+  /// near the 4.5:1 a word does, so anything painted *with* it rather than
+  /// *filled* with it takes this instead.
+  ///
+  /// Same relationship as [accentGreenInk] to [accentGreen], and the same
+  /// numbers: 5.3:1 on the palest card. In the dark theme both are the one
+  /// value — a light accent on a dark ground has the contrast already.
+  final Color accentOrangeInk;
+
   /// Warning/low/error accent (e.g. LOW filament, urgent maintenance, delete).
   final Color danger;
 
@@ -151,6 +163,7 @@ class DashTokens {
         accentGreen = const Color(0xFF5FE08A),
         accentGreenInk = const Color(0xFF5FE08A),
         accentOrange = const Color(0xFFFF9F5C),
+        accentOrangeInk = const Color(0xFFFF9F5C),
         accentBlue = const Color(0xFF4FA6F7),
         danger = const Color(0xFFFF6B6B),
         gaugeTrack = const Color(0x10FFFFFF),
@@ -184,6 +197,7 @@ class DashTokens {
         accentGreen = const Color(0xFF34C46E),
         accentGreenInk = const Color(0xFF18733D),
         accentOrange = const Color(0xFFE07C36),
+        accentOrangeInk = const Color(0xFFA05019),
         accentBlue = const Color(0xFF2C7FE0),
         danger = const Color(0xFFD64545),
         gaugeTrack = const Color(0x14000000),
@@ -276,21 +290,35 @@ class DashPill extends StatelessWidget {
     this.accentInk,
     this.leadingDot = false,
     this.icon,
+    this.dense = false,
   });
 
   final String label;
+
+  /// The swatch the pill is *filled* and outlined with, at low alpha.
   final Color accent;
+
+  /// The swatch its label and icon are *painted* with. Defaults to [accent],
+  /// which is right for a colour that reads on a pale surface — and wrong for
+  /// the vivid ones, which is what the `…Ink` tokens are for.
   final Color? accentInk;
+
   final bool leadingDot;
   final IconData? icon;
+
+  /// The smaller pill: a status marker crowded in beside a title or wrapped
+  /// several to a row, rather than a badge standing on its own.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final ink = accentInk ?? accent;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: dense
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 3)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.16),
+        color: accent.withValues(alpha: dense ? 0.14 : 0.16),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accent.withValues(alpha: 0.4)),
       ),
@@ -305,16 +333,16 @@ class DashPill extends StatelessWidget {
             ),
             const SizedBox(width: 6),
           ] else if (icon != null) ...[
-            Icon(icon, size: 13, color: ink),
-            const SizedBox(width: 6),
+            Icon(icon, size: dense ? 12 : 13, color: ink),
+            SizedBox(width: dense ? 4 : 6),
           ],
           Text(
             label,
             style: TextStyle(
               fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+              fontSize: dense ? 11 : 12,
+              fontWeight: dense ? FontWeight.w600 : FontWeight.w700,
+              letterSpacing: dense ? 0 : 0.3,
               color: ink,
             ),
           ),

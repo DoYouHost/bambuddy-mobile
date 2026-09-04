@@ -174,6 +174,7 @@ class _ApiKeyCard extends ConsumerWidget {
                           label: l10n.apiKeysExpiresOn(
                               fmt.dateNamedMonth(apiKey.expiresAt!)),
                           accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
                           icon: Icons.schedule,
                         ),
                       if (apiKey.printerIds != null)
@@ -187,6 +188,7 @@ class _ApiKeyCard extends ConsumerWidget {
                         DashPill(
                           label: l10n.apiKeysLegacy,
                           accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
                           icon: Icons.history,
                         ),
                       for (final scope in ApiKeyScope.values)

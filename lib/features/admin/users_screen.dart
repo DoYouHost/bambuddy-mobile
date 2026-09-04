@@ -170,6 +170,7 @@ class _UserCard extends ConsumerWidget {
                               DashPill(
                                 label: user.authSource.toUpperCase(),
                                 accent: t.accentOrange,
+                                accentInk: t.accentOrangeInk,
                                 icon: Icons.dns_outlined,
                               ),
                             for (final g in user.groups)

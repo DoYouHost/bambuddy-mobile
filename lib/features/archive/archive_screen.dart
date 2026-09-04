@@ -635,7 +635,7 @@ class _No3mfBanner extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.warning_amber_rounded, size: 20, color: t.accentOrange),
+            Icon(Icons.warning_amber_rounded, size: 20, color: t.accentOrangeInk),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -662,7 +662,7 @@ class _No3mfBanner extends ConsumerWidget {
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           visualDensity: VisualDensity.compact,
-                          foregroundColor: t.accentOrange,
+                          foregroundColor: t.accentOrangeInk,
                         ),
                       ),
                     ),
@@ -804,7 +804,7 @@ class _ArchiveCard extends StatelessWidget {
                           archive.isFavorite ? Icons.star : Icons.star_border,
                           size: 20,
                           color: archive.isFavorite
-                              ? t.accentOrange
+                              ? t.accentOrangeInk
                               : t.textTertiary,
                         ),
                         tooltip: archive.isFavorite
@@ -816,7 +816,7 @@ class _ArchiveCard extends StatelessWidget {
                     )
                   else if (archive.isFavorite) ...[
                     const SizedBox(width: 8),
-                    Icon(Icons.star, size: 18, color: t.accentOrange),
+                    Icon(Icons.star, size: 18, color: t.accentOrangeInk),
                   ],
                 ],
               ),
