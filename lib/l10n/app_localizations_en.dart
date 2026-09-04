@@ -5153,6 +5153,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueEditForceColorMatch => 'Force color match';
 
   @override
+  String get queueEditNozzleRack => 'Nozzle rack';
+
+  @override
+  String get queueEditNozzleRackDesc =>
+      'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.';
+
+  @override
+  String queueEditRackGroupLabel(String slots, String nozzle) {
+    return 'Filament $slots · $nozzle';
+  }
+
+  @override
+  String get queueEditRackAuto => 'Automatic';
+
+  @override
+  String queueEditRackPosition(int position, String nozzle) {
+    return 'Position $position · $nozzle';
+  }
+
+  @override
+  String queueEditRackPositionTaken(int position, String nozzle) {
+    return 'Position $position · $nozzle — already chosen';
+  }
+
+  @override
+  String get queueEditRackEmpty => 'empty';
+
+  @override
+  String get queueEditRackPickStale =>
+      'The chosen position no longer fits this filament — pick another, or the print is refused at start.';
+
+  @override
+  String queueEditRackNoFit(String nozzle) {
+    return 'No rack position holds a $nozzle nozzle — fit one, or the printer decides for itself.';
+  }
+
+  @override
+  String get nozzleFlowStandard => 'Standard';
+
+  @override
+  String get nozzleFlowHigh => 'High flow';
+
+  @override
   String get bugReportMenu => 'Report a bug or an idea';
 
   @override

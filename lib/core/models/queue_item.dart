@@ -70,6 +70,7 @@ class QueueItem {
     this.preheatChamberTargetOverride,
     this.gcodeInjection = false,
     this.nozzleMapping,
+    this.nozzleRackChoice,
     this.slicedForModel,
   });
 
@@ -262,6 +263,15 @@ class QueueItem {
   /// Dual-nozzle-rack physical pick (H2C/O1C2); opaque, forwarded verbatim.
   final List<int>? nozzleMapping;
 
+  /// Which rack position each filament group prints from, `{groupId: position}`
+  /// with 1-based positions (server #1784). Null — the default — leaves the
+  /// choice to the scheduler, which assigns from the rack as it stands at
+  /// dispatch. Absent on every server before the field existed.
+  ///
+  /// The wire form keys the object by a stringified group id, as JSON must.
+  @JsonKey(fromJson: _toRackChoiceOrNull)
+  final Map<int, int>? nozzleRackChoice;
+
   /// Model the file was sliced for, e.g. "X2D". Drives the `Any <model>` label
   /// and dual-nozzle option visibility.
   final String? slicedForModel;
@@ -319,3 +329,7 @@ class QueueItem {
 
 List<PrintVariant> _variantsFromJson(dynamic value) =>
     parseJsonList(value, PrintVariant.fromJson);
+
+/// `{"2": 1}` → `{2: 1}`: the group ids JSON had to stringify, back to ints.
+Map<int, int>? _toRackChoiceOrNull(dynamic value) =>
+    parseJsonMapByIdOrNull(value, toIntOrNull);

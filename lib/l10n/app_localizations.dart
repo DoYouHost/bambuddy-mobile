@@ -8792,6 +8792,72 @@ abstract class AppLocalizations {
   /// **'Force color match'**
   String get queueEditForceColorMatch;
 
+  /// No description provided for @queueEditNozzleRack.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle rack'**
+  String get queueEditNozzleRack;
+
+  /// No description provided for @queueEditNozzleRackDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.'**
+  String get queueEditNozzleRackDesc;
+
+  /// No description provided for @queueEditRackGroupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {slots} · {nozzle}'**
+  String queueEditRackGroupLabel(String slots, String nozzle);
+
+  /// No description provided for @queueEditRackAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get queueEditRackAuto;
+
+  /// No description provided for @queueEditRackPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle}'**
+  String queueEditRackPosition(int position, String nozzle);
+
+  /// No description provided for @queueEditRackPositionTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle} — already chosen'**
+  String queueEditRackPositionTaken(int position, String nozzle);
+
+  /// No description provided for @queueEditRackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get queueEditRackEmpty;
+
+  /// No description provided for @queueEditRackPickStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The chosen position no longer fits this filament — pick another, or the print is refused at start.'**
+  String get queueEditRackPickStale;
+
+  /// No description provided for @queueEditRackNoFit.
+  ///
+  /// In en, this message translates to:
+  /// **'No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.'**
+  String queueEditRackNoFit(String nozzle);
+
+  /// No description provided for @nozzleFlowStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get nozzleFlowStandard;
+
+  /// No description provided for @nozzleFlowHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High flow'**
+  String get nozzleFlowHigh;
+
   /// No description provided for @bugReportMenu.
   ///
   /// In en, this message translates to:
