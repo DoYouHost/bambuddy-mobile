@@ -18,6 +18,7 @@ void main() {
             'path': '/timelapse/video_1.mp4',
             'size': 2048,
             'kind': 'timelapse',
+            'mtime': '2026-09-03T08:55:51',
           },
           {
             'name': 'ipcam_1.mp4',
@@ -39,6 +40,15 @@ void main() {
       ]);
       expect(media.remoteFiles.last.kind, ArchiveMediaKind.ipcam);
       expect(media.isEmpty, isFalse);
+      // Through the shared coercer: a timestamp the server sends without its
+      // `Z` is read as UTC and handed back local, so every consumer formats it
+      // right without remembering to convert (`json_utils.dart`).
+      expect(
+        media.remoteFiles.first.recordedAt,
+        DateTime.utc(2026, 9, 3, 8, 55, 51).toLocal(),
+      );
+      // Absent rather than guessed when the FTP listing carried none.
+      expect(media.remoteFiles.last.recordedAt, isNull);
     });
 
     test('an answer with nothing in it reads as empty, not as a failure', () {

@@ -7,6 +7,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_media.dart';
 import '../../core/models/printer_download_job.dart';
@@ -465,7 +466,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
             id: 'archive_media.file',
             icon: Icons.movie_outlined,
             title: file.name,
-            subtitle: '${_kindOf(file, l10n)} · ${formatBytes(file.size)}',
+            subtitle: _remoteSubtitle(file, l10n),
             selected: _selected.contains(file.path),
             onTap: _busy ? null : () => _toggle(file.path),
           ),
@@ -493,10 +494,23 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
     ];
   }
 
-  String _kindOf(ArchiveMediaFile file, AppLocalizations l10n) =>
-      file.kind == ArchiveMediaKind.timelapse
-          ? l10n.archiveMediaKindTimelapse
-          : l10n.archiveMediaKindIpcam;
+  /// `Camera · 09:55 · 6.0 MB` — the kind, when it was recorded, how big.
+  ///
+  /// The time is what makes the row identifiable: a print's camera chunks are
+  /// named alike but for a timestamp at the *end* of the name, which is the
+  /// half a narrow screen ellipsises away. It is dropped when the printer's
+  /// listing carried none rather than guessed from the name.
+  String _remoteSubtitle(ArchiveMediaFile file, AppLocalizations l10n) {
+    final kind = file.kind == ArchiveMediaKind.timelapse
+        ? l10n.archiveMediaKindTimelapse
+        : l10n.archiveMediaKindIpcam;
+    final at = file.recordedAt;
+    return [
+      kind,
+      if (at != null) DateTimeFormats.of(context).time(at),
+      formatBytes(file.size),
+    ].join(' · ');
+  }
 
   /// The attached video's own name. Known from the archive before the search
   /// answers; the search only confirms it and adds the size.
@@ -570,11 +584,20 @@ class _SectionHeader extends StatelessWidget {
       // The trailing button brings its own height, so the gap under the header
       // is only needed on the plain one.
       padding: EdgeInsets.only(top: 16, bottom: trailing == null ? 6 : 0),
-      child: Row(
+      // A `Wrap`, not a `Row` with an `Expanded` heading: at the system's
+      // larger text sizes the button beside the heading is wider than the whole
+      // row, and `Expanded` shrinking the words to nothing does not help — the
+      // button has a width of its own and overflowed by 138 px at a scale of 2.
+      // This drops it onto a line of its own instead, which is what the space
+      // allows. No measuring needed, unlike the sheet's paired action buttons,
+      // because these two are not a pair that has to stay the same size.
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          // The words are the heading; the trailing control beside them is a
-          // button and has to keep reading as one.
-          Expanded(child: SectionHeading(title, style: t.label)),
+          // The words are the heading; the control beside them is a button and
+          // has to keep reading as one.
+          SectionHeading(title, style: t.label),
           ?trailing,
         ],
       ),
@@ -665,6 +688,10 @@ class _MediaRow extends StatelessWidget {
                   Text(
                     title,
                     style: t.body,
+                    // One line, and the subtitle carries what tells two rows
+                    // apart. More lines would buy nothing: a printer's file
+                    // name has no spaces, and the line breaker treats it as one
+                    // unbreakable token — it never wraps, at any maxLines.
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

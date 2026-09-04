@@ -19,6 +19,7 @@ class ArchiveMediaFile {
     required this.path,
     required this.size,
     required this.kind,
+    this.recordedAt,
   });
 
   final String name;
@@ -32,6 +33,15 @@ class ArchiveMediaFile {
 
   final ArchiveMediaKind kind;
 
+  /// When the printer wrote the file, best-effort from its FTP listing.
+  ///
+  /// This is what tells one recording from another: a print's camera chunks
+  /// carry the same name but for a timestamp, and that timestamp sits at the
+  /// end of a name the line breaker treats as one unbreakable token — so on a
+  /// narrow screen the names ellipsise to the same thing and the row has
+  /// nothing else to say which is which.
+  final DateTime? recordedAt;
+
   factory ArchiveMediaFile.fromJson(Map<String, dynamic> json) {
     final name = toStringOrNull(json['name']) ?? '';
     return ArchiveMediaFile(
@@ -41,6 +51,7 @@ class ArchiveMediaFile {
       kind: toStringOrNull(json['kind']) == 'timelapse'
           ? ArchiveMediaKind.timelapse
           : ArchiveMediaKind.ipcam,
+      recordedAt: dateTimeFromJson(json['mtime']),
     );
   }
 }

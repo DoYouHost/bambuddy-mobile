@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_media_sheet.dart';
@@ -7,7 +8,7 @@ import 'package:dio/dio.dart';
 import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -53,6 +54,7 @@ void main() {
     WidgetTester tester,
     Archive item, {
     bool searchable = true,
+    TextScaler scaler = TextScaler.noScaling,
   }) async {
     late BuildContext sheetContext;
     await tester.pumpWidget(ProviderScope(
@@ -61,10 +63,17 @@ void main() {
         archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
         archiveMediaSupportedProvider.overrideWith((ref) async => searchable),
       ],
-      child: plApp(Builder(builder: (context) {
-        sheetContext = context;
-        return const SizedBox.shrink();
-      })),
+      child: plApp(
+        Builder(builder: (context) {
+          sheetContext = context;
+          return const SizedBox.shrink();
+        }),
+        // Wraps the navigator, so the sheet's own route sees it too.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: scaler),
+          child: child!,
+        ),
+      ),
     ));
     openArchiveMediaSheet(
       sheetContext,
@@ -187,6 +196,87 @@ void main() {
     expect(isHeader(l10n.archiveMediaOnPrinter(0)), isTrue);
 
     handle.dispose();
+  });
+
+  testWidgets('two chunks stay tellable apart when their names cannot be',
+      (tester) async {
+    // A printer's file name has no spaces, so the line breaker treats it as one
+    // unbreakable token: it never wraps, at any maxLines, and on a narrow
+    // screen at the system's larger text sizes both of these ellipsise to the
+    // same `ipcam_20260903_08…`. The timestamp they differ by is at the end —
+    // the half that goes. So the row says the time itself.
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    replyWith(const {
+      'archive_id': 1,
+      'printer_id': 2,
+      'remote_files': [
+        {
+          'name': 'ipcam_20260903_081500.mp4',
+          'path': '/ipcam/ipcam_20260903_081500.mp4',
+          'size': 6291456,
+          'kind': 'ipcam',
+          'mtime': '2026-09-03T08:15:00',
+        },
+        {
+          'name': 'ipcam_20260903_085551.mp4',
+          'path': '/ipcam/ipcam_20260903_085551.mp4',
+          'size': 6291456,
+          'kind': 'ipcam',
+          'mtime': '2026-09-03T08:55:51',
+        },
+      ],
+    });
+
+    await open(tester, archive(), scaler: const TextScaler.linear(2));
+
+    // The names do run out of room — that is the premise, not a failure.
+    expect(
+      tester
+          .renderObject<RenderParagraph>(
+              find.text('ipcam_20260903_085551.mp4'))
+          .didExceedMaxLines,
+      isTrue,
+    );
+
+    // The subtitles are what the reader picks between, and they differ.
+    final times = DateTimeFormats.of(
+      tester.element(find.text('ipcam_20260903_085551.mp4')),
+    );
+    final early = DateTime.utc(2026, 9, 3, 8, 15).toLocal();
+    final late = DateTime.utc(2026, 9, 3, 8, 55, 51).toLocal();
+    expect(find.textContaining(times.time(early)), findsOneWidget);
+    expect(find.textContaining(times.time(late)), findsOneWidget);
+
+    // And the header above them survives the same text size: the button beside
+    // it is wider than the whole row there, so it takes a line of its own
+    // rather than running off the edge.
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a listing with no timestamp says the rest without inventing one',
+      (tester) async {
+    replyWith(const {
+      'archive_id': 1,
+      'printer_id': 2,
+      'remote_files': [
+        {
+          'name': 'ipcam_1.mp4',
+          'path': '/ipcam/ipcam_1.mp4',
+          'size': 6291456,
+          'kind': 'ipcam',
+        },
+      ],
+    });
+
+    final l10n = await open(tester, archive());
+
+    expect(
+      find.text('${l10n.archiveMediaKindIpcam} · 6.0 MB'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('several candidates start unticked', (tester) async {
