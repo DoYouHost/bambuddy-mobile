@@ -16,6 +16,7 @@ import '../common/dash_input.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import 'print_log_providers.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
@@ -125,7 +126,7 @@ class _PrintLogClassifySheetState
     // would read as "this run drew nothing" rather than "this server does not
     // say" — the same gate the list columns are behind.
     final showMoney =
-        ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+        ref.watch(printLogCostEnergyProvider).orFalse;
     final currency = ref.watch(currencySymbolProvider);
 
     return logTag(

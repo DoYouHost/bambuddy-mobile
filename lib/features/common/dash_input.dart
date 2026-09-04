@@ -58,10 +58,13 @@ InputDecorationTheme dashInputTheme(DashTokens t) {
 /// the menu height a phone can actually scroll and the diagnostic name on the
 /// field itself.
 ///
-/// `DropdownButtonFormField` is deliberately not used anywhere in the app — its
-/// full-screen overlay is the old Material look. Rows carry their own ids: the
-/// menu opens in a route of its own, so [id] never reaches them (the trap is
-/// written up in docs/logging-guide.md).
+/// Every select belongs here rather than in a `DropdownButtonFormField`, whose
+/// full-screen overlay is the old Material look. Eight of those are still in
+/// the app — projects, inventory, maintenance — so this says where a select
+/// goes, not that nothing is left to move.
+///
+/// Rows carry their own ids: the menu opens in a route of its own, so [id]
+/// never reaches them (the trap is written up in docs/logging-guide.md).
 ///
 /// [filterable] turns the field into a combo the user may type into, which is
 /// also what makes it take focus — a plain select must not, or the keyboard
@@ -101,6 +104,55 @@ Widget dashCombo<T>(
       onSelected: onSelected,
       dropdownMenuEntries: entries,
     ).tagged(id);
+
+/// A [dashCombo] whose first row means "no filter" — what every server-side
+/// filter picker needs, and the shape three screens had each written their own
+/// way.
+///
+/// **Null is the any-row**, which is why [T] is bound to a non-null type: the
+/// picker's value type is `T?`, so the two states a filter has need no sentinel
+/// between them. A `DropdownMenu` does hold a null row and names it at
+/// `initialSelection: null` — the stand-in this replaced (`-1`, `''`) existed
+/// on the belief that it could not, and had to be mapped back at every caller.
+///
+/// [options] pairs each value with the label it shows. Labels are names people
+/// gave things, so they stay out of the diagnostic id — the any-row records as
+/// `<id>.any` and **every** value row as `<id>.option`.
+Widget dashAnyOrOne<T extends Object>(
+  BuildContext context, {
+  required String id,
+  required String anyLabel,
+  required T? selected,
+  required List<(T, String)> options,
+  required ValueChanged<T?> onPick,
+  Widget? label,
+  String? helperText,
+  bool enabled = true,
+  TextStyle? textStyle,
+}) =>
+    dashCombo<T?>(
+      context,
+      id: id,
+      label: label,
+      helperText: helperText,
+      enabled: enabled,
+      textStyle: textStyle,
+      initialSelection: selected,
+      onSelected: onPick,
+      entries: [
+        DropdownMenuEntry(
+          value: null,
+          label: anyLabel,
+          labelWidget: logTag('$id.any', Text(anyLabel)),
+        ),
+        for (final (value, optionLabel) in options)
+          DropdownMenuEntry(
+            value: value,
+            label: optionLabel,
+            labelWidget: logTag('$id.option', Text(optionLabel)),
+          ),
+      ],
+    );
 
 /// A field that opens a picker instead of taking typed input: the app's field
 /// chrome, the current value (or a placeholder) inside it, and the affordance

@@ -1135,7 +1135,7 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).valueOrNull ?? false;
+    final enabled = ref.watch(slicerEnabledProvider).orFalse;
     if (!enabled) return const SizedBox.shrink();
     final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
     if (caps == null || !caps.sliceable) return const SizedBox.shrink();
@@ -1143,7 +1143,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
     final canRunPipeline =
-        ref.watch(canRunPipelinesProvider).valueOrNull == true;
+        ref.watch(canRunPipelinesProvider).orFalse;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -1188,7 +1188,7 @@ class _ArchiveMediaButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchable =
-        ref.watch(archiveMediaSupportedProvider).valueOrNull ?? false;
+        ref.watch(archiveMediaSupportedProvider).orFalse;
     if (!archiveHasMedia(archive, printerSearchable: searchable)) {
       return const SizedBox.shrink();
     }

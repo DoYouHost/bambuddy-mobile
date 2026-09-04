@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+
 import '../../core/models/pipeline_run.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_input.dart';
@@ -20,10 +21,9 @@ Future<void> showPipelineRunFilterSheet(BuildContext context) => dashSheet<void>
 
 /// One target choice. The server has two fields for this and ANDs them, but a
 /// run is dispatched to a printer *or* to a class, so the picker offers one
-/// list and only ever sets one of the pair.
+/// list and only ever sets one of the pair. A null [_Target] is "any target",
+/// which is what keeps the two fields from needing a third state between them.
 typedef _Target = ({int? printerId, String? modelClass});
-
-const _Target _anyTarget = (printerId: null, modelClass: null);
 
 class _PipelineRunFilterSheet extends ConsumerWidget {
   const _PipelineRunFilterSheet();
@@ -49,101 +49,70 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
           Text(l10n.pipelineRunsFilter, style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
 
-          dashCombo<int?>(
+          dashAnyOrOne<int>(
             context,
             id: 'pipeline_runs.filter_pipeline',
+            anyLabel: l10n.pipelineRunsFilterAny,
             label: Text(l10n.pipelineSection),
-            initialSelection: filter.pipelineId,
             // A run whose pipeline was deleted carries a null `pipeline_id`,
-            // and no value of this filter reaches it — so the helper says the
-            // list is of saved pipelines, not of everything that ever ran.
+            // and no value of this filter reaches it.
             helperText: l10n.pipelineRunsFilterPipelineHint,
-            onSelected: (v) =>
+            selected: filter.pipelineId,
+            options: [for (final p in pipelines) (p.id, p.name)],
+            onPick: (v) =>
                 notifier.replace(filter.copyWith(pipelineId: (value: v))),
-            entries: [
-              DropdownMenuEntry(
-                value: null,
-                label: l10n.pipelineRunsFilterAny,
-                labelWidget: logTag('pipeline_runs.filter_pipeline_option',
-                    Text(l10n.pipelineRunsFilterAny)),
-              ),
-              for (final p in pipelines)
-                DropdownMenuEntry(
-                  value: p.id,
-                  label: p.name,
-                  labelWidget: logTag(
-                      'pipeline_runs.filter_pipeline_option', Text(p.name)),
-                ),
-            ],
           ),
           const SizedBox(height: 12),
 
-          dashCombo<String?>(
+          dashAnyOrOne<String>(
             context,
             id: 'pipeline_runs.filter_status',
+            anyLabel: l10n.pipelineRunsFilterAny,
             label: Text(l10n.pipelineRunsFilterStatus),
-            initialSelection: filter.status,
             // The server matches the *persisted* status, which lags the live
-            // roll-up until a transition writes through — so a run that is
-            // printing can still answer to `dispatching`.
+            // roll-up until a transition writes through.
             helperText: l10n.pipelineRunsFilterStatusHint,
-            onSelected: (v) =>
-                notifier.replace(filter.copyWith(status: (value: v))),
-            entries: [
-              DropdownMenuEntry(
-                value: null,
-                label: l10n.pipelineRunsFilterAny,
-                labelWidget: logTag('pipeline_runs.filter_status_option',
-                    Text(l10n.pipelineRunsFilterAny)),
-              ),
+            selected: filter.status,
+            options: [
               for (final s in PipelineRunStatus.filterable)
-                DropdownMenuEntry(
-                  value: s.wire,
-                  label: runStatusLabel(l10n, s),
-                  labelWidget: logTag('pipeline_runs.filter_status_option',
-                      Text(runStatusLabel(l10n, s))),
-                ),
+                (s.wire!, runStatusLabel(l10n, s)),
             ],
+            onPick: (v) =>
+                notifier.replace(filter.copyWith(status: (value: v))),
           ),
           const SizedBox(height: 12),
 
-          dashCombo<_Target>(
+          dashAnyOrOne<_Target>(
             context,
             id: 'pipeline_runs.filter_target',
+            anyLabel: l10n.pipelineRunsFilterAny,
             label: Text(l10n.pipelineRunsFilterTarget),
-            initialSelection: (
-              printerId: filter.targetPrinterId,
-              modelClass: filter.targetModelClass,
-            ),
             // Filters on where the pipeline points *now*: re-targeting one
             // moves its whole history from one answer to the other.
             helperText: l10n.pipelineRunsFilterTargetHint,
-            onSelected: (v) => notifier.replace(filter.copyWith(
+            selected: filter.targetPrinterId == null &&
+                    filter.targetModelClass == null
+                ? null
+                : (
+                    printerId: filter.targetPrinterId,
+                    modelClass: filter.targetModelClass,
+                  ),
+            options: [
+              for (final p in printers)
+                (
+                  (printerId: p.id, modelClass: null),
+                  l10n.pipelineRunOnPrinter(p.name),
+                ),
+              for (final c in classes)
+                (
+                  (printerId: null, modelClass: c),
+                  l10n.pipelineRunOnClass(c),
+                ),
+            ],
+            onPick: (v) => notifier.replace(filter.copyWith(
               targetPrinterId: (value: v?.printerId),
               targetModelClass: (value: v?.modelClass),
             )),
-            entries: [
-              DropdownMenuEntry(
-                value: _anyTarget,
-                label: l10n.pipelineRunsFilterAny,
-                labelWidget: logTag('pipeline_runs.filter_target_option',
-                    Text(l10n.pipelineRunsFilterAny)),
-              ),
-              for (final p in printers)
-                DropdownMenuEntry(
-                  value: (printerId: p.id, modelClass: null),
-                  label: l10n.pipelineRunOnPrinter(p.name),
-                  labelWidget: logTag('pipeline_runs.filter_target_option',
-                      Text(l10n.pipelineRunOnPrinter(p.name))),
-                ),
-              for (final c in classes)
-                DropdownMenuEntry(
-                  value: (printerId: null, modelClass: c),
-                  label: l10n.pipelineRunOnClass(c),
-                  labelWidget: logTag('pipeline_runs.filter_target_option',
-                      Text(l10n.pipelineRunOnClass(c))),
-                ),
-            ],
           ),
           const SizedBox(height: 20),
 

@@ -264,7 +264,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
     final overridesSupported =
-        ref.watch(presetOverridesSupportedProvider).valueOrNull ?? false;
+        ref.watch(presetOverridesSupportedProvider).orFalse;
     final showOverrides = _showsPresetOverrides(overridesSupported);
     final stored = showOverrides && _isEdit
         ? ref.watch(spoolPresetOverridesProvider(widget.existing!.id))

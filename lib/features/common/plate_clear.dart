@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/printer_status.dart';
 import '../../providers.dart';
+import 'dash_async.dart';
 
 /// The plate-clear gate, in one place for the three surfaces that read it: the
 /// phone's printer card, the watch's control screen, and the queue's
@@ -65,7 +66,7 @@ bool plateClearOffered(WidgetRef ref, PrinterStatus? status) {
   final pending = plateClearPending(
     status,
     gateEnabled: () =>
-        ref.watch(requirePlateClearProvider).valueOrNull ?? false,
+        ref.watch(requirePlateClearProvider).orFalse,
   );
   if (!pending) return false;
   return status?.connected == true || ref.watch(offlinePlateClearProvider);

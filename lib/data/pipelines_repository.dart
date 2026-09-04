@@ -75,11 +75,7 @@ class PipelinesRepository {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.slicerPipelines,
         );
-        final raw = res.data?['pipelines'];
-        return [
-          for (final p in (raw as List? ?? const []))
-            if (p is Map<String, dynamic>) SlicerPipeline.fromJson(p),
-        ];
+        return parseJsonList(res.data?['pipelines'], SlicerPipeline.fromJson);
       });
 
   /// POST /slicer-pipelines/ — bundle only; the target needs a follow-up

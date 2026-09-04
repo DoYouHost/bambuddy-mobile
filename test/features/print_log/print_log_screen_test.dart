@@ -338,8 +338,8 @@ void main() {
 
   testWidgets('the printer filter reports "any" as no filter at all',
       (tester) async {
-    // The combo has no null option, so "any" rides on a sentinel value. Mapping
-    // it back to null is the fiddly half, and it is what the query depends on.
+    // "Any" is a real null row (`dashAnyOrOne`), and the query depends on it
+    // arriving as null rather than as some stand-in the caller has to map back.
     await pumpScreen(tester);
     await tester.tap(find.byIcon(Icons.tune));
     await settle(tester);
@@ -349,7 +349,7 @@ void main() {
     );
     expect(container.read(printLogFiltersProvider).printerId, isNull);
 
-    await tester.tap(find.byType(DropdownMenu<int>));
+    await tester.tap(find.byType(DropdownMenu<int?>));
     await settle(tester);
     final printer = find.text('P1S').last;
     await tester.ensureVisible(printer);
@@ -359,6 +359,20 @@ void main() {
 
     expect(container.read(printLogFiltersProvider).printerId, 3);
     expect(container.read(printLogFiltersProvider).activeCount, 1);
+
+    // And back: the any-row has to clear the filter, not set it to a value the
+    // query would then send. This half is what the screen's `clearPrinter`
+    // flag exists for — a null `printerId` alone means "leave it alone".
+    await tester.tap(find.byType(DropdownMenu<int?>));
+    await settle(tester);
+    final any = find.text(l10n.printLogAnyPrinter).last;
+    await tester.ensureVisible(any);
+    await tester.pump();
+    await tester.tap(any);
+    await settle(tester);
+
+    expect(container.read(printLogFiltersProvider).printerId, isNull);
+    expect(container.read(printLogFiltersProvider).activeCount, 0);
   });
 
   testWidgets('an orphan run is marked as one', (tester) async {

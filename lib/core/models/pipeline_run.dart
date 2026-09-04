@@ -104,7 +104,7 @@ class PerPrinterReport {
         printerId: toIntOrNull(json['printer_id']) ?? 0,
         printerName: json['printer_name'] as String? ?? '',
         ok: json['ok'] == true,
-        issues: _issues(json['issues']),
+        issues: parseJsonList(json['issues'], EligibilityIssue.fromJson),
       );
 
   final int printerId;
@@ -112,11 +112,6 @@ class PerPrinterReport {
   final bool ok;
   final List<EligibilityIssue> issues;
 }
-
-List<EligibilityIssue> _issues(dynamic value) => [
-      for (final i in (value as List? ?? const []))
-        if (i is Map<String, dynamic>) EligibilityIssue.fromJson(i),
-    ];
 
 /// The pre-flight verdict (`EligibilityReportResponse`), returned both by
 /// `check-eligibility` and — inside the `detail` of a **409** — by a `run` the
@@ -149,11 +144,9 @@ class EligibilityReport {
         targetPrinterId: toIntOrNull(json['target_printer_id']),
         targetPrinterName: json['target_printer_name'] as String?,
         targetModelClass: json['target_model_class'] as String?,
-        issues: _issues(json['issues']),
-        printerReports: [
-          for (final r in (json['printer_reports'] as List? ?? const []))
-            if (r is Map<String, dynamic>) PerPrinterReport.fromJson(r),
-        ],
+        issues: parseJsonList(json['issues'], EligibilityIssue.fromJson),
+        printerReports:
+            parseJsonList(json['printer_reports'], PerPrinterReport.fromJson),
       );
 
   final bool ok;
@@ -364,10 +357,7 @@ class PipelineRun {
         createdAt: dateTimeFromJson(json['created_at']),
         startedAt: dateTimeFromJson(json['started_at']),
         completedAt: dateTimeFromJson(json['completed_at']),
-        jobs: [
-          for (final j in (json['jobs'] as List? ?? const []))
-            if (j is Map<String, dynamic>) PipelineJob.fromJson(j),
-        ],
+        jobs: parseJsonList(json['jobs'], PipelineJob.fromJson),
         // Null rather than the enum default: these are a snapshot of the
         // pipeline's target and the server omits them for a run whose pipeline
         // is gone, which is not the same as "targets a class".
@@ -525,10 +515,7 @@ class PipelineRunPage {
 
   factory PipelineRunPage.fromJson(Map<String, dynamic> json) =>
       PipelineRunPage(
-        runs: [
-          for (final r in (json['runs'] as List? ?? const []))
-            if (r is Map<String, dynamic>) PipelineRun.fromJson(r),
-        ],
+        runs: parseJsonList(json['runs'], PipelineRun.fromJson),
         total: toIntOrNull(json['total']) ?? 0,
       );
 

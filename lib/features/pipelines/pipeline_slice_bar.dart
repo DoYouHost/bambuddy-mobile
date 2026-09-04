@@ -8,6 +8,7 @@ import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import '../slicer/slice_providers.dart';
 import 'pipeline_presets.dart';
 import 'pipelines_providers.dart';
@@ -54,7 +55,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
-    final canSave = ref.watch(canWritePipelinesProvider).valueOrNull == true &&
+    final canSave = ref.watch(canWritePipelinesProvider).orFalse &&
         _selectionComplete;
 
     return Card(
@@ -74,7 +75,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                 pipelines.isEmpty ? null : const Icon(Icons.chevron_right),
             onTap: pipelines.isEmpty || widget.busy ? null : _pick,
           ).tagged('slice.pipeline_apply'),
-          if (ref.watch(canWritePipelinesProvider).valueOrNull == true)
+          if (ref.watch(canWritePipelinesProvider).orFalse)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Align(

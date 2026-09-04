@@ -13,6 +13,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/state_views.dart';
 import '../slicer/slice_providers.dart';
 import 'pipeline_edit_screen.dart';
@@ -90,7 +91,7 @@ class _PipelineCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final catalog = ref.watch(slicerPresetsProvider).valueOrNull;
-    final canWrite = ref.watch(canWritePipelinesProvider).valueOrNull == true;
+    final canWrite = ref.watch(canWritePipelinesProvider).orFalse;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),

@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_input.dart';
 import 'pipelines_providers.dart';
 
 /// Name, description and — the reason this screen exists — the target a run
@@ -121,58 +122,33 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
     );
   }
 
-  Widget _printerDropdown(AppLocalizations l10n, List<Printer> printers) {
-    return DropdownMenu<int?>(
-      initialSelection: _printerId,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
-      enabled: !_saving,
-      label: Text(l10n.pipelineTargetPickPrinter),
-      onSelected: (v) => setState(() => _printerId = v),
-      dropdownMenuEntries: [
-        DropdownMenuEntry(
-          value: null,
-          label: l10n.pipelineTargetNone,
-          labelWidget: logTag(
-              'pipeline_edit.printer_option', Text(l10n.pipelineTargetNone)),
-        ),
-        for (final p in printers)
-          DropdownMenuEntry(
-            value: p.id,
-            label: p.name,
-            labelWidget:
-                logTag('pipeline_edit.printer_option', Text(p.name)),
-          ),
-      ],
-    ).tagged('pipeline_edit.printer');
-  }
+  /// The pinned printer, or none yet — which is what every pipeline saved from
+  /// the slice form starts as, since the create schema carries no target.
+  Widget _printerDropdown(AppLocalizations l10n, List<Printer> printers) =>
+      dashAnyOrOne<int>(
+        context,
+        id: 'pipeline_edit.printer',
+        anyLabel: l10n.pipelineTargetNone,
+        label: Text(l10n.pipelineTargetPickPrinter),
+        enabled: !_saving,
+        selected: _printerId,
+        options: [for (final p in printers) (p.id, p.name)],
+        onPick: (v) => setState(() => _printerId = v),
+      );
 
-  Widget _classDropdown(AppLocalizations l10n, List<String> classes) {
-    return DropdownMenu<String?>(
-      initialSelection: _modelClass,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
-      enabled: !_saving,
-      label: Text(l10n.pipelineTargetPickClass),
-      onSelected: (v) => setState(() => _modelClass = v),
-      dropdownMenuEntries: [
-        DropdownMenuEntry(
-          value: null,
-          label: l10n.pipelineTargetNone,
-          labelWidget: logTag(
-              'pipeline_edit.class_option', Text(l10n.pipelineTargetNone)),
-        ),
-        for (final c in classes)
-          DropdownMenuEntry(
-            value: c,
-            label: c,
-            labelWidget: logTag('pipeline_edit.class_option', Text(c)),
-          ),
-      ],
-    ).tagged('pipeline_edit.class');
-  }
+  /// Verbatim model codes — see `pipelinePrinterClassesProvider` for why they
+  /// must not be normalised on the way in.
+  Widget _classDropdown(AppLocalizations l10n, List<String> classes) =>
+      dashAnyOrOne<String>(
+        context,
+        id: 'pipeline_edit.class',
+        anyLabel: l10n.pipelineTargetNone,
+        label: Text(l10n.pipelineTargetPickClass),
+        enabled: !_saving,
+        selected: _modelClass,
+        options: [for (final c in classes) (c, c)],
+        onPick: (v) => setState(() => _modelClass = v),
+      );
 
   Widget _fanoutDropdown(AppLocalizations l10n) {
     String label(FanoutStrategy s) => switch (s) {
@@ -180,15 +156,16 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           FanoutStrategy.roundRobin => l10n.pipelineFanoutRoundRobin,
           FanoutStrategy.fillOneFirst => l10n.pipelineFanoutFillOneFirst,
         };
-    return DropdownMenu<FanoutStrategy>(
-      initialSelection: _fanout,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
-      enabled: !_saving,
+    // Not a [dashAnyOrOne]: a strategy has no "none" — the server defaults an
+    // unset one to `max_parallel`, so an empty row would be a lie about it.
+    return dashCombo<FanoutStrategy>(
+      context,
+      id: 'pipeline_edit.fanout',
       label: Text(l10n.pipelineFanout),
-      onSelected: (v) => setState(() => _fanout = v!),
-      dropdownMenuEntries: [
+      enabled: !_saving,
+      initialSelection: _fanout,
+      onSelected: (v) => setState(() => _fanout = v ?? _fanout),
+      entries: [
         for (final s in FanoutStrategy.values)
           DropdownMenuEntry(
             value: s,
@@ -196,7 +173,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
             labelWidget: logTag('pipeline_edit.fanout_option', Text(label(s))),
           ),
       ],
-    ).tagged('pipeline_edit.fanout');
+    );
   }
 
   /// Writes the whole target as one payload, including the *clearing* of the

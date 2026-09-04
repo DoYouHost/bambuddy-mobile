@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/state_views.dart';
 import 'pipeline_run_filter_sheet.dart';
 import 'pipeline_run_status_labels.dart';
@@ -119,7 +121,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
               onPressed: () => showPipelineRunFilterSheet(context),
             ),
           ),
-          if (ref.watch(canWritePipelinesProvider).valueOrNull == true)
+          if (ref.watch(canWritePipelinesProvider).orFalse)
             logTag(
               'pipeline_runs.clear',
               IconButton(
@@ -232,7 +234,7 @@ class _RunCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canRun = ref.watch(canRunPipelinesProvider).valueOrNull == true;
+    final canRun = ref.watch(canRunPipelinesProvider).orFalse;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),

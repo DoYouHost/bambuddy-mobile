@@ -29,6 +29,7 @@ import '../common/print_thumbnail.dart';
 import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
+import '../common/dash_async.dart';
 import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
@@ -1014,7 +1015,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // rejects `auto` outright, so offering the position before the probe answers
     // would promise something we cannot deliver.
     final triState =
-        ref.watch(triStateCalibrationProvider).valueOrNull ?? false;
+        ref.watch(triStateCalibrationProvider).orFalse;
     return _SectionCard(
       title: l10n.queueEditPrintOptions,
       child: Column(

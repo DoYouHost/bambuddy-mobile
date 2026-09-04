@@ -477,6 +477,73 @@ void main() {
     });
   });
 
+  group('tolerant parsing', () {
+    // These models go through `parseJsonList` / `parseJsonObjectOrNull` rather
+    // than a hand-written `is Map<String, dynamic>` filter. Two things that
+    // buys, both of which the private versions had lost: a record relayed over
+    // a platform channel (typed `Map<Object?, Object?>`) still reads, and one
+    // bad entry costs itself instead of the whole list.
+    test('one unusable entry does not empty the list around it', () async {
+      adapter.onGet(
+        '/api/v1/pipeline-runs',
+        (s) => s.reply(200, {
+          'runs': [
+            {
+              'id': 5,
+              'copies': 1,
+              'status': 'completed',
+              'eligibility_overridden': false,
+              'created_at': '2026-08-10T09:00:00',
+              'jobs': [
+                {'id': 1, 'pipeline_run_id': 5, 'copy_index': 0, 'status': 'completed'},
+                'not an object at all',
+                {'id': 2, 'pipeline_run_id': 5, 'copy_index': 1, 'status': 'failed'},
+              ],
+            },
+            42,
+          ],
+          'total': 1,
+        }),
+        queryParameters: {'limit': 25, 'offset': 0},
+      );
+
+      final page = await repo.runs();
+
+      expect(page.runs, hasLength(1), reason: 'the number is dropped, not read');
+      expect(page.runs.single.jobs.map((j) => j.id), [1, 2],
+          reason: 'the string between them costs only itself');
+    });
+
+    test('a nested ref survives a map that is not Map<String, dynamic>',
+        () async {
+      // What a platform channel hands back. The strict type test dropped it,
+      // and a pipeline then lost the preset it points at silently.
+      final relayed = <Object?, Object?>{'source': 'local', 'id': '3'};
+      final pipeline = SlicerPipeline.fromJson({
+        'id': 7,
+        'name': 'Relayed',
+        'printer_preset': relayed,
+        'process_preset': {'source': 'local', 'id': '9'},
+        'filament_presets': [relayed],
+      });
+
+      expect(pipeline.printerPreset, const PresetRef(source: 'local', id: '3'));
+      expect(pipeline.filamentPresets, hasLength(1));
+    });
+
+    test('a missing preset ref reads as gone from the catalog, not as a throw',
+        () async {
+      final pipeline = SlicerPipeline.fromJson({
+        'id': 7,
+        'name': 'Half a bundle',
+        'process_preset': {'source': 'local', 'id': '9'},
+      });
+
+      expect(pipeline.printerPreset.id, isEmpty);
+      expect(pipeline.filamentPresets, isEmpty);
+    });
+  });
+
   group('PipelineRunFilter', () {
     test('sends only the keys that are set', () async {
       // The route reads `None` as "do not filter"; an explicit null in a query

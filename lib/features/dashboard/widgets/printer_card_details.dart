@@ -1390,7 +1390,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   /// the very thing this is avoiding.
   List<Widget> _startWhen(AppLocalizations l10n) {
     final offered =
-        ref.watch(scheduledDryingSupportedProvider).valueOrNull ?? false;
+        ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [
       const SizedBox(height: 16),

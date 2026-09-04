@@ -9,6 +9,21 @@ import '../../l10n/error_messages.dart';
 import 'dash_progress.dart';
 import 'state_views.dart';
 
+/// A capability the app has to ask the server for, read as a plain flag:
+/// **unresolved is off.**
+///
+/// A name rather than a spelling, because `!= false` says the opposite and
+/// looks just as reasonable at the call site. Every one of these gates a
+/// control, so loading, an error and a refusal all have to read the same way —
+/// otherwise a control flashes into a screen and out again, or leads to a route
+/// the server does not have.
+///
+/// A gate that would rather show its control while the answer loads belongs on
+/// the other side of the question, in `ObservedCapability.whenUnknown`.
+extension AsyncFlag on AsyncValue<bool> {
+  bool get orFalse => valueOrNull ?? false;
+}
+
 /// A screen's three states, with the two every screen words identically already
 /// written: the spinner while the data is on its way, and "could not load it,
 /// try again" when the server said no.

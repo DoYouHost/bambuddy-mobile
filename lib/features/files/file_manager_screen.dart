@@ -363,7 +363,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     // Slicing only applies to un-sliced models (not gcode), and only when the
     // server's slicer sidecar is enabled.
     final canSlice =
-        (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
+        ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
     final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
     dashSheet<void>(
       context,
@@ -449,7 +449,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             // Slice because it needs the same source and the same permission
             // to produce a print — only the picking of profiles differs.
             if (canSlice &&
-                ref.watch(canRunPipelinesProvider).valueOrNull == true)
+                ref.watch(canRunPipelinesProvider).orFalse)
               ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
                 title: Text(l10n.pipelineRun),

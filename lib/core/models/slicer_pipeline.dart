@@ -110,10 +110,8 @@ class SlicerPipeline {
         description: json['description'] as String?,
         printerPreset: _ref(json['printer_preset']),
         processPreset: _ref(json['process_preset']),
-        filamentPresets: [
-          for (final f in (json['filament_presets'] as List? ?? const []))
-            if (f is Map<String, dynamic>) PresetRef.fromJson(f),
-        ],
+        filamentPresets:
+            parseJsonList(json['filament_presets'], PresetRef.fromJson),
         bedType: json['bed_type'] as String?,
         targetKind: PipelineTargetKind.parse(json['target_kind'] as String?),
         targetPrinterId: toIntOrNull(json['target_printer_id']),
@@ -125,9 +123,16 @@ class SlicerPipeline {
         updatedAt: dateTimeFromJson(json['updated_at']),
       );
 
-  static PresetRef _ref(dynamic value) => value is Map<String, dynamic>
-      ? PresetRef.fromJson(value)
-      : const PresetRef(source: 'standard', id: '');
+  /// A required nested ref, read tolerantly: an absent or unreadable one
+  /// becomes an empty `standard` ref, which [resolvePresetRef] then shows as
+  /// gone from the catalog rather than emptying the whole screen.
+  ///
+  /// Through [parseJsonObjectOrNull] rather than a `Map<String, dynamic>` test,
+  /// which drops a record relayed over a platform channel — those arrive typed
+  /// `Map<Object?, Object?>`.
+  static PresetRef _ref(dynamic value) =>
+      parseJsonObjectOrNull(value, PresetRef.fromJson) ??
+      const PresetRef(source: 'standard', id: '');
 
   final int id;
   final String name;
