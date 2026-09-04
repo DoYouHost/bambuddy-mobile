@@ -621,7 +621,10 @@ final labelStartingPositionProvider = FutureProvider<bool>(
 
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
-  (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+  (ref) => ArchiveRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Timelapse metadata, filmstrip, server-side re-encode and download. Shares

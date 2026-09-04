@@ -125,11 +125,11 @@ class PrinterFilesRepository {
   /// that 404 itself, so the user sees the real error rather than a silent
   /// nothing.
   ///
-  /// [sizes] is all-or-nothing — the schema refuses a partial map
-  /// (`PrinterFilesDownloadRequest._validate_sizes`: its keys must be exactly
-  /// [paths]) — and buys the only thing it can: the server checks its own free
-  /// space before touching the printer, so an impossible selection is refused
-  /// in a second rather than after a long transfer.
+  /// [sizes] buys the only thing it can: the server checks its own free space
+  /// before touching the printer, so an impossible selection is refused in a
+  /// second rather than after a long transfer. What it is worth depends
+  /// entirely on the numbers being real, which is why the map is vouched for
+  /// here rather than at each call site — see [_vouchedSizes].
   ///
   /// [asZip] false is a native single-file download, which the server accepts
   /// for exactly one path.
@@ -145,7 +145,7 @@ class PrinterFilesRepository {
         Endpoints.printerFilesJob(printerId),
         data: {
           'paths': paths,
-          if (sizes.length == paths.length) 'sizes': sizes,
+          'sizes': ?_vouchedSizes(paths, sizes),
           'filename': filename,
           'as_zip': asZip,
         },
@@ -158,6 +158,28 @@ class PrinterFilesRepository {
       if (status == 404) return null;
       throw mapDioException(e);
     }
+  }
+
+  /// [sizes] as the server may be told them, or **null when they are not worth
+  /// sending** — the whole map goes or none of it does.
+  ///
+  /// Two ways a map fails to be worth sending, and they cost the same:
+  ///
+  ///  * **Incomplete.** The schema refuses a partial map outright
+  ///    (`PrinterFilesDownloadRequest._validate_sizes`: its keys must be
+  ///    exactly [paths]).
+  ///  * **A size the listing could not read**, which arrives as `0`. Claiming
+  ///    a gigabyte of models is empty passes the server's free-space check on
+  ///    a lie, and the transfer then fails halfway through instead. Better no
+  ///    check than a check on invented numbers.
+  ///
+  /// The rule lives here because it is about what this route may be told, not
+  /// about the screen that happens to be asking — it was written out once per
+  /// caller before it lived here.
+  Map<String, int>? _vouchedSizes(List<String> paths, Map<String, int> sizes) {
+    if (sizes.length != paths.length) return null;
+    if (sizes.values.any((size) => size <= 0)) return null;
+    return sizes;
   }
 
   /// One poll of a job's state. **Null means the job itself is gone** — an id

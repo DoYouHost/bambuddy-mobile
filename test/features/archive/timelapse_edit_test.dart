@@ -125,6 +125,16 @@ void main() {
     test('pusta nazwa nie daje pliku zaczynającego się od podkreślenia', () {
       expect(exportFilename('///'), 'timelapse_timelapse.mp4');
     });
+
+    test('keeps letters of any script, so a folder of videos stays usable', () {
+      // `\w` is ASCII in Dart: before the Unicode class this reduced "Łódź" to
+      // "d" and a Japanese name to nothing at all, so every such print saved as
+      // the same fallback name.
+      expect(exportFilename('Łódź'), 'Łódź_timelapse.mp4');
+      expect(exportFilename('日本語 x2'), '日本語_x2_timelapse.mp4');
+      // Emoji are neither letter nor digit and a share target may refuse them.
+      expect(exportFilename('Benchy 🎉'), 'Benchy_timelapse.mp4');
+    });
   });
 
   group('TimelapseFilmstrip.fromJson', () {

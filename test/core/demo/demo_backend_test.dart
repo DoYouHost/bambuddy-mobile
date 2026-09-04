@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
+import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -135,6 +136,67 @@ void main() {
           reason: 'the plate the print ran on has to be one of the choices');
 
       expect((await repo.plates(single.id)).isMultiPlate, isFalse);
+    });
+
+    test('printer media: the three outcomes the sheet has to render', () async {
+      final repo = ArchiveRepository(dio);
+      final printed =
+          (await repo.list()).where((a) => a.printerId != null).toList();
+      final media = [
+        for (final a in printed) (await repo.printerMedia(a.id))!,
+      ];
+
+      // Nothing the demo server keeps: a viewer row would open onto
+      // `http://demo`, which resolves nowhere.
+      expect(media.every((m) => m.localTimelapse == null), isTrue);
+
+      // All three faces of the printer section, so browsing the archive list
+      // shows each of them rather than the same answer every time.
+      expect(
+        media.where((m) => m.remoteFiles.isEmpty && m.warnings.isEmpty),
+        isNotEmpty,
+        reason: 'a print whose card has been cleared since',
+      );
+      expect(
+        media.where((m) =>
+            m.remoteFiles.any((f) => f.kind == ArchiveMediaKind.ipcam)),
+        isNotEmpty,
+        reason: 'a print with the camera chunks still there',
+      );
+      expect(
+        media.where(
+            (m) => m.warnings.contains(ArchiveMediaWarning.ipcamUnavailable)),
+        isNotEmpty,
+        reason: 'a printer with camera recording turned off',
+      );
+
+      expect(
+        media.expand((m) => m.remoteFiles).every((f) => f.size > 0),
+        isTrue,
+        reason: 'sizes are all-or-nothing on the way to the download job',
+      );
+    });
+
+    test('a video the sheet offers is the one the file manager lists',
+        () async {
+      // The two views are generated from the same prints, so a file named in
+      // one has to be findable in the other — otherwise the demo teaches a
+      // relationship the real server does not have.
+      final archives = ArchiveRepository(dio);
+      final files = PrinterFilesRepository(dio);
+      final print = (await archives.list())
+          .firstWhere((a) => a.printerId != null && a.id % 3 == 1);
+      final offered = (await archives.printerMedia(print.id))!.remoteFiles;
+      expect(offered, isNotEmpty);
+
+      for (final file in offered) {
+        final dir = file.path.substring(0, file.path.lastIndexOf('/'));
+        final listed = await files.listFiles(print.printerId!, dir);
+        final match =
+            listed.files.where((f) => f.path == file.path).singleOrNull;
+        expect(match, isNotNull, reason: '${file.path} is not in $dir');
+        expect(match!.size, file.size);
+      }
     });
 
     test('no-3mf nudge: the demo has nothing to complain about', () async {

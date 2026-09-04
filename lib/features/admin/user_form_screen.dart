@@ -152,7 +152,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                     _Notice(
                       icon: Icons.warning_amber_rounded,
                       text: l10n.usersNoSmtpWarning,
-                      accent: t.accentOrange,
+                      accent: t.accentOrangeInk,
                     ),
                   ],
                 ] else if (_isLdap) ...[
@@ -371,7 +371,7 @@ class _GroupPicker extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         l10n.usersGroupSystem,
-                        style: t.micro.copyWith(color: t.accentOrange),
+                        style: t.micro.copyWith(color: t.accentOrangeInk),
                       ),
                     ],
                   ],

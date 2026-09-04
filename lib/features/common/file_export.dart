@@ -119,6 +119,37 @@ Future<SavedFileResult> saveDownloadedFile(
   }
 }
 
+/// A print's name reduced to something a filesystem and a share target will
+/// both accept, for a file named after what it holds.
+///
+/// Strips the separators and wildcards that break a save (`/`, `\\`, `:`, `*`,
+/// `?`), collapses runs of whitespace, and drops leading and trailing dots and
+/// underscores — a leading dot makes a hidden file, and a trailing one collides
+/// with whatever suffix the caller appends. `..` disappears with the
+/// separators, so a name cannot walk out of the directory it is saved into.
+///
+/// [fallback] is the answer when nothing usable survives, which is why it has
+/// no default: `timelapse` and `archive` are the right words in their own
+/// places and the wrong one in the other's.
+///
+/// **Keeps letters and digits of any script.** `\w` is ASCII in Dart, so the
+/// first cut of this reduced `Łódź` to `d` and a Japanese print name to nothing
+/// — the fallback then named every one of them `timelapse.mp4`, which is how a
+/// folder of saved videos becomes unusable in exactly the locales this app
+/// ships in. `\p{L}\p{N}` needs `unicode: true` to mean anything; without the
+/// flag Dart reads `\p` as a literal `p`.
+///
+/// Emoji and symbols still go: they are neither letter nor digit, and a share
+/// target is entitled to refuse them.
+String safeFileStem(String name, {required String fallback}) {
+  final safe = name
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\s._-]', unicode: true), '')
+      .trim()
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll(RegExp(r'^[._]+|[._]+$'), '');
+  return safe.isEmpty ? fallback : safe;
+}
+
 /// Media types for the files a printer keeps, by extension.
 ///
 /// Only the ones the printer actually stores are listed; `null` for anything

@@ -440,12 +440,18 @@ class _PrintLogCard extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            _Pill(
+                            DashPill(
+                              dense: true,
                               label: printRunStatusLabel(l10n, entry.status),
-                              color: entry.countsAsFailure
+                              accent: entry.countsAsFailure
                                   ? t.danger
                                   : (entry.status == 'completed'
                                       ? t.accentGreen
+                                      : t.textTertiary),
+                              accentInk: entry.countsAsFailure
+                                  ? t.danger
+                                  : (entry.status == 'completed'
+                                      ? t.accentGreenInk
                                       : t.textTertiary),
                             ),
                           ],
@@ -478,15 +484,18 @@ class _PrintLogCard extends ConsumerWidget {
                             runSpacing: 4,
                             children: [
                               if (entry.failureReason != null)
-                                _Pill(
+                                DashPill(
+                                  dense: true,
                                   label: failureReasonLabel(
                                       l10n, entry.failureReason),
-                                  color: t.accentOrange,
+                                  accent: t.accentOrange,
+                                  accentInk: t.accentOrangeInk,
                                 ),
                               if (entry.isOrphan)
-                                _Pill(
+                                DashPill(
+                                  dense: true,
                                   label: l10n.printLogOrphan,
-                                  color: t.textTertiary,
+                                  accent: t.textTertiary,
                                   icon: Icons.link_off,
                                 ),
                             ],
@@ -506,36 +515,6 @@ class _PrintLogCard extends ConsumerWidget {
 }
 
 /// Small tinted label — status, failure cause, "archive deleted".
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color, this.icon});
-
-  final String label;
-  final Color color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-          ],
-          Text(label, style: t.micro.copyWith(color: color)),
-        ],
-      ),
-    );
-  }
-}
 
 /// One "anything, or pick one" filter combo.
 ///

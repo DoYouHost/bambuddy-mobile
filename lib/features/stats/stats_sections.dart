@@ -51,9 +51,10 @@ class FailureAnalysisCard extends ConsumerWidget {
         height: 80,
         failureMessage: l10n.statsLoadFailed,
         data: (f) {
+          // Inks: this paints the rate itself, in monoDisplay.
           final rateColor = f.failureRate <= 5
-              ? t.accentGreen
-              : (f.failureRate <= 15 ? t.accentOrange : t.danger);
+              ? t.accentGreenInk
+              : (f.failureRate <= 15 ? t.accentOrangeInk : t.danger);
           final reasons = f.failuresByReason.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
           return Column(

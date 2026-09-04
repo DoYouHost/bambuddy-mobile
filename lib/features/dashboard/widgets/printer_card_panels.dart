@@ -46,7 +46,7 @@ class _InfoRow extends StatelessWidget {
             item(
               doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
               (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
-              doorOpen ? t.accentOrange : t.textTertiary,
+              doorOpen ? t.accentOrangeInk : t.textTertiary,
             )
           else
             const SizedBox.shrink(),

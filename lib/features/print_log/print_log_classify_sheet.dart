@@ -292,7 +292,7 @@ class _PrintLogClassifySheetState
                 l10n.printLogStatusOneWay(
                   printRunStatusLabel(l10n, entry.status),
                 ),
-                style: t.label.copyWith(color: t.accentOrange),
+                style: t.label.copyWith(color: t.accentOrangeInk),
               ),
             ],
             const SizedBox(height: 20),

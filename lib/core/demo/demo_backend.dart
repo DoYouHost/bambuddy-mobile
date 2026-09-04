@@ -310,7 +310,9 @@ class DemoBackend {
         }
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
-          if (s.length == 3 && m == 'GET') return _ok(_printerFiles(q['path'] ?? '/'));
+          if (s.length == 3 && m == 'GET') {
+            return _ok(_printerFiles(q['path'] ?? '/', pid));
+          }
           // Downloading is the one printer-file action with something to hand
           // back, so demo mode serves it rather than falling through: without
           // this a tap answered 404 for a single file and, because the fallback
@@ -318,7 +320,7 @@ class DemoBackend {
           if (s.length == 4 && at(3, 'download') && m == 'GET') {
             final path = q['path'] ?? '';
             if (path.isEmpty) return _notFound();
-            return _file(_printerFileBytes(path), _demoContentType(path));
+            return _file(_printerFileBytes(path, pid), _demoContentType(path));
           }
           if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
             final paths = (body['paths'] as List?)?.whereType<String>().toList();
@@ -1020,9 +1022,9 @@ class DemoBackend {
   /// Deliberately not a real 3MF. Demo mode fabricates the whole dataset, and
   /// what this exercises is the transfer — the progress it reports, the save
   /// dialog it ends in — not the contents, which no demo screen opens.
-  Uint8List _printerFileBytes(String path) {
+  Uint8List _printerFileBytes(String path, int printerId) {
     const cap = 2 * 1024 * 1024;
-    final listed = _listedSize(path);
+    final listed = _listedSize(path, printerId);
     final size = listed <= 0 ? 64 * 1024 : (listed > cap ? cap : listed);
     // A repeating pattern rather than zeroes, so a saved file is recognisably
     // this and not an empty allocation.
@@ -1032,11 +1034,11 @@ class DemoBackend {
   }
 
   /// Size the listing gives [path], or 0 when nothing lists it.
-  int _listedSize(String path) {
+  int _listedSize(String path, int printerId) {
     final parent = path.contains('/')
         ? path.substring(0, path.lastIndexOf('/'))
         : '';
-    final listing = _printerFiles(parent.isEmpty ? '/' : parent);
+    final listing = _printerFiles(parent.isEmpty ? '/' : parent, printerId);
     final files = (listing as Map)['files'] as List;
     for (final file in files.whereType<Map>()) {
       if (file['path'] == path) return (file['size'] as int?) ?? 0;
@@ -1105,7 +1107,7 @@ class DemoBackend {
     return job.asZip
         ? _file(_emptyZip(), 'application/zip')
         : _file(
-            _printerFileBytes(job.paths.first),
+            _printerFileBytes(job.paths.first, printerId),
             _demoContentType(job.paths.first),
           );
   }
@@ -1121,16 +1123,23 @@ class DemoBackend {
     final name = path.toLowerCase();
     if (name.endsWith('.3mf')) return 'model/3mf';
     if (name.endsWith('.gcode')) return 'text/x.gcode';
+    if (name.endsWith('.mp4')) return 'video/mp4';
     return 'application/octet-stream';
   }
 
-  Object _printerFiles(String path) {
+  Object _printerFiles(String path, int printerId) {
     final files = switch (path) {
       '/' => [
           {'name': 'cache', 'path': '/cache', 'is_directory': true, 'size': 0},
           {
             'name': 'timelapse',
             'path': '/timelapse',
+            'is_directory': true,
+            'size': 0,
+          },
+          {
+            'name': 'ipcam',
+            'path': '/ipcam',
             'is_directory': true,
             'size': 0,
           },
@@ -1158,9 +1167,88 @@ class DemoBackend {
             'mtime': _iso(_daysAgo(6)),
           },
         ],
+      // The two video directories are what a print leaves behind, so they are
+      // generated from the demo's own prints rather than listed by hand: the
+      // file the media sheet offers for an archive is then the same file this
+      // listing shows, at the same path and the same size.
+      '/timelapse' => [
+          for (final print in _archives)
+            if (print['printer_id'] == printerId)
+              ?_printVideos(print).timelapse,
+        ],
+      '/ipcam' => [
+          for (final print in _archives)
+            if (print['printer_id'] == printerId) ..._printVideos(print).ipcam,
+        ],
       _ => const <Object>[],
     };
     return {'path': path, 'files': files};
+  }
+
+  /// What one demo print left on its printer's storage.
+  ///
+  /// Three outcomes, keyed on the print's own id so a given archive always
+  /// answers the same way — between them they are every face the media sheet
+  /// has, which is the point of varying it at all:
+  ///
+  ///  * **0** — the card has been cleared since. Nothing, and nothing to
+  ///    explain: the sheet says so and offers no download.
+  ///  * **1** — the whole thing: the timelapse nobody attached, plus the camera
+  ///    chunks either side of the halfway mark.
+  ///  * **2** — the printer's camera recording is off, so there is a timelapse
+  ///    and the sheet also has to say why there are no clips.
+  ({
+    Map<String, dynamic>? timelapse,
+    List<Map<String, dynamic>> ipcam,
+    List<String> warnings,
+  }) _printVideos(Map<String, dynamic> archive) {
+    final started = DateTime.tryParse('${archive['started_at']}');
+    final ran = archive['actual_time_seconds'];
+    if (started == null || ran is! int) {
+      return (timelapse: null, ipcam: const [], warnings: const []);
+    }
+    switch (((archive['id'] as int?) ?? 0) % 3) {
+      case 0:
+        return (timelapse: null, ipcam: const [], warnings: const []);
+      case 2:
+        return (
+          timelapse: _video(started, 'timelapse'),
+          ipcam: const [],
+          warnings: const ['ipcam_unavailable'],
+        );
+      default:
+        return (
+          timelapse: _video(started, 'timelapse'),
+          ipcam: [
+            for (var i = 0; i < 2; i++)
+              _video(started.add(Duration(seconds: ran ~/ 2 * i)), 'ipcam'),
+          ],
+          warnings: const [],
+        );
+    }
+  }
+
+  /// One recording, named the way a printer names them: `<kind>_<stamp>.mp4`
+  /// under the directory of its kind.
+  Map<String, dynamic> _video(DateTime at, String kind) {
+    final name = '${kind == 'ipcam' ? 'ipcam' : 'video'}_${_stamp(at)}.mp4';
+    return {
+      'name': name,
+      'path': '/$kind/$name',
+      'is_directory': false,
+      // Roughly what a printer writes: a rendered timelapse is a few tens of
+      // megabytes, a camera chunk a few.
+      'size': kind == 'ipcam' ? 6_291_456 : 18_446_592,
+      'mtime': _iso(at),
+      'kind': kind,
+    };
+  }
+
+  /// `YYYYMMDD_HHMMSS`, the shape a printer stamps its recordings with.
+  String _stamp(DateTime at) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${at.year}${two(at.month)}${two(at.day)}_'
+        '${two(at.hour)}${two(at.minute)}${two(at.second)}';
   }
 
   // --- AMS history ---
@@ -1911,6 +1999,9 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'plates') {
           return _ok(_demoPlates(archive));
         }
+        if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
+          return _ok(_archiveMedia(archive));
+        }
         if (s.length == 2 && m == 'GET') return _ok(archive);
         // The demo stands in for a current server, so it knows the key and
         // answers with the row as stored — which is what tells the app the
@@ -1925,6 +2016,38 @@ class DemoBackend {
       }
     }
     return _fallback(m);
+  }
+
+  /// Recordings the demo offers for one print.
+  ///
+  /// No `local_timelapse` and no photos on any demo archive: both would be
+  /// rows that open a viewer, and a viewer loads its image or video straight
+  /// over the network — which in demo mode goes to `http://demo` and resolves
+  /// nowhere. So the demo shows the half it can actually serve, and the
+  /// printer half is the new one anyway.
+  ///
+  /// The files come from [_printVideos], the same generator the printer's own
+  /// `/timelapse` and `/ipcam` listings use, so what the sheet offers here can
+  /// be found in the file manager at the same path and the same size.
+  Map<String, dynamic> _archiveMedia(Map<String, dynamic> archive) {
+    final printerId = archive['printer_id'];
+    if (printerId == null) {
+      return {
+        'archive_id': archive['id'],
+        'printer_id': null,
+        'local_timelapse': null,
+        'remote_files': const <Object>[],
+        'warnings': const <String>[],
+      };
+    }
+    final videos = _printVideos(archive);
+    return {
+      'archive_id': archive['id'],
+      'printer_id': printerId,
+      'local_timelapse': null,
+      'remote_files': [?videos.timelapse, ...videos.ipcam],
+      'warnings': videos.warnings,
+    };
   }
 
   /// Plates of a demo archive. Three for the one print that carries a

@@ -102,6 +102,16 @@ enum ServerFeature {
   /// the drying sheet has to decide whether to offer "Later" at all, and an
   /// offer that ends in a 404 costs the user a filled-in form.
   scheduledDryings,
+
+  /// `GET /archives/{id}/printer-media` and the media-download token pair —
+  /// the recordings a finished print can still be given, off the printer's own
+  /// storage (server #2853).
+  ///
+  /// A route family again, so an older server answers **404** and
+  /// `ArchiveRepository` prefers that observation to this row. Being early
+  /// would cost a sheet that opens onto nothing, so the archive sheet hides
+  /// the entry until this says yes.
+  archivePrinterMedia,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -224,6 +234,11 @@ class ServerVersion implements Comparable<ServerVersion> {
     // above, except that here being early is free: the route answers 404 and
     // the repository records that in place of this row.
     ServerFeature.scheduledDryings: (1, 2, 6, 0),
+    // Archive printer-media search + the media-download token (server #2853,
+    // commit 55cc64c8). Landed in the same 1.2.6 beta cycle as the rows above,
+    // with the same caveat: the routes answer 404 below it and the repository
+    // records that in place of this row.
+    ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

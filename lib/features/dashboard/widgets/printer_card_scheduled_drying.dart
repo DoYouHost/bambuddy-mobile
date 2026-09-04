@@ -101,7 +101,7 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
     final l10n = AppLocalizations.of(context);
     final row = widget.row;
     final failed = row.isFailed;
-    final accent = failed ? t.danger : t.accentOrange;
+    final accent = failed ? t.danger : t.accentOrangeInk;
 
     final headline = failed
         ? l10n.ctrlDryScheduleFailed(

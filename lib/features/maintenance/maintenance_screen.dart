@@ -188,6 +188,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                           DashPill(
                             label: l10n.maintenanceDueBadge(printer.dueCount),
                             accent: t.accentOrange,
+                            accentInk: t.accentOrangeInk,
                           ),
                         ],
                         const SizedBox(width: 8),
@@ -241,7 +242,7 @@ class _MaintenanceRow extends ConsumerWidget {
     // Binary accent: due/overdue gets the urgent orange, everything else (ok
     // and not-yet-due warning) shares the neutral green tier.
     final tileAccent = due ? t.accentOrange : t.accentGreen;
-    final inkAccent = due ? t.accentOrange : t.accentGreenInk;
+    final inkAccent = due ? t.accentOrangeInk : t.accentGreenInk;
 
     final dueText = item.isDue
         ? l10n.maintenanceOverdueBy(item.hoursUntilDue.abs().round())
@@ -293,7 +294,7 @@ class _MaintenanceRow extends ConsumerWidget {
                       Text(
                         dueText,
                         style: t.monoLabel.copyWith(
-                            color: due ? t.accentOrange : t.textTertiary),
+                            color: due ? t.accentOrangeInk : t.textTertiary),
                       ),
                     ],
                   ),

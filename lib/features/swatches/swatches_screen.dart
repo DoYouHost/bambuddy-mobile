@@ -16,6 +16,7 @@ import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/sliver_search_bar.dart';
+import '../common/section_heading.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -324,7 +325,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Row(
         children: [
-          Text(
+          SectionHeading(
             label.toUpperCase(),
             style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.8),
           ),

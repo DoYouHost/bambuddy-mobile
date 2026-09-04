@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show CheckedState;
 
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
@@ -13,6 +14,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -157,6 +159,64 @@ void main() {
     expect(find.text(l10n.pfmPrinterUnavailable), findsOneWidget);
     expect(find.text(l10n.pfmEmpty), findsNothing);
     expect(find.widgetWithText(FilledButton, l10n.retry), findsOneWidget);
+  });
+
+  group('what a screen reader is handed', () {
+    const listing = PrinterFileListing(files: [
+      PrinterFile(
+        name: 'Benchy.gcode.3mf',
+        path: '/Benchy.gcode.3mf',
+        isDirectory: false,
+        size: 2048,
+      ),
+    ]);
+
+    testWidgets('a file row is one item, and it says whether it is ticked',
+        (tester) async {
+      // The Checkbox left to itself is a second interactive node with no name:
+      // "tick box, not ticked" arrives first, with nothing to say which file it
+      // belongs to, and the name follows as its own swipe. Read through the
+      // row's own text, which after the merge has no node of its own — that is
+      // the merge, asserted.
+      await pumpWith(tester, listing);
+      final handle = tester.ensureSemantics();
+
+      SemanticsData row() =>
+          tester.getSemantics(find.text('Benchy.gcode.3mf')).getSemanticsData();
+
+      expect(row().flagsCollection.isChecked, CheckedState.isFalse,
+          reason: 'the row carries the tick state, so it has one to report');
+      expect(row().label, contains('Benchy.gcode.3mf'));
+      expect(row().hasAction(SemanticsAction.tap), isTrue);
+
+      await tester.tap(find.text('Benchy.gcode.3mf'));
+      await tester.pumpAndSettle();
+      expect(row().flagsCollection.isChecked, CheckedState.isTrue);
+
+      handle.dispose();
+    });
+
+    testWidgets('the path bar arrow is named for what it does', (tester) async {
+      // An icon on its own reads as "unlabelled button", and this one climbs a
+      // directory rather than going back through the app. The name rides as a
+      // tooltip, which is what an IconButton hands the platform.
+      final l10n = await pumpWith(tester, listing);
+      final handle = tester.ensureSemantics();
+
+      final button = tester.getSemantics(
+        find.descendant(
+          of: find.bySemanticsIdentifier('printer_files.up'),
+          matching: find.byType(IconButton),
+        ),
+      );
+
+      expect(button.getSemanticsData().tooltip, l10n.pfmUp);
+      // 48x48 dp: `VisualDensity.compact` had taken it under the floor.
+      expect(button.rect.width, greaterThanOrEqualTo(48));
+      expect(button.rect.height, greaterThanOrEqualTo(48));
+
+      handle.dispose();
+    });
   });
 
   testWidgets('files render whatever the warnings say', (tester) async {

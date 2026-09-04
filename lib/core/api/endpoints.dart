@@ -465,6 +465,17 @@ abstract final class Endpoints {
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
 
+  /// Recordings this print can still be given: the timelapse the server keeps,
+  /// plus whatever the printer itself holds — an unattached timelapse and the
+  /// `/ipcam` clips whose timestamps fall inside the print
+  /// (`archives.py::get_archive_printer_media`).
+  ///
+  /// Slow on purpose: the server lists up to five directories over the
+  /// printer's FTP, each with its own 8-second budget, so this outlasts the
+  /// client's default receive deadline by a wide margin.
+  static String archivePrinterMedia(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/printer-media';
+
   /// One photo attached to the archive, authenticated via `?token=` (camera
   /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
   /// `archives.py::get_photo` serves nothing that is not on that list.

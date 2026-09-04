@@ -469,7 +469,7 @@ class _StatusChip extends StatelessWidget {
     final t = DashTokens.of(context);
     final (label, accent) = switch (item.statusKind) {
       QueueItemStatusKind.printing => (l10n.queueStatusPrinting, t.accentGreenInk),
-      QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrange),
+      QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrangeInk),
       QueueItemStatusKind.scheduled => (l10n.queueStatusScheduled, t.accentBlue),
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
