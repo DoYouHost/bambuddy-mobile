@@ -379,6 +379,33 @@ void main() {
           reason: 'the Target section is on the first screen of the form');
     });
 
+    testWidgets('the warning is read out once, not once per copy',
+        (tester) async {
+      // The same sentence is deliberately shown twice — next to the checkbox
+      // and up in the target section. Marking both as live regions would read
+      // it out twice in a row, so only the one that answers the tap does.
+      final handle = tester.ensureSemantics();
+      await rememberInjection();
+
+      await tester.pumpWidget(
+          queueFormScreen(archiveDraft(), snippets: {'A1 mini'}));
+      await tester.pumpAndSettle();
+      await revealFlags(tester);
+
+      final sentence =
+          find.text(formL10n.queueEditGcodeInjectionNoSnippet('X2D'));
+      expect(sentence, findsWidgets);
+      expect(
+        find.ancestor(
+          of: sentence,
+          matching: find.byWidgetPredicate(
+              (w) => w is Semantics && w.properties.liveRegion == true),
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
     testWidgets('editing without snippets does not rewrite the stored flag',
         (tester) async {
       await tester.pumpWidget(queueFormScreen(

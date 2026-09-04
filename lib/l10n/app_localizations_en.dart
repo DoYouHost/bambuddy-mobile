@@ -5178,6 +5178,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String queueEditRackPositionUnfit(int position, String nozzle) {
+    return 'Position $position · $nozzle — does not fit';
+  }
+
+  @override
   String get queueEditRackEmpty => 'empty';
 
   @override

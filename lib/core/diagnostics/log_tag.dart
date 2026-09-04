@@ -11,8 +11,16 @@ import 'filament_material.dart';
 /// wrapper annotates a different one, so the reader announces the state and the
 /// log resolves the press somewhere else — or, as measured, the state reaches
 /// nobody at all. Nothing about it is recorded; the probe reads [id] only.
-Widget logTag(String id, Widget child, {bool? selected}) =>
-    Semantics(identifier: id, selected: selected, child: child);
+///
+/// [expanded] says the same thing for a control that opens something: a menu
+/// anchor, a disclosure. It rides here for the same reason [selected] does.
+Widget logTag(String id, Widget child, {bool? selected, bool? expanded}) =>
+    Semantics(
+      identifier: id,
+      selected: selected,
+      expanded: expanded,
+      child: child,
+    );
 
 /// Names a control and the filament material it shows, the one exception to the
 /// rule above.
@@ -21,8 +29,8 @@ Widget logTagMaterial(String id, String? material, Widget child) =>
 
 extension LogTagged on Widget {
   /// Postfix [logTag], for long expressions where wrapping would re-indent.
-  Widget tagged(String id, {bool? selected}) =>
-      logTag(id, this, selected: selected);
+  Widget tagged(String id, {bool? selected, bool? expanded}) =>
+      logTag(id, this, selected: selected, expanded: expanded);
 
   Widget taggedMaterial(String id, String? material) =>
       logTagMaterial(id, material, this);

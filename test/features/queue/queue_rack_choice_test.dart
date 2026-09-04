@@ -2,9 +2,13 @@ import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
+import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'dart:ui' show Tristate;
 
 import 'queue_form_harness.dart';
 
@@ -44,16 +48,50 @@ List<FilamentRequirement> _oneRackGroup() => FilamentRequirement.parseList({
       ],
     });
 
+/// Two filaments in two rack groups, both wanting the same 0.4 standard nozzle
+/// — so both compete for the same two positions.
+List<FilamentRequirement> _twoRackGroups() => FilamentRequirement.parseList({
+      'filaments': [
+        for (var slot = 1; slot <= 2; slot++)
+          {
+            'slot_id': slot,
+            'type': 'PLA',
+            'group_id': slot,
+            'group': {
+              'on_rack': true,
+              'nozzle_diameter': '0.40',
+              'volume_type': 'Standard',
+            },
+          },
+      ],
+    });
+
 /// How the row spells one of the two 0.4 standard positions.
 String _position(int position) =>
     formL10n.queueEditRackPosition(position, '0.4 ${formL10n.nozzleFlowStandard}');
 
-/// Opens the group's picker. The field shows the nozzle the group needs, which
-/// is what makes it findable before anything has been chosen.
-Future<void> _openPicker(WidgetTester tester) async {
-  await tester.tap(find.textContaining(formL10n.nozzleFlowStandard).first);
+/// Opens the picker of the group that prints filament [slots]. Its field is
+/// labelled with the slots and the nozzle they need, which names it even before
+/// anything has been chosen.
+Future<void> _openPicker(WidgetTester tester, {String slots = '1'}) async {
+  final field = find.text(formL10n.queueEditRackGroupLabel(
+      slots, '0.4 ${formL10n.nozzleFlowStandard}'));
+  // The second group's row sits below the fold on a test-sized screen, and a
+  // tap that lands off it hits whatever is there instead, silently.
+  await tester.ensureVisible(field);
+  await tester.pumpAndSettle();
+  await tester.tap(field);
   await tester.pumpAndSettle();
 }
+
+/// The semantics node of one open menu row, by the label it shows.
+SemanticsNode _rowNode(WidgetTester tester, String label) => tester.getSemantics(
+      find.ancestor(
+        of: find.text(label),
+        matching: find.byWidgetPredicate((w) =>
+            w is Semantics && w.properties.identifier == 'queue_edit.menu_item'),
+      ),
+    );
 
 /// The menu as it stands open: every label, and the subset that can be tapped.
 ({List<String> offered, Set<String> enabled}) _entries(WidgetTester tester) {
@@ -147,6 +185,130 @@ void main() {
       _position(1),
       _position(3),
     });
+
+    // Greying a row out says "no" and not "why". A reader announces it as
+    // dimmed and stops there, so the reason belongs in the label.
+    expect(
+      menu.offered,
+      containsAll([
+        formL10n.queueEditRackPositionUnfit(
+            2, '0.6 ${formL10n.nozzleFlowStandard}'),
+        formL10n.queueEditRackPositionUnfit(4, formL10n.queueEditRackEmpty),
+      ]),
+    );
+  });
+
+  testWidgets('a position one group took is refused to the other',
+      (tester) async {
+    // Two groups, one pair of usable positions. The server refuses a pick that
+    // names the same position twice, so the second group must not be able to
+    // make one.
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _twoRackGroups(),
+    ));
+    await tester.pumpAndSettle();
+
+    await _openPicker(tester);
+    await tester.tap(find.text(_position(1)));
+    await tester.pumpAndSettle();
+
+    await _openPicker(tester, slots: '2');
+    final menu = _entries(tester);
+
+    expect(menu.enabled, {formL10n.queueEditRackAuto, _position(3)});
+    expect(
+      menu.offered,
+      contains(formL10n.queueEditRackPositionTaken(
+          1, '0.4 ${formL10n.nozzleFlowStandard}')),
+    );
+
+    await tester.tap(find.text(_position(3)));
+    await tester.pumpAndSettle();
+    await submitQueueForm(tester);
+
+    expect(capturedBody?['nozzle_rack_choice'], {'1': 1, '2': 3});
+  });
+
+  testWidgets('the chosen position is announced as the chosen one',
+      (tester) async {
+    // The rows say which one is current by a radio glyph, so the flag is all a
+    // reader has to go on.
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _oneRackGroup(),
+    ));
+    await tester.pumpAndSettle();
+
+    await _openPicker(tester);
+    await tester.tap(find.text(_position(3)));
+    await tester.pumpAndSettle();
+    await _openPicker(tester);
+
+    expect(_rowNode(tester, _position(3)).flagsCollection.isSelected,
+        Tristate.isTrue);
+    expect(_rowNode(tester, _position(1)).flagsCollection.isSelected,
+        Tristate.isFalse);
+    handle.dispose();
+  });
+
+  testWidgets('an open picker announces that it is open', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _oneRackGroup(),
+    ));
+    await tester.pumpAndSettle();
+
+    SemanticsNode picker() => tester.getSemantics(find
+        .byWidgetPredicate((w) =>
+            w is Semantics && w.properties.identifier == 'queue_edit.picker')
+        .first);
+
+    expect(picker().flagsCollection.isExpanded, Tristate.isFalse);
+
+    await _openPicker(tester);
+
+    expect(picker().flagsCollection.isExpanded, Tristate.isTrue);
+    handle.dispose();
+  });
+
+  testWidgets('a stored pick the rack no longer holds is called out loudly',
+      (tester) async {
+    // The one warning on this form that is not advisory: the server uploads the
+    // job and *then* refuses it, so grey would be the wrong colour.
+    await tester.pumpWidget(queueFormScreen(
+      QueueItem.fromJson({
+        'id': 5,
+        'position': 1,
+        'status': 'pending',
+        'printer_id': 1,
+        'archive_id': 77,
+        'archive_name': 'cube.3mf',
+        'nozzle_rack_choice': {'1': 2},
+      }),
+      mode: QueueEditMode.edit,
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _oneRackGroup(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text(formL10n.queueEditRackPickStale), findsOneWidget);
+
+    // The only warning icon on an edit form with no G-code snippets.
+    final tokens = DashTokens.of(tester.element(find.byType(QueueEditScreen)));
+    final icon =
+        tester.widget<Icon>(find.byIcon(Icons.warning_amber_rounded));
+    expect(icon.color, tokens.accentOrange);
+    expect(icon.color, isNot(tokens.textTertiary));
   });
 
   testWidgets('editing starts from the stored pick and can clear it',

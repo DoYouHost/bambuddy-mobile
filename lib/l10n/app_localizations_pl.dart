@@ -5258,6 +5258,11 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String queueEditRackPositionUnfit(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle — nie pasuje';
+  }
+
+  @override
   String get queueEditRackEmpty => 'pusta';
 
   @override

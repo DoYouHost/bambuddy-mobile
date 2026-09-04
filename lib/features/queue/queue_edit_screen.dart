@@ -256,12 +256,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     AppLocalizations l10n,
     DashTokens t, {
     required EdgeInsets padding,
+    bool announce = false,
   }) {
     final model = _modelMissingSnippet;
     return _note(
       t,
       model == null ? null : l10n.queueEditGcodeInjectionNoSnippet(model),
       padding: padding,
+      announce: announce,
     );
   }
 
@@ -269,26 +271,48 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// control looks like it does. Null [text] is "nothing to say", so a caller
   /// can hand its own condition straight in.
   ///
-  /// Quiet on purpose — tertiary ink, not the amber a fault card uses. Every
-  /// one of these sits next to a setting the user chose and is still free to
-  /// change; none of them is an error.
+  /// Quiet by default — tertiary ink, not the amber a fault card uses. Most of
+  /// these sit next to a setting the user chose and is still free to change,
+  /// and the job prints either way.
+  ///
+  /// [urgent] is for the one that is not like that: a rack pick the live rack
+  /// no longer satisfies fails the item at dispatch, *after* the upload, and
+  /// nothing downstream softens it. Grey would have been an honest colour for
+  /// every other note here and the wrong one for that.
+  ///
+  /// [announce] reads the note out when it appears. Only for a note that is the
+  /// answer to the tap just made, and only where one of them appears at a time:
+  /// a change that raises several — a printer swap can invalidate the rack pick
+  /// of every filament group at once — would read them all out in a row, which
+  /// is worse than the silence.
   Widget? _note(
     DashTokens t,
     String? text, {
     EdgeInsets padding = const EdgeInsets.only(top: 6),
+    bool urgent = false,
+    bool announce = false,
   }) {
     if (text == null) return null;
-    return Padding(
+    final ink = urgent ? t.accentOrange : t.textTertiary;
+    final row = Padding(
       padding: padding,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 16, color: t.textTertiary),
+          Icon(Icons.warning_amber_rounded, size: 16, color: ink),
           const SizedBox(width: 6),
-          Expanded(child: Text(text, style: t.labelSoft)),
+          Expanded(
+            child: Text(
+              text,
+              style: urgent ? t.labelSoft.copyWith(color: ink) : t.labelSoft,
+            ),
+          ),
         ],
       ),
     );
+    return announce
+        ? Semantics(container: true, liveRegion: true, child: row)
+        : row;
   }
 
   /// The target model when injection is asked for but that model has no snippet
@@ -751,7 +775,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // not paper over: it fails the item at dispatch, after the upload, rather
     // than choosing something else. Say so while it can still be changed.
     final picked = _nozzleRackChoice[group.id];
-    final warning = picked != null && !fits.contains(picked)
+    final stale = picked != null && !fits.contains(picked);
+    final warning = stale
         ? l10n.queueEditRackPickStale
         : (fits.isEmpty ? l10n.queueEditRackNoFit(needed) : null);
     return Padding(
@@ -769,11 +794,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               for (final position in positions)
                 (
                   value: position,
-                  label: taken.contains(position)
-                      ? l10n.queueEditRackPositionTaken(
-                          position, _rackSlotLabel(l10n, rack[position]!))
-                      : l10n.queueEditRackPosition(
-                          position, _rackSlotLabel(l10n, rack[position]!)),
+                  label: _rackPositionLabel(
+                    l10n,
+                    position,
+                    rack[position]!,
+                    fits: fits.contains(position),
+                    taken: taken.contains(position),
+                  ),
                   swatch: null,
                 ),
             ],
@@ -794,10 +821,30 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               }
             }),
           ),
-          ?_note(t, warning),
+          ?_note(t, warning, urgent: stale),
         ],
       ),
     );
+  }
+
+  /// One row of the picker: the position, what it holds, and — when it cannot
+  /// be taken — which of the two reasons that is.
+  ///
+  /// The reason is in the label rather than left to the greying out: a disabled
+  /// row otherwise reads as "unavailable, no idea why", and a screen reader
+  /// announces it as dimmed and stops there. Not fitting outranks being taken,
+  /// because freeing the position would not help this group either.
+  String _rackPositionLabel(
+    AppLocalizations l10n,
+    int position,
+    NozzleRackSlot slot, {
+    required bool fits,
+    required bool taken,
+  }) {
+    final held = _rackSlotLabel(l10n, slot);
+    if (!fits) return l10n.queueEditRackPositionUnfit(position, held);
+    if (taken) return l10n.queueEditRackPositionTaken(position, held);
+    return l10n.queueEditRackPosition(position, held);
   }
 
   /// What one rack position holds, or the empty-dock label.
@@ -1175,8 +1222,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               value: _gcodeInjection,
               onChanged: (v) => setState(() => _gcodeInjection = v),
             ),
+          // Announced, unlike its twin in the target section: this one appears
+          // as the direct answer to the tap just made, and a reader that says
+          // nothing leaves the tick looking like it worked. Only one of the two
+          // says it, or the same sentence is read out twice.
           ?_missingSnippetNote(l10n, t,
-              padding: const EdgeInsets.only(left: 4, top: 2)),
+              padding: const EdgeInsets.only(left: 4, top: 2), announce: true),
         ],
       ),
     );
@@ -1822,7 +1873,9 @@ class _Dropdown<T> extends StatelessWidget {
             t,
             current?.label ?? placeholder,
             current?.swatch,
-            () => controller.isOpen ? controller.close() : controller.open(),
+            isOpen: controller.isOpen,
+            onTap: () =>
+                controller.isOpen ? controller.close() : controller.open(),
           ),
         );
       },
@@ -1851,10 +1904,16 @@ class _Dropdown<T> extends StatelessWidget {
         ),
       ),
       child: Text(label),
-    ).tagged('queue_edit.menu_item');
+    ).tagged('queue_edit.menu_item', selected: selected);
   }
 
-  Widget _field(DashTokens t, String text, Color? swatch, VoidCallback onTap) {
+  Widget _field(
+    DashTokens t,
+    String text,
+    Color? swatch, {
+    required bool isOpen,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: t.groupCard,
       borderRadius: BorderRadius.circular(12),
@@ -1893,7 +1952,7 @@ class _Dropdown<T> extends StatelessWidget {
             ],
           ),
         ),
-      ).tagged('queue_edit.picker'),
+      ).tagged('queue_edit.picker', expanded: isOpen),
     );
   }
 }

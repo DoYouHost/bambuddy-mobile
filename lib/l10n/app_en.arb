@@ -1832,6 +1832,8 @@
   "@queueEditRackPosition": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
   "queueEditRackPositionTaken": "Position {position} · {nozzle} — already chosen",
   "@queueEditRackPositionTaken": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
+  "queueEditRackPositionUnfit": "Position {position} · {nozzle} — does not fit",
+  "@queueEditRackPositionUnfit": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
   "queueEditRackEmpty": "empty",
   "queueEditRackPickStale": "The chosen position no longer fits this filament — pick another, or the print is refused at start.",
   "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",

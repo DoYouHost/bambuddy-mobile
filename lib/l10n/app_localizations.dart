@@ -8828,6 +8828,12 @@ abstract class AppLocalizations {
   /// **'Position {position} · {nozzle} — already chosen'**
   String queueEditRackPositionTaken(int position, String nozzle);
 
+  /// No description provided for @queueEditRackPositionUnfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle} — does not fit'**
+  String queueEditRackPositionUnfit(int position, String nozzle);
+
   /// No description provided for @queueEditRackEmpty.
   ///
   /// In en, this message translates to:

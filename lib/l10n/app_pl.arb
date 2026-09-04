@@ -1642,6 +1642,8 @@
   "@queueEditRackPosition": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
   "queueEditRackPositionTaken": "Pozycja {position} · {nozzle} — już wybrana",
   "@queueEditRackPositionTaken": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
+  "queueEditRackPositionUnfit": "Pozycja {position} · {nozzle} — nie pasuje",
+  "@queueEditRackPositionUnfit": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
   "queueEditRackEmpty": "pusta",
   "queueEditRackPickStale": "Wybrana pozycja już nie pasuje do tego filamentu — wybierz inną, inaczej wydruk zostanie odrzucony przy starcie.",
   "queueEditRackNoFit": "Żadna pozycja w magazynie nie ma dyszy {nozzle} — włóż taką albo drukarka wybierze sama.",
