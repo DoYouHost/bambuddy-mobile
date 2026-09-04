@@ -46,6 +46,9 @@ void main() {
   /// placeholder is visibly not a value, and that the clear button exists only
   /// while there is something to clear.
   group('dashPickerField', () {
+    var opened = 0;
+    setUp(() => opened = 0);
+
     Future<void> pump(
       WidgetTester tester, {
       String? value,
@@ -60,7 +63,7 @@ void main() {
               placeholder: 'Nothing picked',
               value: value,
               clear: clear,
-              onTap: () {},
+              onTap: () => opened++,
             ),
           ),
         )));
@@ -84,8 +87,8 @@ void main() {
       expect(find.text('Nothing picked'), findsNothing);
     });
 
-    testWidgets('the clear button appears only once something is picked',
-        (tester) async {
+    testWidgets('the clear button appears only once something is picked, and '
+        'takes the tap without opening the picker under it', (tester) async {
       var cleared = 0;
       final clear = (id: 'test.field.clear', onPressed: () => cleared++);
 
@@ -96,6 +99,27 @@ void main() {
       await tester.tap(find.byIcon(Icons.clear));
 
       expect(cleared, 1);
+      // A control inside a control: the inner one has to win in its own box,
+      // or clearing the field would open the picker it just emptied.
+      expect(opened, 0);
+    });
+
+    testWidgets('keyboard focus is visible — the decorator is told it has it',
+        (tester) async {
+      await pump(tester);
+      expect(
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).isFocused,
+        isFalse,
+      );
+
+      // What a Tab press does, without depending on what else is on screen.
+      Focus.of(tester.element(find.byType(InputDecorator))).requestFocus();
+      await tester.pump();
+
+      expect(
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).isFocused,
+        isTrue,
+      );
     });
 
     testWidgets('a field with no clear callback never grows one',

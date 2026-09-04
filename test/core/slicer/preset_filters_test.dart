@@ -91,6 +91,16 @@ void main() {
       expect(namesOf(kept), ['Some house blend']);
     });
 
+    test('a declared type that disagrees settles it — the name is not read '
+        'as a second opinion', () {
+      final kept = filterFilamentPresets(
+        [preset('PETG that prints under PLA supports', type: 'PETG')],
+        material: 'PLA',
+      );
+
+      expect(kept, isEmpty);
+    });
+
     test('falls back to the name, which is all the cloud tier gives', () {
       final kept = filterFilamentPresets(
         [preset('Bambu PLA Matte @BBL X1C'), preset('Bambu PETG HF @BBL X1C')],

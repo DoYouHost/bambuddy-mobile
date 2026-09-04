@@ -43,16 +43,20 @@ List<SlicerPreset> filterFilamentPresets(
 
 /// Whether [preset] is for [material], as far as anything on it says.
 ///
-/// The declared `filament_type` is the good evidence, but the cloud and
-/// standard tiers leave it null — so the name is the fallback, and it is the
-/// only thing most of the list has. Matched on a word boundary: a plain
+/// The declared `filament_type` settles it **either way** where the preset has
+/// one — the same shape as the model filter, where evidence of a mismatch is
+/// what hides a preset. Reading the name after a declared type had already
+/// disagreed would let a PETG preset that merely mentions PLA pass as one.
+///
+/// The name is the fallback because the cloud and standard tiers leave the
+/// type null, which is most of the list. Matched on a word boundary: a plain
 /// substring test makes every `PCTG` preset a `PC` one.
 bool presetFitsMaterial(SlicerPreset preset, String? material) {
   final wanted = material?.trim() ?? '';
   if (wanted.isEmpty) return true;
   final pattern = _wordPattern(wanted);
   final declared = preset.filamentType?.trim() ?? '';
-  if (declared.isNotEmpty && pattern.hasMatch(declared)) return true;
+  if (declared.isNotEmpty) return pattern.hasMatch(declared);
   return pattern.hasMatch(preset.name);
 }
 

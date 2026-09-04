@@ -45,6 +45,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// The spool this sheet created, once it has created one.
+  ///
+  /// Saving is two writes — the spool, then its per-model presets — and the
+  /// second one failing leaves the sheet open so the picks are not lost. That
+  /// retry must not mint a second spool: from here on the form is editing the
+  /// one it just made, even though [widget.existing] is still null.
+  int? _createdSpoolId;
+
   String _colorQuery = '';
   bool _materialMissing = false;
   bool _saving = false;
@@ -180,12 +188,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         await notifier.updateSpool(widget.existing!.id, draft);
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
+      } else if (_createdSpoolId case final id?) {
+        // A retry after the presets failed: the spool exists, so this is the
+        // PATCH the edit path would send, not another create.
+        await notifier.updateSpool(id, draft);
+        spoolId = id;
+        message = l10n.inventorySpoolCreated;
       } else if (_quantity > 1) {
         final created = await notifier.bulkCreateSpools(draft, _quantity);
         spoolId = null;
         message = l10n.inventorySpoolsCreated(created);
       } else {
         final created = await notifier.createSpool(draft);
+        _createdSpoolId = created?.id;
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
@@ -210,7 +225,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Nothing is sent unless the section was both read and touched: the route
   /// replaces the whole list, so a blind write is a delete. A failure here
   /// leaves the sheet open with the picks still in it — the spool itself is
-  /// already saved, and the retry costs one idempotent PATCH.
+  /// already saved, and the retry costs one PATCH of a spool that now exists
+  /// either way (see [_createdSpoolId]).
   Future<bool> _savePresetOverrides(
     InventoryRepository repo,
     int? spoolId,
@@ -379,7 +395,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides)
-              ..._presetOverridesSection(l10n, stored.hasError, models),
+              ..._presetOverridesSection(l10n, stored, models),
 
             const SizedBox(height: 20),
             SizedBox(
@@ -686,11 +702,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// read is offering to delete them.
   List<Widget> _presetOverridesSection(
     AppLocalizations l10n,
-    bool loadFailed,
+    AsyncValue<List<SpoolPresetOverride>> stored,
     List<String> models,
   ) {
+    final loadFailed = stored.hasError;
+    // Nothing is editable until the stored rows are in hand, and not only
+    // because a row would claim the spool's own preset applies when it may
+    // not: a pick made first would seed the map by itself, the rows arriving
+    // after would find it already seeded, and the save would replace the whole
+    // list with that one pick.
+    final loading = _overrides == null && !loadFailed;
     final rows = _overrideRows(models);
-    if (rows.isEmpty && !loadFailed) return const [];
+    if (rows.isEmpty && !loadFailed && !loading) return const [];
     return [
       const SizedBox(height: 8),
       _FormSection(label: l10n.inventorySectionPrinterPresets),
@@ -701,6 +724,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       ),
       if (loadFailed)
         InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
+      else if (loading)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: DashLoading(),
+        )
       else
         for (final row in rows) _presetOverrideField(l10n, row),
     ];
