@@ -1053,6 +1053,33 @@
   "inventoryLabelsTitle": "Print spool labels",
   "inventoryLabelsPrint": "Print labels",
   "inventoryLabelsPrintAll": "Print labels for all",
+  "inventoryClimateTitle": "Storage conditions",
+  "inventoryClimateSource": "The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy's web interface.",
+  "inventoryClimateNoReading": "no reading",
+  "inventoryClimateReading": "{name}: {value}",
+  "@inventoryClimateReading": {
+    "description": "Spoken form of a storage-location sensor pill.",
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "String"}
+    }
+  },
+  "inventoryClimateReadingAlerting": "{name}: {value}, outside the alert range",
+  "@inventoryClimateReadingAlerting": {
+    "description": "Spoken form of a sensor pill whose reading trips the binding's threshold; the warm colour of the pill says this to everyone else.",
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "String"}
+    }
+  },
+  "inventoryClimateReadingStale": "{name}: {value}, sensor unreachable",
+  "@inventoryClimateReadingStale": {
+    "description": "Spoken form of a sensor pill showing its last known value because the server could not reach the entity.",
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "String"}
+    }
+  },
   "inventoryLabelsSearchHint": "Search name, brand, or #ID",
   "inventoryLabelsPickSpools": "Pick which spools to print labels for:",
   "inventoryLabelsMaterial": "Material:",

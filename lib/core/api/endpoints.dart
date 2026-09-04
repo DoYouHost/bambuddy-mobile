@@ -805,6 +805,21 @@ abstract final class Endpoints {
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
 
+  // --- Home Assistant sensors bound to a storage location (server #2827) ---
+
+  /// Every configured binding (`LocationHASensorResponse[]`), optionally one
+  /// location's with `?location_id=`.
+  ///
+  /// The trailing slash is the route as declared: `location_ha_sensors.py`
+  /// registers only `"/"`, so the bare path is a 307 to this one — which Dio
+  /// follows, but only after a wasted round trip.
+  static const locationHaSensors = '$apiPrefix/location-ha-sensors/';
+
+  /// Live state of one location's card-visible sensors
+  /// (`LocationHASensorReading[]`), served from the server's poll cache.
+  static String locationHaSensorReadings(int locationId) =>
+      '$apiPrefix/location-ha-sensors/by-location/$locationId/readings';
+
   // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
   static const spoolmanSpoolsBulk =
