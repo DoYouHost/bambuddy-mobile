@@ -16,7 +16,9 @@ import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/core/models/location_sensor.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
@@ -338,7 +340,11 @@ void main() {
       expect(await source.fetchCoreWeights(), isNotEmpty);
       expect(await source.fetchColors(), isNotEmpty);
       expect(await source.fetchFilamentPresets(), isNotEmpty);
-      expect(await source.fetchLocations(), contains('Dry box'));
+      final locations = await source.fetchLocations();
+      expect(locations.map((l) => l.name), contains('Dry box'));
+      // The id is what the location's sensors are keyed by, so a catalog row
+      // that arrives without one takes the storage-conditions pills with it.
+      expect(locations.every((l) => l.id > 0), isTrue);
     });
 
     test('the consumed counter is a separate number from remaining', () async {
@@ -494,6 +500,37 @@ void main() {
         throwsA(isA<ApiException>()
             .having((e) => e.statusCode, 'status', 400)),
       );
+    });
+  });
+
+  group('storage-location sensors', () {
+    test('bindings and readings parse, with all three pill states', () async {
+      final repo = LocationSensorsRepository(dio, ServerVersionService(dio));
+      expect(await repo.supportsLocationSensors(), isTrue);
+
+      final bindings = await repo.listBindings();
+      expect(bindings, hasLength(3));
+      // All on "Dry box", the one demo location the reading is about.
+      expect(bindings.every((b) => b.locationId == 3), isTrue);
+      expect(bindings.every((b) => b.showOnCard), isTrue);
+
+      final readings = await repo.readings(3);
+      expect(
+        readings.map((r) => r.category),
+        [
+          LocationSensorCategory.temperature,
+          LocationSensorCategory.humidity,
+          LocationSensorCategory.battery,
+        ],
+      );
+      expect(readings.map((r) => r.formattedValue), ['24.4°C', '47.2%', '78%']);
+      // The three states the pills draw differently: plain, over threshold,
+      // and last-known because the poller could not reach it.
+      expect(readings.map((r) => r.alerting), [false, true, false]);
+      expect(readings.map((r) => r.reachable), [true, true, false]);
+
+      // A location nobody measures answers with nothing, not a 404.
+      expect(await repo.readings(1), isEmpty);
     });
   });
 

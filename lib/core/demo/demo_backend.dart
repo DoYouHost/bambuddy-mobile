@@ -373,6 +373,13 @@ class DemoBackend {
       case 'scheduled-dryings':
         return _scheduledDryingRoute(m, s, q, body);
 
+      case 'location-ha-sensors':
+        if (s.length == 1) return _ok(_locationSensors);
+        if (at(1, 'by-location') && at(3, 'readings')) {
+          return _ok(_locationSensorReadings(id(2) ?? 0));
+        }
+        return _notFound();
+
       case 'queue':
         return _queueRoute(m, s, body);
 
@@ -2170,6 +2177,75 @@ class DemoBackend {
 
   // --- Smart plugs ---
 
+  /// `/location-ha-sensors/` — the Home Assistant sensors bound to a storage
+  /// location. Read-only here as in the app: the demo has no Home Assistant to
+  /// pick an entity from.
+  ///
+  /// Bound to "Dry box" (location 3), the one demo location the reading is
+  /// about, and the three rows cover the three states the pills draw
+  /// differently: a plain reading, one over its threshold, and one the poller
+  /// could not reach.
+  static const _locationSensors = [
+    {
+      'id': 1,
+      'location_id': 3,
+      'name': 'Temperature',
+      'entity_id': 'sensor.dry_box_temperature',
+      'kind': 'numeric',
+      'device_class': 'temperature',
+      'unit': '°C',
+      'show_on_card': true,
+      'sort_order': 0,
+    },
+    {
+      'id': 2,
+      'location_id': 3,
+      'name': 'Humidity',
+      'entity_id': 'sensor.dry_box_humidity',
+      'kind': 'numeric',
+      'device_class': 'humidity',
+      'unit': '%',
+      'alert_above': 45.0,
+      'show_on_card': true,
+      'sort_order': 1,
+    },
+    {
+      'id': 3,
+      'location_id': 3,
+      'name': 'Battery',
+      'entity_id': 'sensor.dry_box_battery',
+      'kind': 'numeric',
+      'device_class': 'battery',
+      'unit': '%',
+      'show_on_card': true,
+      'sort_order': 2,
+    },
+  ];
+
+  List<Map<String, dynamic>> _locationSensorReadings(int locationId) => [
+        for (final sensor in _locationSensors)
+          if (sensor['location_id'] == locationId)
+            {
+              ...sensor,
+              'state': switch (sensor['id']) {
+                1 => '24.4',
+                2 => '47.2',
+                _ => '78',
+              },
+              'value': switch (sensor['id']) {
+                1 => 24.4,
+                2 => 47.2,
+                _ => 78.0,
+              },
+              'alerting': sensor['id'] == 2,
+              // The battery sensor is the one the demo leaves unreachable, so
+              // its last value is shown under the struck-through sensor icon
+              // instead of passing for a current one.
+              'reachable': sensor['id'] != 3,
+              'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
+            },
+      ];
+
   /// `/scheduled-dryings` — list, schedule, cancel. Served because the demo
   /// reports 1.2.6b1, which is the release the route shipped in: a version that
   /// offers the sheet's "later" modes over a 404 would be the one thing the
@@ -3498,6 +3574,9 @@ class DemoBackend {
 
   static DateTime _daysAgo(int days, {int hours = 0}) =>
       DateTime.now().subtract(Duration(days: days, hours: hours));
+
+  static DateTime _minutesAgo(int minutes) =>
+      DateTime.now().subtract(Duration(minutes: minutes));
 
   static String _iso(DateTime t) => t.toUtc().toIso8601String();
 }

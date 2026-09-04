@@ -226,21 +226,20 @@ class ArchiveRepository {
   /// The deadline is the server's own work: it lists up to five directories
   /// over the printer's FTP at 8 seconds each, so anything near the client
   /// default would abort a search that was about to answer.
-  Future<ArchivePrinterMedia?> printerMedia(int archiveId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.archivePrinterMedia(archiveId),
-        options: Options(receiveTimeout: const Duration(seconds: 60)),
+  Future<ArchivePrinterMedia?> printerMedia(int archiveId) =>
+      _printerMedia.watching(
+        () async {
+          final res = await _dio.get<Map<String, dynamic>>(
+            Endpoints.archivePrinterMedia(archiveId),
+            options: Options(receiveTimeout: const Duration(seconds: 60)),
+          );
+          return ArchivePrinterMedia.fromJson(res.data ?? const {});
+        },
+        absent: () => null,
+        // Not a 403: the sheet is open because the user asked for the
+        // recordings, so a refusal is worth a sentence, not an empty list.
+        absentOn: const {404},
       );
-      _printerMedia.observe(present: true);
-      return ArchivePrinterMedia.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _printerMedia.observeFailure(status);
-      if (status == 404) return null;
-      throw mapDioException(e);
-    }
-  }
 }
 
 /// Whether the weight that came back is the one that was sent.

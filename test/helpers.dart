@@ -82,6 +82,20 @@ Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
       home: child,
     );
 
+/// Pumps a fixed span in place of `pumpAndSettle`, for the screens it can never
+/// finish on: a search field's cursor blinks forever, so no frame is ever free
+/// of animation and settling waits for one that will not come.
+///
+/// Three frames of 350 ms — long enough for a sheet, a dialog or a snack to
+/// finish opening, which is what every caller is actually waiting for. Written
+/// out in five test files before it lived here, and it is the kind of thing
+/// that gets copied with one frame fewer.
+Future<void> settle(WidgetTester tester) async {
+  for (var i = 0; i < 3; i++) {
+    await tester.pump(const Duration(milliseconds: 350));
+  }
+}
+
 /// Pumps a wear widget with what every wear test needs anyway: mock preferences,
 /// an in-memory credentials store, and a handle on the container so a test can
 /// read or seed providers.

@@ -112,6 +112,17 @@ enum ServerFeature {
   /// would cost a sheet that opens onto nothing, so the archive sheet hides
   /// the entry until this says yes.
   archivePrinterMedia,
+
+  /// `GET /location-ha-sensors/` and the per-location readings behind it — the
+  /// thermometer or hygrometer a storage location can be given, read through
+  /// the server's Home Assistant connection (server #2827).
+  ///
+  /// A route family once more, so an older server answers **404** and
+  /// `LocationSensorsRepository` prefers that observation to this row. The
+  /// gate only spares that one 404 on a server known to be older: nothing is
+  /// offered until the listing comes back non-empty, so being early here costs
+  /// a request and never a control.
+  locationHaSensors,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -239,6 +250,9 @@ class ServerVersion implements Comparable<ServerVersion> {
     // with the same caveat: the routes answer 404 below it and the repository
     // records that in place of this row.
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
+    // Storage-location Home Assistant sensors (server #2827, commit 54af3146).
+    // Same 1.2.6 beta cycle and same caveat as the rows above.
+    ServerFeature.locationHaSensors: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

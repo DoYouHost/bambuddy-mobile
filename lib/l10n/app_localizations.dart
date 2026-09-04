@@ -4880,6 +4880,48 @@ abstract class AppLocalizations {
   /// **'Print labels for all'**
   String get inventoryLabelsPrintAll;
 
+  /// No description provided for @inventoryClimateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage conditions'**
+  String get inventoryClimateTitle;
+
+  /// No description provided for @inventoryClimateTitleAlerting.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage conditions: outside the alert range'**
+  String get inventoryClimateTitleAlerting;
+
+  /// No description provided for @inventoryClimateSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.'**
+  String get inventoryClimateSource;
+
+  /// No description provided for @inventoryClimateNoReading.
+  ///
+  /// In en, this message translates to:
+  /// **'no reading'**
+  String get inventoryClimateNoReading;
+
+  /// Spoken form of a storage-location sensor pill.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}'**
+  String inventoryClimateReading(String name, String value);
+
+  /// Spoken form of a sensor pill whose reading trips the binding's threshold; the warm colour of the pill says this to everyone else.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}, outside the alert range'**
+  String inventoryClimateReadingAlerting(String name, String value);
+
+  /// Spoken form of a sensor pill showing its last known value because the server could not reach the entity.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}, sensor unreachable'**
+  String inventoryClimateReadingStale(String name, String value);
+
   /// No description provided for @inventoryLabelsSearchHint.
   ///
   /// In en, this message translates to:

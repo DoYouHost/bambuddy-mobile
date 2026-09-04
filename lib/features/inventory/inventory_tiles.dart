@@ -361,6 +361,10 @@ class _SpoolDetailSheet extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final usage = ref.watch(spoolUsageProvider(spool.id));
+    final climate = climateOfSpool(
+      ref.watch(locationClimateProvider).valueOrNull ?? const {},
+      spool,
+    );
 
     return logTag(
       'sheet.spool_detail',
@@ -459,6 +463,13 @@ class _SpoolDetailSheet extends ConsumerWidget {
                       icon: Icons.place_outlined,
                       label:
                           '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                      // What the location's own thermometer or hygrometer
+                      // reads, where one is bound to it — the answer to "is
+                      // this spool sitting somewhere dry", asked at the one
+                      // place the spool and its shelf are both on screen.
+                      trailing: climate == null
+                          ? null
+                          : _ClimatePills(readings: climate.readings),
                     ),
                   // The counter the reset action resets. Without it on screen
                   // that action had nothing to show for itself: it moves the
@@ -653,10 +664,15 @@ class _UsageRow extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label});
+  const _DetailRow({required this.icon, required this.label, this.trailing});
 
   final IconData icon;
   final String label;
+
+  /// Sits under the label rather than beside it: the rows are a narrow column
+  /// inside a sheet, and a couple of pills next to a wrapping sentence leaves
+  /// neither enough room.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -669,9 +685,18 @@ class _DetailRow extends StatelessWidget {
           Icon(icon, size: 16, color: t.textSecondary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              label,
-              style: t.label.copyWith(color: t.textSecondary),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: t.label.copyWith(color: t.textSecondary),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(height: 8),
+                  trailing!,
+                ],
+              ],
             ),
           ),
         ],

@@ -118,9 +118,11 @@ abstract class SpoolInventorySource {
   Future<List<ColorEntry>> fetchColors();
   Future<List<FilamentPreset>> fetchFilamentPresets();
 
-  /// Storage-location catalog names for the location picker. Native only;
-  /// Spoolman degrades to empty (the picker still accepts free text).
-  Future<List<String>> fetchLocations();
+  /// Storage-location catalog for the location picker, and for matching a
+  /// spool's free-text location to the row the server keys its Home Assistant
+  /// sensors by. Native only; Spoolman degrades to empty (the picker still
+  /// accepts free text).
+  Future<List<StorageLocation>> fetchLocations();
 
   /// Renders the labels [request] describes and returns the PDF bytes.
   Future<Uint8List> renderLabels(SpoolLabelRequest request);
@@ -453,12 +455,12 @@ class NativeInventorySource implements SpoolInventorySource {
   }
 
   @override
-  Future<List<String>> fetchLocations() => guard(() async {
+  Future<List<StorageLocation>> fetchLocations() => guard(() async {
         final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
         return [
-          for (final e in res.data ?? const [])
-            if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
-              (e['name'] as String).trim(),
+          for (final loc
+              in parseJsonList(res.data, StorageLocation.fromJson))
+            if (loc.name.isNotEmpty) loc,
         ];
       });
 
@@ -645,7 +647,7 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   // Location catalog is a native-backend feature; on Spoolman the picker falls
   // back to free text + locations already used by spools.
   @override
-  Future<List<String>> fetchLocations() async => const [];
+  Future<List<StorageLocation>> fetchLocations() async => const [];
 
   @override
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>

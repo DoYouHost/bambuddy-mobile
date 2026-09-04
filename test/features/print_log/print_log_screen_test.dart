@@ -109,15 +109,6 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
-  /// `pumpAndSettle` never returns here — the search field's cursor blinks
-  /// forever, so no frame is ever free of animation. A fixed span is long
-  /// enough for a sheet or a dialog to finish opening.
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
-  }
-
   Future<_FakePrintLog> pumpScreen(
     WidgetTester tester, {
     List<PrintLogEntry>? entries,

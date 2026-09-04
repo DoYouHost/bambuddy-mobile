@@ -139,26 +139,25 @@ class PrinterFilesRepository {
     required Map<String, int> sizes,
     required String filename,
     bool asZip = true,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        Endpoints.printerFilesJob(printerId),
-        data: {
-          'paths': paths,
-          'sizes': ?_vouchedSizes(paths, sizes),
-          'filename': filename,
-          'as_zip': asZip,
+  }) =>
+      _downloadJobs.watching(
+        () async {
+          final res = await _dio.post<Map<String, dynamic>>(
+            Endpoints.printerFilesJob(printerId),
+            data: {
+              'paths': paths,
+              'sizes': ?_vouchedSizes(paths, sizes),
+              'filename': filename,
+              'as_zip': asZip,
+            },
+          );
+          return PrinterDownloadJob.fromJson(res.data ?? const {});
         },
+        absent: () => null,
+        // Not a 403: this runs because the user pressed Download, so a refusal
+        // is the one thing they have to be told.
+        absentOn: const {404},
       );
-      _downloadJobs.observe(present: true);
-      return PrinterDownloadJob.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _downloadJobs.observeFailure(status);
-      if (status == 404) return null;
-      throw mapDioException(e);
-    }
-  }
 
   /// [sizes] as the server may be told them, or **null when they are not worth
   /// sending** — the whole map goes or none of it does.

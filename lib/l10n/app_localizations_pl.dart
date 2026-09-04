@@ -2928,6 +2928,35 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryLabelsPrintAll => 'Drukuj etykiety wszystkich';
 
   @override
+  String get inventoryClimateTitle => 'Warunki przechowywania';
+
+  @override
+  String get inventoryClimateTitleAlerting =>
+      'Warunki przechowywania: poza zakresem alertu';
+
+  @override
+  String get inventoryClimateSource =>
+      'Serwer odczytuje je z Home Assistant. Czujniki przypisuje się do miejsca w interfejsie webowym Bambuddy.';
+
+  @override
+  String get inventoryClimateNoReading => 'brak odczytu';
+
+  @override
+  String inventoryClimateReading(String name, String value) {
+    return '$name: $value';
+  }
+
+  @override
+  String inventoryClimateReadingAlerting(String name, String value) {
+    return '$name: $value, poza zakresem alertu';
+  }
+
+  @override
+  String inventoryClimateReadingStale(String name, String value) {
+    return '$name: $value, czujnik nieosiągalny';
+  }
+
+  @override
   String get inventoryLabelsSearchHint => 'Szukaj: nazwa, marka lub #ID';
 
   @override

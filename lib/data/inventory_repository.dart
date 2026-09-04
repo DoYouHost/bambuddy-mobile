@@ -81,7 +81,7 @@ class InventoryRepository {
   Future<List<FilamentPreset>> fetchFilamentPresets() =>
       _source.fetchFilamentPresets();
 
-  Future<List<String>> fetchLocations() => _source.fetchLocations();
+  Future<List<StorageLocation>> fetchLocations() => _source.fetchLocations();
 
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _source.renderLabels(request);

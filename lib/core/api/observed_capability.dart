@@ -1,3 +1,6 @@
+import 'package:dio/dio.dart';
+
+import 'api_exceptions.dart';
 import 'server_version.dart';
 import 'server_version_service.dart';
 
@@ -75,6 +78,41 @@ class ObservedCapability {
         observe(present: false);
       case 403:
         observeRefusal();
+    }
+  }
+
+  /// Runs [request] with this latch watching what came back, and maps a
+  /// failure the way every repository here maps one.
+  ///
+  /// The wrapper is for the middle of it. The two statuses [observeFailure]
+  /// reads are also the two a caller usually has a plain answer for, and the
+  /// try/catch that says so was written out at ten call sites in seven
+  /// repositories — which is how one of them ends up recording a 403 and
+  /// another forgetting to.
+  ///
+  /// [absent] is what to answer with instead of throwing for the statuses in
+  /// [absentOn]. Passing none throws everything, which is right where the latch
+  /// only hides a control: the request is then one the user asked for, and a
+  /// refusal has to reach them.
+  ///
+  /// [absentOn] drops to `{404}` for exactly that reason — a route behind a
+  /// button the user pressed. A 403 there does not mean "nothing to show", it
+  /// means "you may not", and answering it with [absent] leaves a control that
+  /// does nothing and never says why.
+  Future<T> watching<T>(
+    Future<T> Function() request, {
+    T Function()? absent,
+    Set<int> absentOn = const {404, 403},
+  }) async {
+    try {
+      final answer = await request();
+      observe(present: true);
+      return answer;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      observeFailure(status);
+      if (absent != null && absentOn.contains(status)) return absent();
+      throw mapDioException(e);
     }
   }
 

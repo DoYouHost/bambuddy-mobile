@@ -76,11 +76,7 @@ void main() {
         child: plApp(const InventoryScreen()),
       ),
     ));
-    // Not pumpAndSettle: the search field's cursor blinks forever, so no frame
-    // ever has nothing animating.
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
   }
 
   /// The slot label as [assignmentSlotLabel] builds it for AMS unit 0, tray 0.

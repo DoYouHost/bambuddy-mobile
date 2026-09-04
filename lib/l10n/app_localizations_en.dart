@@ -2888,6 +2888,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryLabelsPrintAll => 'Print labels for all';
 
   @override
+  String get inventoryClimateTitle => 'Storage conditions';
+
+  @override
+  String get inventoryClimateTitleAlerting =>
+      'Storage conditions: outside the alert range';
+
+  @override
+  String get inventoryClimateSource =>
+      'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.';
+
+  @override
+  String get inventoryClimateNoReading => 'no reading';
+
+  @override
+  String inventoryClimateReading(String name, String value) {
+    return '$name: $value';
+  }
+
+  @override
+  String inventoryClimateReadingAlerting(String name, String value) {
+    return '$name: $value, outside the alert range';
+  }
+
+  @override
+  String inventoryClimateReadingStale(String name, String value) {
+    return '$name: $value, sensor unreachable';
+  }
+
+  @override
   String get inventoryLabelsSearchHint => 'Search name, brand, or #ID';
 
   @override

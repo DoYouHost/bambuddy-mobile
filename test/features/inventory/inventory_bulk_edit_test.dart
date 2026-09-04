@@ -57,15 +57,6 @@ class _FixedBackend extends InventoryBackendNotifier {
 void main() {
   late AppLocalizations l10n;
 
-  /// `pumpAndSettle` never returns on this screen: the search field's cursor
-  /// blinks forever, so there is no frame where nothing is animating. Pumping a
-  /// fixed span is long enough for a sheet or a dialog to finish opening.
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
-  }
-
   setUpAll(() async {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
   });

@@ -436,6 +436,34 @@ void main() {
       expect(jsonEncode(first), isNot(contains('szafa_biuro')));
     });
 
+    test('a location sensor keeps the reading and loses the room', () async {
+      // The same split as the plug above, on the surface that shows a drybox's
+      // humidity: what a report needs is the number, the device class and
+      // whether the poller reached it. What it must not carry is the name of
+      // the entity or of the shelf — a Home Assistant id names somebody's home
+      // as surely as a plug's does.
+      final dio = dioAnswering(
+        (_) => _json('[{"id":4,"name":"Szafa w sypialni",'
+            '"entity_id":"sensor.sypialnia_wilgotnosc","kind":"numeric",'
+            '"device_class":"humidity","unit":"%","state":"47.2","value":47.2,'
+            '"alerting":true,"reachable":true,"alert_above":45.0}]'),
+      );
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/location-ha-sensors/');
+
+      final first = (await httpRecords()).single['first']! as Map;
+      expect(first['device_class'], 'humidity');
+      expect(first['kind'], 'numeric');
+      expect(first['value'], 47.2);
+      expect(first['alerting'], true);
+      expect(first['reachable'], true);
+      expect(first['alert_above'], 45.0);
+      // And the half that names somebody's home still goes.
+      expect(first['entity_id'], '[REDACTED]');
+      expect(jsonEncode(first), isNot(contains('sypialnia')));
+    });
+
     test('what the user named is measured away, not published', () async {
       // The endpoints sampled here answer with what the user called things, and
       // the log ends up on a public branch. A denylist of field names never

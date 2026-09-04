@@ -42,20 +42,15 @@ class HeaterHistoryRepository {
     int printerId, {
     int hours = 24,
     List<String> kinds = const [],
-  }) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.printerSensorHistory(printerId),
-        queryParameters: {
-          'hours': hours,
-          if (kinds.isNotEmpty) 'kinds': kinds.join(','),
-        },
-      );
-      _history.observe(present: true);
-      return HeaterHistory.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      _history.observeFailure(e.response?.statusCode);
-      throw mapDioException(e);
-    }
-  }
+  }) =>
+      _history.watching(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.printerSensorHistory(printerId),
+          queryParameters: {
+            'hours': hours,
+            if (kinds.isNotEmpty) 'kinds': kinds.join(','),
+          },
+        );
+        return HeaterHistory.fromJson(res.data ?? const {});
+      });
 }
