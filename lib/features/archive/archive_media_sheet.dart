@@ -12,7 +12,6 @@ import '../../core/models/archive_media.dart';
 import '../../core/models/printer_download_job.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../data/printer_files_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -23,7 +22,9 @@ import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import '../common/format_bytes.dart';
+import '../common/inline_note.dart';
 import '../files/printer_download_job.dart';
+import '../files/printer_selection_download.dart';
 
 /// Whether this server can be asked what a print left on its printer.
 ///
@@ -106,7 +107,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   bool _busy = false;
   double? _progress;
   PrinterDownloadJob? _job;
-  PrinterDownloadRun? _run;
+  PrinterSelectionDownload? _run;
   bool _cancelRequested = false;
 
   @override
@@ -189,33 +190,14 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
     });
     File? cached;
     try {
-      cached = await downloadToCacheFile(
+      final run = PrinterSelectionDownload(repo, printerId: printerId);
+      _run = run;
+      cached = await run.run(
+        files: [for (final file in files) (path: file.path, size: file.size)],
+        fileName: fileName,
         scratchName: 'archive-media-${widget.archive.id}.download',
-        download: (savePath) async {
-          if (!await _downloadAsJob(
-              repo, printerId, files, fileName, savePath, single)) {
-            // No preparation route on this server: the same bytes, fetched the
-            // way every server generation serves them — one held request, no
-            // progress and no way to call it off.
-            if (single) {
-              await repo.downloadFileTo(
-                printerId,
-                paths.first,
-                savePath,
-                onProgress: _onProgress,
-              );
-            } else {
-              await repo.downloadZipTo(
-                printerId,
-                paths,
-                savePath,
-                onProgress: _onProgress,
-              );
-            }
-          }
-          return null;
-        },
-        name: (_) => fileName,
+        onJob: _onJob,
+        onProgress: _onProgress,
       );
       if (!mounted) return;
       // A bundle can be short of what was asked for: the server stages what it
@@ -252,47 +234,6 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
         });
       }
     }
-  }
-
-  /// Runs the selection through the server's preparation job, when this server
-  /// has one. False means it has not and the caller falls back to the legacy
-  /// route, which every server still serves.
-  Future<bool> _downloadAsJob(
-    PrinterFilesRepository repo,
-    int printerId,
-    List<ArchiveMediaFile> files,
-    String fileName,
-    String savePath,
-    bool single,
-  ) async {
-    if (!await repo.supportsDownloadJobs()) return false;
-    final run = PrinterDownloadRun(repo, printerId: printerId);
-    _run = run;
-    return run.download(
-      paths: files.map((f) => f.path).toList(),
-      sizes: _sizesFor(files),
-      filename: fileName,
-      // One file is asked for natively: the user gets the video rather than a
-      // ZIP holding one video. The server accepts that for exactly one path.
-      asZip: !single,
-      savePath: savePath,
-      onJob: _onJob,
-      onProgress: _onProgress,
-    );
-  }
-
-  /// Sizes for the selection, all or nothing.
-  ///
-  /// The server spends them on an up-front free-space check and its schema
-  /// demands one per path; an entry the FTP listing could not size arrives as
-  /// `0`, and a check run on invented numbers is worse than no check.
-  Map<String, int> _sizesFor(List<ArchiveMediaFile> files) {
-    final sizes = <String, int>{};
-    for (final file in files) {
-      if (file.size <= 0) return const {};
-      sizes[file.path] = file.size;
-    }
-    return sizes;
   }
 
   /// Hands [file] to the system save dialog and reports what came of it. True
@@ -447,7 +388,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
               if (archive.hasTimelapse || archive.hasPhotos) ...[
                 _SectionHeader(title: l10n.archiveMediaOnServer),
                 if (archive.hasTimelapse)
-                  _OpenRow(
+                  _MediaRow(
                     id: 'archive_media.timelapse',
                     icon: Icons.movie_outlined,
                     title: _timelapseName(),
@@ -455,7 +396,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
                     onTap: widget.onTimelapse,
                   ),
                 if (archive.hasPhotos)
-                  _OpenRow(
+                  _MediaRow(
                     id: 'archive_media.photos',
                     icon: Icons.photo_camera_outlined,
                     title: l10n.archivePhotosTitle,
@@ -498,13 +439,22 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
         if (files.isEmpty)
           Text(l10n.archiveMediaNothingOnPrinter, style: t.bodySoft),
         for (final file in files)
-          _RemoteRow(
-            file: file,
+          _MediaRow(
+            id: 'archive_media.file',
+            icon: Icons.movie_outlined,
+            title: file.name,
+            subtitle: '${_kindOf(file, l10n)} · ${formatBytes(file.size)}',
             selected: _selected.contains(file.path),
             onTap: _busy ? null : () => _toggle(file.path),
           ),
         for (final warning in _media?.warnings ?? const <ArchiveMediaWarning>{})
-          _Warning(text: _warningText(warning, l10n), t: t),
+          // Quiet ink and the plain info mark, not the warning triangle: none
+          // of these stops the user getting what the sheet did find.
+          InlineNote(
+            _warningText(warning, l10n),
+            icon: Icons.info_outline,
+            padding: const EdgeInsets.only(top: 8),
+          ),
         if (files.isNotEmpty) ...[
           const SizedBox(height: 12),
           _DownloadBar(
@@ -520,6 +470,11 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       ],
     ];
   }
+
+  String _kindOf(ArchiveMediaFile file, AppLocalizations l10n) =>
+      file.kind == ArchiveMediaKind.timelapse
+          ? l10n.archiveMediaKindTimelapse
+          : l10n.archiveMediaKindIpcam;
 
   /// The attached video's own name. Known from the archive before the search
   /// answers; the search only confirms it and adds the size.
@@ -619,164 +574,93 @@ class _Searching extends StatelessWidget {
       );
 }
 
-/// A row that opens something rather than selecting it. The chevron is the
-/// distinction from the ticked rows below, which never leave the sheet.
-class _OpenRow extends StatelessWidget {
-  const _OpenRow({
+/// One row of the sheet: a name, what it is, and a leading mark that says which
+/// of the two things this row does.
+///
+/// The card itself is the same either way — the sheet reads as one list — so
+/// only the mark and the border carry the difference. **A row that opens** has
+/// an icon for its kind and a chevron: it leaves the sheet for a viewer. **A
+/// row that is picked** has a checkbox and, once ticked, the accent border: it
+/// never leaves, it joins the download.
+class _MediaRow extends StatelessWidget {
+  const _MediaRow({
     required this.id,
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.selected,
   });
 
   final String id;
+
+  /// The leading mark. For a pickable row this is ignored — the checkbox says
+  /// what the row is for, and a second icon beside it says nothing.
   final IconData icon;
+
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// Null for a row that opens something; a tick state for one that is picked.
+  final bool? selected;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final picked = selected ?? false;
+    final row = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
+          border: Border.all(color: picked ? t.accentGreen : t.subCardBorder),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            if (selected == null)
+              Icon(icon, size: 20, color: t.accentGreen)
+            else
+              Icon(
+                picked ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 20,
+                color: picked ? t.accentGreen : t.textTertiary,
+              ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: t.body,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(subtitle, style: t.bodySoft),
+                ],
+              ),
+            ),
+            if (selected == null)
+              Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+          ],
+        ),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: logTag(
         id,
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              border: Border.all(color: t.subCardBorder),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 20, color: t.accentGreen),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: t.body,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(subtitle, style: t.bodySoft),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RemoteRow extends StatelessWidget {
-  const _RemoteRow({
-    required this.file,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final ArchiveMediaFile file;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
-    final kind = file.kind == ArchiveMediaKind.timelapse
-        ? l10n.archiveMediaKindTimelapse
-        : l10n.archiveMediaKindIpcam;
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: logTag(
-        'archive_media.file',
         // The tick is the row's state, not a separate control: a screen reader
         // that read the checkbox alone would announce "selected" with nothing
         // to say what was selected.
-        Semantics(
-          selected: selected,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: selected
-                    ? t.accentGreen.withValues(alpha: 0.10)
-                    : t.subCard,
-                border: Border.all(
-                  color: selected ? t.accentGreen : t.subCardBorder,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    selected ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 20,
-                    color: selected ? t.accentGreen : t.textTertiary,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          file.name,
-                          style: t.body,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '$kind · ${formatBytes(file.size)}',
-                          style: t.bodySoft,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        selected == null ? row : Semantics(selected: picked, child: row),
       ),
     );
   }
-}
-
-/// Why part of the search came back empty. Quiet ink, not amber: none of these
-/// stops the user getting what the sheet did find.
-class _Warning extends StatelessWidget {
-  const _Warning({required this.text, required this.t});
-
-  final String text;
-  final DashTokens t;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_outline, size: 16, color: t.textTertiary),
-            const SizedBox(width: 6),
-            Expanded(child: Text(text, style: t.labelSoft)),
-          ],
-        ),
-      );
 }
 
 class _DownloadBar extends StatelessWidget {

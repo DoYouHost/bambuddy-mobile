@@ -12,7 +12,6 @@ import '../../core/models/printer_download_job.dart';
 import '../../core/models/printer_file.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../data/printer_files_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -26,6 +25,7 @@ import '../common/sliver_search_bar.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import 'printer_download_job.dart';
+import 'printer_selection_download.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -73,7 +73,7 @@ class _PrinterFileManagerScreenState
   // and the handle Cancel needs. Both null on the legacy path, which has
   // neither a phase to report nor a way to be called off.
   PrinterDownloadJob? _job;
-  PrinterDownloadRun? _run;
+  PrinterSelectionDownload? _run;
   // Cancel has been asked for but the poll it interrupts has not come round
   // yet. Kept apart from [_job] because that one is the record's evidence:
   // clearing it to take the button away lost the counts the log is for.
@@ -237,34 +237,14 @@ class _PrinterFileManagerScreenState
       final safeName = widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
       final fileName =
           single ? paths.first.split('/').last : '$safeName-files.zip';
-      cached = await downloadToCacheFile(
+      final run = PrinterSelectionDownload(repo, printerId: widget.printerId);
+      _run = run;
+      cached = await run.run(
+        files: _itemsFor(paths),
+        fileName: fileName,
         scratchName: 'printer-files-${widget.printerId}.download',
-        download: (savePath) async {
-          if (!await _downloadAsJob(repo, paths, fileName, savePath, single)) {
-            // No preparation route on this server: the same bytes, fetched the
-            // way every server generation serves them — one held request, no
-            // progress until the bundle exists, no way to call it off.
-            if (single) {
-              await repo.downloadFileTo(
-                widget.printerId,
-                paths.first,
-                savePath,
-                onProgress: _onDownloadProgress,
-              );
-            } else {
-              await repo.downloadZipTo(
-                widget.printerId,
-                paths,
-                savePath,
-                onProgress: _onDownloadProgress,
-              );
-            }
-          }
-          // The name is already known here; the served content type only
-          // matters for routes that answer with more than one kind of file.
-          return null;
-        },
-        name: (_) => fileName,
+        onJob: _onDownloadJob,
+        onProgress: _onDownloadProgress,
       );
       if (!mounted) return;
       final saved = await saveDownloadedFile(
@@ -335,58 +315,20 @@ class _PrinterFileManagerScreenState
     setState(() => _downloadProgress = next);
   }
 
-  /// Runs the download as a server-side preparation job, when this server has
-  /// one. False means it has not, and the caller falls back to the legacy
-  /// route; a job that ends any way other than `ready` throws
-  /// [PrinterDownloadFailure].
+  /// The selection as the download wants it: a path and the size the listing
+  /// gave it.
   ///
-  /// The gate is the repository's capability latch rather than an attempt: an
-  /// unknown answer leaves the legacy path in place, which downloads the same
-  /// bytes and costs only the progress and the Cancel button. A `1.2.6` daily
-  /// from before the routes landed is told yes by the version table and answers
-  /// 404, which the start call reports as "not supported" and falls back too.
-  Future<bool> _downloadAsJob(
-    PrinterFilesRepository repo,
-    List<String> paths,
-    String fileName,
-    String savePath,
-    bool single,
-  ) async {
-    if (!await repo.supportsDownloadJobs()) return false;
-    final run = PrinterDownloadRun(repo, printerId: widget.printerId);
-    _run = run;
-    return run.download(
-      paths: paths,
-      sizes: _sizesFor(paths),
-      filename: fileName,
-      // A single file is asked for natively, as the browser does: the user gets
-      // the model rather than a ZIP holding one model. The server accepts that
-      // for exactly one path.
-      asZip: !single,
-      savePath: savePath,
-      onJob: _onDownloadJob,
-      onProgress: _onDownloadProgress,
-    );
-  }
-
-  /// Sizes for the selection, from the listing that is already on screen.
-  ///
-  /// **All or nothing, and only when every size is a real one.** The server
-  /// spends them on an up-front free-space check and its schema demands one per
-  /// path; an entry the FTP listing could not size arrives as `0`, and claiming
-  /// a gigabyte of models is empty would pass a check that then fails halfway
-  /// through the transfer. Better no check than a check on invented numbers.
-  Map<String, int> _sizesFor(List<String> paths) {
+  /// A size the FTP listing could not read arrives as `0` and is passed on as
+  /// one — `PrinterFilesRepository` is what decides whether a set of numbers is
+  /// worth telling the server, and inventing a figure here to make the set look
+  /// complete is exactly what that rule exists to stop.
+  List<PrinterDownloadItem> _itemsFor(List<String> paths) {
     final byPath = {
       for (final f in _files ?? const <PrinterFile>[]) f.path: f.size,
     };
-    final sizes = <String, int>{};
-    for (final path in paths) {
-      final size = byPath[path];
-      if (size == null || size <= 0) return const {};
-      sizes[path] = size;
-    }
-    return sizes;
+    return [
+      for (final path in paths) (path: path, size: byPath[path] ?? 0),
+    ];
   }
 
   /// Every state the preparation reports, for the phase label and the bar.

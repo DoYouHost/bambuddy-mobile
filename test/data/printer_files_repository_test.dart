@@ -207,9 +207,8 @@ void main() {
       });
     });
 
-    test('sizes it cannot vouch for are left out entirely', () async {
-      // The schema wants one per path or none at all, and a made-up number
-      // would pass the server's free-space check on a lie.
+    test('an incomplete map of sizes is left out entirely', () async {
+      // The schema wants one per path or none at all.
       adapter.onPost(
         '/api/v1/printers/1/files/download-job',
         (s) => s.reply(200, const {'job_id': 'job-1', 'state': 'queued'}),
@@ -220,6 +219,30 @@ void main() {
         1,
         paths: const ['/a.3mf', '/b.3mf'],
         sizes: const {},
+        filename: 'X1-files.zip',
+      );
+
+      expect(sent.single.data, isNot(contains('sizes')));
+    });
+
+    test('one size the listing could not read disqualifies the whole set',
+        () async {
+      // A `0` is a size the FTP listing failed to parse, not an empty file.
+      // Sending it would pass the server's free-space check on a lie and the
+      // transfer would fail halfway through instead — so the complete-looking
+      // map goes in the bin with the partial one. The rule lives in the
+      // repository because it is about what this route may be told, not about
+      // whichever screen is asking.
+      adapter.onPost(
+        '/api/v1/printers/1/files/download-job',
+        (s) => s.reply(200, const {'job_id': 'job-1', 'state': 'queued'}),
+        data: Matchers.any,
+      );
+
+      await repo.startDownloadJob(
+        1,
+        paths: const ['/a.3mf', '/b.3mf'],
+        sizes: const {'/a.3mf': 4096, '/b.3mf': 0},
         filename: 'X1-files.zip',
       );
 

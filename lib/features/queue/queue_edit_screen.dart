@@ -24,6 +24,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
 import '../common/date_time_picker.dart';
+import '../common/inline_note.dart';
 import '../common/print_thumbnail.dart';
 import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
@@ -253,66 +254,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// injection is precisely the setting they configured once and stopped
   /// watching. Same wording in both places, so it reads as one fact.
   Widget? _missingSnippetNote(
-    AppLocalizations l10n,
-    DashTokens t, {
+    AppLocalizations l10n, {
     required EdgeInsets padding,
     bool announce = false,
   }) {
     final model = _modelMissingSnippet;
-    return _note(
-      t,
+    return inlineNote(
       model == null ? null : l10n.queueEditGcodeInjectionNoSnippet(model),
       padding: padding,
       announce: announce,
     );
-  }
-
-  /// A caveat under a control: what the form is about to do is not what the
-  /// control looks like it does. Null [text] is "nothing to say", so a caller
-  /// can hand its own condition straight in.
-  ///
-  /// Quiet by default — tertiary ink, not the amber a fault card uses. Most of
-  /// these sit next to a setting the user chose and is still free to change,
-  /// and the job prints either way.
-  ///
-  /// [urgent] is for the one that is not like that: a rack pick the live rack
-  /// no longer satisfies fails the item at dispatch, *after* the upload, and
-  /// nothing downstream softens it. Grey would have been an honest colour for
-  /// every other note here and the wrong one for that.
-  ///
-  /// [announce] reads the note out when it appears. Only for a note that is the
-  /// answer to the tap just made, and only where one of them appears at a time:
-  /// a change that raises several — a printer swap can invalidate the rack pick
-  /// of every filament group at once — would read them all out in a row, which
-  /// is worse than the silence.
-  Widget? _note(
-    DashTokens t,
-    String? text, {
-    EdgeInsets padding = const EdgeInsets.only(top: 6),
-    bool urgent = false,
-    bool announce = false,
-  }) {
-    if (text == null) return null;
-    final ink = urgent ? t.accentOrange : t.textTertiary;
-    final row = Padding(
-      padding: padding,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.warning_amber_rounded, size: 16, color: ink),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              text,
-              style: urgent ? t.labelSoft.copyWith(color: ink) : t.labelSoft,
-            ),
-          ),
-        ],
-      ),
-    );
-    return announce
-        ? Semantics(container: true, liveRegion: true, child: row)
-        : row;
   }
 
   /// The target model when injection is asked for but that model has no snippet
@@ -457,7 +408,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             _printerList(l10n, t, printers)
           else
             _modelTarget(l10n, t, models, locations, modelFixed),
-          ?_missingSnippetNote(l10n, t,
+          ?_missingSnippetNote(l10n,
               padding: const EdgeInsets.only(top: 10)),
         ],
       ),
@@ -821,7 +772,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               }
             }),
           ),
-          ?_note(t, warning, urgent: stale),
+          ?inlineNote(warning, urgent: stale),
         ],
       ),
     );
@@ -1226,7 +1177,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           // as the direct answer to the tap just made, and a reader that says
           // nothing leaves the tick looking like it worked. Only one of the two
           // says it, or the same sentence is read out twice.
-          ?_missingSnippetNote(l10n, t,
+          ?_missingSnippetNote(l10n,
               padding: const EdgeInsets.only(left: 4, top: 2), announce: true),
         ],
       ),
