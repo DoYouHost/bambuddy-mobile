@@ -37,24 +37,20 @@ class ScheduledDryingRepository {
   /// The `pending` / `running` / `failed` rows, newest start first — the whole
   /// fleet, or one printer when [printerId] is given.
   ///
-  /// A 404 (no such route) answers with an empty list rather than throwing:
-  /// every caller is a card that has nothing to say about an older server, and
-  /// the latch above has already recorded why.
-  Future<List<ScheduledDrying>> list({int? printerId}) async {
-    try {
-      final res = await _dio.get<List<dynamic>>(
-        Endpoints.scheduledDryings,
-        queryParameters: {'printer_id': ?printerId},
+  /// An older server (404) or a key without the permission (403) answers with
+  /// an empty list rather than throwing: every caller is a card that has
+  /// nothing to say about either.
+  Future<List<ScheduledDrying>> list({int? printerId}) =>
+      _scheduling.watching(
+        () async {
+          final res = await _dio.get<List<dynamic>>(
+            Endpoints.scheduledDryings,
+            queryParameters: {'printer_id': ?printerId},
+          );
+          return parseJsonList(res.data, ScheduledDrying.fromJson);
+        },
+        absent: () => const [],
       );
-      _scheduling.observe(present: true);
-      return parseJsonList(res.data, ScheduledDrying.fromJson);
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _scheduling.observeFailure(status);
-      if (status == 404 || status == 403) return const [];
-      throw mapDioException(e);
-    }
-  }
 
   /// Schedule a run. [startAfter] null means "as soon as the printer is idle";
   /// the server refuses an instant that is not in the future.
@@ -71,7 +67,7 @@ class ScheduledDryingRepository {
     DateTime? startAfter,
   }) async {
     final start = startAfter == null ? null : instantToJson(startAfter);
-    try {
+    return _scheduling.watching(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.scheduledDryings,
         data: {
@@ -88,22 +84,12 @@ class ScheduledDryingRepository {
           'start_after': ?start,
         },
       );
-      _scheduling.observe(present: true);
       return ScheduledDrying.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      _scheduling.observeFailure(e.response?.statusCode);
-      throw mapDioException(e);
-    }
+    });
   }
 
   /// Cancel a pending or running run, or dismiss a failed one.
-  Future<void> cancel(int id) async {
-    try {
-      await _dio.delete<Map<String, dynamic>>(Endpoints.scheduledDrying(id));
-      _scheduling.observe(present: true);
-    } on DioException catch (e) {
-      _scheduling.observeFailure(e.response?.statusCode);
-      throw mapDioException(e);
-    }
-  }
+  Future<void> cancel(int id) => _scheduling.watching(
+        () => _dio.delete<Map<String, dynamic>>(Endpoints.scheduledDrying(id)),
+      );
 }

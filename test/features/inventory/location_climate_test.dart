@@ -126,11 +126,7 @@ void main() {
       ],
       child: plApp(const InventoryScreen()),
     ));
-    // Not pumpAndSettle: the search field's cursor blinks forever, so no frame
-    // ever has nothing animating.
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
   }
 
   testWidgets("a spool's card says what its shelf reads right now",
@@ -138,9 +134,7 @@ void main() {
     await pumpShelf(tester, climates: {'dry box': climate});
 
     await tester.tap(find.text('Polymaker PETG'));
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
 
     expect(find.text('Temperature 24°C'), findsOneWidget,
         reason: 'a whole number needs no decimal place');
@@ -157,9 +151,7 @@ void main() {
     await pumpShelf(tester);
 
     await tester.tap(find.text('Polymaker PETG'));
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
 
     expect(find.textContaining('Humidity'), findsNothing);
     expect(find.byIcon(Icons.sensors_off), findsNothing);
@@ -179,9 +171,7 @@ void main() {
     expect(find.byIcon(Icons.thermostat), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.thermostat));
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
 
     expect(find.text('Dry box'), findsOneWidget);
     expect(find.text('Humidity 47.2%'), findsOneWidget);

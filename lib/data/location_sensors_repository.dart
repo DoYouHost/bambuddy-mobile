@@ -43,35 +43,27 @@ class LocationSensorsRepository {
   /// A 404 (no such route) or 403 (a key without `smart_plugs:read`) answers
   /// with an empty list rather than throwing: the whole feature is additive,
   /// and the latch above has already recorded why there is nothing to add.
-  Future<List<LocationSensorBinding>> listBindings() async {
-    try {
-      final res = await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);
-      _sensors.observe(present: true);
-      return parseJsonList(res.data, LocationSensorBinding.fromJson);
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _sensors.observeFailure(status);
-      if (status == 404 || status == 403) return const [];
-      throw mapDioException(e);
-    }
-  }
+  Future<List<LocationSensorBinding>> listBindings() => _sensors.watching(
+        () async {
+          final res =
+              await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);
+          return parseJsonList(res.data, LocationSensorBinding.fromJson);
+        },
+        absent: () => const [],
+      );
 
   /// The live state of one location's card-visible sensors, in the order the
   /// bindings were sorted into. A sensor the poller has not reached yet comes
   /// back with its last persisted state and `reachable: false` rather than
   /// dropping out of the list on every server restart.
-  Future<List<LocationSensorReading>> readings(int locationId) async {
-    try {
-      final res = await _dio.get<List<dynamic>>(
-        Endpoints.locationHaSensorReadings(locationId),
+  Future<List<LocationSensorReading>> readings(int locationId) =>
+      _sensors.watching(
+        () async {
+          final res = await _dio.get<List<dynamic>>(
+            Endpoints.locationHaSensorReadings(locationId),
+          );
+          return parseJsonList(res.data, LocationSensorReading.fromJson);
+        },
+        absent: () => const [],
       );
-      _sensors.observe(present: true);
-      return parseJsonList(res.data, LocationSensorReading.fromJson);
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _sensors.observeFailure(status);
-      if (status == 404 || status == 403) return const [];
-      throw mapDioException(e);
-    }
-  }
 }

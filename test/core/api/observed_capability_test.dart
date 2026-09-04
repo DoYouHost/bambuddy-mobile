@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/observed_capability.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
@@ -77,5 +78,92 @@ void main() {
       await (ObservedCapability.unversioned()..observeFailure(404)).supported,
       isFalse,
     );
+  });
+
+  group('watching', () {
+    /// A request that fails the way Dio fails, so the wrapper sees what a
+    /// repository sees.
+    Future<T> refusing<T>(int status) => Future<T>.error(DioException(
+          requestOptions: RequestOptions(path: '/x'),
+          // badResponse, or `mapDioException` reads it as a transport failure
+          // and no status reaches the mapping at all.
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: RequestOptions(path: '/x'),
+            statusCode: status,
+          ),
+        ));
+
+    test('an answer is the answer, and records the route as there', () async {
+      final cap = capability('1.2.5.1');
+
+      expect(await cap.watching(() async => 'ok'), 'ok');
+      // The version said no; the reply outranks it.
+      expect(await cap.supported, isTrue);
+    });
+
+    test('the two statuses the latch reads come back as the caller\'s answer',
+        () async {
+      for (final status in [404, 403]) {
+        final cap = capability('1.2.6b1');
+
+        expect(
+          await cap.watching(() => refusing<List<int>>(status),
+              absent: () => const []),
+          isEmpty,
+        );
+        expect(await cap.supported, isFalse,
+            reason: 'status $status is also recorded, not only answered');
+      }
+    });
+
+    test('absentOn narrows it, so a refusal still reaches the user', () async {
+      final cap = capability('1.2.6b1');
+
+      expect(
+        await cap.watching(() => refusing<String?>(404),
+            absent: () => null, absentOn: const {404}),
+        isNull,
+      );
+      await expectLater(
+        cap.watching(() => refusing<String?>(403),
+            absent: () => null, absentOn: const {404}),
+        throwsA(isA<AuthException>()),
+      );
+      // And the refusal is still on the latch, whether or not it was thrown.
+      expect(await cap.supported, isFalse);
+    });
+
+    test('with no answer to give, every failure throws mapped', () async {
+      final cap = capability('1.2.6b1');
+
+      await expectLater(
+        cap.watching(() => refusing<String>(404)),
+        throwsA(isA<AppApiException>()),
+      );
+      expect(await cap.supported, isFalse);
+    });
+
+    test('a failure that says nothing about the route throws and pins nothing',
+        () async {
+      final cap = capability('1.2.6b1');
+
+      await expectLater(
+        cap.watching(() => refusing<List<int>>(500), absent: () => const []),
+        throwsA(isA<AppApiException>()),
+        reason: 'a 500 is a fault to report, not an empty shelf',
+      );
+      expect(await cap.supported, isTrue);
+    });
+
+    test('anything that is not a Dio failure passes straight through',
+        () async {
+      final cap = capability('1.2.6b1');
+
+      await expectLater(
+        cap.watching<int>(() => throw StateError('parser')),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }

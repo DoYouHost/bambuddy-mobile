@@ -137,25 +137,27 @@ class SlicerRepository {
   /// throwing: a blank panel beats an error dialog over a nicety. An expired
   /// session is the one exception, as in [guardOrNull] — swallow the 401 and
   /// nothing redirects, leaving the user staring at empty fields.
+  ///
+  /// The 403 is answered by [ObservedCapability.watching] and never reaches the
+  /// [AuthException] arm below, which a 403 also maps to. That is the point of
+  /// keeping the two apart: unlike a 401 it is a permanent per-permission
+  /// answer about one route, and throwing it out of a panel read would put a
+  /// session dialog in front of a control the user simply cannot have.
   Future<PresetValues?> presetValues(SlicerPreset preset) async {
     try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.slicerPresetValues,
-        queryParameters: {...preset.toRef(), 'slot': 'process'},
+      return await _processOverrides.watching(
+        () async {
+          final res = await _dio.get<Map<String, dynamic>>(
+            Endpoints.slicerPresetValues,
+            queryParameters: {...preset.toRef(), 'slot': 'process'},
+          );
+          return PresetValues.fromJson(res.data ?? const {});
+        },
+        absent: () => null,
       );
-      _processOverrides.observe(present: true);
-      return PresetValues.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      _processOverrides.observeFailure(status);
-      // The 403 is deliberately answered here rather than falling through to
-      // the AuthException rethrow below, which a 403 also maps to: unlike a 401
-      // this is a permanent per-permission answer, and throwing it out of a
-      // panel read would surface a dialog for a control the user simply cannot
-      // have.
-      if (status == 404 || status == 403) return null;
-      final mapped = mapDioException(e);
-      if (mapped is AuthException) throw mapped;
+    } on AuthException {
+      rethrow;
+    } on AppApiException {
       return PresetValues.unresolved;
     }
   }

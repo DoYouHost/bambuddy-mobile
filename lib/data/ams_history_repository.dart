@@ -28,17 +28,12 @@ class AmsHistoryRepository {
   Future<bool> supportsHistory() => _history.supported;
 
   /// Fetch the last [hours] of samples (backend clamps to 1..168).
-  Future<AmsHistory> fetch(int printerId, int amsId, {int hours = 24}) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.amsHistory(printerId, amsId),
-        queryParameters: {'hours': hours},
-      );
-      _history.observe(present: true);
-      return AmsHistory.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      _history.observeFailure(e.response?.statusCode);
-      throw mapDioException(e);
-    }
-  }
+  Future<AmsHistory> fetch(int printerId, int amsId, {int hours = 24}) =>
+      _history.watching(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.amsHistory(printerId, amsId),
+          queryParameters: {'hours': hours},
+        );
+        return AmsHistory.fromJson(res.data ?? const {});
+      });
 }
