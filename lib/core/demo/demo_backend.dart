@@ -230,10 +230,10 @@ class DemoBackend {
         //
         // 1.2.6 is what serves the print log's cost and energy and its sortable
         // columns; the beta suffix because that is where the contract really
-        // lives today, 1.2.5.2 being the newest release. Everything else 1.2.6
-        // gates is either served below (library variant groups) or invisible
-        // here anyway: the two slicer features need `use_slicer_api`, which the
-        // demo reports off, and the users listing is decided by probing.
+        // lives today, 1.2.5.2 being the newest release. It is also the version
+        // that gates `process_overrides` and `auto_orient`/`auto_arrange` on a
+        // slice, both of which the routes below accept — the users listing is
+        // the one thing 1.2.6 gates that is decided by probing instead.
         if (at(1, 'version')) {
           return _ok(const {
             'version': '1.2.6b1',
@@ -461,7 +461,10 @@ class DemoBackend {
       case 'settings':
         return _ok(const {
           'require_plate_clear': false,
-          'use_slicer_api': false,
+          // On, so the slice form is reachable at all: it gates every Slice
+          // button in the app, and with it off the pipelines feature showed
+          // only its read-only half.
+          'use_slicer_api': true,
           'currency': 'USD',
           // Auto-print snippets, as the real server stores them: a JSON string
           // keyed by printer model. Only the A1 mini has one, so demo shows both
@@ -490,14 +493,16 @@ class DemoBackend {
           'pipeline_max_copies': 12,
         });
 
+      case 'slice-jobs':
+        return _sliceJobRoute(id(1));
+
       case 'slicer':
         if (at(1, 'printer-models')) return _ok(_printerModels);
-        // Served even though `use_slicer_api` is off, because the pipeline
-        // cards resolve their stored `PresetRef`s against this catalogue and
-        // would otherwise read "No longer in the catalog" on every row. It
-        // reveals no slicing UI: the slice form is gated on the settings flag,
-        // not on this.
+        // The catalogue both features read: the slice form's three pickers,
+        // and the pipeline cards resolving their stored `PresetRef`s (without
+        // it every row read "No longer in the catalog").
         if (at(1, 'presets')) return _ok(_slicerPresets);
+        if (at(1, 'preset-values')) return _presetValues(q);
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -583,6 +588,478 @@ class DemoBackend {
       ],
     },
   };
+
+  // --- Server-side slicing ---
+
+  /// The two-tone source, which is the only demo file that needs more than one
+  /// filament slot. Named rather than inlined because three routes have to
+  /// agree about which file that is.
+  static const _multiSlotFileId = 7;
+
+  /// The one archive that kept the project file it was sliced from, so its card
+  /// can offer a re-slice. Found by print name rather than id: the ids are
+  /// handed out in fixture order and would move if a print were inserted above.
+  int get _sliceableArchiveId =>
+      _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+
+  /// `/slicer/preset-values` — the picked process preset's effective values,
+  /// flattened, as the sidecar answers them.
+  ///
+  /// The standard tier deliberately has no entry: on a real install a sidecar
+  /// older than the endpoint is the common cause of an unresolved answer, and
+  /// it is the only way to reach the panel's "opened on the schema's own
+  /// defaults, and here is why" state.
+  DemoResult _presetValues(Map<String, String> q) {
+    if ((q['slot'] ?? 'process') != 'process') {
+      return (
+        status: 400,
+        body: {'detail': "Only the 'process' slot is supported"},
+      );
+    }
+    final values = _processPresetValues[q['id']];
+    if (values == null) {
+      return _ok(const {
+        'resolved': false,
+        'values': <String, Object>{},
+        'reason': 'sidecar_outdated',
+      });
+    }
+    return _ok({'resolved': true, 'values': values, 'reason': 'ok'});
+  }
+
+  /// Effective process values per local preset id, spelled as a process JSON
+  /// spells them — every scalar a string, booleans `1`/`0`, percents with the
+  /// sign, vectors as arrays. A number here would make the settings panel read
+  /// the field as user-modified the moment it opened.
+  ///
+  /// The two presets differ in more than the layer height so that switching
+  /// between them visibly re-baselines the panel rather than moving one row.
+  static const _processPresetValues = {
+    'q-020-std': {
+      'layer_height': '0.2',
+      'initial_layer_print_height': '0.2',
+      'wall_loops': '2',
+      'top_shell_layers': '5',
+      'bottom_shell_layers': '3',
+      'sparse_infill_density': '15%',
+      'sparse_infill_pattern': 'grid',
+      'enable_support': '0',
+      'brim_type': 'auto_brim',
+      'outer_wall_speed': ['200'],
+    },
+    'q-028-draft': {
+      'layer_height': '0.28',
+      'initial_layer_print_height': '0.28',
+      'wall_loops': '2',
+      'top_shell_layers': '4',
+      'bottom_shell_layers': '3',
+      'sparse_infill_density': '10%',
+      'sparse_infill_pattern': 'gyroid',
+      'enable_support': '0',
+      'brim_type': 'auto_brim',
+      'outer_wall_speed': ['250'],
+    },
+  };
+
+  /// Layer height a picked process preset slices at, as a number. Falls back to
+  /// the demo's own 0.20 for the standard tier, whose values this backend does
+  /// not claim to know.
+  double _layerHeightOf(String presetId) =>
+      double.tryParse('${_processPresetValues[presetId]?['layer_height']}') ??
+      0.2;
+
+  /// `/library/files/{id}/plates` — the plates to choose between, plus the
+  /// presets the 3MF names in its own project settings.
+  ///
+  /// A non-3MF gets the short shape the server gives it, with no
+  /// `design_overrides` key at all: its absence is what tells the app that
+  /// "slice as designed" is not on offer here, as against being empty.
+  Map<String, dynamic> _libraryPlates(Map<String, dynamic> file) {
+    final filename = '${file['filename']}';
+    if (!filename.toLowerCase().endsWith('.3mf')) {
+      return {
+        'file_id': file['id'],
+        'filename': filename,
+        'plates': const <Object>[],
+        'is_multi_plate': false,
+      };
+    }
+    final count = file['id'] == _multiSlotFileId ? 2 : 1;
+    return {
+      'file_id': file['id'],
+      'filename': filename,
+      'plates': [
+        for (var i = 1; i <= count; i++)
+          {
+            'index': i,
+            'name': null,
+            'objects': <String>[],
+            'object_count': 1,
+            'has_thumbnail': false,
+            'thumbnail_url': null,
+            // Both estimates come out of the metadata a slice writes, so they
+            // are null on an un-sliced source and read off the row on output
+            // this backend produced itself.
+            'print_time_seconds': toIntOrNull(file['print_time_seconds']),
+            'filament_used_grams': toDoubleOrNull(file['filament_used_grams']),
+            'filaments': <Object>[],
+          },
+      ],
+      'is_multi_plate': count > 1,
+      // Verbatim preset names, matched against the catalogue by name — so these
+      // have to be spelled as `/slicer/presets` spells them or the switch never
+      // appears.
+      'embedded_printer': 'X1C 0.4 nozzle',
+      'embedded_process': '0.20mm Standard @X1C',
+      'design_overrides': const [
+        {
+          'key': 'wall_loops',
+          'value': '3',
+          'printer_coupled': false,
+          'preset_defining': false,
+        },
+        {
+          'key': 'sparse_infill_density',
+          'value': '25%',
+          'printer_coupled': false,
+          'preset_defining': false,
+        },
+      ],
+    };
+  }
+
+  /// The two-tone source's project slots. Four of them, two materials, so the
+  /// per-slot pickers have something to auto-pick from by type and colour.
+  static const _twoToneSlots = [
+    {'slot_id': 1, 'type': 'PLA', 'color': '#FFFFFF'},
+    {'slot_id': 2, 'type': 'PLA', 'color': '#1A1A1A'},
+    {'slot_id': 3, 'type': 'PETG', 'color': '#FF6A13'},
+    {'slot_id': 4, 'type': 'PETG', 'color': '#0ACCB8'},
+  ];
+
+  /// Which of [_twoToneSlots] each plate actually prints from. The point of the
+  /// table: the file declares four slots and no plate uses all four, so the
+  /// answer genuinely depends on `plate_id` — which is the trap the slice form
+  /// avoids by asking about the same plate it is going to slice.
+  static const _twoTonePlateSlots = {
+    1: [1, 2],
+    2: [3, 4],
+  };
+
+  /// `/library/files/{id}/filament-requirements`.
+  ///
+  /// `full_slots` is the difference between the two callers: the slice form
+  /// wants one row per **project** slot, because `filament_presets` is
+  /// positional, while print-time AMS matching wants only the slots the plate
+  /// consumes. A source with no filament table answers none, and the slice form
+  /// falls back to a single generic picker.
+  Map<String, dynamic> _libraryFilaments(
+    Map<String, dynamic> file,
+    Map<String, String> q,
+  ) {
+    final plateId = int.tryParse(q['plate_id'] ?? '') ?? 1;
+    final rows = <Map<String, dynamic>>[];
+    if ('${file['filename']}'.toLowerCase().endsWith('.3mf')) {
+      final used = file['id'] == _multiSlotFileId
+          ? (_twoTonePlateSlots[plateId] ?? const <int>[])
+          : const [1];
+      final slots = file['id'] == _multiSlotFileId
+          ? _twoToneSlots
+          : const [
+              {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'}
+            ];
+      for (final slot in slots) {
+        final inPlate = used.contains(slot['slot_id']);
+        if (!inPlate && q['full_slots'] != 'true') continue;
+        rows.add({
+          ...slot,
+          // No measured figure on a source that has never been sliced.
+          'used_grams': 0,
+          'used_meters': 0,
+          'used_in_plate': inPlate,
+        });
+      }
+    }
+    return {
+      'file_id': file['id'],
+      'filename': file['filename'],
+      'plate_id': plateId,
+      'filaments': rows,
+    };
+  }
+
+  /// `/archives/{id}/filament-requirements` — one slot, holding what the print
+  /// actually ran with. A sliced file's table is the used-only one, so every
+  /// row it can offer is used by definition.
+  Map<String, dynamic> _archiveFilaments(Map<String, dynamic> archive) {
+    final grams = toDouble(archive['filament_used_grams']);
+    return {
+      'archive_id': archive['id'],
+      'filename': archive['filename'],
+      'filaments': [
+        {
+          'slot_id': 1,
+          'type': archive['filament_type'],
+          'color': archive['filament_color'],
+          'used_grams': grams,
+          'used_meters': _r1(grams * 0.33),
+          'used_in_plate': true,
+        },
+      ],
+    };
+  }
+
+  /// Slice jobs this backend has handed out, by id. Never swept: the demo has
+  /// no retention window to model, and a job the dialog is still polling is the
+  /// only one anybody asks about.
+  final Map<int, Map<String, dynamic>> _sliceJobs = {};
+  int _nextSliceJobId = 700;
+
+  /// How long a demo slice takes. Comfortably longer than the dialog's 1.5 s
+  /// poll: a job already finished by the first poll would never show a stage or
+  /// a percentage, which is most of what that dialog is. Settable so a contract
+  /// test can watch a whole run without spending nine seconds on it.
+  static double sliceSeconds = 9;
+
+  /// `POST …/slice` — enqueue, exactly as the server does: 202 carrying the id
+  /// to poll and nothing else. What the slicer would produce is decided here,
+  /// from the source and the picked process preset, and handed out by
+  /// [_sliceJobRoute] once enough time has passed for it to be believable.
+  DemoResult _startSlice({
+    required bool isArchive,
+    required Map<String, dynamic> source,
+    required Map<String, dynamic> body,
+  }) {
+    final filename = '${source['filename']}'.toLowerCase();
+    if (!isArchive) {
+      // Both refusals land before a byte is read, and the STEP one is its own
+      // message because neither slicer CLI can load the format at all — read as
+      // a corrupt model, it would send the user looking in the wrong place.
+      if (filename.endsWith('.step') || filename.endsWith('.stp')) {
+        return (
+          status: 400,
+          body: {
+            'detail': 'STEP files cannot be sliced. The OrcaSlicer and Bambu '
+                'Studio command-line slicers load only STL and 3MF -- open the '
+                'STEP in your slicer and export it as one of those first.',
+          },
+        );
+      }
+      if (!filename.endsWith('.stl') && !filename.endsWith('.3mf')) {
+        return (
+          status: 400,
+          body: {'detail': 'Source file must be STL or 3MF'},
+        );
+      }
+    }
+    final jobId = _nextSliceJobId++;
+    final process = body['process_preset'];
+    _sliceJobs[jobId] = {
+      'kind': isArchive ? 'archive' : 'library_file',
+      'source': source,
+      'started_ms': DateTime.now().millisecondsSinceEpoch,
+      'created_at': _iso(DateTime.now()),
+      'embedded': body['use_embedded_settings'] == true,
+      'layer_height': _layerHeightOf(
+          process is Map ? '${process['id']}' : ''),
+      'printer_preset': body['printer_preset'],
+      'result': null,
+    };
+    return (
+      status: 202,
+      body: {
+        'job_id': jobId,
+        'status': 'pending',
+        'status_url': '/api/v1/slice-jobs/$jobId',
+      },
+    );
+  }
+
+  /// `GET /slice-jobs/{id}` — the status the progress dialog polls.
+  ///
+  /// Time-based like the print simulation: the phase and the percentage come
+  /// out of how long ago the job was enqueued, so it advances between polls
+  /// with nothing running in between.
+  DemoResult _sliceJobRoute(int? jobId) {
+    final job = _sliceJobs[jobId];
+    if (job == null) {
+      return (status: 404, body: {'detail': 'Slice job not found or expired'});
+    }
+    final elapsed =
+        (DateTime.now().millisecondsSinceEpoch - (job['started_ms'] as int)) /
+            1000;
+    final done = elapsed >= sliceSeconds;
+    // The sidecar publishes nothing for the first moment of a slice, which is
+    // what puts the dialog on an indeterminate bar instead of a 0%.
+    final started = elapsed >= 1;
+    final body = <String, dynamic>{
+      'job_id': jobId,
+      'status': done
+          ? 'completed'
+          : started
+              ? 'running'
+              : 'pending',
+      'kind': job['kind'],
+      'source_id': (job['source'] as Map)['id'],
+      'source_name': (job['source'] as Map)['filename'],
+      'created_at': job['created_at'],
+      'started_at': job['created_at'],
+      'progress': done || !started ? null : _sliceProgress(elapsed),
+    };
+    if (done) {
+      // Stamped alongside the result, so both are decided on the first poll
+      // that finds the job over rather than moving with each later one.
+      job['completed_at'] ??= _iso(DateTime.now());
+      body['result'] = _sliceResult(job);
+    }
+    body['completed_at'] = job['completed_at'];
+    return _ok(body);
+  }
+
+  /// The sidecar's own snapshot, which the server forwards verbatim: a stage
+  /// name and a whole-slice percentage.
+  static Map<String, dynamic> _sliceProgress(double elapsed) {
+    final percent = (elapsed / sliceSeconds * 100).clamp(1, 99).round();
+    final stage = switch (percent) {
+      < 25 => 'Processing triangulated mesh',
+      < 45 => 'Generating perimeters',
+      < 65 => 'Preparing infill',
+      < 85 => 'Generating G-code',
+      _ => 'Exporting G-code',
+    };
+    return {'stage': stage, 'total_percent': percent};
+  }
+
+  /// What the slice produced, filed where the server would have filed it.
+  ///
+  /// Built on the first poll that finds the job finished and kept on the job
+  /// afterwards: the row it adds to the library or the archives must be added
+  /// once, and this is polled repeatedly.
+  Map<String, dynamic> _sliceResult(Map<String, dynamic> job) {
+    final cached = job['result'];
+    if (cached is Map<String, dynamic>) return cached;
+
+    final source = job['source'] as Map<String, dynamic>;
+    final bytes = toInt(source['file_size']);
+    // A source that has been through a slicer already knows what it costs — an
+    // archive always does — and only an un-sliced upload has to be guessed at
+    // from its size. Either way the picked process preset moves the time, so
+    // the two presets do not produce the same estimate.
+    final known = toIntOrNull(source['print_time_seconds']);
+    final seconds =
+        ((known ?? bytes / 520) * (0.2 / (job['layer_height'] as double)))
+            .round();
+    final grams =
+        toDoubleOrNull(source['filament_used_grams']) ?? _r1(bytes / 26000);
+    final base = '${source['print_name'] ?? source['filename']}';
+    final result = <String, dynamic>{
+      'print_time_seconds': seconds,
+      'filament_used_g': grams,
+      // 1.75 mm filament runs about 330 mm to the gram.
+      'filament_used_mm': _r1(grams * 330),
+      'used_embedded_settings': job['embedded'] == true,
+      'external_write_fallback': null,
+    };
+    final printerPreset = job['printer_preset'];
+    final model = _modelOfPrinterPreset(
+        printerPreset is Map ? '${printerPreset['id']}' : '');
+    if (job['kind'] == 'archive') {
+      final archive = _resliceArchive(source, base, seconds, grams, model);
+      result['archive_id'] = archive['id'];
+      result['name'] = archive['print_name'];
+    } else {
+      final file = _slicedLibraryFile(source, base, seconds, grams, model);
+      result['library_file_id'] = file['id'];
+      result['name'] = file['filename'];
+    }
+    job['result'] = result;
+    return result;
+  }
+
+  /// The sliced output, filed in the library beside its source — which is where
+  /// the user goes looking for it, and the reason this is a row rather than a
+  /// number in a dialog.
+  Map<String, dynamic> _slicedLibraryFile(
+    Map<String, dynamic> source,
+    String base,
+    int seconds,
+    double grams,
+    String? model,
+  ) {
+    final file = _libFile(
+      _nextLibraryFileId++,
+      '$base.gcode.3mf',
+      source['folder_id'] as int?,
+      (grams * 21000).round(),
+      timeSec: seconds,
+      grams: grams,
+      model: model,
+    );
+    _libraryFiles.add(file);
+    return file;
+  }
+
+  /// The re-sliced output as an archive row: sliced but never printed, so it
+  /// carries the estimates and no run of its own.
+  Map<String, dynamic> _resliceArchive(
+    Map<String, dynamic> source,
+    String base,
+    int seconds,
+    double grams,
+    String? model,
+  ) {
+    // The output is for whatever printer was just picked, not for the one the
+    // source happened to print on — copying the source's model is what left a
+    // cross-printer re-slice wearing the old badge (server #2636 follow-up).
+    final printer =
+        _printers.where((p) => p['model'] == model).firstOrNull?['id'];
+    final archive = {
+      ...source,
+      'id': _archives.map((a) => toInt(a['id'])).reduce(math.max) + 1,
+      'filename': '$base.gcode.3mf',
+      'print_name': '$base (re-sliced)',
+      'printer_id': printer ?? source['printer_id'],
+      'sliced_for_model': model ?? source['sliced_for_model'],
+      'print_time_seconds': seconds,
+      'filament_used_grams': grams,
+      // Nothing ran, so there is nothing measured: no run, no accuracy, no
+      // energy. The demo's own statistics coerce these rather than assume a
+      // print behind every archive row.
+      'actual_time_seconds': 0,
+      'time_accuracy': null,
+      'total_filament_actual_grams': null,
+      'started_at': null,
+      'completed_at': null,
+      'run_count': 0,
+      'last_run_at': null,
+      'successful_run_count': 0,
+      'failed_run_count': 0,
+      'cost': _r1(grams * 0.025),
+      'energy_kwh': 0.0,
+      'energy_cost': 0.0,
+      'created_at': _iso(DateTime.now()),
+    };
+    _archives.insert(0, archive);
+    return archive;
+  }
+
+  /// Short model code for a printer preset the slice was sent with, so the
+  /// output row says which printer it is for. Matched the way the app matches
+  /// it — the code as a whole token in the preset's name — rather than by a
+  /// table of preset ids that would have to be kept in step with the catalogue.
+  String? _modelOfPrinterPreset(String presetId) {
+    final printers = (_slicerPresets['local']?['printer'] ?? const []) as List;
+    final name = printers
+        .whereType<Map<String, Object>>()
+        .where((p) => p['id'] == presetId)
+        .map((p) => '${p['name']}'.toUpperCase())
+        .firstOrNull;
+    if (name == null) return null;
+    for (final code in _printerModels.values) {
+      if (RegExp('(?<![A-Z0-9])$code(?![A-Z0-9])').hasMatch(name)) return code;
+    }
+    return null;
+  }
 
   // --- Printers + status ---
 
@@ -2159,14 +2636,27 @@ class DemoBackend {
           return _ok(const {'ok': true});
         }
         if (s.length >= 3 && s[2] == 'capabilities') {
-          return _ok(const {
+          return _ok({
             'has_model': false,
             'has_gcode': true,
-            'has_source': false,
+            // Only the one archive kept the project file it was sliced from,
+            // which is the whole of what `sliceable` asks about — every other
+            // demo archive is a plain `gcode.3mf` print output, and the server
+            // answers false for those too.
+            'has_source': aid == _sliceableArchiveId,
           });
         }
+        if (s.length >= 3 && s[2] == 'slice' && m == 'POST') {
+          if (aid != _sliceableArchiveId) {
+            return (
+              status: 400,
+              body: {'detail': 'Archive has no source file to slice'},
+            );
+          }
+          return _startSlice(isArchive: true, source: archive, body: body);
+        }
         if (s.length >= 3 && s[2] == 'filament-requirements') {
-          return _ok(const {'filaments': <Object>[]});
+          return _ok(_archiveFilaments(archive));
         }
         if (s.length >= 3 && s[2] == 'plates') {
           return _ok(_demoPlates(archive));
@@ -2290,10 +2780,13 @@ class DemoBackend {
               .firstOrNull?['name'] ??
           '?';
       byPrinter.update('$printerName', (v) => v + 1, ifAbsent: () => 1);
-      hours += (a['actual_time_seconds'] as int) / 3600;
-      grams += a['filament_used_grams'] as double;
-      cost += a['cost'] as double;
-      kwh += a['energy_kwh'] as double;
+      // Coerced, not cast: a re-sliced archive has never run, so the fields a
+      // completed print fills are null on it — and the server sends that row
+      // in the same list as every other.
+      hours += toDouble(a['actual_time_seconds']) / 3600;
+      grams += toDouble(a['filament_used_grams']);
+      cost += toDouble(a['cost']);
+      kwh += toDouble(a['energy_kwh']);
     }
     return {
       'total_prints': _archives.length,
@@ -3911,11 +4404,26 @@ class DemoBackend {
         model: 'P1S'),
     _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
         model: 'P2S'),
-    _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf'),
+    // The un-sliced sources — the only files the Slice button is offered on,
+    // since anything already `gcode.3mf` is printable and cannot be re-sliced.
+    // Three of them because the form looks different for each: a plain 3MF
+    // fills one filament slot, the two-tone one fills four (two of which its
+    // plates never touch), and an STL has no plates and so no "as designed".
+    _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf', model: null),
+    _libFile(7, 'Hue dial two-tone.3mf', null, 2204160, fileType: '3mf', model: null),
+    _libFile(8, 'Lamp shade.stl', null, 1841664, fileType: 'stl', model: null),
+    // Uploaded straight from CAD, and refused before a byte is read: neither
+    // slicer CLI loads STEP. The button is still offered — the file is not
+    // printable — which is exactly the state the server's own message is for.
+    _libFile(9, 'Motor bracket.step', null, 412160, fileType: 'step', model: null),
   ];
 
   final List<Map<String, dynamic>> _libraryTrash = [];
   int _nextFolderId = 10;
+
+  /// Ids for the rows a slice files in the library. Above the fixtures so a
+  /// sliced output never collides with one.
+  int _nextLibraryFileId = 20;
 
   Map<String, dynamic> _libFile(
     int id,
@@ -3926,7 +4434,10 @@ class DemoBackend {
     int? timeSec,
     double? grams,
     String fileType = 'gcode.3mf',
-    String model = 'X1C',
+    // Null for a source that has never been through a slicer — the field
+    // records which printer the *output* was built for, so an un-sliced
+    // upload has no answer to give.
+    String? model = 'X1C',
   }) =>
       {
         'id': id,
@@ -4129,6 +4640,13 @@ class DemoBackend {
             });
             return _ok(const {'ok': true});
           }
+        }
+        if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
+        if (s.length >= 4 && s[3] == 'filament-requirements') {
+          return _ok(_libraryFilaments(file, q));
+        }
+        if (s.length >= 4 && s[3] == 'slice' && m == 'POST') {
+          return _startSlice(isArchive: false, source: file, body: body);
         }
         if (s.length >= 4 && s[3] == 'print') {
           return _ok(const {'ok': true});

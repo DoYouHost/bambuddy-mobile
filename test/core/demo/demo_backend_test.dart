@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
+import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
@@ -26,7 +27,9 @@ import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/core/models/pipeline_run.dart';
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
+import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipeline_presets.dart';
 import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -325,7 +328,7 @@ void main() {
     });
 
     test('the stored preset refs resolve against /slicer/presets', () async {
-      // Served even with `use_slicer_api` off, or every row of the card would
+      // The same catalogue the slice form's pickers read, or every row of the card would
       // read "No longer in the catalog".
       final presets = await SlicerRepository(dio).presets();
       final pipeline = (await PipelinesRepository(dio).list()).first;
@@ -761,7 +764,8 @@ void main() {
     test('files, folders, stats, trash', () async {
       final repo = LibraryRepository(dio);
       final rootFiles = await repo.listFiles();
-      expect(rootFiles, hasLength(1)); // only the unfiled file at root
+      // The four un-sliced sources; every sliced output sits in a folder.
+      expect(rootFiles, hasLength(4));
       final all = await repo.listAllFiles();
       expect(all.length, greaterThanOrEqualTo(6));
       final folderFiles = await repo.listFiles(folderId: 1);
@@ -787,7 +791,8 @@ void main() {
 
       final settings = await SlicerRepository(dio).serverSettings();
       expect(settings['require_plate_clear'], isFalse);
-      expect(settings['use_slicer_api'], isFalse);
+      expect(settings['use_slicer_api'], isTrue,
+          reason: 'the flag that gates every Slice button in the app');
     });
 
     test('printer files + storage + AMS history', () async {
@@ -1084,6 +1089,184 @@ void main() {
 
       expect(await repo.clearAll(), after.total);
       expect((await repo.list()).items, isEmpty);
+    });
+  });
+
+  group('server-side slicing (files the slice in — keep last)', () {
+    late SlicerRepository slicer;
+    setUp(() => slicer = SlicerRepository(dio));
+
+    // Ids from the fixture: the plain un-sliced 3MF, the two-tone one, the
+    // STL and the CAD export no slicer can load.
+    const plain = 6, twoTone = 7, stl = 8, step = 9;
+
+    Future<Map<String, dynamic>> slice(int fileId, {String process = 'q-020-std'}) =>
+        Future.value({
+          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+          'process_preset': {'source': 'local', 'id': process},
+          'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
+        });
+
+    test('a 3MF names the presets it was designed with; an STL names none',
+        () async {
+      final designed =
+          await LibraryRepository(dio).plates(plain).then((p) => p.embedded);
+      expect(designed.isAvailable, isTrue);
+      expect(designed.matchesPrinter('X1C 0.4 nozzle'), isTrue,
+          reason: 'spelled as /slicer/presets spells it, or the switch never '
+              'appears');
+
+      final none =
+          await LibraryRepository(dio).plates(stl).then((p) => p.embedded);
+      expect(none.isAvailable, isFalse);
+      expect(none.serverSupportsAsDesigned, isFalse,
+          reason: 'no design_overrides key at all on a non-3MF');
+    });
+
+    test('full_slots offers every project slot, flagging the spare ones',
+        () async {
+      final slots = await slicer.filamentRequirements(
+          id: twoTone, isArchive: false, plateId: 1);
+      expect(slots, hasLength(4));
+      expect(anyUnused(slots), isTrue,
+          reason: 'the form can only mark spare slots when some are spare');
+      expect(slots.where((s) => s.usedInPlate).map((s) => s.slotId), [1, 2]);
+    });
+
+    test('which slots are spare depends on the plate asked about', () async {
+      final second = await slicer.filamentRequirements(
+          id: twoTone, isArchive: false, plateId: 2);
+      expect(second.where((s) => s.usedInPlate).map((s) => s.slotId), [3, 4]);
+    });
+
+    test('a source with no filament table falls back to one generic slot',
+        () async {
+      expect(
+        await slicer.filamentRequirements(id: stl, isArchive: false),
+        isEmpty,
+      );
+    });
+
+    test('a local process preset resolves; the standard tier says why not',
+        () async {
+      final local = await slicer.presetValues(
+          const SlicerPreset(source: 'local', id: 'q-028-draft', name: ''));
+      expect(local?.resolved, isTrue);
+      expect(local?.values['layer_height'], '0.28',
+          reason: 'a string, as a process JSON spells it — a number would read '
+              'as user-modified the moment the panel opened');
+
+      final standard = await slicer.presetValues(const SlicerPreset(
+          source: 'standard', id: '0.20mm Standard @BBL X1C', name: ''));
+      expect(standard?.resolved, isFalse);
+      expect(standard?.cause, PresetValuesCause.sidecarOutdated);
+    });
+
+    test('STEP is refused before anything is read, in its own words', () async {
+      // Asserted on the wire rather than through the repository: `guard` maps a
+      // 400 without keeping its `detail`, so the sentence the server wrote
+      // never reaches the caller. Worth pinning here anyway — the demo is
+      // standing in for the server, and the server does say this.
+      final refusal = DemoBackend.instance.handle(
+        'POST',
+        Uri.parse('${DemoConfig.baseUrl}/api/v1/library/files/$step/slice'),
+        await slice(step),
+      );
+      expect(refusal.status, 400);
+      expect((refusal.body as Map)['detail'], contains('STEP'));
+
+      await expectLater(
+        slicer.sliceLibraryFile(step, await slice(step)),
+        throwsA(isA<AppApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+
+    test('only the archive that kept its source can be re-sliced', () async {
+      final archives = await ArchiveRepository(dio).list();
+      final benchy = archives.firstWhere((a) => a.printName == 'Benchy');
+      final other = archives.firstWhere((a) => a.printName != 'Benchy');
+      expect((await slicer.archiveCapabilities(benchy.id)).sliceable, isTrue);
+      expect((await slicer.archiveCapabilities(other.id)).sliceable, isFalse);
+    });
+
+    test('a job runs through its stages and then stops moving', () async {
+      DemoBackend.sliceSeconds = 1;
+      addTearDown(() => DemoBackend.sliceSeconds = 9);
+
+      final jobId = await slicer.sliceLibraryFile(plain, await slice(plain));
+      expect((await slicer.job(jobId)).status, 'pending',
+          reason: 'the sidecar publishes nothing for the first moment, which '
+              'is what puts the dialog on an indeterminate bar');
+
+      await Future<void>.delayed(const Duration(milliseconds: 1300));
+      final done = await slicer.job(jobId);
+      expect(done.isCompleted, isTrue);
+      expect(done.result?.libraryFileId, isNotNull);
+
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      final again = await slicer.job(jobId);
+      expect(again.result?.libraryFileId, done.result!.libraryFileId,
+          reason: 'the output is filed once, not once per poll');
+    });
+
+    test('a running job reports a stage and a percentage', () async {
+      DemoBackend.sliceSeconds = 4;
+      addTearDown(() => DemoBackend.sliceSeconds = 9);
+
+      final jobId = await slicer.sliceLibraryFile(twoTone, await slice(twoTone));
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      final running = await slicer.job(jobId);
+      expect(running.status, 'running');
+      expect(running.progress?.stage, isNotEmpty);
+      expect(running.progress?.fraction, inExclusiveRange(0, 1));
+    });
+
+    test('the output lands in the library beside its source', () async {
+      DemoBackend.sliceSeconds = 1;
+      addTearDown(() => DemoBackend.sliceSeconds = 9);
+      final library = LibraryRepository(dio);
+      final before = (await library.listAllFiles()).length;
+
+      final jobId = await slicer.sliceLibraryFile(twoTone, await slice(twoTone));
+      await Future<void>.delayed(const Duration(milliseconds: 1300));
+      final result = (await slicer.job(jobId)).result!;
+
+      final after = await library.listAllFiles();
+      expect(after, hasLength(before + 1));
+      final output = after.firstWhere((f) => f.id == result.libraryFileId);
+      expect(output.filename, result.name);
+      expect(output.isPrintable, isTrue,
+          reason: 'the whole point of slicing it');
+      expect(output.slicedForModel, 'X1C',
+          reason: 'the printer that was picked, not the source it came from');
+    });
+
+    test('a re-sliced archive keeps the source estimate and the picked printer',
+        () async {
+      DemoBackend.sliceSeconds = 1;
+      addTearDown(() => DemoBackend.sliceSeconds = 9);
+      final archives = ArchiveRepository(dio);
+      final benchy = (await archives.list())
+          .firstWhere((a) => a.printName == 'Benchy');
+
+      final jobId = await slicer.sliceArchive(benchy.id, {
+        'printer_preset': {'source': 'local', 'id': 'p-p1s-04'},
+        'process_preset': {'source': 'local', 'id': 'q-020-std'},
+        'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 1300));
+      final result = (await slicer.job(jobId)).result!;
+
+      expect(result.printTimeSeconds, benchy.printTimeSeconds,
+          reason: 'same layer height as the source, so the same estimate — an '
+              'archive knows what it costs and need not be guessed at');
+      final resliced = (await archives.list())
+          .firstWhere((a) => a.printName == 'Benchy (re-sliced)');
+      expect(resliced.slicedForModel, 'P1S');
+      expect(resliced.completedAt, isNull,
+          reason: 'sliced, never printed');
+      expect(resliced.runCount, 0);
     });
   });
 }
