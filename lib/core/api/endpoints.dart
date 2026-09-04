@@ -631,7 +631,9 @@ abstract final class Endpoints {
   /// registered as `""`-prefixed `/`, like `/printers/`.
   ///
   /// **404 on a server older than 0.2.4.9**, which is the whole compatibility
-  /// story for this feature — see [PipelinesRepository.supportsPipelines].
+  /// story for this feature: every pipeline route landed in one server commit
+  /// and the wire schemas have not moved since, so presence and permission are
+  /// all there is to ask — see [PipelinesRepository.isSupported].
   static const slicerPipelines = '$apiPrefix/slicer-pipelines/';
 
   /// One pipeline: `GET`, `PUT` (partial — only the keys present are written)
@@ -654,13 +656,16 @@ abstract final class Endpoints {
   static String slicerPipelineRun(int pipelineId) =>
       '$apiPrefix/slicer-pipelines/$pipelineId/run';
 
-  /// Recent runs of one pipeline (`GET`, query `limit`, server-clamped 1..100).
-  static String slicerPipelineRuns(int pipelineId) =>
-      '$apiPrefix/slicer-pipelines/$pipelineId/runs';
-
-  /// The runs dashboard (`GET`, query `limit`/`offset`/`pipeline_id`/`status`).
+  /// The runs dashboard (`GET`, query `limit`/`offset` and the four filters
+  /// `pipeline_id`/`status`/`target_printer_id`/`target_model_class`).
   /// **No trailing slash** — this router registers the bare path, unlike
   /// [slicerPipelines].
+  ///
+  /// `GET /slicer-pipelines/{id}/runs` is deliberately absent from this file.
+  /// It answers the same thing as `?pipeline_id=` here and takes only a
+  /// `limit`, with no `offset` — so it cannot page, and a screen built on it
+  /// would stop at its first hundred runs. The pipeline card opens this one
+  /// pre-filtered instead.
   static const pipelineRuns = '$apiPrefix/pipeline-runs';
 
   /// Drop every terminal run (`POST`, no body → `{deleted: n}`).

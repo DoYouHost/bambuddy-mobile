@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/models/pipeline_run.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/slicer_pipeline.dart';
 import '../../core/models/slicer_preset.dart';
@@ -89,7 +90,7 @@ class _PipelineCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final catalog = ref.watch(slicerPresetsProvider).valueOrNull;
-    final canWrite = ref.watch(canWritePipelinesProvider);
+    final canWrite = ref.watch(canWritePipelinesProvider).valueOrNull == true;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -118,6 +119,21 @@ class _PipelineCard extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis),
                         ),
                     ],
+                  ),
+                ),
+                logTag(
+                  'pipelines.history',
+                  IconButton(
+                    icon: const Icon(Icons.history_rounded),
+                    tooltip: l10n.pipelineHistory,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PipelineRunsScreen(
+                          initialFilter:
+                              PipelineRunFilter(pipelineId: pipeline.id),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 if (canWrite)

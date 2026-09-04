@@ -149,6 +149,8 @@ class WsClient {
   final _plateController = StreamController<WsPlateNotEmpty>.broadcast();
   final _printController = StreamController<WsPrintEvent>.broadcast();
   final _archiveController = StreamController<WsArchiveUpdated>.broadcast();
+  final _pipelineRunController =
+      StreamController<WsPipelineRunUpdated>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -182,6 +184,11 @@ class WsClient {
   /// Archive changes that arrive after the print itself is over — the finish
   /// photo landing in the archive is the one this app listens for.
   Stream<WsArchiveUpdated> get archiveUpdates => _archiveController.stream;
+
+  /// Pipeline runs the server routed to this session. Only the runs it started
+  /// itself, unless authentication is off — see [WsPipelineRunUpdated].
+  Stream<WsPipelineRunUpdated> get pipelineRunUpdates =>
+      _pipelineRunController.stream;
 
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
@@ -222,6 +229,7 @@ class WsClient {
     await _plateController.close();
     await _printController.close();
     await _archiveController.close();
+    await _pipelineRunController.close();
   }
 
   Future<void> _openConnection() async {
@@ -320,6 +328,9 @@ class WsClient {
       _printController.add(msg);
     } else if (msg is WsArchiveUpdated && !_archiveController.isClosed) {
       _archiveController.add(msg);
+    } else if (msg is WsPipelineRunUpdated &&
+        !_pipelineRunController.isClosed) {
+      _pipelineRunController.add(msg);
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.

@@ -99,10 +99,17 @@ class ObservedCapability {
   /// button the user pressed. A 403 there does not mean "nothing to show", it
   /// means "you may not", and answering it with [absent] leaves a control that
   /// does nothing and never says why.
+  ///
+  /// [observing] narrows which statuses may *settle* the latch, where
+  /// [absentOn] only picks what to answer with. It drops to `{403}` for a
+  /// route addressed by row id: there a 404 is the row being gone, not the
+  /// route being absent, and recording it as absence hides the whole
+  /// capability the first time a stale id is opened.
   Future<T> watching<T>(
     Future<T> Function() request, {
     T Function()? absent,
     Set<int> absentOn = const {404, 403},
+    Set<int> observing = const {404, 403},
   }) async {
     try {
       final answer = await request();
@@ -110,7 +117,7 @@ class ObservedCapability {
       return answer;
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      observeFailure(status);
+      if (observing.contains(status)) observeFailure(status);
       if (absent != null && absentOn.contains(status)) return absent();
       throw mapDioException(e);
     }

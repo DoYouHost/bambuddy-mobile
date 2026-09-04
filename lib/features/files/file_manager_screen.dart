@@ -31,7 +31,7 @@ import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart'
-    show canRunPipelinesProvider, pipelinesSupportedProvider;
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
@@ -449,8 +449,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             // Slice because it needs the same source and the same permission
             // to produce a print — only the picking of profiles differs.
             if (canSlice &&
-                ref.watch(pipelinesSupportedProvider).valueOrNull == true &&
-                ref.watch(canRunPipelinesProvider))
+                ref.watch(canRunPipelinesProvider).valueOrNull == true)
               ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
                 title: Text(l10n.pipelineRun),

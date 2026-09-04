@@ -54,7 +54,8 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
-    final canSave = ref.watch(canWritePipelinesProvider) && _selectionComplete;
+    final canSave = ref.watch(canWritePipelinesProvider).valueOrNull == true &&
+        _selectionComplete;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -73,7 +74,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                 pipelines.isEmpty ? null : const Icon(Icons.chevron_right),
             onTap: pipelines.isEmpty || widget.busy ? null : _pick,
           ).tagged('slice.pipeline_apply'),
-          if (ref.watch(canWritePipelinesProvider))
+          if (ref.watch(canWritePipelinesProvider).valueOrNull == true)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Align(

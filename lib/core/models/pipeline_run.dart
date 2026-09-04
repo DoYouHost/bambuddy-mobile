@@ -207,6 +207,34 @@ enum PipelineRunStatus {
         _ => PipelineRunStatus.unknown,
       };
 
+  /// The value the `status` query parameter takes. [unknown] has none — it
+  /// stands for a status this build has not heard of, so there is nothing to
+  /// ask the server for.
+  String? get wire => switch (this) {
+        PipelineRunStatus.queued => 'queued',
+        PipelineRunStatus.slicing => 'slicing',
+        PipelineRunStatus.dispatching => 'dispatching',
+        PipelineRunStatus.inProgress => 'in_progress',
+        PipelineRunStatus.completed => 'completed',
+        PipelineRunStatus.failed => 'failed',
+        PipelineRunStatus.partialFailure => 'partial_failure',
+        PipelineRunStatus.cancelled => 'cancelled',
+        PipelineRunStatus.unknown => null,
+      };
+
+  /// Every status the dashboard may filter by, in the order a run passes
+  /// through them.
+  static const filterable = [
+    queued,
+    slicing,
+    dispatching,
+    inProgress,
+    completed,
+    partialFailure,
+    failed,
+    cancelled,
+  ];
+
   /// The four the server itself treats as finished (`_TERMINAL_RUN_STATUSES`).
   /// [unknown] is deliberately not terminal: a status this build cannot name is
   /// more likely a new in-flight state than a finished one, and polling a
@@ -404,6 +432,91 @@ class PipelineRun {
 
   /// Copies that reached a terminal state, for a progress fraction.
   int get copiesFinished => copiesCompleted + copiesFailed + copiesCancelled;
+}
+
+/// What the dashboard narrows the run list to (`list_all_runs`).
+///
+/// Server-side because two of the four cannot be answered here: `target_*`
+/// JOIN to the pipeline's current target, which a page of runs does not carry,
+/// and `status` matches the **persisted snapshot** rather than the live roll-up
+/// — so an in-flight run can sit under `dispatching` until its next transition
+/// writes through, and filtering the fetched page on [PipelineRun.status] would
+/// disagree with what the server counted in `total`.
+class PipelineRunFilter {
+  const PipelineRunFilter({
+    this.pipelineId,
+    this.status,
+    this.targetPrinterId,
+    this.targetModelClass,
+  });
+
+  /// Only runs of this saved pipeline. A run whose pipeline was deleted has a
+  /// null `pipeline_id` and no filter can reach it.
+  final int? pipelineId;
+
+  /// One [PipelineRunStatus.wire] value. Held as the wire string rather than
+  /// the enum so [PipelineRunStatus.unknown] — a status this build does not
+  /// know — is never offered as something to filter by.
+  final String? status;
+
+  final int? targetPrinterId;
+  final String? targetModelClass;
+
+  bool get isEmpty =>
+      pipelineId == null &&
+      status == null &&
+      targetPrinterId == null &&
+      targetModelClass == null;
+
+  /// How many of the four are set — for the badge on the filter button.
+  int get activeCount => [
+        pipelineId,
+        status,
+        targetPrinterId,
+        targetModelClass,
+      ].where((v) => v != null).length;
+
+  /// Only the keys that are set: the route reads `None` as "do not filter", and
+  /// an explicit null in the query string arrives as the string `"None"`.
+  Map<String, dynamic> get queryParameters => {
+        'pipeline_id': ?pipelineId,
+        'status': ?status,
+        'target_printer_id': ?targetPrinterId,
+        'target_model_class': ?targetModelClass,
+      };
+
+  /// A copy with one field changed, where null **clears** it — the opposite of
+  /// the pipeline update body, and the right rule for a filter the user is
+  /// turning off. Each field is passed as a sentinel-wrapped value so "leave
+  /// alone" and "clear" stay distinguishable.
+  PipelineRunFilter copyWith({
+    ({int? value})? pipelineId,
+    ({String? value})? status,
+    ({int? value})? targetPrinterId,
+    ({String? value})? targetModelClass,
+  }) =>
+      PipelineRunFilter(
+        pipelineId: pipelineId == null ? this.pipelineId : pipelineId.value,
+        status: status == null ? this.status : status.value,
+        targetPrinterId: targetPrinterId == null
+            ? this.targetPrinterId
+            : targetPrinterId.value,
+        targetModelClass: targetModelClass == null
+            ? this.targetModelClass
+            : targetModelClass.value,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is PipelineRunFilter &&
+      other.pipelineId == pipelineId &&
+      other.status == status &&
+      other.targetPrinterId == targetPrinterId &&
+      other.targetModelClass == targetModelClass;
+
+  @override
+  int get hashCode =>
+      Object.hash(pipelineId, status, targetPrinterId, targetModelClass);
 }
 
 /// A page of runs (`PipelineRunListResponse`).

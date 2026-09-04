@@ -137,8 +137,9 @@ void main() {
         // [inertFirmwareOverride].
         pipelinesSupportedProvider.overrideWith((ref) async => pipelinesSupported),
         pipelinesProvider.overrideWith((ref) async => pipelines),
-        // Reaches `currentUserProvider`, which these tests do not stand up.
-        canWritePipelinesProvider.overrideWithValue(true),
+        // Reaches `currentUserProvider` and the repository's observed latch,
+        // neither of which these tests stand up.
+        canWritePipelinesProvider.overrideWith((ref) async => true),
       ],
       child: plApp(Builder(
         builder: (context) => Scaffold(

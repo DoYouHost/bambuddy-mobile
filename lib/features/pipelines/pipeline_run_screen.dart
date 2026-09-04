@@ -175,6 +175,8 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   Widget _copiesCard(AppLocalizations l10n, ThemeData theme, int maxCopies) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
+      // The row itself has no tap of its own; the id names the stepper the two
+      // buttons belong to, so a press on either reads as one control.
       child: ListTile(
         leading: const Icon(Icons.filter_none_rounded),
         title: Text(l10n.pipelineRunCopies, style: theme.textTheme.labelMedium),
@@ -210,7 +212,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
             ),
           ],
         ),
-      ),
+      ).tagged('pipeline_run.copies'),
     );
   }
 

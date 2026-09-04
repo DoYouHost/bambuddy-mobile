@@ -54,6 +54,23 @@ class WsArchiveUpdated extends WsMessage {
   final String? photoAdded;
 }
 
+/// One pipeline run changed — sliced, dispatched, a copy finished, cancelled.
+/// The frame carries the whole materialised run, so the dashboard replaces its
+/// row rather than re-reading the page.
+///
+/// **Not a substitute for the poll.** The server routes this with
+/// `broadcast_to_user(run.created_by, …)`, so a JWT session hears only about
+/// runs it started itself; an auth-disabled install has no `created_by` and
+/// falls back to a global broadcast. A dashboard showing a colleague's run gets
+/// nothing here, which is why the timer stays.
+class WsPipelineRunUpdated extends WsMessage {
+  const WsPipelineRunUpdated(this.run);
+
+  /// The run as `PipelineRunResponse` serialises it — parsed by the feature
+  /// that cares, so `core/api` keeps no dependency on the run model.
+  final Map<String, dynamic> run;
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -116,6 +133,13 @@ WsMessage? parseWsMessage(String raw) {
         archiveId,
         photoAdded: photo is String && photo.isNotEmpty ? photo : null,
       );
+    case 'pipeline_run_updated':
+      // The run sits under `run`, not `data` — a third shape, alongside the
+      // printer-scoped frames and `archive_updated`'s `data`.
+      final run = decoded['run'];
+      if (run is! Map<String, dynamic>) return WsUnknown(type);
+      if (_toIntOrNull(run['id']) == null) return WsUnknown(type);
+      return WsPipelineRunUpdated(run);
     case 'pong':
       return const WsPong();
     default:

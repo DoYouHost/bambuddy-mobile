@@ -13,12 +13,20 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
+import 'pipeline_run_filter_sheet.dart';
+import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
 
 /// What every run is doing: how many copies are done, which printer took each,
 /// and the two actions a run in trouble needs — cancel and retry-failed.
+///
+/// [initialFilter] opens the screen already narrowed — how the pipeline card
+/// shows one pipeline's history. Applied before the first build, so the list is
+/// fetched filtered rather than fetched twice.
 class PipelineRunsScreen extends ConsumerStatefulWidget {
-  const PipelineRunsScreen({super.key});
+  const PipelineRunsScreen({super.key, this.initialFilter});
+
+  final PipelineRunFilter? initialFilter;
 
   @override
   ConsumerState<PipelineRunsScreen> createState() => _PipelineRunsScreenState();
@@ -26,42 +34,92 @@ class PipelineRunsScreen extends ConsumerStatefulWidget {
 
 class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   Timer? _poll;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Polled rather than pushed. The server does broadcast
-    // `pipeline_run_updated`, but only to the run's own `created_by` — an
-    // auth-disabled install broadcasts globally, a JWT session gets its own —
-    // and this app's WS client is a printer-status pipeline that would have to
-    // grow a new frame type to carry it. A 4 s poll while something is in
-    // flight is the smaller change and works on every install; it stops the
-    // moment nothing is running.
+    final initial = widget.initialFilter;
+    if (initial != null) {
+      // Before `build` reads the list, so the empty filter never reaches the
+      // wire. The provider is autoDispose and dies with this screen, which is
+      // also what puts the filter back for the next visit.
+      ref.read(pipelineRunFilterProvider.notifier).replace(initial);
+    }
+    _scroll.addListener(_maybeLoadMore);
+    // Half of the refresh; the other half is the `pipeline_run_updated` push
+    // the list notifier subscribes to. The push is not enough on its own: the
+    // server routes it with `broadcast_to_user(run.created_by, …)`, so a
+    // session hears only about the runs it started itself. This covers the
+    // rest — a colleague's batch, and any install where the socket is down.
+    //
+    // It refreshes the window already on screen rather than invalidating, which
+    // would throw away every page past the first and jump the scroll position.
+    // Stops the moment nothing is in flight.
     _poll = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
-      final page = ref.read(pipelineRunsProvider(0)).valueOrNull;
-      final live = page?.runs.any((r) => !r.status.isTerminal) ?? false;
-      if (live) ref.invalidate(pipelineRunsProvider(0));
+      final view = ref.read(pipelineRunsProvider).valueOrNull;
+      final live = view?.runs.any((r) => !r.status.isTerminal) ?? false;
+      if (live) {
+        unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
+      }
     });
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _scroll.dispose();
     super.dispose();
+  }
+
+  /// Ask for the next page a screen's height before the end, so the list grows
+  /// under the thumb instead of stalling at the bottom. `loadMore` is itself a
+  /// no-op while one is in flight, which is what makes a repeated scroll
+  /// notification harmless.
+  void _maybeLoadMore() {
+    if (!_scroll.hasClients) return;
+    final position = _scroll.position;
+    if (position.pixels < position.maxScrollExtent - position.viewportDimension) {
+      return;
+    }
+    unawaited(_loadMore());
+  }
+
+  Future<void> _loadMore() async {
+    try {
+      await ref.read(pipelineRunsProvider.notifier).loadMore();
+    } on AppApiException catch (e) {
+      if (!mounted) return;
+      showApiFailure(ScaffoldMessenger.of(context), e,
+          AppLocalizations.of(context), action: 'pipeline_runs.load_more');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final runs = ref.watch(pipelineRunsProvider(0));
+    final runs = ref.watch(pipelineRunsProvider);
+    final filter = ref.watch(pipelineRunFilterProvider);
 
     return Scaffold(
       appBar: dashAppBar(
         context,
         title: l10n.pipelineRunsTitle,
         actions: [
-          if (ref.watch(canWritePipelinesProvider))
+          logTag(
+            'pipeline_runs.filter',
+            IconButton(
+              icon: Badge(
+                isLabelVisible: !filter.isEmpty,
+                label: Text('${filter.activeCount}'),
+                child: const Icon(Icons.filter_list_rounded),
+              ),
+              tooltip: l10n.pipelineRunsFilter,
+              onPressed: () => showPipelineRunFilterSheet(context),
+            ),
+          ),
+          if (ref.watch(canWritePipelinesProvider).valueOrNull == true)
             logTag(
               'pipeline_runs.clear',
               IconButton(
@@ -73,27 +131,70 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(pipelineRunsProvider(0)),
+        onRefresh: () => ref.refresh(pipelineRunsProvider.future),
         child: runs.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
                 : l10n.pipelineRunsEmpty,
-            onRetry: () => ref.invalidate(pipelineRunsProvider(0)),
+            onRetry: () => ref.invalidate(pipelineRunsProvider),
             retryLabel: l10n.retry,
             scrollable: true,
           ),
-          data: (page) => page.runs.isEmpty
+          data: (view) => view.runs.isEmpty
               ? EmptyStateView(
-                  message: l10n.pipelineRunsEmpty,
+                  // A filter that matches nothing is not an empty history, and
+                  // saying so is what stops the user hunting for lost runs.
+                  message: filter.isEmpty
+                      ? l10n.pipelineRunsEmpty
+                      : l10n.pipelineRunsNoneMatch,
                   icon: Icons.history_rounded,
                 )
               : ListView.builder(
+                  controller: _scroll,
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                  itemCount: page.runs.length,
-                  itemBuilder: (ctx, i) => _RunCard(run: page.runs[i]),
+                  // One past the runs for the footer: the spinner while a page
+                  // loads, and the count once everything is in.
+                  itemCount: view.runs.length + 1,
+                  itemBuilder: (ctx, i) => i == view.runs.length
+                      ? _footer(l10n, view)
+                      : _RunCard(run: view.runs[i]),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _footer(AppLocalizations l10n, PipelineRunsView view) {
+    if (view.loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (view.hasMore) {
+      // Reachable when the list is shorter than the viewport, so no scroll can
+      // fire, and as the affordance for a "load more" that failed.
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: logTag(
+            'pipeline_runs.load_more',
+            TextButton(
+              onPressed: _loadMore,
+              child: Text(l10n.pipelineRunsLoadMore),
+            ),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Center(
+        child: Text(
+          l10n.pipelineRunsShowingAll(view.runs.length),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
       ),
     );
@@ -113,7 +214,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final n = await ref.read(pipelinesRepositoryProvider).clearTerminalRuns();
-      ref.invalidate(pipelineRunsProvider(0));
+      unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
       messenger.showSnackBar(
           SnackBar(content: Text(l10n.pipelineRunsCleared(n))));
     } on AppApiException catch (e) {
@@ -131,7 +232,7 @@ class _RunCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canRun = ref.watch(canRunPipelinesProvider);
+    final canRun = ref.watch(canRunPipelinesProvider).valueOrNull == true;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -215,24 +316,14 @@ class _RunCard extends ConsumerWidget {
   }
 
   Widget _statusChip(ThemeData theme, AppLocalizations l10n) {
-    final (label, colour) = switch (run.status) {
-      PipelineRunStatus.queued => (l10n.pipelineStatusQueued, theme.colorScheme.onSurfaceVariant),
-      PipelineRunStatus.slicing => (l10n.pipelineStatusSlicing, theme.colorScheme.primary),
-      PipelineRunStatus.dispatching => (l10n.pipelineStatusDispatching, theme.colorScheme.primary),
-      PipelineRunStatus.inProgress => (l10n.pipelineStatusInProgress, theme.colorScheme.primary),
-      PipelineRunStatus.completed => (l10n.pipelineStatusCompleted, theme.colorScheme.primary),
-      PipelineRunStatus.failed => (l10n.pipelineStatusFailed, theme.colorScheme.error),
-      PipelineRunStatus.partialFailure => (l10n.pipelineStatusPartial, theme.colorScheme.tertiary),
-      PipelineRunStatus.cancelled => (l10n.pipelineStatusCancelled, theme.colorScheme.onSurfaceVariant),
-      PipelineRunStatus.unknown => (l10n.pipelineStatusUnknown, theme.colorScheme.onSurfaceVariant),
-    };
+    final colour = runStatusColour(theme.colorScheme, run.status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: colour.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label,
+      child: Text(runStatusLabel(l10n, run.status),
           style: theme.textTheme.labelSmall?.copyWith(color: colour)),
     );
   }
@@ -302,7 +393,7 @@ class _RunCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(pipelinesRepositoryProvider).cancel(run.id);
-      ref.invalidate(pipelineRunsProvider(0));
+      unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
       messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineRunCancelled)));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.cancel');
@@ -318,7 +409,7 @@ class _RunCard extends ConsumerWidget {
     final count = run.copiesFailed + run.copiesCancelled;
     try {
       await ref.read(pipelinesRepositoryProvider).retryFailed(run.id);
-      ref.invalidate(pipelineRunsProvider(0));
+      unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
       messenger.showSnackBar(
           SnackBar(content: Text(l10n.pipelineRunRetryStarted(count))));
     } on AppApiException catch (e) {

@@ -4808,6 +4808,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pipelineHistory => 'Run history';
+
+  @override
   String pipelineSlotNumbered(int n) {
     return 'Filament $n';
   }
@@ -4985,6 +4988,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineRunsEmpty => 'No runs yet';
+
+  @override
+  String get pipelineRunsNoneMatch => 'No run matches these filters';
+
+  @override
+  String get pipelineRunsFilter => 'Filter runs';
+
+  @override
+  String get pipelineRunsFilterAny => 'Any';
+
+  @override
+  String get pipelineRunsFilterStatus => 'Status';
+
+  @override
+  String get pipelineRunsFilterStatusHint =>
+      'Matches the last status written down, so a run can still answer to the step before the one it is on.';
+
+  @override
+  String get pipelineRunsFilterTarget => 'Target';
+
+  @override
+  String get pipelineRunsFilterTargetHint =>
+      'Where the pipeline points now — re-targeting one moves its whole history.';
+
+  @override
+  String get pipelineRunsFilterPipelineHint =>
+      'Runs of a deleted pipeline cannot be filtered to.';
+
+  @override
+  String get pipelineRunsFilterClear => 'Clear filters';
+
+  @override
+  String get pipelineRunsLoadMore => 'Load more';
+
+  @override
+  String pipelineRunsShowingAll(int count) {
+    return 'All $count shown';
+  }
+
+  @override
+  String get pipelineRunsDone => 'Done';
 
   @override
   String get pipelineRunsClear => 'Clear finished';

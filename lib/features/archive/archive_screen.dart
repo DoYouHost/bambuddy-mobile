@@ -37,7 +37,7 @@ import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart'
-    show canRunPipelinesProvider, pipelinesSupportedProvider;
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
@@ -1143,8 +1143,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
     final canRunPipeline =
-        ref.watch(pipelinesSupportedProvider).valueOrNull == true &&
-            ref.watch(canRunPipelinesProvider);
+        ref.watch(canRunPipelinesProvider).valueOrNull == true;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(

@@ -66,7 +66,7 @@ void main() {
       expect(p.targetKind, PipelineTargetKind.printerClass);
       expect(p.targetModelClass, 'X2D');
       expect(p.fanoutStrategy, FanoutStrategy.maxParallel);
-      expect(repo.isSupported, isTrue);
+      expect(await repo.isSupported, isTrue);
     });
 
     test('an unknown target kind or strategy falls back, never throws',
@@ -306,18 +306,21 @@ void main() {
       );
 
       expect(await repo.probe(), isFalse);
-      expect(repo.isSupported, isFalse);
+      expect(await repo.isSupported, isFalse);
     });
 
-    test('a 403 hides it too — the routes exist but are not ours', () async {
-      // Every API-key session lands here: the server denies a key all three
-      // pipeline permissions outright.
+    test('a 403 on the collection hides it — the routes are not ours', () async {
+      // Where an API key lands on a server before 1.2.5.3, which denied a key
+      // all three pipeline permissions. Nothing can be read, so nothing is
+      // offered.
       adapter.onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(403, {'detail': 'Forbidden'}),
       );
 
       expect(await repo.probe(), isFalse);
+      expect(await repo.canRun, isFalse);
+      expect(await repo.canWrite, isFalse);
     });
 
     test('a 404 on one pipeline does not hide the feature', () async {
@@ -333,14 +336,14 @@ void main() {
       );
 
       await repo.probe();
-      expect(repo.isSupported, isTrue);
+      expect(await repo.isSupported, isTrue);
 
       await expectLater(
         repo.update(999, name: 'x'),
         throwsA(isA<AppApiException>()),
       );
       // Still supported: the collection answered, only that row is missing.
-      expect(repo.isSupported, isTrue);
+      expect(await repo.isSupported, isTrue);
     });
 
     test('an offline server is not cached as unsupported', () async {
@@ -364,6 +367,225 @@ void main() {
         (s) => s.reply(200, {'pipelines': []}),
       );
       expect(await repo.probe(), isTrue);
+    });
+  });
+
+  group('the three permission tiers are latched apart', () {
+    // `core/auth.py` splits pipelines across three permissions and grants an
+    // API key two of them: PIPELINES_READ maps to `can_read_status`,
+    // PIPELINES_RUN to `can_queue` + `can_manage_library`, and PIPELINES_WRITE
+    // is absent from the scope allowlist, so it answers 403 for a key on every
+    // version. One shared flag would take the whole feature away on the first
+    // refusal of any one of them.
+    setUp(() {
+      adapter.onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(200, {'pipelines': []}),
+      );
+    });
+
+    test('a refused write leaves reading and running alone', () async {
+      adapter.onPost(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(403, {'detail': 'API keys cannot be used for '
+            'administrative operations'}),
+        data: Matchers.any,
+      );
+
+      await repo.probe();
+      await expectLater(
+        repo.create(const SlicerPipeline(
+          id: 0,
+          name: 'Nightly PETG',
+          printerPreset: PresetRef(source: 'local', id: '3'),
+          processPreset: PresetRef(source: 'local', id: '9'),
+          filamentPresets: [PresetRef(source: 'local', id: '11')],
+        )),
+        throwsA(isA<AppApiException>()),
+      );
+
+      expect(await repo.canWrite, isFalse);
+      expect(await repo.isSupported, isTrue,
+          reason: 'the list route answered; authoring is a separate permission');
+      expect(await repo.canRun, isTrue);
+    });
+
+    test('a refused run leaves reading alone', () async {
+      // A key carrying `can_read_status` but not both of `can_queue` and
+      // `can_manage_library` reads pipelines and cannot dispatch one.
+      adapter.onPost(
+        '/api/v1/slicer-pipelines/7/run',
+        (s) => s.reply(403, {'detail': 'Forbidden'}),
+        data: Matchers.any,
+      );
+
+      await repo.probe();
+      await expectLater(
+        repo.run(7, source: const PipelineSource.libraryFile(12)),
+        throwsA(isA<AppApiException>()),
+      );
+
+      expect(await repo.canRun, isFalse);
+      expect(await repo.isSupported, isTrue);
+    });
+
+    test('a 404 on one run does not cost the run permission', () async {
+      // Cancelling a run that has already been cleared is a missing row, not a
+      // missing route — and not a permission this session lost.
+      adapter.onPost(
+        '/api/v1/pipeline-runs/999/cancel',
+        (s) => s.reply(404, {'detail': 'Pipeline run not found'}),
+      );
+
+      await repo.probe();
+      await expectLater(
+        repo.cancel(999),
+        throwsA(isA<AppApiException>()),
+      );
+
+      expect(await repo.canRun, isTrue);
+      expect(await repo.isSupported, isTrue);
+    });
+
+    test('absent routes take every tier with them', () async {
+      // Each tier answers its own permission only, so presence has to come
+      // from the read tier — a server without the routes must not look like one
+      // that merely refused the authoring call.
+      final bare = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      DioAdapter(dio: bare).onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(404, {'detail': 'Not Found'}),
+      );
+      final old = PipelinesRepository(bare);
+
+      expect(await old.probe(), isFalse);
+      expect(await old.canRun, isFalse);
+      expect(await old.canWrite, isFalse);
+    });
+
+    test('the probe asks once, however many entry points gate on it', () async {
+      var calls = 0;
+      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
+        if (o.path == '/api/v1/slicer-pipelines/') calls++;
+        h.next(o);
+      }));
+
+      await Future.wait([repo.probe(), repo.probe(), repo.probe()]);
+      await repo.probe();
+
+      expect(calls, 1);
+    });
+  });
+
+  group('PipelineRunFilter', () {
+    test('sends only the keys that are set', () async {
+      // The route reads `None` as "do not filter"; an explicit null in a query
+      // string arrives as the four characters `None` and filters on that.
+      const filter = PipelineRunFilter(status: 'failed', targetModelClass: 'X1C');
+
+      expect(filter.queryParameters, {
+        'status': 'failed',
+        'target_model_class': 'X1C',
+      });
+      expect(filter.activeCount, 2);
+      expect(filter.isEmpty, isFalse);
+      expect(const PipelineRunFilter().queryParameters, isEmpty);
+      expect(const PipelineRunFilter().isEmpty, isTrue);
+    });
+
+    test('copyWith clears a field with null and leaves an omitted one', () {
+      // The opposite rule from the pipeline update body, and the right one for
+      // a filter the user is switching off.
+      const filter = PipelineRunFilter(
+        pipelineId: 7,
+        status: 'failed',
+        targetPrinterId: 4,
+      );
+
+      final cleared = filter.copyWith(status: (value: null));
+
+      expect(cleared.status, isNull);
+      expect(cleared.pipelineId, 7, reason: 'omitted, so untouched');
+      expect(cleared.targetPrinterId, 4);
+      expect(filter.copyWith(pipelineId: (value: 9)).pipelineId, 9);
+    });
+
+    test('two filters with the same fields are the same filter', () {
+      // The list notifier rebuilds on a filter change, so equality is what
+      // stops a re-pick of the value already showing from refetching page one.
+      expect(
+        const PipelineRunFilter(pipelineId: 7),
+        const PipelineRunFilter(pipelineId: 7),
+      );
+      expect(
+        const PipelineRunFilter(pipelineId: 7).hashCode,
+        const PipelineRunFilter(pipelineId: 7).hashCode,
+      );
+      expect(
+        const PipelineRunFilter(pipelineId: 7),
+        isNot(const PipelineRunFilter(pipelineId: 8)),
+      );
+    });
+
+    test('the status filter reaches the query, and page 1 comes back',
+        () async {
+      late Map<String, dynamic> query;
+      adapter.onGet(
+        '/api/v1/pipeline-runs',
+        (s) => s.reply(200, {'runs': [], 'total': 0}),
+        queryParameters: {
+          'limit': 25,
+          'offset': 50,
+          'pipeline_id': 7,
+          'status': 'partial_failure',
+          'target_printer_id': 4,
+          'target_model_class': 'X1C',
+        },
+      );
+      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
+        query = Map<String, dynamic>.from(o.queryParameters);
+        h.next(o);
+      }));
+
+      await repo.runs(
+        offset: 50,
+        filter: const PipelineRunFilter(
+          pipelineId: 7,
+          status: 'partial_failure',
+          targetPrinterId: 4,
+          targetModelClass: 'X1C',
+        ),
+      );
+
+      expect(query['limit'], PipelinesRepository.pageSize);
+      expect(query['offset'], 50);
+      expect(query['pipeline_id'], 7);
+      expect(query['status'], 'partial_failure');
+      expect(query['target_printer_id'], 4);
+      expect(query['target_model_class'], 'X1C');
+    });
+  });
+
+  group('PipelineRunStatus', () {
+    test('every filterable status survives the round trip', () {
+      // The filter sends `wire` and the list parses what comes back; a status
+      // that did not round-trip would filter to an empty list forever.
+      for (final status in PipelineRunStatus.filterable) {
+        final wire = status.wire;
+        expect(wire, isNotNull, reason: '$status has no wire value');
+        expect(PipelineRunStatus.parse(wire), status);
+      }
+    });
+
+    test('unknown is not offered as something to filter by', () {
+      // It stands for a status this build has not heard of, so there is no
+      // value to ask the server for.
+      expect(PipelineRunStatus.unknown.wire, isNull);
+      expect(PipelineRunStatus.filterable,
+          isNot(contains(PipelineRunStatus.unknown)));
+      expect(PipelineRunStatus.filterable,
+          hasLength(PipelineRunStatus.values.length - 1),
+          reason: 'every status but unknown can be filtered by');
     });
   });
 

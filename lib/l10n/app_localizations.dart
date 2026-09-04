@@ -8168,6 +8168,12 @@ abstract class AppLocalizations {
   /// **'Filaments ({count})'**
   String pipelineFilamentsCount(int count);
 
+  /// No description provided for @pipelineHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Run history'**
+  String get pipelineHistory;
+
   /// No description provided for @pipelineSlotNumbered.
   ///
   /// In en, this message translates to:
@@ -8461,6 +8467,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No runs yet'**
   String get pipelineRunsEmpty;
+
+  /// No description provided for @pipelineRunsNoneMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No run matches these filters'**
+  String get pipelineRunsNoneMatch;
+
+  /// No description provided for @pipelineRunsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter runs'**
+  String get pipelineRunsFilter;
+
+  /// No description provided for @pipelineRunsFilterAny.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get pipelineRunsFilterAny;
+
+  /// No description provided for @pipelineRunsFilterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get pipelineRunsFilterStatus;
+
+  /// No description provided for @pipelineRunsFilterStatusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches the last status written down, so a run can still answer to the step before the one it is on.'**
+  String get pipelineRunsFilterStatusHint;
+
+  /// No description provided for @pipelineRunsFilterTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get pipelineRunsFilterTarget;
+
+  /// No description provided for @pipelineRunsFilterTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the pipeline points now — re-targeting one moves its whole history.'**
+  String get pipelineRunsFilterTargetHint;
+
+  /// No description provided for @pipelineRunsFilterPipelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs of a deleted pipeline cannot be filtered to.'**
+  String get pipelineRunsFilterPipelineHint;
+
+  /// No description provided for @pipelineRunsFilterClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get pipelineRunsFilterClear;
+
+  /// No description provided for @pipelineRunsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get pipelineRunsLoadMore;
+
+  /// No description provided for @pipelineRunsShowingAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} shown'**
+  String pipelineRunsShowingAll(int count);
+
+  /// No description provided for @pipelineRunsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get pipelineRunsDone;
 
   /// No description provided for @pipelineRunsClear.
   ///

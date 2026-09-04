@@ -4884,6 +4884,9 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get pipelineHistory => 'Historia przebiegów';
+
+  @override
   String pipelineSlotNumbered(int n) {
     return 'Filament $n';
   }
@@ -5059,6 +5062,48 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get pipelineRunsEmpty => 'Nie ma jeszcze przebiegów';
+
+  @override
+  String get pipelineRunsNoneMatch =>
+      'Żaden przebieg nie pasuje do tych filtrów';
+
+  @override
+  String get pipelineRunsFilter => 'Filtruj przebiegi';
+
+  @override
+  String get pipelineRunsFilterAny => 'Dowolny';
+
+  @override
+  String get pipelineRunsFilterStatus => 'Status';
+
+  @override
+  String get pipelineRunsFilterStatusHint =>
+      'Dopasowuje ostatnio zapisany status, więc przebieg może jeszcze odpowiadać na krok przed tym, na którym jest.';
+
+  @override
+  String get pipelineRunsFilterTarget => 'Cel';
+
+  @override
+  String get pipelineRunsFilterTargetHint =>
+      'Tam, gdzie pipeline wskazuje teraz — zmiana celu przenosi całą jego historię.';
+
+  @override
+  String get pipelineRunsFilterPipelineHint =>
+      'Przebiegów usuniętego pipeline\'u nie da się odfiltrować.';
+
+  @override
+  String get pipelineRunsFilterClear => 'Wyczyść filtry';
+
+  @override
+  String get pipelineRunsLoadMore => 'Wczytaj więcej';
+
+  @override
+  String pipelineRunsShowingAll(int count) {
+    return 'Wszystkie $count widoczne';
+  }
+
+  @override
+  String get pipelineRunsDone => 'Gotowe';
 
   @override
   String get pipelineRunsClear => 'Wyczyść zakończone';
