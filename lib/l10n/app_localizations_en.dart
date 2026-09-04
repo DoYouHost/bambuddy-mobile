@@ -826,6 +826,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get archiveMediaAction => 'Recordings & photos';
+
+  @override
+  String get archiveMediaOnServer => 'On the server';
+
+  @override
+  String archiveMediaOnPrinter(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'On the printer ($count)',
+      zero: 'On the printer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMediaSearching => 'Looking on the printer…';
+
+  @override
+  String get archiveMediaNothingOnPrinter => 'Nothing on the printer';
+
+  @override
+  String get archiveMediaKindTimelapse => 'Timelapse';
+
+  @override
+  String get archiveMediaKindIpcam => 'Camera';
+
+  @override
+  String archiveMediaDownloadSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: 'one file',
+      zero: 'selected',
+    );
+    return 'Download $_temp0';
+  }
+
+  @override
+  String get archiveMediaSaved => 'Video saved';
+
+  @override
+  String get archiveMediaNoFilePermission =>
+      'No permission for the printer\'s files';
+
+  @override
+  String get archiveMediaPrinterMissing => 'The printer is gone';
+
+  @override
+  String get archiveMediaTimelapseUnavailable =>
+      'Timelapses: no answer from the printer';
+
+  @override
+  String get archiveMediaIpcamUnavailable =>
+      'Camera: no answer from the printer';
+
+  @override
   String archivePlate(int plate) {
     return 'Plate $plate';
   }

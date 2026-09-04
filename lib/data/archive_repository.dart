@@ -2,7 +2,11 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
+import '../core/api/server_version_service.dart';
 import '../core/models/archive.dart';
+import '../core/models/archive_media.dart';
 import '../core/models/archive_purge.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/no_3mf_warning.dart';
@@ -13,9 +17,24 @@ import '../core/models/plate_list.dart';
 /// Auth adds [AuthInterceptor] to the shared Dio.
 /// Each method maps [DioException] to [AppApiException].
 class ArchiveRepository {
-  ArchiveRepository(this._dio);
+  ArchiveRepository(this._dio, [this._serverVersion]);
 
   final Dio _dio;
+
+  /// Answers [supportsPrinterMedia] until a `printer-media` request has.
+  final ServerVersionService? _serverVersion;
+
+  /// Whether this server can look for a print's recordings on the printer.
+  ///
+  /// Unknown → not offered, because here that is not free: the entry point is
+  /// a button on the archive sheet, and there is no older route behind it. A
+  /// button that opens onto a 404 is worse than one that is absent.
+  late final _printerMedia = ObservedCapability(
+    ServerFeature.archivePrinterMedia,
+    _serverVersion,
+  );
+
+  Future<bool> supportsPrinterMedia() => _printerMedia.supported;
 
   /// GET /archives/ — paginated archive list.
   ///
@@ -196,6 +215,32 @@ class ArchiveRepository {
         );
         return toInt(res.data?['deleted']);
       });
+
+  /// GET /archives/{id}/printer-media — the recordings this print can still be
+  /// given, from the server's own copy and from the printer's storage.
+  ///
+  /// **Null means this server has no such route** and the caller offers
+  /// nothing; every other failure bubbles up, because a search that broke is
+  /// not a search that found nothing.
+  ///
+  /// The deadline is the server's own work: it lists up to five directories
+  /// over the printer's FTP at 8 seconds each, so anything near the client
+  /// default would abort a search that was about to answer.
+  Future<ArchivePrinterMedia?> printerMedia(int archiveId) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archivePrinterMedia(archiveId),
+        options: Options(receiveTimeout: const Duration(seconds: 60)),
+      );
+      _printerMedia.observe(present: true);
+      return ArchivePrinterMedia.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      _printerMedia.observeFailure(status);
+      if (status == 404) return null;
+      throw mapDioException(e);
+    }
+  }
 }
 
 /// Whether the weight that came back is the one that was sent.

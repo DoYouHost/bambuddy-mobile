@@ -1556,6 +1556,84 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
+  /// Archive detail sheet: one entry for everything the print has to look at or keep — replaces the separate timelapse and photos buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings & photos'**
+  String get archiveMediaAction;
+
+  /// Section header: what bambuddy already holds. These rows open a viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'On the server'**
+  String get archiveMediaOnServer;
+
+  /// Section header: what is still only on the printer's own storage. These rows are ticked and downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{On the printer} other{On the printer ({count})}}'**
+  String archiveMediaOnPrinter(int count);
+
+  /// No description provided for @archiveMediaSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking on the printer…'**
+  String get archiveMediaSearching;
+
+  /// No description provided for @archiveMediaNothingOnPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing on the printer'**
+  String get archiveMediaNothingOnPrinter;
+
+  /// No description provided for @archiveMediaKindTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get archiveMediaKindTimelapse;
+
+  /// No description provided for @archiveMediaKindIpcam.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get archiveMediaKindIpcam;
+
+  /// Download button. Zero is the disabled state, before anything is ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Download {count, plural, =0{selected} one{one file} other{{count} files}}'**
+  String archiveMediaDownloadSelected(int count);
+
+  /// No description provided for @archiveMediaSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Video saved'**
+  String get archiveMediaSaved;
+
+  /// No description provided for @archiveMediaNoFilePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'No permission for the printer\'s files'**
+  String get archiveMediaNoFilePermission;
+
+  /// No description provided for @archiveMediaPrinterMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is gone'**
+  String get archiveMediaPrinterMissing;
+
+  /// No description provided for @archiveMediaTimelapseUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapses: no answer from the printer'**
+  String get archiveMediaTimelapseUnavailable;
+
+  /// No description provided for @archiveMediaIpcamUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera: no answer from the printer'**
+  String get archiveMediaIpcamUnavailable;
+
   /// No description provided for @archivePlate.
   ///
   /// In en, this message translates to:

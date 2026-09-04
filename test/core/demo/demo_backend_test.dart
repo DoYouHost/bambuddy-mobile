@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
+import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -135,6 +136,28 @@ void main() {
           reason: 'the plate the print ran on has to be one of the choices');
 
       expect((await repo.plates(single.id)).isMultiPlate, isFalse);
+    });
+
+    test('printer media: nothing on the server, something on the printer',
+        () async {
+      final repo = ArchiveRepository(dio);
+      final archive =
+          (await repo.list()).firstWhere((a) => a.printerId != null);
+      final media = await repo.printerMedia(archive.id);
+
+      expect(media, isNotNull);
+      expect(media!.printerId, archive.printerId);
+      // The demo server keeps no videos, so offering an attached one would put
+      // a Download button in front of a file that is not there.
+      expect(media.localTimelapse, isNull);
+      expect(media.remoteFiles, isNotEmpty);
+      expect(
+        media.remoteFiles.map((f) => f.kind),
+        contains(ArchiveMediaKind.ipcam),
+      );
+      expect(media.remoteFiles.every((f) => f.size > 0), isTrue,
+          reason: 'sizes are all-or-nothing on the way to the download job');
+      expect(media.warnings, isEmpty);
     });
 
     test('no-3mf nudge: the demo has nothing to complain about', () async {

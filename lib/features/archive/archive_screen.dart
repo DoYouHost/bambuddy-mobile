@@ -18,6 +18,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
@@ -279,8 +280,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
-        onTimelapse: () => _openTimelapse(archive),
-        onPhotos: () => _openPhotos(archive),
+        onMedia: () => _openMedia(archive),
         onSlice: () => _slice(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
@@ -497,6 +497,24 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     Navigator.pop(context);
     final name = Uri.encodeQueryComponent(archive.displayName);
     context.push('/timelapse?archive=${archive.id}&name=$name');
+  }
+
+  /// Media: swaps this sheet for the one that lists everything the print has,
+  /// on the server and on the printer.
+  ///
+  /// The printer search takes as long as five FTP listings, so it happens in
+  /// the sheet it belongs to rather than behind the button that opens it — a
+  /// tap that does nothing visible for half a minute reads as one that did
+  /// nothing. The two viewers are still opened from here: `_openTimelapse` and
+  /// `_openPhotos` pop whatever sheet is on top, which is now the media one.
+  void _openMedia(Archive archive) {
+    Navigator.pop(context);
+    openArchiveMediaSheet(
+      context,
+      archive,
+      onTimelapse: () => _openTimelapse(archive),
+      onPhotos: () => _openPhotos(archive),
+    );
   }
 
   /// Photos: closes the sheet and opens the full-screen viewer.
@@ -858,8 +876,7 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
-    required this.onTimelapse,
-    required this.onPhotos,
+    required this.onMedia,
     required this.onSlice,
     required this.onDelete,
   });
@@ -868,8 +885,7 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
-  final VoidCallback onTimelapse;
-  final VoidCallback onPhotos;
+  final VoidCallback onMedia;
   final VoidCallback onSlice;
   final VoidCallback onDelete;
 
@@ -944,39 +960,7 @@ class _ArchiveSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Only for a print the server actually recorded — the button
-                // would otherwise open a player onto a 404.
-                if (archive.hasTimelapse) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: logTag(
-                      'archive.timelapse',
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.movie_outlined),
-                        label: Text(l10n.archiveTimelapse),
-                        onPressed: onTimelapse,
-                      ),
-                    ),
-                  ),
-                ],
-                // Same rule as the timelapse: shown for the prints that have
-                // one, which is the finish shot off the camera plus whatever
-                // was uploaded in the web UI.
-                if (archive.hasPhotos) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: logTag(
-                      'archive.photos',
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.photo_camera_outlined),
-                        label: Text(l10n.archivePhotos(archive.photos.length)),
-                        onPressed: onPhotos,
-                      ),
-                    ),
-                  ),
-                ],
+                _ArchiveMediaButton(archive: archive, onMedia: onMedia),
                 const SizedBox(height: 8),
                 _SliceArchiveButton(archive: archive, onSlice: onSlice),
                 SizedBox(
@@ -1133,6 +1117,45 @@ class _SliceArchiveButton extends ConsumerWidget {
           icon: const Icon(Icons.layers_outlined),
           label: Text(AppLocalizations.of(context).sliceAction),
           onPressed: onSlice,
+        ),
+      ),
+    );
+  }
+}
+
+/// The one entry to everything the print has: the timelapse and photos the
+/// server keeps, and whatever is still on the printer.
+///
+/// Absent for a print with none of the three. The printer half also needs a
+/// server that has the search route — on an older one the sheet is still the
+/// way to the timelapse and the photos, it simply has nothing to look for.
+class _ArchiveMediaButton extends ConsumerWidget {
+  const _ArchiveMediaButton({required this.archive, required this.onMedia});
+
+  final Archive archive;
+  final VoidCallback onMedia;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchable =
+        ref.watch(archiveMediaSupportedProvider).valueOrNull ?? false;
+    if (!archiveHasMedia(archive, printerSearchable: searchable)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      // The gap goes above, like every other row in the sheet — the slice
+      // button is the one exception, and only because the delete button below
+      // it brings none of its own.
+      padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: logTag(
+          'archive.media',
+          OutlinedButton.icon(
+            icon: const Icon(Icons.perm_media_outlined),
+            label: Text(AppLocalizations.of(context).archiveMediaAction),
+            onPressed: onMedia,
+          ),
         ),
       ),
     );

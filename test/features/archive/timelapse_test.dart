@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-/// Podaje listę archiwów bez dotykania repozytorium/sieci.
+/// Serves the archive list without touching the repository or the network.
 
 Archive _archive({String? timelapsePath}) => Archive(
   id: 42,
@@ -39,27 +39,29 @@ void main() {
   });
 
   group('Archive.hasTimelapse', () {
-    test('null i pusta ścieżka znaczą brak nagrania', () {
+    test('null and an empty path both mean there is no recording', () {
       expect(_archive().hasTimelapse, isFalse);
       expect(_archive(timelapsePath: '').hasTimelapse, isFalse);
     });
 
-    test('ścieżka z serwera znaczy, że nagranie jest', () {
+    test('a path from the server means there is one', () {
       expect(
         _archive(timelapsePath: 'timelapses/42.mp4').hasTimelapse,
         isTrue,
       );
     });
 
-    test('withFavorite nie gubi ścieżki nagrania', () {
+    test('withFavorite does not drop the recording path', () {
       final a = _archive(timelapsePath: 'timelapses/42.mp4');
       expect(a.withFavorite(true).timelapsePath, 'timelapses/42.mp4');
     });
   });
 
-  group('arkusz archiwum', () {
-    testWidgets('pokazuje przycisk timelapse tylko gdy nagranie istnieje',
-        (tester) async {
+  group('archive detail sheet', () {
+    // The timelapse is reached through the media sheet now, so the archive
+    // sheet's own evidence of a recording is that entry — see
+    // archive_media_sheet_test.dart for the row behind it.
+    testWidgets('a recorded print offers the media entry', (tester) async {
       await tester.pumpWidget(
         _archiveScreen(_archive(timelapsePath: 'timelapses/42.mp4')),
       );
@@ -68,23 +70,24 @@ void main() {
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Obejrzyj timelapse'), findsOneWidget);
+      expect(find.text('Nagrania i zdjęcia'), findsOneWidget);
     });
 
-    testWidgets('bez nagrania przycisku nie ma', (tester) async {
+    testWidgets('a print with no media at all does not', (tester) async {
       await tester.pumpWidget(_archiveScreen(_archive()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Wydruk testowy'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Obejrzyj timelapse'), findsNothing);
-      // Reszta arkusza stoi — brak przycisku to brak nagrania, nie awaria.
+      expect(find.text('Nagrania i zdjęcia'), findsNothing);
+      // The rest of the sheet stands: a missing entry is missing media, not a
+      // broken sheet.
       expect(find.text('Drukuj ponownie'), findsOneWidget);
     });
   });
 
-  testWidgets('odtwarzacz bez profilu serwera pokazuje błąd, nie spinner',
+  testWidgets('the player with no server profile shows an error, not a spinner',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(

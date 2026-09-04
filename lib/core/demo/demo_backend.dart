@@ -1121,6 +1121,7 @@ class DemoBackend {
     final name = path.toLowerCase();
     if (name.endsWith('.3mf')) return 'model/3mf';
     if (name.endsWith('.gcode')) return 'text/x.gcode';
+    if (name.endsWith('.mp4')) return 'video/mp4';
     return 'application/octet-stream';
   }
 
@@ -1911,6 +1912,9 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'plates') {
           return _ok(_demoPlates(archive));
         }
+        if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
+          return _ok(_archiveMedia(archive));
+        }
         if (s.length == 2 && m == 'GET') return _ok(archive);
         // The demo stands in for a current server, so it knows the key and
         // answers with the row as stored — which is what tells the app the
@@ -1925,6 +1929,59 @@ class DemoBackend {
       }
     }
     return _fallback(m);
+  }
+
+  /// Recordings the demo offers for one print.
+  ///
+  /// No `local_timelapse`: the demo server keeps no videos, and claiming one
+  /// would put a Download button in front of a file that is not there. What it
+  /// does have is the printer side — a timelapse nobody claimed and the camera
+  /// chunks around the print — at paths the demo's own file download serves,
+  /// so the button ends in a real saved file.
+  Map<String, dynamic> _archiveMedia(Map<String, dynamic> archive) {
+    final printerId = archive['printer_id'];
+    if (printerId == null) {
+      return {
+        'archive_id': archive['id'],
+        'printer_id': null,
+        'local_timelapse': null,
+        'remote_files': const <Object>[],
+        'warnings': const <String>[],
+      };
+    }
+    final started = DateTime.tryParse('${archive['started_at']}') ??
+        DateTime.now().subtract(const Duration(hours: 3));
+    return {
+      'archive_id': archive['id'],
+      'printer_id': printerId,
+      'local_timelapse': null,
+      'remote_files': [
+        {
+          'name': 'video_${_stamp(started)}.mp4',
+          'path': '/timelapse/video_${_stamp(started)}.mp4',
+          'size': 18_446_592,
+          'mtime': _iso(started),
+          'kind': 'timelapse',
+        },
+        for (var i = 0; i < 2; i++)
+          {
+            'name': 'ipcam_${_stamp(started.add(Duration(minutes: i * 30)))}.mp4',
+            'path':
+                '/ipcam/ipcam_${_stamp(started.add(Duration(minutes: i * 30)))}.mp4',
+            'size': 6_291_456,
+            'mtime': _iso(started.add(Duration(minutes: i * 30))),
+            'kind': 'ipcam',
+          },
+      ],
+      'warnings': const <String>[],
+    };
+  }
+
+  /// `YYYYMMDD_HHMMSS`, the shape a printer names its recordings with.
+  String _stamp(DateTime at) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${at.year}${two(at.month)}${two(at.day)}_'
+        '${two(at.hour)}${two(at.minute)}${two(at.second)}';
   }
 
   /// Plates of a demo archive. Three for the one print that carries a

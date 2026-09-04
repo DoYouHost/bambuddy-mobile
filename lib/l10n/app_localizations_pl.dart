@@ -839,6 +839,67 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get archiveMediaAction => 'Nagrania i zdjęcia';
+
+  @override
+  String get archiveMediaOnServer => 'Na serwerze';
+
+  @override
+  String archiveMediaOnPrinter(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Na drukarce ($count)',
+      zero: 'Na drukarce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMediaSearching => 'Szukam na drukarce…';
+
+  @override
+  String get archiveMediaNothingOnPrinter => 'Nic na drukarce';
+
+  @override
+  String get archiveMediaKindTimelapse => 'Timelapse';
+
+  @override
+  String get archiveMediaKindIpcam => 'Kamera';
+
+  @override
+  String archiveMediaDownloadSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pliku',
+      many: '$count plików',
+      few: '$count pliki',
+      one: 'jeden plik',
+      zero: 'zaznaczone',
+    );
+    return 'Pobierz $_temp0';
+  }
+
+  @override
+  String get archiveMediaSaved => 'Zapisano film';
+
+  @override
+  String get archiveMediaNoFilePermission =>
+      'Brak uprawnień do plików drukarki';
+
+  @override
+  String get archiveMediaPrinterMissing => 'Drukarki już nie ma';
+
+  @override
+  String get archiveMediaTimelapseUnavailable =>
+      'Timelapse: drukarka nie odpowiedziała';
+
+  @override
+  String get archiveMediaIpcamUnavailable =>
+      'Kamera: drukarka nie odpowiedziała';
+
+  @override
   String archivePlate(int plate) {
     return 'Płyta $plate';
   }
