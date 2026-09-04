@@ -258,7 +258,26 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     required EdgeInsets padding,
   }) {
     final model = _modelMissingSnippet;
-    if (model == null) return null;
+    return _note(
+      t,
+      model == null ? null : l10n.queueEditGcodeInjectionNoSnippet(model),
+      padding: padding,
+    );
+  }
+
+  /// A caveat under a control: what the form is about to do is not what the
+  /// control looks like it does. Null [text] is "nothing to say", so a caller
+  /// can hand its own condition straight in.
+  ///
+  /// Quiet on purpose — tertiary ink, not the amber a fault card uses. Every
+  /// one of these sits next to a setting the user chose and is still free to
+  /// change; none of them is an error.
+  Widget? _note(
+    DashTokens t,
+    String? text, {
+    EdgeInsets padding = const EdgeInsets.only(top: 6),
+  }) {
+    if (text == null) return null;
     return Padding(
       padding: padding,
       child: Row(
@@ -266,12 +285,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Icon(Icons.warning_amber_rounded, size: 16, color: t.textTertiary),
           const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              l10n.queueEditGcodeInjectionNoSnippet(model),
-              style: t.labelSoft,
-            ),
-          ),
+          Expanded(child: Text(text, style: t.labelSoft)),
         ],
       ),
     );
@@ -780,23 +794,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               }
             }),
           ),
-          ?_rackNote(l10n, t, warning),
-        ],
-      ),
-    );
-  }
-
-  /// The warning under one group's picker, or nothing when there is none.
-  Widget? _rackNote(AppLocalizations l10n, DashTokens t, String? text) {
-    if (text == null) return null;
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.warning_amber_rounded, size: 16, color: t.textTertiary),
-          const SizedBox(width: 6),
-          Expanded(child: Text(text, style: t.labelSoft)),
+          ?_note(t, warning),
         ],
       ),
     );

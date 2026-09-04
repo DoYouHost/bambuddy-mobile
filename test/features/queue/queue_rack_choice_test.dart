@@ -1,23 +1,12 @@
-import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
-import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/printers/nozzle_rack.dart';
-import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
-import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
-import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:bambuddy_mobile/providers.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../helpers.dart';
+import 'queue_form_harness.dart';
 
 /// The H2C rack pick as the print form offers it (server #1784).
 ///
@@ -25,35 +14,6 @@ import '../../helpers.dart';
 /// the section appears only when the plate declares filament groups AND the
 /// printer reports a rack, and an older server does neither — so the same build
 /// talks to both generations and only sends the field where it means something.
-
-/// Body of the write the form sent, captured before the mock answers.
-Map<String, dynamic>? _captured;
-
-QueueRepository _repo() {
-  final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
-  dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-    if (options.data != null) _captured = options.data as Map<String, dynamic>?;
-    handler.next(options);
-  }));
-  DioAdapter(dio: dio)
-    ..onGet(
-      '/api/v1/updates/version',
-      (server) => server.reply(200, {
-        'version': '1.2.6',
-        'repo': 'maziggy/bambuddy',
-      }),
-    )
-    ..onPost('/api/v1/queue/', (server) => server.reply(200, null),
-        data: Matchers.any)
-    ..onPatch('/api/v1/queue/5', (server) => server.reply(200, null),
-        data: Matchers.any);
-  return QueueRepository(dio, ServerVersionService(dio));
-}
-
-const _printer = Printer(id: 1, name: 'H2C-1', model: 'H2C');
-
-late SharedPreferences _prefs;
-final _l10n = lookupAppLocalizations(const Locale('pl'));
 
 /// Two 0.4 nozzles the plate can print from, one 0.6 it cannot, and three empty
 /// docks — the rack of a machine in ordinary use.
@@ -84,123 +44,108 @@ List<FilamentRequirement> _oneRackGroup() => FilamentRequirement.parseList({
       ],
     });
 
-Widget _screen(
-  QueueItem item, {
-  QueueEditMode mode = QueueEditMode.create,
-  List<NozzleRackSlot>? rack,
-  List<FilamentRequirement> requirements = const [],
-}) =>
-    ProviderScope(
-      overrides: [
-        noServerProfileOverride,
-        queueRepositoryProvider.overrideWithValue(_repo()),
-        allPrintersProvider.overrideWith((ref) async => const [_printer]),
-        sharedPreferencesProvider.overrideWithValue(_prefs),
-        triStateCalibrationProvider.overrideWith((ref) async => true),
-        gcodeSnippetModelsProvider.overrideWith((ref) async => const <String>{}),
-        filamentRequirementsProvider
-            .overrideWith((ref, arg) async => requirements),
-        printerStatusOnceProvider.overrideWith(
-          (ref, id) async => PrinterStatus(id: id, nozzleRack: rack),
-        ),
-      ],
-      child: plApp(QueueEditScreen(item: item, mode: mode)),
-    );
+/// How the row spells one of the two 0.4 standard positions.
+String _position(int position) =>
+    formL10n.queueEditRackPosition(position, '0.4 ${formL10n.nozzleFlowStandard}');
 
-QueueItem _draft() => QueueItem.draft(
-      archiveId: 77,
-      name: 'cube.3mf',
-      printerId: 1,
-      slicedForModel: 'H2C',
-    );
-
-/// Opens the group's dropdown and returns the labels it offered, in order.
-Future<List<String>> _openPicker(WidgetTester tester) async {
-  await tester.tap(find.textContaining(_l10n.nozzleFlowStandard).first);
+/// Opens the group's picker. The field shows the nozzle the group needs, which
+/// is what makes it findable before anything has been chosen.
+Future<void> _openPicker(WidgetTester tester) async {
+  await tester.tap(find.textContaining(formL10n.nozzleFlowStandard).first);
   await tester.pumpAndSettle();
-  return [
-    for (final item in tester.widgetList<MenuItemButton>(
-        find.byType(MenuItemButton)))
-      ((item.child as Text?)?.data) ?? '',
+}
+
+/// The menu as it stands open: every label, and the subset that can be tapped.
+({List<String> offered, Set<String> enabled}) _entries(WidgetTester tester) {
+  final buttons =
+      tester.widgetList<MenuItemButton>(find.byType(MenuItemButton)).toList();
+  final labels = [
+    for (final button in buttons) ((button.child as Text?)?.data) ?? '',
   ];
+  return (
+    offered: labels,
+    enabled: {
+      for (var i = 0; i < buttons.length; i++)
+        if (buttons[i].onPressed != null) labels[i],
+    },
+  );
 }
 
 void main() {
-  setUp(() async {
-    _captured = null;
-    SharedPreferences.setMockInitialValues({});
-    _prefs = await SharedPreferences.getInstance();
-  });
+  setUp(setUpQueueForm);
 
   testWidgets('a plate with no rack groups is offered no pick', (tester) async {
     // What every non-H2C job looks like, and what every plate looks like on a
     // server that does not annotate the group table.
-    await tester.pumpWidget(_screen(_draft(), rack: _rack()));
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+    ));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.queueEditNozzleRack), findsNothing);
+    expect(find.text(formL10n.queueEditNozzleRack), findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
-    await tester.pumpAndSettle();
+    await submitQueueForm(tester);
 
-    expect(_captured?.containsKey('nozzle_rack_choice'), isFalse);
+    expect(capturedBody?.containsKey('nozzle_rack_choice'), isFalse);
   });
 
   testWidgets('a printer that reports no rack is offered no pick',
       (tester) async {
-    await tester.pumpWidget(
-        _screen(_draft(), requirements: _oneRackGroup()));
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      requirements: _oneRackGroup(),
+    ));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.queueEditNozzleRack), findsNothing);
+    expect(find.text(formL10n.queueEditNozzleRack), findsNothing);
   });
 
   testWidgets('picking a position sends it keyed by the filament group',
       (tester) async {
-    await tester.pumpWidget(
-        _screen(_draft(), rack: _rack(), requirements: _oneRackGroup()));
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _oneRackGroup(),
+    ));
     await tester.pumpAndSettle();
 
-    expect(find.text(_l10n.queueEditNozzleRack), findsOneWidget);
+    expect(find.text(formL10n.queueEditNozzleRack), findsOneWidget);
 
     await _openPicker(tester);
-    await tester.tap(find.text(
-        _l10n.queueEditRackPosition(3, '0.4 ${_l10n.nozzleFlowStandard}')));
+    await tester.tap(find.text(_position(3)));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
-    await tester.pumpAndSettle();
+    await submitQueueForm(tester);
 
     // Group ids are object keys on the wire, so they arrive stringified — the
     // server parses them back to ints.
-    expect(_captured?['nozzle_rack_choice'], {'1': 3});
+    expect(capturedBody?['nozzle_rack_choice'], {'1': 3});
   });
 
   testWidgets('a position the nozzle does not fit cannot be picked',
       (tester) async {
-    await tester.pumpWidget(
-        _screen(_draft(), rack: _rack(), requirements: _oneRackGroup()));
+    await tester.pumpWidget(queueFormScreen(
+      archiveDraft(model: 'H2C'),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
+      requirements: _oneRackGroup(),
+    ));
     await tester.pumpAndSettle();
 
     await _openPicker(tester);
-    final entries = tester
-        .widgetList<MenuItemButton>(find.byType(MenuItemButton))
-        .toList();
-    final labels = [
-      for (final entry in entries) ((entry.child as Text?)?.data) ?? '',
-    ];
-    final enabled = {
-      for (var i = 0; i < entries.length; i++)
-        if (entries[i].onPressed != null) labels[i],
-    };
+    final menu = _entries(tester);
 
     // The 0.6 in position 2 and the three empty docks are shown — a choice the
     // form cannot honour says why it is unavailable — but none can be taken.
-    expect(labels, hasLength(rackPositions.length + 1));
-    expect(enabled, {
-      _l10n.queueEditRackAuto,
-      _l10n.queueEditRackPosition(1, '0.4 ${_l10n.nozzleFlowStandard}'),
-      _l10n.queueEditRackPosition(3, '0.4 ${_l10n.nozzleFlowStandard}'),
+    expect(menu.offered, hasLength(rackPositions.length + 1));
+    expect(menu.enabled, {
+      formL10n.queueEditRackAuto,
+      _position(1),
+      _position(3),
     });
   });
 
@@ -216,30 +161,26 @@ void main() {
       'nozzle_rack_choice': {'1': 3},
     });
 
-    await tester.pumpWidget(_screen(
+    await tester.pumpWidget(queueFormScreen(
       item,
       mode: QueueEditMode.edit,
-      rack: _rack(),
+      printers: const [printerH2C],
+      nozzleRack: _rack(),
       requirements: _oneRackGroup(),
     ));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(
-          _l10n.queueEditRackPosition(3, '0.4 ${_l10n.nozzleFlowStandard}')),
-      findsOneWidget,
-    );
+    expect(find.text(_position(3)), findsOneWidget);
 
     await _openPicker(tester);
-    await tester.tap(find.text(_l10n.queueEditRackAuto).last);
+    await tester.tap(find.text(formL10n.queueEditRackAuto).last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Zapisz'));
-    await tester.pumpAndSettle();
+    await submitQueueForm(tester, edit: true);
 
     // Explicitly null, not absent: the item still carries a pick, and only a
     // null clears it.
-    expect(_captured?.containsKey('nozzle_rack_choice'), isTrue);
-    expect(_captured?['nozzle_rack_choice'], isNull);
+    expect(capturedBody?.containsKey('nozzle_rack_choice'), isTrue);
+    expect(capturedBody?['nozzle_rack_choice'], isNull);
   });
 }

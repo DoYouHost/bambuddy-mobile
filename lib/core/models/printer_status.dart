@@ -7,16 +7,9 @@ import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 
-const _listAmsUnitEquality = ListEquality<AmsUnit>();
-const _listAmsTrayEquality = ListEquality<AmsTray>();
-const _listHmsErrorEquality = ListEquality<HmsError>();
-const _listNozzleEquality = ListEquality<NozzleInfo>();
-const _listNozzleRackEquality = ListEquality<NozzleRackSlot>();
-const _stringListEquality = ListEquality<String>();
-const _mapStringDoubleEquality = MapEquality<String, double>();
-const _mapIntIntEquality = MapEquality<int, int>();
-const _mapIntExtruderSlotEquality = MapEquality<int, ExtruderSlot>();
-const _mapIntStringEquality = MapEquality<int, String>();
+/// One equality for every field, collections included: a list or map is
+/// compared and hashed by its contents, anything else by its own `==`.
+const _deepEquality = DeepCollectionEquality();
 
 /// Printer status from `GET /printers/{id}/status` (and eventually from WS
 /// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
@@ -284,58 +277,15 @@ class PrinterStatus {
     return own.isEmpty ? null : own;
   }
 
-  /// Value equality — `ingestPoll` uses this to skip publishing a merged
-  /// status that's identical in content to the one already in state (REST
-  /// polling otherwise builds a fresh `PrinterStatus` every 5s via
-  /// `mergedWith`, so reference equality alone never matches even when
-  /// nothing on the server changed).
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PrinterStatus &&
-          other.id == id &&
-          other.name == name &&
-          other.connected == connected &&
-          other.state == state &&
-          other.currentPrint == currentPrint &&
-          other.gcodeFile == gcodeFile &&
-          other.progress == progress &&
-          other.remainingTime == remainingTime &&
-          other.layerNum == layerNum &&
-          other.totalLayers == totalLayers &&
-          _mapStringDoubleEquality.equals(other.temperatures, temperatures) &&
-          other.coverUrl == coverUrl &&
-          other.stgCur == stgCur &&
-          other.stgCurName == stgCurName &&
-          other.coolingFanSpeed == coolingFanSpeed &&
-          other.bigFan1Speed == bigFan1Speed &&
-          other.bigFan2Speed == bigFan2Speed &&
-          other.leftAuxFanSpeed == leftAuxFanSpeed &&
-          other.exhaustFanPresent == exhaustFanPresent &&
-          other.heatbreakFanSpeed == heatbreakFanSpeed &&
-          other.speedLevel == speedLevel &&
-          other.chamberLight == chamberLight &&
-          other.airductMode == airductMode &&
-          _listAmsUnitEquality.equals(other.ams, ams) &&
-          _listAmsTrayEquality.equals(other.vtTray, vtTray) &&
-          other.trayNow == trayNow &&
-          other.activeExtruder == activeExtruder &&
-          _mapIntIntEquality.equals(other.amsExtruderMap, amsExtruderMap) &&
-          _mapIntStringEquality.equals(other.amsSwitchInlet, amsSwitchInlet) &&
-          other.model == model &&
-          other.wifiSignal == wifiSignal &&
-          other.doorOpen == doorOpen &&
-          other.awaitingPlateClear == awaitingPlateClear &&
-          other.supportsDrying == supportsDrying &&
-          _listNozzleEquality.equals(other.nozzles, nozzles) &&
-          _listNozzleRackEquality.equals(other.nozzleRack, nozzleRack) &&
-          other.filaSwitch == filaSwitch &&
-          _mapIntExtruderSlotEquality.equals(
-              other.extruderSlots, extruderSlots) &&
-          _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
-
-  @override
-  int get hashCode => Object.hashAll([
+  /// Every field, once, for both [==] and [hashCode].
+  ///
+  /// Two hand-written lists of forty fields cannot be kept in step by review:
+  /// one that forgets a field compares two different statuses equal and
+  /// `ingestPoll` never publishes the newer one, and the same omission in the
+  /// other only shows up as statuses that differ hashing alike. Deep equality
+  /// covers the collection fields, so a list or map here needs no wrapper of
+  /// its own — the models inside them define their own `==`.
+  List<Object?> get _fields => [
         id,
         name,
         connected,
@@ -346,7 +296,7 @@ class PrinterStatus {
         remainingTime,
         layerNum,
         totalLayers,
-        temperatures == null ? null : _mapStringDoubleEquality.hash(temperatures),
+        temperatures,
         coverUrl,
         stgCur,
         stgCurName,
@@ -359,27 +309,37 @@ class PrinterStatus {
         speedLevel,
         chamberLight,
         airductMode,
-        ams == null ? null : _listAmsUnitEquality.hash(ams),
-        vtTray == null ? null : _listAmsTrayEquality.hash(vtTray),
+        ams,
+        vtTray,
         trayNow,
         activeExtruder,
-        amsExtruderMap == null ? null : _mapIntIntEquality.hash(amsExtruderMap),
-        amsSwitchInlet == null
-            ? null
-            : _mapIntStringEquality.hash(amsSwitchInlet),
+        amsExtruderMap,
+        amsSwitchInlet,
         model,
         wifiSignal,
         doorOpen,
         awaitingPlateClear,
-        hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
+        hmsErrors,
         supportsDrying,
-        nozzles == null ? null : _listNozzleEquality.hash(nozzles),
-        nozzleRack == null ? null : _listNozzleRackEquality.hash(nozzleRack),
+        nozzles,
+        nozzleRack,
         filaSwitch,
-        extruderSlots == null
-            ? null
-            : _mapIntExtruderSlotEquality.hash(extruderSlots),
-      ]);
+        extruderSlots,
+      ];
+
+  /// Value equality — `ingestPoll` uses this to skip publishing a merged
+  /// status that's identical in content to the one already in state (REST
+  /// polling otherwise builds a fresh `PrinterStatus` every 5s via
+  /// `mergedWith`, so reference equality alone never matches even when
+  /// nothing on the server changed).
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PrinterStatus && _deepEquality.equals(other._fields, _fields);
+
+  @override
+  int get hashCode =>
+      Object.hashAll([for (final field in _fields) _deepEquality.hash(field)]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
   /// **never zero known value** — any field the new frame doesn't carry (`null`)
@@ -771,7 +731,7 @@ class AmsUnit {
           other.dryTime == dryTime &&
           other.dryStatus == dryStatus &&
           other.moduleType == moduleType &&
-          _listAmsTrayEquality.equals(other.trays, trays);
+          _deepEquality.equals(other.trays, trays);
 
   @override
   int get hashCode => Object.hash(
@@ -782,7 +742,7 @@ class AmsUnit {
         dryTime,
         dryStatus,
         moduleType,
-        trays == null ? null : _listAmsTrayEquality.hash(trays),
+        trays == null ? null : _deepEquality.hash(trays),
       );
 }
 
@@ -1131,14 +1091,14 @@ class HmsError {
           other.severity == severity &&
           other.attr == attr &&
           other.module == module &&
-          _stringListEquality.equals(other.actions, actions) &&
+          _deepEquality.equals(other.actions, actions) &&
           other.jobId == jobId &&
           other.fullCode == fullCode &&
           other.description == description;
 
   @override
   int get hashCode => Object.hash(code, message, severity, attr, module,
-      _stringListEquality.hash(actions), jobId, fullCode, description);
+      _deepEquality.hash(actions), jobId, fullCode, description);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.
