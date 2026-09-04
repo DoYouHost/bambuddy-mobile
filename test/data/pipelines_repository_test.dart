@@ -737,6 +737,60 @@ void main() {
     });
   });
 
+  group('canRetry', () {
+    // `retry-failed` has three preconditions server-side and answers 400 on
+    // each (`routes/pipeline_runs.py::retry_failed`). Offering the button on a
+    // run that fails one of them is a dead end the operator has to read an
+    // error to discover.
+    PipelineRun run({
+      String status = 'partial_failure',
+      int? pipelineId = 3,
+      int? libraryFileId = 12,
+      int? archiveId,
+      int failed = 1,
+    }) =>
+        PipelineRun.fromJson({
+          'id': 5,
+          'pipeline_id': pipelineId,
+          'source_library_file_id': libraryFileId,
+          'source_archive_id': archiveId,
+          'copies': 2,
+          'copies_completed': 2 - failed,
+          'copies_failed': failed,
+          'status': status,
+          'eligibility_overridden': false,
+          'created_at': '2026-08-10T09:00:00',
+        });
+
+    test('a terminal run with failed copies and both links intact can retry',
+        () {
+      expect(run().canRetry, isTrue);
+      expect(run(libraryFileId: null, archiveId: 4).canRetry, isTrue,
+          reason: 'an archive source is the other half of the XOR');
+    });
+
+    test('a run still in flight cannot', () {
+      expect(run(status: 'in_progress').canRetry, isFalse);
+    });
+
+    test('nothing failed, nothing to retry', () {
+      expect(run(failed: 0).canRetry, isFalse);
+    });
+
+    test('a deleted pipeline takes the retry with it', () {
+      expect(run(pipelineId: null).canRetry, isFalse);
+    });
+
+    test('a deleted source does too', () {
+      // The reachable one: both source columns are `ondelete="SET NULL"`
+      // (`models/pipeline_run.py::PipelineRun`), and deleting a library file is
+      // a routine act that the run history is designed to outlive. The server
+      // then answers 400 "Original source was deleted; cannot retry".
+      expect(run(libraryFileId: null).canRetry, isFalse);
+      expect(run(libraryFileId: null, archiveId: null).canRetry, isFalse);
+    });
+  });
+
   group('checkEligibility', () {
     test('a class report is ok when one printer passes', () async {
       adapter.onPost(

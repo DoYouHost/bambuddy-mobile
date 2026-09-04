@@ -416,9 +416,20 @@ class PipelineRun {
   /// rather than [copiesFailed] alone.
   bool get hasRetryableCopies => copiesFailed + copiesCancelled > 0;
 
-  /// Terminal *and* worth retrying — what the retry action is offered on.
+  /// Terminal *and* worth retrying *and* still able to be —
+  /// `retry-failed` has three preconditions and answers **400** on each
+  /// (`routes/pipeline_runs.py`): the pipeline must still be linked, a source
+  /// must still be linked, and something must have failed.
+  ///
+  /// The source is the reachable one. Both columns are `ondelete="SET NULL"`,
+  /// so deleting the library file or the archive a run was sliced from empties
+  /// them while the run itself stays — which is the point of keeping the
+  /// history. A retry then cannot re-slice anything.
   bool get canRetry =>
-      status.isTerminal && hasRetryableCopies && pipelineId != null;
+      status.isTerminal &&
+      hasRetryableCopies &&
+      pipelineId != null &&
+      (sourceLibraryFileId != null || sourceArchiveId != null);
 
   /// Copies that reached a terminal state, for a progress fraction.
   int get copiesFinished => copiesCompleted + copiesFailed + copiesCancelled;

@@ -53,11 +53,12 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(_maybeLoadMore);
-    // Half of the refresh; the other half is the `pipeline_run_updated` push
-    // the list notifier subscribes to. The push is not enough on its own: the
-    // server routes it with `broadcast_to_user(run.created_by, …)`, so a
-    // session hears only about the runs it started itself. This covers the
-    // rest — a colleague's batch, and any install where the socket is down.
+    // Not an optimisation: this is the only thing that tracks a run through
+    // printing. The `pipeline_run_updated` push stops at `dispatching` — the
+    // scheduler never touches `PipelineRun`, so the status and the `copies_*`
+    // roll-up are computed while answering a GET and pushed nowhere. It is
+    // also routed per `created_by`, so a colleague's batch is invisible to it.
+    // Remove this timer and a run sits on `dispatching` for ever.
     //
     // It refreshes the window already on screen rather than invalidating, which
     // would throw away every page past the first and jump the scroll position.

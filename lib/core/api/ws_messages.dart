@@ -54,15 +54,18 @@ class WsArchiveUpdated extends WsMessage {
   final String? photoAdded;
 }
 
-/// One pipeline run changed — sliced, dispatched, a copy finished, cancelled.
-/// The frame carries the whole materialised run, so the dashboard replaces its
-/// row rather than re-reading the page.
+/// One pipeline run reached a new stage. Carries the whole materialised run, so
+/// the dashboard replaces its row without a request.
 ///
-/// **Not a substitute for the poll.** The server routes this with
-/// `broadcast_to_user(run.created_by, …)`, so a JWT session hears only about
-/// runs it started itself; an auth-disabled install has no `created_by` and
-/// falls back to a global broadcast. A dashboard showing a colleague's run gets
-/// nothing here, which is why the timer stays.
+/// **It covers the slice, not the print.** It is emitted at run creation,
+/// `slicing`, slice `failed`, `dispatching` and cancel, and nowhere else — the
+/// scheduler never touches `PipelineRun`, so past `dispatching` the status and
+/// the `copies_*` roll-up only exist as something `_materialise_run` computes
+/// while answering a GET. It is also routed per `run.created_by`, so a session
+/// hears only about runs it started itself.
+///
+/// Hence the dashboard's timer, which is not an optimisation to remove later:
+/// without it a run sticks on `dispatching` for ever on a healthy socket.
 class WsPipelineRunUpdated extends WsMessage {
   const WsPipelineRunUpdated(this.run);
 

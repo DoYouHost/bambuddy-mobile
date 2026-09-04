@@ -135,11 +135,12 @@ class PipelineRunsNotifier
     // `total` and the offsets both describe one filtered set.
     final filter = ref.watch(pipelineRunFilterProvider);
 
-    // The push half of the refresh; [WsPipelineRunUpdated] says why the
-    // screen's timer is still the other half. Subscribed before the first fetch
-    // so a frame arriving mid-request is not lost, and guarded because this
-    // list is REST: `wsClientProvider` throws without a server profile, and a
-    // socket that cannot be built must cost the pushes, not the runs.
+    // Slice-phase updates arrive here for free; the printing phase is pushed
+    // for nobody, so the screen's timer does that half — see
+    // [WsPipelineRunUpdated]. Subscribed before the first fetch so a frame
+    // arriving mid-request is not lost, and guarded because this list is REST:
+    // `wsClientProvider` throws without a server profile, and a socket that
+    // cannot be built must cost the pushes, not the runs.
     try {
       final sub = ref
           .watch(wsClientProvider)
