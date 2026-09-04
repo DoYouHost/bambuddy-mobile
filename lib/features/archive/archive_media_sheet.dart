@@ -379,7 +379,16 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.archiveMediaAction, style: theme.textTheme.titleMedium),
+              // A sheet has no app bar to carry the route's name, so nothing
+              // marks its title as a heading unless it says so — and a heading
+              // is what a screen reader jumps between.
+              Semantics(
+                header: true,
+                child: Text(
+                  l10n.archiveMediaAction,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
@@ -565,7 +574,11 @@ class _SectionHeader extends StatelessWidget {
       padding: EdgeInsets.only(top: 16, bottom: trailing == null ? 6 : 0),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: t.label)),
+          // The words are the heading; the trailing control beside them is a
+          // button and has to keep reading as one.
+          Expanded(
+            child: Semantics(header: true, child: Text(title, style: t.label)),
+          ),
           ?trailing,
         ],
       ),

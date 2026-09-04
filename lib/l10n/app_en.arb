@@ -1702,6 +1702,8 @@
   "pfmSortSizeSmallest": "Size (smallest)",
   "pfmSortDateNewest": "Date (newest)",
   "pfmSortDateOldest": "Date (oldest)",
+  "pfmUp": "Up one folder",
+  "@pfmUp": { "description": "Tooltip and screen-reader name for the back arrow in the printer file manager's path bar — it goes up a directory, not back through the app." },
   "pfmSelectAll": "Select all",
   "pfmDeselectAll": "Deselect all",
   "pfmSelected": "{count} selected",

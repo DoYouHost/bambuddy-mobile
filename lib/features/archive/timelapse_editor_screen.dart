@@ -487,7 +487,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(label, style: theme.textTheme.titleSmall),
+        Semantics(
+          header: true,
+          child: Text(label, style: theme.textTheme.titleSmall),
+        ),
         const Spacer(),
         Text(value, style: theme.textTheme.bodySmall),
       ],

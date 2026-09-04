@@ -4883,6 +4883,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pfmSortDateOldest => 'Data (najstarsze)';
 
   @override
+  String get pfmUp => 'Folder wyżej';
+
+  @override
   String get pfmSelectAll => 'Zaznacz wszystko';
 
   @override

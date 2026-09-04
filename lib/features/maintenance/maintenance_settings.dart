@@ -160,10 +160,7 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: t.titleMd,
-        ),
+        Semantics(header: true, child: Text(title, style: t.titleMd)),
         const SizedBox(height: 3),
         Text(
           subtitle,

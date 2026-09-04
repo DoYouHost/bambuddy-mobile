@@ -4,7 +4,10 @@ import 'package:bambuddy_mobile/features/archive/archive_media_sheet.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
+import 'dart:ui' show CheckedState;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -132,6 +135,58 @@ void main() {
       find.text('${l10n.archiveMediaKindTimelapse} · 4.0 KB'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a pickable row reads as one item that says whether it is ticked',
+      (tester) async {
+    replyWith(const {
+      'archive_id': 1,
+      'printer_id': 2,
+      'remote_files': [
+        {
+          'name': 'ipcam_1.mp4',
+          'path': '/ipcam/ipcam_1.mp4',
+          'size': 10,
+          'kind': 'ipcam',
+        },
+      ],
+    });
+
+    await open(tester, archive());
+    final handle = tester.ensureSemantics();
+
+    // Read through the row's own text: after the merge it has no node of its
+    // own, so what comes back is the row — name, size and state together,
+    // rather than a bare tick to swipe past first.
+    SemanticsData row() =>
+        tester.getSemantics(find.text('ipcam_1.mp4')).getSemanticsData();
+
+    // The lone candidate is ticked already, and the row is what reports it.
+    expect(row().flagsCollection.isChecked, CheckedState.isTrue);
+    expect(row().label, contains('ipcam_1.mp4'));
+
+    handle.dispose();
+  });
+
+  testWidgets('the sheet has headings to jump between', (tester) async {
+    // A sheet has no app bar, so nothing marks its title as a heading unless it
+    // says so — and the two section names are the whole point of the layout.
+    replyWith(const {'archive_id': 1, 'printer_id': 2, 'remote_files': <Object>[]});
+
+    final l10n =
+        await open(tester, archive(timelapsePath: 'archive/1/benchy.mp4'));
+    final handle = tester.ensureSemantics();
+
+    bool isHeader(String text) => tester
+        .getSemantics(find.text(text))
+        .getSemanticsData()
+        .flagsCollection.isHeader;
+
+    expect(isHeader(l10n.archiveMediaAction), isTrue);
+    expect(isHeader(l10n.archiveMediaOnServer), isTrue);
+    expect(isHeader(l10n.archiveMediaOnPrinter(0)), isTrue);
+
+    handle.dispose();
   });
 
   testWidgets('several candidates start unticked', (tester) async {

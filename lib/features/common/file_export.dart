@@ -132,12 +132,18 @@ Future<SavedFileResult> saveDownloadedFile(
 /// no default: `timelapse` and `archive` are the right words in their own
 /// places and the wrong one in the other's.
 ///
-/// **Not Unicode-aware**: `\w` is ASCII here, so `Łódź` reduces to `d`. That is
-/// the behaviour this app has shipped and it is pinned by tests; widening it is
-/// a change to file names users already have.
+/// **Keeps letters and digits of any script.** `\w` is ASCII in Dart, so the
+/// first cut of this reduced `Łódź` to `d` and a Japanese print name to nothing
+/// — the fallback then named every one of them `timelapse.mp4`, which is how a
+/// folder of saved videos becomes unusable in exactly the locales this app
+/// ships in. `\p{L}\p{N}` needs `unicode: true` to mean anything; without the
+/// flag Dart reads `\p` as a literal `p`.
+///
+/// Emoji and symbols still go: they are neither letter nor digit, and a share
+/// target is entitled to refuse them.
 String safeFileStem(String name, {required String fallback}) {
   final safe = name
-      .replaceAll(RegExp(r'[^\w\s.-]'), '')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\s._-]', unicode: true), '')
       .trim()
       .replaceAll(RegExp(r'\s+'), '_')
       .replaceAll(RegExp(r'^[._]+|[._]+$'), '');

@@ -528,7 +528,7 @@ class _PrinterFileManagerScreenState
         body: Column(
           children: [
             _quickNav(t, l10n),
-            _breadcrumb(t),
+            _breadcrumb(t, l10n),
             Expanded(
               child: _content(l10n, t, selectable.isNotEmpty, allSelected),
             ),
@@ -578,7 +578,7 @@ class _PrinterFileManagerScreenState
         _QuickTab.timelapse => l10n.pfmTabTimelapse,
       };
 
-  Widget _breadcrumb(DashTokens t) => Container(
+  Widget _breadcrumb(DashTokens t, AppLocalizations l10n) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: t.hairline)),
@@ -589,7 +589,13 @@ class _PrinterFileManagerScreenState
               'printer_files.up',
               IconButton(
                 icon: Icon(Icons.arrow_back, color: t.textSecondary),
-                visualDensity: VisualDensity.compact,
+                // Named, because an icon alone reads as "unlabelled button" —
+                // and named for what it does here: it climbs a directory, it
+                // does not go back through the app.
+                tooltip: l10n.pfmUp,
+                // Default density on purpose. `VisualDensity.compact` took the
+                // tap target under the 48x48 dp a control has to offer, on the
+                // one button in this bar.
                 onPressed: _path == '/' ? null : _navigateUp,
               ),
             ),
@@ -721,25 +727,38 @@ class _PrinterFileManagerScreenState
     final selected = _selected.contains(file.path);
     return logTag(
       'printer_files.file',
-      ListTile(
-        leading: Checkbox(
-          value: selected,
-          onChanged: (_) => _toggleSelection(file.path),
-          activeColor: t.accentGreen,
-          checkColor: const Color(0xFF0A0C08),
+      // The tick is the row's state, not a control of its own. Left to itself
+      // the Checkbox is a second interactive node with no name — a screen
+      // reader offers "tick box, not ticked" with nothing to say which file it
+      // belongs to, and the file name arrives separately after it. Excluded and
+      // restated on the row, the whole thing reads as one item, and the tap
+      // target is the row it always was.
+      MergeSemantics(
+        child: Semantics(
+          checked: selected,
+          child: ListTile(
+            leading: ExcludeSemantics(
+              child: Checkbox(
+                value: selected,
+                onChanged: (_) => _toggleSelection(file.path),
+                activeColor: t.accentGreen,
+                checkColor: const Color(0xFF0A0C08),
+              ),
+            ),
+            title: Text(
+              file.name,
+              overflow: TextOverflow.ellipsis,
+              style: t.titleSm,
+            ),
+            subtitle: Text(
+              _subtitle(file),
+              style: t.monoLabel,
+            ),
+            trailing: Icon(_iconFor(file.name), color: t.textSecondary),
+            onTap: () => _toggleSelection(file.path),
+          ),
         ),
-        title: Text(
-          file.name,
-          overflow: TextOverflow.ellipsis,
-          style: t.titleSm,
-        ),
-        subtitle: Text(
-          _subtitle(file),
-          style: t.monoLabel,
-        ),
-        trailing: Icon(_iconFor(file.name), color: t.textSecondary),
-        onTap: () => _toggleSelection(file.path),
-      )
+      ),
     );
   }
 

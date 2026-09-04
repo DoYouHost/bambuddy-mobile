@@ -1523,6 +1523,7 @@
   "pfmSortSizeSmallest": "Rozmiar (najmniejsze)",
   "pfmSortDateNewest": "Data (najnowsze)",
   "pfmSortDateOldest": "Data (najstarsze)",
+  "pfmUp": "Folder wyżej",
   "pfmSelectAll": "Zaznacz wszystko",
   "pfmDeselectAll": "Odznacz wszystko",
   "pfmSelected": "Zaznaczono: {count}",

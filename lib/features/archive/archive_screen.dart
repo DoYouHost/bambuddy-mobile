@@ -850,7 +850,11 @@ class _MediaBadges extends StatelessWidget {
           l10n.archiveHasPhotos(archive.photos.length),
         ),
       if (archive.hasTimelapse)
-        _badge(Icons.movie, t.accentGreen, l10n.archiveHasTimelapse),
+        // `accentGreenInk`, not the vivid `accentGreen`: a 12 px mark that says
+        // "there is a video of this one" is a meaningful control, and the vivid
+        // swatch reads 2.1:1 on the pale card — under the 3:1 such a mark has
+        // to clear. The blue beside it already does at 3.7:1.
+        _badge(Icons.movie, t.accentGreenInk, l10n.archiveHasTimelapse),
     ];
     if (badges.isEmpty) return const SizedBox.shrink();
     return Container(

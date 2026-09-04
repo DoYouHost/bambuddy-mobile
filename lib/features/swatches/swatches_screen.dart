@@ -324,9 +324,13 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Row(
         children: [
-          Text(
-            label.toUpperCase(),
-            style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.8),
+          Semantics(
+            header: true,
+            child: Text(
+              label.toUpperCase(),
+              style:
+                  t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.8),
+            ),
           ),
           const SizedBox(width: 8),
           Container(

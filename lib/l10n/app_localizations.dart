@@ -8186,6 +8186,12 @@ abstract class AppLocalizations {
   /// **'Date (oldest)'**
   String get pfmSortDateOldest;
 
+  /// Tooltip and screen-reader name for the back arrow in the printer file manager's path bar — it goes up a directory, not back through the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Up one folder'**
+  String get pfmUp;
+
   /// No description provided for @pfmSelectAll.
   ///
   /// In en, this message translates to:
