@@ -38,6 +38,10 @@ final archiveCapabilitiesProvider =
 
 /// Printer model codes the user actually owns (e.g. {"X2D"}), used to narrow
 /// the printer/process/filament lists to fitting presets.
+///
+/// Upper-cased because it is only ever compared against preset names, never
+/// sent — the spool form's `printerModelsProvider` reads the same fleet and
+/// must keep the server's own spelling, and says there why.
 final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>(
   (ref) async {
     final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();

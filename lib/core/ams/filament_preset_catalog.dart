@@ -48,7 +48,9 @@ List<AmsFilamentPreset> filamentPresetCatalog({
 
   for (final preset in cloud) {
     if (!matchesQuery(preset.name)) continue;
-    if (!_fitsPrinter(preset.name, printerModel, printerModels)) continue;
+    if (!presetFitsPrinterModel(preset.name, printerModel, printerModels)) {
+      continue;
+    }
     // Only a preset that survived both filters covers its built-in twin.
     // Marking it earlier would let a cloud PETG hidden as "belongs to another
     // printer" take generic PETG down with it, and the material would vanish
@@ -89,19 +91,6 @@ int _tierOrder(AmsPresetSource source) => switch (source) {
       AmsPresetSource.cloud => 1,
       AmsPresetSource.builtin => 2,
     };
-
-/// True unless the name names a *different* printer. A name that resolves to no
-/// model, or a card with no known model of its own, keeps the preset.
-bool _fitsPrinter(
-  String name,
-  String? printerModel,
-  Map<String, String> printerModels,
-) {
-  if (printerModel == null || printerModel.isEmpty) return true;
-  final presetModel = presetPrinterModel(name, printerModels);
-  if (presetModel == null) return true;
-  return matchesPrinterModel(presetModel, printerModel);
-}
 
 /// Imported presets carry the slicer's own `compatible_printers` list, which is
 /// better evidence than the name — but only when both sides are known. A preset

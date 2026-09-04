@@ -123,6 +123,16 @@ enum ServerFeature {
   /// offered until the listing comes back non-empty, so being early here costs
   /// a request and never a control.
   locationHaSensors,
+
+  /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin —
+  /// the slicer preset a spool uses on one printer *model*, instead of the one
+  /// value it carries for the whole fleet (server commit a7b56333).
+  ///
+  /// A route pair, so an older server answers **404** and
+  /// `InventoryRepository` prefers that observation to this row. Being early
+  /// costs a section that offers to write somewhere the write would 404, so
+  /// the spool form hides it until this says yes.
+  spoolModelPresets,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -253,6 +263,10 @@ class ServerVersion implements Comparable<ServerVersion> {
     // Storage-location Home Assistant sensors (server #2827, commit 54af3146).
     // Same 1.2.6 beta cycle and same caveat as the rows above.
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
+    // Per-printer-model spool presets (server commit a7b56333), landed in the
+    // same 1.2.6 beta cycle as the rows above and answering 404 below it, so
+    // the observation the repository records outranks this row.
+    ServerFeature.spoolModelPresets: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

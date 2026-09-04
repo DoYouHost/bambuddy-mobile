@@ -4220,6 +4220,42 @@ abstract class AppLocalizations {
   /// **'No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).'**
   String get inventorySlicerPresetUnavailable;
 
+  /// No description provided for @inventorySectionPrinterPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Presets per printer model'**
+  String get inventorySectionPrinterPresets;
+
+  /// No description provided for @inventoryPrinterPresetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A pick here wins over the spool\'s own preset.'**
+  String get inventoryPrinterPresetsHint;
+
+  /// No description provided for @inventoryPrinterPresetDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'As on the spool'**
+  String get inventoryPrinterPresetDefault;
+
+  /// Label of a per-model preset row that applies to one nozzle size only. Written by the web spool form; the app writes rows that cover the whole model.
+  ///
+  /// In en, this message translates to:
+  /// **'{model} · {diameter} nozzle'**
+  String inventoryPrinterPresetNozzle(String model, String diameter);
+
+  /// No description provided for @inventoryPrinterPresetsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not read — saving leaves them alone.'**
+  String get inventoryPrinterPresetsLoadFailed;
+
+  /// No description provided for @inventoryPrinterPresetsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its per-model presets were not.'**
+  String get inventoryPrinterPresetsSaveFailed;
+
   /// No description provided for @inventoryFieldMaterial.
   ///
   /// In en, this message translates to:

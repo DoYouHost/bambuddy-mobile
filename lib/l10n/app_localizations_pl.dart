@@ -2487,6 +2487,29 @@ class AppLocalizationsPl extends AppLocalizations {
       'Brak dostępnych profili slicera. Włącz krojenie na serwerze (i połącz Bambu Cloud, aby mieć profile z chmury).';
 
   @override
+  String get inventorySectionPrinterPresets => 'Presety wg modelu drukarki';
+
+  @override
+  String get inventoryPrinterPresetsHint =>
+      'Wybór tutaj wygrywa z presetem szpuli.';
+
+  @override
+  String get inventoryPrinterPresetDefault => 'Jak na szpuli';
+
+  @override
+  String inventoryPrinterPresetNozzle(String model, String diameter) {
+    return '$model · dysza $diameter';
+  }
+
+  @override
+  String get inventoryPrinterPresetsLoadFailed =>
+      'Nie odczytano — zapis ich nie ruszy.';
+
+  @override
+  String get inventoryPrinterPresetsSaveFailed =>
+      'Szpula zapisana, presety wg modelu — nie.';
+
+  @override
   String get inventoryFieldMaterial => 'Materiał';
 
   @override

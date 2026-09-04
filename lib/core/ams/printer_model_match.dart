@@ -41,6 +41,23 @@ bool matchesPrinterModel(String presetModel, String printerModel) {
   return false;
 }
 
+/// True unless [name] names a *different* printer than [printerModel].
+///
+/// The fail-open rule this whole file exists for, in one place: a name that
+/// resolves to no model, and a caller with no model of its own, both keep the
+/// preset. [printerModels] is the registry; without it nothing resolves and
+/// nothing is hidden.
+bool presetFitsPrinterModel(
+  String name,
+  String? printerModel,
+  Map<String, String> printerModels,
+) {
+  if (printerModel == null || printerModel.isEmpty) return true;
+  final presetModel = presetPrinterModel(name, printerModels);
+  if (presetModel == null) return true;
+  return matchesPrinterModel(presetModel, printerModel);
+}
+
 /// The printer a preset name refers to, as a short code, or null when the name
 /// says nothing about it.
 ///

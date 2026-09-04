@@ -9,6 +9,7 @@ import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/spool_label.dart';
+import '../core/models/spool_preset_override.dart';
 
 /// Filament inventory backend. User has native, but app should also work on Spoolman —
 /// selected via setting (see `inventoryBackendProvider`).
@@ -126,6 +127,24 @@ abstract class SpoolInventorySource {
 
   /// Renders the labels [request] describes and returns the PDF bytes.
   Future<Uint8List> renderLabels(SpoolLabelRequest request);
+
+  /// One spool's per-printer-model preset overrides, and the replace that
+  /// writes them back (server 1.2.6; see [SpoolPresetOverride]).
+  ///
+  /// The two exceptions to the rule that everything here answers with a mapped
+  /// [AppApiException]: [InventoryRepository] runs them inside the latch that
+  /// reads a 404 as "this server has no such route", and that latch needs the
+  /// [DioException] itself to read the status off. It maps what it rethrows,
+  /// so nothing above the repository sees the difference.
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId);
+
+  /// Replaces the whole list — an empty one clears every override. The route
+  /// has no merge, so a caller that could not read the current rows must not
+  /// call this: it would delete what it never saw.
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  );
 }
 
 /// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
@@ -167,6 +186,28 @@ Future<Uint8List> _postLabels(
   }
   return bytes;
 });
+
+/// Shared per-model preset override calls — the two backends differ only in
+/// path, since both routes take and answer the same body.
+///
+/// Deliberately unguarded: the latch in [InventoryRepository] reads the status
+/// off the [DioException] and maps what it rethrows. See
+/// [SpoolInventorySource.fetchPresetOverrides].
+Future<List<SpoolPresetOverride>> _getPresetOverrides(
+  Dio dio,
+  String path,
+) async {
+  final res = await dio.get<List<dynamic>>(path);
+  return parseJsonList(res.data, SpoolPresetOverride.fromJson);
+}
+
+Future<void> _putPresetOverrides(
+  Dio dio,
+  String path,
+  List<SpoolPresetOverride> overrides,
+) async {
+  await dio.put<dynamic>(path, data: [for (final o in overrides) o.toJson()]);
+}
 
 /// A JSON object out of a response body, or null when the server answered with
 /// something else — the demo backend replies `{}` to unrouted POSTs and an old
@@ -467,6 +508,24 @@ class NativeInventorySource implements SpoolInventorySource {
   @override
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _postLabels(_dio, Endpoints.inventoryLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
+        _dio,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+        overrides,
+      );
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -652,4 +711,22 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   @override
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _postLabels(_dio, Endpoints.spoolmanLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
+        _dio,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+        overrides,
+      );
 }

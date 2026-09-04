@@ -799,6 +799,14 @@ abstract final class Endpoints {
   static String inventorySpoolKProfiles(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/k-profiles';
 
+  /// Per-printer-model slicer preset overrides for one spool
+  /// (`SpoolFilamentPresetResponse[]`, server 1.2.6). `PUT` replaces the whole
+  /// list (body `SpoolFilamentPresetBase[]`), so an empty list is how the last
+  /// override is cleared — and why a caller that could not read the current
+  /// rows must not write.
+  static String inventorySpoolFilamentPresets(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/filament-presets';
+
   /// Render spool labels as a PDF stream (`POST`, body
   /// `{spool_ids:[int], template:str, monochrome:bool}`). Response is the raw
   /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
@@ -865,6 +873,12 @@ abstract final class Endpoints {
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
   static const spoolmanLabels = '$apiPrefix/spoolman/labels';
+
+  /// Spoolman counterpart of [inventorySpoolFilamentPresets]. Spoolman owns the
+  /// spool, bambuddy owns the override rows, so they are stored locally and
+  /// keyed by the remote spool id — same body, same replace semantics.
+  static String spoolmanSpoolFilamentPresets(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/filament-presets';
 
   // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';

@@ -7,6 +7,7 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/spool_preset_override.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
@@ -454,6 +455,51 @@ final filamentPresetsProvider =
         return const [];
       }
     });
+
+/// The printer models the fleet actually has, spelled exactly as the server
+/// reports them.
+///
+/// Not `ownedPrinterCodesProvider`, which reads the same fleet for the same
+/// field and upper-cases it: that one narrows a preset *list* by name, where
+/// case cannot matter, while this one is the key the server matches an
+/// override on — `printer_model` is compared for plain string equality
+/// (`services/spool_filament_preset.py::_pick`), so a case-folded key writes a
+/// row nothing will ever resolve to. Two readers, deliberately, and neither is
+/// safe to point at the other.
+///
+/// Sorted for a stable order in the spool form; a printer that has not reported
+/// a model is left out, having no model to key a row by.
+final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
+  final models = <String>{
+    for (final p in printers)
+      if ((p.model?.trim() ?? '').isNotEmpty) p.model!.trim(),
+  }.toList()
+    ..sort();
+  return models;
+});
+
+/// Whether this server has the per-model preset routes. Cached for the session
+/// — the answer is a property of the server, and the latch behind it already
+/// updates itself from what the routes actually answer.
+final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
+  ref.keepAlive();
+  return ref.watch(inventoryRepositoryProvider).supportsPresetOverrides();
+});
+
+/// One spool's per-printer-model preset overrides, as stored right now.
+///
+/// Errors are NOT swallowed here, unlike the other reference data above: the
+/// route replaces the whole list, so a form that opened on a failed read and
+/// saved anyway would delete overrides the user never saw. The form reads the
+/// error state and keeps its section read-only when it is set.
+final spoolPresetOverridesProvider = FutureProvider.autoDispose
+    .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
+  if (!await ref.watch(presetOverridesSupportedProvider.future)) return const [];
+  return ref.watch(inventoryRepositoryProvider).fetchPresetOverrides(spoolId);
+});
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.

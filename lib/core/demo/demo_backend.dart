@@ -396,7 +396,7 @@ class DemoBackend {
         return _maintenanceRoute(m, s, body);
 
       case 'inventory':
-        return _inventoryRoute(m, s, q, body);
+        return _inventoryRoute(m, s, q, body, rawBody);
 
       case 'spoolman':
         // Demo runs the native backend; Spoolman variant serves empty data.
@@ -2637,6 +2637,11 @@ class DemoBackend {
     {'spool_id': 7, 'printer_id': 2, 'ams_id': 0, 'tray_id': 1, 'printer_name': 'P1S'},
   ];
 
+  /// Per-printer-model preset overrides, by spool id — written by the spool
+  /// form's PUT and read back by its next open, so the demo shows the replace
+  /// semantics the real route has rather than a list that never changes.
+  final Map<int, List<Map<String, dynamic>>> _presetOverrides = {};
+
   static final List<Map<String, dynamic>> _coreWeights = [
     {'id': 1, 'name': 'Bambu Lab – Plastic', 'weight': 250, 'is_default': true},
     {'id': 2, 'name': 'Generic – Plastic', 'weight': 200, 'is_default': false},
@@ -2665,6 +2670,7 @@ class DemoBackend {
     List<String> s,
     Map<String, String> q,
     Map<String, dynamic> body,
+    Object? rawBody,
   ) {
     if (s.length < 2) return _notFound();
     switch (s[1]) {
@@ -2707,6 +2713,7 @@ class DemoBackend {
           if (m == 'DELETE') {
             _spools.remove(spool);
             _assignments.removeWhere((a) => a['spool_id'] == spoolId);
+            _presetOverrides.remove(spoolId);
             return _ok(const {'ok': true});
           }
         }
@@ -2731,6 +2738,29 @@ class DemoBackend {
               return _ok(_spoolUsage(spoolId!));
             case 'k-profiles':
               return _ok(const <Object>[]);
+            case 'filament-presets':
+              if (m == 'GET') {
+                return _ok(_presetOverrides[spoolId] ?? const <Object>[]);
+              }
+              if (m == 'PUT') {
+                // A replace, like the route: whatever arrives becomes the whole
+                // list, and an empty body clears it.
+                final sent = rawBody is List ? rawBody : const [];
+                final rows = <Map<String, dynamic>>[
+                  for (final (i, row) in sent.whereType<Map>().indexed)
+                    {
+                      'id': i + 1,
+                      'spool_id': spoolId,
+                      'printer_model': row['printer_model'],
+                      'nozzle_diameter': row['nozzle_diameter'] ?? '',
+                      'slicer_filament': row['slicer_filament'],
+                      'slicer_filament_name': row['slicer_filament_name'],
+                      'created_at': _iso(DateTime.now()),
+                    },
+                ];
+                _presetOverrides[spoolId!] = rows;
+                return _ok(rows);
+              }
           }
         }
         return _fallback(m);
