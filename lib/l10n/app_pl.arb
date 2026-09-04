@@ -897,6 +897,7 @@
   "inventoryLabelsPrint": "Drukuj etykiety",
   "inventoryLabelsPrintAll": "Drukuj etykiety wszystkich",
   "inventoryClimateTitle": "Warunki przechowywania",
+  "inventoryClimateTitleAlerting": "Warunki przechowywania: poza zakresem alertu",
   "inventoryClimateSource": "Serwer odczytuje je z Home Assistant. Czujniki przypisuje się do miejsca w interfejsie webowym Bambuddy.",
   "inventoryClimateNoReading": "brak odczytu",
   "inventoryClimateReading": "{name}: {value}",

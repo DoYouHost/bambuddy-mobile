@@ -31,6 +31,16 @@ void main() {
       expect(numeric(23.98).formattedValue, '24°C');
     });
 
+    test('a hair below zero is at zero, not "-0"', () {
+      // Rounding keeps the sign, so a drybox in a cold room reported -0.04 °C
+      // as being below freezing.
+      expect(numeric(-0.04).formattedValue, '0°C');
+      expect(numeric(-0.049).formattedValue, '0°C');
+      // And a reading that really is below it still says so.
+      expect(numeric(-0.06).formattedValue, '-0.1°C');
+      expect(numeric(-1).formattedValue, '-1°C');
+    });
+
     test('an entity that reports no unit is shown as a bare number', () {
       expect(numeric(1013.2, unit: null).formattedValue, '1013.2');
     });

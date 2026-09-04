@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/models/location_sensor.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -109,6 +110,20 @@ void main() {
     ],
   );
 
+  /// The same shelf with nothing out of range — the app bar has to read
+  /// differently for the two, and colour is not what a screen reader gets.
+  final calmClimate = LocationClimate(
+    location: dryBox,
+    readings: [
+      reading(
+        name: 'Temperature',
+        deviceClass: 'temperature',
+        value: 24.0,
+        unit: '°C',
+      ),
+    ],
+  );
+
   Future<void> pumpShelf(
     WidgetTester tester, {
     Map<String, LocationClimate> climates = const {},
@@ -162,6 +177,28 @@ void main() {
     await pumpShelf(tester);
 
     expect(find.byIcon(Icons.thermostat), findsNothing);
+  });
+
+  testWidgets('a shelf within range reads as plain storage conditions',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('pl'));
+
+    await pumpShelf(tester, climates: {'dry box': calmClimate});
+
+    expect(find.byTooltip(l10n.inventoryClimateTitle), findsOneWidget);
+  });
+
+  testWidgets('the app bar says an alert out loud, not only in amber',
+      (tester) async {
+    // The amber ink is the whole of how the icon shows this to a sighted user,
+    // and a tooltip is an icon button's semantic label — so the sentence has
+    // to change with the colour.
+    final l10n = await AppLocalizations.delegate.load(const Locale('pl'));
+
+    await pumpShelf(tester, climates: {'dry box': climate});
+
+    expect(find.byTooltip(l10n.inventoryClimateTitleAlerting), findsOneWidget);
+    expect(find.byTooltip(l10n.inventoryClimateTitle), findsNothing);
   });
 
   testWidgets('the app bar opens the sheet where a sensor is bound',

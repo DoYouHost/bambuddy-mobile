@@ -2931,6 +2931,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryClimateTitle => 'Warunki przechowywania';
 
   @override
+  String get inventoryClimateTitleAlerting =>
+      'Warunki przechowywania: poza zakresem alertu';
+
+  @override
   String get inventoryClimateSource =>
       'Serwer odczytuje je z Home Assistant. Czujniki przypisuje się do miejsca w interfejsie webowym Bambuddy.';
 

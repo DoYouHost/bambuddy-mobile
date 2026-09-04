@@ -2891,6 +2891,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryClimateTitle => 'Storage conditions';
 
   @override
+  String get inventoryClimateTitleAlerting =>
+      'Storage conditions: outside the alert range';
+
+  @override
   String get inventoryClimateSource =>
       'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.';
 

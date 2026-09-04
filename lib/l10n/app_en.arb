@@ -1054,6 +1054,7 @@
   "inventoryLabelsPrint": "Print labels",
   "inventoryLabelsPrintAll": "Print labels for all",
   "inventoryClimateTitle": "Storage conditions",
+  "inventoryClimateTitleAlerting": "Storage conditions: outside the alert range",
   "inventoryClimateSource": "The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy's web interface.",
   "inventoryClimateNoReading": "no reading",
   "inventoryClimateReading": "{name}: {value}",

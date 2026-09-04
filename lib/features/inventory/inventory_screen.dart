@@ -174,6 +174,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climateAlerting = climates.values.any((c) => c.alerting);
     final visible = _filter(
       async.valueOrNull?.spools ?? const [],
       query,
@@ -205,11 +206,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.thermostat,
-                          color: climates.values.any((c) => c.alerting)
-                              ? t.accentOrangeInk
-                              : null,
+                          color: climateAlerting ? t.accentOrangeInk : null,
                         ),
-                        tooltip: l10n.inventoryClimateTitle,
+                        // The tooltip carries the alert, because it is also the
+                        // icon's semantic label — and the amber is the whole of
+                        // what says so to everyone else.
+                        tooltip: climateAlerting
+                            ? l10n.inventoryClimateTitleAlerting
+                            : l10n.inventoryClimateTitle,
                         onPressed: () => _openLocationClimate(context),
                       ),
                     ),

@@ -142,7 +142,10 @@ class LocationSensorReading {
     final v = value;
     if (!numeric || v == null) return null;
     final rounded = (v * 10).roundToDouble() / 10;
-    final digits = rounded == rounded.roundToDouble() ? 0 : 1;
-    return '${rounded.toStringAsFixed(digits)}${unit ?? ''}';
+    // Rounding keeps the sign of a value that rounds *to* zero, and -0.0
+    // formats as "-0": a drybox reading -0.04 °C is at zero, not below it.
+    final shown = rounded == 0 ? 0.0 : rounded;
+    final digits = shown == shown.roundToDouble() ? 0 : 1;
+    return '${shown.toStringAsFixed(digits)}${unit ?? ''}';
   }
 }

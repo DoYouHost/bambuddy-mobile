@@ -4886,6 +4886,12 @@ abstract class AppLocalizations {
   /// **'Storage conditions'**
   String get inventoryClimateTitle;
 
+  /// No description provided for @inventoryClimateTitleAlerting.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage conditions: outside the alert range'**
+  String get inventoryClimateTitleAlerting;
+
   /// No description provided for @inventoryClimateSource.
   ///
   /// In en, this message translates to:
