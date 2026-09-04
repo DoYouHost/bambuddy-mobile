@@ -46,9 +46,8 @@ class PipelinesScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.history_rounded),
               tooltip: l10n.pipelineRunsTitle,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PipelineRunsScreen()),
-              ),
+              onPressed: () =>
+                  Navigator.of(context).push(pipelineRunsRoute()),
             ),
           ),
         ],
@@ -80,6 +79,9 @@ class PipelinesScreen extends ConsumerWidget {
     );
   }
 }
+
+/// The two authoring actions the card's overflow menu offers.
+enum _CardAction { edit, delete }
 
 class _PipelineCard extends ConsumerWidget {
   const _PipelineCard({required this.pipeline});
@@ -128,35 +130,49 @@ class _PipelineCard extends ConsumerWidget {
                     icon: const Icon(Icons.history_rounded),
                     tooltip: l10n.pipelineHistory,
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PipelineRunsScreen(
-                          initialFilter:
-                              PipelineRunFilter(pipelineId: pipeline.id),
-                        ),
+                      pipelineRunsRoute(
+                        filter: PipelineRunFilter(pipelineId: pipeline.id),
                       ),
                     ),
                   ),
                 ),
+                // Authoring sits behind one menu rather than two more icons:
+                // three buttons beside the name left it 168 dp of a 360 dp row,
+                // and the name is the only thing telling two pipelines apart.
+                // It also puts the destructive action behind a second tap.
                 if (canWrite)
                   logTag(
-                    'pipelines.edit',
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: l10n.pipelineEditTitle,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PipelineEditScreen(pipeline: pipeline),
+                    'pipelines.actions',
+                    PopupMenuButton<_CardAction>(
+                      icon: const Icon(Icons.more_vert),
+                      tooltip: l10n.pipelineCardActions,
+                      onSelected: (action) => switch (action) {
+                        _CardAction.edit => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  PipelineEditScreen(pipeline: pipeline),
+                            ),
+                          ),
+                        _CardAction.delete => _delete(context, ref, l10n),
+                      },
+                      // Rows carry their own ids: the menu opens in a route of
+                      // its own, so the button's tag never reaches them.
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: _CardAction.edit,
+                          child: logTag(
+                            'pipelines.edit',
+                            Text(l10n.pipelineEditTitle),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                if (canWrite)
-                  logTag(
-                    'pipelines.delete',
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: l10n.pipelineDelete,
-                      onPressed: () => _delete(context, ref, l10n),
+                        PopupMenuItem(
+                          value: _CardAction.delete,
+                          child: logTag(
+                            'pipelines.delete',
+                            Text(l10n.pipelineDelete),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -238,12 +254,14 @@ class _PipelineCard extends ConsumerWidget {
     return l10n.pipelineTargetPrinterGone(id);
   }
 
+  /// `Text.rich`, never a bare `RichText`: that one's `textScaler` defaults to
+  /// [TextScaler.noScaling], so every row of this card — the presets, the plate,
+  /// each filament slot — would ignore the system font size while the name above
+  /// it grew.
   Widget _row(ThemeData theme, String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 2),
-        child: RichText(
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          text: TextSpan(
+        child: Text.rich(
+          TextSpan(
             style: theme.textTheme.bodySmall,
             children: [
               TextSpan(
@@ -253,6 +271,8 @@ class _PipelineCard extends ConsumerWidget {
               TextSpan(text: value),
             ],
           ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       );
 

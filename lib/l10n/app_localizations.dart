@@ -8174,6 +8174,12 @@ abstract class AppLocalizations {
   /// **'Run history'**
   String get pipelineHistory;
 
+  /// No description provided for @pipelineCardActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline actions'**
+  String get pipelineCardActions;
+
   /// No description provided for @pipelineSlotNumbered.
   ///
   /// In en, this message translates to:
@@ -8479,6 +8485,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter runs'**
   String get pipelineRunsFilter;
+
+  /// No description provided for @pipelineCopiesLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer copy'**
+  String get pipelineCopiesLess;
+
+  /// No description provided for @pipelineCopiesMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more copy'**
+  String get pipelineCopiesMore;
+
+  /// No description provided for @pipelineEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get pipelineEligible;
+
+  /// No description provided for @pipelineIneligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready'**
+  String get pipelineIneligible;
+
+  /// No description provided for @pipelineRunsFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter runs ({count} active)'**
+  String pipelineRunsFilterActive(int count);
 
   /// No description provided for @pipelineRunsFilterAny.
   ///

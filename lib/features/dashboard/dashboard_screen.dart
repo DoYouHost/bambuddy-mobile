@@ -726,8 +726,10 @@ class _AppDrawer extends ConsumerWidget {
                   id: 'drawer.stats',
                 ),
                 // Absent until a call has proved the routes are there and this
-                // session may use them — an older server 404s, and an API-key
-                // session is denied every pipeline permission outright.
+                // session may read them: an older server 404s, and an API key
+                // was refused every pipeline permission before server 1.2.5.3.
+                // Probed rather than versioned — the routes predate the
+                // renumbering to 1.2.5, so no threshold reads both schemes.
                 if (ref.watch(pipelinesSupportedProvider).orFalse)
                   _DrawerTile(
                     icon: Icons.account_tree_outlined,

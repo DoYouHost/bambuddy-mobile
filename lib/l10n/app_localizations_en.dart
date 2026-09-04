@@ -4811,6 +4811,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pipelineHistory => 'Run history';
 
   @override
+  String get pipelineCardActions => 'Pipeline actions';
+
+  @override
   String pipelineSlotNumbered(int n) {
     return 'Filament $n';
   }
@@ -4994,6 +4997,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pipelineRunsFilter => 'Filter runs';
+
+  @override
+  String get pipelineCopiesLess => 'One fewer copy';
+
+  @override
+  String get pipelineCopiesMore => 'One more copy';
+
+  @override
+  String get pipelineEligible => 'Ready';
+
+  @override
+  String get pipelineIneligible => 'Not ready';
+
+  @override
+  String pipelineRunsFilterActive(int count) {
+    return 'Filter runs ($count active)';
+  }
 
   @override
   String get pipelineRunsFilterAny => 'Any';

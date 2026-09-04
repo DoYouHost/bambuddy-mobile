@@ -131,10 +131,12 @@ abstract final class Permissions {
   /// (`permissions.py::Permission`). Read opens the screens, write covers
   /// create/edit/delete, run dispatches prints.
   ///
-  /// **An API-key session holds none of these**, whatever `/auth/me` reports:
-  /// all three sit on the API-key denylist in `core/auth.py`, so a key gets a
-  /// 403 from every pipeline route. Gate on `canUsePipelinesProvider`, which
-  /// knows that, rather than on [CurrentUser.can] alone.
+  /// **An API-key session holds read and run, never write** (server 1.2.5.3+):
+  /// `PIPELINES_WRITE` is outside the key scope allowlist in `core/auth.py`,
+  /// and that gate is allowlist-only, so it is a 403 on every version. Up to
+  /// 1.2.5.x `/auth/me` claimed otherwise. Gate on
+  /// `canRunPipelinesProvider` / `canWritePipelinesProvider`, not on
+  /// [CurrentUser.can] alone.
   static const pipelinesRead = 'pipelines:read';
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';

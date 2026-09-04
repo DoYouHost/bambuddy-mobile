@@ -448,16 +448,27 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             // Slice and dispatch in one go, using a saved bundle. Sits next to
             // Slice because it needs the same source and the same permission
             // to produce a print — only the picking of profiles differs.
-            if (canSlice &&
-                ref.watch(canRunPipelinesProvider).orFalse)
-              ListTile(
-                leading: const Icon(Icons.account_tree_outlined),
-                title: Text(l10n.pipelineRun),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _runPipeline(file);
-                },
-              ).tagged('file_actions.run_pipeline'),
+            //
+            // Its own [Consumer], where every other row here reads with
+            // `ref.read`: this gate is the one that is not settled yet. It is a
+            // probe of the server's routes, so it resolves after the first
+            // frames — and the screen's `ref` cannot rebuild a sheet that lives
+            // in its own route, which left the action missing on a server that
+            // does have pipelines.
+            if (canSlice)
+              Consumer(
+                builder: (_, sheetRef, _) =>
+                    sheetRef.watch(canRunPipelinesProvider).orFalse
+                        ? ListTile(
+                            leading: const Icon(Icons.account_tree_outlined),
+                            title: Text(l10n.pipelineRun),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _runPipeline(file);
+                            },
+                          ).tagged('file_actions.run_pipeline')
+                        : const SizedBox.shrink(),
+              ),
             ListTile(
               leading: const Icon(Icons.playlist_add),
               title: Text(l10n.fmAddToQueue),

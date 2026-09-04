@@ -4887,6 +4887,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pipelineHistory => 'Historia przebiegów';
 
   @override
+  String get pipelineCardActions => 'Akcje pipeline\'u';
+
+  @override
   String pipelineSlotNumbered(int n) {
     return 'Filament $n';
   }
@@ -5069,6 +5072,23 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get pipelineRunsFilter => 'Filtruj przebiegi';
+
+  @override
+  String get pipelineCopiesLess => 'O jedną kopię mniej';
+
+  @override
+  String get pipelineCopiesMore => 'O jedną kopię więcej';
+
+  @override
+  String get pipelineEligible => 'Gotowa';
+
+  @override
+  String get pipelineIneligible => 'Nie gotowa';
+
+  @override
+  String pipelineRunsFilterActive(int count) {
+    return 'Filtruj przebiegi (aktywne: $count)';
+  }
 
   @override
   String get pipelineRunsFilterAny => 'Dowolny';

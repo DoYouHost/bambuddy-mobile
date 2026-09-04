@@ -16,17 +16,30 @@ class EligibilityView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final blocking = report.allIssues.where((i) => !i.isAdvisory).toList();
-    final advisory = report.allIssues.where((i) => i.isAdvisory).toList();
+    // The headline reads the pooled set, because "ok, but look at this" has to
+    // survive a class report whose own `issues` list is empty — every problem
+    // is then filed under a printer.
+    final anyBlocking = report.allIssues.any((i) => !i.isAdvisory);
+
+    // The *lists* read the two fields apart, which is how the server sends
+    // them: a specific-printer report puts that printer's issues in `issues`
+    // and leaves `printer_reports` empty, while a class report inverts it —
+    // `issues` holds only class-level failures (`no_class_matches`,
+    // `class_not_set`) and every printer's own problems live on its report
+    // (`services/pipeline_eligibility.py`). Pooling them lost the one thing
+    // the operator needs: *which* printer is offline and which has the wrong
+    // filament loaded.
+    final topLevel = report.issues.where((i) => !i.isAdvisory).toList();
+    final topAdvisory = report.issues.where((i) => i.isAdvisory).toList();
 
     // `ok` is not "no issues": a class run is ok as soon as one printer passes,
     // so the headline reports the verdict and the list reports the detail.
     final (icon, colour, headline) = report.ok
         ? (
-            blocking.isEmpty ? Icons.check_circle_outline : Icons.info_outline,
-            blocking.isEmpty
-                ? theme.colorScheme.primary
-                : theme.colorScheme.tertiary,
+            anyBlocking ? Icons.info_outline : Icons.check_circle_outline,
+            anyBlocking
+                ? theme.colorScheme.tertiary
+                : theme.colorScheme.primary,
             _okHeadline(l10n),
           )
         : (
@@ -48,43 +61,75 @@ class EligibilityView extends StatelessWidget {
             ),
           ],
         ),
-        if (blocking.isNotEmpty) ...[
+        if (topLevel.isNotEmpty) ...[
           const SizedBox(height: 8),
-          for (final i in blocking) _issueLine(theme, l10n, i, false),
+          for (final i in topLevel) _issueLine(theme, l10n, i, false),
         ],
-        if (advisory.isNotEmpty) ...[
+        if (topAdvisory.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(l10n.pipelineEligibilityAdvisory,
               style: theme.textTheme.labelSmall),
-          for (final i in advisory) _issueLine(theme, l10n, i, true),
+          for (final i in topAdvisory) _issueLine(theme, l10n, i, true),
         ],
-        // Which candidate is which — a class report that is `ok` overall can
-        // still have most of its printers unusable, and that decides whether
-        // "run anyway" means one printer or five.
-        if (report.targetKind == PipelineTargetKind.printerClass &&
-            report.printerReports.isNotEmpty) ...[
+        // Which candidate is which, and what is wrong with each — a class
+        // report that is `ok` overall can still have most of its printers
+        // unusable, and that decides whether "run anyway" means one printer or
+        // five.
+        if (report.printerReports.isNotEmpty) ...[
           const SizedBox(height: 12),
           for (final p in report.printerReports)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Row(
-                children: [
-                  Icon(p.ok ? Icons.check : Icons.close,
-                      size: 16,
-                      color: p.ok
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(p.printerName,
-                          style: theme.textTheme.bodySmall)),
-                ],
-              ),
-            ),
+            _printerReport(theme, l10n, p),
         ],
       ],
     );
   }
+
+  /// One candidate: its verdict, then its own problems indented under it.
+  ///
+  /// [MergeSemantics] so a screen reader gets "X1C left, not ready" as one
+  /// utterance rather than a nameless icon followed by a name; the icon carries
+  /// the whole verdict, so without a label on it the verdict is simply absent.
+  Widget _printerReport(
+    ThemeData theme,
+    AppLocalizations l10n,
+    PerPrinterReport printer,
+  ) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MergeSemantics(
+              child: Row(
+                children: [
+                  Icon(
+                    printer.ok ? Icons.check : Icons.close,
+                    size: 16,
+                    color: printer.ok
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.error,
+                    semanticLabel: printer.ok
+                        ? l10n.pipelineEligible
+                        : l10n.pipelineIneligible,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(printer.printerName,
+                        style: theme.textTheme.bodySmall),
+                  ),
+                ],
+              ),
+            ),
+            // Indented to the printer's name, so a reason belongs to the row
+            // above it rather than to the pipeline.
+            for (final issue in printer.issues)
+              Padding(
+                padding: const EdgeInsets.only(left: 24),
+                child: _issueLine(theme, l10n, issue, issue.isAdvisory),
+              ),
+          ],
+        ),
+      );
 
   String _okHeadline(AppLocalizations l10n) =>
       report.targetKind == PipelineTargetKind.printerClass &&

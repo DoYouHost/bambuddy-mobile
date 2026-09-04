@@ -19,16 +19,27 @@ import 'pipeline_run_filter_sheet.dart';
 import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
 
+/// Opens the dashboard, optionally already narrowed — how the pipeline card
+/// shows one pipeline's history.
+///
+/// The seed goes in through a [ProviderScope] so the first fetch is already
+/// filtered. Writing it into the notifier from the screen's `initState` throws
+/// ("tried to modify a provider while the widget tree was building"), which is
+/// what the history button used to do.
+Route<void> pipelineRunsRoute({PipelineRunFilter? filter}) => MaterialPageRoute(
+      builder: (_) => ProviderScope(
+        overrides: [
+          if (filter != null)
+            pipelineRunFilterSeedProvider.overrideWithValue(filter),
+        ],
+        child: const PipelineRunsScreen(),
+      ),
+    );
+
 /// What every run is doing: how many copies are done, which printer took each,
 /// and the two actions a run in trouble needs — cancel and retry-failed.
-///
-/// [initialFilter] opens the screen already narrowed — how the pipeline card
-/// shows one pipeline's history. Applied before the first build, so the list is
-/// fetched filtered rather than fetched twice.
 class PipelineRunsScreen extends ConsumerStatefulWidget {
-  const PipelineRunsScreen({super.key, this.initialFilter});
-
-  final PipelineRunFilter? initialFilter;
+  const PipelineRunsScreen({super.key});
 
   @override
   ConsumerState<PipelineRunsScreen> createState() => _PipelineRunsScreenState();
@@ -41,13 +52,6 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initialFilter;
-    if (initial != null) {
-      // Before `build` reads the list, so the empty filter never reaches the
-      // wire. The provider is autoDispose and dies with this screen, which is
-      // also what puts the filter back for the next visit.
-      ref.read(pipelineRunFilterProvider.notifier).replace(initial);
-    }
     _scroll.addListener(_maybeLoadMore);
     // Half of the refresh; the other half is the `pipeline_run_updated` push
     // the list notifier subscribes to. The push is not enough on its own: the
@@ -57,7 +61,13 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     //
     // It refreshes the window already on screen rather than invalidating, which
     // would throw away every page past the first and jump the scroll position.
-    // Stops the moment nothing is in flight.
+    //
+    // Stops the moment nothing on screen is in flight, and that costs one
+    // thing: a run someone *else* starts while this list holds only finished
+    // ones does not appear on its own — the push is routed to its own
+    // `created_by`, and there is nothing left here to poll for. Pull to
+    // refresh is the way to see it, which is the trade for not waking a
+    // request every four seconds on an idle screen.
     _poll = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
       final view = ref.read(pipelineRunsProvider).valueOrNull;
@@ -117,7 +127,11 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
                 label: Text('${filter.activeCount}'),
                 child: const Icon(Icons.filter_list_rounded),
               ),
-              tooltip: l10n.pipelineRunsFilter,
+              // The badge is the only sign that a filter is on, and a badge
+              // is not read out — so the count goes in the name instead.
+              tooltip: filter.isEmpty
+                  ? l10n.pipelineRunsFilter
+                  : l10n.pipelineRunsFilterActive(filter.activeCount),
               onPressed: () => showPipelineRunFilterSheet(context),
             ),
           ),
@@ -265,8 +279,14 @@ class _RunCard extends ConsumerWidget {
               Text(l10n.pipelineRunRetryOf(run.parentRunId!),
                   style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: run.copies == 0 ? null : run.copiesFinished / run.copies,
+            // Excluded from semantics: with a value and no `semanticsLabel`
+            // Flutter synthesises a bare percentage ("50"), which a reader
+            // would announce right before the line below says the same thing
+            // in words and with the counts.
+            ExcludeSemantics(
+              child: LinearProgressIndicator(
+                value: run.copies == 0 ? null : run.copiesFinished / run.copies,
+              ),
             ),
             const SizedBox(height: 4),
             Text(l10n.pipelineRunCopiesProgress(run.copiesFinished, run.copies),

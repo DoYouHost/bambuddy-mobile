@@ -58,19 +58,34 @@ final pipelinesProvider = FutureProvider.autoDispose<List<SlicerPipeline>>(
   (ref) => ref.watch(pipelinesRepositoryProvider).list(),
 );
 
+/// What the dashboard is narrowed to before the user touches anything.
+///
+/// Overridden in a [ProviderScope] around the screen, not written into the
+/// notifier from `initState` — modifying a provider in a widget life-cycle
+/// throws, and a post-frame write fetches the unfiltered page first.
+final pipelineRunFilterSeedProvider =
+    Provider<PipelineRunFilter>((_) => const PipelineRunFilter());
+
 /// What the runs dashboard is narrowed to. `autoDispose`, so leaving the screen
 /// clears it — a filter the user cannot see must not still be hiding runs.
+///
+/// `dependencies` is not decoration: the seed is overridden in a scope around
+/// the screen, and Riverpod refuses to read a provider from under an override
+/// it was not told about.
 final pipelineRunFilterProvider =
     NotifierProvider.autoDispose<PipelineRunFilterNotifier, PipelineRunFilter>(
   PipelineRunFilterNotifier.new,
+  dependencies: [pipelineRunFilterSeedProvider],
 );
 
 class PipelineRunFilterNotifier extends AutoDisposeNotifier<PipelineRunFilter> {
   @override
-  PipelineRunFilter build() => const PipelineRunFilter();
+  PipelineRunFilter build() => ref.watch(pipelineRunFilterSeedProvider);
 
   void replace(PipelineRunFilter filter) => state = filter;
 
+  /// Back to showing everything, not back to the seed: a dashboard opened on
+  /// one pipeline's history still means "all runs" when the user clears it.
   void clear() => state = const PipelineRunFilter();
 }
 
@@ -107,7 +122,10 @@ class PipelineRunsView {
 
 /// Page 0 on build, appended by [loadMore], rebuilt on a filter change.
 final pipelineRunsProvider = AsyncNotifierProvider.autoDispose<
-    PipelineRunsNotifier, PipelineRunsView>(PipelineRunsNotifier.new);
+    PipelineRunsNotifier, PipelineRunsView>(
+  PipelineRunsNotifier.new,
+  dependencies: [pipelineRunFilterProvider],
+);
 
 class PipelineRunsNotifier
     extends AutoDisposeAsyncNotifier<PipelineRunsView> {

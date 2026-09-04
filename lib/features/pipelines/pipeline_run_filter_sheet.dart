@@ -40,7 +40,11 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
         ref.watch(pipelinePrinterClassesProvider).valueOrNull ?? const [];
     final notifier = ref.read(pipelineRunFilterProvider.notifier);
 
-    return Padding(
+    // Scrollable, and the actions wrap: three combos each carrying a two-line
+    // helper, at the system's largest font on a short screen, is taller than
+    // the sheet — and "Clear filters" beside "Done" is 282 px wider than a
+    // 360 dp screen at double scale.
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -116,8 +120,10 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               logTag(
                 'pipeline_runs.filter_clear',
@@ -131,7 +137,6 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
                   child: Text(l10n.pipelineRunsFilterClear),
                 ),
               ),
-              const SizedBox(width: 8),
               logTag(
                 'pipeline_runs.filter_done',
                 FilledButton(
