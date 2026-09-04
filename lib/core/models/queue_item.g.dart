@@ -67,5 +67,6 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   nozzleMapping: (json['nozzle_mapping'] as List<dynamic>?)
       ?.map((e) => (e as num).toInt())
       .toList(),
+  nozzleRackChoice: _toRackChoiceOrNull(json['nozzle_rack_choice']),
   slicedForModel: json['sliced_for_model'] as String?,
 );

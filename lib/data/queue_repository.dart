@@ -15,6 +15,16 @@ import '../core/models/queue_item.dart';
 /// omission (e.g. keep `ams_mapping` untouched in model-based assignment).
 const Object kQueueUpdateUnset = Object();
 
+/// `{groupId: position}` as JSON can carry it — with the group ids stringified,
+/// which every JSON object must do and `jsonEncode` refuses to do itself.
+///
+/// An empty pick is sent as `null`: the server reads either as "assign them for
+/// me", and null is what clears a stored pick on a PATCH.
+Map<String, int>? rackChoiceWire(Object? choice) {
+  if (choice is! Map<int, int> || choice.isEmpty) return null;
+  return {for (final e in choice.entries) '${e.key}': e.value};
+}
+
 /// Everything the print form decides before a queue item exists — the create
 /// counterpart of [QueueRepository.updateItem]'s named parameters.
 ///
@@ -47,6 +57,7 @@ class QueueCreateOptions {
     this.gcodeInjection,
     this.preheatOverride,
     this.preheatChamberTargetOverride,
+    this.nozzleRackChoice,
   });
 
   final String? targetModel;
@@ -79,6 +90,12 @@ class QueueCreateOptions {
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
 
+  /// Which rack position each filament group prints from, `{groupId: position}`
+  /// (H2C, server #1784). Null leaves every group to the scheduler, which is
+  /// also the only thing a server that predates the field can do — the print
+  /// form only offers the pick once a printer has reported a rack.
+  final Map<int, int>? nozzleRackChoice;
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
@@ -105,6 +122,7 @@ class QueueCreateOptions {
         'gcode_injection': ?gcodeInjection,
         'preheat_override': ?preheatOverride,
         'preheat_chamber_target_override': ?preheatChamberTargetOverride,
+        'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
       };
 }
 
@@ -273,6 +291,7 @@ class QueueRepository {
     bool? gcodeInjection,
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
+    Object? nozzleRackChoice = kQueueUpdateUnset,
   }) async {
     final triState = await supportsTriStateCalibration();
     final body = <String, dynamic>{
@@ -300,6 +319,8 @@ class QueueRepository {
       'preheat_override': ?preheatOverride,
       if (preheatChamberTargetOverride != kQueueUpdateUnset)
         'preheat_chamber_target_override': preheatChamberTargetOverride,
+      if (nozzleRackChoice != kQueueUpdateUnset)
+        'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
     };
     return guard(
         () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));

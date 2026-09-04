@@ -2,19 +2,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Keeps `PrinterStatus`'s five field lists in step.
+/// Keeps `PrinterStatus`'s field lists in step.
 ///
-/// The class writes its fields out five times — the constructor, `==`,
-/// `hashCode`, `mergedWith` and `_clearedIfOffline` — and three of those have to
-/// be complete. Forgetting one is silent in every other way:
+/// The class writes its fields out four times — the constructor, `_fields`,
+/// `mergedWith` and `_clearedIfOffline` — and three of those have to be
+/// complete. Forgetting one is silent in every other way:
 ///
 /// - missing from `mergedWith`, the field is dropped by every frame that does
 ///   not carry it, which for a status assembled from two lanes with disjoint
 ///   subsets means it blanks and reappears on a 5 s cycle;
-/// - missing from `==`, a frame that changes only that field compares equal to
-///   the one on screen and `ingestPoll` never publishes it;
-/// - missing from `hashCode`, two statuses that differ hash alike — legal, but
-///   it is the same omission and the same review that misses it.
+/// - missing from `_fields`, a frame that changes only that field compares
+///   equal to the one on screen and `ingestPoll` never publishes it, and two
+///   statuses that differ hash alike.
 ///
 /// None of that fails a test that does not already know to look, which is why
 /// this one reads the source rather than the behaviour: the omission is a fact
@@ -61,12 +60,10 @@ void main() {
     expect(missing, isEmpty, reason: '$what does not mention $missing');
   }
 
-  test('every field is compared by ==', () {
-    expectComplete('==', bodyBetween('bool operator ==(Object other) =>', ';'));
-  });
-
-  test('every field is hashed', () {
-    expectComplete('hashCode', bodyBetween('int get hashCode =>', ']);'));
+  test('every field is compared and hashed', () {
+    // `==` and `hashCode` both read this one list, so it is the only place the
+    // omission can happen — and the only one this has to check.
+    expectComplete('_fields', bodyBetween('List<Object?> get _fields => [', '];'));
   });
 
   test('every field is carried through mergedWith', () {

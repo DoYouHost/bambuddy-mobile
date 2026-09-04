@@ -5233,6 +5233,54 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditForceColorMatch => 'Wymuś zgodność koloru';
 
   @override
+  String get queueEditNozzleRack => 'Magazyn dysz';
+
+  @override
+  String get queueEditNozzleRackDesc =>
+      'Wybierz, z której dyszy w magazynie drukuje każdy filament. Bez wyboru pasująca pozycja zostanie dobrana przy starcie wydruku.';
+
+  @override
+  String queueEditRackGroupLabel(String slots, String nozzle) {
+    return 'Filament $slots · $nozzle';
+  }
+
+  @override
+  String get queueEditRackAuto => 'Automatycznie';
+
+  @override
+  String queueEditRackPosition(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle';
+  }
+
+  @override
+  String queueEditRackPositionTaken(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle — już wybrana';
+  }
+
+  @override
+  String queueEditRackPositionUnfit(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle — nie pasuje';
+  }
+
+  @override
+  String get queueEditRackEmpty => 'pusta';
+
+  @override
+  String get queueEditRackPickStale =>
+      'Wybrana pozycja już nie pasuje do tego filamentu — wybierz inną, inaczej wydruk zostanie odrzucony przy starcie.';
+
+  @override
+  String queueEditRackNoFit(String nozzle) {
+    return 'Żadna pozycja w magazynie nie ma dyszy $nozzle — włóż taką albo drukarka wybierze sama.';
+  }
+
+  @override
+  String get nozzleFlowStandard => 'Standardowa';
+
+  @override
+  String get nozzleFlowHigh => 'Wysoki przepływ';
+
+  @override
   String get bugReportMenu => 'Zgłoś błąd lub pomysł';
 
   @override

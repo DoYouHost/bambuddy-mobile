@@ -7,15 +7,9 @@ import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 
-const _listAmsUnitEquality = ListEquality<AmsUnit>();
-const _listAmsTrayEquality = ListEquality<AmsTray>();
-const _listHmsErrorEquality = ListEquality<HmsError>();
-const _listNozzleEquality = ListEquality<NozzleInfo>();
-const _stringListEquality = ListEquality<String>();
-const _mapStringDoubleEquality = MapEquality<String, double>();
-const _mapIntIntEquality = MapEquality<int, int>();
-const _mapIntExtruderSlotEquality = MapEquality<int, ExtruderSlot>();
-const _mapIntStringEquality = MapEquality<int, String>();
+/// One equality for every field, collections included: a list or map is
+/// compared and hashed by its contents, anything else by its own `==`.
+const _deepEquality = DeepCollectionEquality();
 
 /// Printer status from `GET /printers/{id}/status` (and eventually from WS
 /// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
@@ -60,6 +54,7 @@ class PrinterStatus {
     this.hmsErrors,
     this.supportsDrying,
     this.nozzles,
+    this.nozzleRack,
     this.filaSwitch,
     this.extruderSlots,
   });
@@ -226,6 +221,15 @@ class PrinterStatus {
   @JsonKey(fromJson: _toNozzleListOrNull)
   final List<NozzleInfo>? nozzles;
 
+  /// The tool-changer rack's six positions (`nozzle_rack`), or null on a
+  /// printer without one — and on every server that does not report the field.
+  ///
+  /// Read through [rackByPosition]: the ids are physical nozzle ids, not
+  /// positions, and the position whose nozzle is currently mounted is omitted
+  /// entirely rather than sent empty.
+  @JsonKey(fromJson: _toNozzleRackListOrNull)
+  final List<NozzleRackSlot>? nozzleRack;
+
   /// The Filament Track Switch accessory, or null on a printer without one —
   /// and on every server that does not report the field yet, which is the same
   /// answer: no switch, load the old way.
@@ -273,57 +277,15 @@ class PrinterStatus {
     return own.isEmpty ? null : own;
   }
 
-  /// Value equality — `ingestPoll` uses this to skip publishing a merged
-  /// status that's identical in content to the one already in state (REST
-  /// polling otherwise builds a fresh `PrinterStatus` every 5s via
-  /// `mergedWith`, so reference equality alone never matches even when
-  /// nothing on the server changed).
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PrinterStatus &&
-          other.id == id &&
-          other.name == name &&
-          other.connected == connected &&
-          other.state == state &&
-          other.currentPrint == currentPrint &&
-          other.gcodeFile == gcodeFile &&
-          other.progress == progress &&
-          other.remainingTime == remainingTime &&
-          other.layerNum == layerNum &&
-          other.totalLayers == totalLayers &&
-          _mapStringDoubleEquality.equals(other.temperatures, temperatures) &&
-          other.coverUrl == coverUrl &&
-          other.stgCur == stgCur &&
-          other.stgCurName == stgCurName &&
-          other.coolingFanSpeed == coolingFanSpeed &&
-          other.bigFan1Speed == bigFan1Speed &&
-          other.bigFan2Speed == bigFan2Speed &&
-          other.leftAuxFanSpeed == leftAuxFanSpeed &&
-          other.exhaustFanPresent == exhaustFanPresent &&
-          other.heatbreakFanSpeed == heatbreakFanSpeed &&
-          other.speedLevel == speedLevel &&
-          other.chamberLight == chamberLight &&
-          other.airductMode == airductMode &&
-          _listAmsUnitEquality.equals(other.ams, ams) &&
-          _listAmsTrayEquality.equals(other.vtTray, vtTray) &&
-          other.trayNow == trayNow &&
-          other.activeExtruder == activeExtruder &&
-          _mapIntIntEquality.equals(other.amsExtruderMap, amsExtruderMap) &&
-          _mapIntStringEquality.equals(other.amsSwitchInlet, amsSwitchInlet) &&
-          other.model == model &&
-          other.wifiSignal == wifiSignal &&
-          other.doorOpen == doorOpen &&
-          other.awaitingPlateClear == awaitingPlateClear &&
-          other.supportsDrying == supportsDrying &&
-          _listNozzleEquality.equals(other.nozzles, nozzles) &&
-          other.filaSwitch == filaSwitch &&
-          _mapIntExtruderSlotEquality.equals(
-              other.extruderSlots, extruderSlots) &&
-          _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
-
-  @override
-  int get hashCode => Object.hashAll([
+  /// Every field, once, for both [==] and [hashCode].
+  ///
+  /// Two hand-written lists of forty fields cannot be kept in step by review:
+  /// one that forgets a field compares two different statuses equal and
+  /// `ingestPoll` never publishes the newer one, and the same omission in the
+  /// other only shows up as statuses that differ hashing alike. Deep equality
+  /// covers the collection fields, so a list or map here needs no wrapper of
+  /// its own — the models inside them define their own `==`.
+  List<Object?> get _fields => [
         id,
         name,
         connected,
@@ -334,7 +296,7 @@ class PrinterStatus {
         remainingTime,
         layerNum,
         totalLayers,
-        temperatures == null ? null : _mapStringDoubleEquality.hash(temperatures),
+        temperatures,
         coverUrl,
         stgCur,
         stgCurName,
@@ -347,26 +309,37 @@ class PrinterStatus {
         speedLevel,
         chamberLight,
         airductMode,
-        ams == null ? null : _listAmsUnitEquality.hash(ams),
-        vtTray == null ? null : _listAmsTrayEquality.hash(vtTray),
+        ams,
+        vtTray,
         trayNow,
         activeExtruder,
-        amsExtruderMap == null ? null : _mapIntIntEquality.hash(amsExtruderMap),
-        amsSwitchInlet == null
-            ? null
-            : _mapIntStringEquality.hash(amsSwitchInlet),
+        amsExtruderMap,
+        amsSwitchInlet,
         model,
         wifiSignal,
         doorOpen,
         awaitingPlateClear,
-        hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
+        hmsErrors,
         supportsDrying,
-        nozzles == null ? null : _listNozzleEquality.hash(nozzles),
+        nozzles,
+        nozzleRack,
         filaSwitch,
-        extruderSlots == null
-            ? null
-            : _mapIntExtruderSlotEquality.hash(extruderSlots),
-      ]);
+        extruderSlots,
+      ];
+
+  /// Value equality — `ingestPoll` uses this to skip publishing a merged
+  /// status that's identical in content to the one already in state (REST
+  /// polling otherwise builds a fresh `PrinterStatus` every 5s via
+  /// `mergedWith`, so reference equality alone never matches even when
+  /// nothing on the server changed).
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PrinterStatus && _deepEquality.equals(other._fields, _fields);
+
+  @override
+  int get hashCode =>
+      Object.hashAll([for (final field in _fields) _deepEquality.hash(field)]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
   /// **never zero known value** — any field the new frame doesn't carry (`null`)
@@ -435,6 +408,7 @@ class PrinterStatus {
       hmsErrors: hmsErrors ?? previous.hmsErrors,
       supportsDrying: supportsDrying ?? previous.supportsDrying,
       nozzles: nozzles ?? previous.nozzles,
+      nozzleRack: nozzleRack ?? previous.nozzleRack,
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
     )._clearedIfOffline();
@@ -463,7 +437,8 @@ class PrinterStatus {
   /// and made the queue's pre-start acknowledgement skip a printer that was
   /// waiting (server #2864).
   ///
-  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`/`filaSwitch`),
+  /// Kept: identity/hardware
+  /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`),
   /// the physical AMS inventory
   /// (`ams`/`vtTray`/`amsExtruderMap`/`amsSwitchInlet`/`extruderSlots`/`trayNow`/`activeExtruder`)
   /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
@@ -487,6 +462,7 @@ class PrinterStatus {
       model: model,
       supportsDrying: supportsDrying,
       nozzles: nozzles,
+      nozzleRack: nozzleRack,
       exhaustFanPresent: exhaustFanPresent,
       ams: ams,
       vtTray: vtTray,
@@ -755,7 +731,7 @@ class AmsUnit {
           other.dryTime == dryTime &&
           other.dryStatus == dryStatus &&
           other.moduleType == moduleType &&
-          _listAmsTrayEquality.equals(other.trays, trays);
+          _deepEquality.equals(other.trays, trays);
 
   @override
   int get hashCode => Object.hash(
@@ -766,7 +742,7 @@ class AmsUnit {
         dryTime,
         dryStatus,
         moduleType,
-        trays == null ? null : _listAmsTrayEquality.hash(trays),
+        trays == null ? null : _deepEquality.hash(trays),
       );
 }
 
@@ -884,6 +860,70 @@ class NozzleInfo {
 
   @override
   int get hashCode => Object.hash(nozzleType, nozzleDiameter);
+}
+
+/// One position of the H2C's six-nozzle tool-changer rack, from `nozzle_rack`.
+///
+/// [id] is a **physical nozzle id**, not a position: the six rack docks report
+/// 16–21 and the nozzle currently picked up onto the carriage reports 0. The
+/// translation, and the recovery of the position the carriage emptied, live in
+/// `core/printers/nozzle_rack.dart`.
+///
+/// Only what choosing a position needs is read — the diameter and flow type the
+/// pick is checked against, and the filament sitting there so the row can say
+/// which nozzle is which. Wear, temperature rating and serial number are the
+/// server's business.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class NozzleRackSlot {
+  const NozzleRackSlot({
+    this.id,
+    this.nozzleType,
+    this.nozzleDiameter,
+    this.filamentColor,
+    this.filamentType,
+  });
+
+  factory NozzleRackSlot.fromJson(Map<String, dynamic> json) =>
+      _$NozzleRackSlotFromJson(json);
+
+  @JsonKey(fromJson: toIntOrNull)
+  final int? id;
+
+  /// The printer's own flow-type code — `HS…` standard, `HH…` high flow. The
+  /// slicer states the same property as a name ("Standard", "High Flow"), which
+  /// is why matching the two is a prefix test rather than a comparison.
+  final String? nozzleType;
+
+  /// As a string, e.g. `0.4` — the form the printer reports. The slicer pads
+  /// it (`0.40`), so a comparison has to go through the numeric value.
+  final String? nozzleDiameter;
+
+  /// RGBA hex of the filament loaded on this nozzle, `00000000` when none.
+  final String? filamentColor;
+
+  /// Material loaded on this nozzle (`PLA`, `PETG`). Absent from the WebSocket
+  /// frame, which carries every other field of this record.
+  final String? filamentType;
+
+  /// Whether the position holds a nozzle at all. A dock the operator left
+  /// empty still arrives, with its properties blank.
+  bool get isEmpty =>
+      (nozzleDiameter?.trim().isEmpty ?? true) &&
+      (nozzleType?.trim().isEmpty ?? true);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NozzleRackSlot &&
+          other.id == id &&
+          other.nozzleType == nozzleType &&
+          other.nozzleDiameter == nozzleDiameter &&
+          other.filamentColor == filamentColor &&
+          other.filamentType == filamentType;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, nozzleType, nozzleDiameter, filamentColor, filamentType);
 }
 
 /// The Filament Track Switch (FTS), from the status response's `fila_switch`.
@@ -1051,14 +1091,14 @@ class HmsError {
           other.severity == severity &&
           other.attr == attr &&
           other.module == module &&
-          _stringListEquality.equals(other.actions, actions) &&
+          _deepEquality.equals(other.actions, actions) &&
           other.jobId == jobId &&
           other.fullCode == fullCode &&
           other.description == description;
 
   @override
   int get hashCode => Object.hash(code, message, severity, attr, module,
-      _stringListEquality.hash(actions), jobId, fullCode, description);
+      _deepEquality.hash(actions), jobId, fullCode, description);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.
@@ -1185,6 +1225,18 @@ List<AmsTray>? _toTrayListOrNull(dynamic value) =>
 
 List<NozzleInfo>? _toNozzleListOrNull(dynamic value) =>
     parseJsonListOrNull(value, NozzleInfo.fromJson);
+
+/// The rack, with an empty list read as "no rack" rather than as news.
+///
+/// Every other list here keeps that distinction (an empty `ams` means the unit
+/// was unplugged), but the WebSocket frame carries `nozzle_rack: []` for every
+/// printer, rack or not — so honouring the empty list would let one frame blank
+/// the rack a REST poll had just reported. A rack is fitted hardware: it does
+/// not become empty, it is either there or the model has none.
+List<NozzleRackSlot>? _toNozzleRackListOrNull(dynamic value) {
+  final slots = parseJsonListOrNull(value, NozzleRackSlot.fromJson);
+  return (slots == null || slots.isEmpty) ? null : slots;
+}
 
 /// Booleans the server may omit on an older version of a block it already
 /// sends. Absent reads as false everywhere it is used here, and false is the

@@ -44,6 +44,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       hmsErrors: _toHmsListOrNull(json['hms_errors']),
       supportsDrying: json['supports_drying'] as bool?,
       nozzles: _toNozzleListOrNull(json['nozzles']),
+      nozzleRack: _toNozzleRackListOrNull(json['nozzle_rack']),
       filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
       extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
     );
@@ -75,6 +76,15 @@ NozzleInfo _$NozzleInfoFromJson(Map<String, dynamic> json) => NozzleInfo(
   nozzleType: json['nozzle_type'] as String?,
   nozzleDiameter: json['nozzle_diameter'] as String?,
 );
+
+NozzleRackSlot _$NozzleRackSlotFromJson(Map<String, dynamic> json) =>
+    NozzleRackSlot(
+      id: toIntOrNull(json['id']),
+      nozzleType: json['nozzle_type'] as String?,
+      nozzleDiameter: json['nozzle_diameter'] as String?,
+      filamentColor: json['filament_color'] as String?,
+      filamentType: json['filament_type'] as String?,
+    );
 
 FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(
   installed: json['installed'] == null
