@@ -25,6 +25,10 @@ import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
+import 'package:bambuddy_mobile/core/models/pipeline_run.dart';
+import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
+import 'package:bambuddy_mobile/features/pipelines/pipeline_presets.dart';
+import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -48,7 +52,9 @@ void main() {
   group('printers', () {
     test('list + statuses parse; simulated print is running', () async {
       final all = await PrintersRepository(dio).fetchAll();
-      expect(all, hasLength(4));
+      // Five, not four: the second X1C exists so a pipeline can target the X1C
+      // *class* and have more than one candidate — see `_statusSecondX1c`.
+      expect(all, hasLength(5));
       final printing = all.firstWhere((p) => p.printer.id == 1).status;
       expect(printing, isNotNull);
       expect(printing!.isPrinting, isTrue);
@@ -301,11 +307,213 @@ void main() {
     });
   });
 
+  group('slicer pipelines', () {
+    test('two bundles, one targeted at a class and one not yet', () async {
+      final list = await PipelinesRepository(dio).list();
+
+      expect(list, hasLength(2));
+      final targeted = list.firstWhere((p) => p.name == 'Gridfinity PETG');
+      expect(targeted.targetKind, PipelineTargetKind.printerClass);
+      expect(targeted.targetModelClass, 'X1C');
+      expect(targeted.isRunnable, isTrue);
+
+      // What every bundle saved from the slice form looks like — the create
+      // schema carries no target — and the only way to reach the amber
+      // "set a target" line and the edit screen behind it.
+      final fresh = list.firstWhere((p) => p.name == 'Nightly ASA brackets');
+      expect(fresh.isRunnable, isFalse);
+    });
+
+    test('the stored preset refs resolve against /slicer/presets', () async {
+      // Served even with `use_slicer_api` off, or every row of the card would
+      // read "No longer in the catalog".
+      final presets = await SlicerRepository(dio).presets();
+      final pipeline = (await PipelinesRepository(dio).list()).first;
+
+      for (final ref in [
+        pipeline.printerPreset,
+        pipeline.processPreset,
+        ...pipeline.filamentPresets,
+      ]) {
+        final slot = ref == pipeline.printerPreset
+            ? PresetSlot.printer
+            : ref == pipeline.processPreset
+                ? PresetSlot.process
+                : PresetSlot.filament;
+        expect(isUnresolved(resolvePresetRef(presets, ref, slot)), isFalse,
+            reason: '${ref.source}/${ref.id} is missing from the catalogue');
+      }
+    });
+
+    test('a class pre-flight reports every candidate, and why each fails',
+        () async {
+      // The reason the fleet carries two X1Cs. Printer 1 holds PETG and
+      // printer 5 holds PLA only, so the mismatch is computed off the fixture
+      // rather than fabricated.
+      final report = await PipelinesRepository(dio)
+          .checkEligibility(1, source: const PipelineSource.libraryFile(6));
+
+      expect(report.ok, isTrue, reason: 'one candidate passing is enough');
+      expect(report.printerReports, hasLength(2));
+      expect(report.eligibleCount, 1);
+      expect(report.issues, isEmpty,
+          reason: 'on the class path every problem belongs to a printer');
+
+      final bad = report.printerReports.firstWhere((r) => !r.ok);
+      expect(bad.printerName, 'X1 Carbon #2');
+      expect(bad.issues.single.kind,
+          EligibilityIssueKind.filamentTypeMismatch);
+      expect(bad.issues.single.expected, 'PETG');
+      expect(bad.issues.single.actual, 'PLA');
+    });
+
+    test('an untargeted pipeline is refused before it can spend anything',
+        () async {
+      final report = await PipelinesRepository(dio)
+          .checkEligibility(2, source: const PipelineSource.libraryFile(6));
+
+      expect(report.ok, isFalse);
+      expect(report.issues.single.kind, EligibilityIssueKind.classNotSet);
+    });
+
+    test('running it unforced is refused with the report itself', () async {
+      // The 409 whose body *is* the pre-flight, which is what lets one widget
+      // render both answers.
+      await expectLater(
+        PipelinesRepository(dio)
+            .run(2, source: const PipelineSource.libraryFile(6)),
+        throwsA(isA<PipelineNotEligible>()),
+      );
+    });
+
+    test('a forced run dispatches, and records that it was forced', () async {
+      final run = await PipelinesRepository(dio)
+          .run(2, source: const PipelineSource.libraryFile(6), force: true);
+
+      expect(run.status, PipelineRunStatus.dispatching);
+      expect(run.eligibilityOverridden, isTrue);
+      expect(run.jobs, hasLength(1));
+    });
+
+    test('copies spread over the class per the fanout strategy', () async {
+      final run = await PipelinesRepository(dio)
+          .run(1, source: const PipelineSource.libraryFile(6), copies: 3);
+
+      expect(run.copies, 3);
+      // `max_parallel` pins nothing: the scheduler hands each copy to whichever
+      // matching printer frees up first, so no copy carries a printer yet.
+      expect(run.jobs.every((j) => j.assignedPrinterName == null), isTrue);
+    });
+
+    test('the copies ceiling comes from the server, not a built-in', () async {
+      final settings = await SlicerRepository(dio).serverSettings();
+
+      expect(settings['pipeline_max_copies'], 12,
+          reason: 'deliberately not the server default of 50');
+    });
+  });
+
+  group('pipeline runs', () {
+    test('the list pages, and says how many the filter matched', () async {
+      final repo = PipelinesRepository(dio);
+      final first = await repo.runs();
+
+      expect(first.runs, hasLength(25), reason: 'one page');
+      expect(first.total, greaterThan(25), reason: 'so "load more" appears');
+
+      final second = await repo.runs(offset: 25);
+      expect(second.runs, isNotEmpty);
+      expect(
+        {...first.runs.map((r) => r.id)}
+            .intersection({...second.runs.map((r) => r.id)}),
+        isEmpty,
+        reason: 'the second page does not repeat the first',
+      );
+    });
+
+    test('every state the card renders differently is present', () async {
+      final runs = (await PipelinesRepository(dio).runs()).runs;
+      final byStatus = {for (final r in runs) r.status};
+
+      expect(byStatus, containsAll([
+        PipelineRunStatus.inProgress,
+        PipelineRunStatus.partialFailure,
+        PipelineRunStatus.failed,
+        PipelineRunStatus.completed,
+      ]));
+    });
+
+    test('a run whose source was deleted offers no retry', () async {
+      // `ondelete="SET NULL"` empties both source columns while the run stays,
+      // and `retry-failed` then answers 400 — so the button has to be absent.
+      // Selected by the state, not by a null name: this file's backend is one
+      // shared instance, so the runs the tests above dispatched are in the list
+      // too and a looser finder would pick one of those.
+      final runs = (await PipelinesRepository(dio).runs()).runs;
+      final orphan = runs.firstWhere(
+          (r) => r.hasRetryableCopies && r.sourceLibraryFileId == null);
+
+      expect(orphan.hasRetryableCopies, isTrue,
+          reason: 'it did fail — this is not the "nothing to retry" case');
+      expect(orphan.canRetry, isFalse);
+      await expectLater(
+        PipelinesRepository(dio).retryFailed(orphan.id),
+        throwsA(isA<AppApiException>()),
+        reason: 'and the server agrees, with a 400',
+      );
+    });
+
+    test('retry-failed opens a new run linked to the one it re-attempts',
+        () async {
+      final repo = PipelinesRepository(dio);
+      final parent = (await repo.runs())
+          .runs
+          .firstWhere((r) => r.canRetry && r.copiesFailed == 1);
+
+      final retry = await repo.retryFailed(parent.id);
+
+      expect(retry.id, isNot(parent.id));
+      expect(retry.parentRunId, parent.id);
+      expect(retry.copies, 1, reason: 'one copy failed, one is re-attempted');
+    });
+
+    test('cancelling is idempotent, and stops the copies not yet sent',
+        () async {
+      final repo = PipelinesRepository(dio);
+      final live = (await repo.runs())
+          .runs
+          .firstWhere((r) => r.status == PipelineRunStatus.inProgress);
+
+      final cancelled = await repo.cancel(live.id);
+      expect(cancelled.status, PipelineRunStatus.cancelled);
+
+      // Pressed twice: a terminal run comes back untouched rather than refused.
+      final again = await repo.cancel(live.id);
+      expect(again.status, PipelineRunStatus.cancelled);
+    });
+
+    test('clearing drops the finished runs and keeps the live ones', () async {
+      final repo = PipelinesRepository(dio);
+      final before = await repo.runs();
+      final live = before.runs
+          .where((r) => !r.status.isTerminal)
+          .map((r) => r.id)
+          .toSet();
+
+      final deleted = await repo.clearTerminalRuns();
+      expect(deleted, greaterThan(0));
+
+      final after = await repo.runs();
+      expect(after.runs.every((r) => !r.status.isTerminal), isTrue);
+      expect(after.runs.map((r) => r.id).toSet(), live);
+    });
+  });
+
   group('maintenance', () {
     test('overview, types, perform resets counters', () async {
       final repo = MaintenanceRepository(dio);
       final overview = await repo.fetchOverview();
-      expect(overview, hasLength(4));
+      expect(overview, hasLength(5), reason: 'one row per printer in the fleet');
       final x1c = overview.firstWhere((o) => o.printerId == 1);
       expect(x1c.dueCount, greaterThan(0));
       final dueItem = x1c.maintenanceItems.firstWhere((i) => i.isDue);

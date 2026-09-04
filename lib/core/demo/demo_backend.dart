@@ -146,6 +146,16 @@ class DemoBackend {
   // server keeps so a configured slot can be named, not just shown.
   final Map<String, Map<String, dynamic>> _slotPreset = {};
 
+  // Saved pipelines and the runs they dispatched. Mutable because the whole
+  // point of the screens is authoring: targeting one, running it, cancelling
+  // and retrying. Seeded lazily so the fixtures below can be built once the
+  // instance exists.
+  List<Map<String, dynamic>>? _pipelinesStore;
+  List<Map<String, dynamic>>? _pipelineRunsStore;
+  int _nextPipelineId = 3;
+  int _nextPipelineRunId = 100;
+  int _nextPipelineJobId = 500;
+
   /// identify_ids skipped during the current X1 demo print. Reset on stop so a
   /// fresh cycle shows every object again.
   final Set<int> _skippedObjects = {};
@@ -373,6 +383,12 @@ class DemoBackend {
       case 'scheduled-dryings':
         return _scheduledDryingRoute(m, s, q, body);
 
+      case 'slicer-pipelines':
+        return _pipelineRoute(m, s, body);
+
+      case 'pipeline-runs':
+        return _pipelineRunsRoute(m, s, q);
+
       case 'location-ha-sensors':
         if (s.length == 1) return _ok(_locationSensors);
         if (at(1, 'by-location') && at(3, 'readings')) {
@@ -468,10 +484,20 @@ class DemoBackend {
           'ambient_drying_enabled': true,
           'queue_drying_enabled': true,
           'print_drying_enabled': false,
+          // The ceiling the run form's copies stepper stops at. Deliberately
+          // not the server's own default of 50: a demo that agreed with the
+          // fallback would not show whether the setting is read at all.
+          'pipeline_max_copies': 12,
         });
 
       case 'slicer':
         if (at(1, 'printer-models')) return _ok(_printerModels);
+        // Served even though `use_slicer_api` is off, because the pipeline
+        // cards resolve their stored `PresetRef`s against this catalogue and
+        // would otherwise read "No longer in the catalog" on every row. It
+        // reveals no slicing UI: the slice form is gated on the settings flag,
+        // not on this.
+        if (at(1, 'presets')) return _ok(_slicerPresets);
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -507,6 +533,56 @@ class DemoBackend {
         'permissions': const <Object>[],
         'created_at': _iso(_daysAgo(60)),
       };
+
+  /// `/slicer/presets` — the tiers the unified picker merges, holding exactly
+  /// the presets the demo pipelines point at plus a couple more so a picker has
+  /// something to choose between.
+  static const _slicerPresets = {
+    'local': {
+      'printer': [
+        {'source': 'local', 'id': 'p-x1c-04', 'name': 'X1C 0.4 nozzle'},
+        {'source': 'local', 'id': 'p-p1s-04', 'name': 'P1S 0.4 nozzle'},
+      ],
+      'process': [
+        {'source': 'local', 'id': 'q-020-std', 'name': '0.20mm Standard @X1C'},
+        {'source': 'local', 'id': 'q-028-draft', 'name': '0.28mm Draft @X1C'},
+      ],
+      'filament': [
+        {
+          'source': 'local',
+          'id': 'f-petg-white',
+          'name': 'Generic PETG @X1C',
+          'filament_type': 'PETG',
+          'filament_colour': '#FFFFFF',
+        },
+        {
+          'source': 'local',
+          'id': 'f-asa-black',
+          'name': 'Fiberlogy ASA @X1C',
+          'filament_type': 'ASA',
+          'filament_colour': '#1A1A1A',
+        },
+      ],
+    },
+    'standard': {
+      'printer': <Object>[],
+      'process': [
+        {
+          'source': 'standard',
+          'id': '0.20mm Standard @BBL X1C',
+          'name': '0.20mm Standard @BBL X1C',
+        },
+      ],
+      'filament': [
+        {
+          'source': 'standard',
+          'id': 'Bambu PLA Basic @BBL X1C',
+          'name': 'Bambu PLA Basic @BBL X1C',
+          'filament_type': 'PLA',
+        },
+      ],
+    },
+  };
 
   // --- Printers + status ---
 
@@ -558,6 +634,24 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
     },
+    // The second X1C, and the only reason the fleet is five rather than four:
+    // a pipeline targeting a *class* matches on `Printer.model`, so with four
+    // distinct models every class has exactly one member and the whole of
+    // fanout — the per-printer eligibility breakdown, "1 of 2 ready", copies
+    // spread over two machines — is unreachable. It carries PLA where printer 1
+    // carries PETG, which is what makes the mismatch in that breakdown real
+    // rather than fabricated.
+    {
+      'id': 5,
+      'name': 'X1 Carbon #2',
+      'serial_number': '01P00A390800001',
+      'ip_address': '192.168.4.25',
+      'access_code': '55019473',
+      'model': 'X1C',
+      'location': 'Workshop',
+      'is_active': true,
+      'nozzle_count': 1,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -573,6 +667,10 @@ class DemoBackend {
         1 => _statusPrinting(),
         2 => _statusIdle(),
         4 => _statusAccessoryFans(),
+        5 => _statusSecondX1c(),
+        // Printer 3, and anything the fleet does not list. Written as the
+        // fallback rather than as `3 =>` because an id that reached here at all
+        // is one nothing should have asked about.
         _ => const {
             'name': 'A1 mini',
             'model': 'A1 mini',
@@ -719,6 +817,53 @@ class DemoBackend {
         'firmware_version': '01.07.01.00',
         'cover_url': null,
         'supports_drying': false,
+        'awaiting_plate_clear': false,
+        'sdcard': true,
+        'ipcam': true,
+      };
+
+  /// The second X1C: idle, and loaded with PLA only.
+  ///
+  /// The filament is the point. Printer 1 is the other X1C and carries PETG,
+  /// so a pipeline whose filament preset is PETG makes the class report read
+  /// "1 of 2 ready" with this machine's own `filament_type_mismatch` under it —
+  /// the state the per-printer breakdown exists for, and one that needs two
+  /// machines of one model to reach.
+  Map<String, dynamic> _statusSecondX1c() => {
+        'name': 'X1 Carbon #2',
+        'model': 'X1C',
+        'connected': true,
+        'state': 'IDLE',
+        'current_print': null,
+        'gcode_file': null,
+        'progress': 0,
+        'remaining_time': 0,
+        'layer_num': 0,
+        'total_layers': 0,
+        'temperatures': {
+          'nozzle': _r1(24.1 + _wiggle(0.3, phase: 25)),
+          'nozzle_target': 0.0,
+          'bed': _r1(23.9 + _wiggle(0.2, phase: 60)),
+          'bed_target': 0.0,
+          'chamber': _r1(25.0 + _wiggle(0.3, phase: 80)),
+        },
+        'cooling_fan_speed': 0,
+        'big_fan1_speed': 0,
+        'big_fan2_speed': 0,
+        'heatbreak_fan_speed': 0,
+        'speed_level': _speedLevel[5] ?? 2,
+        'chamber_light': _chamberLight[5] ?? false,
+        'wifi_signal': -54,
+        'door_open': false,
+        'ams_exists': true,
+        'ams': [_amsUnitPlaOnly()],
+        'vt_tray': const <Object>[],
+        'tray_now': 255,
+        'active_extruder': 0,
+        'hms_errors': const <Object>[],
+        'firmware_version': '01.08.02.00',
+        'cover_url': null,
+        'supports_drying': true,
         'awaiting_plate_clear': false,
         'sdcard': true,
         'ipcam': true,
@@ -1017,6 +1162,26 @@ class DemoBackend {
               remain: 100,
               tagUid: 'B7A21C0439E5D168',
               trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
+          _tray(3, null, null),
+        ],
+      };
+
+  /// PLA in every filled slot — no PETG anywhere, which is what gives the
+  /// second X1C a real filament mismatch against a PETG pipeline.
+  Map<String, dynamic> _amsUnitPlaOnly() => {
+        'id': 0,
+        'humidity': 29,
+        'temp': _r1(24.5 + _wiggle(0.4, periodSec: 380)),
+        'is_ams_ht': false,
+        'module_type': 'ams',
+        'dry_time': 0,
+        'dry_status': 0,
+        'tray': [
+          _tray(0, '2F4F9AFF', 'PLA',
+              subBrand: 'PLA Matte', infoIdx: 'GFA01', remain: 64),
+          _tray(1, 'E8E8E8FF', 'PLA',
+              subBrand: 'PLA Basic', infoIdx: 'GFA00', remain: 88),
+          _tray(2, null, null),
           _tray(3, null, null),
         ],
       };
@@ -2245,6 +2410,669 @@ class DemoBackend {
               'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
             },
       ];
+
+  // --- Slicer pipelines + runs ---
+
+  /// The saved bundles, seeded on first read.
+  ///
+  /// Two, chosen for the two states the screen has to show: one fully targeted
+  /// at the X1C **class** (which is why the fleet carries two X1Cs), and one
+  /// with no target at all — what every pipeline saved from the slice form
+  /// looks like, and the only way to reach the amber "set a target" line and
+  /// the edit screen behind it.
+  List<Map<String, dynamic>> get _pipelines =>
+      _pipelinesStore ??= [
+        {
+          'id': 1,
+          'name': 'Gridfinity PETG',
+          'description': 'Bins and baseplates, 0.20mm, engineering plate.',
+          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+          'process_preset': {'source': 'local', 'id': 'q-020-std'},
+          'filament_presets': [
+            {'source': 'local', 'id': 'f-petg-white'},
+          ],
+          'bed_type': 'Engineering Plate',
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': 'X1C',
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(_daysAgo(21)),
+          'updated_at': _iso(_daysAgo(3)),
+        },
+        {
+          'id': 2,
+          'name': 'Nightly ASA brackets',
+          'description': null,
+          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+          'process_preset': {'source': 'local', 'id': 'q-028-draft'},
+          'filament_presets': [
+            {'source': 'local', 'id': 'f-asa-black'},
+          ],
+          'bed_type': null,
+          // Untargeted, as `SlicerPipelineCreate` leaves every new bundle: the
+          // create schema declares none of these four fields.
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': null,
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(_daysAgo(2)),
+          'updated_at': _iso(_daysAgo(2)),
+        },
+      ];
+
+  /// `/slicer-pipelines` — CRUD, the pre-flight, and dispatch.
+  DemoResult? _pipelineRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') return _ok({'pipelines': _pipelines});
+      if (m == 'POST') {
+        // Only the bundle: the real create schema declares no target fields and
+        // Pydantic drops what it does not declare, so echoing them back would
+        // tell the app a write happened that did not.
+        final row = <String, dynamic>{
+          'id': _nextPipelineId++,
+          'name': '${body['name'] ?? 'Pipeline'}'.trim(),
+          'description': body['description'],
+          'printer_preset': body['printer_preset'],
+          'process_preset': body['process_preset'],
+          'filament_presets': body['filament_presets'] ?? const <Object>[],
+          'bed_type': body['bed_type'],
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': null,
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(DateTime.now()),
+          'updated_at': _iso(DateTime.now()),
+        };
+        _pipelines.insert(0, row);
+        return (status: 201, body: row);
+      }
+      return _fallback(m);
+    }
+
+    final pipelineId = int.tryParse(s[1]);
+    if (pipelineId == null) return _notFound();
+    final row = _pipelines.where((p) => p['id'] == pipelineId).firstOrNull;
+
+    if (s.length == 2) {
+      if (row == null) return _notFound();
+      if (m == 'GET') return _ok(row);
+      if (m == 'PUT') {
+        // Field by field under an `is not None` guard, like the real route: a
+        // key the caller omitted and a key sent as null are the same request,
+        // which is why the app clears a target with the sentinels below.
+        for (final key in const [
+          'name',
+          'description',
+          'printer_preset',
+          'process_preset',
+          'filament_presets',
+          'bed_type',
+          'target_kind',
+          'fanout_strategy',
+        ]) {
+          if (body[key] != null) row[key] = body[key];
+        }
+        // `0` clears the pinned printer and `''` clears the class — the two
+        // sentinels the API defines, because null cannot reach the column.
+        if (body['target_printer_id'] != null) {
+          row['target_printer_id'] =
+              body['target_printer_id'] == 0 ? null : body['target_printer_id'];
+        }
+        if (body['target_model_class'] != null) {
+          final asked = '${body['target_model_class']}';
+          row['target_model_class'] = asked.isEmpty ? null : asked;
+        }
+        row['updated_at'] = _iso(DateTime.now());
+        return _ok(row);
+      }
+      if (m == 'DELETE') {
+        // Soft, like the server: the row leaves the listing and every run that
+        // referenced it keeps its name.
+        _pipelines.remove(row);
+        return (status: 204, body: null);
+      }
+      return _fallback(m);
+    }
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'check-eligibility') {
+      if (row == null) return _notFound();
+      return _ok(_eligibility(row));
+    }
+    if (s.length == 3 && m == 'POST' && s[2] == 'run') {
+      if (row == null) return _notFound();
+      return _startRun(row, body);
+    }
+    if (s.length == 3 && m == 'GET' && s[2] == 'runs') {
+      return _ok({
+        'runs': [
+          for (final r in _pipelineRuns)
+            if (r['pipeline_id'] == pipelineId) r,
+        ],
+        'total': _pipelineRuns.where((r) => r['pipeline_id'] == pipelineId).length,
+      });
+    }
+    return _fallback(m);
+  }
+
+  /// The pre-flight, computed against the fleet rather than fabricated.
+  ///
+  /// A class target enumerates every printer whose `model` matches and reports
+  /// each one; the specific-printer path answers for that one machine in
+  /// `issues` and sends no `printer_reports`, which is the split the real
+  /// matcher makes.
+  Map<String, dynamic> _eligibility(Map<String, dynamic> pipeline) {
+    final kind = '${pipeline['target_kind']}';
+    final wanted = _pipelineFilamentType(pipeline);
+
+    if (kind == 'specific_printer') {
+      final id = pipeline['target_printer_id'];
+      if (id == null) {
+        return {
+          'ok': false,
+          'target_kind': kind,
+          'issues': [
+            {'kind': 'printer_not_set'},
+          ],
+          'printer_reports': const <Object>[],
+        };
+      }
+      final printer = _printers.where((p) => p['id'] == id).firstOrNull;
+      if (printer == null) {
+        return {
+          'ok': false,
+          'target_kind': kind,
+          'target_printer_id': id,
+          'issues': [
+            {'kind': 'printer_not_found'},
+          ],
+          'printer_reports': const <Object>[],
+        };
+      }
+      final issues = _printerIssues(printer, wanted);
+      return {
+        'ok': issues.isEmpty,
+        'target_kind': kind,
+        'target_printer_id': id,
+        'target_printer_name': printer['name'],
+        'issues': issues,
+        'printer_reports': const <Object>[],
+      };
+    }
+
+    final modelClass = pipeline['target_model_class'];
+    if (modelClass == null) {
+      return {
+        'ok': false,
+        'target_kind': kind,
+        'issues': [
+          {'kind': 'class_not_set'},
+        ],
+        'printer_reports': const <Object>[],
+      };
+    }
+    final candidates =
+        _printers.where((p) => p['model'] == modelClass).toList();
+    if (candidates.isEmpty) {
+      return {
+        'ok': false,
+        'target_kind': kind,
+        'target_model_class': modelClass,
+        'issues': [
+          {'kind': 'no_class_matches'},
+        ],
+        'printer_reports': const <Object>[],
+      };
+    }
+    final reports = [
+      for (final p in candidates)
+        {
+          'printer_id': p['id'],
+          'printer_name': p['name'],
+          'ok': _printerIssues(p, wanted).isEmpty,
+          'issues': _printerIssues(p, wanted),
+        },
+    ];
+    return {
+      'ok': reports.any((r) => r['ok'] == true),
+      'target_kind': kind,
+      'target_model_class': modelClass,
+      // Empty on the class path, exactly as the matcher leaves it: every
+      // problem belongs to a printer, so pooling them here would lose which.
+      'issues': const <Object>[],
+      'printer_reports': reports,
+    };
+  }
+
+  /// What the pipeline's first filament slot asks for, by type.
+  String? _pipelineFilamentType(Map<String, dynamic> pipeline) {
+    final slots = pipeline['filament_presets'];
+    if (slots is! List || slots.isEmpty) return null;
+    final first = slots.first;
+    if (first is! Map) return null;
+    final filaments = (_slicerPresets['local']?['filament'] ?? const []) as List;
+    for (final preset in filaments) {
+      if (preset is Map && preset['id'] == first['id']) {
+        return preset['filament_type'] as String?;
+      }
+    }
+    return null;
+  }
+
+  /// One printer measured against a wanted filament type — offline first,
+  /// because a machine that cannot be reached says nothing about its trays.
+  List<Map<String, dynamic>> _printerIssues(
+    Map<String, dynamic> printer,
+    String? wantedType,
+  ) {
+    final id = printer['id'] as int;
+    if (printer['is_active'] != true) {
+      return [
+        {'kind': 'printer_disabled'},
+      ];
+    }
+    final status = statusData(id);
+    if (status['connected'] != true) {
+      return [
+        {'kind': 'printer_offline'},
+      ];
+    }
+    if (wantedType == null) return [];
+    final loaded = <String>[];
+    for (final unit in (status['ams'] as List? ?? const [])) {
+      if (unit is! Map) continue;
+      for (final tray in (unit['tray'] as List? ?? const [])) {
+        if (tray is Map && tray['tray_type'] is String) {
+          loaded.add(tray['tray_type'] as String);
+        }
+      }
+    }
+    if (loaded.contains(wantedType)) return [];
+    return [
+      {
+        'kind': 'filament_type_mismatch',
+        'slot_index': 0,
+        'expected': wantedType,
+        'actual': loaded.isEmpty ? null : loaded.first,
+      },
+    ];
+  }
+
+  /// `POST /{id}/run` — 409 with the report when the pre-flight blocks and the
+  /// caller did not force, otherwise a 202 and a live run.
+  DemoResult _startRun(Map<String, dynamic> pipeline, Map<String, dynamic> body) {
+    final report = _eligibility(pipeline);
+    final forced = body['force'] == true;
+    if (report['ok'] != true && !forced) {
+      return (status: 409, body: {'detail': report});
+    }
+    final copies = (body['copies'] as num?)?.toInt() ?? 1;
+    final assigned = _pipelineAssignments(pipeline, copies);
+    final run = <String, dynamic>{
+      'id': _nextPipelineRunId++,
+      'pipeline_id': pipeline['id'],
+      'pipeline_name': pipeline['name'],
+      'source_library_file_id': body['source_library_file_id'],
+      'source_archive_id': body['source_archive_id'],
+      'source_filename': _pipelineSourceName(body),
+      'parent_run_id': null,
+      'copies': copies,
+      // Dispatching, with nothing finished: the demo has no clock a printer
+      // answers to, so a fresh run stays here — which is the state the screen's
+      // poll exists for, and the one Cancel acts on.
+      'status': 'dispatching',
+      'slice_job_id': _nextPipelineRunId,
+      'sliced_library_file_id': null,
+      'eligibility_overridden': forced && report['ok'] != true,
+      'error_message': null,
+      'created_by': 1,
+      'created_at': _iso(DateTime.now()),
+      'started_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'jobs': [
+        for (var i = 0; i < copies; i++)
+          {
+            'id': _nextPipelineJobId++,
+            'pipeline_run_id': _nextPipelineRunId - 1,
+            'copy_index': i,
+            'assigned_printer_id': assigned[i].$1,
+            'assigned_printer_name': assigned[i].$2,
+            'queue_entry_id': null,
+            'status': 'queued',
+            'error_message': null,
+            'dispatched_at': _iso(DateTime.now()),
+            'completed_at': null,
+          },
+      ],
+      'target_kind': pipeline['target_kind'],
+      'target_printer_id': pipeline['target_printer_id'],
+      'target_model_class': pipeline['target_model_class'],
+      'fanout_strategy': pipeline['fanout_strategy'],
+    };
+    _pipelineRuns.insert(0, run);
+    return (status: 202, body: run);
+  }
+
+  /// Which printer each copy went to, per the pipeline's fanout strategy.
+  ///
+  /// `max_parallel` pins nothing — the real scheduler hands each queue item to
+  /// whichever matching printer frees up first, so the copy has no printer name
+  /// until it does.
+  List<(int?, String?)> _pipelineAssignments(
+    Map<String, dynamic> pipeline,
+    int copies,
+  ) {
+    if (pipeline['target_kind'] == 'specific_printer') {
+      final id = pipeline['target_printer_id'] as int?;
+      final name =
+          _printers.where((p) => p['id'] == id).firstOrNull?['name'] as String?;
+      return [for (var i = 0; i < copies; i++) (id, name)];
+    }
+    final candidates = _printers
+        .where((p) => p['model'] == pipeline['target_model_class'])
+        .toList();
+    return switch ('${pipeline['fanout_strategy']}') {
+      'round_robin' => [
+          for (var i = 0; i < copies; i++)
+            candidates.isEmpty
+                ? (null, null)
+                : (
+                    candidates[i % candidates.length]['id'] as int,
+                    candidates[i % candidates.length]['name'] as String,
+                  ),
+        ],
+      'fill_one_first' => [
+          for (var i = 0; i < copies; i++)
+            candidates.isEmpty
+                ? (null, null)
+                : (
+                    candidates.first['id'] as int,
+                    candidates.first['name'] as String,
+                  ),
+        ],
+      _ => [for (var i = 0; i < copies; i++) (null, null)],
+    };
+  }
+
+  String? _pipelineSourceName(Map<String, dynamic> body) {
+    final libraryId = body['source_library_file_id'];
+    if (libraryId != null) {
+      return _libraryFiles.where((f) => f['id'] == libraryId).firstOrNull?['filename']
+          as String?;
+    }
+    final archiveId = body['source_archive_id'];
+    if (archiveId == null) return null;
+    final archive = _archives.where((a) => a['id'] == archiveId).firstOrNull;
+    return (archive?['print_name'] ?? archive?['filename']) as String?;
+  }
+
+  /// The run history, seeded on first read.
+  ///
+  /// Four hand-written runs for the four states the card renders differently,
+  /// then filler so `total` passes the 25-row page and the paginator is
+  /// reachable at all:
+  ///
+  /// * one **in flight** across both X1Cs — the progress bar, per-copy rows and
+  ///   Cancel;
+  /// * one **partial failure** with a copy to re-attempt — Retry;
+  /// * one partial failure whose **source has been deleted** (both source ids
+  ///   null, as `ondelete="SET NULL"` leaves them) — the run that must *not*
+  ///   offer Retry, because the server would answer 400;
+  /// * one **failed at the slice**, carrying the error the card shows.
+  List<Map<String, dynamic>> get _pipelineRuns =>
+      _pipelineRunsStore ??= [
+        _runRow(
+          id: 91,
+          status: 'in_progress',
+          copies: 4,
+          jobStatuses: const ['completed', 'printing', 'queued', 'queued'],
+          printerIds: const [1, 5, null, null],
+          minutesAgo: 26,
+        ),
+        _runRow(
+          id: 90,
+          status: 'partial_failure',
+          copies: 3,
+          jobStatuses: const ['completed', 'failed', 'completed'],
+          printerIds: const [1, 5, 1],
+          minutesAgo: 190,
+          completed: true,
+        ),
+        _runRow(
+          id: 89,
+          status: 'partial_failure',
+          copies: 2,
+          jobStatuses: const ['completed', 'failed'],
+          printerIds: const [1, 5],
+          minutesAgo: 1450,
+          completed: true,
+          sourceGone: true,
+        ),
+        _runRow(
+          id: 88,
+          status: 'failed',
+          copies: 2,
+          jobStatuses: const ['failed', 'failed'],
+          printerIds: const [null, null],
+          minutesAgo: 2880,
+          completed: true,
+          error: 'Slicing failed: filament preset is not compatible with the '
+              'selected printer',
+        ),
+        // Filler: enough finished runs that the list crosses one page, so
+        // "load more" and the row count under it are reachable.
+        for (var i = 0; i < 26; i++)
+          _runRow(
+            id: 62 - i,
+            status: 'completed',
+            copies: 1,
+            jobStatuses: const ['completed'],
+            printerIds: const [1],
+            minutesAgo: 4320 + i * 180,
+            completed: true,
+          ),
+      ];
+
+  /// One run row, with the roll-up counted from the per-copy statuses the way
+  /// `_materialise_run` counts it — so the card's progress and the numbers
+  /// under it cannot disagree.
+  Map<String, dynamic> _runRow({
+    required int id,
+    required String status,
+    required int copies,
+    required List<String> jobStatuses,
+    required List<int?> printerIds,
+    required int minutesAgo,
+    bool completed = false,
+    bool sourceGone = false,
+    String? error,
+  }) {
+    final created = _minutesAgo(minutesAgo);
+    int count(String s) => jobStatuses.where((j) => j == s).length;
+    return {
+      'id': id,
+      'pipeline_id': 1,
+      'pipeline_name': 'Gridfinity PETG',
+      // File 6 is the demo library's only un-sliced `.3mf` — the one thing in
+      // it a pipeline could actually re-slice. Its name is read back rather
+      // than repeated so the two cannot drift.
+      'source_library_file_id': sourceGone ? null : _pipelineSourceFileId,
+      'source_archive_id': null,
+      'source_filename': sourceGone
+          ? null
+          : _libraryFiles
+              .where((f) => f['id'] == _pipelineSourceFileId)
+              .firstOrNull?['filename'],
+      'parent_run_id': null,
+      'copies': copies,
+      'copies_completed': count('completed'),
+      'copies_failed': count('failed'),
+      'copies_cancelled': count('cancelled'),
+      'copies_in_progress': count('printing') + count('queued'),
+      'status': status,
+      'slice_job_id': 400 + id,
+      'sliced_library_file_id': sourceGone ? null : 1,
+      'eligibility_overridden': id == 90,
+      'error_message': error,
+      'created_by': 1,
+      'created_at': _iso(created),
+      'started_at': _iso(created.add(const Duration(seconds: 12))),
+      'completed_at':
+          completed ? _iso(created.add(const Duration(minutes: 74))) : null,
+      'jobs': [
+        for (var i = 0; i < jobStatuses.length; i++)
+          {
+            'id': id * 10 + i,
+            'pipeline_run_id': id,
+            'copy_index': i,
+            'assigned_printer_id': printerIds[i],
+            'assigned_printer_name': printerIds[i] == null
+                ? null
+                : _printers
+                    .where((p) => p['id'] == printerIds[i])
+                    .firstOrNull?['name'],
+            'queue_entry_id': null,
+            'status': jobStatuses[i],
+            'error_message':
+                jobStatuses[i] == 'failed' ? 'Print failed on layer 41' : null,
+            'dispatched_at': _iso(created),
+            'completed_at': jobStatuses[i] == 'completed' || jobStatuses[i] == 'failed'
+                ? _iso(created.add(const Duration(minutes: 68)))
+                : null,
+          },
+      ],
+      'target_kind': 'printer_class',
+      'target_printer_id': null,
+      'target_model_class': 'X1C',
+      'fanout_strategy': 'max_parallel',
+    };
+  }
+
+  /// The source every seeded run was sliced from.
+  static const _pipelineSourceFileId = 6;
+
+  static const _terminalRunStatuses = {
+    'completed',
+    'failed',
+    'cancelled',
+    'partial_failure',
+  };
+
+  /// `/pipeline-runs` — the dashboard's list with its four filters, one run,
+  /// cancel, retry-failed and the history purge.
+  DemoResult? _pipelineRunsRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    if (s.length == 1 && m == 'GET') {
+      final pipelineId = int.tryParse(q['pipeline_id'] ?? '');
+      final status = q['status'];
+      final targetPrinterId = int.tryParse(q['target_printer_id'] ?? '');
+      final targetModelClass = q['target_model_class'];
+      // Filtered on the pipeline's *current* target, joined the way the route
+      // joins it — so re-targeting a pipeline moves its whole history, and a
+      // run whose pipeline is gone drops out of a target-filtered query.
+      Map<String, dynamic>? pipelineOf(Map<String, dynamic> run) =>
+          _pipelines.where((p) => p['id'] == run['pipeline_id']).firstOrNull;
+      final matched = [
+        for (final run in _pipelineRuns)
+          if ((pipelineId == null || run['pipeline_id'] == pipelineId) &&
+              (status == null || run['status'] == status) &&
+              (targetPrinterId == null ||
+                  pipelineOf(run)?['target_printer_id'] == targetPrinterId) &&
+              (targetModelClass == null ||
+                  pipelineOf(run)?['target_model_class'] == targetModelClass))
+            run,
+      ];
+      // Clamped 1..100 silently, like the route — a caller asking for more gets
+      // the cap and a `total` that still describes the whole filtered set.
+      final limit = (int.tryParse(q['limit'] ?? '') ?? 25).clamp(1, 100);
+      final offset = (int.tryParse(q['offset'] ?? '') ?? 0).clamp(0, 1 << 30);
+      return _ok({
+        'runs': matched.skip(offset).take(limit).toList(),
+        'total': matched.length,
+      });
+    }
+
+    if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
+      final before = _pipelineRuns.length;
+      _pipelineRuns.removeWhere(
+          (r) => _terminalRunStatuses.contains(r['status']));
+      return _ok({'deleted': before - _pipelineRuns.length});
+    }
+
+    final runId = int.tryParse(s.length > 1 ? s[1] : '');
+    if (runId == null) return _notFound();
+    final run = _pipelineRuns.where((r) => r['id'] == runId).firstOrNull;
+    if (run == null) return _notFound();
+
+    if (s.length == 2 && m == 'GET') return _ok(run);
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'cancel') {
+      // Idempotent: a run already finished comes back untouched rather than
+      // refused, which is what lets the button be pressed twice safely.
+      if (_terminalRunStatuses.contains(run['status'])) return _ok(run);
+      run['status'] = 'cancelled';
+      run['completed_at'] = _iso(DateTime.now());
+      run['error_message'] ??= 'Cancelled by operator';
+      for (final job in (run['jobs'] as List)) {
+        if (job is Map && !_terminalRunStatuses.contains(job['status'])) {
+          job['status'] = 'cancelled';
+        }
+      }
+      run['copies_cancelled'] = (run['jobs'] as List)
+          .where((j) => j is Map && j['status'] == 'cancelled')
+          .length;
+      run['copies_in_progress'] = 0;
+      return _ok(run);
+    }
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'retry-failed') {
+      // The three preconditions the route checks, each a 400 — the source one
+      // is why run 89 exists in the seed.
+      if (run['pipeline_id'] == null) {
+        return (
+          status: 400,
+          body: {'detail': 'Original pipeline was deleted; cannot retry'},
+        );
+      }
+      if (run['source_library_file_id'] == null &&
+          run['source_archive_id'] == null) {
+        return (
+          status: 400,
+          body: {'detail': 'Original source was deleted; cannot retry'},
+        );
+      }
+      final failed = (run['jobs'] as List)
+          .where((j) => j is Map && (j['status'] == 'failed' || j['status'] == 'cancelled'))
+          .length;
+      if (failed == 0) {
+        return (status: 400, body: {'detail': 'No failed copies to retry'});
+      }
+      final retry = _runRow(
+        id: _nextPipelineRunId++,
+        status: 'dispatching',
+        copies: failed,
+        jobStatuses: [for (var i = 0; i < failed; i++) 'queued'],
+        printerIds: [for (var i = 0; i < failed; i++) null],
+        minutesAgo: 0,
+      );
+      retry['parent_run_id'] = run['id'];
+      // Forced past the pre-flight: the operator already accepted it on the
+      // parent, which is what the route does too.
+      retry['eligibility_overridden'] = true;
+      _pipelineRuns.insert(0, retry);
+      return (status: 202, body: retry);
+    }
+    return _fallback(m);
+  }
 
   /// `/scheduled-dryings` — list, schedule, cancel. Served because the demo
   /// reports 1.2.6b1, which is the release the route shipped in: a version that
