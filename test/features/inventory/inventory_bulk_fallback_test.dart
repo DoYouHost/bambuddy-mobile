@@ -36,7 +36,11 @@ class _FakeSource implements SpoolInventorySource {
   }
 
   @override
-  Future<List<SpoolAssignment>> fetchAssignments() async => const [];
+  Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) async =>
+      const [];
+
+  @override
+  Future<void> ensureAssignable(SpoolAssignmentDraft draft) async {}
 
   @override
   Future<BulkOutcome> bulkArchive(List<int> spoolIds) async {

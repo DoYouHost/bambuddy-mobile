@@ -158,6 +158,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
             from.trayId == draft.trayId)) {
+      // The target has to be refused before the source is given up, or a move
+      // onto a slot this backend cannot write leaves the spool in neither.
+      await repo.ensureAssignable(draft);
       await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
     }
     await repo.assignSpool(draft);

@@ -33,8 +33,11 @@ class InventoryRepository {
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _source.fetchSpools(includeArchived: includeArchived);
 
-  Future<List<SpoolAssignment>> fetchAssignments() =>
-      _source.fetchAssignments();
+  Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) =>
+      _source.fetchAssignments(printerId: printerId);
+
+  Future<void> ensureAssignable(SpoolAssignmentDraft draft) =>
+      _source.ensureAssignable(draft);
 
   Future<void> assignSpool(SpoolAssignmentDraft draft) =>
       _source.assignSpool(draft);

@@ -46,6 +46,11 @@ enum AppErrorCode {
   /// server spends a bare 400 on it and that reaches the user as a number.
   slotTagUnreadable,
 
+  /// The printer is not reachable, so the app cannot read what its slot holds.
+  /// Told apart from [slotTagUnreadable] because the remedy is the opposite:
+  /// nothing is wrong with the filament, the machine simply has to come back.
+  printerOffline,
+
   /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
   /// the password, so a rate-limited user gets it even when they finally type
   /// the right one; its own code because "wait 15 minutes" and "your password

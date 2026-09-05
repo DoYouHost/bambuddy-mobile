@@ -3230,6 +3230,12 @@ abstract class AppLocalizations {
   /// **'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.'**
   String get errSlotTagUnreadable;
 
+  /// No description provided for @errPrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.'**
+  String get errPrinterOffline;
+
   /// No description provided for @notifOngoingBody.
   ///
   /// In en, this message translates to:
