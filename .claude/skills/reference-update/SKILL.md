@@ -34,9 +34,10 @@ tool/server-ref-diff.sh --from <baseline-sha>
 It writes two files. **`.server-drift/facts.md`** is the one to read whole: the
 routes and schema fields that appeared or vanished and, for each of them,
 whether `lib/core/api/endpoints.dart` names that route and whether anything
-under `lib/` reads that JSON key. **`.server-drift/diff.md`** is the filtered
-diff those facts were read from — thousands of lines, so open the parts an item
-actually depends on.
+under `lib/` reads that JSON key, plus what an API key can do with each surface
+a route was added to. **`.server-drift/diff.md`** is the filtered diff those
+facts were read from — thousands of lines, so open the parts an item actually
+depends on.
 
 Those greps answer *exists*, never *is wired to anything a user can see*. A key
 named `description`, `id` or `status` is read in a dozen unrelated models, which
@@ -75,7 +76,7 @@ are the whole output.
 
 ## Feature
 - [ ] `/scheduled-dryings` — schedule a dry run; new repository, sheet entry, l10n — key: full (`PRINTERS_CONTROL` → `can_control_printer`) — M
-- [ ] `/location-ha-sensors/*` — bind an HA sensor to a storage location; new surface — key: partial — reads on `can_read_status`, every write is `SMART_PLUGS_CREATE/UPDATE/DELETE` → no key scope — L
+- [ ] `/location-ha-sensors/*` — show a location's HA temperature and humidity; the binding stays in the server's UI — key: read-only (`SMART_PLUGS_READ` → `can_read_status`; the writes are `SMART_PLUGS_CREATE/UPDATE/DELETE` → no key scope) — M
 
 ## Watch only
 - `PATCH /archives/{id}` rejects a weight over 100 kg — nothing to change, but it is the answer if a 422 shows up in a report
@@ -123,32 +124,46 @@ recommends a key as the way to connect
 key segment is the default), so a feature whose point needs a permission no key
 can hold is unusable for the most likely session — and the reader has to see
 that before picking a line up, not after writing the code. Each line therefore
-ends in one of three verdicts, before its size:
+ends in one of four verdicts, before its size, and that is also the order they
+go in:
 
 - **`key: full`** — every route it needs resolves to a scope a key can carry.
-- **`key: partial`** — the main functional part does, and the line names the
-  part that does not (`key: partial — writing the sensor needs a login`).
-- **`key: no`** — the thing the feature is *for* is out of reach. Also gets
+- **`key: read-only`** — a key can call every read and no write. **This is a
+  feature, not a blocked one**, and the line describes the half that works: the
+  readings, the list, the history. Its size is the size of that half, and it
+  never gets `(needs a decision)` — deciding is what the writes would need. Say
+  where the missing half happens instead, when there is somewhere: HA sensors
+  are bound in the server's own UI, so an app that only shows their readings is
+  the whole of what we would have built anyway.
+- **`key: partial`** — some reads or some writes are out of reach and the rest
+  are not. The line names which (`key: partial — the alert thresholds need a
+  login`).
+- **`key: no`** — nothing the feature is *for* is reachable. Also gets
   `(needs a decision)`: building it then means telling users to switch to a
   password login, which is not a size estimate.
 
-`facts.md` computes this, so it is not a judgement: every added route in
-**Routes added server-side** carries its gate and the verdict for it, and the
-permissions on changed lines carry theirs. Copy the permission into the line as
-the evidence — `` `SMART_PLUGS_CREATE` → no key scope `` — the same way
+`facts.md` has a fifth answer, **`key: unresolved`**, and it is not one of the
+four: it means every route on that surface authorises some other way — a token
+in the path, or merely being signed in — so there was no permission to resolve.
+Read those routes and write one of the four yourself.
+
+`facts.md` computes all four, so none of it is a judgement. **What an API key
+can do with each added surface** is the section to read: it rolls every route of
+a surface up into one verdict, over the whole surface rather than the routes
+that happen to be new, which is the level a feature line is written at. **Routes
+added server-side** above it is the evidence — one route, its gate, its verdict.
+The permissions on changed lines carry theirs too. Copy the permission into the
+line as the evidence — `` `SMART_PLUGS_CREATE` → no key scope `` — the same way
 `## Watch only` names where our code gets its data. Read the allowlist yourself
 (`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION`) only when a route came back
 `no gate found`.
 
-Three things the verdict is *not*. It is not about whether the feature is worth
-building — a `key: no` feature the maintainer wants is still a feature. It is
-not a claim about auth being off server-side, where every gate passes and there
-is no identity at all
+Two things the verdict is *not*. It is not about whether the feature is worth
+building — a `key: no` feature the maintainer wants is still a feature. And it
+is not a claim about auth being off server-side, where every gate passes and
+there is no identity at all
 ([identifiedPermissionProvider](../../../lib/providers.dart) hides those screens
-anyway). And a **read-only** verdict is worth its own line rather than a
-silent downgrade: a surface a key can read but not write is often still worth
-half of — the drying sheet reports the server's automations and never offers to
-change them.
+anyway).
 
 **`## Watch only`** — nothing to do, and that is the finding. A validation rule,
 a migration that shifts stored numbers, a limit — the things that explain a
@@ -179,7 +194,9 @@ Where each kind of finding comes from in `facts.md`:
 | route bodies → functions added | read the diff: ranking and gating changes hide here |
 | route bodies → **we call routes in this file** | decides Watch only from real work — this file serves our traffic |
 | route bodies → permissions named on changed lines | each one already resolved to its API-key scope, or to "no key scope" |
-| routes added → the gate and verdict on each line | the API-key verdict for a Feature line; `no gate found` means read the route |
+| added surfaces → the roll-up verdict | the API-key verdict a Feature line ends in, `key: read-only` included |
+| added surfaces → `key: read-only` | a Feature line for the read half, sized as that half — never parked |
+| routes added → the gate and verdict on each line | the evidence behind that verdict; `no gate found` means read the route |
 | CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 
 The report carries the same sections and the same one-line entries, plus
