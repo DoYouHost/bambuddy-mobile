@@ -330,9 +330,13 @@ void main() {
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(200, {'pipelines': []}),
       );
-      adapter.onGet(
+      // A PUT, because that is what `update` sends — stubbing the GET left the
+      // real request unrouted, so it failed for the wrong reason and the 404
+      // this test is named after never happened.
+      adapter.onPut(
         '/api/v1/slicer-pipelines/999',
         (s) => s.reply(404, {'detail': 'Pipeline not found'}),
+        data: Matchers.any,
       );
 
       await repo.probe();
@@ -344,6 +348,12 @@ void main() {
       );
       // Still supported: the collection answered, only that row is missing.
       expect(await repo.isSupported, isTrue);
+      // And on the latch the 404 actually landed on. `isSupported` alone reads
+      // the *read* latch, which a failed update never touches — so it passed
+      // either way and pinned nothing.
+      expect(await repo.canWrite, isTrue,
+          reason: 'editing a pipeline that is gone is not the write routes '
+              'being absent');
     });
 
     test('an offline server is not cached as unsupported', () async {
