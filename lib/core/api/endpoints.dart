@@ -135,8 +135,41 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/files/download';
 
   /// Download several files (`{"paths":[...]}` body) bundled as one ZIP.
+  ///
+  /// The whole bundle is built while the request is held open, so the reply
+  /// arrives minutes later with no word in the meantime. [printerFilesJob] is
+  /// the same work without the held socket, on servers that have it.
   static String printerFilesDownloadZip(int printerId) =>
       '$apiPrefix/printers/$printerId/files/download-zip';
+
+  /// `POST {paths, sizes, filename, as_zip}` — start preparing a download on
+  /// the server and answer at once with a job to poll (server #2850).
+  ///
+  /// 404 on an older server, which is what [printerFilesDownloadZip] stays for.
+  static String printerFilesJob(int printerId) =>
+      '$apiPrefix/printers/$printerId/files/download-job';
+
+  /// `GET` one job's state, `DELETE` cancels it (and deletes what was already
+  /// prepared). Note the plural, which the start route does not have.
+  static String printerFilesJobStatus(int printerId, String jobId) =>
+      '$apiPrefix/printers/$printerId/files/download-jobs/$jobId';
+
+  /// The prepared bytes, addressed by the single-use token a `ready` job
+  /// carries. **Unauthenticated by design** — the token is the authorisation,
+  /// bound to this printer and consumed on first use (`create_slicer_download
+  /// _token` / `verify_slicer_download_token`, five-minute TTL) — and the
+  /// server deletes the staged file once it has been served, so there is no
+  /// second attempt: a transfer that breaks needs a new job.
+  ///
+  /// [filename] only names the download for the client; the server sanitises
+  /// it and it does not select the file.
+  static String printerFilesPrepared(
+    int printerId,
+    String token,
+    String filename,
+  ) =>
+      '$apiPrefix/printers/$printerId/files/dl/'
+      '${Uri.encodeComponent(token)}/${Uri.encodeComponent(filename)}';
 
   /// `DELETE ?path=` removes one file. Same route as [printerFiles].
   static String printerFileDelete(int printerId) =>
@@ -227,6 +260,16 @@ abstract final class Endpoints {
   static String dryingStop(int printerId) =>
       '$apiPrefix/printers/$printerId/drying/stop';
 
+  /// Drying runs the server will start later. `GET` lists the `pending` /
+  /// `running` / `failed` rows (optional `printer_id` filter), `POST` schedules
+  /// one. 404 on servers before the route shipped — see
+  /// [ServerFeature.scheduledDryings].
+  static const scheduledDryings = '$apiPrefix/scheduled-dryings';
+
+  /// Cancel a pending or running scheduled drying run, or dismiss a failed one
+  /// — the same `DELETE` does both.
+  static String scheduledDrying(int id) => '$scheduledDryings/$id';
+
   // --- Movement / jog (manual control; idle only) --- All POST, empty body,
   // params in query. Relative moves; the server maps the Z sign per model (A1
   // bed-slingers are inverted). Require `can_control_printer`.
@@ -265,11 +308,24 @@ abstract final class Endpoints {
   /// A2L AMS-Lite is normalised to unit 6), 254 external / Ext-L, 255 Ext-R.
   /// The server rejects everything else with 400, AMS-HT (unit 128+) included —
   /// build the number with `amsLoadTrayId`, which answers null for those.
+  ///
+  /// Optional `extruder_id` (0 = right/main, 1 = left/deputy) names the hotend
+  /// to feed. Only a printer with a Filament Track Switch needs it — see
+  /// `PrinterStatus.filaSwitch`. A server too old to know the parameter ignores
+  /// it, which is the same answer as not having the accessory.
   static String amsLoad(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/load';
 
-  /// Unload whatever is in the extruder. Printer-wide: the source slot comes
-  /// from the printer's own `tray_now`, so there is nothing to address.
+  /// Unload filament. Optional `tray_id` — the same global encoding [amsLoad]
+  /// takes — names the slot, and through it the hotend fed from that slot: a
+  /// dual-nozzle printer has one `tray_now` for two loaded hotends, so an
+  /// unaddressed unload picks whichever of them that field happens to name.
+  /// Omitted, the server keeps that older behaviour, which is all a
+  /// single-nozzle printer ever needs; a server too old to know the parameter
+  /// ignores it and does the same.
+  ///
+  /// Answers 409 when no hotend is fed from the named slot — a per-slot menu
+  /// offers the action on every slot, and most of them are not loaded.
   static String amsUnload(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/unload';
 
@@ -385,6 +441,16 @@ abstract final class Endpoints {
   /// (required), `purge_stats` → `ArchivePurgePreviewResponse`.
   static const archivesPurgePreview = '$apiPrefix/archives/purge/preview';
 
+  /// Whether any print in the last 30 days archived without its 3MF, and why
+  /// (`{has_fallback, reason}`). Stateless — dismissal is the client's business.
+  ///
+  /// `reason` is `internal_storage`, `no_external_storage`, or absent; the
+  /// slugs are contract (`print_storage.py`), and an older server answers the
+  /// same route with `has_fallback` alone. Absent means the original cause,
+  /// the slicer's "Store sent files on external storage" being off, which is
+  /// what the single-cause wording used to claim unconditionally.
+  static const archivesNo3mfWarning = '$apiPrefix/archives/no-3mf-warning';
+
   /// Thumbnail authenticated via `?token=` (camera token), NOT via header
   /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
@@ -398,6 +464,17 @@ abstract final class Endpoints {
   /// a P1S until the server's background conversion catches up.
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
+
+  /// Recordings this print can still be given: the timelapse the server keeps,
+  /// plus whatever the printer itself holds — an unattached timelapse and the
+  /// `/ipcam` clips whose timestamps fall inside the print
+  /// (`archives.py::get_archive_printer_media`).
+  ///
+  /// Slow on purpose: the server lists up to five directories over the
+  /// printer's FTP, each with its own 8-second budget, so this outlasts the
+  /// client's default receive deadline by a wide margin.
+  static String archivePrinterMedia(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/printer-media';
 
   /// One photo attached to the archive, authenticated via `?token=` (camera
   /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
@@ -432,8 +509,14 @@ abstract final class Endpoints {
       '$apiPrefix/archives/$archiveId/timelapse/process';
 
   /// The archive's G-code as `text/plain`, unzipped from its 3MF
-  /// (`archives.py::get_gcode`). Query `plate=N` picks
-  /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
+  /// (`archives.py::get_gcode`). Query `plate=N` picks `Metadata/plate_N.gcode`.
+  ///
+  /// **Always send the plate for a multi-plate file.** Without it the answer
+  /// depends on the server: newer ones pick the lowest-numbered plate, older
+  /// ones the zip's first member — which is whatever order the slicer happened
+  /// to write, so the same file could preview as a different plate on two
+  /// servers. `Archive.plateId` / `QueueItem.plateId` is the plate the run
+  /// belongs to and the one to ask for.
   ///
   /// Older than either embedded viewer the server has had, and untouched by the
   /// one it deleted — which is what makes it safe to draw the preview from.
@@ -456,9 +539,18 @@ abstract final class Endpoints {
   static String archiveFilamentRequirements(int archiveId) =>
       '$apiPrefix/archives/$archiveId/filament-requirements';
 
-  /// See [libraryFilePlates].
+  /// See [libraryFilePlates]. The archive twin answers two keys the library one
+  /// does not: `has_gcode` and a per-plate `bed_type`.
+  ///
+  /// Each plate row carries its own `thumbnail_url` for
+  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` (camera token)
+  /// like [archiveThumbnail], and null when the 3MF has no render for that
+  /// plate. That path is read from the row rather than rebuilt here: the archive
+  /// and library routes spell it differently and the row knows which one it came
+  /// from.
   static String archivePlates(int archiveId) =>
       '$apiPrefix/archives/$archiveId/plates';
+
 
   // --- Print log (one row per run, in its own table) ---
 
@@ -531,6 +623,66 @@ abstract final class Endpoints {
   /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
   /// here to gate the slice UI; full settings management lives on the web.
   static const appSettings = '$apiPrefix/settings';
+
+  // --- Slicer pipelines (reusable preset bundles + their runs) ---
+
+  /// Pipeline list (`GET` → `{pipelines: […]}`) and create (`POST`, body
+  /// `SlicerPipelineCreate` → 201). Trailing slash required: the routes are
+  /// registered as `""`-prefixed `/`, like `/printers/`.
+  ///
+  /// **404 on a server older than 0.2.4.9**, which is the whole compatibility
+  /// story for this feature: every pipeline route landed in one server commit
+  /// and the wire schemas have not moved since, so presence and permission are
+  /// all there is to ask — see [PipelinesRepository.isSupported].
+  static const slicerPipelines = '$apiPrefix/slicer-pipelines/';
+
+  /// One pipeline: `GET`, `PUT` (partial — only the keys present are written)
+  /// and `DELETE` (soft, so run history can still name it). No trailing slash.
+  static String slicerPipeline(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId';
+
+  /// Pre-flight for a run (`POST`, body `{source_library_file_id |
+  /// source_archive_id}` → `EligibilityReportResponse`). Exactly one source key
+  /// may be set; both or neither is a 422.
+  static String slicerPipelineCheckEligibility(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId/check-eligibility';
+
+  /// Start a run (`POST`, body adds `copies` + `force` → `202 PipelineRun`).
+  ///
+  /// Answers **409 with the eligibility report as its `detail`** when the
+  /// pre-flight fails and `force` is not set — that body is the same shape
+  /// [slicerPipelineCheckEligibility] returns, deliberately, so one screen
+  /// renders both.
+  static String slicerPipelineRun(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId/run';
+
+  /// The runs dashboard (`GET`, query `limit`/`offset` and the four filters
+  /// `pipeline_id`/`status`/`target_printer_id`/`target_model_class`).
+  /// **No trailing slash** — this router registers the bare path, unlike
+  /// [slicerPipelines].
+  ///
+  /// `GET /slicer-pipelines/{id}/runs` is deliberately absent from this file.
+  /// It answers the same thing as `?pipeline_id=` here and takes only a
+  /// `limit`, with no `offset` — so it cannot page, and a screen built on it
+  /// would stop at its first hundred runs. The pipeline card opens this one
+  /// pre-filtered instead.
+  static const pipelineRuns = '$apiPrefix/pipeline-runs';
+
+  /// Drop every terminal run (`POST`, no body → `{deleted: n}`).
+  static const pipelineRunsClear = '$apiPrefix/pipeline-runs/clear';
+
+  /// One run (`GET`) — the poll target while a run is in flight.
+  static String pipelineRun(int runId) => '$apiPrefix/pipeline-runs/$runId';
+
+  /// Cancel a run (`POST`, no body). Cascades to its pending queue entries;
+  /// a print already on the printer keeps going and needs a manual stop.
+  static String pipelineRunCancel(int runId) =>
+      '$apiPrefix/pipeline-runs/$runId/cancel';
+
+  /// Re-run the failed + cancelled copies as a fresh run (`POST` → `202`).
+  /// 400s when the pipeline or the source is gone, or nothing failed.
+  static String pipelineRunRetryFailed(int runId) =>
+      '$apiPrefix/pipeline-runs/$runId/retry-failed';
 
   // --- Smart plugs (M7) ---
 
@@ -707,11 +859,34 @@ abstract final class Endpoints {
   static String inventorySpoolKProfiles(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/k-profiles';
 
+  /// Per-printer-model slicer preset overrides for one spool
+  /// (`SpoolFilamentPresetResponse[]`, server 1.2.6). `PUT` replaces the whole
+  /// list (body `SpoolFilamentPresetBase[]`), so an empty list is how the last
+  /// override is cleared — and why a caller that could not read the current
+  /// rows must not write.
+  static String inventorySpoolFilamentPresets(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/filament-presets';
+
   /// Render spool labels as a PDF stream (`POST`, body
   /// `{spool_ids:[int], template:str, monochrome:bool}`). Response is the raw
   /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
   /// 500 ids and 404s if any id is unknown.
   static const inventoryLabels = '$apiPrefix/inventory/labels';
+
+  // --- Home Assistant sensors bound to a storage location (server #2827) ---
+
+  /// Every configured binding (`LocationHASensorResponse[]`), optionally one
+  /// location's with `?location_id=`.
+  ///
+  /// The trailing slash is the route as declared: `location_ha_sensors.py`
+  /// registers only `"/"`, so the bare path is a 307 to this one — which Dio
+  /// follows, but only after a wasted round trip.
+  static const locationHaSensors = '$apiPrefix/location-ha-sensors/';
+
+  /// Live state of one location's card-visible sensors
+  /// (`LocationHASensorReading[]`), served from the server's poll cache.
+  static String locationHaSensorReadings(int locationId) =>
+      '$apiPrefix/location-ha-sensors/by-location/$locationId/readings';
 
   // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
@@ -758,6 +933,12 @@ abstract final class Endpoints {
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
   static const spoolmanLabels = '$apiPrefix/spoolman/labels';
+
+  /// Spoolman counterpart of [inventorySpoolFilamentPresets]. Spoolman owns the
+  /// spool, bambuddy owns the override rows, so they are stored locally and
+  /// keyed by the remote spool id — same body, same replace semantics.
+  static String spoolmanSpoolFilamentPresets(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/filament-presets';
 
   // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';

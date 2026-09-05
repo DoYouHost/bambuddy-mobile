@@ -175,6 +175,129 @@ void main() {
     });
   });
 
+  group('WearRpcAck', () {
+    test('round-trips, and its state defaults to waking', () {
+      const ack = WearRpcAck('abc');
+      final decoded = WearRpcAck.decode(ack.encode())!;
+      expect(decoded.id, 'abc');
+      expect(decoded.state, wearRpcAckWaking);
+    });
+
+    test('an unknown state still reads as an ack', () {
+      // Any ack means "someone is on it"; a future state must not read as
+      // silence on a watch that predates it.
+      final decoded = WearRpcAck.decode(
+        const WearRpcAck('abc', state: 'from-the-future').encode(),
+      );
+      expect(decoded, isNotNull);
+      expect(decoded!.state, 'from-the-future');
+    });
+
+    test('is invisible to the request and response decoders', () {
+      // This is why the ack is a new kind and not a field: a watch or phone
+      // built before it exists drops it and keeps behaving exactly as it did.
+      final map = const WearRpcAck('abc').encode();
+      expect(WearRpcRequest.decode(map), isNull);
+      expect(WearRpcResponse.decode(map), isNull);
+    });
+
+    test('the other two kinds do not decode as an ack', () {
+      expect(
+        WearRpcAck.decode(WearRpcRequest.create(WearRpcAction.pause).encode()),
+        isNull,
+      );
+      expect(
+        WearRpcAck.decode(const WearRpcResponse.ok('abc').encode()),
+        isNull,
+      );
+    });
+  });
+
+  group('the sender version', () {
+    test('a request carries this build\'s version', () {
+      final req = WearRpcRequest.create(WearRpcAction.pause);
+      expect(req.version, wearRpcVersion);
+      expect(WearRpcRequest.decode(req.encode())!.version, wearRpcVersion);
+    });
+
+    test('a watch that sent v1 decodes as v1, not as this build', () {
+      final map = WearRpcRequest.create(WearRpcAction.startNext).encode()
+        ..['v'] = 1;
+      expect(WearRpcRequest.decode(map)!.version, 1);
+    });
+
+    test('a request re-encodes the version it carries, not this build\'s', () {
+      // Every encode in the app today is of a freshly built request, so this
+      // costs nothing now — but the field is what the wake gate reads, and a
+      // forwarding or echo path that re-encoded a decoded request would hand
+      // the phone a v1 watch dressed as wake-aware.
+      const v1 = WearRpcRequest(
+        id: 'r1',
+        action: WearRpcAction.startNext,
+        version: 1,
+      );
+
+      expect(v1.encode()['v'], 1);
+      expect(WearRpcRequest.decode(v1.encode())!.version, 1);
+    });
+
+    test('a map with no version reads as the oldest one', () {
+      final map = WearRpcRequest.create(WearRpcAction.pause).encode()
+        ..remove('v');
+      expect(WearRpcRequest.decode(map)!.version, 1);
+    });
+  });
+
+  group('the retry policy', () {
+    test('every action is classified, and startNext is the destructive one',
+        () {
+      expect(WearRpcAction.getFleet.retry, WearRpcRetry.read);
+      expect(WearRpcAction.startNext.retry, WearRpcRetry.destructive);
+      for (final action in WearRpcAction.values) {
+        if (action == WearRpcAction.getFleet ||
+            action == WearRpcAction.startNext) {
+          continue;
+        }
+        expect(action.retry, WearRpcRetry.idempotent, reason: action.name);
+      }
+    });
+
+    test('the watch repeats only a read over REST', () {
+      // Not even a pause: a timed-out command may have run on the phone, and
+      // the watch cannot tell that from a phone that never heard it.
+      expect(WearRpcAction.getFleet.mayRepeatOverRest, isTrue);
+      expect(WearRpcAction.pause.mayRepeatOverRest, isFalse);
+      expect(WearRpcAction.startNext.mayRepeatOverRest, isFalse);
+    });
+
+    test('the wake gate reads the sender version and the table together', () {
+      const pauseV1 =
+          WearRpcRequest(id: 'x', action: WearRpcAction.pause, version: 1);
+      const startV1 =
+          WearRpcRequest(id: 'x', action: WearRpcAction.startNext, version: 1);
+      const startNow = WearRpcRequest(
+        id: 'x',
+        action: WearRpcAction.startNext,
+        version: wearRpcWakeAwareVersion,
+      );
+
+      expect(pauseV1.mayRunOnWake, isTrue);
+      // The v1 watch stopped waiting long ago; its user's next tap would be
+      // the second start.
+      expect(startV1.mayRunOnWake, isFalse);
+      // This one waits for the ack, so it will see the answer to this run.
+      expect(startNow.mayRunOnWake, isTrue);
+    });
+
+    test('a woken phone runs everything except the destructive one', () {
+      // It knows nothing has run yet, so the only question is what the user's
+      // retry would add — and that is a plate only for startNext.
+      expect(WearRpcAction.pause.isRepeatSafe, isTrue);
+      expect(WearRpcAction.hmsAction.isRepeatSafe, isTrue);
+      expect(WearRpcAction.startNext.isRepeatSafe, isFalse);
+    });
+  });
+
   group('deepSanitize', () {
     test('strips nulls recursively and re-keys maps', () {
       final out = deepSanitize({

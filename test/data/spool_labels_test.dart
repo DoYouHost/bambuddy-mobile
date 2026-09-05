@@ -35,7 +35,7 @@ void main() {
   const white = Color(0xFFFFFFFF);
 
   group('spoolColorSortKey', () {
-    test('kolory chromatyczne idą przed neutralnymi', () {
+    test('chromatic colours come before neutrals', () {
       expect(spoolColorSortKey(red).bucket, 0);
       expect(spoolColorSortKey(green).bucket, 0);
       expect(spoolColorSortKey(blue).bucket, 0);
@@ -44,14 +44,14 @@ void main() {
       }
     });
 
-    test('chromatyczne układają się po odcieniu: R → G → B', () {
+    test('chromatic colours order by hue: R → G → B', () {
       expect(_sortByColor([blue, red, green]), [red, green, blue]);
       expect(spoolColorSortKey(red).pos, closeTo(0, 0.001));
       expect(spoolColorSortKey(green).pos, closeTo(120, 0.001));
       expect(spoolColorSortKey(blue).pos, closeTo(240, 0.001));
     });
 
-    test('neutralne układają się od ciemnych do jasnych, na końcu listy', () {
+    test('neutrals order dark to light, trailing the list', () {
       expect(_sortByColor([white, red, black, grey]), [
         red,
         black,
@@ -60,15 +60,15 @@ void main() {
       ]);
     });
 
-    test('brak koloru trafia do neutralnych na pozycji czerni', () {
+    test('a missing colour lands among the neutrals, where black sits', () {
       final key = spoolColorSortKey(null);
       expect(key.bucket, 1);
       expect(key.pos, 0);
-      // Nie wywala się i nie ląduje przed kolorami chromatycznymi.
+      // Does not throw, and does not land ahead of the chromatic colours.
       expect(_sortByColor([null, red]), [red, null]);
     });
 
-    test('ciemny granat zostaje chromatyczny, nie wpada do neutralnych', () {
+    test('a dark navy stays chromatic instead of falling into the neutrals', () {
       expect(spoolColorSortKey(const Color(0xFF001F3F)).bucket, 0);
     });
   });
@@ -85,70 +85,84 @@ void main() {
     }
 
     test(
-      'natywny backend POSTuje ids/template/monochrome i zwraca PDF',
+      'the native backend POSTs ids/template/monochrome and gets a PDF back',
       () async {
         serve(_pdfBytes);
 
         final bytes = await NativeInventorySource(dio).renderLabels(
-          [7, 3, 11],
-          SpoolLabelTemplate.averyL7160,
-          monochrome: true,
+          const SpoolLabelRequest(
+            spoolIds: [7, 3, 11],
+            template: SpoolLabelTemplate.averyL7160,
+            monochrome: true,
+          ),
         );
 
         expect(bytes, _pdfBytes);
         expect(adapter.captured!.path, '/api/v1/inventory/labels');
         final body = adapter.captured!.data as Map<String, dynamic>;
-        // Kolejność ids musi przetrwać — serwer drukuje w kolejności wysyłki.
+        // The id order has to survive: the server prints in the order it is sent.
         expect(body['spool_ids'], [7, 3, 11]);
         expect(body['template'], 'avery_l7160');
         expect(body['monochrome'], isTrue);
       },
     );
 
-    test('monochrome domyślnie false', () async {
+    test('monochrome defaults to false', () async {
       serve(_pdfBytes);
-      await NativeInventorySource(
-        dio,
-      ).renderLabels([1], SpoolLabelTemplate.box40x30);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box40x30,
+        ),
+      );
       expect((adapter.captured!.data as Map)['monochrome'], isFalse);
     });
 
     test(
-      'Spoolman uderza w /spoolman/labels, nie w /spoolman/inventory/...',
+      'Spoolman hits /spoolman/labels, not /spoolman/inventory/...',
       () async {
         serve(_pdfBytes);
-        final bytes = await SpoolmanInventorySource(
-          dio,
-        ).renderLabels([5], SpoolLabelTemplate.amsHolderSmall);
+        final bytes = await SpoolmanInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [5],
+            template: SpoolLabelTemplate.amsHolderSmall,
+          ),
+        );
 
         expect(bytes, _pdfBytes);
         expect(adapter.captured!.path, '/api/v1/spoolman/labels');
       },
     );
 
-    test('nieznane id → 404 mapowane na AppApiException', () async {
+    test('an unknown id → 404 mapped to AppApiException', () async {
       serve(utf8.encode('{"detail":"Spool(s) not found: [99]"}'), status: 404);
       await expectLater(
-        NativeInventorySource(
-          dio,
-        ).renderLabels([99], SpoolLabelTemplate.box62x29),
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [99],
+            template: SpoolLabelTemplate.box62x29,
+          ),
+        ),
         throwsA(isA<AppApiException>()),
       );
     });
 
-    // Regresja: demo backend (i każdy starszy serwer bez tras etykiet) odpowiada
-    // na nieznany POST statusem 200 i ciałem `{}`. Bez walidacji nagłówka PDF te
-    // bajty trafiały do androidowego dialogu druku, który wywalał aplikację
-    // natywnym wyjątkiem "Cannot print a malformed PDF file" — nie do złapania
-    // z Darta.
+    // Regression: the demo backend (and any older server without the label
+    // routes) answers an unrouted POST with 200 and a body of `{}`. Without the
+    // PDF-header check those bytes reached Android's print dialog, which killed
+    // the app with a native "Cannot print a malformed PDF file" — not catchable
+    // from Dart.
     test(
-      '200 z ciałem innym niż PDF → AppApiException, nie surowe bajty',
+      '200 with a body that is not a PDF → AppApiException, not raw bytes',
       () async {
         serve(utf8.encode('{}'));
         await expectLater(
-          NativeInventorySource(
-            dio,
-          ).renderLabels([1], SpoolLabelTemplate.amsHolderLarge),
+          NativeInventorySource(dio).renderLabels(
+            const SpoolLabelRequest(
+              spoolIds: [1],
+              template: SpoolLabelTemplate.amsHolderLarge,
+            ),
+          ),
           throwsA(
             isA<AppApiException>().having(
               (e) => e.code,
@@ -160,17 +174,20 @@ void main() {
       },
     );
 
-    test('pusta odpowiedź 200 też nie przechodzi', () async {
+    test('an empty 200 does not get through either', () async {
       serve(const []);
       await expectLater(
-        NativeInventorySource(
-          dio,
-        ).renderLabels([1], SpoolLabelTemplate.box62x29),
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [1],
+            template: SpoolLabelTemplate.box62x29,
+          ),
+        ),
         throwsA(isA<AppApiException>()),
       );
     });
 
-    test('każdy szablon ma wartość zgodną z kontraktem backendu', () {
+    test('every template carries the wire value the backend contract names', () {
       expect(
         SpoolLabelTemplate.values.map((t) => t.wire),
         containsAll([
@@ -182,6 +199,70 @@ void main() {
           'avery_5160',
         ]),
       );
+    });
+  });
+
+  group('starting_position', () {
+    late Dio dio;
+    late _FakeAdapter adapter;
+
+    setUp(() {
+      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      adapter = _FakeAdapter(status: 200, bytes: _pdfBytes);
+      dio.httpClientAdapter = adapter;
+    });
+
+    Map<String, dynamic> body() =>
+        adapter.captured!.data as Map<String, dynamic>;
+
+    test('reaches the body when a part-used sheet is resumed', () async {
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+          startingPosition: 7,
+        ),
+      );
+      expect(body()['starting_position'], 7);
+    });
+
+    test('is absent for a whole sheet', () async {
+      // 1 is the server's own default, and an older server would drop the key
+      // either way — sending it would prove nothing about who honoured it.
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+        ),
+      );
+      expect(body().containsKey('starting_position'), isFalse);
+    });
+
+    test('reaches the Spoolman route too', () async {
+      await SpoolmanInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.avery5160,
+          startingPosition: 30,
+        ),
+      );
+      expect(adapter.captured!.path, '/api/v1/spoolman/labels');
+      expect(body()['starting_position'], 30);
+    });
+
+    test('only the sheet templates have a capacity to start within', () {
+      // A roll template prints one label per page, and the server refuses any
+      // starting position but 1 on one.
+      expect(SpoolLabelTemplate.averyL7160.sheetCapacity, 21);
+      expect(SpoolLabelTemplate.avery5160.sheetCapacity, 30);
+      for (final roll in [
+        SpoolLabelTemplate.amsHolderSmall,
+        SpoolLabelTemplate.amsHolderLarge,
+        SpoolLabelTemplate.box40x30,
+        SpoolLabelTemplate.box62x29,
+      ]) {
+        expect(roll.sheetCapacity, isNull, reason: roll.wire);
+      }
     });
   });
 }

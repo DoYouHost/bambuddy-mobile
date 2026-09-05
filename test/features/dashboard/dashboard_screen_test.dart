@@ -3,12 +3,12 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
@@ -77,14 +77,6 @@ class _FakeDashboardNotifier extends DashboardNotifier {
   Future<void> refresh() async {}
 }
 
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
-
 /// Inert WS: dashboard tests check the render from polling, not a live socket.
 class _InertStatusesNotifier extends PrinterStatusesNotifier {
   @override
@@ -114,16 +106,16 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   @override
   Future<bool> isRunning() async => running;
   @override
-  void syncDiagnostics() {}
+  void sync(BackgroundSync what) {}
 }
 
 /// Watch relay stubbed only so it does not reach for the platform channel.
 class _InertWearRelay extends WearRelayHandler {
   _InertWearRelay() : super(watch: WatchConnectivity(), dio: () => null);
   @override
-  void start() {}
+  Future<void> start() async {}
   @override
-  void stop() {}
+  Future<void> stop() async {}
 }
 
 /// Counts the hand-off alone; what the notifier does inside is covered by its
@@ -152,7 +144,7 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
 
 List<Override> _overrides(DashboardState state) => [
       dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
-      serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+      fakeServerProfileOverride(),
       printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
       smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       inertFirmwareOverride,

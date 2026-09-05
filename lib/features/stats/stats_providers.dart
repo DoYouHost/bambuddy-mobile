@@ -146,12 +146,60 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
 
 /// Map `printer_id → name` to label "by printer" breakdown. Config only
 /// (no statuses) — cheap. Missing entry → UI shows `#id`.
+///
+/// Two sources, live printers last so a rename shows up immediately. Underneath
+/// them sit the names `/archives/stats` recorded per run, which cover an id the
+/// live list does not: a key that may read archives but not `/printers` sees
+/// every bar labelled `#id` without them. They do **not** bring back a deleted
+/// printer's bars — the breakdown is aggregated from `/archives/slim`, and
+/// deleting a printer either deletes its archives or clears their `printer_id`,
+/// so those runs are not in the aggregate to label. A server that does not send
+/// `printer_names` leaves that layer empty and the map is what it always was.
 final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
   (ref) async {
+    final recorded = ref.watch(statsProvider).valueOrNull?.printerNames;
     final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
-    return {for (final p in printers) p.id: p.name};
+    final names = <int, String>{};
+    for (final entry in (recorded ?? const <String, String>{}).entries) {
+      final id = int.tryParse(entry.key);
+      if (id != null) names[id] = entry.value;
+    }
+    for (final printer in printers) {
+      names[printer.id] = printer.name;
+    }
+    return names;
   },
 );
+
+/// Labels for the per-printer breakdowns: the live printer's current name
+/// first, so a rename shows up straight away, and behind it the name the
+/// server's print log last recorded for that id. Only the second one can name
+/// a printer that has since been deleted — the live list has no row for it,
+/// which is why its history used to read as a bare `#id`.
+final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
+  final live = ref.watch(printerNamesProvider).valueOrNull ?? const {};
+  final recorded = ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
+  final labels = <int, String>{};
+
+  // A blank name is dropped rather than stored, on both sides. Two reasons it
+  // has to be a filter and not a merge: `PrinterUpdate.name` carries no
+  // `min_length` server-side and the PATCH route assigns it unchecked, so a
+  // printer really can end up nameless; and the row's `#id` fallback keys on
+  // the label being *absent*, which an empty string is not — it would draw a
+  // bar with nothing written on it. Letting a nameless live printer overwrite
+  // the name its own print log recorded is the worse half of that.
+  void put(int id, String name) {
+    if (name.trim().isNotEmpty) labels[id] = name;
+  }
+
+  recorded.forEach((id, name) {
+    final printerId = int.tryParse(id);
+    if (printerId != null) put(printerId, name);
+  });
+  // Live last, so a rename wins over what the log recorded before it.
+  live.forEach(put);
+  return labels;
+});
 
 /// Slim list of all prints for active filter — source of rich stats (heatmap,
 /// records, colors, usage over time, histograms).

@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clock/clock.dart' as ambient;
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../auth/credentials_store.dart';
 import '../settings/settings_repository.dart';
 import 'error_probe.dart';
 import 'http_probe.dart';
@@ -38,7 +40,7 @@ class DiagnosticRecorder {
     this.ringRecords = ringRecordLimit,
     this.ringChars = ringCharLimit,
     DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+  }) : _clock = clock ?? (() => ambient.clock.now());
 
   final SettingsRepository settings;
   final Future<SessionFacts> Function() loadFacts;
@@ -307,7 +309,7 @@ class DiagnosticRecorder {
     try {
       final session = settings.loadDiagnosticsSession();
       if (session == null) return null;
-      final now = (clock ?? DateTime.now)();
+      final now = (clock ?? ambient.clock.now)();
 
       final prepared = await Future(() async {
         final directory = await resolveDirectory();
@@ -369,6 +371,45 @@ class DiagnosticRecorder {
       // opened keeps a half-started stream from leaving queued lines behind.
       _active = null;
       await opened?.close();
+      return null;
+    }
+  }
+
+  /// [startBackground] for an isolate woken to do one job and gone a second
+  /// later — a notification action, a request relayed from the watch. Null,
+  /// the normal case, when there is nothing to record into.
+  ///
+  /// Those paths run in whichever isolate the platform picked, and two of the
+  /// three are already recording; there the records land in the stream they
+  /// belong to for free (`docs/logging-guide.md` §4). [LogStream.action] is
+  /// the third one's stream: `fgs` is the service's file for the same session
+  /// and two writers would tear it.
+  ///
+  /// **Never throws.** The caller is carrying out the user's tap, and
+  /// diagnostics must not be why it does not happen — [SettingsRepository.opened]
+  /// alone is a platform read that a locked keystore can fail. The parameters
+  /// are test seams, as on [startBackground].
+  static Future<BackgroundRecording?> startAction({
+    Future<SettingsRepository> Function() openSettings =
+        SettingsRepository.opened,
+    Future<Directory?> Function() resolveDirectory = diagnosticsDirectory,
+    DateTime Function()? clock,
+  }) async {
+    try {
+      if (isRecording) return null;
+      final settings = await openSettings();
+      return await startBackground(
+        settings: settings,
+        stream: LogStream.action,
+        resolveDirectory: resolveDirectory,
+        loadSecrets: () => sessionSecrets(
+          profile: settings.loadProfile(),
+          credentials: SecureCredentialsStore(),
+        ),
+        attachErrors: false,
+        clock: clock,
+      );
+    } on Object {
       return null;
     }
   }

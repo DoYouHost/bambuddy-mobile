@@ -21,9 +21,14 @@ import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
+import '../../core/models/slicer_pipeline.dart';
 import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
+import '../pipelines/pipeline_presets.dart';
+import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
+import 'slice_filament_colours.dart';
+import 'slice_refusal.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -116,7 +121,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
     final reqs = ref
-            .watch(filamentRequirementsProvider(_sourceKey))
+            .watch(filamentRequirementsProvider(_filamentKey))
             .valueOrNull ??
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
@@ -188,6 +193,17 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
+                // Above the slots it fills, and hidden entirely on a server
+                // without the routes — see [PipelineSliceBar].
+                PipelineSliceBar(
+                  printer: _printer,
+                  process: _process,
+                  filaments: _filaments,
+                  bedType: _bedType,
+                  busy: _submitting,
+                  onApply: (p) =>
+                      setState(() => _applyPipeline(p, presets, slotCount)),
+                ),
                 _slotTile(
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
@@ -434,6 +450,47 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     );
   }
 
+  /// Fold a saved bundle into the form's slots.
+  ///
+  /// Deliberately not routed through [_pickPrinter], which clears the process
+  /// and filaments on purpose: here the whole bundle arrives together and was
+  /// authored to fit, so wiping the very fields the pipeline just supplied
+  /// would undo it. [_printerPicked] is set for the same reason the picker sets
+  /// it — the design's printer must not be adopted over a deliberate choice.
+  ///
+  /// The filament list is right-padded from what is already there, so applying
+  /// a one-slot pipeline to a four-slot model fills slot 1 and leaves the rest
+  /// as they were rather than blanking them. `filament_presets` is positional,
+  /// so an entry only ever lands on the slot of the same index.
+  ///
+  /// Process overrides are dropped: they were measured against whatever process
+  /// preset was selected before, and the pipeline brings a different one.
+  void _applyPipeline(
+    SlicerPipeline pipeline,
+    UnifiedPresets catalog,
+    int slotCount,
+  ) {
+    _printerPicked = true;
+    _printer =
+        resolvePresetRef(catalog, pipeline.printerPreset, PresetSlot.printer);
+    _process =
+        resolvePresetRef(catalog, pipeline.processPreset, PresetSlot.process);
+    _bedType = pipeline.bedType;
+    _processValues = {};
+
+    _resizeFilaments(slotCount);
+    for (var i = 0; i < _filaments.length; i++) {
+      if (i >= pipeline.filamentPresets.length) continue;
+      _filaments[i] = resolvePresetRef(
+          catalog, pipeline.filamentPresets[i], PresetSlot.filament);
+    }
+
+    // A bundle authored for a different printer must not keep the "as designed"
+    // gate alive — that switch is only meaningful while the form sits on the
+    // printer the file was made for, and the pipeline has just moved it.
+    _useEmbedded = false;
+  }
+
   /// Everything a printer change invalidates, in one place: the process and
   /// filaments were chosen for the old one, and the edits measured against a
   /// preset that is gone.
@@ -452,6 +509,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       enabled ? card : Opacity(opacity: 0.4, child: card);
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
+
+  /// Plate 1, because this screen has no plate picker and the slice it posts
+  /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
+  /// two have to name the same plate or the slots offered are not the slots the
+  /// slice will use.
+  PlateSource get _filamentKey => (
+        isArchive: widget.target.isArchive,
+        id: widget.target.id,
+        plate: 1,
+      );
 
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
@@ -552,8 +619,17 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     Widget? footnote,
   }) {
     final theme = Theme.of(context);
-    final subtitle = selected?.name ??
-        (typeHint != null ? '${_l10n.sliceSelect} · $typeHint' : _l10n.sliceSelect);
+    // An applied pipeline can name a preset this catalog does not list — the
+    // ref still slices, so the row says so rather than reading as empty, which
+    // would invite a re-pick of something that is already set.
+    final unresolved = selected != null && isUnresolved(selected);
+    final subtitle = switch (selected) {
+      null => typeHint != null
+          ? '${_l10n.sliceSelect} · $typeHint'
+          : _l10n.sliceSelect,
+      _ when unresolved => _l10n.pipelinePresetGone,
+      _ => selected.name,
+    };
     final card = Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
@@ -577,7 +653,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: selected == null
+                  color: selected == null || unresolved
                       ? theme.colorScheme.onSurfaceVariant
                       : null,
                 )),
@@ -642,6 +718,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final target = widget.target;
     final refs = [for (final f in _filaments) f!.toRef()];
     final asDesigned = _asDesigned;
+    // Slot colours, positional like `refs`. Empty on the "as designed" path:
+    // the file's own project settings carry the colours it was drawn with, and
+    // the server ignores the resolved filament profiles there anyway.
+    final colours = asDesigned
+        ? const <String>[]
+        : sliceFilamentColours(
+            picked: _filaments,
+            owned: ref.read(ownedFilamentsProvider).valueOrNull ??
+                const <OwnedFilament>[],
+            requirements:
+                ref.read(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
+                    const <FilamentRequirement>[],
+          );
     final overrides = asDesigned
         ? const <String, Object>{}
         : _overridesFrom(
@@ -668,6 +757,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       // that also hides which servers actually honoured it.
       if (_autoOrient) 'auto_orient': true,
       if (_autoArrange) 'auto_arrange': true,
+      // What each slot actually prints in, so the output records the spool's
+      // colour rather than the slicer's compiled-in green (server #2977). No
+      // version gate, unlike the switches above: this is derived from the
+      // pickers rather than being a control of its own, so an older server that
+      // drops the key just slices as it did before and there is nothing that
+      // could appear to work while doing nothing.
+      if (colours.isNotEmpty) 'filament_colours': colours,
       // Only genuine deviations, so an untouched screen leaves this slice
       // byte-identical to one from before the feature existed.
       if (overrides.isNotEmpty) 'process_overrides': overrides,
@@ -682,7 +778,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     } on AppApiException catch (e) {
       if (mounted) setState(() => _submitting = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'slice.submit');
+          action: 'slice.submit', message: sliceRefusalMessage(l10n, e));
       return;
     }
     if (!mounted) return;
@@ -959,6 +1055,19 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
     }
   }
 
+  /// Second half of the "it did not land where you asked" sentence. Unknown
+  /// keys (a reason a newer server adds) get no clause rather than their raw
+  /// wire value — the first half already says where the file actually is.
+  String? _externalFallbackReason(AppLocalizations l10n, String reason) =>
+      switch (reason) {
+        'external_readonly' => l10n.sliceExternalReadonly,
+        'external_no_path' => l10n.sliceExternalNoPath,
+        'external_unreachable' => l10n.sliceExternalUnreachable,
+        'external_not_writable' => l10n.sliceExternalNotWritable,
+        'external_invalid_name' => l10n.sliceExternalInvalidName,
+        _ => null,
+      };
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -989,6 +1098,17 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
             Text(l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!))),
           if (r?.filamentUsedG != null)
             Text(l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1))),
+          if (r?.externalWriteFallback != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                l10n.sliceExternalFallback,
+                ?_externalFallbackReason(l10n, r!.externalWriteFallback!),
+              ].join(' '),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
         ],
       );
     } else {

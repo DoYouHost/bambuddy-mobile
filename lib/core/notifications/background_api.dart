@@ -5,9 +5,7 @@ import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
 import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
 import '../diagnostics/notif_probe.dart';
-import '../diagnostics/session_facts.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
@@ -136,19 +134,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    // Same three-isolate story as the maintenance handler above: only the
-    // dedicated callback engine opens a stream of its own.
-    if (!DiagnosticRecorder.isRecording) {
-      recording = await DiagnosticRecorder.startBackground(
-        settings: SettingsRepository(prefs),
-        stream: LogStream.action,
-        loadSecrets: () => sessionSecrets(
-          profile: SettingsRepository(prefs).loadProfile(),
-          credentials: SecureCredentialsStore(),
-        ),
-        attachErrors: false,
-      );
-    }
+    recording = await DiagnosticRecorder.startAction();
     NotifProbe.action(id: actionId, items: 1);
 
     final api = await buildBackgroundApiClient(prefs);
@@ -189,24 +175,7 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    // Three isolates run this function, and two of them may already own a
-    // recording — the UI's when the app is open, the service's when it is
-    // backgrounded. Only the dedicated callback engine, where nothing else is
-    // logging, opens a stream of its own; in the other two the records land in
-    // the stream they belong to, for free.
-    if (!DiagnosticRecorder.isRecording) {
-      recording = await DiagnosticRecorder.startBackground(
-        settings: SettingsRepository(prefs),
-        stream: LogStream.action,
-        loadSecrets: () => sessionSecrets(
-          profile: SettingsRepository(prefs).loadProfile(),
-          credentials: SecureCredentialsStore(),
-        ),
-        // Short-lived and already wrapped end to end; the failures worth a record
-        // are the ones named below, not the ones the framework would report.
-        attachErrors: false,
-      );
-    }
+    recording = await DiagnosticRecorder.startAction();
     NotifProbe.action(id: maintenancePerformActionId, items: itemIds.length);
 
     final api = await buildBackgroundApiClient(prefs);
@@ -226,9 +195,8 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
         NotifProbe.actionFailed(error, items: 1);
       }
     }
-    final settings = SettingsRepository(prefs);
     // Read-modify-write on a set the service isolate also writes.
-    await prefs.reload();
+    final settings = await SettingsRepository(prefs).reloaded();
     // Failed resets are re-armed too: being *in* this set suppresses the alert,
     // and the button already took the notification away
     // (`cancelNotification: true`), so a re-alert is the only way the user

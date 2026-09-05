@@ -275,17 +275,16 @@ List<HeaterKindOption> _heaterKindOptions(
 
 /// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
 /// green; offline → red tinted with a vivid border.
+///
+/// [offline] is the only thing that decides the paint, so it must be passed
+/// wherever the printer is unreachable — including the window in which the card
+/// still shows its body (see the grace period in `PrinterCard`). A chip that
+/// took "connected" as a hint and painted green anyway is how an OFFLINE label
+/// ended up in the green pill.
 class _StateChip extends StatelessWidget {
-  const _StateChip({
-    required this.label,
-    required this.connected,
-    this.active = false,
-    this.offline = false,
-  });
+  const _StateChip({required this.label, this.offline = false});
 
   final String label;
-  final bool connected;
-  final bool active;
   final bool offline;
 
   @override
@@ -901,7 +900,9 @@ class _PresetChip extends StatelessWidget {
             style: t.monoValue.copyWith(color: fg),
           ),
         ),
-      ).tagged(id),
+        // Which chip is the current one is otherwise painted and nothing else:
+        // a reader would announce seven identical buttons.
+      ).tagged(id, selected: selected),
     );
   }
 }

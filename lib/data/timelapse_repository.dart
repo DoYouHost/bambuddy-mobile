@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/timelapse.dart';
+import 'streamed_download.dart';
 
 /// Everything about a print's timelapse except playing it: the metadata and
 /// filmstrip the editor draws, the re-encode it asks for, and the download.
@@ -76,10 +77,6 @@ class TimelapseRepository {
   /// server sent, which is the only place the container is stated: the same
   /// route serves MP4, AVI and MKV.
   ///
-  /// Streamed rather than read into memory — a recording runs to hundreds of
-  /// megabytes, and holding one in a list of bytes (then copying it into a
-  /// file) peaks at twice its size on a phone that has no reason to spare it.
-  ///
   /// Takes the camera [token] because this is the one route of the four that
   /// reads `?token=` instead of the auth header.
   Future<String?> downloadTo(
@@ -87,15 +84,16 @@ class TimelapseRepository {
     required String token,
     required String savePath,
     void Function(int received, int total)? onProgress,
-  }) => guard(() async {
-    final res = await _dio.download(
-      Endpoints.archiveTimelapse(archiveId),
-      savePath,
-      queryParameters: {'token': token},
-      // A hundred-megabyte recording over a slow LAN outlasts the default.
-      options: Options(receiveTimeout: const Duration(minutes: 10)),
-      onReceiveProgress: onProgress,
-    );
-    return res.headers.value(Headers.contentTypeHeader);
-  });
+  }) => streamDownload(
+    _dio,
+    Endpoints.archiveTimelapse(archiveId),
+    savePath,
+    queryParameters: {'token': token},
+    // A hundred-megabyte recording over a slow LAN outlasts the default, and
+    // this route streams from a file the server already has: it is answering
+    // within seconds or not at all, so a stall deadline still means something
+    // here.
+    receiveTimeout: const Duration(minutes: 10),
+    onProgress: onProgress,
+  );
 }

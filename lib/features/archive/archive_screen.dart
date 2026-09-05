@@ -3,19 +3,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/text_measure.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
+import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
@@ -29,8 +34,14 @@ import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
+import '../../data/pipelines_repository.dart' show PipelineSource;
+import '../pipelines/pipeline_run_screen.dart';
+import '../pipelines/pipelines_providers.dart'
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
+import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
+import '../common/hex_color.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -208,6 +219,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       ),
                     ),
                   ),
+                  // Above the list, below the search bar — and never while
+                  // multi-selecting, where the screen is a picker and every row
+                  // pushed down is a row the user has to hunt for again.
+                  if (!_selectionMode)
+                    const SliverToBoxAdapter(child: _No3mfBanner()),
                   if (all.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
@@ -268,9 +284,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
-        onTimelapse: () => _openTimelapse(archive),
-        onPhotos: () => _openPhotos(archive),
+        onMedia: () => _openMedia(archive),
         onSlice: () => _slice(archive),
+        onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
     );
@@ -325,6 +341,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     await showSliceScreen(
       context,
       SliceTarget.archive(archive.id, archive.displayName),
+    );
+  }
+
+  /// Re-slice this archive with a saved pipeline and dispatch the copies.
+  Future<void> _runPipeline(Archive archive) async {
+    Navigator.pop(context);
+    await showPipelineRunScreen(
+      context,
+      source: PipelineSource.archive(archive.id),
+      sourceName: archive.displayName,
     );
   }
 
@@ -470,10 +496,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   /// G-code preview: closes sheet and opens full-screen 3D viewer.
+  /// Opens the preview on the plate this print ran, not on whichever plate the
+  /// server would pick for a multi-plate file.
   void _previewGcode(Archive archive) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/gcode-viewer?archive=${archive.id}&name=$name');
+    context.push(gcodeViewerRoute(
+      archiveId: archive.id,
+      plate: archive.plateId,
+      title: archive.displayName,
+    ));
   }
 
   /// Timelapse: closes the sheet and opens the full-screen player.
@@ -481,6 +512,24 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     Navigator.pop(context);
     final name = Uri.encodeQueryComponent(archive.displayName);
     context.push('/timelapse?archive=${archive.id}&name=$name');
+  }
+
+  /// Media: swaps this sheet for the one that lists everything the print has,
+  /// on the server and on the printer.
+  ///
+  /// The printer search takes as long as five FTP listings, so it happens in
+  /// the sheet it belongs to rather than behind the button that opens it — a
+  /// tap that does nothing visible for half a minute reads as one that did
+  /// nothing. The two viewers are still opened from here: `_openTimelapse` and
+  /// `_openPhotos` pop whatever sheet is on top, which is now the media one.
+  void _openMedia(Archive archive) {
+    Navigator.pop(context);
+    openArchiveMediaSheet(
+      context,
+      archive,
+      onTimelapse: () => _openTimelapse(archive),
+      onPhotos: () => _openPhotos(archive),
+    );
   }
 
   /// Photos: closes the sheet and opens the full-screen viewer.
@@ -528,8 +577,130 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         filamentType: archive.filamentType,
         filamentColor: archive.filamentColor,
         slicedForModel: archive.slicedForModel,
+        // The plate this print ran on, so a reprint runs the same one. Null on
+        // a single-plate file and on servers that do not report it, which is
+        // what the form and the server both read as plate 1.
+        plateId: archive.plateId,
         manualStart: manualStart,
       );
+}
+
+/// "These prints archived without their 3MF" — and, since #2780, *why*.
+///
+/// Three causes with three different fixes, and the original single wording was
+/// wrong for two of them: it sent H2-series and P2S owners to switch on a slicer
+/// setting that was already on, and blamed the slicer when the real answer was
+/// an empty card slot. An older server sends no reason at all, which is the
+/// original case and keeps the original text.
+///
+/// Absent unless the server says there is something to say. Dismissal is
+/// one-shot and permanent, as on the web: fixing the cause stops new fallbacks,
+/// so there is nothing to come back to.
+class _No3mfBanner extends ConsumerWidget {
+  const _No3mfBanner();
+
+  /// Where the wiki explains this cause, or null when there is nothing to link —
+  /// "put a card in" is the whole fix for an empty slot.
+  static String? _docsUrl(No3mfReason reason) => switch (reason) {
+        No3mfReason.internalStorage =>
+          'https://wiki.bambuddy.cool/reference/troubleshooting/#archive-card-has-only-a-name',
+        No3mfReason.noExternalStorage => null,
+        No3mfReason.slicerSetting =>
+          'https://wiki.bambuddy.cool/getting-started/#step-4-enable-store-sent-files-on-external-storage',
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Dismissal is read here as well as in the provider: the provider skips the
+    // request on later app runs, but within this one it would keep serving the
+    // answer it already has while it recomputes, and the banner has to go the
+    // moment the X is tapped.
+    if (ref.watch(no3mfDismissedProvider)) return const SizedBox.shrink();
+    final warning = ref.watch(no3mfWarningProvider).valueOrNull;
+    if (warning == null || !warning.hasFallback) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final reason = warning.reason;
+    final (title, body) = switch (reason) {
+      No3mfReason.internalStorage => (
+          l10n.archiveNo3mfTitleInternal,
+          l10n.archiveNo3mfBodyInternal,
+        ),
+      No3mfReason.noExternalStorage => (
+          l10n.archiveNo3mfTitleNoStorage,
+          l10n.archiveNo3mfBodyNoStorage,
+        ),
+      No3mfReason.slicerSetting => (
+          l10n.archiveNo3mfTitle,
+          l10n.archiveNo3mfBody,
+        ),
+    };
+    final docs = _docsUrl(reason);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+        decoration: BoxDecoration(
+          color: t.accentOrange.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 20, color: t.accentOrangeInk),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: t.bodyStrong),
+                  const SizedBox(height: 4),
+                  Text(body, style: t.labelSoft),
+                  if (docs != null) ...[
+                    const SizedBox(height: 6),
+                    logTag(
+                      'archive.no3mf_docs',
+                      TextButton.icon(
+                        onPressed: () => launchUrl(
+                          Uri.parse(docs),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(Icons.open_in_new, size: 14),
+                        label: Text(
+                          reason == No3mfReason.internalStorage
+                              ? l10n.archiveNo3mfDocsWhy
+                              : l10n.archiveNo3mfDocs,
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: t.accentOrangeInk,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            logTag(
+              'archive.no3mf_dismiss',
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: l10n.archiveNo3mfDismiss,
+                color: t.textTertiary,
+                visualDensity: VisualDensity.compact,
+                onPressed: () =>
+                    ref.read(no3mfDismissedProvider.notifier).dismiss(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ArchiveCard extends StatelessWidget {
@@ -555,6 +726,15 @@ class _ArchiveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final meta = <String>[
+      // Only a run that printed a chosen plate of a multi-plate file carries
+      // one, which is exactly when the name alone cannot tell two rows apart.
+      //
+      // Guarded on the value, not just on null: plates are numbered from 1
+      // (`Metadata/plate_1.gcode` upward) and the server puts no lower bound on
+      // the column, while 0 is what the slicer's own API means by "every plate".
+      // Whatever wrote a 0 here, it did not print plate zero.
+      if ((archive.plateId ?? 0) > 0)
+        AppLocalizations.of(context).archivePlate(archive.plateId!),
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
@@ -639,7 +819,7 @@ class _ArchiveCard extends StatelessWidget {
                           archive.isFavorite ? Icons.star : Icons.star_border,
                           size: 20,
                           color: archive.isFavorite
-                              ? t.accentOrange
+                              ? t.accentOrangeInk
                               : t.textTertiary,
                         ),
                         tooltip: archive.isFavorite
@@ -651,7 +831,7 @@ class _ArchiveCard extends StatelessWidget {
                     )
                   else if (archive.isFavorite) ...[
                     const SizedBox(width: 8),
-                    Icon(Icons.star, size: 18, color: t.accentOrange),
+                    Icon(Icons.star, size: 18, color: t.accentOrangeInk),
                   ],
                 ],
               ),
@@ -685,7 +865,11 @@ class _MediaBadges extends StatelessWidget {
           l10n.archiveHasPhotos(archive.photos.length),
         ),
       if (archive.hasTimelapse)
-        _badge(Icons.movie, t.accentGreen, l10n.archiveHasTimelapse),
+        // `accentGreenInk`, not the vivid `accentGreen`: a 12 px mark that says
+        // "there is a video of this one" is a meaningful control, and the vivid
+        // swatch reads 2.1:1 on the pale card — under the 3:1 such a mark has
+        // to clear. The blue beside it already does at 3.7:1.
+        _badge(Icons.movie, t.accentGreenInk, l10n.archiveHasTimelapse),
     ];
     if (badges.isEmpty) return const SizedBox.shrink();
     return Container(
@@ -711,9 +895,9 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
-    required this.onTimelapse,
-    required this.onPhotos,
+    required this.onMedia,
     required this.onSlice,
+    required this.onRunPipeline,
     required this.onDelete,
   });
 
@@ -721,9 +905,9 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
-  final VoidCallback onTimelapse;
-  final VoidCallback onPhotos;
+  final VoidCallback onMedia;
   final VoidCallback onSlice;
+  final VoidCallback onRunPipeline;
   final VoidCallback onDelete;
 
   @override
@@ -763,6 +947,17 @@ class _ArchiveSheet extends StatelessWidget {
                                 style: theme.textTheme.bodySmall,
                               ),
                             ),
+                          // Which plate ran. Only for a file that had a choice:
+                          // on a single-plate print the server sends nothing,
+                          // and "plate 1" would be noise on every card.
+                          if (archive.plateId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                l10n.archivePlateDetail(archive.plateId!),
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -774,6 +969,7 @@ class _ArchiveSheet extends StatelessWidget {
                   onReprint: onReprint,
                 ),
                 const SizedBox(height: 8),
+                ArchiveFilamentRow(archive: archive),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(
@@ -785,41 +981,13 @@ class _ArchiveSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Only for a print the server actually recorded — the button
-                // would otherwise open a player onto a 404.
-                if (archive.hasTimelapse) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: logTag(
-                      'archive.timelapse',
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.movie_outlined),
-                        label: Text(l10n.archiveTimelapse),
-                        onPressed: onTimelapse,
-                      ),
-                    ),
-                  ),
-                ],
-                // Same rule as the timelapse: shown for the prints that have
-                // one, which is the finish shot off the camera plus whatever
-                // was uploaded in the web UI.
-                if (archive.hasPhotos) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: logTag(
-                      'archive.photos',
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.photo_camera_outlined),
-                        label: Text(l10n.archivePhotos(archive.photos.length)),
-                        onPressed: onPhotos,
-                      ),
-                    ),
-                  ),
-                ],
+                _ArchiveMediaButton(archive: archive, onMedia: onMedia),
                 const SizedBox(height: 8),
-                _SliceArchiveButton(archive: archive, onSlice: onSlice),
+                _SliceArchiveButton(
+                  archive: archive,
+                  onSlice: onSlice,
+                  onRunPipeline: onRunPipeline,
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(
@@ -943,12 +1111,10 @@ class _SheetPrimaryActions extends StatelessWidget {
       style?.textStyle?.resolve(states),
     );
     final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
-    final painter = TextPainter(
-      text: TextSpan(text: label, style: textStyle),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    return padding + _iconWidth + _iconGap + painter.width;
+    return padding +
+        _iconWidth +
+        _iconGap +
+        textWidth(context, label, textStyle);
   }
 }
 
@@ -957,25 +1123,89 @@ class _SheetPrimaryActions extends StatelessWidget {
 /// are not). Renders nothing otherwise, so the sheet is unchanged for the
 /// common case.
 class _SliceArchiveButton extends ConsumerWidget {
-  const _SliceArchiveButton({required this.archive, required this.onSlice});
+  const _SliceArchiveButton({
+    required this.archive,
+    required this.onSlice,
+    required this.onRunPipeline,
+  });
 
   final Archive archive;
   final VoidCallback onSlice;
+  final VoidCallback onRunPipeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).valueOrNull ?? false;
+    final enabled = ref.watch(slicerEnabledProvider).orFalse;
     if (!enabled) return const SizedBox.shrink();
     final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
     if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    // Running a pipeline re-slices the same source, so it rides on exactly the
+    // gate above; the extra conditions are only about the pipeline routes.
+    final canRunPipeline =
+        ref.watch(canRunPipelinesProvider).orFalse;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.layers_outlined),
+              label: Text(l10n.sliceAction),
+              onPressed: onSlice,
+            ).tagged('archive.slice'),
+          ),
+          if (canRunPipeline) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.account_tree_outlined),
+                label: Text(l10n.pipelineRun),
+                onPressed: onRunPipeline,
+              ).tagged('archive.run_pipeline'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The one entry to everything the print has: the timelapse and photos the
+/// server keeps, and whatever is still on the printer.
+///
+/// Absent for a print with none of the three. The printer half also needs a
+/// server that has the search route — on an older one the sheet is still the
+/// way to the timelapse and the photos, it simply has nothing to look for.
+class _ArchiveMediaButton extends ConsumerWidget {
+  const _ArchiveMediaButton({required this.archive, required this.onMedia});
+
+  final Archive archive;
+  final VoidCallback onMedia;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchable =
+        ref.watch(archiveMediaSupportedProvider).orFalse;
+    if (!archiveHasMedia(archive, printerSearchable: searchable)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      // The gap goes above, like every other row in the sheet — the slice
+      // button is the one exception, and only because the delete button below
+      // it brings none of its own.
+      padding: const EdgeInsets.only(top: 8),
       child: SizedBox(
         width: double.infinity,
-        child: OutlinedButton.icon(
-          icon: const Icon(Icons.layers_outlined),
-          label: Text(AppLocalizations.of(context).sliceAction),
-          onPressed: onSlice,
+        child: logTag(
+          'archive.media',
+          OutlinedButton.icon(
+            icon: const Icon(Icons.perm_media_outlined),
+            label: Text(AppLocalizations.of(context).archiveMediaAction),
+            onPressed: onMedia,
+          ),
         ),
       ),
     );
@@ -1217,176 +1447,173 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.archive_filters',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (context, controller) => SheetSurface(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              // Fixed height so the header never resizes when the Clear button
-              // toggles; the button keeps its slot via Visibility.maintainSize so
-              // its appearance can't reflow the sheet content.
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
-                    const Spacer(),
-                    Visibility(
-                      visible: filters.activeCount > 0,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: TextButton(
-                        onPressed: () => notifier.state = ArchiveFilters(
-                          // Keep the current search + sort; only clear filters.
-                          query: filters.query,
-                          sort: filters.sort,
-                        ),
-                        child: Text(l10n.archiveFiltersClear),
+      DraggableSheetSurface(
+        initialSize: 0.6,
+        maxSize: 0.9,
+        minSize: 0.35,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            // Fixed height so the header never resizes when the Clear button
+            // toggles; the button keeps its slot via Visibility.maintainSize so
+            // its appearance can't reflow the sheet content.
+            SizedBox(
+              height: 48,
+              child: Row(
+                children: [
+                  Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  Visibility(
+                    visible: filters.activeCount > 0,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: TextButton(
+                      onPressed: () => notifier.state = ArchiveFilters(
+                        // Keep the current search + sort; only clear filters.
+                        query: filters.query,
+                        sort: filters.sort,
                       ),
+                      child: Text(l10n.archiveFiltersClear),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            FilterGroupLabel(label: l10n.archiveSortLabel),
+            _ChipWrap(
+              children: [
+                for (final s in ArchiveSort.values)
+                  ChoiceChip(
+                    label: Text(_sortLabel(l10n, s)),
+                    selected: filters.sort == s,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(sort: s),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            FilterGroupLabel(label: l10n.archiveFilterFileType),
+            _ChipWrap(
+              children: [
+                for (final f in ArchiveFileType.values)
+                  ChoiceChip(
+                    label: Text(_fileTypeLabel(l10n, f)),
+                    selected: filters.fileType == f,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(fileType: f),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            FilterGroupLabel(label: l10n.archiveFilterFlags),
+            _ChipWrap(
+              children: [
+                FilterChip(
+                  avatar: Icon(
+                    filters.favoritesOnly ? Icons.star : Icons.star_border,
+                    size: 18,
+                  ),
+                  label: Text(l10n.archiveFilterFavorites),
+                  selected: filters.favoritesOnly,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(favoritesOnly: v),
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              FilterGroupLabel(label: l10n.archiveSortLabel),
-              _ChipWrap(
-                children: [
-                  for (final s in ArchiveSort.values)
-                    ChoiceChip(
-                      label: Text(_sortLabel(l10n, s)),
-                      selected: filters.sort == s,
-                      onSelected: (_) =>
-                          notifier.state = filters.copyWith(sort: s),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              FilterGroupLabel(label: l10n.archiveFilterFileType),
-              _ChipWrap(
-                children: [
-                  for (final f in ArchiveFileType.values)
-                    ChoiceChip(
-                      label: Text(_fileTypeLabel(l10n, f)),
-                      selected: filters.fileType == f,
-                      onSelected: (_) =>
-                          notifier.state = filters.copyWith(fileType: f),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              FilterGroupLabel(label: l10n.archiveFilterFlags),
-              _ChipWrap(
-                children: [
-                  FilterChip(
-                    avatar: Icon(
-                      filters.favoritesOnly ? Icons.star : Icons.star_border,
-                      size: 18,
-                    ),
-                    label: Text(l10n.archiveFilterFavorites),
-                    selected: filters.favoritesOnly,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(favoritesOnly: v),
-                  ),
-                  FilterChip(
-                    label: Text(l10n.archiveFilterHideFailed),
-                    selected: filters.hideFailed,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(hideFailed: v),
-                  ),
-                  FilterChip(
-                    label: Text(l10n.archiveFilterHideDuplicates),
-                    selected: filters.hideDuplicates,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(hideDuplicates: v),
-                  ),
-                ],
-              ),
-
-              if (usedPrinterIds.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                FilterGroupLabel(label: l10n.archiveFilterPrinter),
-                _ChipWrap(
-                  children: [
-                    for (final p in printers)
-                      if (usedPrinterIds.contains(p.id))
-                        FilterChip(
-                          label: Text(p.name),
-                          selected: filters.printerId == p.id,
-                          onSelected: (v) => notifier.state = v
-                              ? filters.copyWith(printerId: p.id)
-                              : filters.copyWith(clearPrinter: true),
-                        ),
-                  ],
+                FilterChip(
+                  label: Text(l10n.archiveFilterHideFailed),
+                  selected: filters.hideFailed,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(hideFailed: v),
+                ),
+                FilterChip(
+                  label: Text(l10n.archiveFilterHideDuplicates),
+                  selected: filters.hideDuplicates,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(hideDuplicates: v),
                 ),
               ],
+            ),
 
-              if (sortedMaterials.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                FilterGroupLabel(label: l10n.archiveFilterMaterial),
-                _ChipWrap(
-                  children: [
-                    for (final m in sortedMaterials)
+            if (usedPrinterIds.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              FilterGroupLabel(label: l10n.archiveFilterPrinter),
+              _ChipWrap(
+                children: [
+                  for (final p in printers)
+                    if (usedPrinterIds.contains(p.id))
                       FilterChip(
-                        label: Text(m),
-                        selected: filters.material == m,
+                        label: Text(p.name),
+                        selected: filters.printerId == p.id,
                         onSelected: (v) => notifier.state = v
-                            ? filters.copyWith(material: m)
-                            : filters.copyWith(clearMaterial: true),
+                            ? filters.copyWith(printerId: p.id)
+                            : filters.copyWith(clearPrinter: true),
                       ),
-                  ],
-                ),
-              ],
-
-              if (colors.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    FilterGroupLabel(label: l10n.archiveFilterColors),
-                    const Spacer(),
-                    if (filters.colors.length > 1)
-                      // OR/AND only matters once several colors are picked.
-                      SegmentedButton<ColorFilterMode>(
-                        style: const ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: ColorFilterMode.or,
-                            label: Text(l10n.archiveColorModeAny),
-                          ),
-                          ButtonSegment(
-                            value: ColorFilterMode.and,
-                            label: Text(l10n.archiveColorModeAll),
-                          ),
-                        ],
-                        selected: {filters.colorMode},
-                        onSelectionChanged: (s) =>
-                            notifier.state = filters.copyWith(colorMode: s.first),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                _ColorSwatchWrap(
-                  colors: colors.toList(),
-                  selected: filters.colors,
-                  onToggle: (c) {
-                    final next = {...filters.colors};
-                    if (!next.remove(c)) next.add(c);
-                    notifier.state = filters.copyWith(colors: next);
-                  },
-                ),
-              ],
+                ],
+              ),
             ],
-          ),
+
+            if (sortedMaterials.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              FilterGroupLabel(label: l10n.archiveFilterMaterial),
+              _ChipWrap(
+                children: [
+                  for (final m in sortedMaterials)
+                    FilterChip(
+                      label: Text(m),
+                      selected: filters.material == m,
+                      onSelected: (v) => notifier.state = v
+                          ? filters.copyWith(material: m)
+                          : filters.copyWith(clearMaterial: true),
+                    ),
+                ],
+              ),
+            ],
+
+            if (colors.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  FilterGroupLabel(label: l10n.archiveFilterColors),
+                  const Spacer(),
+                  if (filters.colors.length > 1)
+                    // OR/AND only matters once several colors are picked.
+                    SegmentedButton<ColorFilterMode>(
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      segments: [
+                        ButtonSegment(
+                          value: ColorFilterMode.or,
+                          label: Text(l10n.archiveColorModeAny),
+                        ),
+                        ButtonSegment(
+                          value: ColorFilterMode.and,
+                          label: Text(l10n.archiveColorModeAll),
+                        ),
+                      ],
+                      selected: {filters.colorMode},
+                      onSelectionChanged: (s) =>
+                          notifier.state = filters.copyWith(colorMode: s.first),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              _ColorSwatchWrap(
+                colors: colors.toList(),
+                selected: filters.colors,
+                onToggle: (c) {
+                  final next = {...filters.colors};
+                  if (!next.remove(c)) next.add(c);
+                  notifier.state = filters.copyWith(colors: next);
+                },
+              ),
+            ],
+          ],
         ),
       )
     );
@@ -1440,7 +1667,7 @@ class _ColorSwatchWrap extends StatelessWidget {
       children: [
         for (final hex in colors)
           _ColorSwatch(
-            color: _archiveColor(hex),
+            color: colorFromHex(hex),
             selected: selected.contains(hex),
             accent: t.accentGreen,
             border: t.subCardBorder,
@@ -1495,13 +1722,3 @@ class _ColorSwatch extends StatelessWidget {
   }
 }
 
-/// Parse the leading `RRGGBB` of `#RRGGBB` / `RRGGBBAA` into an opaque color.
-/// Returns null for unparseable tokens (rendered as a "?" swatch).
-Color? _archiveColor(String hex) {
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return Color.fromARGB(255, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
-}

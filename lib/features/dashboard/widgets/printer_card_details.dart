@@ -1,8 +1,9 @@
 part of 'printer_card.dart';
 
-/// Plate-clear banner: shown only when the scheduler requires plate-clear
-/// confirmation AND this printer still has a finished job on the plate. The
-/// button posts the `clear-plate` acknowledgement, freeing the scheduler.
+/// Plate-clear banner: the phone's door to the acknowledgement. When it is
+/// offered, and why an unreachable printer is offered it too, is
+/// [plateClearOffered]; the button posts the `clear-plate` acknowledgement,
+/// freeing the scheduler.
 class _PlateClearBanner extends ConsumerStatefulWidget {
   const _PlateClearBanner({required this.printerId, required this.status});
 
@@ -19,14 +20,29 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   Future<void> _clear() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Read out with the messenger, and for the same reason: the answer can land
+    // after this banner is gone (the printer reconnects and the card swaps
+    // layout, or the dashboard is left), and `ref` throws once that happens.
+    final gate = ref.read(offlinePlateClearProvider.notifier);
     setState(() => _busy = true);
     try {
       await ref
           .read(printerCommandsRepositoryProvider)
           .clearPlate(widget.printerId);
+      ref
+          .read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(widget.printerId);
       messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'printer.plate_clear',
+        message: recordPlateClearRefusal(gate, e.detail)
+            ? l10n.plateClearNeedsOnline
+            : null,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -34,18 +50,16 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.status.awaitingPlateClear != true) {
+    if (!plateClearOffered(ref, widget.status)) {
       return const SizedBox.shrink();
     }
-    final require = ref.watch(requirePlateClearProvider).valueOrNull ?? false;
-    if (!require) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
         decoration: BoxDecoration(
           color: t.accentBlue.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -61,14 +75,19 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
                 style: t.bodyPlain.copyWith(color: t.textPrimary),
               ),
             ),
-            logTag(
-              'printer.plate_clear',
-              TextButton(
+            // A checkmark rather than the full "mark plate as cleared": the
+            // sentence spelled the badge next to it out twice and left the badge
+            // itself two words wide on a 360 dp screen. The wording survives as
+            // the tooltip, which is also what a screen reader announces. Being
+            // disabled is how the card's other network buttons say "in flight"
+            // (see `_SmartPlugButton`), so no spinner of its own.
+            _HeaderIconButton(
+              id: 'printer.plate_clear',
+              icon: Icons.check_rounded,
+              tooltip: l10n.plateClearAction,
+              color: t.accentBlue,
+              borderColor: t.accentBlue.withValues(alpha: 0.5),
               onPressed: _busy ? null : _clear,
-              child: _busy
-                  ? const DashSpinner(size: 16)
-                  : Text(l10n.plateClearAction),
-              ),
             ),
           ],
         ),
@@ -454,6 +473,9 @@ class _DetailsPanel extends ConsumerWidget {
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final printerName = status.name;
+    // The 0/1 side the external holder is addressed by everywhere ids are
+    // local — the slot routes, the inventory assignment and the load command.
+    int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
 
     final blocks = <Widget>[
       for (var i = 0; i < ams.length; i++)
@@ -461,15 +483,24 @@ class _DetailsPanel extends ConsumerWidget {
           unit: ams[i],
           unitIndex: i,
           active: active,
+          // The badge names a fixed side, so only a real `ams_extruder_map`
+          // entry may fill it. A unit bound to a Filament Track Switch reaches
+          // both nozzles and has none — [PrinterStatus.extruderForSlot] still
+          // resolves it through the inlet, but that is where the slot rests
+          // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
+          slotExtruder:
+              dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
-          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i, 0),
           printerModel: status.model,
+          filaSwitch: status.filaSwitch,
+          fedFrom: status.extruderSlots,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -480,17 +511,15 @@ class _DetailsPanel extends ConsumerWidget {
           assignedOf: (i) => assigned.forExtruder(
             dual ? status.extruderForExternal(spools[i].id) : 1,
           ),
-          trayIdOf: (i) {
-            if (!dual) return 0;
-            return status.extruderForExternal(spools[i].id) == 1 ? 0 : 1;
-          },
+          trayIdOf: trayIdOf,
           printerId: printerId,
           printerName: printerName,
           printing: status.isPrinting && !status.isPaused,
-          // External spools feed a nozzle too, and the unit they are keyed
-          // under (255) is not in `ams_extruder_map` — the primary nozzle is
-          // the only answer available here.
-          nozzleDiameter: status.nozzleDiameterFor(255),
+          // The external holder is keyed under a unit no `ams_extruder_map`
+          // mentions — the tray side is the whole answer there, so it has to be
+          // asked per spool rather than per section.
+          nozzleDiameterOf: (i) =>
+              status.nozzleDiameterFor(externalHolderUnit, trayIdOf(i)),
           printerModel: status.model,
         ),
     ];
@@ -539,6 +568,7 @@ class _AmsSection extends ConsumerWidget {
     required this.unitIndex,
     required this.active,
     required this.extruder,
+    required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
     required this.printerId,
@@ -547,12 +577,22 @@ class _AmsSection extends ConsumerWidget {
     required this.printing,
     required this.nozzleDiameter,
     required this.printerModel,
+    required this.filaSwitch,
+    required this.fedFrom,
   });
 
   final AmsUnit unit;
   final int unitIndex;
   final AmsTray? active;
+
+  /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
+
+  /// The nozzle this unit's slots currently rest on, which on a Filament Track
+  /// Switch machine is known even when [extruder] is not. Travels to the slot
+  /// configuration sheet, where it tells the printer's two calibration tables
+  /// apart.
+  final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
   final int printerId;
@@ -565,6 +605,11 @@ class _AmsSection extends ConsumerWidget {
   /// the calibration context.
   final String? nozzleDiameter;
   final String? printerModel;
+
+  /// The Filament Track Switch and the hotend/slot pairing, for the load
+  /// question the slot sheet has to ask when one is fitted — see [_SlotRef].
+  final FilaSwitch? filaSwitch;
+  final Map<int, ExtruderSlot>? fedFrom;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -633,6 +678,15 @@ class _AmsSection extends ConsumerWidget {
             ],
           ],
         ),
+        // Under the header rather than beside the flame chip: a pending run has
+        // a sentence to say (when, and what it is waiting for) and the chip is
+        // one word wide.
+        if (supportsDrying && unit.canDry)
+          _ScheduledDryingBanner(
+            printerId: printerId,
+            amsId: unit.id ?? unitIndex,
+            drying: unit.isDrying,
+          ),
         const SizedBox(height: 10),
         if (trays.isEmpty)
           Text('—',
@@ -667,7 +721,9 @@ class _AmsSection extends ConsumerWidget {
                 caliIdx: trays[i].caliIdx,
                 nozzleDiameter: nozzleDiameter,
                 printerModel: printerModel,
-                extruderId: extruder,
+                extruderId: slotExtruder,
+                filaSwitch: filaSwitch,
+                fedFrom: fedFrom,
               ),
             ),
       ],
@@ -687,7 +743,7 @@ class _SpoolSection extends StatelessWidget {
     required this.printerId,
     required this.printerName,
     required this.printing,
-    required this.nozzleDiameter,
+    required this.nozzleDiameterOf,
     required this.printerModel,
   });
 
@@ -699,7 +755,7 @@ class _SpoolSection extends StatelessWidget {
   final int printerId;
   final String? printerName;
   final bool printing;
-  final String? nozzleDiameter;
+  final String? Function(int index) nozzleDiameterOf;
   final String? printerModel;
 
   @override
@@ -729,7 +785,7 @@ class _SpoolSection extends StatelessWidget {
             slot: _SlotRef(
               printerId: printerId,
               printerName: printerName,
-              amsId: 255,
+              amsId: externalHolderUnit,
               trayId: trayIdOf(i),
               label: switch (extruderOf(i)) {
                 1 => l10n.extruderLeft,
@@ -737,17 +793,14 @@ class _SpoolSection extends StatelessWidget {
                 _ => l10n.externalSpool,
               },
               printing: printing,
-              // The spool's own id (254/255) is already the global tray number;
-              // `trayIdOf` above is the extruder-ordered index the inventory
-              // assignment is keyed by, and means nothing to the load command.
               loadTrayId: amsLoadTrayId(
-                amsId: 255,
-                trayId: trays[i].id ?? 254,
+                amsId: externalHolderUnit,
+                trayId: trayIdOf(i),
               ),
               trayInfoIdx: trays[i].trayInfoIdx,
               trayColour: trays[i].trayColor,
               caliIdx: trays[i].caliIdx,
-              nozzleDiameter: nozzleDiameter,
+              nozzleDiameter: nozzleDiameterOf(i),
               printerModel: printerModel,
               extruderId: extruderOf(i),
             ),
@@ -931,20 +984,27 @@ class _AmsDryControl extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final drying = unit.isDrying;
     final remain = unit.dryTime ?? 0;
-    final color = drying ? t.accentOrange : t.textTertiary;
+    final color = drying ? t.accentOrangeInk : t.textTertiary;
     final label =
         drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
 
     return InkWell(
-      onTap: () => dashSurfaceSheet<void>(
-        context,
-        builder: (_) => _DryingSheet(
-          printerId: printerId,
-          amsId: amsId,
-          amsLabel: amsLabel,
-          unit: unit,
-        ),
-      ),
+      onTap: () {
+        // The sheet decides whether to offer the "later" modes from what the
+        // listing last answered, so this is the moment to ask again: a server
+        // that gained the route (or a session that gained the permission)
+        // otherwise stays without them until the dashboard is pulled down.
+        ref.invalidate(scheduledDryingsProvider);
+        dashSurfaceSheet<void>(
+          context,
+          builder: (_) => _DryingSheet(
+            printerId: printerId,
+            amsId: amsId,
+            amsLabel: amsLabel,
+            unit: unit,
+          ),
+        );
+      },
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -989,21 +1049,6 @@ class _DryingSheet extends ConsumerStatefulWidget {
   ConsumerState<_DryingSheet> createState() => _DryingSheetState();
 }
 
-/// Recommended drying temp/duration per filament, mirroring the bambuddy
-/// frontend's DRYING_PRESETS. `n3*` = regular AMS module, `ht*` = AMS-HT
-/// (high-temp) module; picked via [AmsUnit.isAmsHt].
-typedef _DryPreset = ({int temp, int htTemp, int hours, int htHours});
-const _dryingPresets = <String, _DryPreset>{
-  'PLA': (temp: 45, htTemp: 45, hours: 12, htHours: 12),
-  'PETG': (temp: 65, htTemp: 65, hours: 12, htHours: 12),
-  'TPU': (temp: 65, htTemp: 75, hours: 12, htHours: 18),
-  'ABS': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'ASA': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PA': (temp: 65, htTemp: 85, hours: 12, htHours: 12),
-  'PC': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PVA': (temp: 65, htTemp: 85, hours: 12, htHours: 18),
-};
-
 class _DryingSheetState extends ConsumerState<_DryingSheet> {
   static const _durationPresets = [4, 6, 8, 12];
 
@@ -1011,6 +1056,22 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   int _temp = 55;
   int _hours = 4;
   bool _busy = false;
+
+  /// The table the pickers seed from — the server's own, or the bundled
+  /// fallback until its settings have arrived.
+  Map<String, DryPreset> _presets = defaultDryingPresets;
+
+  /// Whether anything here has been chosen by hand. The server's table can land
+  /// after this sheet opened — on a cold start it usually does — and it is
+  /// adopted then, but only while this is false: a table arriving under the
+  /// user's finger must not move a temperature they have just set.
+  bool _touched = false;
+
+  DryStartMode _startMode = DryStartMode.now;
+  int _delayMinutes = 60;
+
+  /// Chosen in [DryStartMode.atTime]; null until the picker has run once.
+  DateTime? _startAt;
 
   /// AMS-HT tops out at 85 °C; AMS 2 Pro at 65 °C.
   bool get _isHt => widget.unit.isHtDryModule;
@@ -1020,20 +1081,37 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   @override
   void initState() {
     super.initState();
-    _applyFilament(_filament); // seed temp/duration from the default filament
+    // Directly, not through `setState`: this runs before the first build.
+    _adopt(ref.read(dryingPresetsProvider));
+  }
+
+  /// Takes [presets] as the table to seed from, and re-seeds the pickers.
+  void _adopt(Map<String, DryPreset> presets) {
+    _presets = presets;
+    // A table the server configured need not contain PLA — open on the first
+    // filament it does have, so the dropdown always has its own value in it.
+    if (!_presets.containsKey(_filament)) {
+      _filament = _presets.keys.firstOrNull ?? _filament;
+    }
+    _applyFilament(_filament);
   }
 
   /// Selecting a filament sets the recommended temp + duration for this AMS
-  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the sliders.
+  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the
+  /// sliders. Callers own the `setState`, because two of them also have to
+  /// record that the choice was the user's.
+  ///
+  /// A preset above what the module can reach is clamped rather than offered:
+  /// the server validates 45-85 °C whatever the module is, while an AMS 2 Pro
+  /// stops at 65, so a table configured for AMS-HT must not send a temperature
+  /// this hardware cannot hold.
   void _applyFilament(String filament) {
-    final p = _dryingPresets[filament];
-    setState(() {
-      _filament = filament;
-      if (p != null) {
-        _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
-        _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
-      }
-    });
+    final p = _presets[filament];
+    _filament = filament;
+    if (p != null) {
+      _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
+      _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
+    }
   }
 
   Future<void> _run(Future<ActionOutcome> Function() action) async {
@@ -1050,8 +1128,53 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     }
   }
 
+  /// Hands the run to the server's scheduler instead of the printer.
+  ///
+  /// The sheet stays open until the server answers, and closes on the way out.
+  /// The handles are still taken first, because the user can dismiss it under
+  /// the request — see [detachFrom].
+  Future<void> _schedule(DateTime startAfter) async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final (:providers, :messenger) = detachFrom(context);
+    final repository = providers.read(scheduledDryingRepositoryProvider);
+    setState(() => _busy = true);
+    try {
+      await repository.create(
+        printerId: widget.printerId,
+        amsId: widget.amsId,
+        temp: _temp,
+        durationHours: _hours,
+        filament: _filament,
+        startAfter: startAfter,
+      );
+      providers.invalidate(scheduledDryingsProvider);
+      if (mounted) navigator.pop();
+      messenger.snack(l10n.ctrlDryScheduled, clearQueue: true);
+    } on AppApiException catch (e) {
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'drying.schedule');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// No `firstDate`: a run can only be scheduled forward, so today is the
+  /// earliest day worth showing.
+  Future<void> _pickStartAt() async {
+    final picked = await pickDateTime(context, initial: _startAt);
+    if (picked == null || !mounted) return;
+    setState(() => _startAt = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // The server's settings are fetched once per session and can land after
+    // this sheet opened — see [_touched].
+    ref.listen(dryingPresetsProvider, (_, next) {
+      if (mounted && !_touched) setState(() => _adopt(next));
+    });
+
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final drying = widget.unit.isDrying;
@@ -1079,31 +1202,41 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          l10n.ctrlDry,
-                          style: t.titleLg,
-                        ),
-                        const Spacer(),
-                        Text(
-                          widget.amsLabel,
-                          style: t.body.copyWith(color: t.textSecondary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (drying)
-                      ..._runningBody(t, l10n)
-                    else
-                      ..._setupBody(t, l10n),
-                  ],
+              // Scrollable, and `Flexible` so a short sheet still ends where
+              // its content does: filament, two sliders, the start-time picker
+              // and the button are more than a 360×640 screen has room for at a
+              // large system text size, and a sheet that overflows hides its
+              // own Start button.
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            l10n.ctrlDry,
+                            style: t.titleLg,
+                          ),
+                          const Spacer(),
+                          Text(
+                            widget.amsLabel,
+                            style: t.body.copyWith(color: t.textSecondary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Above both bodies: it explains a running cycle nobody
+                      // started just as much as it explains one about to be.
+                      const _AutoDryingNote(),
+                      if (drying)
+                        ..._runningBody(t, l10n)
+                      else
+                        ..._setupBody(t, l10n),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1119,7 +1252,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       Center(
         child: Column(
           children: [
-            Icon(Icons.local_fire_department, size: 32, color: t.accentOrange),
+            Icon(Icons.local_fire_department, size: 32, color: t.accentOrangeInk),
             const SizedBox(height: 8),
             Text(
               remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
@@ -1127,7 +1260,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: t.accentOrange,
+                color: t.accentOrangeInk,
               ),
             ),
           ],
@@ -1176,12 +1309,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             ),
           ),
           onSelected: (v) {
-            if (v != null) _applyFilament(v);
+            if (v == null) return;
+            setState(() {
+              _touched = true;
+              _applyFilament(v);
+            });
           },
           entries: [
             // Preset keys are Bambu material names, so the pick rides in the
             // `mat` field instead of turning the identifier into content.
-            for (final f in _dryingPresets.keys)
+            for (final f in _presets.keys)
               DropdownMenuEntry(
                 value: f,
                 label: f,
@@ -1200,7 +1337,10 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: _maxTemp,
           presets: _tempPresets,
           presetLabel: (p) => '$p°',
-          onChanged: (v) => setState(() => _temp = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _temp = v;
+          }),
         ),
         const SizedBox(height: 16),
         _DrySlider(
@@ -1212,25 +1352,92 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: 24,
           presets: _durationPresets,
           presetLabel: (p) => l10n.ctrlDryHours(p),
-          onChanged: (v) => setState(() => _hours = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _hours = v;
+          }),
         ),
+        ..._startWhen(l10n),
         const SizedBox(height: 20),
-        _SheetButton(
-          label: l10n.ctrlDryStart,
-          id: 'drying.start',
-          filled: true,
-          busy: _busy,
-          onTap: _busy
-              ? null
-              : () => _run(() => ref.read(controlsProvider.notifier).startDrying(
-                    widget.printerId,
-                    amsId: widget.amsId,
-                    temp: _temp,
-                    duration: _hours,
-                    filament: _filament,
-                  )),
-        ),
+        // Two buttons rather than one with a chosen id: an identifier picked by
+        // an expression is invisible to the scan that keeps the log's action
+        // tags pointing at real controls (`action_tag_vocabulary_test`).
+        if (_startMode == DryStartMode.now)
+          _SheetButton(
+            label: l10n.ctrlDryStart,
+            id: 'drying.start',
+            filled: true,
+            busy: _busy,
+            onTap: _busy ? null : _submit,
+          )
+        else
+          _SheetButton(
+            label: l10n.ctrlDrySchedule,
+            id: 'drying.schedule',
+            filled: true,
+            busy: _busy,
+            onTap: _busy ? null : _submit,
+          ),
       ];
+
+  /// The start-time picker, on a server that has somewhere to put a schedule.
+  ///
+  /// Before any answer the sheet shows nothing rather than a picker that could
+  /// vanish under the user's finger; the listing behind it runs whenever a
+  /// drying-capable card is built, so by the time this sheet opens it has
+  /// almost always answered. `valueOrNull`, not a `data` match: opening the
+  /// sheet re-asks, and a picker that blinked out during that refresh would be
+  /// the very thing this is avoiding.
+  List<Widget> _startWhen(AppLocalizations l10n) {
+    final offered =
+        ref.watch(scheduledDryingSupportedProvider).orFalse;
+    if (!offered) return const [];
+    return [
+      const SizedBox(height: 16),
+      _DryStartPicker(
+        mode: _startMode,
+        delayMinutes: _delayMinutes,
+        at: _startAt,
+        onMode: (v) => setState(() => _startMode = v),
+        onDelay: (v) => setState(() => _delayMinutes = v),
+        onPickTime: _pickStartAt,
+      ),
+    ];
+  }
+
+  /// Start now, or schedule — one button, because the mode above it already
+  /// says which of the two it is.
+  void _submit() {
+    final l10n = AppLocalizations.of(context);
+    final start = dryingStart(
+      mode: _startMode,
+      delayMinutes: _delayMinutes,
+      at: _startAt,
+    );
+    final problem = start.problem;
+    if (problem != null) {
+      ScaffoldMessenger.of(context).snack(
+        switch (problem) {
+          DryingStartProblem.noTimePicked => l10n.ctrlDryPickTime,
+          DryingStartProblem.timeInPast => l10n.ctrlDryScheduleTimePast,
+        },
+        clearQueue: true,
+      );
+      return;
+    }
+    final startAfter = start.startAfter;
+    if (startAfter == null) {
+      _run(() => ref.read(controlsProvider.notifier).startDrying(
+            widget.printerId,
+            amsId: widget.amsId,
+            temp: _temp,
+            duration: _hours,
+            filament: _filament,
+          ));
+      return;
+    }
+    _schedule(startAfter);
+  }
 }
 
 /// Labelled value + slider (with −/+ steppers and presets) used twice in the
@@ -1297,6 +1504,10 @@ class _DrySlider extends StatelessWidget {
                 min: min.toDouble(),
                 max: max.toDouble(),
                 activeColor: t.accentOrange,
+                // Without it a reader announces the position as a percentage
+                // ("25%"), which says nothing about a dryer: the same wording
+                // the presets carry is what the value means.
+                semanticFormatterCallback: (v) => presetLabel(v.round()),
                 onChanged: (v) => onChanged(v.round()),
               ).tagged('${id}_slider'),
             ),
@@ -1346,6 +1557,8 @@ class _SlotRef {
     this.nozzleDiameter,
     this.printerModel,
     this.extruderId,
+    this.filaSwitch,
+    this.fedFrom,
   });
 
   final int printerId;
@@ -1410,6 +1623,20 @@ class _SlotRef {
   /// Nozzle this slot feeds on a dual-extruder printer, null on a single one.
   final int? extruderId;
 
+  /// The printer's Filament Track Switch, null on one without the accessory.
+  /// Read from the frame the card is rendering rather than from the shared
+  /// statuses map, for the same reason [printing] is: the slot the user tapped
+  /// and the question the sheet asks about it come from one frame.
+  ///
+  /// Left null for the external holder, which never asks the question: its two
+  /// tray numbers name the side outright, and a switch cannot be fitted
+  /// alongside one anyway.
+  final FilaSwitch? filaSwitch;
+
+  /// Which AMS slot each hotend is fed from, keyed by extruder id. Only read to
+  /// grey out a hotend that already holds this very slot.
+  final Map<int, ExtruderSlot>? fedFrom;
+
   AmsSlotTarget get configTarget => AmsSlotTarget(
         printerId: printerId,
         amsId: amsId,
@@ -1446,9 +1673,8 @@ class _SlotActions extends ConsumerWidget {
         !ref.watch(controlRefusedProvider(ControlPermission.control));
     final canReread = slot.canRereadRfid &&
         !ref.watch(controlRefusedProvider(ControlPermission.amsRfid));
-    // Load and unload share one gate and one row: unload takes no slot, so
-    // offering it for a slot that cannot be loaded would put a printer-wide
-    // button under a heading that names one slot.
+    // Load and unload share one gate and one row: both address the slot by its
+    // global tray number, so a slot that has none can offer neither.
     final loadTrayId = slot.loadTrayId;
     final canLoad = canDrive && loadTrayId != null;
     // Configuring needs nothing but `printers:control`, so it survives where
@@ -1466,12 +1692,7 @@ class _SlotActions extends ConsumerWidget {
     // a stray one on its own line.
     final load = OutlinedButton.icon(
       onPressed: enabled && canLoad
-          ? () => _run(
-                context,
-                l10n,
-                () => controls.amsLoad(slot.printerId, loadTrayId),
-                l10n.amsLoadStarted,
-              )
+          ? () => _startLoad(context, l10n, controls, loadTrayId)
           : null,
       icon: const Icon(Icons.login, size: 18),
       label: Text(l10n.amsLoad),
@@ -1482,8 +1703,19 @@ class _SlotActions extends ConsumerWidget {
           ? () => _run(
                 context,
                 l10n,
-                () => controls.amsUnload(slot.printerId),
+                // Naming the slot is what tells two hotends apart: `tray_now` is
+                // one value for the whole printer, so an unaddressed unload on a
+                // dual-nozzle machine empties whichever hotend that field
+                // happens to name, not the slot the sheet is about. A server
+                // that does not know the parameter ignores it and keeps the old
+                // printer-wide behaviour.
+                () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
                 l10n.amsUnloadStarted,
+                // The one status this route answers for a reason the user can
+                // act on, and which "server returned error 409" would hide.
+                wordFailure: (e) => e.statusCode == 409
+                    ? l10n.amsUnloadSlotNotLoaded
+                    : null,
               )
           : null,
       icon: const Icon(Icons.logout, size: 18),
@@ -1562,16 +1794,134 @@ class _SlotActions extends ConsumerWidget {
 
   /// Closes the sheet before the command lands: these actions take tens of
   /// seconds at the printer and there is nothing to watch here meanwhile.
+  ///
+  /// [wordFailure] is for a status this route means something specific by, which
+  /// the generic wording would bury; anything it answers null for falls through
+  /// to `messageFor`.
   Future<void> _run(
     BuildContext context,
     AppLocalizations l10n,
     Future<ActionOutcome> Function() action,
-    String startedMessage,
-  ) async {
+    String startedMessage, {
+    String? Function(ApiException error)? wordFailure,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     final outcome = await action();
-    messenger.snack(outcome.messageFor(l10n) ?? startedMessage, clearQueue: true);
+    final failure = switch (outcome) {
+      ActionFailed(error: final ApiException e) => wordFailure?.call(e),
+      _ => null,
+    };
+    messenger.snack(
+      failure ?? outcome.messageFor(l10n) ?? startedMessage,
+      clearQueue: true,
+    );
+  }
+
+  /// Loads the slot, asking which hotend to feed first where that question has
+  /// an answer the printer cannot work out for itself.
+  ///
+  /// Without a Filament Track Switch every AMS is wired to one hotend and the
+  /// firmware derives the target, so the command names none. With one fitted the
+  /// AMS is bound to a switch inlet instead and both hotends are reachable — the
+  /// firmware then has nothing to derive from and drops a command that does not
+  /// say where the filament is going. Bambu Studio asks the same question in the
+  /// same place.
+  Future<void> _startLoad(
+    BuildContext context,
+    AppLocalizations l10n,
+    ControlsNotifier controls,
+    int loadTrayId,
+  ) async {
+    final filaSwitch = slot.filaSwitch;
+    // The external holder answers the question by itself — its two tray numbers
+    // name the side (254 = Ext-L, 255 = Ext-R) — and a switch cannot be fitted
+    // alongside one anyway: it would occupy an extruder channel permanently,
+    // which is why Bambu's own guidance is to take the switch off first.
+    // An AMS-HT never reaches here at all: it has no global tray number, so the
+    // button is hidden rather than disabled.
+    final asks = (filaSwitch?.installed ?? false) && slot.amsId != 255;
+    if (!asks) {
+      await _run(
+        context,
+        l10n,
+        () => controls.amsLoad(slot.printerId, loadTrayId),
+        l10n.amsLoadStarted,
+      );
+      return;
+    }
+    if (!filaSwitch!.ready) {
+      // Nothing can be routed until every AMS is bound to an inlet, so say so
+      // rather than send a command the firmware would drop whatever hotend it
+      // named. The sheet stays open — the fix is on the printer's own screen,
+      // and the user comes back to the same slot.
+      ScaffoldMessenger.of(context).snack(l10n.amsSwitchNotReady);
+      return;
+    }
+    final extruderId = await _askFeedDirection(context, l10n);
+    if (extruderId == null || !context.mounted) return;
+    await _run(
+      context,
+      l10n,
+      () => controls.amsLoad(slot.printerId, loadTrayId,
+          extruderId: extruderId),
+      l10n.amsLoadStarted,
+    );
+  }
+
+  /// Asks which hotend to feed, or answers null when the user backs out.
+  ///
+  /// A hotend already fed from this very slot is offered as disabled: loading it
+  /// again is a no-op the printer would accept and then do nothing about. The
+  /// pairing is the one the sheet was opened on — a slot that becomes loaded
+  /// while the dialog is up costs one refused command, which is a far smaller
+  /// trap than a button that moves under the finger.
+  Future<int?> _askFeedDirection(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final fed = slot.fedFrom;
+    bool alreadyFed(int extruderId) =>
+        fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ??
+        false;
+
+    Widget option(BuildContext ctx, int extruderId, String label, String id) {
+      final taken = alreadyFed(extruderId);
+      return logTag(
+        id,
+        OutlinedButton(
+          onPressed: taken ? null : () => Navigator.pop(ctx, extruderId),
+          child: Text(taken ? '$label — ${l10n.amsFeedAlreadyLoaded}' : label),
+        ),
+      );
+    }
+
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.amsFeedTitle(slot.label)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.amsFeedPrompt),
+            const SizedBox(height: 16),
+            option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
+            const SizedBox(height: 8),
+            option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
+          ],
+        ),
+        actions: [
+          logTag(
+            'feed_direction.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

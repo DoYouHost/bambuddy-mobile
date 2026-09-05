@@ -111,18 +111,11 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     super.dispose();
   }
 
-  /// Path of the G-code for whichever source this screen was opened on.
-  ///
-  /// The plate rides as a query on the archive route only: the library route
-  /// takes no plate — it answers with the first `.gcode` in the file whatever
-  /// is asked (`library.py::get_gcode` reads `gcode_files[0]`).
-  String get _gcodeUrl {
-    if (widget.archiveId == null) {
-      return Endpoints.libraryFileGcode(widget.libraryFileId!);
-    }
-    final path = Endpoints.archiveGcode(widget.archiveId!);
-    return widget.plate == null ? path : '$path?plate=${widget.plate}';
-  }
+  String get _gcodeUrl => gcodeSourceUrl(
+        archiveId: widget.archiveId,
+        libraryFileId: widget.libraryFileId,
+        plate: widget.plate,
+      );
 
   /// Loads the preview, in two halves that one gate separates.
   ///
@@ -401,4 +394,32 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     });
     _load();
   }
+}
+
+/// Path of the G-code for whichever source the viewer was opened on.
+///
+/// The plate rides as a query on the archive route only: the library route takes
+/// no plate — it answers with the first `.gcode` in the file whatever is asked
+/// (`library.py::get_gcode` reads `gcode_files[0]`).
+///
+/// Sending the plate matters on a multi-plate archive: without it the server
+/// picks for us, and *which* plate that is has changed — newer servers take the
+/// lowest-numbered plate, older ones the zip's first member — so the same
+/// archive could preview as two different plates depending on the server.
+///
+/// Pure and top-level so it can be tested without a WebView: the screen it
+/// serves cannot be built in a unit test, which is how the plate came to be
+/// accepted here and passed by nobody.
+String gcodeSourceUrl({
+  required int? archiveId,
+  required int? libraryFileId,
+  int? plate,
+}) {
+  if (archiveId == null) {
+    return Endpoints.libraryFileGcode(libraryFileId!);
+  }
+  final path = Endpoints.archiveGcode(archiveId);
+  // A plate below 1 is not a plate; `Metadata/plate_0.gcode` does not exist and
+  // asking for it would 404 a preview that would otherwise have worked.
+  return plate == null || plate < 1 ? path : '$path?plate=$plate';
 }

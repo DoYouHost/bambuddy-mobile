@@ -16,6 +16,8 @@ import '../common/dash_input.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import 'print_log_providers.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
 /// is counted under.
@@ -124,7 +126,7 @@ class _PrintLogClassifySheetState
     // would read as "this run drew nothing" rather than "this server does not
     // say" — the same gate the list columns are behind.
     final showMoney =
-        ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+        ref.watch(printLogCostEnergyProvider).orFalse;
     final currency = ref.watch(currencySymbolProvider);
 
     return logTag(
@@ -291,7 +293,7 @@ class _PrintLogClassifySheetState
                 l10n.printLogStatusOneWay(
                   printRunStatusLabel(l10n, entry.status),
                 ),
-                style: t.label.copyWith(color: t.accentOrange),
+                style: t.label.copyWith(color: t.accentOrangeInk),
               ),
             ],
             const SizedBox(height: 20),
@@ -315,11 +317,7 @@ class _PrintLogClassifySheetState
                   FilledButton(
                     onPressed: _changed && !_saving ? _save : null,
                     child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const DashSpinner()
                         : Text(l10n.printLogSave),
                   ),
                 ),

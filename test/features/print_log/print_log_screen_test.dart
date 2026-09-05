@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
@@ -65,14 +64,6 @@ class _FakePrintLog extends PrintLogNotifier {
   }
 }
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design. It also keeps the thumbnail tile on its
-/// placeholder instead of reaching for a camera token.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 PrintLogEntry _entry({
   int id = 7,
   String name = 'Benchy',
@@ -100,6 +91,17 @@ PrintLogEntry _entry({
       energyKwh: energyKwh,
     );
 
+/// Starts the screen with filters already on, the way a user who opened the
+/// sheet before reaching for "clear log" has them.
+class _PresetFilters extends PrintLogFiltersNotifier {
+  _PresetFilters(this._initial);
+
+  final PrintLogFilters _initial;
+
+  @override
+  PrintLogFilters build() => _initial;
+}
+
 void main() {
   late AppLocalizations l10n;
 
@@ -107,25 +109,19 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
-  /// `pumpAndSettle` never returns here — the search field's cursor blinks
-  /// forever, so no frame is ever free of animation. A fixed span is long
-  /// enough for a sheet or a dialog to finish opening.
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
-  }
-
   Future<_FakePrintLog> pumpScreen(
     WidgetTester tester, {
     List<PrintLogEntry>? entries,
     bool costEnergy = true,
     AppApiException? failure,
+    PrintLogFilters? filters,
   }) async {
     final fake = _FakePrintLog(entries ?? [_entry()], failure: failure);
     await tester.pumpWidget(ProviderScope(
       overrides: [
         printLogProvider.overrideWith(() => fake),
+        if (filters != null)
+          printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
         printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
         // Money needs the server's currency, which otherwise means building an
         // API client — and there is no profile here to build one from.
@@ -133,7 +129,7 @@ void main() {
         printersForPickerProvider.overrideWith(
           (ref) async => const [Printer(id: 3, name: 'P1S')],
         ),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
       ],
       child: plApp(const PrintLogScreen()),
     ));
@@ -342,8 +338,8 @@ void main() {
 
   testWidgets('the printer filter reports "any" as no filter at all',
       (tester) async {
-    // The combo has no null option, so "any" rides on a sentinel value. Mapping
-    // it back to null is the fiddly half, and it is what the query depends on.
+    // "Any" is a real null row (`dashAnyOrOne`), and the query depends on it
+    // arriving as null rather than as some stand-in the caller has to map back.
     await pumpScreen(tester);
     await tester.tap(find.byIcon(Icons.tune));
     await settle(tester);
@@ -353,7 +349,7 @@ void main() {
     );
     expect(container.read(printLogFiltersProvider).printerId, isNull);
 
-    await tester.tap(find.byType(DropdownMenu<int>));
+    await tester.tap(find.byType(DropdownMenu<int?>));
     await settle(tester);
     final printer = find.text('P1S').last;
     await tester.ensureVisible(printer);
@@ -363,6 +359,20 @@ void main() {
 
     expect(container.read(printLogFiltersProvider).printerId, 3);
     expect(container.read(printLogFiltersProvider).activeCount, 1);
+
+    // And back: the any-row has to clear the filter, not set it to a value the
+    // query would then send. This half is what the screen's `clearPrinter`
+    // flag exists for — a null `printerId` alone means "leave it alone".
+    await tester.tap(find.byType(DropdownMenu<int?>));
+    await settle(tester);
+    final any = find.text(l10n.printLogAnyPrinter).last;
+    await tester.ensureVisible(any);
+    await tester.pump();
+    await tester.tap(any);
+    await settle(tester);
+
+    expect(container.read(printLogFiltersProvider).printerId, isNull);
+    expect(container.read(printLogFiltersProvider).activeCount, 0);
   });
 
   testWidgets('an orphan run is marked as one', (tester) async {
@@ -390,6 +400,30 @@ void main() {
     await settle(tester);
 
     expect(fake.cleared, 1);
+  });
+
+  testWidgets('under a filter the question stops quoting the filtered count',
+      (tester) async {
+    // `total` is what the filter matches; `DELETE /print-log/` takes no filter
+    // and empties the table. Quoting the one while doing the other turned
+    // "2 rows shown" into "All 2 runs go" over a log of thousands.
+    final fake = await pumpScreen(
+      tester,
+      entries: [_entry(id: 1), _entry(id: 2, name: 'Cube')],
+      filters: const PrintLogFilters(status: 'failed'),
+    );
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await settle(tester);
+    await tester.tap(find.text(l10n.printLogClear).last);
+    await settle(tester);
+
+    expect(find.text(l10n.printLogClearBody(2)), findsNothing);
+    expect(find.text(l10n.printLogClearBodyFiltered), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogClear));
+    await settle(tester);
+    expect(fake.cleared, 1, reason: 'it still clears everything');
   });
 
   testWidgets('deleting one run asks first', (tester) async {

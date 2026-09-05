@@ -28,6 +28,21 @@ class DemoHttpClientAdapter implements HttpClientAdapter {
       options.uri,
       _decodedBody(options.data),
     );
+    final file = result.body;
+    if (file is DemoFile) {
+      // A file, not a document: served as bytes with its own content type, so a
+      // streamed download writes what the route says it is serving rather than
+      // a JSON rendering of it. Content-Length is what makes the progress bar
+      // move — without it Dio reports -1 as the total.
+      return ResponseBody.fromBytes(
+        file.bytes,
+        result.status,
+        headers: {
+          Headers.contentTypeHeader: [file.contentType],
+          Headers.contentLengthHeader: ['${file.bytes.length}'],
+        },
+      );
+    }
     return ResponseBody.fromString(
       jsonEncode(result.body),
       result.status,

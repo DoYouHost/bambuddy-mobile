@@ -11,14 +11,18 @@ import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
+import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
 import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
+import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -29,6 +33,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
+import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
@@ -82,14 +87,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _logBgService('start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
-              // user has swiped the app away once.
-              if (!started) monitor.syncDiagnostics();
+              // user has swiped the app away once. (The clock format is synced
+              // from `SystemClockSync`, once its own write has landed.)
+              if (!started) monitor.sync(BackgroundSync.diagnostics);
             }),
           );
           // Hand the watch relay over to the FGS isolate. Exactly one
           // responder may listen at a time — a request answered twice is a
           // command executed twice (e.g. double startNext).
-          ref.read(wearRelayHandlerProvider).stop();
+          unawaited(ref.read(wearRelayHandlerProvider).stop());
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
@@ -111,7 +117,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
           ref.read(backgroundMonitorProvider).stop().then((_) {
-            ref.read(wearRelayHandlerProvider).start();
+            unawaited(ref.read(wearRelayHandlerProvider).start());
             ref.read(finishPhotoNotifierProvider)?.start();
           }),
         );
@@ -167,15 +173,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // the door open for the next resume.
     if (_signInWarned || _signInChecking || !mounted) return;
     _signInChecking = true;
+    final SettingsRepository settings;
     try {
-      // Both writers are other isolates, so this handle still serves the cache
-      // the app started with — the rejection it asks about is only on disk.
-      await ref.read(sharedPreferencesProvider).reload();
+      // Both writers are other isolates, so the rejection this asks about is
+      // only on disk.
+      settings = await ref.read(settingsRepositoryProvider).reloaded();
     } finally {
       _signInChecking = false;
     }
     if (!mounted) return;
-    final settings = ref.read(settingsRepositoryProvider);
     if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
@@ -518,6 +524,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // repositories drops the latch; the "supported" providers watch them.
         ref.invalidate(heaterHistoryRepositoryProvider);
         ref.invalidate(amsHistoryRepositoryProvider);
+        // Nothing polls the scheduled runs, so this is where a row someone
+        // added from the web — or one the scheduler has since picked up —
+        // reaches the card.
+        ref.invalidate(scheduledDryingsProvider);
         return ref.read(dashboardProvider.notifier).refresh();
       },
       child: CustomScrollView(
@@ -558,6 +568,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 itemBuilder: (_, i) => PrinterCard(
                   key: ValueKey(filtered[i].printer.id),
                   item: filtered[i],
+                  inTouchSince:
+                      ref.read(printerStatusesProvider.notifier).inTouchSince,
                 ),
               ),
             ),
@@ -713,6 +725,21 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.stats',
                 ),
+                // Absent until a call has proved the routes are there and this
+                // session may read them: an older server 404s, and an API key
+                // was refused every pipeline permission before server 1.2.5.3.
+                // Probed rather than versioned — the routes predate the
+                // renumbering to 1.2.5, so no threshold reads both schemes.
+                if (ref.watch(pipelinesSupportedProvider).orFalse)
+                  _DrawerTile(
+                    icon: Icons.account_tree_outlined,
+                    label: l10n.pipelinesMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/pipelines');
+                    },
+                    id: 'drawer.pipelines',
+                  ),
                 _DrawerTile(
                   icon: Icons.tune_rounded,
                   label: l10n.notifEventsMenu,

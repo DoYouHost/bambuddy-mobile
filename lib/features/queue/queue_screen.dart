@@ -20,6 +20,9 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/detached_flow.dart';
+import '../common/plate_clear.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -466,7 +469,7 @@ class _StatusChip extends StatelessWidget {
     final t = DashTokens.of(context);
     final (label, accent) = switch (item.statusKind) {
       QueueItemStatusKind.printing => (l10n.queueStatusPrinting, t.accentGreenInk),
-      QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrange),
+      QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrangeInk),
       QueueItemStatusKind.scheduled => (l10n.queueStatusScheduled, t.accentBlue),
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
@@ -609,15 +612,16 @@ class _QueueActions extends ConsumerWidget {
   }
 
   /// Opens fullscreen G-code preview for item source (archive or library file).
-  /// App bar title = print name, if known.
+  ///
+  /// The item's plate goes with it, so a multi-plate job previews the plate it
+  /// will actually print.
   void _previewGcode(BuildContext context) {
-    final title = item.archiveName ?? item.libraryFileName;
-    final name =
-        title == null ? '' : '&name=${Uri.encodeQueryComponent(title)}';
-    final source = item.archiveId != null
-        ? 'archive=${item.archiveId}'
-        : 'library_file=${item.libraryFileId}';
-    context.push('/gcode-viewer?$source$name');
+    context.push(gcodeViewerRoute(
+      archiveId: item.archiveId,
+      libraryFileId: item.libraryFileId,
+      plate: item.plateId,
+      title: item.archiveName ?? item.libraryFileName,
+    ));
   }
 }
 
@@ -632,7 +636,11 @@ Future<void> _startQueueItem(
   QueueItem item,
   AppLocalizations l10n,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
+  // This flow spans a printer picker, the mapping sheet, a confirmation and two
+  // requests, and the row that started it can be gone before any of those come
+  // back: the list rebuilds on every WS refresh, and a removed item shrinks it.
+  // See [detachFrom].
+  final (:providers, :messenger) = detachFrom(context);
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
@@ -650,7 +658,7 @@ Future<void> _startQueueItem(
   // Plate-clear gate: when the scheduler requires it and this printer still has
   // a finished job on the plate, confirm + acknowledge (clear-plate) before
   // sending — otherwise the scheduler would hold the print anyway.
-  if (await _awaitingPlateClear(ref, printerId)) {
+  if (await _awaitingPlateClear(providers, printerId)) {
     if (!context.mounted) return;
     final confirmed = await confirmDialog(
       context,
@@ -661,14 +669,34 @@ Future<void> _startQueueItem(
     );
     if (!confirmed) return;
     try {
-      await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
+      await providers.read(printerCommandsRepositoryProvider)
+          .clearPlate(printerId);
+      // The cached status has to hear about it here as much as on the card. The
+      // server pushes no frame for a printer with no MQTT client, so on the
+      // printer this gate exists for the next start inside the poll window would
+      // read the stale `true`, ack a gate that is already down, and take the
+      // route's 400 as a reason not to start the print at all.
+      providers.read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(printerId);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'queue.plate_clear');
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'queue.plate_clear',
+        message: recordPlateClearRefusal(
+                providers.read(offlinePlateClearProvider.notifier), e.detail)
+            ? l10n.plateClearNeedsOnline
+            : null,
+      );
       return;
     }
   }
 
-  final result = await ref
+  // One thing the container does not guarantee: `queueProvider` is autoDispose,
+  // so it outlives this row only because the tab badge in `RootScaffold` keeps
+  // it listened to.
+  final result = await providers
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
   messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
@@ -679,18 +707,28 @@ Future<void> _startQueueItem(
 /// before sending. Best-effort: unknown state → no confirmation.
 ///
 /// Prefers the last-known cached status: it survives the printer going offline
-/// (mergedWith keeps `awaiting_plate_clear`), whereas a fresh REST fetch can
-/// degrade to null for a powered-off printer and wrongly skip the ack. Acking an
-/// offline printer is valid — clear-plate is a pure server flag (no MQTT / no
-/// online requirement), so the scheduler dispatches the pending job once the
-/// printer wakes. Falls back to a fresh fetch only when the printer isn't cached.
-Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
-  if (!await ref.read(requirePlateClearProvider.future)) return false;
-  final cached = ref.read(printerStatusesProvider)[printerId];
-  if (cached != null) return cached.awaitingPlateClear == true;
+/// (`mergedWith` keeps `awaiting_plate_clear` through a disconnect on purpose),
+/// whereas a fresh REST fetch can degrade to null for a powered-off printer and
+/// wrongly skip the ack. Acking an offline printer is valid — clear-plate is a
+/// pure server flag (no MQTT / no online requirement), so the scheduler
+/// dispatches the pending job once the printer wakes. Falls back to a fresh
+/// fetch only when the printer isn't cached.
+///
+/// Reads through the container rather than a `WidgetRef` because it runs after
+/// the mapping sheet, by which time the row that opened it may be disposed —
+/// see [_startQueueItem].
+Future<bool> _awaitingPlateClear(
+    ProviderContainer providers, int printerId) async {
+  final gateEnabled = await providers.read(requirePlateClearProvider.future);
+  if (!gateEnabled) return false;
+  final cached = providers.read(printerStatusesProvider)[printerId];
+  if (cached != null) {
+    return plateClearPending(cached, gateEnabled: () => gateEnabled);
+  }
   try {
-    final st = await ref.read(printersRepositoryProvider).fetchStatus(printerId);
-    return st?.awaitingPlateClear == true;
+    final st =
+        await providers.read(printersRepositoryProvider).fetchStatus(printerId);
+    return plateClearPending(st, gateEnabled: () => gateEnabled);
   } on AppApiException {
     return false;
   }

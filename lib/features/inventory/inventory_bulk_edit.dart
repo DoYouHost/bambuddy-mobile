@@ -85,7 +85,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         rgba: normalizeRgba(_c['rgba']!.text),
         labelWeight: _int('labelWeight'),
         coreWeight: _int('coreWeight'),
-        costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
+        costPerKg: parseUserDecimal(_c['costPerKg']!.text),
         category: _trim('category'),
         // The range is enforced by the field's validator, which runs before
         // this is ever built; the clamp is the backstop that keeps a 422 out
@@ -152,66 +152,62 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final native =
         ref.watch(inventoryBackendProvider) == InventoryBackend.native;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.9,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (context, controller) => SheetSurface(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            controller: controller,
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
-            children: [
-              Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
-              const SizedBox(height: 4),
-              Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
-              const SizedBox(height: 12),
+    return DraggableSheetSurface(
+      initialSize: 0.9,
+      minSize: 0.5,
+      builder: (context, controller) => Form(
+        key: _formKey,
+        child: ListView(
+          controller: controller,
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          children: [
+            Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
+            const SizedBox(height: 4),
+            Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
+            const SizedBox(height: 12),
 
-              _FormSection(label: l10n.inventorySectionFilament),
-              _presetField(l10n),
-              _combo('material', l10n.inventoryFieldMaterial,
-                  ref.watch(materialOptionsProvider)),
-              _combo('brand', l10n.inventoryFieldBrand,
-                  ref.watch(brandOptionsProvider)),
-              _combo('subtype', l10n.inventoryFieldSubtype,
-                  ref.watch(subtypeOptionsProvider)),
-              _field('labelWeight', l10n.inventoryFieldLabelWeight,
-                  number: true),
+            _FormSection(label: l10n.inventorySectionFilament),
+            _presetField(l10n),
+            _combo('material', l10n.inventoryFieldMaterial,
+                ref.watch(materialOptionsProvider)),
+            _combo('brand', l10n.inventoryFieldBrand,
+                ref.watch(brandOptionsProvider)),
+            _combo('subtype', l10n.inventoryFieldSubtype,
+                ref.watch(subtypeOptionsProvider)),
+            _field('labelWeight', l10n.inventoryFieldLabelWeight,
+                number: true),
 
-              const SizedBox(height: 8),
-              _FormSection(label: l10n.inventorySectionColor),
-              _field('colorName', l10n.inventoryFieldColorName),
-              ValueListenableBuilder(
-                valueListenable: _c['rgba']!,
-                builder: (context, _, _) => _colorField(l10n),
-              ),
+            const SizedBox(height: 8),
+            _FormSection(label: l10n.inventorySectionColor),
+            _field('colorName', l10n.inventoryFieldColorName),
+            ValueListenableBuilder(
+              valueListenable: _c['rgba']!,
+              builder: (context, _, _) => _colorField(l10n),
+            ),
 
-              const SizedBox(height: 8),
-              _FormSection(label: l10n.inventorySectionAdditional),
-              _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
-                  number: true),
-              _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
-              // Category and the low-stock override are native-only columns:
-              // on Spoolman the patch drops them, so offering the fields would
-              // promise "1 field will be overwritten" and then change nothing.
-              if (native) ...[
-                _field('category', l10n.inventoryFieldCategory),
-                _field('lowStock', l10n.inventoryFieldLowStock,
-                    number: true,
-                    hint: l10n.inventoryLowStockHint,
-                    min: _lowStockMin,
-                    max: _lowStockMax),
-              ],
-              _combo('location', l10n.inventoryFieldLocation,
-                  ref.watch(locationOptionsProvider)),
-              _field('note', l10n.inventoryFieldNote, maxLines: 3),
-
-              const SizedBox(height: 20),
-              _applyButton(t, l10n),
+            const SizedBox(height: 8),
+            _FormSection(label: l10n.inventorySectionAdditional),
+            _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
+                number: true),
+            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            // Category and the low-stock override are native-only columns:
+            // on Spoolman the patch drops them, so offering the fields would
+            // promise "1 field will be overwritten" and then change nothing.
+            if (native) ...[
+              _field('category', l10n.inventoryFieldCategory),
+              _field('lowStock', l10n.inventoryFieldLowStock,
+                  number: true,
+                  hint: l10n.inventoryLowStockHint,
+                  min: _lowStockMin,
+                  max: _lowStockMax),
             ],
-          ),
+            _combo('location', l10n.inventoryFieldLocation,
+                ref.watch(locationOptionsProvider)),
+            _field('note', l10n.inventoryFieldNote, maxLines: 3),
+
+            const SizedBox(height: 20),
+            _applyButton(t, l10n),
+          ],
         ),
       ),
     );
@@ -307,11 +303,16 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
           validator: (v) {
             final text = (v ?? '').trim();
             if (!number || text.isEmpty) return null;
-            final value = double.tryParse(text);
+            final value = parseUserDecimal(text);
             if (value == null) return l10n.inventoryFieldInvalidNumber;
             if (min != null && max != null && (value < min || value > max)) {
               return l10n.inventoryFieldRange(min, max);
             }
+            // Fields without a declared range still have a floor. `cost_per_kg`
+            // is `ge=0` server-side and a negative one 422s the whole selection;
+            // `core_weight` has no such guard and stores the negative, which
+            // then poisons every remaining-weight sum built on it.
+            if (value < 0) return l10n.inventoryFieldNegative;
             return null;
           },
         ),
@@ -322,48 +323,34 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// Slicer preset for the whole selection. Clearing it means "leave every
   /// spool's preset as it is" — it does not unset the preset server-side.
   Widget _presetField(AppLocalizations l10n) {
-    final t = DashTokens.of(context);
     final selected = _slicerFilamentName ?? _slicerFilament;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () async {
-          final picked = await dashSurfaceSheet<SlicerPreset>(
-            context,
-            builder: (_) => const _SlicerPresetPicker(),
-          );
-          if (picked == null || !mounted) return;
-          setState(() {
-            _slicerFilament = picked.id;
-            _slicerFilamentName = picked.name;
-          });
-        },
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.inventoryFieldSlicerPreset,
-            prefixIcon: Icon(Icons.tune, color: t.textTertiary),
-            suffixIcon: selected == null
-                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => setState(() {
-                      _slicerFilament = null;
-                      _slicerFilamentName = null;
-                    }),
-                  ),
-          ),
-          child: Text(
-            selected ?? l10n.inventoryBulkEditUnchanged,
-            style: t.body.copyWith(
-              color: selected == null ? t.textTertiary : t.textPrimary,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ).tagged('bulk_edit.preset'),
+    return dashPickerField(
+      context,
+      id: 'bulk_edit.preset',
+      label: l10n.inventoryFieldSlicerPreset,
+      placeholder: l10n.inventoryBulkEditUnchanged,
+      value: selected,
+      prefixIcon: Icons.tune,
+      onTap: () async {
+        final picked = await dashSurfaceSheet<SlicerPreset>(
+          context,
+          // No material to narrow by: the selection can hold several, and a
+          // filter taken from one of them would hide the rest.
+          builder: (_) => const _SlicerPresetPicker(),
+        );
+        if (picked == null || !mounted) return;
+        setState(() {
+          _slicerFilament = picked.id;
+          _slicerFilamentName = picked.name;
+        });
+      },
+      clear: (
+        id: 'bulk_edit.preset.clear',
+        onPressed: () => setState(() {
+          _slicerFilament = null;
+          _slicerFilamentName = null;
+        }),
+      ),
     );
   }
 
@@ -373,42 +360,20 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   Widget _colorField(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final hex = _c['rgba']!.text.trim();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _pickColor(l10n),
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.inventoryFieldColorHex,
-            suffixIcon: hex.isEmpty
-                ? Icon(Icons.colorize, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => _c['rgba']!.clear(),
-                  ),
-          ),
-          child: Row(
-            children: [
-              SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  hex.isEmpty
-                      ? l10n.inventoryBulkEditUnchanged
-                      : hex.toUpperCase(),
-                  style: t.monoValue.copyWith(
-                    color: hex.isEmpty ? t.textTertiary : t.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ).tagged('bulk_edit.color'),
+    return dashPickerField(
+      context,
+      id: 'bulk_edit.color',
+      label: l10n.inventoryFieldColorHex,
+      placeholder: l10n.inventoryBulkEditUnchanged,
+      value: hex.isEmpty ? null : hex.toUpperCase(),
+      valueStyle: t.monoValue,
+      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      trailingIcon: Icons.colorize,
+      onTap: () => _pickColor(l10n),
+      clear: (
+        id: 'bulk_edit.color.clear',
+        onPressed: () => _c['rgba']!.clear(),
+      ),
     );
   }
 

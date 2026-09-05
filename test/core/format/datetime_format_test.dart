@@ -36,6 +36,26 @@ void main() {
       expect(_fmt(locale: 'en_CA').time(_at), '9:20 p.m.');
     });
 
+    test('an unreadable switch follows the locale, not a 12-hour default', () {
+      // The foreground service's engine is never told what the switch says, and
+      // its Dart-side default is "12-hour" — which is how a phone set to 24 got
+      // `ETA 8:29 PM` in its print notification.
+      expect(DateTimeFormats.forTest(locale: 'pl').time(_at), '21:20');
+      expect(DateTimeFormats.forTest(locale: 'en_GB').time(_at), '21:20');
+      expect(DateTimeFormats.forTest(locale: 'de_DE').time(_at), '21:20');
+      // A 12-hour locale still gets a 12-hour clock, marker and all.
+      expect(DateTimeFormats.forTest(locale: 'en_US').time(_at), '9:20 PM');
+      expect(DateTimeFormats.forTest(locale: 'en_CA').time(_at), '9:20 p.m.');
+    });
+
+    test('the hour cycle comes off the region, the markers off the language',
+        () {
+      // A Polish app on a US phone: the device's convention decides the clock,
+      // and the marker is borrowed from English because intl gives pl `a`/`p`.
+      final f = DateTimeFormats.forTest(locale: 'en_US', wordLocale: 'pl');
+      expect(f.time(_at), '9:20 PM');
+    });
+
     test('midnight and noon do not collapse onto 0 or 24', () {
       final f = _fmt();
       expect(f.time(DateTime(2026, 8, 22, 0, 5)), '12:05 AM');
@@ -111,6 +131,66 @@ void main() {
     expect(_fmt(locale: 'en_US').shortWeekdaysMondayFirst,
         ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
     expect(_fmt(locale: 'pl').shortWeekdaysMondayFirst.first, 'pon.');
+  });
+
+  group('the clock a bare isolate resolves', () {
+    /// What `DateTimeFormats.system()` would spell with that answer, on a locale
+    /// whose own convention is the opposite of a hardcoded 12-hour clock.
+    /// `system()` itself cannot be steered from a test — it reads
+    /// `PlatformDispatcher.instance`, the process-wide singleton, which ignores
+    /// the values a widget test sets on its own dispatcher.
+    String spelled(bool? clock, {String locale = 'de_DE'}) =>
+        DateTimeFormats.forTest(locale: locale, use24Hour: clock).time(_at);
+
+    test('a dispatcher false is a non-answer, not a 12-hour clock', () {
+      // The foreground service runs a bare FlutterEngine, which is never sent
+      // the user settings and leaves the flag at its Dart-side default. Reading
+      // that as "12-hour" is how a phone set to 24 got `ETA 8:29 PM` in its
+      // print notification — the bug this whole rule exists for.
+      final clock = DateTimeFormats.isolateClock(
+        remembered: null,
+        dispatcherSays: false,
+      );
+
+      expect(clock, isNull, reason: 'nobody has said — ask the locale');
+      expect(spelled(clock), '21:20');
+      expect(spelled(clock, locale: 'en_US'), '9:20 PM',
+          reason: 'a 12-hour locale still reads 12-hour');
+    });
+
+    test('a dispatcher true is real and is taken', () {
+      // Nothing but the setting itself produces one, so it needs no corroboration.
+      expect(
+        DateTimeFormats.isolateClock(remembered: null, dispatcherSays: true),
+        isTrue,
+      );
+    });
+
+    test('a published 12-hour clock beats the locale that disagrees', () {
+      // The case a 24-hour locale makes easy to lose: someone on a de_DE phone
+      // who went and picked 12-hour by hand. Once the tree has published it,
+      // falling back to the locale would overrule them.
+      final clock = DateTimeFormats.isolateClock(
+        remembered: false,
+        dispatcherSays: false,
+      );
+
+      expect(clock, isFalse);
+      expect(spelled(clock), '9:20 PM');
+    });
+
+    test('what was published outranks whatever the dispatcher says', () {
+      // Either way round: the tree has seen the real setting, the dispatcher of
+      // a bare engine has not.
+      expect(
+        DateTimeFormats.isolateClock(remembered: false, dispatcherSays: true),
+        isFalse,
+      );
+      expect(
+        DateTimeFormats.isolateClock(remembered: true, dispatcherSays: false),
+        isTrue,
+      );
+    });
   });
 
   group('resolution against the platform', () {

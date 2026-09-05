@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'server_settings.dart';
 
 /// Which printer models have an auto-print G-code snippet configured on the
 /// server (`AppSettings.gcode_snippets`).
@@ -19,25 +19,12 @@ import 'dart:convert';
 /// decoded map as well: [raw] is whatever `/settings` put under the key, and a
 /// server sending an object instead of a string should not cost the feature.
 Set<String> gcodeSnippetModels(Object? raw) {
-  final decoded = switch (raw) {
-    Map<String, dynamic> map => map,
-    String s when s.trim().isNotEmpty => _tryDecode(s),
-    _ => null,
-  };
+  final decoded = decodeSettingBlob(raw);
   if (decoded == null) return const {};
   return {
     for (final e in decoded.entries)
       if (_hasSnippet(e.value)) e.key,
   };
-}
-
-Map<String, dynamic>? _tryDecode(String raw) {
-  try {
-    final parsed = jsonDecode(raw);
-    return parsed is Map<String, dynamic> ? parsed : null;
-  } on FormatException {
-    return null;
-  }
 }
 
 bool _hasSnippet(Object? entry) {

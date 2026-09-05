@@ -7,6 +7,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
@@ -19,8 +20,10 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
+import 'core/settings/server_settings.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
+import 'core/watch/wear_relay_claim.dart';
 import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/current_user.dart';
@@ -34,7 +37,9 @@ import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
+import 'data/location_sensors_repository.dart';
 import 'data/makerworld_repository.dart';
+import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
@@ -46,6 +51,7 @@ import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/scheduled_drying_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -92,6 +98,7 @@ final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
     dio: () => ref.read(serverProfileProvider) == null
         ? null
         : ref.read(apiClientProvider).dio,
+    claim: WearRelayClaim(ref.watch(settingsRepositoryProvider)),
   );
   ref.onDispose(handler.stop);
   return handler;
@@ -519,6 +526,25 @@ final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Delayed AMS drying runs. Shares authenticated Dio; the version service
+/// answers whether to offer scheduling until the listing itself has.
+final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
+  (ref) => ScheduledDryingRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Home Assistant sensors bound to a storage location — read-only. Shares
+/// authenticated Dio; the version service answers whether the route family is
+/// there until the listing itself has.
+final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
+  (ref) => LocationSensorsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
 /// Printer heater history (nozzle / bed / chamber charts). Shares authenticated
 /// Dio; the version service answers whether to offer the chart until the route
 /// itself has.
@@ -565,8 +591,11 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
 /// [serverVersionServiceProvider] is, so switching servers cannot carry the old
 /// ceiling over.
 ///
-/// The one gate here with nothing to observe — see
-/// [ServerVersion.chamberMaxTargetC].
+/// One of the two gates with nothing to observe — see
+/// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
+/// other. Every other capability provider here asks a repository instead,
+/// because a repository has seen the server's own answers and that outranks
+/// reasoning from a version number.
 final chamberMaxTargetProvider = FutureProvider<int>(
   (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
 );
@@ -593,9 +622,21 @@ final processOverridesProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
 );
 
+/// Whether the label sheet may ask where on the sheet to start printing
+/// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
+/// why a PDF response cannot answer it.
+final labelStartingPositionProvider = FutureProvider<bool>(
+  (ref) => ref
+      .watch(serverVersionServiceProvider)
+      .supports(ServerFeature.labelStartingPosition),
+);
+
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
-  (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+  (ref) => ArchiveRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Timelapse metadata, filmstrip, server-side re-encode and download. Shares
@@ -657,7 +698,10 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
 
 /// Printer on-device storage (file manager). Shares authenticated Dio.
 final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
-  (ref) => PrinterFilesRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterFilesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Server-side slicing (sidecar). Shares authenticated Dio.
@@ -668,16 +712,38 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
   ),
 );
 
+/// Slicer pipelines — reusable preset bundles and their runs. Shares
+/// authenticated Dio.
+///
+/// Not `autoDispose`: it caches whether the routes are there at all, and
+/// throwing that away between screens would put the entry point back to
+/// guessing. Rebuilt with [apiClientProvider], so a new server or new
+/// credentials get a fresh answer.
+final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
+  (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags
 /// derive from this so we fetch `/settings` once.
 final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
 );
 
+/// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
+/// answers **422** above it rather than clamping, so the stepper has to know.
+/// 50 is the server's own fallback for an unset or unparseable value
+/// (`routes/pipeline_runs.py::run_pipeline`).
+final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
+  final settings = await ref.watch(serverSettingsProvider.future);
+  final parsed = settings.settingDouble('pipeline_max_copies', 50).toInt();
+  return parsed > 0 ? parsed : 50;
+});
+
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
 final currencySymbolProvider = Provider<String>((ref) {
-  final code = ref.watch(serverSettingsProvider).valueOrNull?['currency'];
+  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
+      .settingString('currency');
   return currencySymbol(code is String ? code : null);
 });
 
@@ -686,8 +752,8 @@ final currencySymbolProvider = Provider<String>((ref) {
 /// pre-start confirmation.
 final requirePlateClearProvider = FutureProvider<bool>(
   (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
-      true,
+      (await ref.watch(serverSettingsProvider.future))
+          .settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
@@ -762,7 +828,10 @@ final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
 
 /// Filament inventory. Facade over chosen source.
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
+  (ref) => InventoryRepository(
+    ref.watch(inventorySourceProvider),
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Service minting camera stream token (print cover; from M2 also camera

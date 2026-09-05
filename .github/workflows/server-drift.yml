@@ -17,6 +17,14 @@
 # permission no key can hold is a feature only a password login could use. The
 # facts step resolves every added route's gate through the server's own API-key
 # allowlist so the verdict is computed rather than guessed — see the skill.
+#
+# That verdict is taken per **surface**, not per route, because the two disagree
+# in the case that matters: a key cannot bind an HA sensor to a storage location
+# — every write there is a permission the allowlist withholds — but it can read
+# all four of that surface's routes, and showing a drybox's temperature and
+# humidity is the whole of what the app would do with it. Per route that reads
+# as three-sevenths blocked; per surface it reads as `key: read-only`, which is
+# a feature to build the read half of rather than one to park.
 name: Server drift
 
 on:
@@ -140,6 +148,11 @@ jobs:
           # list instead of four lines.
           jq -r '.[0].body // ""' <<<"$issue" | tr -d '\r' \
             | sed '/^<!-- server-drift state/,/^-->$/d' > .server-drift/open-items-current.md
+
+      # Ahead of the range, because a mis-gated route still yields a plausible
+      # line and the model has no way to doubt it. Seconds, and no clone needed.
+      - name: Self-test the gate scan
+        run: tool/server-ref-diff.sh --self-test
 
       - name: Filter the range
         id: filter

@@ -61,9 +61,13 @@
             android:value="true" />
 
         <!-- Phone-only components: home-screen widget, the FGS host for the
-             background monitor, and the notification-action receiver. The wear
-             entry point never starts them — drop them from the watch APK. -->
+             background monitor, the notification-action receiver, and the
+             listener service that wakes the phone app for the watch. The wear
+             entry point never starts them — drop them from the watch APK. (The
+             relay has no watch-side counterpart to declare: the watch app is
+             the one that asks, and it is on screen while it waits.) -->
         <receiver android:name=".BambuddyWidgetProvider" tools:node="remove" />
+        <service android:name=".wear.WearRelayListenerService" tools:node="remove" />
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             tools:node="remove" />

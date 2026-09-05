@@ -71,6 +71,68 @@ enum ServerFeature {
   ///   drops those without a word: the list comes back `created_at desc`
   ///   whatever was asked for. Same silent-drop class as [sliceLayoutOptions].
   printLogCostEnergy,
+
+  /// `starting_position` on `POST /inventory/labels` / `POST /spoolman/labels`
+  /// — resume a part-used Avery sheet instead of always printing from slot 1.
+  ///
+  /// Gated for the same reason as [sliceLayoutOptions]: `LabelRequest` forbids
+  /// no extra fields, so an older server takes the number, says nothing, and
+  /// prints from position 1 anyway. Nothing in the reply distinguishes the two
+  /// — both are a valid PDF — so there is no observation to prefer over this
+  /// row, and a control that quietly wastes a sheet of labels is worse than one
+  /// that is not offered.
+  labelStartingPosition,
+
+  /// `POST /printers/{id}/files/download-job` and the two routes that go with
+  /// it — a printer-file download prepared in the background instead of behind
+  /// a held request (server #2850).
+  ///
+  /// A route family, so an older server answers **404** and
+  /// `PrinterFilesRepository` prefers that observation to this row. Being
+  /// early costs nothing either way: the legacy `download-zip` is still there
+  /// on every server, including the newest, and is what the app falls back to.
+  printerFilesDownloadJob,
+
+  /// `GET/POST/DELETE /scheduled-dryings` — a manual AMS drying run the
+  /// scheduler starts later (server #2638).
+  ///
+  /// A whole route family rather than a field, so an older server answers
+  /// **404** and `ScheduledDryingRepository` prefers that observation to this
+  /// row. The gate exists for the moment before the first listing comes back:
+  /// the drying sheet has to decide whether to offer "Later" at all, and an
+  /// offer that ends in a 404 costs the user a filled-in form.
+  scheduledDryings,
+
+  /// `GET /archives/{id}/printer-media` and the media-download token pair —
+  /// the recordings a finished print can still be given, off the printer's own
+  /// storage (server #2853).
+  ///
+  /// A route family again, so an older server answers **404** and
+  /// `ArchiveRepository` prefers that observation to this row. Being early
+  /// would cost a sheet that opens onto nothing, so the archive sheet hides
+  /// the entry until this says yes.
+  archivePrinterMedia,
+
+  /// `GET /location-ha-sensors/` and the per-location readings behind it — the
+  /// thermometer or hygrometer a storage location can be given, read through
+  /// the server's Home Assistant connection (server #2827).
+  ///
+  /// A route family once more, so an older server answers **404** and
+  /// `LocationSensorsRepository` prefers that observation to this row. The
+  /// gate only spares that one 404 on a server known to be older: nothing is
+  /// offered until the listing comes back non-empty, so being early here costs
+  /// a request and never a control.
+  locationHaSensors,
+
+  /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin —
+  /// the slicer preset a spool uses on one printer *model*, instead of the one
+  /// value it carries for the whole fleet (server commit a7b56333).
+  ///
+  /// A route pair, so an older server answers **404** and
+  /// `InventoryRepository` prefers that observation to this row. Being early
+  /// costs a section that offers to write somewhere the write would 404, so
+  /// the spool form hides it until this says yes.
+  spoolModelPresets,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -177,6 +239,34 @@ class ServerVersion implements Comparable<ServerVersion> {
     // it, so this one row covers both schemes; writing it as (1, 2, 4, 8) would
     // hide the chart on exactly the 0.2.4.x servers that have it.
     ServerFeature.printerSensorHistory: (0, 2, 4, 8),
+    // starting_position on the two label routes (server #2879). Like the rows
+    // above it this landed partway through the 1.2.6 beta cycle, which the
+    // numeric base cannot split any finer — a 1.2.6b1 daily older than the
+    // commit is told yes and prints from position 1. That is the same sheet it
+    // prints today, so the cost of the gate being early is a wasted sheet
+    // rather than a refused request.
+    ServerFeature.labelStartingPosition: (1, 2, 6, 0),
+    // Prepared printer-file downloads (server #2850). Landed inside the 1.2.6
+    // beta cycle; like /scheduled-dryings the route answers 404 below it and
+    // the repository records that instead of this row.
+    ServerFeature.printerFilesDownloadJob: (1, 2, 6, 0),
+    // /scheduled-dryings (server #2638, commit d37ce94f). Landed after the
+    // 1.2.5.3 release, inside the 1.2.6 beta cycle — same caveat as the rows
+    // above, except that here being early is free: the route answers 404 and
+    // the repository records that in place of this row.
+    ServerFeature.scheduledDryings: (1, 2, 6, 0),
+    // Archive printer-media search + the media-download token (server #2853,
+    // commit 55cc64c8). Landed in the same 1.2.6 beta cycle as the rows above,
+    // with the same caveat: the routes answer 404 below it and the repository
+    // records that in place of this row.
+    ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
+    // Storage-location Home Assistant sensors (server #2827, commit 54af3146).
+    // Same 1.2.6 beta cycle and same caveat as the rows above.
+    ServerFeature.locationHaSensors: (1, 2, 6, 0),
+    // Per-printer-model spool presets (server commit a7b56333), landed in the
+    // same 1.2.6 beta cycle as the rows above and answering 404 below it, so
+    // the observation the repository records outranks this row.
+    ServerFeature.spoolModelPresets: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].
@@ -194,9 +284,6 @@ class ServerVersion implements Comparable<ServerVersion> {
     return true;
   }
 
-  bool get supportsTriStateCalibration =>
-      supports(ServerFeature.triStateCalibration);
-
   /// Highest chamber target the server will accept, in °C.
   ///
   /// The one gate that is a value rather than a yes/no, and the one that cannot
@@ -207,17 +294,9 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// rather than clamping. 60 whenever we don't know.
   int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
 
-  bool get supportsCrossModelVariants =>
-      supports(ServerFeature.crossModelVariants);
-
-  bool get supportsSliceLayoutOptions =>
-      supports(ServerFeature.sliceLayoutOptions);
-
-  bool get supportsProcessOverrides => supports(ServerFeature.processOverrides);
-
   List<int> get _base => [major, minor, patch, micro];
 
-  /// Prerelease status deliberately ignored — see [supportsTriStateCalibration].
+  /// Prerelease status deliberately ignored — see [introducedIn].
   int _compareBase(ServerVersion other) {
     final mine = _base;
     final theirs = other._base;

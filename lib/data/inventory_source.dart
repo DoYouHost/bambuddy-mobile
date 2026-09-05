@@ -9,6 +9,7 @@ import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/spool_label.dart';
+import '../core/models/spool_preset_override.dart';
 
 /// Filament inventory backend. User has native, but app should also work on Spoolman —
 /// selected via setting (see `inventoryBackendProvider`).
@@ -118,19 +119,32 @@ abstract class SpoolInventorySource {
   Future<List<ColorEntry>> fetchColors();
   Future<List<FilamentPreset>> fetchFilamentPresets();
 
-  /// Storage-location catalog names for the location picker. Native only;
-  /// Spoolman degrades to empty (the picker still accepts free text).
-  Future<List<String>> fetchLocations();
+  /// Storage-location catalog for the location picker, and for matching a
+  /// spool's free-text location to the row the server keys its Home Assistant
+  /// sensors by. Native only; Spoolman degrades to empty (the picker still
+  /// accepts free text).
+  Future<List<StorageLocation>> fetchLocations();
 
-  /// Renders labels for [spoolIds] onto [template] and returns the PDF bytes.
-  /// Label order follows [spoolIds], so a caller-chosen sort carries through to
-  /// a sheet print. [monochrome] drops the colour swatch for B&W thermal
-  /// printers.
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  });
+  /// Renders the labels [request] describes and returns the PDF bytes.
+  Future<Uint8List> renderLabels(SpoolLabelRequest request);
+
+  /// One spool's per-printer-model preset overrides, and the replace that
+  /// writes them back (server 1.2.6; see [SpoolPresetOverride]).
+  ///
+  /// The two exceptions to the rule that everything here answers with a mapped
+  /// [AppApiException]: [InventoryRepository] runs them inside a latch that has
+  /// to read the status off the [DioException] itself — a 403 to record the
+  /// refusal, a 404 to answer the read with no rows. It maps what it rethrows,
+  /// so nothing above the repository sees the difference.
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId);
+
+  /// Replaces the whole list — an empty one clears every override. The route
+  /// has no merge, so a caller that could not read the current rows must not
+  /// call this: it would delete what it never saw.
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  );
 }
 
 /// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
@@ -153,17 +167,11 @@ bool _looksLikePdf(Uint8List bytes) =>
 Future<Uint8List> _postLabels(
   Dio dio,
   String path,
-  List<int> spoolIds,
-  SpoolLabelTemplate template,
-  bool monochrome,
+  SpoolLabelRequest request,
 ) => guard(() async {
   final res = await dio.post<List<int>>(
     path,
-    data: {
-      'spool_ids': spoolIds,
-      'template': template.wire,
-      'monochrome': monochrome,
-    },
+    data: request.toJson(),
     // The response is a PDF stream, not JSON — without this Dio's default
     // JSON transformer would try to decode it and throw.
     options: Options(responseType: ResponseType.bytes),
@@ -178,6 +186,28 @@ Future<Uint8List> _postLabels(
   }
   return bytes;
 });
+
+/// Shared per-model preset override calls — the two backends differ only in
+/// path, since both routes take and answer the same body.
+///
+/// Deliberately unguarded: the latch in [InventoryRepository] reads the status
+/// off the [DioException] and maps what it rethrows. See
+/// [SpoolInventorySource.fetchPresetOverrides].
+Future<List<SpoolPresetOverride>> _getPresetOverrides(
+  Dio dio,
+  String path,
+) async {
+  final res = await dio.get<List<dynamic>>(path);
+  return parseJsonList(res.data, SpoolPresetOverride.fromJson);
+}
+
+Future<void> _putPresetOverrides(
+  Dio dio,
+  String path,
+  List<SpoolPresetOverride> overrides,
+) async {
+  await dio.put<dynamic>(path, data: [for (final o in overrides) o.toJson()]);
+}
 
 /// A JSON object out of a response body, or null when the server answered with
 /// something else — the demo backend replies `{}` to unrouted POSTs and an old
@@ -466,26 +496,35 @@ class NativeInventorySource implements SpoolInventorySource {
   }
 
   @override
-  Future<List<String>> fetchLocations() => guard(() async {
+  Future<List<StorageLocation>> fetchLocations() => guard(() async {
         final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
         return [
-          for (final e in res.data ?? const [])
-            if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
-              (e['name'] as String).trim(),
+          for (final loc
+              in parseJsonList(res.data, StorageLocation.fromJson))
+            if (loc.name.isNotEmpty) loc,
         ];
       });
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.inventoryLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
         _dio,
-        Endpoints.inventoryLabels,
-        spoolIds,
-        template,
-        monochrome,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+        overrides,
       );
 }
 
@@ -667,18 +706,27 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   // Location catalog is a native-backend feature; on Spoolman the picker falls
   // back to free text + locations already used by spools.
   @override
-  Future<List<String>> fetchLocations() async => const [];
+  Future<List<StorageLocation>> fetchLocations() async => const [];
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.spoolmanLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
         _dio,
-        Endpoints.spoolmanLabels,
-        spoolIds,
-        template,
-        monochrome,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+        overrides,
       );
 }

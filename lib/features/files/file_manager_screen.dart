@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +19,8 @@ import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
+import '../common/device_files.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -27,6 +28,10 @@ import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
+import '../../data/pipelines_repository.dart' show PipelineSource;
+import '../pipelines/pipeline_run_screen.dart';
+import '../pipelines/pipelines_providers.dart'
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
@@ -358,7 +363,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     // Slicing only applies to un-sliced models (not gcode), and only when the
     // server's slicer sidecar is enabled.
     final canSlice =
-        (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
+        ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
     final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
     dashSheet<void>(
       context,
@@ -440,6 +445,30 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _sliceFile(file);
                 },
               ).tagged('file_actions.slice'),
+            // Slice and dispatch in one go, using a saved bundle. Sits next to
+            // Slice because it needs the same source and the same permission
+            // to produce a print — only the picking of profiles differs.
+            //
+            // Its own [Consumer], where every other row here reads with
+            // `ref.read`: this gate is the one that is not settled yet. It is a
+            // probe of the server's routes, so it resolves after the first
+            // frames — and the screen's `ref` cannot rebuild a sheet that lives
+            // in its own route, which left the action missing on a server that
+            // does have pipelines.
+            if (canSlice)
+              Consumer(
+                builder: (_, sheetRef, _) =>
+                    sheetRef.watch(canRunPipelinesProvider).orFalse
+                        ? ListTile(
+                            leading: const Icon(Icons.account_tree_outlined),
+                            title: Text(l10n.pipelineRun),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _runPipeline(file);
+                            },
+                          ).tagged('file_actions.run_pipeline')
+                        : const SizedBox.shrink(),
+              ),
             ListTile(
               leading: const Icon(Icons.playlist_add),
               title: Text(l10n.fmAddToQueue),
@@ -750,8 +779,20 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// G-code preview: opens the full-screen 3D viewer for a sliced library file.
   void _previewGcode(LibraryFile file) {
-    final name = Uri.encodeQueryComponent(file.displayName);
-    context.push('/gcode-viewer?library_file=${file.id}&name=$name');
+    context.push(gcodeViewerRoute(
+      libraryFileId: file.id,
+      title: file.displayName,
+    ));
+  }
+
+  /// Run a saved pipeline against this file — slices it and dispatches the
+  /// copies without going through the four pickers.
+  Future<void> _runPipeline(LibraryFile file) async {
+    await showPipelineRunScreen(
+      context,
+      source: PipelineSource.libraryFile(file.id),
+      sourceName: file.displayName,
+    );
   }
 
   Future<void> _sliceFile(LibraryFile file) async {
@@ -768,31 +809,26 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Future<void> _uploadFile(FileManagerState s) async {
     final l10n = _l10n;
-    final FilePickerResult? picked;
-    try {
-      picked = await FilePicker.platform.pickFiles(withReadStream: false);
-    } on Exception {
-      if (!mounted) return;
-      _snack(l10n.fmUploadFailed);
+    final picked = await pickFileFromDevice();
+    if (!mounted) return;
+    final file = picked.file;
+    if (file == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) _snack(l10n.fmUploadFailed);
       return;
     }
-    if (!mounted) return;
-    final path = picked?.files.single.path;
-    final name = picked?.files.single.name;
-    if (path == null || name == null) return; // anulowano
 
     _snack(l10n.fmUploading);
     try {
       await ref.read(libraryRepositoryProvider).uploadFile(
-            filePath: path,
-            filename: name,
+            filePath: file.path,
+            filename: file.name,
             folderId: s.currentFolderId,
           );
       if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
       if (!mounted) return;
       ref.invalidate(libraryStatsProvider);
-      _snack(l10n.fmUploaded(name));
+      _snack(l10n.fmUploaded(file.name));
     } on AppApiException catch (e) {
       _failed(e, 'files.upload');
     }

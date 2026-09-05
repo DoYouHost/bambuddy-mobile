@@ -1,10 +1,9 @@
 import 'dart:io';
 
 import 'package:gal/gal.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../data/timelapse_repository.dart';
+import '../common/file_export.dart';
 
 /// Saving a timelapse out of the app: to the gallery, or to whatever the share
 /// sheet offers.
@@ -58,11 +57,7 @@ class TimelapseExport {
       name: name,
       onProgress: onProgress,
     );
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: timelapseMimeType(file.path))],
-      ),
-    );
+    await shareDownloadedFile(file, mimeType: timelapseMimeType(file.path));
   }
 
   /// Downloads into a scratch file, then renames it to the print's name with
@@ -76,24 +71,21 @@ class TimelapseExport {
     required String token,
     required String name,
     void Function(double? progress)? onProgress,
-  }) async {
-    final dir = await getTemporaryDirectory();
-    final scratch = '${dir.path}/timelapse-$archiveId.download';
-    final contentType = await _repository.downloadTo(
-      archiveId,
-      token: token,
-      savePath: scratch,
-      // A server that streams without a length reports -1 as the total; the
-      // bar goes indeterminate rather than jumping to a made-up fraction.
-      onProgress: (received, total) =>
-          onProgress?.call(total > 0 ? received / total : null),
-    );
-    final target = File(
-      '${dir.path}/${exportFilename(name, timelapseExtension(contentType))}',
-    );
-    if (await target.exists()) await target.delete();
-    return File(scratch).rename(target.path);
-  }
+  }) =>
+      downloadToCacheFile(
+        scratchName: 'timelapse-$archiveId.download',
+        download: (savePath) => _repository.downloadTo(
+          archiveId,
+          token: token,
+          savePath: savePath,
+          // A server that streams without a length reports -1 as the total; the
+          // bar goes indeterminate rather than jumping to a made-up fraction.
+          onProgress: (received, total) =>
+              onProgress?.call(total > 0 ? received / total : null),
+        ),
+        name: (contentType) =>
+            exportFilename(name, timelapseExtension(contentType)),
+      );
 }
 
 /// The device would not let the app write to the gallery. Distinct from a
@@ -131,13 +123,5 @@ String timelapseMimeType(String path) {
 
 /// `<print name>_timelapse.<extension>`, with anything a filesystem or a share
 /// target could choke on replaced. Mirrors the web UI's download name.
-String exportFilename(String name, [String extension = 'mp4']) {
-  final safe = name
-      .replaceAll(RegExp(r'[^\w\s.-]'), '')
-      .trim()
-      // Leading dots would make it a hidden file; a trailing one (or the
-      // underscore a trailing space turns into) collides with the suffix.
-      .replaceAll(RegExp(r'\s+'), '_')
-      .replaceAll(RegExp(r'^[._]+|[._]+$'), '');
-  return '${safe.isEmpty ? 'timelapse' : safe}_timelapse.$extension';
-}
+String exportFilename(String name, [String extension = 'mp4']) =>
+    '${safeFileStem(name, fallback: 'timelapse')}_timelapse.$extension';

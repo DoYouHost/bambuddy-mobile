@@ -75,6 +75,25 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <!-- Watch relay on a phone whose app is not running: Play services
+             binds a listener service that is declared here and starts the
+             process for it (wear/WearRelayListenerService.kt has the why).
+             Exported because the binder comes from Play services' own process
+             — the callback verifies the sending node rather than the caller.
+             No `pathPrefix` on purpose: `watch_connectivity` sends every
+             message on a path with no leading slash, so a path filter is a coin
+             toss on how Play services builds the URI. This matches any wear
+             message (only our own watch install can send one) and the path is
+             checked in code. -->
+        <service
+            android:name=".wear.WearRelayListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" />
+            </intent-filter>
+        </service>
+
         <!-- flutter_local_notifications: receiver for taps on notification action
              buttons (e.g. "Mark done" for maintenance). Required by the plugin so
              actions with showsUserInterface=false are handled in the background

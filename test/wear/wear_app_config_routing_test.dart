@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_app.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
@@ -16,26 +15,6 @@ import '../helpers.dart';
 /// every one of those straight into the watch's storage — so a phone that had
 /// moved to another server silently moved the watch with it, with nothing on
 /// screen saying which server it was now on.
-
-class _ProfileOn extends ServerProfileNotifier {
-  _ProfileOn(this._profile);
-
-  final ServerProfile? _profile;
-
-  @override
-  ServerProfile? build() => _profile;
-}
-
-/// An empty fleet keeps `WearHome` off the network: it renders its "no printers"
-/// message instead of polling.
-class _EmptyTransport implements WearTransport {
-  @override
-  Future<WearFleet> getFleet() async => const WearFleet(printers: <PrinterWithStatus>[]);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}
 
 const _workshop = ServerProfile(
   baseUrl: 'http://workshop.local:8000',
@@ -63,10 +42,12 @@ void main() {
         const WearApp(),
         wrapInApp: false,
         overrides: [
-          serverProfileProvider.overrideWith(() => _ProfileOn(profile)),
+          serverProfileOverride(profile),
           watchConfigSyncProvider.overrideWithValue(sync),
+          // The fake's empty fleet keeps `WearHome` off the network: it renders
+          // its "no printers" message instead of polling.
           wearTransportProvider.overrideWith(
-              (ref) => HybridWearTransport(relay: _EmptyTransport())),
+              (ref) => HybridWearTransport(relay: FakeWearTransport())),
         ],
       );
 

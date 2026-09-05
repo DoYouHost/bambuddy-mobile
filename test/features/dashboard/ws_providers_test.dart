@@ -1,22 +1,15 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
+import 'package:clock/clock.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
+import '../../helpers.dart';
 
 /// Połączenie, które nigdy nie kończy handshake'u i nie nadaje ramek — WS
 /// zostaje „cichy", więc testujemy wyłącznie tor pollingu ([ingestPoll]).
@@ -38,7 +31,7 @@ class _HangConn implements WsConnection {
 ProviderContainer _container() {
   final c = ProviderContainer(
     overrides: [
-      serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+      fakeServerProfileOverride(),
       wsClientProvider.overrideWith((ref) {
         final client = WsClient(
           url: Uri.parse('ws://s.local:8000/api/v1/ws'),
@@ -103,5 +96,104 @@ void main() {
     // nie zostaje na zawsze.
     c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1, state: 'RUNNING')]);
     expect(c.read(printerStatusesProvider).keys, [1]);
+  });
+
+  group('contact with the server', () {
+    // What the card asks before it believes a `connected:false` frame: had the
+    // line been up long enough for a second frame to contradict this one?
+    test('nothing has arrived yet, so there is no line', () {
+      final c = _container();
+      expect(c.read(printerStatusesProvider.notifier).inTouchSince, isNull);
+    });
+
+    test('the line starts at the first thing that arrives and does not drift',
+        () {
+      final c = _container();
+      final store = c.read(printerStatusesProvider.notifier);
+      final opened = DateTime(2026, 9, 3, 12);
+
+      withClock(Clock.fixed(opened), () {
+        store.ingestPoll([_pws(1, state: 'RUNNING')]);
+      });
+      expect(store.inTouchSince, opened);
+
+      // Later frames say the line is still up; they do not restart it. If they
+      // did, every frame would look like a fresh reconnection and no
+      // disconnect would ever be debounced.
+      withClock(Clock.fixed(opened.add(const Duration(minutes: 5))), () {
+        store.ingestPoll([_pws(1, state: 'IDLE')]);
+      });
+      expect(store.inTouchSince, opened);
+    });
+
+    test('a poll that carries nothing new is still the line being up', () {
+      // This ingest changes no value, so it writes nothing to the map — and it
+      // used to leave no trace at all. An idle printer polls like this for
+      // hours, which is not the same as being out of touch.
+      final c = _container();
+      final store = c.read(printerStatusesProvider.notifier);
+      final opened = DateTime(2026, 9, 3, 12);
+      withClock(Clock.fixed(opened), () {
+        store.ingestPoll([_pws(1, state: 'IDLE')]);
+      });
+
+      store.lostContact();
+      final reopened = opened.add(const Duration(hours: 2));
+      withClock(Clock.fixed(reopened), () {
+        store.ingestPoll([_pws(1, state: 'IDLE')]); // identical to the above
+      });
+
+      expect(store.inTouchSince, reopened);
+    });
+
+    test('going to the background drops the line', () {
+      final c = _container();
+      final store = c.read(printerStatusesProvider.notifier);
+      store.ingestPoll([_pws(1, state: 'IDLE')]);
+      expect(store.inTouchSince, isNotNull);
+
+      store.suspend();
+      expect(store.inTouchSince, isNull);
+    });
+  });
+
+  group('plateGateAcknowledged', () {
+    // The printer this matters for is off: Auto Power Off cut its power when the
+    // print ended, so the server has no MQTT client for it and pushes no frame
+    // when the gate goes down. Without the local drop the banner would sit there
+    // until the next REST poll — a minute, with the socket up.
+    test('lowers the gate on an offline printer without waiting for a poll', () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'P1'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: false,
+            awaitingPlateClear: true,
+            model: 'X1C',
+          ),
+        ),
+      ]);
+      expect(c.read(printerStatusesProvider)[1]!.awaitingPlateClear, isTrue);
+
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(1);
+
+      final after = c.read(printerStatusesProvider)[1]!;
+      expect(after.awaitingPlateClear, isFalse);
+      expect(after.connected, isFalse); // nothing else invented
+      expect(after.model, 'X1C');
+    });
+
+    test('a printer that is not waiting is left alone', () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1, state: 'IDLE')]);
+      final before = c.read(printerStatusesProvider);
+
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(1);
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(7); // unknown
+
+      expect(c.read(printerStatusesProvider), same(before));
+    });
   });
 }

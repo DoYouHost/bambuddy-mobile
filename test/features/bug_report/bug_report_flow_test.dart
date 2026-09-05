@@ -12,6 +12,7 @@ import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_controller.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_screen.dart';
 import 'package:bambuddy_mobile/features/bug_report/log_export.dart';
+import 'package:bambuddy_mobile/features/common/device_files.dart';
 import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -413,7 +414,7 @@ void main() {
 
     /// Answers for the system save dialog and records what it was handed.
     Override fakeSaver(
-      LogSaveResult result, {
+      DeviceFileOutcome result, {
       void Function(String fileName, String log)? onCall,
     }) =>
         logFileSaverProvider.overrideWithValue((
@@ -442,7 +443,7 @@ void main() {
       String? written;
       final container = await pumpReview(tester, extra: [
         fakeSaver(
-          LogSaveResult.saved,
+          DeviceFileOutcome.done,
           onCall: (fileName, log) {
             name = fileName;
             written = log;
@@ -643,7 +644,7 @@ void main() {
     testWidgets('backing out of the picker keeps the report', (tester) async {
       final container = await pumpReview(
         tester,
-        extra: [fakeSaver(LogSaveResult.cancelled)],
+        extra: [fakeSaver(DeviceFileOutcome.cancelled)],
       );
 
       await tester.tap(find.text('Zapisz'));
@@ -658,7 +659,7 @@ void main() {
         (tester) async {
       final container = await pumpReview(
         tester,
-        extra: [fakeSaver(LogSaveResult.failed)],
+        extra: [fakeSaver(DeviceFileOutcome.failed)],
       );
 
       await tester.tap(find.text('Zapisz'));
@@ -675,7 +676,7 @@ void main() {
       // takes it in one piece, which is the whole reason it is the only way out.
       String? written;
       final container = await pumpReview(tester, padding: 150, extra: [
-        fakeSaver(LogSaveResult.saved, onCall: (_, log) => written = log),
+        fakeSaver(DeviceFileOutcome.done, onCall: (_, log) => written = log),
       ]);
       final recorded = container.read(bugReportProvider).log!;
       expect(recorded.length, greaterThan(256 * 1024));

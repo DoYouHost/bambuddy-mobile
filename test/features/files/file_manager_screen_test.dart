@@ -1,34 +1,17 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
+import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
-
-/// Harness for the file manager, which had none.
-///
-/// The screen's action sheets are the reason: they are built inside private
-/// state methods and grow a row per feature, so the only way to catch a sheet
-/// that no longer fits — or an action that quietly stopped being offered — is to
-/// drive the real screen.
-///
-/// [_FakeNotifier] replaces the notifier's `build`, so nothing reaches a
-/// repository; the four other providers the screen reads are overridden with
-/// plain values.
-/// Without this the thumbnail's `serverProfileProvider` read throws
-/// `UnimplementedError`, the widget becomes an unbounded ErrorWidget, and the
-/// resulting 100000px Row overflow buries the real failure.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
 
 class _FakeNotifier extends FileManagerNotifier {
   _FakeNotifier(this._state);
@@ -63,6 +46,7 @@ void main() {
     WidgetTester tester, {
     required LibraryFile file,
     bool slicerEnabled = true,
+    bool canRunPipelines = true,
     List<LibraryTag>? tags = const [],
     Size size = const Size(411, 866),
   }) async {
@@ -73,12 +57,13 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
         fileManagerProvider
             .overrideWith(() => _FakeNotifier(FileManagerState(files: [file]))),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
         slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
+        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
       ],
       child: plApp(const FileManagerScreen()),
     ));
@@ -90,6 +75,61 @@ void main() {
     await tester.tap(find.text(file.displayName));
     await tester.pumpAndSettle();
   }
+
+  group('the run-with-pipeline action', () {
+    testWidgets('is offered on a sliceable file when the server has pipelines',
+        (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.layers_outlined), findsOneWidget,
+          reason: 'the slice action proves the sheet thinks the file sliceable');
+      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+    });
+
+    testWidgets('stays away on a server without the pipeline routes',
+        (tester) async {
+      final file = _file();
+      await pump(tester, file: file, canRunPipelines: false);
+      await openFileSheet(tester, file);
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
+    });
+
+    testWidgets('appears once the gate settles after the sheet is already open',
+        (tester) async {
+      // The sheet is built in its own route, so a gate read from the screen's
+      // `ref` cannot rebuild it. This gate is a FutureProvider — it is
+      // unresolved for the first frames — so reading it at build time hides the
+      // action on a server that does have pipelines.
+      final gate = Completer<bool>();
+      final file = _file();
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          noServerProfileOverride,
+          fileManagerProvider.overrideWith(
+              () => _FakeNotifier(FileManagerState(files: [file]))),
+          libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          slicerEnabledProvider.overrideWith((ref) async => true),
+          canRunPipelinesProvider.overrideWith((ref) => gate.future),
+        ],
+        child: plApp(const FileManagerScreen()),
+      ));
+      await tester.pumpAndSettle();
+      await openFileSheet(tester, file);
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsNothing,
+          reason: 'nothing is claimed before the server has answered');
+
+      gate.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+    });
+  });
 
   group('the listing', () {
     testWidgets('renders a file from the state', (tester) async {

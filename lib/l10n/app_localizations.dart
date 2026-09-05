@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Could not connect to the server'**
   String get connectFailed;
 
+  /// No description provided for @filePickerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file dialog could not be opened'**
+  String get filePickerFailed;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -794,6 +800,156 @@ abstract class AppLocalizations {
   /// **'{h} h'**
   String ctrlDryHours(int h);
 
+  /// No description provided for @ctrlDryAutoIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-drying when humidity is high.'**
+  String get ctrlDryAutoIdle;
+
+  /// No description provided for @ctrlDryAutoQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-drying between queued prints.'**
+  String get ctrlDryAutoQueue;
+
+  /// No description provided for @ctrlDryAutoWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'During prints, too.'**
+  String get ctrlDryAutoWhilePrinting;
+
+  /// No description provided for @ctrlDryStartWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get ctrlDryStartWhen;
+
+  /// No description provided for @ctrlDryStartNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get ctrlDryStartNow;
+
+  /// No description provided for @ctrlDryStartAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get ctrlDryStartAfter;
+
+  /// No description provided for @ctrlDryStartAt.
+  ///
+  /// In en, this message translates to:
+  /// **'At time'**
+  String get ctrlDryStartAt;
+
+  /// No description provided for @ctrlDryPickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time'**
+  String get ctrlDryPickTime;
+
+  /// No description provided for @ctrlDrySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get ctrlDrySchedule;
+
+  /// No description provided for @ctrlDryScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying scheduled'**
+  String get ctrlDryScheduled;
+
+  /// No description provided for @ctrlDryScheduleTimePast.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time in the future'**
+  String get ctrlDryScheduleTimePast;
+
+  /// No description provided for @ctrlDryScheduledFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying at {time}'**
+  String ctrlDryScheduledFor(String time);
+
+  /// No description provided for @ctrlDryScheduledAsap.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying scheduled, waiting for the printer'**
+  String get ctrlDryScheduledAsap;
+
+  /// No description provided for @ctrlDryScheduleCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel scheduled drying'**
+  String get ctrlDryScheduleCancel;
+
+  /// No description provided for @ctrlDryScheduleDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get ctrlDryScheduleDismiss;
+
+  /// No description provided for @ctrlDryScheduleFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled drying failed: {reason}'**
+  String ctrlDryScheduleFailed(String reason);
+
+  /// No description provided for @ctrlDryScheduleFailedUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'unknown error'**
+  String get ctrlDryScheduleFailedUnknown;
+
+  /// No description provided for @ctrlDryWaitPower.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the AMS power adapter'**
+  String get ctrlDryWaitPower;
+
+  /// No description provided for @ctrlDryWaitRetract.
+  ///
+  /// In en, this message translates to:
+  /// **'Retract the filament at the AMS outlet'**
+  String get ctrlDryWaitRetract;
+
+  /// No description provided for @ctrlDryWaitBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS cannot start drying right now'**
+  String get ctrlDryWaitBlocked;
+
+  /// No description provided for @ctrlDryWaitAmsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the AMS to be detected'**
+  String get ctrlDryWaitAmsNotFound;
+
+  /// No description provided for @ctrlDryWaitOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the printer to come online'**
+  String get ctrlDryWaitOffline;
+
+  /// No description provided for @ctrlDryWaitBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the printer to be free'**
+  String get ctrlDryWaitBusy;
+
+  /// No description provided for @ctrlDryWaitAlreadyDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the current cycle to finish'**
+  String get ctrlDryWaitAlreadyDrying;
+
+  /// No description provided for @ctrlDryWaitInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupted, will restart when the printer is free'**
+  String get ctrlDryWaitInterrupted;
+
   /// No description provided for @ctrlMove.
   ///
   /// In en, this message translates to:
@@ -1051,6 +1207,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unreachable'**
   String get smartPlugUnreachable;
+
+  /// Why an MQTT plug cannot be switched from the card
+  ///
+  /// In en, this message translates to:
+  /// **'Monitoring only'**
+  String get smartPlugMonitorOnly;
 
   /// Why the off switch is blocked during a print
   ///
@@ -1394,6 +1556,102 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
+  /// Archive detail sheet: one entry for everything the print has to look at or keep — replaces the separate timelapse and photos buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings & photos'**
+  String get archiveMediaAction;
+
+  /// Section header: what bambuddy already holds. These rows open a viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'On the server'**
+  String get archiveMediaOnServer;
+
+  /// Section header: what is still only on the printer's own storage. These rows are ticked and downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{On the printer} other{On the printer ({count})}}'**
+  String archiveMediaOnPrinter(int count);
+
+  /// No description provided for @archiveMediaSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking on the printer…'**
+  String get archiveMediaSearching;
+
+  /// No description provided for @archiveMediaNothingOnPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing on the printer'**
+  String get archiveMediaNothingOnPrinter;
+
+  /// Subtitle of the photos row in the media sheet — the row's own count, beside the timelapse row's size.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{one photo} other{{count} photos}}'**
+  String archiveMediaPhotoCount(int count);
+
+  /// No description provided for @archiveMediaKindTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get archiveMediaKindTimelapse;
+
+  /// No description provided for @archiveMediaKindIpcam.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get archiveMediaKindIpcam;
+
+  /// Download button. Zero is the disabled state, before anything is ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Download {count, plural, =0{selected} one{one file} other{{count} files}}'**
+  String archiveMediaDownloadSelected(int count);
+
+  /// No description provided for @archiveMediaSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Video saved'**
+  String get archiveMediaSaved;
+
+  /// No description provided for @archiveMediaNoFilePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'No permission for the printer\'s files'**
+  String get archiveMediaNoFilePermission;
+
+  /// No description provided for @archiveMediaPrinterMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is gone'**
+  String get archiveMediaPrinterMissing;
+
+  /// No description provided for @archiveMediaTimelapseUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapses: no answer from the printer'**
+  String get archiveMediaTimelapseUnavailable;
+
+  /// No description provided for @archiveMediaIpcamUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera: no answer from the printer'**
+  String get archiveMediaIpcamUnavailable;
+
+  /// No description provided for @archivePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archivePlate(int plate);
+
+  /// Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate} of a multi-plate file'**
+  String archivePlateDetail(int plate);
+
   /// No description provided for @archivePhotosTitle.
   ///
   /// In en, this message translates to:
@@ -1411,6 +1669,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load this photo.'**
   String get archivePhotoFailed;
+
+  /// No description provided for @archiveFilamentUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get archiveFilamentUsed;
+
+  /// No description provided for @archiveFilamentGrams.
+  ///
+  /// In en, this message translates to:
+  /// **'{grams} g'**
+  String archiveFilamentGrams(String grams);
+
+  /// No description provided for @archiveFilamentActual.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Used {grams}} other{Used {grams} over {count} runs}}'**
+  String archiveFilamentActual(String grams, int count);
+
+  /// No description provided for @archiveFilamentNoActual.
+  ///
+  /// In en, this message translates to:
+  /// **'No usage recorded'**
+  String get archiveFilamentNoActual;
+
+  /// No description provided for @archiveFilamentSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving'**
+  String get archiveFilamentSaving;
+
+  /// No description provided for @archiveFilamentNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get archiveFilamentNone;
+
+  /// No description provided for @archiveFilamentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (g)'**
+  String get archiveFilamentLabel;
+
+  /// No description provided for @archiveFilamentNotANumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number, or leave it empty to clear the weight.'**
+  String get archiveFilamentNotANumber;
+
+  /// No description provided for @archiveFilamentOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'A weight between 0 and {max} g.'**
+  String archiveFilamentOutOfRange(String max);
+
+  /// No description provided for @archiveFilamentSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament weight saved'**
+  String get archiveFilamentSaved;
+
+  /// No description provided for @archiveFilamentUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.'**
+  String get archiveFilamentUnsupported;
 
   /// No description provided for @archiveHasTimelapse.
   ///
@@ -1694,6 +2018,60 @@ abstract class AppLocalizations {
   /// **'Prime tower'**
   String get gcodeFeaturePrimeTower;
 
+  /// No description provided for @archiveNo3mfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints archived without their thumbnails'**
+  String get archiveNo3mfTitle;
+
+  /// Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer didn\'t leave the .gcode.3mf on the printer\'s card, so Bambuddy couldn\'t pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer\'s Device tab.'**
+  String get archiveNo3mfBody;
+
+  /// No description provided for @archiveNo3mfTitleInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints stayed on the printer\'s internal storage'**
+  String get archiveNo3mfTitleInternal;
+
+  /// Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.'**
+  String get archiveNo3mfBodyInternal;
+
+  /// No description provided for @archiveNo3mfTitleNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints couldn\'t be archived — no storage in the printer'**
+  String get archiveNo3mfTitleNoStorage;
+
+  /// No description provided for @archiveNo3mfBodyNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.'**
+  String get archiveNo3mfBodyNoStorage;
+
+  /// No description provided for @archiveNo3mfDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'See install step 4'**
+  String get archiveNo3mfDocs;
+
+  /// No description provided for @archiveNo3mfDocsWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this happens'**
+  String get archiveNo3mfDocsWhy;
+
+  /// Tooltip and accessible name of the banner's close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss this notice'**
+  String get archiveNo3mfDismiss;
+
   /// No description provided for @archiveDelete.
   ///
   /// In en, this message translates to:
@@ -1927,6 +2305,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Re-reading the tag…'**
   String get amsRfidRereadStarted;
+
+  /// No description provided for @amsFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed {slot} into which nozzle?'**
+  String amsFeedTitle(String slot);
+
+  /// No description provided for @amsFeedPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'The Filament Track Switch can route this slot to either nozzle, so the printer cannot work out where the filament should go.'**
+  String get amsFeedPrompt;
+
+  /// No description provided for @amsFeedAlreadyLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'already loaded'**
+  String get amsFeedAlreadyLoaded;
+
+  /// No description provided for @amsSwitchNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.'**
+  String get amsSwitchNotReady;
+
+  /// No description provided for @amsUnloadSlotNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No nozzle is fed from this slot'**
+  String get amsUnloadSlotNotLoaded;
 
   /// No description provided for @amsActionsWhilePrinting.
   ///
@@ -3812,6 +4220,42 @@ abstract class AppLocalizations {
   /// **'No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).'**
   String get inventorySlicerPresetUnavailable;
 
+  /// No description provided for @inventorySectionPrinterPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Presets per printer model'**
+  String get inventorySectionPrinterPresets;
+
+  /// No description provided for @inventoryPrinterPresetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A pick here wins over the spool\'s own preset.'**
+  String get inventoryPrinterPresetsHint;
+
+  /// No description provided for @inventoryPrinterPresetDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'As on the spool'**
+  String get inventoryPrinterPresetDefault;
+
+  /// Label of a per-model preset row that applies to one nozzle size only. Written by the web spool form; the app writes rows that cover the whole model.
+  ///
+  /// In en, this message translates to:
+  /// **'{model} · {diameter} nozzle'**
+  String inventoryPrinterPresetNozzle(String model, String diameter);
+
+  /// No description provided for @inventoryPrinterPresetsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not read — saving leaves them alone.'**
+  String get inventoryPrinterPresetsLoadFailed;
+
+  /// No description provided for @inventoryPrinterPresetsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool saved, its per-model presets were not.'**
+  String get inventoryPrinterPresetsSaveFailed;
+
   /// No description provided for @inventoryFieldMaterial.
   ///
   /// In en, this message translates to:
@@ -3907,6 +4351,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a value from {min} to {max}'**
   String inventoryFieldRange(int min, int max);
+
+  /// Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value of 0 or more'**
+  String get inventoryFieldNegative;
 
   /// No description provided for @inventorySectionBasics.
   ///
@@ -4466,6 +4916,48 @@ abstract class AppLocalizations {
   /// **'Print labels for all'**
   String get inventoryLabelsPrintAll;
 
+  /// No description provided for @inventoryClimateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage conditions'**
+  String get inventoryClimateTitle;
+
+  /// No description provided for @inventoryClimateTitleAlerting.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage conditions: outside the alert range'**
+  String get inventoryClimateTitleAlerting;
+
+  /// No description provided for @inventoryClimateSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The server reads these from Home Assistant. Sensors are bound to a location in Bambuddy\'s web interface.'**
+  String get inventoryClimateSource;
+
+  /// No description provided for @inventoryClimateNoReading.
+  ///
+  /// In en, this message translates to:
+  /// **'no reading'**
+  String get inventoryClimateNoReading;
+
+  /// Spoken form of a storage-location sensor pill.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}'**
+  String inventoryClimateReading(String name, String value);
+
+  /// Spoken form of a sensor pill whose reading trips the binding's threshold; the warm colour of the pill says this to everyone else.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}, outside the alert range'**
+  String inventoryClimateReadingAlerting(String name, String value);
+
+  /// Spoken form of a sensor pill showing its last known value because the server could not reach the entity.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}, sensor unreachable'**
+  String inventoryClimateReadingStale(String name, String value);
+
   /// No description provided for @inventoryLabelsSearchHint.
   ///
   /// In en, this message translates to:
@@ -4639,6 +5131,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'US sheet stock; 30 labels per Letter page.'**
   String get inventoryLabelsAvery5160Hint;
+
+  /// No description provided for @inventoryLabelsStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First free label'**
+  String get inventoryLabelsStartTitle;
+
+  /// No description provided for @inventoryLabelsStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.'**
+  String get inventoryLabelsStartHint;
+
+  /// No description provided for @inventoryLabelsStartSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}'**
+  String inventoryLabelsStartSlot(int position);
 
   /// No description provided for @maintenanceEmpty.
   ///
@@ -7052,12 +7562,6 @@ abstract class AppLocalizations {
   /// **'Download failed'**
   String get projectDownloadFailed;
 
-  /// No description provided for @projectSaveCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Save cancelled'**
-  String get projectSaveCancelled;
-
   /// No description provided for @projectCoverUpload.
   ///
   /// In en, this message translates to:
@@ -7496,6 +8000,42 @@ abstract class AppLocalizations {
   /// **'Slice failed'**
   String get sliceFailed;
 
+  /// No description provided for @sliceExternalFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved in the server\'s library — the file\'s own folder could not take it.'**
+  String get sliceExternalFallback;
+
+  /// No description provided for @sliceExternalReadonly.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder is set to read-only.'**
+  String get sliceExternalReadonly;
+
+  /// No description provided for @sliceExternalNoPath.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder has no path configured.'**
+  String get sliceExternalNoPath;
+
+  /// No description provided for @sliceExternalUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder\'s path is not reachable right now.'**
+  String get sliceExternalUnreachable;
+
+  /// No description provided for @sliceExternalNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server cannot write to that folder.'**
+  String get sliceExternalNotWritable;
+
+  /// No description provided for @sliceExternalInvalidName.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder would not take the file\'s name.'**
+  String get sliceExternalInvalidName;
+
   /// No description provided for @sliceClose.
   ///
   /// In en, this message translates to:
@@ -7507,6 +8047,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Estimated time: {time}'**
   String sliceResultTime(String time);
+
+  /// No description provided for @sliceRefusedStep.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.'**
+  String get sliceRefusedStep;
+
+  /// No description provided for @sliceRefusedFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'The source has to be an STL or a 3MF.'**
+  String get sliceRefusedFormat;
+
+  /// No description provided for @sliceRefusedNoSource.
+  ///
+  /// In en, this message translates to:
+  /// **'This archive kept only the G-code it printed, not the model — there is nothing to slice again.'**
+  String get sliceRefusedNoSource;
 
   /// No description provided for @sliceResultFilament.
   ///
@@ -7537,6 +8095,702 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Built-in'**
   String get sliceTierStandard;
+
+  /// No description provided for @pipelineSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline'**
+  String get pipelineSection;
+
+  /// No description provided for @pipelineApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply pipeline…'**
+  String get pipelineApply;
+
+  /// No description provided for @pipelineApplyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved pipelines'**
+  String get pipelineApplyEmpty;
+
+  /// No description provided for @pipelineApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied \"{name}\"'**
+  String pipelineApplied(String name);
+
+  /// No description provided for @pipelineSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as pipeline'**
+  String get pipelineSaveAs;
+
+  /// No description provided for @pipelineNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline name'**
+  String get pipelineNameHint;
+
+  /// No description provided for @pipelineSaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get pipelineSaveConfirm;
+
+  /// No description provided for @pipelineSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline saved'**
+  String get pipelineSaved;
+
+  /// No description provided for @pipelineSaveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer, process, filaments and plate above, under a name you can reapply to the next file.'**
+  String get pipelineSaveHint;
+
+  /// No description provided for @pipelinesMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipelines'**
+  String get pipelinesMenu;
+
+  /// No description provided for @pipelinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipelines'**
+  String get pipelinesTitle;
+
+  /// No description provided for @pipelinesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pipelines yet'**
+  String get pipelinesEmpty;
+
+  /// No description provided for @pipelinesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.'**
+  String get pipelinesEmptyHint;
+
+  /// No description provided for @pipelineProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get pipelineProfiles;
+
+  /// No description provided for @pipelineFilamentsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Filaments ({count})'**
+  String pipelineFilamentsCount(int count);
+
+  /// No description provided for @pipelineHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Run history'**
+  String get pipelineHistory;
+
+  /// No description provided for @pipelineCardActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline actions'**
+  String get pipelineCardActions;
+
+  /// No description provided for @pipelineSlotNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {n}'**
+  String pipelineSlotNumbered(int n);
+
+  /// No description provided for @pipelineBed.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get pipelineBed;
+
+  /// No description provided for @pipelinePresetGone.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer in the catalog'**
+  String get pipelinePresetGone;
+
+  /// No description provided for @pipelineNeedsTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a target before running this pipeline.'**
+  String get pipelineNeedsTarget;
+
+  /// No description provided for @pipelineNoTargetChip.
+  ///
+  /// In en, this message translates to:
+  /// **'No target'**
+  String get pipelineNoTargetChip;
+
+  /// No description provided for @pipelineEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit pipeline'**
+  String get pipelineEditTitle;
+
+  /// No description provided for @pipelineDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get pipelineDescriptionHint;
+
+  /// No description provided for @pipelineTargetType.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get pipelineTargetType;
+
+  /// No description provided for @pipelineTargetSpecific.
+  ///
+  /// In en, this message translates to:
+  /// **'One printer'**
+  String get pipelineTargetSpecific;
+
+  /// No description provided for @pipelineTargetClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model'**
+  String get pipelineTargetClass;
+
+  /// No description provided for @pipelineTargetPickPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a printer'**
+  String get pipelineTargetPickPrinter;
+
+  /// No description provided for @pipelineTargetPickClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a model'**
+  String get pipelineTargetPickClass;
+
+  /// No description provided for @pipelineTargetNone.
+  ///
+  /// In en, this message translates to:
+  /// **'— no target —'**
+  String get pipelineTargetNone;
+
+  /// No description provided for @pipelineTargetPrinterGone.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer #{id} (gone)'**
+  String pipelineTargetPrinterGone(int id);
+
+  /// No description provided for @pipelineFanout.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreading the copies'**
+  String get pipelineFanout;
+
+  /// No description provided for @pipelineFanoutMaxParallel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max parallel — across any idle matching printer'**
+  String get pipelineFanoutMaxParallel;
+
+  /// No description provided for @pipelineFanoutRoundRobin.
+  ///
+  /// In en, this message translates to:
+  /// **'Round robin — cycle through eligible printers'**
+  String get pipelineFanoutRoundRobin;
+
+  /// No description provided for @pipelineFanoutFillOneFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill one first — every copy on one printer'**
+  String get pipelineFanoutFillOneFirst;
+
+  /// No description provided for @pipelineDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete pipeline'**
+  String get pipelineDelete;
+
+  /// No description provided for @pipelineDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Runs already made keep their name.'**
+  String pipelineDeleteConfirm(String name);
+
+  /// No description provided for @pipelineDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline deleted'**
+  String get pipelineDeleted;
+
+  /// No description provided for @pipelineDescriptionNoClear.
+  ///
+  /// In en, this message translates to:
+  /// **'A description cannot be emptied once saved — this server only ever writes a new one.'**
+  String get pipelineDescriptionNoClear;
+
+  /// No description provided for @pipelineRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get pipelineRun;
+
+  /// No description provided for @pipelineRunTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run \"{name}\"'**
+  String pipelineRunTitle(String name);
+
+  /// No description provided for @pipelineRunCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get pipelineRunCopies;
+
+  /// No description provided for @pipelineRunStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get pipelineRunStart;
+
+  /// No description provided for @pipelineRunStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Run started'**
+  String get pipelineRunStarted;
+
+  /// No description provided for @pipelineRunAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Run anyway'**
+  String get pipelineRunAnyway;
+
+  /// No description provided for @pipelineRunMaxCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'This server allows {max} at most.'**
+  String pipelineRunMaxCopies(int max);
+
+  /// No description provided for @pipelineCheckingEligibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking printers…'**
+  String get pipelineCheckingEligibility;
+
+  /// No description provided for @pipelineEligibilityOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to run.'**
+  String get pipelineEligibilityOk;
+
+  /// No description provided for @pipelineEligibilityClassCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} of {total} printers ready'**
+  String pipelineEligibilityClassCount(int ok, int total);
+
+  /// No description provided for @pipelineEligibilityBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing can take this run right now.'**
+  String get pipelineEligibilityBlocked;
+
+  /// No description provided for @pipelineEligibilityAdvisory.
+  ///
+  /// In en, this message translates to:
+  /// **'Worth a look before you start.'**
+  String get pipelineEligibilityAdvisory;
+
+  /// No description provided for @pipelineIssuePrinterNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'This pipeline has no target printer.'**
+  String get pipelineIssuePrinterNotSet;
+
+  /// No description provided for @pipelineIssuePrinterNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer no longer exists.'**
+  String get pipelineIssuePrinterNotFound;
+
+  /// No description provided for @pipelineIssuePrinterDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer is switched off in bambuddy.'**
+  String get pipelineIssuePrinterDisabled;
+
+  /// No description provided for @pipelineIssuePrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer is offline.'**
+  String get pipelineIssuePrinterOffline;
+
+  /// No description provided for @pipelineIssueFilamentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong filament type loaded.'**
+  String get pipelineIssueFilamentType;
+
+  /// No description provided for @pipelineIssueFilamentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'The loaded filament is a different colour.'**
+  String get pipelineIssueFilamentColor;
+
+  /// No description provided for @pipelineIssueAmsSlotMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS has fewer slots than this pipeline needs.'**
+  String get pipelineIssueAmsSlotMissing;
+
+  /// No description provided for @pipelineIssueFilamentUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'This filament preset cannot be checked from here — worth confirming yourself.'**
+  String get pipelineIssueFilamentUnverified;
+
+  /// No description provided for @pipelineIssueNoClassMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer of this model is installed.'**
+  String get pipelineIssueNoClassMatches;
+
+  /// No description provided for @pipelineIssueClassNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'This pipeline has no printer model set.'**
+  String get pipelineIssueClassNotSet;
+
+  /// No description provided for @pipelineIssueSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {n}'**
+  String pipelineIssueSlot(int n);
+
+  /// No description provided for @pipelineIssueWantedGot.
+  ///
+  /// In en, this message translates to:
+  /// **'wanted {expected}, loaded {actual}'**
+  String pipelineIssueWantedGot(String expected, String actual);
+
+  /// No description provided for @pipelineIssueWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'wanted {expected}'**
+  String pipelineIssueWanted(String expected);
+
+  /// No description provided for @pipelineRunsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline runs'**
+  String get pipelineRunsTitle;
+
+  /// No description provided for @pipelineRunsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs yet'**
+  String get pipelineRunsEmpty;
+
+  /// No description provided for @pipelineRunsNoneMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No run matches these filters'**
+  String get pipelineRunsNoneMatch;
+
+  /// No description provided for @pipelineRunsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter runs'**
+  String get pipelineRunsFilter;
+
+  /// No description provided for @pipelineCopiesLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer copy'**
+  String get pipelineCopiesLess;
+
+  /// No description provided for @pipelineCopiesMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more copy'**
+  String get pipelineCopiesMore;
+
+  /// No description provided for @pipelineEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get pipelineEligible;
+
+  /// No description provided for @pipelineIneligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready'**
+  String get pipelineIneligible;
+
+  /// No description provided for @pipelineRunsFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter runs ({count} active)'**
+  String pipelineRunsFilterActive(int count);
+
+  /// No description provided for @pipelineRunsFilterAny.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get pipelineRunsFilterAny;
+
+  /// No description provided for @pipelineRunsFilterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get pipelineRunsFilterStatus;
+
+  /// No description provided for @pipelineRunsFilterStatusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches the last status written down, so a run can still answer to the step before the one it is on.'**
+  String get pipelineRunsFilterStatusHint;
+
+  /// No description provided for @pipelineRunsFilterTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get pipelineRunsFilterTarget;
+
+  /// No description provided for @pipelineRunsFilterTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the pipeline points now — re-targeting one moves its whole history.'**
+  String get pipelineRunsFilterTargetHint;
+
+  /// No description provided for @pipelineRunsFilterPipelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs of a deleted pipeline cannot be filtered to.'**
+  String get pipelineRunsFilterPipelineHint;
+
+  /// No description provided for @pipelineRunsFilterClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get pipelineRunsFilterClear;
+
+  /// No description provided for @pipelineRunsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get pipelineRunsLoadMore;
+
+  /// No description provided for @pipelineRunsShowingAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} shown'**
+  String pipelineRunsShowingAll(int count);
+
+  /// No description provided for @pipelineRunsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get pipelineRunsDone;
+
+  /// No description provided for @pipelineRunsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear finished'**
+  String get pipelineRunsClear;
+
+  /// No description provided for @pipelineRunsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} removed'**
+  String pipelineRunsCleared(int count);
+
+  /// No description provided for @pipelineRunsClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove every finished run from this list?'**
+  String get pipelineRunsClearConfirm;
+
+  /// No description provided for @pipelineRunCopiesProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} copies'**
+  String pipelineRunCopiesProgress(int done, int total);
+
+  /// No description provided for @pipelineRunCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel run'**
+  String get pipelineRunCancel;
+
+  /// No description provided for @pipelineRunCancelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this run? Copies not yet sent are dropped; anything already printing has to be stopped on the printer itself.'**
+  String get pipelineRunCancelConfirm;
+
+  /// No description provided for @pipelineRunCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Run cancelled'**
+  String get pipelineRunCancelled;
+
+  /// No description provided for @pipelineRunRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed'**
+  String get pipelineRunRetry;
+
+  /// No description provided for @pipelineRunRetryStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying {count} copies'**
+  String pipelineRunRetryStarted(int count);
+
+  /// No description provided for @pipelineRunOverridden.
+  ///
+  /// In en, this message translates to:
+  /// **'Started past a failed check'**
+  String get pipelineRunOverridden;
+
+  /// No description provided for @pipelineRunDeletedPipeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted pipeline'**
+  String get pipelineRunDeletedPipeline;
+
+  /// No description provided for @pipelineRunSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String pipelineRunSource(String name);
+
+  /// No description provided for @pipelineRunRetryOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry of run #{id}'**
+  String pipelineRunRetryOf(int id);
+
+  /// No description provided for @pipelineRunOnPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'On {printer}'**
+  String pipelineRunOnPrinter(String printer);
+
+  /// No description provided for @pipelineRunOnClass.
+  ///
+  /// In en, this message translates to:
+  /// **'On any {model}'**
+  String pipelineRunOnClass(String model);
+
+  /// No description provided for @pipelineStatusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get pipelineStatusQueued;
+
+  /// No description provided for @pipelineStatusSlicing.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicing'**
+  String get pipelineStatusSlicing;
+
+  /// No description provided for @pipelineStatusDispatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Dispatching'**
+  String get pipelineStatusDispatching;
+
+  /// No description provided for @pipelineStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get pipelineStatusInProgress;
+
+  /// No description provided for @pipelineStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get pipelineStatusCompleted;
+
+  /// No description provided for @pipelineStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get pipelineStatusFailed;
+
+  /// No description provided for @pipelineStatusPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly failed'**
+  String get pipelineStatusPartial;
+
+  /// No description provided for @pipelineStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get pipelineStatusCancelled;
+
+  /// No description provided for @pipelineStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get pipelineStatusUnknown;
+
+  /// No description provided for @pipelineJobCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy {n}'**
+  String pipelineJobCopy(int n);
+
+  /// No description provided for @pipelineJobPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pipelineJobPending;
+
+  /// No description provided for @pipelineJobAwaitingPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a printer'**
+  String get pipelineJobAwaitingPrinter;
+
+  /// No description provided for @pipelineJobQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get pipelineJobQueued;
+
+  /// No description provided for @pipelineJobPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get pipelineJobPrinting;
+
+  /// No description provided for @pipelineJobCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get pipelineJobCompleted;
+
+  /// No description provided for @pipelineJobFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get pipelineJobFailed;
+
+  /// No description provided for @pipelineJobCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get pipelineJobCancelled;
+
+  /// No description provided for @pipelineJobUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get pipelineJobUnknown;
 
   /// No description provided for @queueFilamentMapping.
   ///
@@ -7604,13 +8858,13 @@ abstract class AppLocalizations {
   /// **'Plate is clear'**
   String get plateClearConfirm;
 
-  /// No description provided for @plateClearAction.
+  /// Tooltip of the checkmark button in the printer card's plate-clear banner — not a visible label, so it may be a full sentence. The watch says the same thing in wearClearPlate and has to be shorter; do not align the two.
   ///
   /// In en, this message translates to:
   /// **'Mark plate as cleared'**
   String get plateClearAction;
 
-  /// No description provided for @plateClearBadge.
+  /// Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about.
   ///
   /// In en, this message translates to:
   /// **'Plate not cleared'**
@@ -7621,6 +8875,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plate marked as cleared'**
   String get plateClearedSnack;
+
+  /// No description provided for @plateClearNeedsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.'**
+  String get plateClearNeedsOnline;
 
   /// No description provided for @pfmTitle.
   ///
@@ -7718,6 +8978,12 @@ abstract class AppLocalizations {
   /// **'Date (oldest)'**
   String get pfmSortDateOldest;
 
+  /// Tooltip and screen-reader name for the back arrow in the printer file manager's path bar — it goes up a directory, not back through the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Up one folder'**
+  String get pfmUp;
+
   /// No description provided for @pfmSelectAll.
   ///
   /// In en, this message translates to:
@@ -7748,6 +9014,72 @@ abstract class AppLocalizations {
   /// **'No files match your filter'**
   String get pfmNoMatches;
 
+  /// No description provided for @pfmPrinterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not answer, so its files could not be listed'**
+  String get pfmPrinterUnavailable;
+
+  /// No description provided for @pfmDownloadTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The selection is too large for the server to bundle'**
+  String get pfmDownloadTooLarge;
+
+  /// No description provided for @pfmDownloadNoServerSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'The server has no room to prepare this download'**
+  String get pfmDownloadNoServerSpace;
+
+  /// No description provided for @pfmDownloadTookTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the download took too long and the server gave up'**
+  String get pfmDownloadTookTooLong;
+
+  /// No description provided for @pfmPreparingOnServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing on the server…'**
+  String get pfmPreparingOnServer;
+
+  /// No description provided for @pfmDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get pfmDownloading;
+
+  /// No description provided for @pfmDownloadCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled'**
+  String get pfmDownloadCancelled;
+
+  /// No description provided for @pfmDownloadPrepareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not prepare this download'**
+  String get pfmDownloadPrepareFailed;
+
+  /// No description provided for @pfmDownloadPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Left out {count, plural, one{one file} other{{count} files}} that could not be read from the printer'**
+  String pfmDownloadPartial(int count);
+
+  /// No description provided for @pfmDownloadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved'**
+  String get pfmDownloadSaved;
+
+  /// No description provided for @pfmDownloadNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be saved where you chose'**
+  String get pfmDownloadNotSaved;
+
   /// No description provided for @pfmDownload.
   ///
   /// In en, this message translates to:
@@ -7759,12 +9091,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get pfmDelete;
-
-  /// No description provided for @pfmDownloadSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'File saved'**
-  String get pfmDownloadSaved;
 
   /// No description provided for @pfmDeleteConfirmTitle.
   ///
@@ -7808,17 +9134,23 @@ abstract class AppLocalizations {
   /// **'No actions available'**
   String get wearNoActions;
 
-  /// No description provided for @wearClearPlate.
+  /// Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all.
   ///
   /// In en, this message translates to:
   /// **'Clear plate'**
   String get wearClearPlate;
 
-  /// No description provided for @wearPlateCleared.
+  /// Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit.
   ///
   /// In en, this message translates to:
   /// **'Plate cleared'**
   String get wearPlateCleared;
+
+  /// No description provided for @wearPlateNeedsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs the printer online'**
+  String get wearPlateNeedsOnline;
 
   /// No description provided for @wearStarted.
   ///
@@ -8090,6 +9422,42 @@ abstract class AppLocalizations {
   /// **'Auto (no manual mapping)'**
   String get queueEditMappingAuto;
 
+  /// No description provided for @queueEditPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get queueEditPlate;
+
+  /// No description provided for @queueEditPlateSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String queueEditPlateSelected(int plate);
+
+  /// Plate number plus the plate's own name from the 3MF, when it has one
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate} · {name}'**
+  String queueEditPlateNamed(int plate, String name);
+
+  /// No description provided for @queueEditPlateFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'This job prints plate {plate}'**
+  String queueEditPlateFixed(int plate);
+
+  /// No description provided for @queuePlatePickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which plate?'**
+  String get queuePlatePickTitle;
+
+  /// No description provided for @queuePlateObjects.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No objects} =1{1 object} other{{count} objects}}'**
+  String queuePlateObjects(int count);
+
   /// No description provided for @queueEditPrintOptions.
   ///
   /// In en, this message translates to:
@@ -8305,6 +9673,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Force color match'**
   String get queueEditForceColorMatch;
+
+  /// No description provided for @queueEditNozzleRack.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle rack'**
+  String get queueEditNozzleRack;
+
+  /// No description provided for @queueEditNozzleRackDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.'**
+  String get queueEditNozzleRackDesc;
+
+  /// No description provided for @queueEditRackGroupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {slots} · {nozzle}'**
+  String queueEditRackGroupLabel(String slots, String nozzle);
+
+  /// No description provided for @queueEditRackAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get queueEditRackAuto;
+
+  /// No description provided for @queueEditRackPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle}'**
+  String queueEditRackPosition(int position, String nozzle);
+
+  /// No description provided for @queueEditRackPositionTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle} — already chosen'**
+  String queueEditRackPositionTaken(int position, String nozzle);
+
+  /// No description provided for @queueEditRackPositionUnfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position} · {nozzle} — does not fit'**
+  String queueEditRackPositionUnfit(int position, String nozzle);
+
+  /// No description provided for @queueEditRackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get queueEditRackEmpty;
+
+  /// No description provided for @queueEditRackPickStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The chosen position no longer fits this filament — pick another, or the print is refused at start.'**
+  String get queueEditRackPickStale;
+
+  /// No description provided for @queueEditRackNoFit.
+  ///
+  /// In en, this message translates to:
+  /// **'No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.'**
+  String queueEditRackNoFit(String nozzle);
+
+  /// No description provided for @nozzleFlowStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get nozzleFlowStandard;
+
+  /// No description provided for @nozzleFlowHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High flow'**
+  String get nozzleFlowHigh;
 
   /// No description provided for @bugReportMenu.
   ///
@@ -10213,6 +11653,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
   String printLogClearBody(int count);
+
+  /// Shown instead of printLogClearBody when a filter or search is active. The route deletes the whole log and cannot take a filter, so this one quotes no count — printLogClearBody's number is the filtered total and would understate what goes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every run in the log goes — everyone\'s, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
+  String get printLogClearBodyFiltered;
 
   /// No description provided for @printLogCleared.
   ///

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 
@@ -201,24 +202,35 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     final current = state.valueOrNull;
     if (current == null) return false;
 
-    state = AsyncValue.data([
-      for (final a in current)
-        a.id == archiveId ? a.withFavorite(!a.isFavorite) : a,
-    ]);
+    _patchRow(archiveId, (a) => a.withFavorite(!a.isFavorite));
     try {
       final updated = await ref
           .read(archiveRepositoryProvider)
           .toggleFavorite(archiveId);
-      state = AsyncValue.data([
-        for (final a in state.valueOrNull ?? current)
-          a.id == archiveId ? updated : a,
-      ]);
+      replace(updated);
       return true;
     } on AppApiException {
       state = AsyncValue.data(current); // rollback
       return false;
     }
   }
+
+  /// One row of the loaded list, rebuilt by [update]. Does nothing when the
+  /// list has not loaded, or does not hold [archiveId].
+  void _patchRow(int archiveId, Archive Function(Archive) update) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data([
+      for (final a in current) a.id == archiveId ? update(a) : a,
+    ]);
+  }
+
+  /// Put a re-read archive back in the list, in place.
+  ///
+  /// For an edit whose answer *is* the stored row: the loaded list is the
+  /// screen's only copy of a print, and the alternative to writing one row into
+  /// it is refetching all of them to see one number change.
+  void replace(Archive updated) => _patchRow(updated.id, (_) => updated);
 
   /// Optimistic delete (swipe / sheet). [purgeStats] also removes the print
   /// from aggregate statistics. Error → restore the item, returns false.
@@ -271,3 +283,29 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
 final printersForPickerProvider = FutureProvider.autoDispose<List<Printer>>(
   (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );
+
+/// Whether to nudge the user about prints that archived without their 3MF, and
+/// why — `GET /archives/no-3mf-warning`, read once per app run.
+///
+/// Skipped entirely once dismissed: the answer would change nothing, and the
+/// route walks 30 days of archives to produce it. Not `autoDispose`, so leaving
+/// the archive screen and coming back does not ask again.
+final no3mfWarningProvider = FutureProvider<No3mfWarning>((ref) async {
+  if (ref.watch(no3mfDismissedProvider)) return No3mfWarning.none;
+  return ref.watch(archiveRepositoryProvider).no3mfWarning();
+});
+
+/// Whether the no-3MF nudge has been waved off. One-way: there is no un-dismiss,
+/// on the web either.
+final no3mfDismissedProvider =
+    NotifierProvider<No3mfDismissedNotifier, bool>(No3mfDismissedNotifier.new);
+
+class No3mfDismissedNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.watch(settingsRepositoryProvider).loadNo3mfDismissed();
+
+  Future<void> dismiss() async {
+    await ref.read(settingsRepositoryProvider).saveNo3mfDismissed();
+    state = true;
+  }
+}

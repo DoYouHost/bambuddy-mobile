@@ -14,11 +14,10 @@ enum PrinterStatusBucket { all, printing, idle, paused, finished, error, offline
 PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
   if (!(status?.connected ?? false)) return PrinterStatusBucket.offline;
   // Error = the same displayable HMS errors the card surfaces, or a FAILED
-  // terminal state. Reuses [hmsIsDisplayable] + the catalog so the filter and
-  // the card agree on what counts as an actionable error.
-  final hasError = (status!.hmsErrors ?? const <HmsError>[]).any(
-    (e) => hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e)),
-  );
+  // terminal state — through the shared filter, so the two cannot drift.
+  final hasError =
+      firstDisplayableHmsError(status!, describe: HmsCatalog.instance.describe) !=
+          null;
   if (hasError) return PrinterStatusBucket.error;
   switch (status.state?.toUpperCase()) {
     case 'RUNNING':

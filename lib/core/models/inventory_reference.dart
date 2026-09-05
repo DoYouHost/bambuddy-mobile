@@ -5,6 +5,40 @@ library;
 
 import 'json_utils.dart';
 
+/// A storage-location catalog entry (`LocationResponse`) — the shelf, drawer or
+/// drybox a spool is put away in.
+///
+/// The picker only ever needed the [name]: a spool carries its location as free
+/// text (`storage_location`) and the server auto-creates the catalog row from
+/// it. The [id] is what the Home Assistant sensors bound to a location are
+/// keyed by, which is why the catalog is read as rows rather than as names.
+class StorageLocation {
+  const StorageLocation({
+    required this.id,
+    required this.name,
+    this.spoolCount = 0,
+  });
+
+  factory StorageLocation.fromJson(Map<String, dynamic> json) =>
+      StorageLocation(
+        id: toIntOrNull(json['id']) ?? -1,
+        name: toStringOrNull(json['name'])?.trim() ?? '',
+        spoolCount: toIntOrNull(json['spool_count']) ?? 0,
+      );
+
+  final int id;
+  final String name;
+
+  /// How many spools the server counts here — its own count, which honours the
+  /// archived-spool setting the app does not see.
+  final int spoolCount;
+
+  /// The form a spool's free-text `storage_location` is matched against: the
+  /// server keys location names case-insensitively on `LOWER(TRIM(name))`, so
+  /// this is the only comparison that answers the same way it does.
+  String get matchKey => name.trim().toLowerCase();
+}
+
 /// Spool core weight catalog entry (`CatalogEntryResponse`) — "Empty Spool Weight"
 /// field. Selection sets `core_weight` + `core_weight_catalog_id`.
 class CoreWeightEntry {

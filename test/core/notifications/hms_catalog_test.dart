@@ -40,6 +40,36 @@ void main() {
     test('empty code renders as a question mark', () {
       expect(const HmsError().displayCode, '?');
     });
+
+    test('the server sentence parses, and blank means absent', () {
+      // `description` is the server's own text for the fault, under the bundled
+      // catalogue in `HmsCatalog.describe`. Three wire shapes: present, blank,
+      // and missing — the last one being every server older than 0.2.5.x.
+      HmsError parse(Map<String, dynamic> json) => HmsError.fromJson({
+            'code': '0x8004',
+            'attr': 0x03008004,
+            ...json,
+          });
+      expect(parse({'description': 'Filament ran out.'}).description,
+          'Filament ran out.');
+      expect(parse({'description': '  Door is open. '}).description,
+          'Door is open.');
+      expect(parse({'description': '   '}).description, isNull);
+      expect(parse({'description': null}).description, isNull);
+      expect(parse({}).description, isNull);
+    });
+
+    test('the description takes part in equality', () {
+      // Dashboard state is compared frame to frame; a fault whose text changed
+      // is a changed fault, or the card keeps the older server's silence.
+      const bare = HmsError(code: '0x8004', attr: 0x03008004);
+      const named =
+          HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.');
+      expect(named, isNot(bare));
+      expect(named.hashCode, isNot(bare.hashCode));
+      expect(named,
+          const HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.'));
+    });
   });
 
   group('hmsHumanText', () {
@@ -75,6 +105,7 @@ void main() {
                   severity: sev,
                   module: mod,
                   message: message,
+                  description: description,
                 );
                 final where = 'code=${c.code} sev=$sev mod=$mod '
                     'message=${message?.length} desc=${description?.length}';
@@ -186,6 +217,120 @@ void main() {
     test('blank message/description does not count as recognized', () {
       expect(hmsIsDisplayable(const HmsError(code: 'x', message: '  ')), isFalse);
       expect(hmsIsDisplayable(const HmsError(code: 'x'), description: ' '), isFalse);
+    });
+  });
+
+  group('displayableHmsErrors', () {
+    // The catalogue is not loaded in this suite, so the only text a fault can
+    // resolve to is the one the caller's describer returns — which is exactly
+    // what makes the filter observable here.
+    String? named(HmsError e) => e.fullCode == '03008004' ? 'Filament runout' : null;
+
+    const runout = HmsError(code: '0x8004', fullCode: '03008004');
+    const unnameable = HmsError(code: '0x20070', fullCode: '05000600');
+
+    test('keeps the nameable faults, in the order the server sent them', () {
+      const status = PrinterStatus(
+        id: 1,
+        connected: true,
+        hmsErrors: [unnameable, runout, unnameable],
+      );
+
+      expect(displayableHmsErrors(status, describe: named), [runout]);
+    });
+
+    test('a disconnected printer has no faults at all', () {
+      // mergedWith carries the codes through an outage on purpose (the alert
+      // path pauses its clear-grace clock on them), so they are last-known
+      // values here — not something to put in front of anyone.
+      const status = PrinterStatus(
+        id: 1,
+        connected: false,
+        hmsErrors: [runout],
+      );
+
+      expect(displayableHmsErrors(status, describe: named), isEmpty);
+    });
+
+    test('connectivity the frame never stated is not treated as offline', () {
+      // `connected: null` is "nobody said", not "disconnected" — the surfaces
+      // that want to be stricter than that own the decision themselves (the
+      // home-screen widget does).
+      const status = PrinterStatus(id: 1, hmsErrors: [runout]);
+
+      expect(displayableHmsErrors(status, describe: named), [runout]);
+    });
+
+    test('no status, no faults, and no describer are each just empty', () {
+      expect(displayableHmsErrors(null, describe: named), isEmpty);
+      expect(
+        displayableHmsErrors(const PrinterStatus(id: 1, connected: true),
+            describe: named),
+        isEmpty,
+      );
+      // An isolate without a catalogue passes null, and a fault the server did
+      // not word itself stays unnameable.
+      expect(
+        displayableHmsErrors(
+          const PrinterStatus(id: 1, connected: true, hmsErrors: [runout]),
+          describe: null,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('the server wording alone is enough to show a fault', () {
+      const spoken = HmsError(
+        code: '0xFFFF',
+        fullCode: '0300FFFF',
+        message: 'The toolhead reported a fault this app has no text for.',
+      );
+      const status =
+          PrinterStatus(id: 1, connected: true, hmsErrors: [spoken]);
+
+      expect(displayableHmsErrors(status, describe: null), [spoken]);
+    });
+  });
+
+  group('firstDisplayableHmsError', () {
+    const runout = HmsError(code: '0x8004', fullCode: '03008004');
+    const other = HmsError(code: '0x8016', fullCode: '03008016');
+
+    test('stops at the first fault it can name', () {
+      // The point of this function existing next to displayableHmsErrors: the
+      // dashboard filter asks it per printer per rebuild, so it must not walk
+      // (and describe) the whole list to answer "is there one".
+      final asked = <String?>[];
+      String? describe(HmsError e) {
+        asked.add(e.fullCode);
+        return 'Filament runout';
+      }
+
+      const status = PrinterStatus(
+        id: 1,
+        connected: true,
+        hmsErrors: [runout, other],
+      );
+
+      expect(firstDisplayableHmsError(status, describe: describe), runout);
+      expect(asked, ['03008004']);
+    });
+
+    test('a disconnected printer answers null, like the list does', () {
+      const status =
+          PrinterStatus(id: 1, connected: false, hmsErrors: [runout]);
+
+      expect(
+        firstDisplayableHmsError(status, describe: (_) => 'named'),
+        isNull,
+      );
+    });
+
+    test('nothing nameable is null, not the first code', () {
+      const status = PrinterStatus(id: 1, connected: true, hmsErrors: [runout]);
+
+      expect(firstDisplayableHmsError(status, describe: (_) => null), isNull);
+      expect(firstDisplayableHmsError(null, describe: (_) => 'named'), isNull);
     });
   });
 

@@ -1,7 +1,15 @@
+import 'dart:async';
+
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,17 +27,10 @@ class _FakeQueueNotifier extends QueueNotifier {
   Future<List<QueueItem>> build() async => _items;
 }
 
-/// Profil null → miniatura pokazuje placeholder, bez próby sieciowej
-/// (i bez sięgania po SharedPreferences, którego w teście nie ma).
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 Widget _screen(List<QueueItem> items) => ProviderScope(
       overrides: [
         queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
       ],
       child: plApp(const QueueScreen()),
     );
@@ -92,4 +93,155 @@ void main() {
 
     expect(find.text('Usunąć z kolejki?'), findsOneWidget);
   });
+
+  group('start flow outliving the row that began it', () {
+    // The row is keyed by item id, so an item leaving the list disposes exactly
+    // this card — and the list is rebuilt on every WS-driven refresh. Anything
+    // the flow still needs from `ref` after an await would throw there ("Cannot
+    // use ref after the widget was disposed"), which is why it reads through the
+    // provider container instead.
+    final pending = QueueItem.fromJson({
+      ...readFixture('queue_item.json') as Map<String, dynamic>,
+      'status': 'pending',
+      'started_at': null,
+    });
+
+    late _MutableQueueNotifier queue;
+    late _HeldCommands commands;
+
+    Widget screen() {
+      queue = _MutableQueueNotifier([pending]);
+      commands = _HeldCommands();
+      return ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => queue),
+          noServerProfileOverride,
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+          // The scheduler gates on the plate, and this printer's is dirty —
+          // the branch that sends a request before the start does.
+          requirePlateClearProvider.overrideWith((ref) async => true),
+          printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
+          // The mapping sheet with nothing to map: one confirm button.
+          filamentRequirementsProvider
+              .overrideWith((ref, key) async => const []),
+          printerTraysProvider.overrideWith((ref, printerId) async => const []),
+        ],
+        child: plApp(const QueueScreen()),
+      );
+    }
+
+    /// Menu → Start → mapping sheet → the plate confirmation, stopping with the
+    /// acknowledgement in flight.
+    Future<void> startUntilRequestInFlight(WidgetTester tester) async {
+      await tester.pumpWidget(screen());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Płyta jest pusta'));
+      await tester.pumpAndSettle();
+      expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
+    }
+
+    testWidgets('the print still starts when the row goes mid-request',
+        (tester) async {
+      await startUntilRequestInFlight(tester);
+
+      // The queue refreshes and this item is gone — the card is disposed while
+      // the acknowledgement is still in flight.
+      queue.replace(const []);
+      await tester.pump();
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+
+      commands.release();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(queue.started, [(item: 78, printer: 1)],
+          reason: 'the start the user asked for is not dropped');
+    });
+
+    testWidgets('a refusal after the row is gone is still explained',
+        (tester) async {
+      await startUntilRequestInFlight(tester);
+
+      queue.replace(const []);
+      await tester.pump();
+      commands.release(const ApiException(
+        AppErrorCode.badResponse,
+        statusCode: 400,
+        detail: 'Printer not connected',
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
+      expect(queue.started, isEmpty, reason: 'a held gate starts nothing');
+    });
+  });
+}
+
+/// Queue whose list a test can change under the screen, and which records the
+/// starts it was asked for instead of talking to a server.
+class _MutableQueueNotifier extends QueueNotifier {
+  _MutableQueueNotifier(this._items);
+
+  List<QueueItem> _items;
+  final List<({int item, int printer})> started = [];
+
+  @override
+  Future<List<QueueItem>> build() async => _items;
+
+  void replace(List<QueueItem> items) {
+    _items = items;
+    state = AsyncData(items);
+  }
+
+  @override
+  Future<ActionOutcome> startOnPrinter(
+    int itemId,
+    int printerId, {
+    List<int>? amsMapping,
+  }) async {
+    started.add((item: itemId, printer: printerId));
+    return ActionOutcome.ok;
+  }
+}
+
+/// A plate the scheduler is waiting on, on a printer that is not reachable.
+class _DirtyPlateStatuses extends PrinterStatusesNotifier {
+  @override
+  Map<int, PrinterStatus> build() => const {
+        1: PrinterStatus(id: 1, connected: false, awaitingPlateClear: true),
+      };
+}
+
+/// Holds the plate-clear acknowledgement open until a test answers it.
+class _HeldCommands implements PrinterCommandsRepository {
+  final _held = Completer<void>();
+  int acks = 0;
+  Object? _error;
+
+  /// Answers the request in flight: successfully, or with [error].
+  void release([Object? error]) {
+    _error = error;
+    _held.complete();
+  }
+
+  @override
+  Future<void> clearPlate(int printerId) async {
+    acks++;
+    await _held.future;
+    if (_error != null) throw _error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }

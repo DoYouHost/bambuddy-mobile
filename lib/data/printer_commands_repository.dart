@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import '../core/ams/slot_addressing.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 
@@ -26,8 +27,14 @@ class PrinterCommandsRepository {
 
   /// Acknowledge the build plate has been cleared (lets the scheduler start the
   /// next queued print). Empty body.
+  ///
+  /// Keeps what the server wrote on a 400: this route answers that status for
+  /// two unrelated reasons, and only the text tells them apart — a printer that
+  /// is not awaiting an acknowledgement at all, or a pre-#2864 server refusing
+  /// to release the gate on a printer it cannot reach. See
+  /// `isOfflinePlateClearRefusal`.
   Future<void> clearPlate(int printerId) =>
-      _post(Endpoints.printerClearPlate(printerId));
+      _post(Endpoints.printerClearPlate(printerId), keepDetail: true);
 
   /// Chamber light: `on=true|false`.
   Future<void> setChamberLight(int printerId, {required bool on}) =>
@@ -194,15 +201,34 @@ class PrinterCommandsRepository {
 
   /// Load filament from one slot. [trayId] is the global tray number from
   /// [amsLoadTrayId] — not the slot's local id.
-  Future<void> amsLoad(int printerId, int trayId) {
+  ///
+  /// [extruderId] names the hotend to feed (0 = right/main, 1 = left/deputy)
+  /// and is sent only when given, exactly as Bambu Studio sends it: without a
+  /// Filament Track Switch the AMS is wired to a hotend and the firmware works
+  /// the target out itself, so a value there says nothing the printer does not
+  /// already know. See `PrinterStatus.filaSwitch` for when it is needed.
+  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) {
     assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
-    return _post(Endpoints.amsLoad(printerId), query: {'tray_id': trayId});
+    assert(extruderId == null || extruderId == 0 || extruderId == 1,
+        'extruder id out of range: $extruderId');
+    return _post(Endpoints.amsLoad(printerId), query: {
+      'tray_id': trayId,
+      'extruder_id': ?extruderId,
+    });
   }
 
-  /// Unload the filament currently in the extruder — printer-wide, see
-  /// [Endpoints.amsUnload].
-  Future<void> amsUnload(int printerId) =>
-      _post(Endpoints.amsUnload(printerId));
+  /// Unload filament. [trayId] — the global number from [amsLoadTrayId], as on
+  /// [amsLoad] — names the slot to unload; omitted, the printer unloads whatever
+  /// its own `tray_now` names. See [Endpoints.amsUnload] for why naming it
+  /// matters on a dual-nozzle machine.
+  Future<void> amsUnload(int printerId, {int? trayId}) {
+    assert(trayId == null || _isLoadableTrayId(trayId),
+        'tray id not loadable: $trayId');
+    return _post(
+      Endpoints.amsUnload(printerId),
+      query: {'tray_id': ?trayId},
+    );
+  }
 
   /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
   Future<void> refreshAmsSlot(
@@ -216,11 +242,12 @@ class PrinterCommandsRepository {
     String path, {
     Map<String, dynamic>? query,
     Map<String, dynamic>? data,
+    bool keepDetail = false,
   }) async {
     try {
       await _dio.post<dynamic>(path, queryParameters: query, data: data);
     } on DioException catch (e) {
-      throw mapDioException(e);
+      throw keepDetail ? mapDioExceptionKeepingDetail(e) : mapDioException(e);
     }
   }
 }
@@ -228,19 +255,18 @@ class PrinterCommandsRepository {
 /// The global tray number `POST /ams/load` takes for a slot, or null where the
 /// server has no encoding for it.
 ///
-/// An external spool is already global (254 = Ext-L, 255 = Ext-R), a regular
-/// AMS slot is `unit * 4 + slot`. The one hole is AMS-HT: its units are numbered
-/// from 128, so the same arithmetic lands far outside the accepted range and the
-/// server answers 400 — the caller hides the action instead of offering a button
-/// that cannot work.
+/// Ids in are **local**, like every other slot route: an AMS unit and a slot
+/// within it, or [externalHolderUnit] and a holder side. [globalTrayId] does
+/// the encoding; the only thing added here is the route's own acceptance, which
+/// AMS-HT falls outside of — its units are numbered from 128, the server
+/// answers 400, and the caller hides the action rather than offer a button that
+/// cannot work.
 int? amsLoadTrayId({required int amsId, required int trayId}) {
-  // Only the two external ids pass through unchanged. Accepting the whole
-  // loadable range here would turn an unexpected external id into a valid AMS
-  // slot number — the printer would load a different spool, and nothing on the
-  // way would flag it.
-  if (amsId == 255) return trayId == 254 || trayId == 255 ? trayId : null;
-  if (amsId >= 128) return null;
-  final global = amsId * 4 + trayId;
+  // Guarded before encoding, not after: an out-of-range holder side would
+  // otherwise land on a perfectly valid AMS slot number, and the printer would
+  // load a different spool with nothing on the way flagging it.
+  if (isExternalHolder(amsId) && trayId != 0 && trayId != 1) return null;
+  final global = globalTrayId(amsId: amsId, trayId: trayId);
   return _isLoadableTrayId(global) ? global : null;
 }
 

@@ -14,6 +14,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/system_insets.dart';
+import '../common/section_heading.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
 import 'timelapse_trim.dart';
@@ -487,7 +488,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(label, style: theme.textTheme.titleSmall),
+        SectionHeading(label, style: theme.textTheme.titleSmall),
         const Spacer(),
         Text(value, style: theme.textTheme.bodySmall),
       ],

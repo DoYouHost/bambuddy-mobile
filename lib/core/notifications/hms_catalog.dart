@@ -43,6 +43,13 @@ class HmsCatalog {
   /// is the server's own (`HMSErrorModal.tsx::lookupDescription`): the lossless
   /// full code first, the lossy short form as the fallback that carries the
   /// bulk of the table.
+  ///
+  /// A code this table does not name falls back to [HmsError.description], the
+  /// sentence a 1.2.5.4+ server attaches to the fault itself. The bundled table
+  /// stays first because it is localized and the server's is English only, so
+  /// the fallback only ever replaces *no text at all* — which, through
+  /// [hmsIsDisplayable], is the difference between a named fault and a card the
+  /// app refuses to show.
   String? describe(HmsError e) {
     final full = e.fullCode?.toUpperCase();
     if (full != null) {
@@ -50,7 +57,8 @@ class HmsCatalog {
       if (hit != null) return hit;
     }
     final short = e.shortCode;
-    return short == null ? null : _map[short.replaceAll('_', '')];
+    final local = short == null ? null : _map[short.replaceAll('_', '')];
+    return local ?? e.description;
   }
 }
 
@@ -59,7 +67,8 @@ class HmsCatalog {
 /// which drops every code missing from its description table so it never turns
 /// an unrecognized code into a red card. Show if:
 ///  • server provided a message, OR
-///  • code resolves in the catalog (known error).
+///  • the code resolves through [HmsCatalog.describe] — our table or, failing
+///    that, the sentence the server itself attached to the fault.
 ///
 /// One deliberate departure from bambuddy: it keeps an uncataloged fault when
 /// the firmware offers actions for it, so an unnamed error can still get
@@ -77,6 +86,50 @@ class HmsCatalog {
 bool hmsIsDisplayable(HmsError e, {String? description}) =>
     (e.message?.trim().isNotEmpty ?? false) ||
     (description?.trim().isNotEmpty ?? false);
+
+/// The faults on [status] worth putting in front of a user, in the order the
+/// server listed them.
+///
+/// **A disconnected printer has none**, whatever its `hms_errors` still say.
+/// [PrinterStatus.mergedWith] carries the codes through an outage on purpose —
+/// the notification path pauses its clear-grace clock on them, so a fault known
+/// before the outage does not re-alert on reconnect — which leaves every surface
+/// on the hook for answering "these are last-known values, not live faults".
+/// Four of them were answering it in four different wordings; this is the one
+/// place that answers it now.
+///
+/// [describe] is required rather than defaulted to [HmsCatalog.instance]: the
+/// home-screen widget and the notification isolate hold their own catalogue, or
+/// none at all — `null` is then the honest answer — and a hidden fallback would
+/// quietly hand them the UI isolate's instead.
+List<HmsError> displayableHmsErrors(
+  PrinterStatus? status, {
+  required String? Function(HmsError)? describe,
+}) {
+  if (status == null || status.connected == false) return const [];
+  return [
+    for (final e in status.hmsErrors ?? const <HmsError>[])
+      if (hmsIsDisplayable(e, description: describe?.call(e))) e,
+  ];
+}
+
+/// The first fault worth showing, or null — [displayableHmsErrors] for a caller
+/// that only needs to know *whether* there is one, or which one is on top.
+///
+/// Separate function rather than `displayableHmsErrors(...).firstOrNull` so the
+/// walk stops at the first hit: the dashboard filter asks this of every printer
+/// on every rebuild, and the home widget asks it on every publish, including
+/// from the notification isolate.
+HmsError? firstDisplayableHmsError(
+  PrinterStatus? status, {
+  required String? Function(HmsError)? describe,
+}) {
+  if (status == null || status.connected == false) return null;
+  for (final e in status.hmsErrors ?? const <HmsError>[]) {
+    if (hmsIsDisplayable(e, description: describe?.call(e))) return e;
+  }
+  return null;
+}
 
 /// Whether an HMS error should fire a NOTIFICATION — stricter than
 /// [hmsIsDisplayable]. Parity with bambuddy's notification path, which pushes an
@@ -99,10 +152,10 @@ bool hmsIsNotifiable(HmsError e, {String? description}) {
   return description?.trim().isNotEmpty ?? false;
 }
 
-/// Human-readable error label WITHOUT the code: server message → catalog
-/// description. null when neither is known — and such an error is not shown at
-/// all ([hmsIsDisplayable]), so nothing is composed out of `severity`/`module`
-/// to stand in for it.
+/// Human-readable error label WITHOUT the code: server message → whatever
+/// [HmsCatalog.describe] resolved. null when neither is known — and such an
+/// error is not shown at all ([hmsIsDisplayable]), so nothing is composed out of
+/// `severity`/`module` to stand in for it.
 /// Used by the printer card, which shows the code separately (with wiki link).
 String? hmsLabel(HmsError e, {String? description}) {
   final msg = e.message?.trim();

@@ -4,17 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
+import '../../core/models/location_sensor.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
+import '../../core/models/spool_preset_override.dart';
+import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
 import '../../router.dart';
@@ -25,12 +31,14 @@ import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/dashed_line.dart';
+import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import '../common/dash_input.dart';
+import '../dashboard/ams_slot_config_providers.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
@@ -44,6 +52,7 @@ part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
 part 'inventory_bulk_edit.dart';
+part 'location_climate.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -168,6 +177,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
+    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climateAlerting = climates.values.any((c) => c.alerting);
     final visible = _filter(
       async.valueOrNull?.spools ?? const [],
       query,
@@ -188,6 +199,28 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 context,
                 title: l10n.navFilaments,
                 actions: [
+                  // Only where a location actually has a sensor bound to it:
+                  // the map is empty on a server without the feature, on
+                  // Spoolman (no location catalog) and for anyone who has not
+                  // wired one up, and an icon that opens an empty sheet is
+                  // worse than no icon.
+                  if (climates.isNotEmpty)
+                    logTag(
+                      'inventory.location_climate',
+                      IconButton(
+                        icon: Icon(
+                          Icons.thermostat,
+                          color: climateAlerting ? t.accentOrangeInk : null,
+                        ),
+                        // The tooltip carries the alert, because it is also the
+                        // icon's semantic label — and the amber is the whole of
+                        // what says so to everyone else.
+                        tooltip: climateAlerting
+                            ? l10n.inventoryClimateTitleAlerting
+                            : l10n.inventoryClimateTitle,
+                        onPressed: () => _openLocationClimate(context),
+                      ),
+                    ),
                   logTag(
                     'inventory.print_labels_all',
                     IconButton(
@@ -255,7 +288,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           data: (inv) {
             final spools = visible;
             return RefreshIndicator(
-              onRefresh: () => ref.read(inventoryProvider.notifier).refresh(),
+              onRefresh: () {
+                // The readings age on their own — the server polls Home
+                // Assistant on its own interval — so a pull has to re-ask for
+                // them, not only for the shelf.
+                ref.invalidate(locationClimateProvider);
+                return ref.read(inventoryProvider.notifier).refresh();
+              },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [

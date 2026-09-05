@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// Result of a pre-save connection diagnostic (`POST /printers/diagnostic`).
 /// Defensive manual parsing — the check catalog evolves server-side, so unknown
 /// ids/statuses are kept verbatim and rendered generically.
@@ -8,18 +10,12 @@ class PrinterDiagnosticResult {
     required this.checks,
   });
 
-  factory PrinterDiagnosticResult.fromJson(Map<String, dynamic> json) {
-    final rawChecks = json['checks'];
-    return PrinterDiagnosticResult(
-      ipAddress: json['ip_address']?.toString() ?? '',
-      overall: json['overall']?.toString() ?? 'problems',
-      checks: [
-        if (rawChecks is List)
-          for (final c in rawChecks)
-            if (c is Map) DiagnosticCheck.fromJson(Map<String, dynamic>.from(c)),
-      ],
-    );
-  }
+  factory PrinterDiagnosticResult.fromJson(Map<String, dynamic> json) =>
+      PrinterDiagnosticResult(
+        ipAddress: json['ip_address']?.toString() ?? '',
+        overall: json['overall']?.toString() ?? 'problems',
+        checks: parseJsonList(json['checks'], DiagnosticCheck.fromJson),
+      );
 
   final String ipAddress;
 

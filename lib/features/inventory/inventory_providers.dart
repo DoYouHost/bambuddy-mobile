@@ -6,6 +6,8 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
+import '../../core/models/location_sensor.dart';
+import '../../core/models/spool_preset_override.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
@@ -454,11 +456,55 @@ final filamentPresetsProvider =
       }
     });
 
-/// Server-side storage-location catalog (native backend). Degrades to empty on
-/// error; [locationOptionsProvider] still surfaces locations used by spools.
-final locationCatalogProvider = FutureProvider.autoDispose<List<String>>((
+/// The printer models the fleet actually has, spelled exactly as the server
+/// reports them.
+///
+/// Not `ownedPrinterCodesProvider`, which reads the same fleet for the same
+/// field and upper-cases it: that one narrows a preset *list* by name, where
+/// case cannot matter, while this one is the key the server matches an
+/// override on — `printer_model` is compared for plain string equality
+/// (`services/spool_filament_preset.py::_pick`), so a case-folded key writes a
+/// row nothing will ever resolve to. Two readers, deliberately, and neither is
+/// safe to point at the other.
+///
+/// Sorted for a stable order in the spool form; a printer that has not reported
+/// a model is left out, having no model to key a row by.
+final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   ref,
 ) async {
+  final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
+  final models = <String>{
+    for (final p in printers)
+      if ((p.model?.trim() ?? '').isNotEmpty) p.model!.trim(),
+  }.toList()
+    ..sort();
+  return models;
+});
+
+/// Whether this server has the per-model preset routes. Cached for the session
+/// — the answer is a property of the server, and the latch behind it already
+/// updates itself from what the routes actually answer.
+final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
+  ref.keepAlive();
+  return ref.watch(inventoryRepositoryProvider).supportsPresetOverrides();
+});
+
+/// One spool's per-printer-model preset overrides, as stored right now.
+///
+/// Errors are NOT swallowed here, unlike the other reference data above: the
+/// route replaces the whole list, so a form that opened on a failed read and
+/// saved anyway would delete overrides the user never saw. The form reads the
+/// error state and keeps its section read-only when it is set.
+final spoolPresetOverridesProvider = FutureProvider.autoDispose
+    .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
+  if (!await ref.watch(presetOverridesSupportedProvider.future)) return const [];
+  return ref.watch(inventoryRepositoryProvider).fetchPresetOverrides(spoolId);
+});
+
+/// Server-side storage-location catalog (native backend). Degrades to empty on
+/// error; [locationOptionsProvider] still surfaces locations used by spools.
+final locationCatalogProvider =
+    FutureProvider.autoDispose<List<StorageLocation>>((ref) async {
   // No keepAlive: re-fetch on reopen so a location just created (as a side
   // effect of saving a spool with a new storage_location) shows up next time.
   try {
@@ -467,6 +513,69 @@ final locationCatalogProvider = FutureProvider.autoDispose<List<String>>((
     return const [];
   }
 });
+
+/// One storage location and what the Home Assistant sensors bound to it read
+/// right now.
+class LocationClimate {
+  const LocationClimate({required this.location, required this.readings});
+
+  final StorageLocation location;
+
+  /// The location's card-visible sensors, in the order the server sorted them.
+  /// Never empty — a location with nothing to show is left out of
+  /// [locationClimateProvider] entirely.
+  final List<LocationSensorReading> readings;
+
+  /// Whether any reading is outside the thresholds its binding carries.
+  bool get alerting => readings.any((r) => r.alerting);
+}
+
+/// Live readings for every storage location that has a sensor bound to it,
+/// keyed by [StorageLocation.matchKey] so a spool's free-text
+/// `storage_location` can find its own.
+///
+/// Three requests deep at most, and only on a server that has the feature: the
+/// listing says which locations are worth asking about, and locations without
+/// a card-visible sensor are never asked. An error anywhere leaves the map
+/// short rather than failing the screen — every surface reading it is additive.
+final locationClimateProvider =
+    FutureProvider.autoDispose<Map<String, LocationClimate>>((ref) async {
+  final repo = ref.watch(locationSensorsRepositoryProvider);
+  if (!await repo.supportsLocationSensors()) return const {};
+
+  final bindings = await repo.listBindings();
+  final wanted = <int>{
+    for (final b in bindings)
+      if (b.showOnCard) b.locationId,
+  };
+  if (wanted.isEmpty) return const {};
+
+  final catalog = await ref.watch(locationCatalogProvider.future);
+  final locations = [
+    for (final loc in catalog)
+      if (wanted.contains(loc.id) && loc.name.isNotEmpty) loc,
+  ];
+  final readings = await Future.wait(
+    locations.map((loc) => repo.readings(loc.id)),
+  );
+
+  return {
+    for (final (i, loc) in locations.indexed)
+      if (readings[i].isNotEmpty)
+        loc.matchKey: LocationClimate(location: loc, readings: readings[i]),
+  };
+});
+
+/// The climate of the location a spool is put away in, or null when the spool
+/// has no location, the location has no sensor, or the server has none of this.
+LocationClimate? climateOfSpool(
+  Map<String, LocationClimate> climates,
+  Spool spool,
+) {
+  final name = spool.storageLocation?.trim().toLowerCase();
+  if (name == null || name.isEmpty) return null;
+  return climates[name];
+}
 
 /// Options for the spool "location" picker: server catalog ∪ locations already
 /// used by existing spools. Sorted, unique. Mirrors bambuddy's choose-or-add
@@ -477,7 +586,7 @@ final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
   final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
   final set = <String>{
     for (final l in catalog)
-      if (l.trim().isNotEmpty) l.trim(),
+      if (l.name.trim().isNotEmpty) l.name.trim(),
     for (final s in spools)
       if (s.storageLocation != null && s.storageLocation!.trim().isNotEmpty)
         s.storageLocation!.trim(),

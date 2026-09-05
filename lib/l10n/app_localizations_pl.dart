@@ -59,6 +59,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get connectFailed => 'Nie udało się połączyć z serwerem';
 
   @override
+  String get filePickerFailed => 'Nie udało się otworzyć okna wyboru pliku';
+
+  @override
   String get retry => 'Spróbuj ponownie';
 
   @override
@@ -391,6 +394,86 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get ctrlDryAutoIdle => 'Auto-suszenie przy wysokiej wilgotności.';
+
+  @override
+  String get ctrlDryAutoQueue => 'Auto-suszenie między wydrukami.';
+
+  @override
+  String get ctrlDryAutoWhilePrinting => 'Także w druku.';
+
+  @override
+  String get ctrlDryStartWhen => 'Kiedy zacząć';
+
+  @override
+  String get ctrlDryStartNow => 'Teraz';
+
+  @override
+  String get ctrlDryStartAfter => 'Później';
+
+  @override
+  String get ctrlDryStartAt => 'O godzinie';
+
+  @override
+  String get ctrlDryPickTime => 'Wybierz termin';
+
+  @override
+  String get ctrlDrySchedule => 'Zaplanuj';
+
+  @override
+  String get ctrlDryScheduled => 'Suszenie zaplanowane';
+
+  @override
+  String get ctrlDryScheduleTimePast => 'Wybierz termin w przyszłości';
+
+  @override
+  String ctrlDryScheduledFor(String time) {
+    return 'Suszenie: $time';
+  }
+
+  @override
+  String get ctrlDryScheduledAsap => 'Suszenie zaplanowane, czeka na drukarkę';
+
+  @override
+  String get ctrlDryScheduleCancel => 'Anuluj zaplanowane suszenie';
+
+  @override
+  String get ctrlDryScheduleDismiss => 'Odrzuć';
+
+  @override
+  String ctrlDryScheduleFailed(String reason) {
+    return 'Zaplanowane suszenie nie ruszyło: $reason';
+  }
+
+  @override
+  String get ctrlDryScheduleFailedUnknown => 'nieznany błąd';
+
+  @override
+  String get ctrlDryWaitPower => 'Podłącz zasilacz AMS';
+
+  @override
+  String get ctrlDryWaitRetract => 'Wycofaj filament z wylotu AMS';
+
+  @override
+  String get ctrlDryWaitBlocked => 'AMS nie może teraz zacząć suszyć';
+
+  @override
+  String get ctrlDryWaitAmsNotFound => 'Czeka na wykrycie AMS';
+
+  @override
+  String get ctrlDryWaitOffline => 'Czeka na połączenie z drukarką';
+
+  @override
+  String get ctrlDryWaitBusy => 'Czeka, aż drukarka będzie wolna';
+
+  @override
+  String get ctrlDryWaitAlreadyDrying => 'Czeka na koniec trwającego cyklu';
+
+  @override
+  String get ctrlDryWaitInterrupted =>
+      'Przerwane, wznowi się, gdy drukarka będzie wolna';
+
+  @override
   String get ctrlMove => 'Ruch';
 
   @override
@@ -562,6 +645,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get smartPlugUnreachable => 'Niedostępne';
+
+  @override
+  String get smartPlugMonitorOnly => 'Tylko podgląd';
 
   @override
   String get smartPlugCantPowerOff =>
@@ -753,6 +839,90 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get archiveMediaAction => 'Nagrania i zdjęcia';
+
+  @override
+  String get archiveMediaOnServer => 'Na serwerze';
+
+  @override
+  String archiveMediaOnPrinter(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Na drukarce ($count)',
+      zero: 'Na drukarce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMediaSearching => 'Szukam na drukarce…';
+
+  @override
+  String get archiveMediaNothingOnPrinter => 'Nic na drukarce';
+
+  @override
+  String archiveMediaPhotoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zdjęcia',
+      many: '$count zdjęć',
+      few: '$count zdjęcia',
+      one: 'jedno zdjęcie',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveMediaKindTimelapse => 'Timelapse';
+
+  @override
+  String get archiveMediaKindIpcam => 'Kamera';
+
+  @override
+  String archiveMediaDownloadSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pliku',
+      many: '$count plików',
+      few: '$count pliki',
+      one: 'jeden plik',
+      zero: 'zaznaczone',
+    );
+    return 'Pobierz $_temp0';
+  }
+
+  @override
+  String get archiveMediaSaved => 'Zapisano film';
+
+  @override
+  String get archiveMediaNoFilePermission =>
+      'Brak uprawnień do plików drukarki';
+
+  @override
+  String get archiveMediaPrinterMissing => 'Drukarki już nie ma';
+
+  @override
+  String get archiveMediaTimelapseUnavailable =>
+      'Timelapse: drukarka nie odpowiedziała';
+
+  @override
+  String get archiveMediaIpcamUnavailable =>
+      'Kamera: drukarka nie odpowiedziała';
+
+  @override
+  String archivePlate(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String archivePlateDetail(int plate) {
+    return 'Płyta $plate z pliku wielopłytowego';
+  }
+
+  @override
   String get archivePhotosTitle => 'Zdjęcia';
 
   @override
@@ -760,6 +930,55 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archivePhotoFailed => 'Nie udało się wczytać tego zdjęcia.';
+
+  @override
+  String get archiveFilamentUsed => 'Zużycie filamentu';
+
+  @override
+  String archiveFilamentGrams(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String archiveFilamentActual(String grams, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zużyto $grams w $count przebiegach',
+      many: 'Zużyto $grams w $count przebiegach',
+      few: 'Zużyto $grams w $count przebiegach',
+      one: 'Zużyto $grams',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveFilamentNoActual => 'Bez zapisanego zużycia';
+
+  @override
+  String get archiveFilamentSaving => 'Zapisywanie';
+
+  @override
+  String get archiveFilamentNone => 'Nie zapisano';
+
+  @override
+  String get archiveFilamentLabel => 'Masa (g)';
+
+  @override
+  String get archiveFilamentNotANumber =>
+      'Podaj liczbę albo zostaw puste, żeby wyczyścić masę.';
+
+  @override
+  String archiveFilamentOutOfRange(String max) {
+    return 'Masa od 0 do $max g.';
+  }
+
+  @override
+  String get archiveFilamentSaved => 'Zapisano masę filamentu';
+
+  @override
+  String get archiveFilamentUnsupported =>
+      'Ten serwer nie zapisuje jeszcze ręcznie podanej masy filamentu. Zaktualizuj bambuddy.';
 
   @override
   String get archiveHasTimelapse => 'Ma timelapse';
@@ -926,6 +1145,39 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get gcodeFeaturePrimeTower => 'Wieża czyszcząca';
+
+  @override
+  String get archiveNo3mfTitle =>
+      'Część ostatnich wydruków zarchiwizowała się bez miniatur';
+
+  @override
+  String get archiveNo3mfBody =>
+      'Slicer nie zostawił pliku .gcode.3mf na karcie drukarki, więc Bambuddy nie miał skąd wziąć miniatury ani danych ze slicera. Zwykle znaczy to, że w slicerze (zakładka Device) jest wyłączone „Store sent files on external storage”.';
+
+  @override
+  String get archiveNo3mfTitleInternal =>
+      'Część ostatnich wydruków została w pamięci wewnętrznej drukarki';
+
+  @override
+  String get archiveNo3mfBodyInternal =>
+      'Bambu Studio wysłało pocięty plik do pamięci wewnętrznej drukarki, a nie na kartę — przez FTP nie ma tam czego czytać. W H2 i P2S przycisk Drukuj zawsze robi to tak, więc włączanie ustawienia w slicerze nic nie zmieni. Takie wydruki i tak trafiają do archiwum z nazwą i czasem, tylko bez miniatury i danych ze slicera. Żeby archiwum było pełne, zaczynaj wydruk z Bambuddy albo tnij w OrcaSlicerze — w obu przypadkach z kartą lub pendrivem w drukarce.';
+
+  @override
+  String get archiveNo3mfTitleNoStorage =>
+      'Część ostatnich wydruków nie mogła się zarchiwizować — brak nośnika w drukarce';
+
+  @override
+  String get archiveNo3mfBodyNoStorage =>
+      'Drukarka nie widzi karty ani pendrive\'a w gniazdzie, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
+
+  @override
+  String get archiveNo3mfDocs => 'Zobacz krok 4 instalacji';
+
+  @override
+  String get archiveNo3mfDocsWhy => 'Dlaczego tak się dzieje';
+
+  @override
+  String get archiveNo3mfDismiss => 'Zamknij tę informację';
 
   @override
   String get archiveDelete => 'Usuń';
@@ -1112,6 +1364,26 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get amsRfidRereadStarted => 'Ponowny odczyt tagu…';
+
+  @override
+  String amsFeedTitle(String slot) {
+    return 'Do której dyszy podać $slot?';
+  }
+
+  @override
+  String get amsFeedPrompt =>
+      'Filament Track Switch może poprowadzić ten slot do obu dysz, więc drukarka sama nie ustali, dokąd ma trafić filament.';
+
+  @override
+  String get amsFeedAlreadyLoaded => 'już załadowany';
+
+  @override
+  String get amsSwitchNotReady =>
+      'Filament Track Switch nie jest jeszcze skonfigurowany. Przypisz każdy AMS do wejścia na drukarce i spróbuj ponownie.';
+
+  @override
+  String get amsUnloadSlotNotLoaded =>
+      'Z tego slotu nie jest zasilana żadna dysza';
 
   @override
   String get amsActionsWhilePrinting => 'Niedostępne, gdy drukarka drukuje';
@@ -2215,6 +2487,29 @@ class AppLocalizationsPl extends AppLocalizations {
       'Brak dostępnych profili slicera. Włącz krojenie na serwerze (i połącz Bambu Cloud, aby mieć profile z chmury).';
 
   @override
+  String get inventorySectionPrinterPresets => 'Presety wg modelu drukarki';
+
+  @override
+  String get inventoryPrinterPresetsHint =>
+      'Wybór tutaj wygrywa z presetem szpuli.';
+
+  @override
+  String get inventoryPrinterPresetDefault => 'Jak na szpuli';
+
+  @override
+  String inventoryPrinterPresetNozzle(String model, String diameter) {
+    return '$model · dysza $diameter';
+  }
+
+  @override
+  String get inventoryPrinterPresetsLoadFailed =>
+      'Nie odczytano — zapis ich nie ruszy.';
+
+  @override
+  String get inventoryPrinterPresetsSaveFailed =>
+      'Szpula zapisana, presety wg modelu — nie.';
+
+  @override
   String get inventoryFieldMaterial => 'Materiał';
 
   @override
@@ -2263,6 +2558,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String inventoryFieldRange(int min, int max) {
     return 'Podaj wartość od $min do $max';
   }
+
+  @override
+  String get inventoryFieldNegative => 'Podaj wartość 0 lub większą';
 
   @override
   String get inventorySectionBasics => 'Podstawy';
@@ -2653,6 +2951,35 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryLabelsPrintAll => 'Drukuj etykiety wszystkich';
 
   @override
+  String get inventoryClimateTitle => 'Warunki przechowywania';
+
+  @override
+  String get inventoryClimateTitleAlerting =>
+      'Warunki przechowywania: poza zakresem alertu';
+
+  @override
+  String get inventoryClimateSource =>
+      'Serwer odczytuje je z Home Assistant. Czujniki przypisuje się do miejsca w interfejsie webowym Bambuddy.';
+
+  @override
+  String get inventoryClimateNoReading => 'brak odczytu';
+
+  @override
+  String inventoryClimateReading(String name, String value) {
+    return '$name: $value';
+  }
+
+  @override
+  String inventoryClimateReadingAlerting(String name, String value) {
+    return '$name: $value, poza zakresem alertu';
+  }
+
+  @override
+  String inventoryClimateReadingStale(String name, String value) {
+    return '$name: $value, czujnik nieosiągalny';
+  }
+
+  @override
   String get inventoryLabelsSearchHint => 'Szukaj: nazwa, marka lub #ID';
 
   @override
@@ -2753,6 +3080,18 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get inventoryLabelsAvery5160Hint =>
       'Arkusze amerykańskie; 30 etykiet na stronie Letter.';
+
+  @override
+  String get inventoryLabelsStartTitle => 'Pierwsza wolna etykieta';
+
+  @override
+  String get inventoryLabelsStartHint =>
+      'Dotknij pola, w którym ma się wydrukować pierwsza etykieta — wcześniejsze zostaną puste, więc napoczęty arkusz da się dokończyć zamiast zaczynać nowy.';
+
+  @override
+  String inventoryLabelsStartSlot(int position) {
+    return 'Pozycja $position';
+  }
 
   @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
@@ -4188,9 +4527,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectDownloadFailed => 'Pobieranie nie powiodło się';
 
   @override
-  String get projectSaveCancelled => 'Anulowano zapis';
-
-  @override
   String get projectCoverUpload => 'Ustaw okładkę';
 
   @override
@@ -4450,12 +4786,45 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceFailed => 'Cięcie nie powiodło się';
 
   @override
+  String get sliceExternalFallback =>
+      'Zapisano w bibliotece serwera — folder tego pliku nie mógł go przyjąć.';
+
+  @override
+  String get sliceExternalReadonly => 'Ten folder jest tylko do odczytu.';
+
+  @override
+  String get sliceExternalNoPath => 'Ten folder nie ma ustawionej ścieżki.';
+
+  @override
+  String get sliceExternalUnreachable =>
+      'Ścieżka tego folderu jest teraz nieosiągalna.';
+
+  @override
+  String get sliceExternalNotWritable =>
+      'Serwer nie ma prawa zapisu do tego folderu.';
+
+  @override
+  String get sliceExternalInvalidName =>
+      'Ten folder nie przyjąłby nazwy tego pliku.';
+
+  @override
   String get sliceClose => 'Zamknij';
 
   @override
   String sliceResultTime(String time) {
     return 'Szacowany czas: $time';
   }
+
+  @override
+  String get sliceRefusedStep =>
+      'Plików STEP nie da się pociąć. Wyeksportuj model z CAD-a jako STL albo 3MF.';
+
+  @override
+  String get sliceRefusedFormat => 'Źródło musi być plikiem STL albo 3MF.';
+
+  @override
+  String get sliceRefusedNoSource =>
+      'To archiwum zachowało tylko wydrukowany G-code, nie model — nie ma czego pociąć ponownie.';
 
   @override
   String sliceResultFilament(String grams) {
@@ -4473,6 +4842,416 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get sliceTierStandard => 'Wbudowany';
+
+  @override
+  String get pipelineSection => 'Pipeline';
+
+  @override
+  String get pipelineApply => 'Zastosuj pipeline…';
+
+  @override
+  String get pipelineApplyEmpty => 'Brak zapisanych pipeline\'ów';
+
+  @override
+  String pipelineApplied(String name) {
+    return 'Zastosowano „$name”';
+  }
+
+  @override
+  String get pipelineSaveAs => 'Zapisz jako pipeline';
+
+  @override
+  String get pipelineNameHint => 'Nazwa pipeline\'u';
+
+  @override
+  String get pipelineSaveConfirm => 'Zapisz';
+
+  @override
+  String get pipelineSaved => 'Zapisano pipeline';
+
+  @override
+  String get pipelineSaveHint =>
+      'Drukarka, proces, filamenty i stół z góry — pod nazwą, którą zastosujesz do kolejnego pliku.';
+
+  @override
+  String get pipelinesMenu => 'Pipeline\'y';
+
+  @override
+  String get pipelinesTitle => 'Pipeline\'y';
+
+  @override
+  String get pipelinesEmpty => 'Nie ma jeszcze pipeline\'ów';
+
+  @override
+  String get pipelinesEmptyHint =>
+      'Zapisz pierwszy z formularza cięcia — drukarka, proces, filamenty i stół w komplecie, który zastosujesz jednym dotknięciem.';
+
+  @override
+  String get pipelineProfiles => 'Profile';
+
+  @override
+  String pipelineFilamentsCount(int count) {
+    return 'Filamenty ($count)';
+  }
+
+  @override
+  String get pipelineHistory => 'Historia przebiegów';
+
+  @override
+  String get pipelineCardActions => 'Akcje pipeline\'u';
+
+  @override
+  String pipelineSlotNumbered(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get pipelineBed => 'Stół';
+
+  @override
+  String get pipelinePresetGone => 'Nie ma go już w katalogu';
+
+  @override
+  String get pipelineNeedsTarget => 'Ustaw cel, zanim uruchomisz ten pipeline.';
+
+  @override
+  String get pipelineNoTargetChip => 'Bez celu';
+
+  @override
+  String get pipelineEditTitle => 'Edytuj pipeline';
+
+  @override
+  String get pipelineDescriptionHint => 'Opis (opcjonalnie)';
+
+  @override
+  String get pipelineTargetType => 'Cel';
+
+  @override
+  String get pipelineTargetSpecific => 'Konkretna drukarka';
+
+  @override
+  String get pipelineTargetClass => 'Model drukarki';
+
+  @override
+  String get pipelineTargetPickPrinter => 'Wybierz drukarkę';
+
+  @override
+  String get pipelineTargetPickClass => 'Wybierz model';
+
+  @override
+  String get pipelineTargetNone => '— bez celu —';
+
+  @override
+  String pipelineTargetPrinterGone(int id) {
+    return 'Drukarka #$id (już jej nie ma)';
+  }
+
+  @override
+  String get pipelineFanout => 'Rozkład kopii';
+
+  @override
+  String get pipelineFanoutMaxParallel =>
+      'Maksymalnie równolegle — na dowolnej wolnej pasującej drukarce';
+
+  @override
+  String get pipelineFanoutRoundRobin =>
+      'Po kolei — cyklicznie po pasujących drukarkach';
+
+  @override
+  String get pipelineFanoutFillOneFirst =>
+      'Najpierw jedna — wszystkie kopie na jednej drukarce';
+
+  @override
+  String get pipelineDelete => 'Usuń pipeline';
+
+  @override
+  String pipelineDeleteConfirm(String name) {
+    return 'Usunąć „$name”? Wykonane już przebiegi zachowają nazwę.';
+  }
+
+  @override
+  String get pipelineDeleted => 'Usunięto pipeline';
+
+  @override
+  String get pipelineDescriptionNoClear =>
+      'Raz zapisanego opisu nie da się wyczyścić — ten serwer potrafi tylko wpisać nowy.';
+
+  @override
+  String get pipelineRun => 'Uruchom';
+
+  @override
+  String pipelineRunTitle(String name) {
+    return 'Uruchom „$name”';
+  }
+
+  @override
+  String get pipelineRunCopies => 'Kopie';
+
+  @override
+  String get pipelineRunStart => 'Start';
+
+  @override
+  String get pipelineRunStarted => 'Przebieg wystartował';
+
+  @override
+  String get pipelineRunAnyway => 'Uruchom mimo to';
+
+  @override
+  String pipelineRunMaxCopies(int max) {
+    return 'Ten serwer pozwala najwyżej na $max.';
+  }
+
+  @override
+  String get pipelineCheckingEligibility => 'Sprawdzam drukarki…';
+
+  @override
+  String get pipelineEligibilityOk => 'Można uruchamiać.';
+
+  @override
+  String pipelineEligibilityClassCount(int ok, int total) {
+    return 'Gotowe drukarki: $ok z $total';
+  }
+
+  @override
+  String get pipelineEligibilityBlocked =>
+      'Nic nie przyjmie teraz tego przebiegu.';
+
+  @override
+  String get pipelineEligibilityAdvisory => 'Warto rzucić okiem przed startem.';
+
+  @override
+  String get pipelineIssuePrinterNotSet =>
+      'Ten pipeline nie ma ustawionej drukarki docelowej.';
+
+  @override
+  String get pipelineIssuePrinterNotFound => 'Drukarki docelowej już nie ma.';
+
+  @override
+  String get pipelineIssuePrinterDisabled =>
+      'Drukarka docelowa jest wyłączona w bambuddy.';
+
+  @override
+  String get pipelineIssuePrinterOffline => 'Drukarka docelowa jest offline.';
+
+  @override
+  String get pipelineIssueFilamentType =>
+      'Założony jest filament niewłaściwego typu.';
+
+  @override
+  String get pipelineIssueFilamentColor => 'Założony filament ma inny kolor.';
+
+  @override
+  String get pipelineIssueAmsSlotMissing =>
+      'AMS ma mniej slotów, niż potrzebuje ten pipeline.';
+
+  @override
+  String get pipelineIssueFilamentUnverified =>
+      'Tego profilu filamentu nie da się stąd sprawdzić — warto zweryfikować samemu.';
+
+  @override
+  String get pipelineIssueNoClassMatches =>
+      'Nie ma zainstalowanej żadnej drukarki tego modelu.';
+
+  @override
+  String get pipelineIssueClassNotSet =>
+      'Ten pipeline nie ma ustawionego modelu drukarki.';
+
+  @override
+  String pipelineIssueSlot(int n) {
+    return 'Slot $n';
+  }
+
+  @override
+  String pipelineIssueWantedGot(String expected, String actual) {
+    return 'oczekiwano $expected, założony $actual';
+  }
+
+  @override
+  String pipelineIssueWanted(String expected) {
+    return 'oczekiwano $expected';
+  }
+
+  @override
+  String get pipelineRunsTitle => 'Przebiegi pipeline\'ów';
+
+  @override
+  String get pipelineRunsEmpty => 'Nie ma jeszcze przebiegów';
+
+  @override
+  String get pipelineRunsNoneMatch =>
+      'Żaden przebieg nie pasuje do tych filtrów';
+
+  @override
+  String get pipelineRunsFilter => 'Filtruj przebiegi';
+
+  @override
+  String get pipelineCopiesLess => 'O jedną kopię mniej';
+
+  @override
+  String get pipelineCopiesMore => 'O jedną kopię więcej';
+
+  @override
+  String get pipelineEligible => 'Gotowa';
+
+  @override
+  String get pipelineIneligible => 'Nie gotowa';
+
+  @override
+  String pipelineRunsFilterActive(int count) {
+    return 'Filtruj przebiegi (aktywne: $count)';
+  }
+
+  @override
+  String get pipelineRunsFilterAny => 'Dowolny';
+
+  @override
+  String get pipelineRunsFilterStatus => 'Status';
+
+  @override
+  String get pipelineRunsFilterStatusHint =>
+      'Dopasowuje ostatnio zapisany status, więc przebieg może jeszcze odpowiadać na krok przed tym, na którym jest.';
+
+  @override
+  String get pipelineRunsFilterTarget => 'Cel';
+
+  @override
+  String get pipelineRunsFilterTargetHint =>
+      'Tam, gdzie pipeline wskazuje teraz — zmiana celu przenosi całą jego historię.';
+
+  @override
+  String get pipelineRunsFilterPipelineHint =>
+      'Przebiegów usuniętego pipeline\'u nie da się odfiltrować.';
+
+  @override
+  String get pipelineRunsFilterClear => 'Wyczyść filtry';
+
+  @override
+  String get pipelineRunsLoadMore => 'Wczytaj więcej';
+
+  @override
+  String pipelineRunsShowingAll(int count) {
+    return 'Wszystkie $count widoczne';
+  }
+
+  @override
+  String get pipelineRunsDone => 'Gotowe';
+
+  @override
+  String get pipelineRunsClear => 'Wyczyść zakończone';
+
+  @override
+  String pipelineRunsCleared(int count) {
+    return 'Usunięto: $count';
+  }
+
+  @override
+  String get pipelineRunsClearConfirm =>
+      'Usunąć z tej listy wszystkie zakończone przebiegi?';
+
+  @override
+  String pipelineRunCopiesProgress(int done, int total) {
+    return '$done z $total kopii';
+  }
+
+  @override
+  String get pipelineRunCancel => 'Anuluj przebieg';
+
+  @override
+  String get pipelineRunCancelConfirm =>
+      'Anulować ten przebieg? Kopie jeszcze niewysłane przepadną, a to, co już się drukuje, trzeba zatrzymać na samej drukarce.';
+
+  @override
+  String get pipelineRunCancelled => 'Anulowano przebieg';
+
+  @override
+  String get pipelineRunRetry => 'Ponów nieudane';
+
+  @override
+  String pipelineRunRetryStarted(int count) {
+    return 'Ponawiam kopie: $count';
+  }
+
+  @override
+  String get pipelineRunOverridden => 'Uruchomiony mimo nieudanego sprawdzenia';
+
+  @override
+  String get pipelineRunDeletedPipeline => 'Usunięty pipeline';
+
+  @override
+  String pipelineRunSource(String name) {
+    return 'Z $name';
+  }
+
+  @override
+  String pipelineRunRetryOf(int id) {
+    return 'Ponowienie przebiegu #$id';
+  }
+
+  @override
+  String pipelineRunOnPrinter(String printer) {
+    return 'Na $printer';
+  }
+
+  @override
+  String pipelineRunOnClass(String model) {
+    return 'Na dowolnej $model';
+  }
+
+  @override
+  String get pipelineStatusQueued => 'W kolejce';
+
+  @override
+  String get pipelineStatusSlicing => 'Cięcie';
+
+  @override
+  String get pipelineStatusDispatching => 'Wysyłanie';
+
+  @override
+  String get pipelineStatusInProgress => 'Drukowanie';
+
+  @override
+  String get pipelineStatusCompleted => 'Zakończony';
+
+  @override
+  String get pipelineStatusFailed => 'Nieudany';
+
+  @override
+  String get pipelineStatusPartial => 'Częściowo nieudany';
+
+  @override
+  String get pipelineStatusCancelled => 'Anulowany';
+
+  @override
+  String get pipelineStatusUnknown => 'Nieznany';
+
+  @override
+  String pipelineJobCopy(int n) {
+    return 'Kopia $n';
+  }
+
+  @override
+  String get pipelineJobPending => 'Oczekuje';
+
+  @override
+  String get pipelineJobAwaitingPrinter => 'Czeka na drukarkę';
+
+  @override
+  String get pipelineJobQueued => 'W kolejce';
+
+  @override
+  String get pipelineJobPrinting => 'Drukowanie';
+
+  @override
+  String get pipelineJobCompleted => 'Gotowe';
+
+  @override
+  String get pipelineJobFailed => 'Nieudana';
+
+  @override
+  String get pipelineJobCancelled => 'Anulowana';
+
+  @override
+  String get pipelineJobUnknown => 'Nieznany';
 
   @override
   String get queueFilamentMapping => 'Mapowanie filamentów';
@@ -4521,6 +5300,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get plateClearedSnack => 'Oznaczono płytę jako pustą';
+
+  @override
+  String get plateClearNeedsOnline =>
+      'Ten serwer zwalnia płytę tylko przy podłączonej drukarce. Zaktualizuj bambuddy, aby robić to na wyłączonej.';
 
   @override
   String get pfmTitle => 'Menedżer plików';
@@ -4573,6 +5356,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pfmSortDateOldest => 'Data (najstarsze)';
 
   @override
+  String get pfmUp => 'Folder wyżej';
+
+  @override
   String get pfmSelectAll => 'Zaznacz wszystko';
 
   @override
@@ -4590,13 +5376,58 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pfmNoMatches => 'Brak plików pasujących do filtra';
 
   @override
+  String get pfmPrinterUnavailable =>
+      'Drukarka nie odpowiedziała, więc nie udało się wylistować jej plików';
+
+  @override
+  String get pfmDownloadTooLarge =>
+      'Wybór jest za duży, żeby serwer spakował go w paczkę';
+
+  @override
+  String get pfmDownloadNoServerSpace =>
+      'Serwer nie ma miejsca na przygotowanie tego pobrania';
+
+  @override
+  String get pfmDownloadTookTooLong =>
+      'Przygotowanie pobrania trwało zbyt długo i serwer je przerwał';
+
+  @override
+  String get pfmPreparingOnServer => 'Przygotowywanie na serwerze…';
+
+  @override
+  String get pfmDownloading => 'Pobieranie…';
+
+  @override
+  String get pfmDownloadCancelled => 'Pobieranie anulowane';
+
+  @override
+  String get pfmDownloadPrepareFailed =>
+      'Serwer nie zdołał przygotować tego pobierania';
+
+  @override
+  String pfmDownloadPartial(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plików',
+      few: '$count pliki',
+      one: '$count plik',
+    );
+    return 'Pominięto $_temp0, których nie udało się odczytać z drukarki';
+  }
+
+  @override
+  String get pfmDownloadSaved => 'Zapisano plik';
+
+  @override
+  String get pfmDownloadNotSaved =>
+      'Nie udało się zapisać pliku we wskazanym miejscu';
+
+  @override
   String get pfmDownload => 'Pobierz';
 
   @override
   String get pfmDelete => 'Usuń';
-
-  @override
-  String get pfmDownloadSaved => 'Zapisano plik';
 
   @override
   String get pfmDeleteConfirmTitle => 'Usunąć pliki?';
@@ -4642,6 +5473,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wearPlateCleared => 'Płyta zwolniona';
+
+  @override
+  String get wearPlateNeedsOnline => 'Ten serwer wymaga drukarki online';
 
   @override
   String get wearStarted => 'Uruchomiono';
@@ -4793,6 +5627,41 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditMappingAuto => 'Automatycznie (bez ręcznego mapowania)';
 
   @override
+  String get queueEditPlate => 'Płyta';
+
+  @override
+  String queueEditPlateSelected(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String queueEditPlateNamed(int plate, String name) {
+    return 'Płyta $plate · $name';
+  }
+
+  @override
+  String queueEditPlateFixed(int plate) {
+    return 'To zadanie drukuje płytę $plate';
+  }
+
+  @override
+  String get queuePlatePickTitle => 'Która płyta?';
+
+  @override
+  String queuePlateObjects(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count obiektu',
+      many: '$count obiektów',
+      few: '$count obiekty',
+      one: '1 obiekt',
+      zero: 'Brak obiektów',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get queueEditPrintOptions => 'Opcje druku';
 
   @override
@@ -4912,6 +5781,54 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Wymuś zgodność koloru';
+
+  @override
+  String get queueEditNozzleRack => 'Magazyn dysz';
+
+  @override
+  String get queueEditNozzleRackDesc =>
+      'Wybierz, z której dyszy w magazynie drukuje każdy filament. Bez wyboru pasująca pozycja zostanie dobrana przy starcie wydruku.';
+
+  @override
+  String queueEditRackGroupLabel(String slots, String nozzle) {
+    return 'Filament $slots · $nozzle';
+  }
+
+  @override
+  String get queueEditRackAuto => 'Automatycznie';
+
+  @override
+  String queueEditRackPosition(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle';
+  }
+
+  @override
+  String queueEditRackPositionTaken(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle — już wybrana';
+  }
+
+  @override
+  String queueEditRackPositionUnfit(int position, String nozzle) {
+    return 'Pozycja $position · $nozzle — nie pasuje';
+  }
+
+  @override
+  String get queueEditRackEmpty => 'pusta';
+
+  @override
+  String get queueEditRackPickStale =>
+      'Wybrana pozycja już nie pasuje do tego filamentu — wybierz inną, inaczej wydruk zostanie odrzucony przy starcie.';
+
+  @override
+  String queueEditRackNoFit(String nozzle) {
+    return 'Żadna pozycja w magazynie nie ma dyszy $nozzle — włóż taką albo drukarka wybierze sama.';
+  }
+
+  @override
+  String get nozzleFlowStandard => 'Standardowa';
+
+  @override
+  String get nozzleFlowHigh => 'Wysoki przepływ';
 
   @override
   String get bugReportMenu => 'Zgłoś błąd lub pomysł';
@@ -6057,6 +6974,10 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$_temp0 — wszystkich użytkowników, nie tylko Twoje — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
   }
+
+  @override
+  String get printLogClearBodyFiltered =>
+      'Zniknie każdy przebieg w logu — wszystkich użytkowników, nie tylko Twoje, i włączony filtr tego nie zawęża — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
 
   @override
   String printLogCleared(int count) {

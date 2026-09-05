@@ -1,3 +1,4 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'json_utils.dart';
@@ -7,6 +8,12 @@ part 'archive.g.dart';
 /// Archive entry from `ArchiveResponse`.
 /// Defensive parsing: all fields except id/filename/status are nullable, unknown
 /// keys ignored — the API is young and evolving.
+///
+/// [copyWith] is generated from the constructor (`skipFields` keeps it to the
+/// one call shape). It used to be a hand-written `withFavorite` that re-listed
+/// every field, so each new field had to be added twice or it was silently
+/// dropped on the copy — which is exactly what nearly happened to `plate_id`.
+@CopyWith(skipFields: true)
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class Archive {
   const Archive({
@@ -15,12 +22,15 @@ class Archive {
     required this.status,
     this.printerId,
     this.printName,
+    this.plateId,
     this.completedAt,
     this.thumbnailPath,
     this.timelapsePath,
     this.photos = const [],
     this.printTimeSeconds,
     this.filamentUsedGrams,
+    this.totalFilamentActualGrams,
+    this.runCount = 0,
     this.filamentType,
     this.filamentColor,
     this.cost,
@@ -54,6 +64,16 @@ class Archive {
   /// Human-readable print name from user or slicer.
   final String? printName;
 
+  /// Which plate of a multi-plate 3MF this run printed (1-indexed), or null for
+  /// a single-plate file — and on every server older than #2603, which does not
+  /// send the field at all.
+  ///
+  /// Load-bearing rather than decorative: the print starts on
+  /// `item.plate_id or 1` (`print_scheduler.py`), so a reprint that drops this
+  /// prints plate 1 instead of the plate the archive is a record of.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? plateId;
+
   /// Thumbnail path for the print.
   final String? thumbnailPath;
 
@@ -79,7 +99,29 @@ class Archive {
   final int? printTimeSeconds;
 
   /// Filament used in grams.
+  ///
+  /// The archive's own figure: the slicer's estimate read out of the 3MF, or
+  /// what a user typed to correct it. Not what any run measured — that is
+  /// [totalFilamentActualGrams].
   final double? filamentUsedGrams;
+
+  /// What the runs of this file actually used, summed over all of them
+  /// (`_load_run_aggregates`). Per run that is the tracked spool delta where
+  /// the slots were mapped to inventory, the slicer estimate for a completed
+  /// print without tracking, and estimate x progress for one that stopped
+  /// partway.
+  ///
+  /// Null on a server older than the aggregate, **and** whenever the sum comes
+  /// to zero: the route answers `float(total) if total else None`, so "the runs
+  /// used nothing" and "no figure" arrive as the same value. [runCount] is what
+  /// separates them — runs that exist and summed to null recorded no filament,
+  /// which is what a print cancelled before its first layer looks like.
+  final double? totalFilamentActualGrams;
+
+  /// How many runs of this file the print log holds. Zero both for a file that
+  /// was never printed and on a server that does not send the aggregate.
+  @JsonKey(defaultValue: 0)
+  final int runCount;
 
   /// Filament type (e.g. "PETG", "PLA").
   final String? filamentType;
@@ -142,35 +184,12 @@ class Archive {
   String get displayName => printName ?? filename;
 
   /// Copy with a flipped/overridden favorite flag — for optimistic UI updates
-  /// (the only field the app mutates locally). Everything else is carried over.
-  Archive withFavorite(bool value) => Archive(
-    id: id,
-    filename: filename,
-    status: status,
-    printerId: printerId,
-    printName: printName,
-    completedAt: completedAt,
-    thumbnailPath: thumbnailPath,
-    timelapsePath: timelapsePath,
-    photos: photos,
-    printTimeSeconds: printTimeSeconds,
-    filamentUsedGrams: filamentUsedGrams,
-    filamentType: filamentType,
-    filamentColor: filamentColor,
-    cost: cost,
-    isFavorite: value,
-    createdAt: createdAt,
-    designer: designer,
-    makerworldUrl: makerworldUrl,
-    totalLayers: totalLayers,
-    layerHeight: layerHeight,
-    nozzleDiameter: nozzleDiameter,
-    slicedForModel: slicedForModel,
-    quantity: quantity,
-    fileSize: fileSize,
-    duplicateCount: duplicateCount,
-    duplicateSequence: duplicateSequence,
-  );
+  /// (the only field the app mutates locally).
+  ///
+  /// Kept as its own name rather than letting callers reach for [copyWith]: the
+  /// favorite flag is the one field the app is allowed to decide by itself, and
+  /// a named method says so where a general-purpose copy would not.
+  Archive withFavorite(bool value) => copyWith(isFavorite: value);
 
   /// Whether this archive is a sliced/printable file rather than a source
   /// project. Mirrors bambuddy's `isSlicedFile`: a `.gcode`/`.gcode.*` name, or

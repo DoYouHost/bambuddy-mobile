@@ -25,6 +25,7 @@ WsMessage _status(
   int? trayNow,
   List<AmsUnit>? ams,
   List<AmsTray>? vtTray,
+  Map<int, String>? switchInlet,
 }) =>
     WsPrinterStatus(
       PrinterStatus(
@@ -41,6 +42,7 @@ WsMessage _status(
         trayNow: trayNow,
         ams: ams,
         vtTray: vtTray,
+        amsSwitchInlet: switchInlet,
       ),
       <String, dynamic>{'id': id},
     );
@@ -232,6 +234,21 @@ void main() {
       expect(frame['light'], isTrue);
       expect(frame['door_open'], isTrue);
       expect(frame['tray_now'], 2);
+    });
+
+    test('the switch inlet binding is recorded only when one is fitted',
+        () async {
+      // Without a Filament Track Switch the field is on every frame of every
+      // session and says nothing; with one it is the only thing that explains
+      // which nozzle a slot was configured against.
+      await recorder.start();
+      probe.frame(_status(1, state: 'RUNNING'));
+      probe.frame(_status(1,
+          state: 'IDLE', switchInlet: const {1: 'B', 0: 'A'}));
+
+      final frames = await wsRecords();
+      expect(frames.first.containsKey('fts_inlet'), isFalse);
+      expect(frames.last['fts_inlet'], '0:A,1:B');
     });
 
     test('AMS: materiał po zamkniętej liście, bez nazwy handlowej', () async {

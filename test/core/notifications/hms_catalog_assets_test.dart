@@ -26,12 +26,14 @@ void main() {
   /// A fault as the server builds it from the 32-bit `print_error` field
   /// (`bambu_mqtt.py::_update_state`): `attr` holds the whole value, `code` its
   /// low half, `full_code` the 8-hex key.
-  HmsError printError(int value, {int severity = 3}) => HmsError(
+  HmsError printError(int value, {int severity = 3, String? description}) =>
+      HmsError(
         code: '0x${(value & 0xFFFF).toRadixString(16)}',
         attr: value,
         module: (value >> 24) & 0xFF,
         severity: severity,
         fullCode: value.toRadixString(16).padLeft(8, '0').toUpperCase(),
+        description: description,
       );
 
   setUpAll(() async {
@@ -171,6 +173,71 @@ void main() {
     });
   });
 
+  group('the sentence the server attaches to a fault', () {
+    // `HMSError.description` (hms_errors.py::describe_fault) is English only, so
+    // it ranks UNDER the bundled table rather than over it.
+    //
+    // At this server version it names nothing the assets cannot name: the assets
+    // are generated FROM that table (tool/fetch_print_error_catalog.py), then
+    // given Bambu's untruncated text and a Polish half. The field earns its
+    // place when the two drift apart — a server that learned a code before the
+    // app shipped an asset for it, which is the ordinary state of an install
+    // whose server updates more often than its phone.
+
+    test('names a fault the bundled table has no word for', () {
+      const text = 'The left hotend is not installed.';
+      final e = printError(0x0300FFFF, description: text);
+      expect(en.describe(printError(0x0300FFFF)), isNull,
+          reason: 'premise: this code is outside the bundled table');
+      expect(en.describe(e), text);
+      expect(hmsIsDisplayable(e, description: en.describe(e)), isTrue);
+      expect(hmsLabel(e, description: en.describe(e)), text);
+    });
+
+    test('the bundled table outranks it, so Polish stays Polish', () async {
+      final pl = HmsCatalog();
+      await pl.load(const Locale('pl'));
+      const english = 'Filament ran out. Please load new filament.';
+      final runout = printError(0x03008004, description: english);
+      expect(pl.describe(runout), contains('filament'));
+      expect(pl.describe(runout), isNot(english));
+    });
+
+    test('a server too old to send it leaves the code as unknown as before', () {
+      // The whole compatibility claim in one line: absent field = today.
+      final legacy = HmsError.fromJson(const {
+        'code': '0xffff',
+        'attr': 0x0300FFFF,
+        'full_code': '0300FFFF',
+      });
+      expect(legacy.description, isNull);
+      expect(en.describe(legacy), isNull);
+      expect(hmsIsDisplayable(legacy, description: en.describe(legacy)), isFalse);
+    });
+
+    test('an empty description is no text, not a fault without text', () {
+      // Server-side default is `None`, but a regenerated catalogue could hold a
+      // blank entry, and blank must not become a card headed by a bare code.
+      final blank = HmsError.fromJson(const {
+        'code': '0xffff',
+        'attr': 0x0300FFFF,
+        'full_code': '0300FFFF',
+        'description': '   ',
+      });
+      expect(blank.description, isNull);
+      expect(hmsIsDisplayable(blank, description: en.describe(blank)), isFalse);
+    });
+
+    test('it does not lift the severity floor on notifications', () {
+      // Displayable and notifiable are different gates: severity 1 is bambuddy's
+      // "informational", and a server sentence does not make it worth waking
+      // anybody for.
+      final quiet = printError(0x0300FFFF, severity: 1, description: 'Idle.');
+      expect(hmsIsDisplayable(quiet, description: en.describe(quiet)), isTrue);
+      expect(hmsIsNotifiable(quiet, description: en.describe(quiet)), isFalse);
+    });
+  });
+
   group('the tester report', () {
     test('an X2D status message never renders as a fatal mainboard fault', () {
       // Reported 2026-07-29: healthy X2D, printer/Bambu Studio/bambuddy all
@@ -185,6 +252,60 @@ void main() {
       expect(hmsLabel(reported, description: description), isNull);
       expect(hmsHumanText(reported, description: description),
           '0500-0600-0002-0070');
+    });
+  });
+
+  group("the sentence the server attaches to a fault", () {
+    test('a code the bundled table cannot name is named by the server', () {
+      // 1.2.5.4+ (#2926) sends its own catalogue's sentence with the fault. It
+      // reaches the app as the fallback behind the bundled table, which is the
+      // difference between a named card and one hmsIsDisplayable hides.
+      final described = HmsError.fromJson(const {
+        'code': '0x10007',
+        'attr': 0x05000500,
+        'severity': 2,
+        'full_code': '05000500FFFF0007',
+        'description': 'The AMS lid is open',
+      });
+
+      expect(en.describe(described), 'The AMS lid is open');
+      expect(hmsIsDisplayable(described, description: en.describe(described)),
+          isTrue);
+      expect(hmsIsNotifiable(described, description: en.describe(described)),
+          isTrue);
+    });
+
+    test('the bundled table wins, because it is the localized one', () async {
+      // The server ships one language; the app ships two. A code both know
+      // must read in the user's language, so the wire sentence is a fallback
+      // and never an override.
+      final pl = HmsCatalog();
+      await pl.load(const Locale('pl'));
+      final runout = HmsError.fromJson(const {
+        'code': '0x8004',
+        'attr': 0x03008004,
+        'full_code': '03008004',
+        'description': 'Filament ran out',
+      });
+
+      expect(pl.describe(runout), contains('filament'));
+      expect(pl.describe(runout), isNot('Filament ran out'));
+    });
+
+    test('an empty description is no text, and hides the fault as before', () {
+      // `description` is `str | None` server-side; a blank has to fold into
+      // null the same way `full_code` does, or an unnameable fault turns into
+      // a card headed by a bare hex code.
+      final blank = HmsError.fromJson(const {
+        'code': '0xffff',
+        'attr': 0x0300FFFF,
+        'full_code': '0300FFFF',
+        'description': '   ',
+      });
+
+      expect(blank.description, isNull);
+      expect(en.describe(blank), isNull);
+      expect(hmsIsDisplayable(blank, description: en.describe(blank)), isFalse);
     });
   });
 

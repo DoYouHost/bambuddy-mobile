@@ -54,6 +54,26 @@ class WsArchiveUpdated extends WsMessage {
   final String? photoAdded;
 }
 
+/// One pipeline run reached a new stage. Carries the whole materialised run, so
+/// the dashboard replaces its row without a request.
+///
+/// **It covers the slice, not the print.** It is emitted at run creation,
+/// `slicing`, slice `failed`, `dispatching` and cancel, and nowhere else — the
+/// scheduler never touches `PipelineRun`, so past `dispatching` the status and
+/// the `copies_*` roll-up only exist as something `_materialise_run` computes
+/// while answering a GET. It is also routed per `run.created_by`, so a session
+/// hears only about runs it started itself.
+///
+/// Hence the dashboard's timer, which is not an optimisation to remove later:
+/// without it a run sticks on `dispatching` for ever on a healthy socket.
+class WsPipelineRunUpdated extends WsMessage {
+  const WsPipelineRunUpdated(this.run);
+
+  /// The run as `PipelineRunResponse` serialises it — parsed by the feature
+  /// that cares, so `core/api` keeps no dependency on the run model.
+  final Map<String, dynamic> run;
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -116,6 +136,13 @@ WsMessage? parseWsMessage(String raw) {
         archiveId,
         photoAdded: photo is String && photo.isNotEmpty ? photo : null,
       );
+    case 'pipeline_run_updated':
+      // The run sits under `run`, not `data` — a third shape, alongside the
+      // printer-scoped frames and `archive_updated`'s `data`.
+      final run = decoded['run'];
+      if (run is! Map<String, dynamic>) return WsUnknown(type);
+      if (_toIntOrNull(run['id']) == null) return WsUnknown(type);
+      return WsPipelineRunUpdated(run);
     case 'pong':
       return const WsPong();
     default:

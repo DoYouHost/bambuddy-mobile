@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
+import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
+import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +82,9 @@ class _CapturingRepository extends SlicerRepository {
 
   Map<String, dynamic>? body;
 
+  /// What the finished job reports back, as the server's `SliceResponse`.
+  Map<String, dynamic> result = const {'library_file_id': 9, 'name': 'out.gcode.3mf'};
+
   @override
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) async {
     body = request;
@@ -86,8 +92,8 @@ class _CapturingRepository extends SlicerRepository {
   }
 
   @override
-  Future<SliceJob> job(int jobId) async =>
-      SliceJob.fromJson({'job_id': jobId, 'status': 'completed'});
+  Future<SliceJob> job(int jobId) async => SliceJob.fromJson(
+      {'job_id': jobId, 'status': 'completed', 'result': result});
 }
 
 void main() {
@@ -110,6 +116,9 @@ void main() {
     UnifiedPresets presets = _presets,
     bool layoutOptions = false,
     Set<String> ownedCodes = const {},
+    List<SlicerPipeline> pipelines = const [],
+    bool pipelinesSupported = false,
+    List<OwnedFilament> owned = const [],
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -118,12 +127,19 @@ void main() {
         embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
         sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
-        ownedFilamentsProvider
-            .overrideWith((ref) async => const <OwnedFilament>[]),
+        ownedFilamentsProvider.overrideWith((ref) async => owned),
         filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
         presetValuesProvider.overrideWith((ref, arg) async => presetValues),
+        // Inert by default: without these the bar probes the pipeline routes
+        // over a real Dio and leaves a hanging timer, the same trap as
+        // [inertFirmwareOverride].
+        pipelinesSupportedProvider.overrideWith((ref) async => pipelinesSupported),
+        pipelinesProvider.overrideWith((ref) async => pipelines),
+        // Reaches `currentUserProvider` and the repository's observed latch,
+        // neither of which these tests stand up.
+        canWritePipelinesProvider.overrideWith((ref) async => true),
       ],
       child: plApp(Builder(
         builder: (context) => Scaffold(
@@ -322,6 +338,32 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('process_overrides'), isFalse,
           reason: 'an override equal to the preset is noise in the process JSON');
+    });
+  });
+
+  group('the colour each slot prints in', () {
+    // Without it the slicer writes its compiled-in green onto every slot, and
+    // the print dialog then reports a colour mismatch against the AMS slot the
+    // print was mapped to (server #2977).
+    const shelf = [
+      (name: 'Bambu PLA Basic', material: 'PLA', color: 'ff0000ff'),
+      (name: 'Bambu PLA Basic', material: 'PLA', color: '0000ffff'),
+    ];
+
+    testWidgets('reaches the body as the picked spool colour', (tester) async {
+      await openSheet(tester, owned: shelf, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', color: '#0000FF'),
+      ]);
+      final body = await slice(tester);
+      expect(body['filament_colours'], ['#0000FF']);
+    });
+
+    testWidgets('is absent when the inventory names no colour', (tester) async {
+      // Nothing to say: the request has to stay identical to one from before
+      // the field existed, so the server's own fallback chain still runs.
+      await openSheet(tester);
+      final body = await slice(tester);
+      expect(body.containsKey('filament_colours'), isFalse);
     });
   });
 
@@ -643,6 +685,221 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('use_embedded_settings'), isFalse,
           reason: 'the default path must stay byte-identical to before');
+    });
+  });
+
+  group('applying a pipeline', () {
+    const bundle = SlicerPipeline(
+      id: 3,
+      name: 'X2D Gridfinity PETG',
+      printerPreset: PresetRef(source: 'local', id: '1'),
+      processPreset: PresetRef(source: 'local', id: '99'),
+      filamentPresets: [PresetRef(source: 'local', id: '31')],
+      bedType: 'Engineering Plate',
+    );
+
+    /// A catalog that can actually resolve [bundle] — the presets the default
+    /// `_presets` lacks.
+    const catalogWithBundle = UnifiedPresets(
+      printers: [SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D')],
+      processes: [
+        SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
+        SlicerPreset(source: 'local', id: '99', name: '0.30 mm Gridfinity'),
+      ],
+      filaments: [
+        SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic'),
+        SlicerPreset(source: 'local', id: '31', name: 'Bambu PETG HF'),
+      ],
+    );
+
+    Future<void> apply(WidgetTester tester) async {
+      await tester.tap(find.text('Zastosuj pipeline…'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('X2D Gridfinity PETG').last);
+      await tester.pumpAndSettle();
+      // The "applied" SnackBar sits over the submit button, and its display
+      // window is a Timer rather than an animation — so `pumpAndSettle` returns
+      // with it still up. Wait it out, or the slice tap lands on the toast.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    }
+
+    /// The form is a lazy `ListView`, and the pipeline card pushed the filament
+    /// rows past the fold — off-screen children are never built, so a finder
+    /// would report them missing whatever the state says. Scrolls them in.
+    Future<void> revealSlots(WidgetTester tester) async {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the row is absent on a server without the routes',
+        (tester) async {
+      // Older servers 404 the whole feature, and an API-key session is refused
+      // it — a control that can only fail is worse than none.
+      await openSheet(tester, pipelines: const [bundle]);
+      expect(find.text('Pipeline'), findsNothing);
+    });
+
+    testWidgets('fills every slot from one pick', (tester) async {
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('0.30 mm Gridfinity'), findsOneWidget);
+      expect(find.text('Bambu PETG HF'), findsOneWidget);
+      expect(find.text('Engineering Plate'), findsOneWidget);
+
+      final body = await slice(tester);
+      expect(body['printer_preset'], {'source': 'local', 'id': '1'});
+      expect(body['process_preset'], {'source': 'local', 'id': '99'});
+      expect(body['filament_preset'], {'source': 'local', 'id': '31'});
+      expect(body['bed_type'], 'Engineering Plate');
+    });
+
+    testWidgets('does not clear the slots it just filled', (tester) async {
+      // Picking a printer normally wipes the process and filaments, because
+      // they were chosen for the old one. A pipeline supplies all four at once,
+      // so routing it through that reset would undo the pick.
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Dotknij, aby wybrać'), findsNothing);
+    });
+
+    testWidgets('a shorter pipeline leaves the slots it does not reach',
+        (tester) async {
+      // `filament_presets` is positional, so entry i only ever lands on slot i
+      // and the tail keeps whatever was auto-picked for it.
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PETG', color: '#00FF00'),
+          FilamentRequirement(slotId: 2, type: 'PLA', color: '#FF0000'),
+        ],
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Bambu PETG HF'), findsOneWidget);
+      expect(find.text('Bambu PLA Basic'), findsOneWidget,
+          reason: 'slot 2 is beyond the pipeline and must keep its own pick');
+
+      final body = await slice(tester);
+      expect(body['filament_presets'], [
+        {'source': 'local', 'id': '31'},
+        {'source': 'local', 'id': '30'},
+      ]);
+    });
+
+    testWidgets('a preset this catalog does not list still reaches the request',
+        (tester) async {
+      // A pipeline outlives the preset list it was saved from, and a cloud tier
+      // that failed to load empties whole slots. Dropping the ref would rewrite
+      // the user's pipeline silently on the next slice.
+      await openSheet(
+        tester,
+        presets: _presets, // knows neither process 99 nor filament 31
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Nie ma go już w katalogu'), findsWidgets);
+
+      final body = await slice(tester);
+      expect(body['process_preset'], {'source': 'local', 'id': '99'});
+      expect(body['filament_preset'], {'source': 'local', 'id': '31'});
+    });
+  });
+
+  group('where the sliced file landed', () {
+    /// The result dialog's text, read through the localization API rather than
+    /// spelled out — the harness runs in Polish.
+    AppLocalizations l10n(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(AlertDialog)));
+
+    testWidgets('a file filed somewhere else says so, and why', (tester) async {
+      // The slice succeeded; it just did not land in the external folder the
+      // source lives in. Silence here is what made #2810 unreproducible from
+      // the UI: the row appears in the right folder, the file never arrives.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_readonly',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(
+        find.text('${l10n(tester).sliceExternalFallback} '
+            '${l10n(tester).sliceExternalReadonly}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('every reason the server can send has a sentence',
+        (tester) async {
+      // The five `_resolve_slice_destination` returns (library.py). A reason
+      // the app knows but has no clause for reads as the generic half alone,
+      // which is indistinguishable from a reason it has never heard of.
+      for (final reason in const [
+        'external_readonly',
+        'external_no_path',
+        'external_unreachable',
+        'external_not_writable',
+        'external_invalid_name',
+      ]) {
+        repo.result = {
+          'library_file_id': 9,
+          'name': 'out.gcode.3mf',
+          'external_write_fallback': reason,
+        };
+        await openSheet(tester);
+        await slice(tester);
+
+        expect(find.text(l10n(tester).sliceExternalFallback), findsNothing,
+            reason: '$reason rendered without a reason clause');
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('a reason this build has no sentence for still says where',
+        (tester) async {
+      // A newer server may name a reason this app does not know. The half that
+      // matters — where the file is — must not depend on recognizing it.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_something_new',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.text(l10n(tester).sliceExternalFallback), findsOneWidget);
+    });
+
+    testWidgets('a normal slice says nothing about folders', (tester) async {
+      // Null on every ordinary slice, and on every server older than 1.2.5.4.
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.textContaining(l10n(tester).sliceExternalFallback),
+          findsNothing);
     });
   });
 }

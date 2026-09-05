@@ -14,14 +14,14 @@ PrinterMaintenanceOverview _$PrinterMaintenanceOverviewFromJson(
   printerModel: json['printer_model'] as String?,
   totalPrintHours: json['total_print_hours'] == null
       ? 0
-      : _toDouble(json['total_print_hours']),
+      : toDouble(json['total_print_hours']),
   maintenanceItems: json['maintenance_items'] == null
       ? const []
       : _maintenanceItemsFromJson(json['maintenance_items']),
-  dueCount: json['due_count'] == null ? 0 : _toInt(json['due_count']),
+  dueCount: json['due_count'] == null ? 0 : toInt(json['due_count']),
   warningCount: json['warning_count'] == null
       ? 0
-      : _toInt(json['warning_count']),
+      : toInt(json['warning_count']),
 );
 
 MaintenanceStatus _$MaintenanceStatusFromJson(Map<String, dynamic> json) =>
@@ -37,19 +37,19 @@ MaintenanceStatus _$MaintenanceStatusFromJson(Map<String, dynamic> json) =>
       enabled: json['enabled'] as bool? ?? true,
       intervalHours: json['interval_hours'] == null
           ? 0
-          : _toDouble(json['interval_hours']),
+          : toDouble(json['interval_hours']),
       intervalType: json['interval_type'] as String? ?? 'hours',
       currentHours: json['current_hours'] == null
           ? 0
-          : _toDouble(json['current_hours']),
+          : toDouble(json['current_hours']),
       hoursSinceMaintenance: json['hours_since_maintenance'] == null
           ? 0
-          : _toDouble(json['hours_since_maintenance']),
+          : toDouble(json['hours_since_maintenance']),
       hoursUntilDue: json['hours_until_due'] == null
           ? 0
-          : _toDouble(json['hours_until_due']),
-      daysSinceMaintenance: _toDoubleOrNull(json['days_since_maintenance']),
-      daysUntilDue: _toDoubleOrNull(json['days_until_due']),
+          : toDouble(json['hours_until_due']),
+      daysSinceMaintenance: toDoubleOrNull(json['days_since_maintenance']),
+      daysUntilDue: toDoubleOrNull(json['days_until_due']),
       isDue: json['is_due'] as bool? ?? false,
       isWarning: json['is_warning'] as bool? ?? false,
       lastPerformedAtRaw: json['last_performed_at'] as String?,
@@ -62,7 +62,7 @@ MaintenanceType _$MaintenanceTypeFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
       defaultIntervalHours: json['default_interval_hours'] == null
           ? 100
-          : _toDouble(json['default_interval_hours']),
+          : toDouble(json['default_interval_hours']),
       intervalType: json['interval_type'] as String? ?? 'hours',
       icon: json['icon'] as String?,
       wikiUrl: json['wiki_url'] as String?,
@@ -77,6 +77,6 @@ MaintenanceHistoryEntry _$MaintenanceHistoryEntryFromJson(
   performedAt: json['performed_at'] as String?,
   hoursAtMaintenance: json['hours_at_maintenance'] == null
       ? 0
-      : _toDouble(json['hours_at_maintenance']),
+      : toDouble(json['hours_at_maintenance']),
   notes: json['notes'] as String?,
 );

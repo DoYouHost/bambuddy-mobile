@@ -46,7 +46,7 @@ class _InfoRow extends StatelessWidget {
             item(
               doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
               (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
-              doorOpen ? t.accentOrange : t.textTertiary,
+              doorOpen ? t.accentOrangeInk : t.textTertiary,
             )
           else
             const SizedBox.shrink(),
@@ -178,19 +178,19 @@ class _PrintPanel extends StatelessWidget {
     final name = status.currentPrint ?? status.gcodeFile;
 
     final remaining = status.remainingTime;
-    final meta = <Widget>[
+    final meta = <PrintMetaItem>[
       if (remaining != null && remaining > 0)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.schedule,
           text: l10n.remaining(formatMinutes(l10n, remaining)),
         ),
       if (remaining != null && remaining > 0)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.flag_outlined,
           text: l10n.eta(_etaTime(DateTimeFormats.of(context), remaining)),
         ),
       if (status.layerNum != null && status.totalLayers != null)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.layers_outlined,
           text: '${status.layerNum}/${status.totalLayers}',
         ),
@@ -280,34 +280,10 @@ class _PrintPanel extends StatelessWidget {
           ),
           if (meta.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(spacing: 14, runSpacing: 6, children: meta),
+            PrintMetaRow(items: meta),
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.
-class _MetaItem extends StatelessWidget {
-  const _MetaItem({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: t.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: t.monoLabel.copyWith(color: t.textSecondary),
-        ),
-      ],
     );
   }
 }

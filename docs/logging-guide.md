@@ -46,7 +46,19 @@ means an interpolated file name would ship intact.
 | `PopupMenuItem` | cannot be wrapped (`Semantics` is not a `PopupMenuEntry`) — the tag goes on its `child:` |
 | hand-built `AppBar` (camera, G-code, QR) | `loggedAppBar(AppBar(…))` from `lib/core/theme/dash_theme.dart`, or the back button is nameless |
 | you also need an a11y label | `Semantics(identifier: …, label: …)` directly — the scanner understands it |
+| the control is one of a set and currently the chosen one | `logTag(id, w, selected: …)` / `.tagged(id, selected: …)` — **not** a `Semantics(selected:)` wrapper of its own |
 | filament material | `logTagMaterial` / `.taggedMaterial` — the one on-screen value allowed into a log, and only from `FilamentMaterial.known` |
+
+**A11y state belongs on the tagged node, not beside it.** A segment or a preset
+chip says which one is current by its fill alone, so it needs
+`SemanticsFlag.isSelected` — and that flag has to sit on the *same* node as the
+identifier. Measured, not assumed: `Semantics(selected: …)` wrapped around a
+tagged control annotates a different node, and the reader is told nothing at all
+while the id moves. Hence the parameter on `logTag`. Nothing about the state
+reaches the log; the probe reads the identifier only. `MergeSemantics` is safe
+next to this — a merged node carries the identifier of the control inside it,
+and the probe stops at a merged subtree by design. Both facts are pinned in
+`interaction_probe_test.dart`.
 
 **A shared widget must not tag itself.** A control used from several places takes
 its `id` as a **required parameter** from the call site; a tag written into its
@@ -113,10 +125,15 @@ its own file:
   through `SharedPreferences`, the header is the UI's re-tagged, so both files
   share one clock and the merge is a no-shift. **No readable UI header ⇒ the
   isolate does not record at all** — there would be nothing to merge into.
-- **the notification action engine** (`handleMaintenanceAction`, registered in
-  three isolates) — one guard, not three paths: `DiagnosticRecorder.isRecording`
-  ⇒ write into the store that already exists; otherwise open a standalone
-  `-act` stream and close it.
+- **an isolate woken for one job** — the notification action engine
+  (`handleMaintenanceAction`, `handleHmsAction`, registered in three isolates)
+  and the watch-relay engine (`wear_relay_engine.dart`, started by
+  `WearRelayListenerService` when the app's process is dead). One guard, not
+  one per path: **call `DiagnosticRecorder.startAction()`** — it writes into
+  the store that already exists where there is one, and otherwise opens a
+  standalone `-act` stream for the caller to close. It cannot throw, which on
+  these paths matters more than the record: the caller is carrying out the
+  user's tap.
 
 Two rules for anything you add on those paths: write the record **before** the
 `await` that tears the isolate down (a closed `LogFileSink` drops lines

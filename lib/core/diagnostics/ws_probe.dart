@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' as ambient;
 import '../api/ws_messages.dart';
 import '../models/printer_status.dart' show AmsTray, AmsUnit, HmsError;
 import 'diagnostic_recorder.dart';
@@ -40,7 +41,7 @@ enum WsDisconnectReason {
 /// Which frame fields go in and why repeats collapse:
 /// `docs/diagnostics-log.md`.
 class WsProbe {
-  WsProbe({DateTime Function()? clock}) : _now = clock ?? DateTime.now {
+  WsProbe({DateTime Function()? clock}) : _now = clock ?? (() => ambient.clock.now()) {
     _live.add(this);
   }
 
@@ -278,6 +279,11 @@ class WsProbe {
           'state': s.state,
           // English from the server ("Heating", "Auto bed leveling").
           'stage': s.stgCurName,
+          // The number behind that name, because that is what the first-layer
+          // and milestone gates read: 0 is "Printing", 1-254 a stage of the
+          // printer's own, -1/255 none. The name alone cannot tell stage 0 from
+          // a frame that reported no stage at all.
+          'stg': s.stgCur,
           'progress': s.progress?.round(),
           'layer': s.layerNum,
           'layers': s.totalLayers,
@@ -293,6 +299,11 @@ class WsProbe {
           'door_open': s.doorOpen == true ? true : null,
           'plate_wait': s.awaitingPlateClear == true ? true : null,
           'extruder': s.activeExtruder,
+          // Only on a machine with a Filament Track Switch fitted, which is the
+          // only case where a slot's nozzle cannot be read off
+          // `ams_extruder_map` — and the only case a report about the wrong
+          // nozzle size needs it.
+          'fts_inlet': _inlets(s.amsSwitchInlet),
           'tray_now': s.trayNow,
           ..._hms(s.hmsErrors),
           ..._ams(s.ams),
@@ -308,6 +319,13 @@ class WsProbe {
   /// `tray_type` is free text on some server versions, so a slot's material
   /// goes through [FilamentMaterial]'s closed list; colour and sub-brand are
   /// not logged at all.
+  /// `{0: "A"}` as `0:A`, or null when no switch is fitted.
+  static String? _inlets(Map<int, String>? inlets) =>
+      (inlets == null || inlets.isEmpty)
+          ? null
+          : (inlets.entries.map((e) => '${e.key}:${e.value}').toList()..sort())
+              .join(',');
+
   static Map<String, Object?> _ams(List<AmsUnit>? units) {
     if (units == null || units.isEmpty) return const {};
     return {
@@ -398,6 +416,7 @@ class WsProbe {
         WsPrintEvent(completed: final completed) =>
           completed ? 'print_complete' : 'print_start',
         WsArchiveUpdated() => 'archive_updated',
+        WsPipelineRunUpdated() => 'pipeline_run_updated',
         WsPong() => 'pong',
         WsUnknown(type: final type) => _knownShape(type),
         null => 'unparsed',

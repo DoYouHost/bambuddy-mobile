@@ -31,6 +31,7 @@ import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
 import 'print_log_providers.dart';
+import '../common/dash_progress.dart';
 
 /// The print log: one row per run, from a table that outlives the archives it
 /// points at.
@@ -77,14 +78,23 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
   /// Clearing wipes every user's rows and drops their contribution from the
   /// statistics, so the count goes in the question rather than in a toast
   /// afterwards.
+  ///
+  /// Except under a filter, where there is no honest count to give: `total` is
+  /// what the filter matches server-side, while `DELETE /print-log/` takes no
+  /// filter and empties the table. Quoting it turned "12 rows shown" into
+  /// "All 12 runs go" over a log of thousands.
   Future<void> _clearLog() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final filters = ref.read(printLogFiltersProvider);
+    final narrowed = filters.activeCount > 0 || filters.query.isNotEmpty;
     final total = ref.read(printLogProvider).valueOrNull?.total ?? 0;
     final confirmed = await confirmDialog(
       context,
       title: l10n.printLogClearTitle,
-      message: l10n.printLogClearBody(total),
+      message: narrowed
+          ? l10n.printLogClearBodyFiltered
+          : l10n.printLogClearBody(total),
       confirmLabel: l10n.printLogClear,
       destructive: true,
       icon: Icons.delete_sweep_outlined,
@@ -113,7 +123,7 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(printLogProvider);
     final filters = ref.watch(printLogFiltersProvider);
-    final sortable = ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+    final sortable = ref.watch(printLogCostEnergyProvider).orFalse;
 
     return DashBackground(
       child: Scaffold(
@@ -335,11 +345,7 @@ class _ListFooter extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Center(
         child: state.loadingMore
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+            ? const DashSpinner(size: 22)
             : logTag(
                 'print_log.load_more',
                 TextButton(
@@ -367,7 +373,7 @@ class _PrintLogCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final showMoney =
-        ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+        ref.watch(printLogCostEnergyProvider).orFalse;
 
     final currency = ref.watch(currencySymbolProvider);
 
@@ -434,12 +440,18 @@ class _PrintLogCard extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            _Pill(
+                            DashPill(
+                              dense: true,
                               label: printRunStatusLabel(l10n, entry.status),
-                              color: entry.countsAsFailure
+                              accent: entry.countsAsFailure
                                   ? t.danger
                                   : (entry.status == 'completed'
                                       ? t.accentGreen
+                                      : t.textTertiary),
+                              accentInk: entry.countsAsFailure
+                                  ? t.danger
+                                  : (entry.status == 'completed'
+                                      ? t.accentGreenInk
                                       : t.textTertiary),
                             ),
                           ],
@@ -472,15 +484,18 @@ class _PrintLogCard extends ConsumerWidget {
                             runSpacing: 4,
                             children: [
                               if (entry.failureReason != null)
-                                _Pill(
+                                DashPill(
+                                  dense: true,
                                   label: failureReasonLabel(
                                       l10n, entry.failureReason),
-                                  color: t.accentOrange,
+                                  accent: t.accentOrange,
+                                  accentInk: t.accentOrangeInk,
                                 ),
                               if (entry.isOrphan)
-                                _Pill(
+                                DashPill(
+                                  dense: true,
                                   label: l10n.printLogOrphan,
-                                  color: t.textTertiary,
+                                  accent: t.textTertiary,
                                   icon: Icons.link_off,
                                 ),
                             ],
@@ -498,79 +513,6 @@ class _PrintLogCard extends ConsumerWidget {
     );
   }
 }
-
-/// Small tinted label — status, failure cause, "archive deleted".
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color, this.icon});
-
-  final String label;
-  final Color color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-          ],
-          Text(label, style: t.micro.copyWith(color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-/// One "anything, or pick one" filter combo.
-///
-/// [anyValue] is what the "any" row carries, because a `DropdownMenu` has no
-/// null option and every row needs a value of its own — an id no printer has,
-/// an empty username. It never reaches [onPick]: choosing it, or choosing
-/// nothing, is reported as null, so the caller only ever handles "no filter"
-/// once. Duplicating that mapping per combo is how two pickers drift apart.
-///
-/// [options] pairs each value with the label it shows. Labels are names people
-/// gave things, so they stay out of the diagnostic id — every row of one
-/// picker records under the same `<id>.option`.
-Widget _anyOrOne<T>(
-  BuildContext context, {
-  required String id,
-  required String anyLabel,
-  required T anyValue,
-  required T? selected,
-  required List<(T, String)> options,
-  required ValueChanged<T?> onPick,
-}) =>
-    dashCombo<T>(
-      context,
-      id: id,
-      initialSelection: selected ?? anyValue,
-      textStyle: DashTokens.of(context).body,
-      onSelected: (v) => onPick(v == null || v == anyValue ? null : v),
-      entries: [
-        DropdownMenuEntry(
-          value: anyValue,
-          label: anyLabel,
-          labelWidget: logTag('$id.any', Text(anyLabel)),
-        ),
-        for (final (value, label) in options)
-          DropdownMenuEntry(
-            value: value,
-            label: label,
-            labelWidget: logTag('$id.option', Text(label)),
-          ),
-      ],
-    );
 
 /// Every filter here is applied by the server: the list is paged, so filtering
 /// what is already loaded would answer about this page rather than the log.
@@ -592,158 +534,154 @@ class _PrintLogFilterSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.print_log_filters',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (context, controller) => SheetSurface(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Text(l10n.printLogFilters,
-                        style: theme.textTheme.titleLarge),
-                    const Spacer(),
-                    Visibility(
-                      visible: filters.activeCount > 0,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: logTag(
-                        'print_log.filters.clear',
-                        TextButton(
-                          onPressed: notifier.clear,
-                          child: Text(l10n.filtersClear),
-                        ),
+      DraggableSheetSurface(
+        initialSize: 0.6,
+        maxSize: 0.9,
+        minSize: 0.35,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            SizedBox(
+              height: 48,
+              child: Row(
+                children: [
+                  Text(l10n.printLogFilters,
+                      style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  Visibility(
+                    visible: filters.activeCount > 0,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: logTag(
+                      'print_log.filters.clear',
+                      TextButton(
+                        onPressed: notifier.clear,
+                        child: Text(l10n.filtersClear),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              FilterGroupLabel(label: l10n.printLogFilterStatus),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  // One id per value: the status keys are the server's wire
-                  // vocabulary, so the log can say which was picked without
-                  // carrying anything the user wrote.
-                  ChoiceChip(
-                    label: Text(l10n.printLogAnyStatus),
-                    selected: filters.status == null,
-                    onSelected: (_) =>
-                        notifier.set(filters.copyWith(clearStatus: true)),
-                  ).tagged('print_log.filters.status.any'),
-                  for (final s in printLogStatuses)
-                    ChoiceChip(
-                      label: Text(printRunStatusLabel(l10n, s)),
-                      selected: filters.status == s,
-                      onSelected: (_) =>
-                          notifier.set(filters.copyWith(status: s)),
-                    ).tagged('print_log.filters.status.$s'),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 8),
 
-              if (printers.isNotEmpty) ...[
-                FilterGroupLabel(label: l10n.printLogFilterPrinter),
-                _anyOrOne<int>(
-                  context,
-                  id: 'print_log.filters.printer',
-                  anyLabel: l10n.printLogAnyPrinter,
-                  // No printer carries it, so it cannot collide with a real id.
-                  anyValue: -1,
-                  selected: filters.printerId,
-                  options: [for (final p in printers) (p.id, p.name)],
-                  onPick: (v) => notifier.set(
-                    v == null
-                        ? filters.copyWith(clearPrinter: true)
-                        : filters.copyWith(printerId: v),
-                  ),
-                ),
-                const SizedBox(height: 16),
+            FilterGroupLabel(label: l10n.printLogFilterStatus),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // One id per value: the status keys are the server's wire
+                // vocabulary, so the log can say which was picked without
+                // carrying anything the user wrote.
+                ChoiceChip(
+                  label: Text(l10n.printLogAnyStatus),
+                  selected: filters.status == null,
+                  onSelected: (_) =>
+                      notifier.set(filters.copyWith(clearStatus: true)),
+                ).tagged('print_log.filters.status.any'),
+                for (final s in printLogStatuses)
+                  ChoiceChip(
+                    label: Text(printRunStatusLabel(l10n, s)),
+                    selected: filters.status == s,
+                    onSelected: (_) =>
+                        notifier.set(filters.copyWith(status: s)),
+                  ).tagged('print_log.filters.status.$s'),
               ],
+            ),
+            const SizedBox(height: 16),
 
-              if (users.isNotEmpty) ...[
-                FilterGroupLabel(label: l10n.printLogFilterUser),
-                _anyOrOne<String>(
-                  context,
-                  id: 'print_log.filters.user',
-                  anyLabel: l10n.printLogAnyUser,
-                  anyValue: '',
-                  selected: filters.username,
-                  options: [for (final u in users) (u.username, u.username)],
-                  onPick: (v) => notifier.set(
-                    v == null
-                        ? filters.copyWith(clearUsername: true)
-                        : filters.copyWith(username: v),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              FilterGroupLabel(label: l10n.printLogFilterDates),
-              logTag(
-                'print_log.filters.dates',
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.date_range, size: 18),
-                  label: Text(
-                    filters.from == null && filters.to == null
-                        ? l10n.printLogFilterDates
-                        : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
-                            ' – '
-                            '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
-                  ),
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(now.year - 5),
-                      lastDate: now,
-                      initialDateRange: filters.from != null &&
-                              filters.to != null
-                          ? DateTimeRange(start: filters.from!, end: filters.to!)
-                          : null,
-                    );
-                    if (picked == null) return;
-                    notifier.set(filters.copyWith(
-                      from: picked.start,
-                      // The picker hands back midnight; the range is meant to
-                      // include everything printed on that day, and the server
-                      // compares against an instant.
-                      to: DateTime(
-                        picked.end.year,
-                        picked.end.month,
-                        picked.end.day,
-                        23,
-                        59,
-                        59,
-                      ),
-                    ));
-                  },
+            if (printers.isNotEmpty) ...[
+              FilterGroupLabel(label: l10n.printLogFilterPrinter),
+              dashAnyOrOne<int>(
+                context,
+                id: 'print_log.filters.printer',
+                anyLabel: l10n.printLogAnyPrinter,
+                textStyle: DashTokens.of(context).body,
+                selected: filters.printerId,
+                options: [for (final p in printers) (p.id, p.name)],
+                onPick: (v) => notifier.set(
+                  v == null
+                      ? filters.copyWith(clearPrinter: true)
+                      : filters.copyWith(printerId: v),
                 ),
               ),
-              if (filters.from != null || filters.to != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: logTag(
-                    'print_log.filters.dates_clear',
-                    TextButton(
-                      onPressed: () =>
-                          notifier.set(filters.copyWith(clearDates: true)),
-                      child: Text(l10n.clear),
+              const SizedBox(height: 16),
+            ],
+
+            if (users.isNotEmpty) ...[
+              FilterGroupLabel(label: l10n.printLogFilterUser),
+              dashAnyOrOne<String>(
+                context,
+                id: 'print_log.filters.user',
+                anyLabel: l10n.printLogAnyUser,
+                textStyle: DashTokens.of(context).body,
+                selected: filters.username,
+                options: [for (final u in users) (u.username, u.username)],
+                onPick: (v) => notifier.set(
+                  v == null
+                      ? filters.copyWith(clearUsername: true)
+                      : filters.copyWith(username: v),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            FilterGroupLabel(label: l10n.printLogFilterDates),
+            logTag(
+              'print_log.filters.dates',
+              OutlinedButton.icon(
+                icon: const Icon(Icons.date_range, size: 18),
+                label: Text(
+                  filters.from == null && filters.to == null
+                      ? l10n.printLogFilterDates
+                      : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
+                          ' – '
+                          '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
+                ),
+                onPressed: () async {
+                  final now = DateTime.now();
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(now.year - 5),
+                    lastDate: now,
+                    initialDateRange: filters.from != null &&
+                            filters.to != null
+                        ? DateTimeRange(start: filters.from!, end: filters.to!)
+                        : null,
+                  );
+                  if (picked == null) return;
+                  notifier.set(filters.copyWith(
+                    from: picked.start,
+                    // The picker hands back midnight; the range is meant to
+                    // include everything printed on that day, and the server
+                    // compares against an instant.
+                    to: DateTime(
+                      picked.end.year,
+                      picked.end.month,
+                      picked.end.day,
+                      23,
+                      59,
+                      59,
                     ),
+                  ));
+                },
+              ),
+            ),
+            if (filters.from != null || filters.to != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: logTag(
+                  'print_log.filters.dates_clear',
+                  TextButton(
+                    onPressed: () =>
+                        notifier.set(filters.copyWith(clearDates: true)),
+                    child: Text(l10n.clear),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

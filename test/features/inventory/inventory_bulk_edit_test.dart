@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
@@ -55,24 +54,8 @@ class _FixedBackend extends InventoryBackendNotifier {
   InventoryBackend build() => _backend;
 }
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 void main() {
   late AppLocalizations l10n;
-
-  /// `pumpAndSettle` never returns on this screen: the search field's cursor
-  /// blinks forever, so there is no frame where nothing is animating. Pumping a
-  /// fixed span is long enough for a sheet or a dialog to finish opening.
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
-  }
 
   setUpAll(() async {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
@@ -89,7 +72,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         inventoryProvider.overrideWith(() => fake),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
         inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
       ],
       child: plApp(const InventoryScreen()),
@@ -153,6 +136,30 @@ void main() {
     expect(fake.patch!.toNativeJson(), {'note': 'restocked'});
   });
 
+  // The decimal key of a Polish keyboard. The field used to refuse it outright:
+  // the validator called it "not a number" and the price never reached the
+  // patch — a rejection the user could do nothing about, since the comma is
+  // what the phone's own numeric layout puts there.
+  testWidgets('a comma is the decimal point the keyboard offers',
+      (tester) async {
+    final fake = await openSheet(tester);
+
+    await tester.enterText(
+      find.ancestor(
+        of: find.text(l10n.inventoryFieldCostPerKg),
+        matching: find.byType(TextFormField),
+      ),
+      '89,50',
+    );
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+    await tester.tap(find.text(l10n.inventoryApply));
+    await settle(tester);
+
+    expect(fake.patch!.toNativeJson(), {'cost_per_kg': 89.5});
+  });
+
   testWidgets('a number that is not a number blocks the whole edit',
       (tester) async {
     // Without the validator the field would be dropped from the patch and the
@@ -192,6 +199,28 @@ void main() {
     await settle(tester);
 
     expect(find.text(l10n.inventoryFieldRange(1, 99)), findsOneWidget);
+    expect(fake.patch, isNull);
+  });
+
+  testWidgets('a negative weight is refused, range or no range',
+      (tester) async {
+    // `core_weight` carries no `ge` constraint server-side, so a negative one is
+    // stored as given and every remaining-weight sum built on it comes out
+    // wrong — across the whole selection, silently.
+    final fake = await openSheet(tester);
+
+    await tester.enterText(
+      find.ancestor(
+        of: find.text(l10n.inventoryFieldEmptySpoolWeight),
+        matching: find.byType(TextFormField),
+      ),
+      '-250',
+    );
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+
+    expect(find.text(l10n.inventoryFieldNegative), findsOneWidget);
     expect(fake.patch, isNull);
   });
 

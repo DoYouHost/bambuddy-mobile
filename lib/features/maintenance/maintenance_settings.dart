@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -14,6 +15,7 @@ import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/system_insets.dart';
+import '../common/section_heading.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -159,10 +161,7 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: t.titleMd,
-        ),
+        SectionHeading(title, style: t.titleMd),
         const SizedBox(height: 3),
         Text(
           subtitle,
@@ -414,7 +413,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
     }
     final draft = MaintenanceTypeDraft(
       name: _name.text.trim(),
-      defaultIntervalHours: double.tryParse(_interval.text.trim()),
+      defaultIntervalHours: parseUserDecimal(_interval.text),
       intervalType: _intervalType,
       icon: _icon,
       wikiUrl: _wiki.text.trim().isEmpty ? null : _wiki.text.trim(),
@@ -519,7 +518,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                       isDense: true,
                     ),
                     validator: (v) {
-                      final n = double.tryParse((v ?? '').trim());
+                      final n = parseUserDecimal(v);
                       if (n == null || n < 1) {
                         return l10n.maintenanceIntervalInvalid;
                       }
@@ -713,7 +712,7 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
           'interval_edit.save',
           FilledButton(
             onPressed: () {
-              final v = double.tryParse(_controller.text.trim());
+              final v = parseUserDecimal(_controller.text);
               if (v == null || v < 1) return;
               Navigator.pop(context, _IntervalOutcome(hours: v));
             },

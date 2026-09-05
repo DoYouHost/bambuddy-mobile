@@ -246,7 +246,7 @@ class _LoginBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.cloud_off, color: t.accentOrange),
+          Icon(Icons.cloud_off, color: t.accentOrangeInk),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

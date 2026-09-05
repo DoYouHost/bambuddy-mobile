@@ -338,29 +338,23 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         AmsPresetSource.local => null,
       };
 
-  /// Same shape as the spool form's colour field — swatch, mono hex, eyedropper
-  /// — so the two read as one control in two places.
-  Widget _colourField(AppLocalizations l10n, DashTokens t) => InkWell(
-        borderRadius: BorderRadius.circular(14),
+  /// The same control as the spool form's colour field, from the same builder —
+  /// swatch, mono hex, eyedropper.
+  ///
+  /// A slot always has a colour, white standing in for one the printer has not
+  /// reported, so there is no unset state to show a placeholder for.
+  Widget _colourField(AppLocalizations l10n, DashTokens t) => dashPickerField(
+        context,
+        id: 'ams_slot_config.colour',
+        label: l10n.amsSlotConfigColour,
+        placeholder: '',
+        value: (_colour ?? 'FFFFFF').toUpperCase(),
+        valueStyle: t.monoValue,
+        leading: SpoolSwatch(rgba: _colour, size: 24, radius: 6),
+        trailingIcon: Icons.colorize,
         onTap: () => _pickColour(l10n),
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.amsSlotConfigColour,
-            suffixIcon: Icon(Icons.colorize, color: t.textTertiary),
-          ),
-          child: Row(
-            children: [
-              SpoolSwatch(rgba: _colour, size: 24, radius: 6),
-              const SizedBox(width: 8),
-              Text(
-                (_colour ?? 'FFFFFF').toUpperCase(),
-                style: t.monoValue,
-              ),
-            ],
-          ),
-        ),
-      ).tagged('ams_slot_config.colour');
+        padding: EdgeInsets.zero,
+      );
 
   /// The calibration profiles on offer for whatever preset is picked, and the
   /// selection kept in step with it.

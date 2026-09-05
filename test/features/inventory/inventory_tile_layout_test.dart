@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/models/inventory.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,11 +27,6 @@ class _Shelf extends InventoryNotifier {
         spools: [_spool],
         assignmentBySpool: {_spool.id: _assignment},
       );
-}
-
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
 }
 
 void main() {
@@ -76,18 +69,14 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         inventoryProvider.overrideWith(() => _Shelf(spool, assignment)),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
       ],
       child: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         child: plApp(const InventoryScreen()),
       ),
     ));
-    // Not pumpAndSettle: the search field's cursor blinks forever, so no frame
-    // ever has nothing animating.
-    for (var i = 0; i < 3; i++) {
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    await settle(tester);
   }
 
   /// The slot label as [assignmentSlotLabel] builds it for AMS unit 0, tray 0.
