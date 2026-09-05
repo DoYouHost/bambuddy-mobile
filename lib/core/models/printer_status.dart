@@ -610,6 +610,29 @@ class PrinterStatus {
     return spools.length == 1 ? 0 : extruderForExternalSide(externalSideOf(trayId));
   }
 
+  /// The tray a slot triple names, or null when this printer reports no such
+  /// slot. Inside an AMS the tray id is *local* to the unit, while `vt_tray`
+  /// carries the holder's *global* id — which is why only the external side
+  /// goes through [globalTrayId].
+  AmsTray? trayAt({required int amsId, required int trayId}) {
+    if (isExternalHolder(amsId)) {
+      final global = globalTrayId(amsId: amsId, trayId: trayId);
+      for (final tray in externalSpools) {
+        if (tray.id == global) return tray;
+      }
+      return null;
+    }
+    final units = ams ?? const <AmsUnit>[];
+    for (var i = 0; i < units.length; i++) {
+      if ((units[i].id ?? i) != amsId) continue;
+      for (final tray in units[i].trays ?? const <AmsTray>[]) {
+        if (tray.id == trayId) return tray;
+      }
+      return null;
+    }
+    return null;
+  }
+
   /// Currently loaded material on printer (on active extruder).
   ///
   /// `tray_now` is the firmware's global tray number, so it is read through

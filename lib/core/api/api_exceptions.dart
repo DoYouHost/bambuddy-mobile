@@ -40,6 +40,12 @@ enum AppErrorCode {
 
   apiKeyRejected,
 
+  /// The slot holds no readable RFID tag, so Spoolman — which binds a spool to
+  /// the tag rather than to the (printer, AMS, tray) triple the native backend
+  /// writes — has nothing to bind to. Raised before the request, because the
+  /// server spends a bare 400 on it and that reaches the user as a number.
+  slotTagUnreadable,
+
   /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
   /// the password, so a rate-limited user gets it even when they finally type
   /// the right one; its own code because "wait 15 minutes" and "your password

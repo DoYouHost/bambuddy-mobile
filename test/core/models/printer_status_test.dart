@@ -808,6 +808,105 @@ void main() {
     });
   });
 
+  group('trayAt', () {
+    test('reads a tray by its id local to the unit', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'ams': [
+          {
+            'id': 0,
+            'tray': [
+              {'id': 0, 'tray_type': 'PLA'},
+              {'id': 3, 'tray_type': 'PETG'},
+            ],
+          },
+          {
+            'id': 1,
+            'tray': [
+              {'id': 0, 'tray_type': 'TPU'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.trayAt(amsId: 0, trayId: 3)?.trayType, 'PETG');
+      expect(status.trayAt(amsId: 1, trayId: 0)?.trayType, 'TPU');
+    });
+
+    // `vt_tray` reports the holder's global id, so the local pair (255, side)
+    // has to be converted before it can match anything.
+    test('converts the holder pair to the global id vt_tray carries', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+          {'id': 255, 'tray_type': 'ABS'},
+        ],
+      });
+
+      expect(status.trayAt(amsId: 255, trayId: 0)?.trayType, 'PLA');
+      expect(status.trayAt(amsId: 255, trayId: 1)?.trayType, 'ABS');
+    });
+
+    // An AMS-HT is its own unit id and holds one tray, so the unit lookup has
+    // to match on the id rather than on a position in the list.
+    test('finds the single tray of an AMS-HT by its own unit id', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'ams': [
+          {
+            'id': 128,
+            'tray': [
+              {'id': 0, 'tray_type': 'PA-CF'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.trayAt(amsId: 128, trayId: 0)?.trayType, 'PA-CF');
+    });
+
+    test('a unit that reports no id falls back to its position', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'ams': [
+          {
+            'tray': [
+              {'id': 1, 'tray_type': 'PLA'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.trayAt(amsId: 0, trayId: 1)?.trayType, 'PLA');
+    });
+
+    test('an absent unit, slot or holder side reads as null', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'ams': [
+          {
+            'id': 0,
+            'tray': [
+              {'id': 0, 'tray_type': 'PLA'},
+            ],
+          },
+        ],
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'ABS'},
+        ],
+      });
+
+      expect(status.trayAt(amsId: 0, trayId: 2), isNull);
+      expect(status.trayAt(amsId: 4, trayId: 0), isNull);
+      expect(status.trayAt(amsId: 255, trayId: 1), isNull);
+      expect(
+        PrinterStatus(id: 1).trayAt(amsId: 0, trayId: 0),
+        isNull,
+      );
+    });
+  });
+
   group('ams_switch_inlet', () {
     PrinterStatus withInlets(Object? raw) =>
         PrinterStatus.fromJson({'id': 1, 'ams_switch_inlet': raw});

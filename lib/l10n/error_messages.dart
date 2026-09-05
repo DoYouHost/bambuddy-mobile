@@ -23,6 +23,7 @@ extension AppApiExceptionL10n on AppApiException {
         AppErrorCode.twoFactorEmailUnavailable =>
           l10n.errTwoFactorEmailUnavailable,
         AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
+        AppErrorCode.slotTagUnreadable => l10n.errSlotTagUnreadable,
         AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
       };
 

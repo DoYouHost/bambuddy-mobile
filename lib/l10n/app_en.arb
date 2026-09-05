@@ -710,6 +710,7 @@
   "errMissingTwoFactorCode": "Enter the code",
   "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
   "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
+  "errSlotTagUnreadable": "This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.",
 
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "@notifOngoingBody": { "placeholders": { "percent": { "type": "int" }, "eta": { "type": "String" } } },

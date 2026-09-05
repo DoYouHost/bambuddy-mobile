@@ -930,6 +930,23 @@ abstract final class Endpoints {
   static const spoolmanSpoolFromSlot =
       '$apiPrefix/spoolman/spools/from-slot';
 
+  /// Spoolman's answer to the native `POST /inventory/assignments` (`POST`,
+  /// body `{tray_uuid|tag_uid, printer_id, ams_id, tray_id}`). The spool binds
+  /// to the tag, not to the slot: without one the server answers 400, so a slot
+  /// with no readable RFID cannot be assigned here at all. The triple is
+  /// optional context it uses to write the slot ledger [spoolmanAssignments]
+  /// reads back (`spoolman.py::link_spool`). Gated on `filaments:update` like
+  /// [spoolmanSpoolFromSlot] — denied to every API key.
+  static String spoolmanSpoolLink(int spoolId) =>
+      '$apiPrefix/spoolman/spools/$spoolId/link';
+
+  /// Clear a spool's tag link and drop its slot assignment (`POST`, no body).
+  /// Keyed on the spool, not the slot — the server deletes every assignment
+  /// row for it, since one spool can only sit in one slot
+  /// (`spoolman.py::unlink_spool`).
+  static String spoolmanSpoolUnlink(int spoolId) =>
+      '$apiPrefix/spoolman/spools/$spoolId/unlink';
+
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
   static const spoolmanLabels = '$apiPrefix/spoolman/labels';

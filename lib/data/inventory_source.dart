@@ -8,6 +8,7 @@ import '../core/models/inventory.dart';
 import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
+import '../core/models/printer_status.dart';
 import '../core/models/spool_label.dart';
 import '../core/models/spool_preset_override.dart';
 
@@ -557,16 +558,59 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     return parseJsonList(body, SpoolAssignment.fromSpoolman);
   }
 
-  // Spoolman manages slot assignments server-side — backend doesn't expose writes here.
-  // User's default backend is native; if someone switches to Spoolman, UI gets a
-  // clear error message instead of silent failure.
+  /// Spoolman binds a spool to the tag the slot reads, so the tag has to be
+  /// looked up live first. The triple still travels with it: the server writes
+  /// the same slot ledger [fetchAssignments] reads back, which is what keeps
+  /// this path and the native one showing the same thing.
   @override
-  Future<void> assignSpool(SpoolAssignmentDraft draft) async =>
-      throw UnsupportedError('Spoolman backend does not support slot assignment');
+  Future<void> assignSpool(SpoolAssignmentDraft draft) async {
+    final tag = await _slotTag(draft.printerId, draft.amsId, draft.trayId);
+    if (tag == null) throw const ApiException(AppErrorCode.slotTagUnreadable);
+    await guard(() => _dio.post<dynamic>(
+          Endpoints.spoolmanSpoolLink(draft.spoolId),
+          data: {
+            ...tag,
+            'printer_id': draft.printerId,
+            'ams_id': draft.amsId,
+            'tray_id': draft.trayId,
+          },
+        ));
+  }
 
+  /// Unlink is keyed on the spool, so the slot resolves to one first. An empty
+  /// slot is not an error, the same way it is not on the native path.
   @override
-  Future<void> unassignSpool(int printerId, int amsId, int trayId) async =>
-      throw UnsupportedError('Spoolman backend does not support slot assignment');
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) async {
+    final held = (await fetchAssignments()).where((a) =>
+        a.printerId == printerId && a.amsId == amsId && a.trayId == trayId);
+    if (held.isEmpty) return;
+    await guard(() => _dio.post<dynamic>(
+          Endpoints.spoolmanSpoolUnlink(held.first.spoolId),
+        ));
+  }
+
+  /// The slot's RFID identity as the `link` body wants it, or null when it
+  /// reports none. `tray_uuid` wins for the reason the server prefers it too:
+  /// only the UUID survives a re-spool. Both arrive null for an unwritten or
+  /// all-zero tag, so a value here is already a real one.
+  Future<Map<String, String>?> _slotTag(
+    int printerId,
+    int amsId,
+    int trayId,
+  ) async {
+    final status = await guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.printerStatus(printerId),
+      );
+      return PrinterStatus.fromJson(res.data ?? const {});
+    });
+    final tray = status.trayAt(amsId: amsId, trayId: trayId);
+    final uuid = tray?.trayUuid?.trim();
+    if (uuid != null && uuid.isNotEmpty) return {'tray_uuid': uuid};
+    final uid = tray?.tagUid?.trim();
+    if (uid != null && uid.isNotEmpty) return {'tag_uid': uid};
+    return null;
+  }
 
   /// The one slot write Spoolman does expose — and it answers with
   /// `{success, spool_id}` rather than the spool itself

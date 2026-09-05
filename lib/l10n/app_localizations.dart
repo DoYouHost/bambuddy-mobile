@@ -3224,6 +3224,12 @@ abstract class AppLocalizations {
   /// **'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.'**
   String get errTooManyAttempts;
 
+  /// No description provided for @errSlotTagUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.'**
+  String get errSlotTagUnreadable;
+
   /// No description provided for @notifOngoingBody.
   ///
   /// In en, this message translates to:
