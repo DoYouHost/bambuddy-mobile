@@ -130,15 +130,13 @@ class PrintLogRepository {
       'failure_reason': ?(clearFailureReason ? '' : failureReason),
       'status': ?status,
     };
-    try {
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.printLogEntry(entryId),
         data: data,
       );
       return PrintLogEntry.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /print-log/{id} — drop one run. The archive it points at is

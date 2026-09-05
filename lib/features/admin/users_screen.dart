@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/current_user.dart';
@@ -370,14 +371,14 @@ class _SheetActions extends ConsumerWidget {
     final choice = await confirmUserDelete(context, user);
     if (choice == null) return;
 
-    final result = await runUserWrite(
+    final result = await runAction(
       () => ref
           .read(usersRepositoryProvider)
           .delete(user.id, deleteItems: choice.deleteItems),
-      'user_detail.delete',
+      logId: 'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.snack(result.ok ? l10n.usersDeleted : userWriteMessage(l10n, result));
+    messenger.snack(result.isOk ? l10n.usersDeleted : userWriteMessage(l10n, result));
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
@@ -146,14 +147,14 @@ class GroupDetailScreen extends ConsumerWidget {
   ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final result = await runUserWrite(action, logId);
+    final result = await runAction(action, logId: logId);
     await ref.read(groupDetailProvider(groupId).notifier).refresh();
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     // Membership is where permissions come from — if it was your own, what the
     // app offers you changes with it.
     await ref.read(currentUserProvider.notifier).refresh();
-    if (!result.ok) {
+    if (!result.isOk) {
       messenger.snack(userWriteMessage(l10n, result));
     }
   }
@@ -211,15 +212,15 @@ class _GroupMenu extends ConsumerWidget {
     );
     if (!confirmed) return;
 
-    final result = await runUserWrite(
+    final result = await runAction(
       () => ref.read(groupsRepositoryProvider).delete(group.id),
-      'group_detail.delete',
+      logId: 'group_detail.delete',
     );
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.snack(result.ok ? l10n.groupsDeleted : userWriteMessage(l10n, result));
-    if (result.ok) navigator.pop();
+    messenger.snack(result.isOk ? l10n.groupsDeleted : userWriteMessage(l10n, result));
+    if (result.isOk) navigator.pop();
   }
 }
 

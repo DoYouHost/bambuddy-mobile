@@ -407,6 +407,13 @@ abstract final class Endpoints {
   static String queueItemCancel(int itemId) =>
       '$apiPrefix/queue/$itemId/cancel';
 
+  /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
+  /// and `DELETE` refuses anything currently printing, so without this a row
+  /// the server holds as printing has no way out of the queue at all
+  /// (issue #35 — a print that failed on the machine while the row stayed
+  /// `printing`). Present and unchanged since server v0.1.2.
+  static String queueItemStop(int itemId) => '$apiPrefix/queue/$itemId/stop';
+
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
   static const archivesSearch = '$apiPrefix/archives/search';

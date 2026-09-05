@@ -13,7 +13,6 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
@@ -30,6 +29,7 @@ import '../files/library_thumbnail.dart';
 import 'queue_edit_screen.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
+import 'queue_removal.dart';
 
 /// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
 /// start/cancel actions. Shows only active items.
@@ -263,7 +263,7 @@ class _QueueList extends ConsumerWidget {
               final result = await ref
                   .read(queueProvider.notifier)
                   .reorder(oldIndex + offset, newIndex + offset);
-              _snackForResult(messenger, l10n, result);
+              _snackFailure(messenger, l10n, result);
             },
             itemBuilder: (context, i) => _QueueCard(
               key: ValueKey(reorderable[i].id),
@@ -400,7 +400,9 @@ class _QueueCard extends ConsumerWidget {
       onDismissed: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref.read(queueProvider.notifier).delete(item.id);
-        _snackForResult(messenger, l10n, result);
+        // The swipe hits `DELETE`, which refuses a row that started printing
+        // between the list being drawn and the finger arriving.
+        _snackFailure(messenger, l10n, result);
       },
       child: card,
     ).tagged('queue.swipe_delete');
@@ -506,6 +508,18 @@ class _QueueActions extends ConsumerWidget {
     // Printing item doesn't make sense to "start"; any active item can cancel.
     final canStart = item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
+    // Which route takes this item out of the queue, and how to word it. The
+    // printer's own state only separates "stop the print" from "remove the
+    // leftover row": a printer that failed is not printing anything to abort,
+    // which is exactly what the item that raised #35 looked like.
+    final printerId = item.printerId;
+    final removal = queueRemovalFor(
+      item.statusKind,
+      printerBusy: printerId != null &&
+          ref.watch(printerStatusesProvider
+                  .select((m) => m[printerId]?.isPrinting)) ==
+              true,
+    );
     final canPreview = item.archiveId != null || item.libraryFileId != null;
     // Filament mapping needs a printer (for its AMS) and a source file.
     final canMap = canPreview && item.printerId != null;
@@ -530,7 +544,6 @@ class _QueueActions extends ConsumerWidget {
           }
           final messenger = ScaffoldMessenger.of(context);
           final notifier = ref.read(queueProvider.notifier);
-          final printerId = item.printerId;
 
           // Standalone mapping (save without starting) — needs a known printer.
           if (value == 'ams' && printerId != null) {
@@ -538,12 +551,12 @@ class _QueueActions extends ConsumerWidget {
                 item: item, printerId: printerId, confirmLabel: l10n.fmSave);
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.snack(r.messageFor(l10n) ?? l10n.mappingSaved);
+            messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
             return;
           }
 
-          if (value != 'cancel') return;
-          _snackForResult(messenger, l10n, await notifier.cancel(item.id));
+          if (value != 'remove') return;
+          await _removeFromQueue(context, notifier, messenger, l10n, removal);
         },
         itemBuilder: (_) => [
           if (canStart)
@@ -596,12 +609,28 @@ class _QueueActions extends ConsumerWidget {
               ),
             ),
           PopupMenuItem(
-            value: 'cancel',
+            value: 'remove',
+            // The id stays `queue.action.cancel` across all four removals: it
+            // is a wire value, and renaming it would decorrelate every log
+            // recorded before this screen learned the other three routes.
             child: logTag(
               'queue.action.cancel',
               ListTile(
-                leading: const Icon(Icons.stop_circle_outlined),
-                title: Text(l10n.queueCancel),
+                leading: Icon(switch (removal) {
+                  QueueRemoval.cancel ||
+                  QueueRemoval.stopPrint =>
+                    Icons.stop_circle_outlined,
+                  QueueRemoval.stopAbandoned ||
+                  QueueRemoval.delete =>
+                    Icons.delete_outline,
+                }),
+                title: Text(switch (removal) {
+                  QueueRemoval.cancel => l10n.queueCancel,
+                  QueueRemoval.stopPrint => l10n.queueStop,
+                  QueueRemoval.stopAbandoned ||
+                  QueueRemoval.delete =>
+                    l10n.queueRemove,
+                }),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -609,6 +638,55 @@ class _QueueActions extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Confirms, then sends the removal [queueRemovalFor] picked.
+  ///
+  /// Only [QueueRemoval.cancel] goes straight through: it takes an item that
+  /// has not started, and undoing it is re-queueing. The other three either
+  /// abort a running print or drop a row the server will not hand back, so
+  /// each asks first, in the wording that matches what it actually does.
+  Future<void> _removeFromQueue(
+    BuildContext context,
+    QueueNotifier notifier,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    QueueRemoval removal,
+  ) async {
+    if (removal != QueueRemoval.cancel) {
+      final stopping = removal == QueueRemoval.stopPrint;
+      final confirmed = await confirmDialog(
+        context,
+        id: 'queue.remove_confirm',
+        title: stopping ? l10n.queueStopTitle : l10n.queueRemoveStoppedTitle,
+        message: stopping ? l10n.queueStopBody : l10n.queueRemoveStoppedBody,
+        confirmLabel:
+            stopping ? l10n.queueStopConfirm : l10n.queueDeleteConfirm,
+        destructive: true,
+      );
+      if (!confirmed) return;
+    }
+    final result = switch (removal) {
+      QueueRemoval.cancel => await notifier.cancel(item.id),
+      QueueRemoval.stopPrint ||
+      QueueRemoval.stopAbandoned =>
+        await notifier.stop(item.id),
+      QueueRemoval.delete =>
+        await notifier.delete(item.id, logId: 'queue.action.cancel'),
+    };
+    final failure = queueWriteMessage(l10n, result);
+    if (failure != null) {
+      messenger.snack(failure);
+      return;
+    }
+    final done = switch (removal) {
+      QueueRemoval.stopPrint => l10n.queueStopped,
+      QueueRemoval.stopAbandoned || QueueRemoval.delete => l10n.queueRemoved,
+      // Cancelling a waiting item stays quiet, as it was before: the row
+      // leaving the list is the whole confirmation.
+      QueueRemoval.cancel => null,
+    };
+    if (done != null) messenger.snack(done);
   }
 
   /// Opens fullscreen G-code preview for item source (archive or library file).
@@ -699,7 +777,7 @@ Future<void> _startQueueItem(
   final result = await providers
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
-  messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
+  messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -779,12 +857,14 @@ Future<Printer?> _pickQueuePrinter(
 
 
 /// Says nothing on success: the change is already visible in the list.
-void _snackForResult(
+/// Says nothing when [result] succeeded — the row leaving the list is the
+/// confirmation — and otherwise what [queueWriteMessage] made of the refusal.
+void _snackFailure(
   ScaffoldMessengerState messenger,
   AppLocalizations l10n,
   ActionOutcome result,
 ) {
-  final text = result.messageFor(l10n);
+  final text = queueWriteMessage(l10n, result);
   if (text == null) return;
   messenger.snack(text);
 }

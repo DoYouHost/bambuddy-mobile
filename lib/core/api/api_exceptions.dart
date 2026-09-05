@@ -155,6 +155,22 @@ Future<T> guard<T>(Future<T> Function() body) async {
   }
 }
 
+/// [guard] for a route that enforces a rule the app does not re-implement, so
+/// the 400 or 422 keeps the sentence explaining it — see
+/// [mapDioExceptionKeepingDetail] for which statuses that is and why.
+///
+/// The missing sibling for a long time: seventeen writes across eight
+/// repositories each spelled the `try` / `on DioException` out by hand purely
+/// to swap the mapper, and one of them grew a private `_removal` wrapper for
+/// three routes that needed it at once.
+Future<T> guardKeepingDetail<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    throw mapDioExceptionKeepingDetail(e);
+  }
+}
+
 /// [guard] for single-entity fetches inside a composite view: one unreachable
 /// printer must not empty the whole dashboard, so non-auth failures degrade to
 /// `null`. Auth errors still bubble up, or the UI could not redirect.

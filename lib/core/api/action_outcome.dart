@@ -47,3 +47,30 @@ final class ActionFailed extends ActionOutcome {
 
   final AppApiException error;
 }
+
+/// Runs [action] on the user's behalf and hands back how it went, so a screen
+/// never catches the exception itself.
+///
+/// [logId] is the control they touched, in the `logTag` vocabulary — one tag
+/// for a whole notifier would record which screen failed but not what the user
+/// was trying to do. [onSuccess] is whatever has to happen only when the write
+/// landed: refreshing the list it changed, invalidating a provider that
+/// summarizes it. A failure there is the write's failure too — the screen would
+/// otherwise report success over a list it could not reload.
+///
+/// Five notifiers and the admin screens' own `runUserWrite` each wrote this
+/// `try` / `on AppApiException` out in full, differing only in the two lines
+/// above.
+Future<ActionOutcome> runAction(
+  Future<void> Function() action, {
+  required String logId,
+  Future<void> Function()? onSuccess,
+}) async {
+  try {
+    await action();
+    await onSuccess?.call();
+    return ActionOutcome.ok;
+  } on AppApiException catch (e) {
+    return ActionOutcome.failed(e, action: logId);
+  }
+}

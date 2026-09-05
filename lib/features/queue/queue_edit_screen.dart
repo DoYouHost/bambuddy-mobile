@@ -20,7 +20,6 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
 import '../common/date_time_picker.dart';
@@ -34,6 +33,7 @@ import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
+import 'queue_removal.dart';
 
 /// Full print-job form — mirrors the web PrintModal, which serves both modes
 /// from one component.
@@ -1244,7 +1244,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     final result = await ref
         .read(queueProvider.notifier)
-        .runAction(widget._isCreate ? _create : _update,
+        .runOnRepository(widget._isCreate ? _create : _update,
             widget._isCreate ? 'queue_edit.create' : 'queue_edit.save');
 
     // Remember the toggles only once a job was really created with them.
@@ -1257,7 +1257,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
-    messenger.snack(result.messageFor(l10n) ?? ok);
+    messenger.snack(queueWriteMessage(l10n, result) ?? ok);
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
     if (result.isOk) navigator.pop(widget._isCreate);

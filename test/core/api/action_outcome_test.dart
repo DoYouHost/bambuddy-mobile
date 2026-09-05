@@ -60,6 +60,56 @@ void main() {
     });
   });
 
+  group('runAction', () {
+    const boom = ApiException(AppErrorCode.badResponse, statusCode: 400);
+
+    test('a write that lands reports ok', () async {
+      expect(
+        (await runAction(() async {}, logId: 'x.y')).isOk,
+        isTrue,
+      );
+    });
+
+    test('a refusal arrives intact rather than as an exception', () async {
+      final outcome = await runAction(
+        () async => throw boom,
+        logId: 'users.save',
+      );
+      expect(outcome, isA<ActionFailed>());
+      expect((outcome as ActionFailed).error, same(boom));
+    });
+
+    test('onSuccess runs only when the write landed', () async {
+      var refreshed = 0;
+      await runAction(() async {},
+          logId: 'x.y', onSuccess: () async => refreshed++);
+      expect(refreshed, 1);
+
+      await runAction(() async => throw boom,
+          logId: 'x.y', onSuccess: () async => refreshed++);
+      expect(refreshed, 1, reason: 'nothing changed, so nothing to reload');
+    });
+
+    test('a reload that fails is the write failing too', () async {
+      // Otherwise the screen reports success over a list it could not fetch,
+      // and shows the state from before the change as if it were after.
+      final outcome = await runAction(
+        () async {},
+        logId: 'x.y',
+        onSuccess: () async => throw boom,
+      );
+      expect(outcome.isOk, isFalse);
+    });
+
+    test('an error that is not from the API is left to blow up', () async {
+      // A bug in the app is not something to word for the user.
+      await expectLater(
+        runAction(() async => throw StateError('bug'), logId: 'x.y'),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
   group('what the report shows', () {
     late DiagnosticRecorder recorder;
 

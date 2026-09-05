@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/api/action_outcome.dart';
 import '../../data/maintenance_repository.dart';
@@ -70,15 +69,12 @@ class MaintenanceOverviewNotifier
   Future<ActionOutcome> _run(
     String action,
     Future<void> Function(MaintenanceRepository) mutate,
-  ) async {
-    try {
-      await mutate(ref.read(maintenanceRepositoryProvider));
-      await refresh();
-      return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: action);
-    }
-  }
+  ) =>
+      runAction(
+        () => mutate(ref.read(maintenanceRepositoryProvider)),
+        logId: action,
+        onSuccess: refresh,
+      );
 }
 
 final maintenanceTypesProvider = AutoDisposeAsyncNotifierProvider<
@@ -144,16 +140,15 @@ class MaintenanceTypesNotifier
     String action,
     Future<void> Function(MaintenanceRepository) mutate, {
     bool invalidateOverview = false,
-  }) async {
-    try {
-      await mutate(ref.read(maintenanceRepositoryProvider));
-      await refresh();
-      if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
-      return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: action);
-    }
-  }
+  }) =>
+      runAction(
+        () => mutate(ref.read(maintenanceRepositoryProvider)),
+        logId: action,
+        onSuccess: () async {
+          await refresh();
+          if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
+        },
+      );
 }
 
 /// Total print time (hours) of printer from maintenance overview. Data is historical

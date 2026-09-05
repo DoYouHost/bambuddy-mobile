@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
@@ -18,7 +19,6 @@ import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'user_messages.dart';
-import 'users_providers.dart' show runUserWrite;
 
 /// The API keys issued on this server (full screen, pushed from the drawer).
 ///
@@ -221,12 +221,12 @@ class _ApiKeyCard extends ConsumerWidget {
     );
     if (!confirmed) return;
 
-    final result = await runUserWrite(
+    final result = await runAction(
       () => ref.read(apiKeysRepositoryProvider).delete(apiKey.id),
-      'api_keys.revoke',
+      logId: 'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.snack(result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
+    messenger.snack(result.isOk ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
   }
 }
 

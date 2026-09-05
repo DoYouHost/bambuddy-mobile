@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
@@ -14,7 +15,6 @@ import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
 import 'user_messages.dart';
-import 'users_providers.dart';
 
 /// Issue a new key, or change what an existing one may do.
 ///
@@ -221,7 +221,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     final printerIds = _printerIds?.toList()?..sort();
     String? created;
 
-    final result = await runUserWrite(() async {
+    final result = await runAction(() async {
       if (existing == null) {
         final answer = await repo.create(ApiKeyCreateInput(
           name: name,
@@ -243,13 +243,13 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    }, 'api_key_form.save');
+    }, logId: 'api_key_form.save');
 
     await ref.read(apiKeysListProvider.notifier).refresh();
     if (!mounted) return;
     setState(() => _saving = false);
 
-    if (!result.ok) {
+    if (!result.isOk) {
       messenger.snack(userWriteMessage(l10n, result));
       return;
     }

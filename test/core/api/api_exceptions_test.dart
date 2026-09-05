@@ -205,6 +205,63 @@ void main() {
     });
   });
 
+  group('guardKeepingDetail', () {
+    test('passes the value through', () async {
+      expect(await guardKeepingDetail(() async => 42), 42);
+    });
+
+    test('a 400 arrives with the rule the server named', () async {
+      // The difference from `guard`, and the whole reason this exists: the
+      // plain mapper drops a 400's detail, so a screen could say no more than
+      // "server returned error 400" about a refusal that explained itself.
+      await expectLater(
+        guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
+            400, "Cannot cancel item with status 'printing'")),
+        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
+            "Cannot cancel item with status 'printing'")),
+      );
+      expect(
+        (await _thrownBy(() => guard<int>(() async =>
+            throw _badResponseWithDetail(400, 'the rule it broke')))).detail,
+        isNull,
+        reason: 'plain guard is what drops it',
+      );
+    });
+
+    test('422 keeps its detail too, since validation says which field',
+        () async {
+      await expectLater(
+        guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
+            422, 'filament_used_grams must be between 0 and 100000')),
+        throwsA(isA<ApiException>()
+            .having((e) => e.detail, 'detail', contains('100000'))),
+      );
+    });
+
+    test('every other status maps exactly as guard does', () async {
+      // It only *adds* 400/422 to the plain mapper, so a permission refusal
+      // must still arrive as an AuthException with its own detail.
+      final forbidden = await _thrownBy(() =>
+          guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
+              403, "API key does not have 'can_queue' permission")));
+      expect(forbidden, isA<AuthException>());
+      expect(forbidden.detail, contains('can_queue'));
+
+      await expectLater(
+        guardKeepingDetail<int>(() async => throw _badResponse(429)),
+        throwsA(isA<ApiException>()
+            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+      );
+    });
+
+    test('an error that is not from Dio is left alone', () async {
+      await expectLater(
+        guardKeepingDetail<int>(() async => throw StateError('parse blew up')),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
   group('guardOrNull', () {
     test('auth failures still throw so the UI can redirect', () async {
       for (final status in [401, 403]) {
@@ -293,4 +350,15 @@ void main() {
       expect(mapped.path, '/api/v1/inventory/spools');
     });
   });
+}
+
+/// The exception [send] threw, for the assertions that inspect more of it than
+/// one `throwsA` matcher reads well.
+Future<AppApiException> _thrownBy(Future<void> Function() send) async {
+  try {
+    await send();
+  } on AppApiException catch (e) {
+    return e;
+  }
+  fail('expected the call to throw');
 }

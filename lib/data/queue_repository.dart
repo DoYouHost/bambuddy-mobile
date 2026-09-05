@@ -244,8 +244,12 @@ class QueueRepository {
   }
 
   /// DELETE /queue/{id} — delete item from queue.
-  Future<void> delete(int itemId) =>
-      guard(() => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
+  ///
+  /// Keeps the detail: refused with 400 for a row that is currently printing,
+  /// and the status it names is the only thing that explains the refusal — see
+  /// [stop].
+  Future<void> delete(int itemId) => guardKeepingDetail(
+      () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
 
   /// PATCH /queue/{id} — assign printer to item (before start).
   /// Body: `{"printer_id": ..}`.
@@ -262,6 +266,10 @@ class QueueRepository {
       ));
 
   /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
+  ///
+  /// Keeps the detail for the same reason the removals do: the route refuses a
+  /// row that has moved on ("Can only update pending items") and only says so
+  /// in the 400's text, which is what the edit screen shows.
   ///
   /// Mirrors the server's `PrintQueueItemUpdate`: every field is optional and
   /// only applied when present, so `null` is meaningful — it clears a nullable
@@ -322,7 +330,7 @@ class QueueRepository {
       if (nozzleRackChoice != kQueueUpdateUnset)
         'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
     };
-    return guard(
+    return guardKeepingDetail(
         () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));
   }
 
@@ -356,9 +364,31 @@ class QueueRepository {
     await start(item.id);
   }
 
-  /// POST /queue/{id}/cancel — cancel queue item.
-  Future<void> cancel(int itemId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+  /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
+  /// item only; see [stop] for the rest and for why the detail is kept.
+  Future<void> cancel(int itemId) => guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+
+  /// POST /queue/{id}/stop — stop the print a `printing` item is running and
+  /// drop the item out of the queue (the server writes it `cancelled`).
+  ///
+  /// The escape hatch for a row the server holds as `printing`: `/cancel`
+  /// takes `pending` alone, `DELETE` refuses a printing row, and the queue
+  /// screen offers no swipe on the pinned printing card — so before this the
+  /// app had no way to clear one. That is issue #35, where a print had failed
+  /// on the machine while its row stayed `printing`.
+  ///
+  /// Sends a stop to the printer, which is harmless when it already stopped:
+  /// the server writes the row `cancelled` either way and says which of the
+  /// two happened.
+  ///
+  /// [guardKeepingDetail], like the other two removals: all three answer 400
+  /// by naming the status they found ("Cannot cancel item with status
+  /// 'printing'"), and that status is the whole explanation. Plain [guard]
+  /// drops a 400's detail, which is how the reporter's screen could only say
+  /// "server error 400".
+  Future<void> stop(int itemId) => guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)));
 
   /// POST /queue/ — add new item from archive.
   ///
