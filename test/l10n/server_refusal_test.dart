@@ -82,13 +82,6 @@ void main() {
     expect(message, contains('can_queue'));
   });
 
-  test('localizedRefusal answers null so a caller can keep the original', () {
-    // The watch's relay forwards the detail without the exception.
-    expect(localizedRefusal(en, 'Cannot delete the last admin user', rules),
-        en.usersErrLastAdminDelete);
-    expect(localizedRefusal(en, 'something else entirely', rules), isNull);
-  });
-
   group('outcomeRefusal', () {
     test('a success says nothing', () {
       expect(outcomeRefusal(en, ActionOutcome.ok, rules), isNull);

@@ -3,51 +3,35 @@ import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
 
-/// How an item leaves the queue — one decision, because no single route takes
-/// every status and the app used to offer only one of them.
-///
-/// The server splits the job across three routes, each refusing what it does
-/// not handle (`print_queue.py`): `/cancel` accepts a `pending` item alone,
-/// `/stop` a `printing` one alone, and `DELETE` everything except `printing`.
-/// The queue's overflow menu offered `/cancel` for all of them, so a row the
-/// server held as `printing` — a print that had failed on the machine, its row
-/// never reconciled — answered 400 to the only button there was, and the
-/// pinned printing card carries no swipe either. That is issue #35: an item
-/// with no way out.
+/// How an item leaves the queue. The server splits that across three routes,
+/// each refusing what it does not handle (`print_queue.py`), so offering only
+/// one of them left a `printing` row with no way out at all (issue #35).
 enum QueueRemoval {
-  /// `POST /queue/{id}/cancel` — the item is still waiting its turn.
+  /// `POST /queue/{id}/cancel` — accepted for a `pending` item alone.
   cancel,
 
-  /// `POST /queue/{id}/stop` while the machine is genuinely printing it.
-  /// Destructive in the physical sense: it aborts the job on the printer.
+  /// `POST /queue/{id}/stop` while the machine is printing it: this aborts a
+  /// physical job.
   stopPrint,
 
-  /// `POST /queue/{id}/stop` for a row the printer is not showing as running —
-  /// the queue says `printing`, the machine says FAILED or IDLE, or the server
-  /// has lost contact with it and reports no state at all. Same route, but
-  /// nothing is aborted that the app can see, so the user is offered a removal
-  /// rather than a stop. Calling it "stop the print" is what confused the
-  /// reporter.
+  /// `POST /queue/{id}/stop` for a row the printer is not showing as running.
   ///
-  /// The unreachable printer belongs here rather than with [stopPrint]: the
-  /// server cannot deliver a stop to it either, and says so in the answer —
-  /// "Queue item cancelled (printer was offline)". So the wording claims only
-  /// that the print is not *shown* as running, which stays true whichever of
-  /// the three it is.
+  /// An unreachable printer belongs here rather than with [stopPrint]: the
+  /// server cannot deliver a stop to it either, and answers "Queue item
+  /// cancelled (printer was offline)". Hence wording that claims only that the
+  /// print is not *shown* as running, true for FAILED, IDLE and no contact
+  /// alike.
   stopAbandoned,
 
-  /// `DELETE /queue/{id}` — accepted for every status but `printing`, so it is
-  /// the correct route for the terminal ones and for any the app has not seen.
+  /// `DELETE /queue/{id}` — refused for `printing` and accepted for every
+  /// other status, including the ones this app has no case for (`skipped`).
   delete,
 }
 
-/// Which removal [status] accepts, given whether the printer is actually busy.
-///
-/// [printerBusy] is `PrinterStatus.isPrinting` for the item's printer, and
-/// only separates the two `/stop` cases — never which route is sent. A printer
-/// the app has no status for counts as not busy: an offline one is dropped to
-/// no state at all on disconnect (`PrinterStatus.mergedWith`), and that is the
-/// case [QueueRemoval.stopAbandoned] is worded for.
+/// Which removal [status] accepts. [printerBusy] is `PrinterStatus.isPrinting`
+/// for the item's printer and only picks between the two `/stop` wordings,
+/// never the route; no status at all counts as not busy, which is what an
+/// offline printer degrades to (`PrinterStatus.mergedWith`).
 QueueRemoval queueRemovalFor(
   QueueItemStatusKind status, {
   required bool printerBusy,
@@ -56,28 +40,19 @@ QueueRemoval queueRemovalFor(
       QueueItemStatusKind.pending ||
       QueueItemStatusKind.scheduled =>
         QueueRemoval.cancel,
-      // `paused` rides with `printing` because the server has no such status
-      // of its own — it keeps a paused job `printing` and the pause lives in
-      // the printer's state. A server that did set it would refuse `/stop`,
-      // and [queueRemovalMessage] is what explains that.
+      // The server has no `paused` status — it keeps such a job `printing` —
+      // so the model's tolerance for one must not fall through to `delete`.
       QueueItemStatusKind.printing || QueueItemStatusKind.paused =>
         printerBusy ? QueueRemoval.stopPrint : QueueRemoval.stopAbandoned,
       _ => QueueRemoval.delete,
     };
 
-/// What the user reads when a queue write was refused, and `null` when it was
-/// not — the queue screen's one way from an [ActionOutcome] to a sentence.
-///
-/// The three removal routes refuse on the same ground — the row moved on
-/// between the list being drawn and the button being pressed — and each words
-/// it differently, so all three map to one thing the user has to do.
-/// [serverRefusal] is the ladder every feature shares.
+/// The queue screen's one way from an [ActionOutcome] to a sentence.
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
     outcomeRefusal(l10n, outcome, _rules);
 
-/// Each entry is one route's phrasing of "that is not the status I found".
-/// Matched on a fragment, so a version that renames the status or reworks the
-/// tail still lands.
+/// Three routes, three phrasings of "that is not the status I found", and one
+/// thing the user has to do about it.
 final _rules = <RefusalRule>[
   for (final phrase in const [
     'cannot cancel item with status',
