@@ -122,7 +122,7 @@ class ArchiveRepository {
   Future<({Archive archive, bool applied})> setFilamentGrams(
     int archiveId,
     double? grams,
-  ) async {
+  ) {
     // Keeps the detail: the server bounds the column (0..100 kg) and answers
     // 422 with which bound was crossed. The field checks the same range before
     // sending, so getting here means the two lists drifted — and then its

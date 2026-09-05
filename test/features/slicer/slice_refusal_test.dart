@@ -61,5 +61,15 @@ void main() {
       sliceRefusalMessage(en, const ApiException(AppErrorCode.serverUnreachable)),
       en.errServerUnreachable,
     );
+    // With the detail a real `NetworkException` carries: Dio's own message,
+    // which the bare-detail fallback used to put on screen untranslated.
+    expect(
+      sliceRefusalMessage(
+        en,
+        const NetworkException(AppErrorCode.serverUnreachable,
+            detail: 'Connecting timed out [10000ms]'),
+      ),
+      en.errServerUnreachable,
+    );
   });
 }

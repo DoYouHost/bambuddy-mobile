@@ -71,15 +71,49 @@ void main() {
     expect(serverRefusal(en, refusal('   '), rules), en.errBadResponse(400));
   });
 
-  test('a 403 keeps the permission wording the code already builds', () {
-    // Not a rule violation, and flattening it into one would send the user to
-    // retry something no retry can fix.
-    final message = serverRefusal(
-      en,
-      refusal("API key does not have 'can_queue' permission", status: 403),
-      rules,
+  test('a 403 keeps the frame the code builds, not the bare detail', () {
+    // Not a rule violation, and quoting it raw drops the "Not allowed:" frame
+    // — and with it the deactivated-owner case `AppApiExceptionL10n` handles.
+    const said = "API key does not have 'can_queue' permission";
+    expect(
+      serverRefusal(en, refusal(said, status: 403), rules),
+      en.errForbiddenDetail(said),
     );
-    expect(message, contains('can_queue'));
+  });
+
+  test('a lost connection is translated, never quoted from Dio', () {
+    // The regression this guards: `NetworkException` carries Dio's own message
+    // in `detail`, so quoting any non-null detail put untranslated English in
+    // front of anyone whose Wi-Fi dropped mid-write.
+    for (final code in [
+      AppErrorCode.serverUnreachable,
+      AppErrorCode.connectionError,
+    ]) {
+      final message = serverRefusal(
+        en,
+        NetworkException(code, detail: 'Connecting timed out [10000ms]'),
+        rules,
+      );
+      expect(message, isNot(contains('10000ms')), reason: '$code');
+      expect(
+        message,
+        code == AppErrorCode.serverUnreachable
+            ? en.errServerUnreachable
+            : en.errConnection,
+      );
+    }
+  });
+
+  test('a 429 keeps its own wording rather than the server\'s', () {
+    expect(
+      serverRefusal(
+        en,
+        const ApiException(AppErrorCode.tooManyAttempts,
+            statusCode: 429, detail: 'Too many failed attempts'),
+        rules,
+      ),
+      en.errTooManyAttempts,
+    );
   });
 
   group('outcomeRefusal', () {

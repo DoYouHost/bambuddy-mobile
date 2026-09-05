@@ -267,6 +267,10 @@ class QueueRepository {
 
   /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
   ///
+  /// Keeps the detail for the same reason the removals do: the route refuses a
+  /// row that has moved on ("Can only update pending items") and only says so
+  /// in the 400's text, which is what the edit screen shows.
+  ///
   /// Mirrors the server's `PrintQueueItemUpdate`: every field is optional and
   /// only applied when present, so `null` is meaningful — it clears a nullable
   /// column (e.g. `scheduled_time: null` = ASAP/queue, `target_model: null` when
@@ -326,7 +330,7 @@ class QueueRepository {
       if (nozzleRackChoice != kQueueUpdateUnset)
         'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
     };
-    return guard(
+    return guardKeepingDetail(
         () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));
   }
 

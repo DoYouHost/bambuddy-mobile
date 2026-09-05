@@ -18,6 +18,15 @@ typedef RefusalRule = (List<String> needles, String Function(AppLocalizations));
 /// not explain falls back to the code — a 400 on its own only ever reads as
 /// "server returned error 400". Order in [rules] is the specificity: first
 /// match wins.
+///
+/// Only a rule violation is ever quoted, and [AppErrorCode.badResponse] is what
+/// tells one apart: [mapDioExceptionKeepingDetail] keeps a `detail` for the 400
+/// and 422 alone, and every other failure that carries one already has a better
+/// sentence built for it. A lost connection puts Dio's own
+/// "Connecting timed out [10000ms]" in `detail`, and a 403 needs the
+/// "Not allowed:" frame plus the deactivated-owner case that
+/// `AppApiExceptionL10n` handles — quoting either raw is how a network drop
+/// while starting a print would reach the user in untranslated English.
 String serverRefusal(
   AppLocalizations l10n,
   AppApiException error,
@@ -28,6 +37,7 @@ String serverRefusal(
   for (final (needles, say) in rules) {
     if (needles.every(detail.contains)) return say(l10n);
   }
+  if (error.code != AppErrorCode.badResponse) return error.localized(l10n);
   return error.detail!;
 }
 

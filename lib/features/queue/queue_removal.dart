@@ -51,13 +51,15 @@ QueueRemoval queueRemovalFor(
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
     outcomeRefusal(l10n, outcome, _rules);
 
-/// Three routes, three phrasings of "that is not the status I found", and one
-/// thing the user has to do about it.
+/// Four routes, four phrasings of "that is not the status I found", and one
+/// thing the user has to do about it. The edit route is here too: opening the
+/// form on an item that starts printing behind you refuses exactly this way.
 final _rules = <RefusalRule>[
   for (final phrase in const [
     'cannot cancel item with status',
     'can only stop items that are printing',
     'cannot delete item that is currently printing',
+    'can only update pending items',
   ])
     ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
 ];

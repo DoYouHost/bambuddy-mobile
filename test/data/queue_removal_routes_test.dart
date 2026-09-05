@@ -89,6 +89,21 @@ void main() {
     expect(error.detail, 'Cannot delete item that is currently printing');
   });
 
+  test('updateItem: keeps the reason an edit came too late', () async {
+    // The edit form's own refusal — the item started printing while the user
+    // was in the form — and the screen shows it through the same table.
+    adapter.onPatch(
+      '/api/v1/queue/224',
+      (server) =>
+          server.reply(400, {'detail': 'Can only update pending items'}),
+      data: Matchers.any,
+    );
+
+    final error = await _failureOf(() => repo.updateItem(224, plateId: 2));
+
+    expect(error.detail, 'Can only update pending items');
+  });
+
   test('delete: a 403 still carries what the server refused', () async {
     // The detail-keeping mapper only adds 400/422 to what the plain one
     // already does, so ownership refusals must survive it unchanged.
