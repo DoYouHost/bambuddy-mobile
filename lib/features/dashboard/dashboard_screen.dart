@@ -20,7 +20,9 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
+import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -723,6 +725,21 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.stats',
                 ),
+                // Absent until a call has proved the routes are there and this
+                // session may read them: an older server 404s, and an API key
+                // was refused every pipeline permission before server 1.2.5.3.
+                // Probed rather than versioned — the routes predate the
+                // renumbering to 1.2.5, so no threshold reads both schemes.
+                if (ref.watch(pipelinesSupportedProvider).orFalse)
+                  _DrawerTile(
+                    icon: Icons.account_tree_outlined,
+                    label: l10n.pipelinesMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/pipelines');
+                    },
+                    id: 'drawer.pipelines',
+                  ),
                 _DrawerTile(
                   icon: Icons.tune_rounded,
                   label: l10n.notifEventsMenu,

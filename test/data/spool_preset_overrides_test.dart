@@ -72,17 +72,21 @@ void main() {
       expect(rows.last.slicerFilament, isNull);
     });
 
-    test('a 404 is a server without the route, not a spool without rows',
-        () async {
+    test('a 404 shows no rows without taking the section away', () async {
+      // The route raises 404 for a spool that is gone as well as on a server
+      // that never had it (`inventory.py::"Spool not found"`), so it cannot
+      // settle the question — opening one stale spool used to hide the whole
+      // section until the app was restarted.
       replyVersion('1.2.6b1');
       adapter.onGet(
         '/api/v1/inventory/spools/7/filament-presets',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
+        (s) => s.reply(404, {'detail': 'Spool not found'}),
       );
       final repo = nativeRepo();
 
       expect(await repo.fetchPresetOverrides(7), isEmpty);
-      expect(await repo.supportsPresetOverrides(), isFalse);
+      expect(await repo.supportsPresetOverrides(), isTrue,
+          reason: 'the version row is what answers this');
     });
 
     test('a 403 reaches the caller — a form that showed nothing would '
@@ -167,6 +171,27 @@ void main() {
       await nativeRepo().savePresetOverrides(7, const []);
 
       expect(sent.singleWhere((r) => r.method == 'PUT').data, isEmpty);
+    });
+
+    test('saving against a spool that is gone does not hide the section',
+        () async {
+      // Same shape as the drying cancel: the route 404s for a missing spool,
+      // and reading that as "this server has no overrides" took the whole
+      // section away until the app restarted.
+      replyVersion('1.2.6b1');
+      adapter.onPut(
+        '/api/v1/inventory/spools/7/filament-presets',
+        (s) => s.reply(404, {'detail': 'Spool not found'}),
+        data: Matchers.any,
+      );
+      final repo = nativeRepo();
+
+      await expectLater(
+        repo.savePresetOverrides(7, const []),
+        throwsA(isA<AppApiException>()),
+        reason: 'the user pressed Save, so the failure still reaches them',
+      );
+      expect(await repo.supportsPresetOverrides(), isTrue);
     });
 
     test('a refusal reaches the user — the save was something they asked for',

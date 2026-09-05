@@ -8,6 +8,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../common/system_insets.dart';
 
 /// Whether the system is currently swallowing every alert, which the switches
@@ -49,7 +50,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             const EdgeInsets.fromLTRB(16, 8, 16, 24),
           ),
           children: [
-            if (ref.watch(_notificationsBlockedProvider).valueOrNull ?? false)
+            if (ref.watch(_notificationsBlockedProvider).orFalse)
               _BlockedBanner(l10n.notificationsBlocked),
             Text(
               l10n.notifSettingsHint,

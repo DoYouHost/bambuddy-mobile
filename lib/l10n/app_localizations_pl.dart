@@ -4816,6 +4816,17 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get sliceRefusedStep =>
+      'Plików STEP nie da się pociąć. Wyeksportuj model z CAD-a jako STL albo 3MF.';
+
+  @override
+  String get sliceRefusedFormat => 'Źródło musi być plikiem STL albo 3MF.';
+
+  @override
+  String get sliceRefusedNoSource =>
+      'To archiwum zachowało tylko wydrukowany G-code, nie model — nie ma czego pociąć ponownie.';
+
+  @override
   String sliceResultFilament(String grams) {
     return 'Filament: $grams g';
   }
@@ -4831,6 +4842,416 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get sliceTierStandard => 'Wbudowany';
+
+  @override
+  String get pipelineSection => 'Pipeline';
+
+  @override
+  String get pipelineApply => 'Zastosuj pipeline…';
+
+  @override
+  String get pipelineApplyEmpty => 'Brak zapisanych pipeline\'ów';
+
+  @override
+  String pipelineApplied(String name) {
+    return 'Zastosowano „$name”';
+  }
+
+  @override
+  String get pipelineSaveAs => 'Zapisz jako pipeline';
+
+  @override
+  String get pipelineNameHint => 'Nazwa pipeline\'u';
+
+  @override
+  String get pipelineSaveConfirm => 'Zapisz';
+
+  @override
+  String get pipelineSaved => 'Zapisano pipeline';
+
+  @override
+  String get pipelineSaveHint =>
+      'Drukarka, proces, filamenty i stół z góry — pod nazwą, którą zastosujesz do kolejnego pliku.';
+
+  @override
+  String get pipelinesMenu => 'Pipeline\'y';
+
+  @override
+  String get pipelinesTitle => 'Pipeline\'y';
+
+  @override
+  String get pipelinesEmpty => 'Nie ma jeszcze pipeline\'ów';
+
+  @override
+  String get pipelinesEmptyHint =>
+      'Zapisz pierwszy z formularza cięcia — drukarka, proces, filamenty i stół w komplecie, który zastosujesz jednym dotknięciem.';
+
+  @override
+  String get pipelineProfiles => 'Profile';
+
+  @override
+  String pipelineFilamentsCount(int count) {
+    return 'Filamenty ($count)';
+  }
+
+  @override
+  String get pipelineHistory => 'Historia przebiegów';
+
+  @override
+  String get pipelineCardActions => 'Akcje pipeline\'u';
+
+  @override
+  String pipelineSlotNumbered(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get pipelineBed => 'Stół';
+
+  @override
+  String get pipelinePresetGone => 'Nie ma go już w katalogu';
+
+  @override
+  String get pipelineNeedsTarget => 'Ustaw cel, zanim uruchomisz ten pipeline.';
+
+  @override
+  String get pipelineNoTargetChip => 'Bez celu';
+
+  @override
+  String get pipelineEditTitle => 'Edytuj pipeline';
+
+  @override
+  String get pipelineDescriptionHint => 'Opis (opcjonalnie)';
+
+  @override
+  String get pipelineTargetType => 'Cel';
+
+  @override
+  String get pipelineTargetSpecific => 'Konkretna drukarka';
+
+  @override
+  String get pipelineTargetClass => 'Model drukarki';
+
+  @override
+  String get pipelineTargetPickPrinter => 'Wybierz drukarkę';
+
+  @override
+  String get pipelineTargetPickClass => 'Wybierz model';
+
+  @override
+  String get pipelineTargetNone => '— bez celu —';
+
+  @override
+  String pipelineTargetPrinterGone(int id) {
+    return 'Drukarka #$id (już jej nie ma)';
+  }
+
+  @override
+  String get pipelineFanout => 'Rozkład kopii';
+
+  @override
+  String get pipelineFanoutMaxParallel =>
+      'Maksymalnie równolegle — na dowolnej wolnej pasującej drukarce';
+
+  @override
+  String get pipelineFanoutRoundRobin =>
+      'Po kolei — cyklicznie po pasujących drukarkach';
+
+  @override
+  String get pipelineFanoutFillOneFirst =>
+      'Najpierw jedna — wszystkie kopie na jednej drukarce';
+
+  @override
+  String get pipelineDelete => 'Usuń pipeline';
+
+  @override
+  String pipelineDeleteConfirm(String name) {
+    return 'Usunąć „$name”? Wykonane już przebiegi zachowają nazwę.';
+  }
+
+  @override
+  String get pipelineDeleted => 'Usunięto pipeline';
+
+  @override
+  String get pipelineDescriptionNoClear =>
+      'Raz zapisanego opisu nie da się wyczyścić — ten serwer potrafi tylko wpisać nowy.';
+
+  @override
+  String get pipelineRun => 'Uruchom';
+
+  @override
+  String pipelineRunTitle(String name) {
+    return 'Uruchom „$name”';
+  }
+
+  @override
+  String get pipelineRunCopies => 'Kopie';
+
+  @override
+  String get pipelineRunStart => 'Start';
+
+  @override
+  String get pipelineRunStarted => 'Przebieg wystartował';
+
+  @override
+  String get pipelineRunAnyway => 'Uruchom mimo to';
+
+  @override
+  String pipelineRunMaxCopies(int max) {
+    return 'Ten serwer pozwala najwyżej na $max.';
+  }
+
+  @override
+  String get pipelineCheckingEligibility => 'Sprawdzam drukarki…';
+
+  @override
+  String get pipelineEligibilityOk => 'Można uruchamiać.';
+
+  @override
+  String pipelineEligibilityClassCount(int ok, int total) {
+    return 'Gotowe drukarki: $ok z $total';
+  }
+
+  @override
+  String get pipelineEligibilityBlocked =>
+      'Nic nie przyjmie teraz tego przebiegu.';
+
+  @override
+  String get pipelineEligibilityAdvisory => 'Warto rzucić okiem przed startem.';
+
+  @override
+  String get pipelineIssuePrinterNotSet =>
+      'Ten pipeline nie ma ustawionej drukarki docelowej.';
+
+  @override
+  String get pipelineIssuePrinterNotFound => 'Drukarki docelowej już nie ma.';
+
+  @override
+  String get pipelineIssuePrinterDisabled =>
+      'Drukarka docelowa jest wyłączona w bambuddy.';
+
+  @override
+  String get pipelineIssuePrinterOffline => 'Drukarka docelowa jest offline.';
+
+  @override
+  String get pipelineIssueFilamentType =>
+      'Założony jest filament niewłaściwego typu.';
+
+  @override
+  String get pipelineIssueFilamentColor => 'Założony filament ma inny kolor.';
+
+  @override
+  String get pipelineIssueAmsSlotMissing =>
+      'AMS ma mniej slotów, niż potrzebuje ten pipeline.';
+
+  @override
+  String get pipelineIssueFilamentUnverified =>
+      'Tego profilu filamentu nie da się stąd sprawdzić — warto zweryfikować samemu.';
+
+  @override
+  String get pipelineIssueNoClassMatches =>
+      'Nie ma zainstalowanej żadnej drukarki tego modelu.';
+
+  @override
+  String get pipelineIssueClassNotSet =>
+      'Ten pipeline nie ma ustawionego modelu drukarki.';
+
+  @override
+  String pipelineIssueSlot(int n) {
+    return 'Slot $n';
+  }
+
+  @override
+  String pipelineIssueWantedGot(String expected, String actual) {
+    return 'oczekiwano $expected, założony $actual';
+  }
+
+  @override
+  String pipelineIssueWanted(String expected) {
+    return 'oczekiwano $expected';
+  }
+
+  @override
+  String get pipelineRunsTitle => 'Przebiegi pipeline\'ów';
+
+  @override
+  String get pipelineRunsEmpty => 'Nie ma jeszcze przebiegów';
+
+  @override
+  String get pipelineRunsNoneMatch =>
+      'Żaden przebieg nie pasuje do tych filtrów';
+
+  @override
+  String get pipelineRunsFilter => 'Filtruj przebiegi';
+
+  @override
+  String get pipelineCopiesLess => 'O jedną kopię mniej';
+
+  @override
+  String get pipelineCopiesMore => 'O jedną kopię więcej';
+
+  @override
+  String get pipelineEligible => 'Gotowa';
+
+  @override
+  String get pipelineIneligible => 'Nie gotowa';
+
+  @override
+  String pipelineRunsFilterActive(int count) {
+    return 'Filtruj przebiegi (aktywne: $count)';
+  }
+
+  @override
+  String get pipelineRunsFilterAny => 'Dowolny';
+
+  @override
+  String get pipelineRunsFilterStatus => 'Status';
+
+  @override
+  String get pipelineRunsFilterStatusHint =>
+      'Dopasowuje ostatnio zapisany status, więc przebieg może jeszcze odpowiadać na krok przed tym, na którym jest.';
+
+  @override
+  String get pipelineRunsFilterTarget => 'Cel';
+
+  @override
+  String get pipelineRunsFilterTargetHint =>
+      'Tam, gdzie pipeline wskazuje teraz — zmiana celu przenosi całą jego historię.';
+
+  @override
+  String get pipelineRunsFilterPipelineHint =>
+      'Przebiegów usuniętego pipeline\'u nie da się odfiltrować.';
+
+  @override
+  String get pipelineRunsFilterClear => 'Wyczyść filtry';
+
+  @override
+  String get pipelineRunsLoadMore => 'Wczytaj więcej';
+
+  @override
+  String pipelineRunsShowingAll(int count) {
+    return 'Wszystkie $count widoczne';
+  }
+
+  @override
+  String get pipelineRunsDone => 'Gotowe';
+
+  @override
+  String get pipelineRunsClear => 'Wyczyść zakończone';
+
+  @override
+  String pipelineRunsCleared(int count) {
+    return 'Usunięto: $count';
+  }
+
+  @override
+  String get pipelineRunsClearConfirm =>
+      'Usunąć z tej listy wszystkie zakończone przebiegi?';
+
+  @override
+  String pipelineRunCopiesProgress(int done, int total) {
+    return '$done z $total kopii';
+  }
+
+  @override
+  String get pipelineRunCancel => 'Anuluj przebieg';
+
+  @override
+  String get pipelineRunCancelConfirm =>
+      'Anulować ten przebieg? Kopie jeszcze niewysłane przepadną, a to, co już się drukuje, trzeba zatrzymać na samej drukarce.';
+
+  @override
+  String get pipelineRunCancelled => 'Anulowano przebieg';
+
+  @override
+  String get pipelineRunRetry => 'Ponów nieudane';
+
+  @override
+  String pipelineRunRetryStarted(int count) {
+    return 'Ponawiam kopie: $count';
+  }
+
+  @override
+  String get pipelineRunOverridden => 'Uruchomiony mimo nieudanego sprawdzenia';
+
+  @override
+  String get pipelineRunDeletedPipeline => 'Usunięty pipeline';
+
+  @override
+  String pipelineRunSource(String name) {
+    return 'Z $name';
+  }
+
+  @override
+  String pipelineRunRetryOf(int id) {
+    return 'Ponowienie przebiegu #$id';
+  }
+
+  @override
+  String pipelineRunOnPrinter(String printer) {
+    return 'Na $printer';
+  }
+
+  @override
+  String pipelineRunOnClass(String model) {
+    return 'Na dowolnej $model';
+  }
+
+  @override
+  String get pipelineStatusQueued => 'W kolejce';
+
+  @override
+  String get pipelineStatusSlicing => 'Cięcie';
+
+  @override
+  String get pipelineStatusDispatching => 'Wysyłanie';
+
+  @override
+  String get pipelineStatusInProgress => 'Drukowanie';
+
+  @override
+  String get pipelineStatusCompleted => 'Zakończony';
+
+  @override
+  String get pipelineStatusFailed => 'Nieudany';
+
+  @override
+  String get pipelineStatusPartial => 'Częściowo nieudany';
+
+  @override
+  String get pipelineStatusCancelled => 'Anulowany';
+
+  @override
+  String get pipelineStatusUnknown => 'Nieznany';
+
+  @override
+  String pipelineJobCopy(int n) {
+    return 'Kopia $n';
+  }
+
+  @override
+  String get pipelineJobPending => 'Oczekuje';
+
+  @override
+  String get pipelineJobAwaitingPrinter => 'Czeka na drukarkę';
+
+  @override
+  String get pipelineJobQueued => 'W kolejce';
+
+  @override
+  String get pipelineJobPrinting => 'Drukowanie';
+
+  @override
+  String get pipelineJobCompleted => 'Gotowe';
+
+  @override
+  String get pipelineJobFailed => 'Nieudana';
+
+  @override
+  String get pipelineJobCancelled => 'Anulowana';
+
+  @override
+  String get pipelineJobUnknown => 'Nieznany';
 
   @override
   String get queueFilamentMapping => 'Mapowanie filamentów';

@@ -125,4 +125,19 @@ abstract final class Permissions {
   static const apiKeysCreate = 'api_keys:create';
   static const apiKeysUpdate = 'api_keys:update';
   static const apiKeysDelete = 'api_keys:delete';
+
+  /// Slicer pipelines, split three ways server-side because authoring a recipe
+  /// and spending filament on it are different kinds of trust
+  /// (`permissions.py::Permission`). Read opens the screens, write covers
+  /// create/edit/delete, run dispatches prints.
+  ///
+  /// **An API-key session holds read and run, never write** (server 1.2.5.3+):
+  /// `PIPELINES_WRITE` is outside the key scope allowlist in `core/auth.py`,
+  /// and that gate is allowlist-only, so it is a 403 on every version. Up to
+  /// 1.2.5.x `/auth/me` claimed otherwise. Gate on
+  /// `canRunPipelinesProvider` / `canWritePipelinesProvider`, not on
+  /// [CurrentUser.can] alone.
+  static const pipelinesRead = 'pipelines:read';
+  static const pipelinesWrite = 'pipelines:write';
+  static const pipelinesRun = 'pipelines:run';
 }

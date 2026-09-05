@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
+import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +46,7 @@ void main() {
     WidgetTester tester, {
     required LibraryFile file,
     bool slicerEnabled = true,
+    bool canRunPipelines = true,
     List<LibraryTag>? tags = const [],
     Size size = const Size(411, 866),
   }) async {
@@ -59,6 +63,7 @@ void main() {
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
         slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
+        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
       ],
       child: plApp(const FileManagerScreen()),
     ));
@@ -70,6 +75,61 @@ void main() {
     await tester.tap(find.text(file.displayName));
     await tester.pumpAndSettle();
   }
+
+  group('the run-with-pipeline action', () {
+    testWidgets('is offered on a sliceable file when the server has pipelines',
+        (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.layers_outlined), findsOneWidget,
+          reason: 'the slice action proves the sheet thinks the file sliceable');
+      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+    });
+
+    testWidgets('stays away on a server without the pipeline routes',
+        (tester) async {
+      final file = _file();
+      await pump(tester, file: file, canRunPipelines: false);
+      await openFileSheet(tester, file);
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
+    });
+
+    testWidgets('appears once the gate settles after the sheet is already open',
+        (tester) async {
+      // The sheet is built in its own route, so a gate read from the screen's
+      // `ref` cannot rebuild it. This gate is a FutureProvider — it is
+      // unresolved for the first frames — so reading it at build time hides the
+      // action on a server that does have pipelines.
+      final gate = Completer<bool>();
+      final file = _file();
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          noServerProfileOverride,
+          fileManagerProvider.overrideWith(
+              () => _FakeNotifier(FileManagerState(files: [file]))),
+          libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          slicerEnabledProvider.overrideWith((ref) async => true),
+          canRunPipelinesProvider.overrideWith((ref) => gate.future),
+        ],
+        child: plApp(const FileManagerScreen()),
+      ));
+      await tester.pumpAndSettle();
+      await openFileSheet(tester, file);
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsNothing,
+          reason: 'nothing is claimed before the server has answered');
+
+      gate.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+    });
+  });
 
   group('the listing', () {
     testWidgets('renders a file from the state', (tester) async {

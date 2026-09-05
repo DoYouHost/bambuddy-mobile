@@ -130,4 +130,90 @@ void main() {
       expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
     });
   });
+
+  /// The filter combo three screens each built their own way. What they all
+  /// depend on: the any-row reads as null, it is what shows when nothing is
+  /// picked, and no call site needs a stand-in value to say "no filter".
+  group('dashAnyOrOne', () {
+    late List<int?> picked;
+    setUp(() => picked = []);
+
+    Future<void> pump(WidgetTester tester, {int? selected}) =>
+        tester.pumpWidget(plApp(Builder(
+          builder: (context) => Scaffold(
+            body: dashAnyOrOne<int>(
+              context,
+              id: 'test.filter',
+              anyLabel: 'Any printer',
+              selected: selected,
+              options: const [(3, 'P1S'), (4, 'X1C')],
+              onPick: picked.add,
+            ),
+          ),
+        )));
+
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+    testWidgets('nothing picked shows the any-row, not an empty field',
+        (tester) async {
+      // The reason no sentinel is needed: `initialSelection: null` resolves
+      // against the null row, so the field names the state it is in. A
+      // stand-in value was introduced on the belief that it could not.
+      await pump(tester);
+
+      expect(fieldText(tester), 'Any printer');
+    });
+
+    testWidgets('a set filter shows its own label', (tester) async {
+      await pump(tester, selected: 4);
+
+      expect(fieldText(tester), 'X1C');
+    });
+
+    testWidgets('choosing a value reports the value', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byType(DropdownMenu<int?>));
+      await settle(tester);
+      await tester.tap(find.text('P1S').last);
+      await settle(tester);
+
+      expect(picked, [3]);
+    });
+
+    testWidgets('choosing the any-row reports null, not a stand-in',
+        (tester) async {
+      // The half every caller depends on: one "no filter" state, so a screen
+      // never has to map a magic value back before writing its query.
+      await pump(tester, selected: 4);
+      await tester.tap(find.byType(DropdownMenu<int?>));
+      await settle(tester);
+      await tester.tap(find.text('Any printer').last);
+      await settle(tester);
+
+      expect(picked, [null]);
+    });
+
+    testWidgets('every value row records under one id, the any-row its own',
+        (tester) async {
+      // Labels are names people gave things and stay out of the log, so which
+      // row it was is deliberately not recoverable — only that it was a row.
+      await pump(tester);
+      await tester.tap(find.byType(DropdownMenu<int?>));
+      await settle(tester);
+
+      expect(
+        find.bySemanticsLabel(RegExp('.*')).evaluate().isNotEmpty,
+        isTrue,
+        reason: 'the menu opened',
+      );
+      final ids = tester
+          .widgetList<Semantics>(find.byType(Semantics))
+          .map((w) => w.properties.identifier)
+          .whereType<String>()
+          .where((id) => id.startsWith('test.filter'))
+          .toSet();
+      expect(ids, containsAll(['test.filter.any', 'test.filter.option']));
+    });
+  });
 }

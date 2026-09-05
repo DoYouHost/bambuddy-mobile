@@ -32,6 +32,7 @@ import '../../../providers.dart';
 import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
 import '../../common/camera_token_image_recovery.dart';
+import '../../common/dash_async.dart';
 import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../common/dash_progress.dart';

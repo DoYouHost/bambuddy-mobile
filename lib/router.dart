@@ -33,6 +33,7 @@ import 'features/settings/cloud_account_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
+import 'features/pipelines/pipelines_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
 import 'providers.dart';
@@ -107,6 +108,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/stats',
         builder: (_, _) => const StatisticsScreen(),
+      ),
+
+      // Slicer pipelines — full screen outside shell (pushed from drawer).
+      // The runs dashboard is pushed from it rather than routed: it is only
+      // ever reached through a pipeline, and a deep link to it on a server
+      // without the routes would land on an error.
+      GoRoute(
+        path: '/pipelines',
+        builder: (_, _) => const PipelinesScreen(),
       ),
 
       // Print log — per-run history, full screen outside shell (opened from the

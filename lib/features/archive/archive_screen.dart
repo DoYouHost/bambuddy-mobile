@@ -34,6 +34,10 @@ import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
+import '../../data/pipelines_repository.dart' show PipelineSource;
+import '../pipelines/pipeline_run_screen.dart';
+import '../pipelines/pipelines_providers.dart'
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
@@ -282,6 +286,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onPreviewGcode: () => _previewGcode(archive),
         onMedia: () => _openMedia(archive),
         onSlice: () => _slice(archive),
+        onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
     );
@@ -336,6 +341,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     await showSliceScreen(
       context,
       SliceTarget.archive(archive.id, archive.displayName),
+    );
+  }
+
+  /// Re-slice this archive with a saved pipeline and dispatch the copies.
+  Future<void> _runPipeline(Archive archive) async {
+    Navigator.pop(context);
+    await showPipelineRunScreen(
+      context,
+      source: PipelineSource.archive(archive.id),
+      sourceName: archive.displayName,
     );
   }
 
@@ -882,6 +897,7 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onPreviewGcode,
     required this.onMedia,
     required this.onSlice,
+    required this.onRunPipeline,
     required this.onDelete,
   });
 
@@ -891,6 +907,7 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onPreviewGcode;
   final VoidCallback onMedia;
   final VoidCallback onSlice;
+  final VoidCallback onRunPipeline;
   final VoidCallback onDelete;
 
   @override
@@ -966,7 +983,11 @@ class _ArchiveSheet extends StatelessWidget {
                 ),
                 _ArchiveMediaButton(archive: archive, onMedia: onMedia),
                 const SizedBox(height: 8),
-                _SliceArchiveButton(archive: archive, onSlice: onSlice),
+                _SliceArchiveButton(
+                  archive: archive,
+                  onSlice: onSlice,
+                  onRunPipeline: onRunPipeline,
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(
@@ -1102,26 +1123,51 @@ class _SheetPrimaryActions extends StatelessWidget {
 /// are not). Renders nothing otherwise, so the sheet is unchanged for the
 /// common case.
 class _SliceArchiveButton extends ConsumerWidget {
-  const _SliceArchiveButton({required this.archive, required this.onSlice});
+  const _SliceArchiveButton({
+    required this.archive,
+    required this.onSlice,
+    required this.onRunPipeline,
+  });
 
   final Archive archive;
   final VoidCallback onSlice;
+  final VoidCallback onRunPipeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).valueOrNull ?? false;
+    final enabled = ref.watch(slicerEnabledProvider).orFalse;
     if (!enabled) return const SizedBox.shrink();
     final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
     if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    // Running a pipeline re-slices the same source, so it rides on exactly the
+    // gate above; the extra conditions are only about the pipeline routes.
+    final canRunPipeline =
+        ref.watch(canRunPipelinesProvider).orFalse;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          icon: const Icon(Icons.layers_outlined),
-          label: Text(AppLocalizations.of(context).sliceAction),
-          onPressed: onSlice,
-        ),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.layers_outlined),
+              label: Text(l10n.sliceAction),
+              onPressed: onSlice,
+            ).tagged('archive.slice'),
+          ),
+          if (canRunPipeline) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.account_tree_outlined),
+                label: Text(l10n.pipelineRun),
+                onPressed: onRunPipeline,
+              ).tagged('archive.run_pipeline'),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1142,7 +1188,7 @@ class _ArchiveMediaButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchable =
-        ref.watch(archiveMediaSupportedProvider).valueOrNull ?? false;
+        ref.watch(archiveMediaSupportedProvider).orFalse;
     if (!archiveHasMedia(archive, printerSearchable: searchable)) {
       return const SizedBox.shrink();
     }

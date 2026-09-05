@@ -416,6 +416,7 @@ class WsProbe {
         WsPrintEvent(completed: final completed) =>
           completed ? 'print_complete' : 'print_start',
         WsArchiveUpdated() => 'archive_updated',
+        WsPipelineRunUpdated() => 'pipeline_run_updated',
         WsPong() => 'pong',
         WsUnknown(type: final type) => _knownShape(type),
         null => 'unparsed',

@@ -132,9 +132,9 @@ abstract class SpoolInventorySource {
   /// writes them back (server 1.2.6; see [SpoolPresetOverride]).
   ///
   /// The two exceptions to the rule that everything here answers with a mapped
-  /// [AppApiException]: [InventoryRepository] runs them inside the latch that
-  /// reads a 404 as "this server has no such route", and that latch needs the
-  /// [DioException] itself to read the status off. It maps what it rethrows,
+  /// [AppApiException]: [InventoryRepository] runs them inside a latch that has
+  /// to read the status off the [DioException] itself — a 403 to record the
+  /// refusal, a 404 to answer the read with no rows. It maps what it rethrows,
   /// so nothing above the repository sees the difference.
   Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId);
 

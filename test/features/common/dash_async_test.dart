@@ -10,6 +10,41 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 void main() {
+  /// One decision, previously spelled two ways across nineteen call sites.
+  /// Every one of them gates a control, so what matters is that the three
+  /// non-answers — loading, error, and a refusal the server has not sent yet —
+  /// all read as off, and that no call site can accidentally write the
+  /// opposite.
+  group('orFalse', () {
+    test('only a true answer is on', () {
+      expect(const AsyncValue.data(true).orFalse, isTrue);
+      expect(const AsyncValue.data(false).orFalse, isFalse);
+    });
+
+    test('a gate still loading is off, not on', () {
+      // Otherwise a drawer entry flashes in and out, or a button leads to a
+      // route the server turns out not to have.
+      expect(const AsyncValue<bool>.loading().orFalse, isFalse);
+    });
+
+    test('a gate that failed to load is off', () {
+      expect(
+        AsyncValue<bool>.error(Exception('no'), StackTrace.empty).orFalse,
+        isFalse,
+      );
+    });
+
+    test('a refresh keeps answering with the value it already had', () {
+      // `AsyncLoading.copyWithPrevious` is how a pull-to-refresh reports
+      // itself; a control must not blink off underneath the user for it.
+      const settled = AsyncValue.data(true);
+      final refreshing =
+          const AsyncValue<bool>.loading().copyWithPrevious(settled);
+
+      expect(refreshing.orFalse, isTrue);
+    });
+  });
+
   late int retries;
 
   Future<AppLocalizations> pumpState(

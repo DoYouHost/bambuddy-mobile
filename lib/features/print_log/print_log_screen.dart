@@ -123,7 +123,7 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(printLogProvider);
     final filters = ref.watch(printLogFiltersProvider);
-    final sortable = ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+    final sortable = ref.watch(printLogCostEnergyProvider).orFalse;
 
     return DashBackground(
       child: Scaffold(
@@ -373,7 +373,7 @@ class _PrintLogCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final showMoney =
-        ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+        ref.watch(printLogCostEnergyProvider).orFalse;
 
     final currency = ref.watch(currencySymbolProvider);
 
@@ -514,49 +514,6 @@ class _PrintLogCard extends ConsumerWidget {
   }
 }
 
-/// Small tinted label — status, failure cause, "archive deleted".
-
-/// One "anything, or pick one" filter combo.
-///
-/// [anyValue] is what the "any" row carries, because a `DropdownMenu` has no
-/// null option and every row needs a value of its own — an id no printer has,
-/// an empty username. It never reaches [onPick]: choosing it, or choosing
-/// nothing, is reported as null, so the caller only ever handles "no filter"
-/// once. Duplicating that mapping per combo is how two pickers drift apart.
-///
-/// [options] pairs each value with the label it shows. Labels are names people
-/// gave things, so they stay out of the diagnostic id — every row of one
-/// picker records under the same `<id>.option`.
-Widget _anyOrOne<T>(
-  BuildContext context, {
-  required String id,
-  required String anyLabel,
-  required T anyValue,
-  required T? selected,
-  required List<(T, String)> options,
-  required ValueChanged<T?> onPick,
-}) =>
-    dashCombo<T>(
-      context,
-      id: id,
-      initialSelection: selected ?? anyValue,
-      textStyle: DashTokens.of(context).body,
-      onSelected: (v) => onPick(v == null || v == anyValue ? null : v),
-      entries: [
-        DropdownMenuEntry(
-          value: anyValue,
-          label: anyLabel,
-          labelWidget: logTag('$id.any', Text(anyLabel)),
-        ),
-        for (final (value, label) in options)
-          DropdownMenuEntry(
-            value: value,
-            label: label,
-            labelWidget: logTag('$id.option', Text(label)),
-          ),
-      ],
-    );
-
 /// Every filter here is applied by the server: the list is paged, so filtering
 /// what is already loaded would answer about this page rather than the log.
 class _PrintLogFilterSheet extends ConsumerWidget {
@@ -637,12 +594,11 @@ class _PrintLogFilterSheet extends ConsumerWidget {
 
             if (printers.isNotEmpty) ...[
               FilterGroupLabel(label: l10n.printLogFilterPrinter),
-              _anyOrOne<int>(
+              dashAnyOrOne<int>(
                 context,
                 id: 'print_log.filters.printer',
                 anyLabel: l10n.printLogAnyPrinter,
-                // No printer carries it, so it cannot collide with a real id.
-                anyValue: -1,
+                textStyle: DashTokens.of(context).body,
                 selected: filters.printerId,
                 options: [for (final p in printers) (p.id, p.name)],
                 onPick: (v) => notifier.set(
@@ -656,11 +612,11 @@ class _PrintLogFilterSheet extends ConsumerWidget {
 
             if (users.isNotEmpty) ...[
               FilterGroupLabel(label: l10n.printLogFilterUser),
-              _anyOrOne<String>(
+              dashAnyOrOne<String>(
                 context,
                 id: 'print_log.filters.user',
                 anyLabel: l10n.printLogAnyUser,
-                anyValue: '',
+                textStyle: DashTokens.of(context).body,
                 selected: filters.username,
                 options: [for (final u in users) (u.username, u.username)],
                 onPick: (v) => notifier.set(

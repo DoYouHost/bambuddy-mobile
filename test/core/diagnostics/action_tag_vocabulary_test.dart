@@ -26,6 +26,9 @@ void main() {
         'the scheduler gate inside the start flow, not a button of its own',
     'project.link_folder': 'the section action, which carries no id of its own',
     'project.attachment_upload': 'likewise',
+    'pipeline_run.check':
+        'the eligibility pre-flight, which runs itself between the pipeline '
+            'pick and the start button rather than from a control',
     'spool_form.save_model_presets':
         'the second write the Save button makes, after the spool itself — '
         'a step in that flow, not a control of its own',

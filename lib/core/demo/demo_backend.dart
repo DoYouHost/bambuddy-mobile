@@ -146,6 +146,16 @@ class DemoBackend {
   // server keeps so a configured slot can be named, not just shown.
   final Map<String, Map<String, dynamic>> _slotPreset = {};
 
+  // Saved pipelines and the runs they dispatched. Mutable because the whole
+  // point of the screens is authoring: targeting one, running it, cancelling
+  // and retrying. Seeded lazily so the fixtures below can be built once the
+  // instance exists.
+  List<Map<String, dynamic>>? _pipelinesStore;
+  List<Map<String, dynamic>>? _pipelineRunsStore;
+  int _nextPipelineId = 3;
+  int _nextPipelineRunId = 100;
+  int _nextPipelineJobId = 500;
+
   /// identify_ids skipped during the current X1 demo print. Reset on stop so a
   /// fresh cycle shows every object again.
   final Set<int> _skippedObjects = {};
@@ -220,10 +230,10 @@ class DemoBackend {
         //
         // 1.2.6 is what serves the print log's cost and energy and its sortable
         // columns; the beta suffix because that is where the contract really
-        // lives today, 1.2.5.2 being the newest release. Everything else 1.2.6
-        // gates is either served below (library variant groups) or invisible
-        // here anyway: the two slicer features need `use_slicer_api`, which the
-        // demo reports off, and the users listing is decided by probing.
+        // lives today, 1.2.5.2 being the newest release. It is also the version
+        // that gates `process_overrides` and `auto_orient`/`auto_arrange` on a
+        // slice, both of which the routes below accept — the users listing is
+        // the one thing 1.2.6 gates that is decided by probing instead.
         if (at(1, 'version')) {
           return _ok(const {
             'version': '1.2.6b1',
@@ -373,6 +383,12 @@ class DemoBackend {
       case 'scheduled-dryings':
         return _scheduledDryingRoute(m, s, q, body);
 
+      case 'slicer-pipelines':
+        return _pipelineRoute(m, s, body);
+
+      case 'pipeline-runs':
+        return _pipelineRunsRoute(m, s, q);
+
       case 'location-ha-sensors':
         if (s.length == 1) return _ok(_locationSensors);
         if (at(1, 'by-location') && at(3, 'readings')) {
@@ -445,7 +461,10 @@ class DemoBackend {
       case 'settings':
         return _ok(const {
           'require_plate_clear': false,
-          'use_slicer_api': false,
+          // On, so the slice form is reachable at all: it gates every Slice
+          // button in the app, and with it off the pipelines feature showed
+          // only its read-only half.
+          'use_slicer_api': true,
           'currency': 'USD',
           // Auto-print snippets, as the real server stores them: a JSON string
           // keyed by printer model. Only the A1 mini has one, so demo shows both
@@ -468,10 +487,22 @@ class DemoBackend {
           'ambient_drying_enabled': true,
           'queue_drying_enabled': true,
           'print_drying_enabled': false,
+          // The ceiling the run form's copies stepper stops at. Deliberately
+          // not the server's own default of 50: a demo that agreed with the
+          // fallback would not show whether the setting is read at all.
+          'pipeline_max_copies': 12,
         });
+
+      case 'slice-jobs':
+        return _sliceJobRoute(id(1));
 
       case 'slicer':
         if (at(1, 'printer-models')) return _ok(_printerModels);
+        // The catalogue both features read: the slice form's three pickers,
+        // and the pipeline cards resolving their stored `PresetRef`s (without
+        // it every row read "No longer in the catalog").
+        if (at(1, 'presets')) return _ok(_slicerPresets);
+        if (at(1, 'preset-values')) return _presetValues(q);
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -507,6 +538,528 @@ class DemoBackend {
         'permissions': const <Object>[],
         'created_at': _iso(_daysAgo(60)),
       };
+
+  /// `/slicer/presets` — the tiers the unified picker merges, holding exactly
+  /// the presets the demo pipelines point at plus a couple more so a picker has
+  /// something to choose between.
+  static const _slicerPresets = {
+    'local': {
+      'printer': [
+        {'source': 'local', 'id': 'p-x1c-04', 'name': 'X1C 0.4 nozzle'},
+        {'source': 'local', 'id': 'p-p1s-04', 'name': 'P1S 0.4 nozzle'},
+      ],
+      'process': [
+        {'source': 'local', 'id': 'q-020-std', 'name': '0.20mm Standard @X1C'},
+        {'source': 'local', 'id': 'q-028-draft', 'name': '0.28mm Draft @X1C'},
+      ],
+      'filament': [
+        {
+          'source': 'local',
+          'id': 'f-petg-white',
+          'name': 'Generic PETG @X1C',
+          'filament_type': 'PETG',
+          'filament_colour': '#FFFFFF',
+        },
+        {
+          'source': 'local',
+          'id': 'f-asa-black',
+          'name': 'Fiberlogy ASA @X1C',
+          'filament_type': 'ASA',
+          'filament_colour': '#1A1A1A',
+        },
+      ],
+    },
+    'standard': {
+      'printer': <Object>[],
+      'process': [
+        {
+          'source': 'standard',
+          'id': '0.20mm Standard @BBL X1C',
+          'name': '0.20mm Standard @BBL X1C',
+        },
+      ],
+      'filament': [
+        {
+          'source': 'standard',
+          'id': 'Bambu PLA Basic @BBL X1C',
+          'name': 'Bambu PLA Basic @BBL X1C',
+          'filament_type': 'PLA',
+        },
+      ],
+    },
+  };
+
+  // --- Server-side slicing ---
+
+  /// The two-tone source, which is the only demo file that needs more than one
+  /// filament slot. Named rather than inlined because three routes have to
+  /// agree about which file that is.
+  static const _multiSlotFileId = 7;
+
+  /// The one archive that kept the project file it was sliced from, so its card
+  /// can offer a re-slice. Found by print name rather than id: the ids are
+  /// handed out in fixture order and would move if a print were inserted above.
+  int get _sliceableArchiveId =>
+      _archives.firstWhere((a) => a['print_name'] == 'Benchy')['id'] as int;
+
+  /// `/slicer/preset-values` — the picked process preset's effective values,
+  /// flattened, as the sidecar answers them.
+  ///
+  /// The standard tier deliberately has no entry: on a real install a sidecar
+  /// older than the endpoint is the common cause of an unresolved answer, and
+  /// it is the only way to reach the panel's "opened on the schema's own
+  /// defaults, and here is why" state.
+  DemoResult _presetValues(Map<String, String> q) {
+    if ((q['slot'] ?? 'process') != 'process') {
+      return (
+        status: 400,
+        body: {'detail': "Only the 'process' slot is supported"},
+      );
+    }
+    final values = _processPresetValues[q['id']];
+    if (values == null) {
+      return _ok(const {
+        'resolved': false,
+        'values': <String, Object>{},
+        'reason': 'sidecar_outdated',
+      });
+    }
+    return _ok({'resolved': true, 'values': values, 'reason': 'ok'});
+  }
+
+  /// Effective process values per local preset id, spelled as a process JSON
+  /// spells them — every scalar a string, booleans `1`/`0`, percents with the
+  /// sign, vectors as arrays. A number here would make the settings panel read
+  /// the field as user-modified the moment it opened.
+  ///
+  /// The two presets differ in more than the layer height so that switching
+  /// between them visibly re-baselines the panel rather than moving one row.
+  static const _processPresetValues = {
+    'q-020-std': {
+      'layer_height': '0.2',
+      'initial_layer_print_height': '0.2',
+      'wall_loops': '2',
+      'top_shell_layers': '5',
+      'bottom_shell_layers': '3',
+      'sparse_infill_density': '15%',
+      'sparse_infill_pattern': 'grid',
+      'enable_support': '0',
+      'brim_type': 'auto_brim',
+      'outer_wall_speed': ['200'],
+    },
+    'q-028-draft': {
+      'layer_height': '0.28',
+      'initial_layer_print_height': '0.28',
+      'wall_loops': '2',
+      'top_shell_layers': '4',
+      'bottom_shell_layers': '3',
+      'sparse_infill_density': '10%',
+      'sparse_infill_pattern': 'gyroid',
+      'enable_support': '0',
+      'brim_type': 'auto_brim',
+      'outer_wall_speed': ['250'],
+    },
+  };
+
+  /// Layer height a picked process preset slices at, as a number. Falls back to
+  /// the demo's own 0.20 for the standard tier, whose values this backend does
+  /// not claim to know.
+  double _layerHeightOf(String presetId) =>
+      double.tryParse('${_processPresetValues[presetId]?['layer_height']}') ??
+      0.2;
+
+  /// `/library/files/{id}/plates` — the plates to choose between, plus the
+  /// presets the 3MF names in its own project settings.
+  ///
+  /// A non-3MF gets the short shape the server gives it, with no
+  /// `design_overrides` key at all: its absence is what tells the app that
+  /// "slice as designed" is not on offer here, as against being empty.
+  Map<String, dynamic> _libraryPlates(Map<String, dynamic> file) {
+    final filename = '${file['filename']}';
+    if (!filename.toLowerCase().endsWith('.3mf')) {
+      return {
+        'file_id': file['id'],
+        'filename': filename,
+        'plates': const <Object>[],
+        'is_multi_plate': false,
+      };
+    }
+    final count = file['id'] == _multiSlotFileId ? 2 : 1;
+    return {
+      'file_id': file['id'],
+      'filename': filename,
+      'plates': [
+        for (var i = 1; i <= count; i++)
+          {
+            'index': i,
+            'name': null,
+            'objects': <String>[],
+            'object_count': 1,
+            'has_thumbnail': false,
+            'thumbnail_url': null,
+            // Both estimates come out of the metadata a slice writes, so they
+            // are null on an un-sliced source and read off the row on output
+            // this backend produced itself.
+            'print_time_seconds': toIntOrNull(file['print_time_seconds']),
+            'filament_used_grams': toDoubleOrNull(file['filament_used_grams']),
+            'filaments': <Object>[],
+          },
+      ],
+      'is_multi_plate': count > 1,
+      // Verbatim preset names, matched against the catalogue by name — so these
+      // have to be spelled as `/slicer/presets` spells them or the switch never
+      // appears.
+      'embedded_printer': 'X1C 0.4 nozzle',
+      'embedded_process': '0.20mm Standard @X1C',
+      'design_overrides': const [
+        {
+          'key': 'wall_loops',
+          'value': '3',
+          'printer_coupled': false,
+          'preset_defining': false,
+        },
+        {
+          'key': 'sparse_infill_density',
+          'value': '25%',
+          'printer_coupled': false,
+          'preset_defining': false,
+        },
+      ],
+    };
+  }
+
+  /// The two-tone source's project slots. Four of them, two materials, so the
+  /// per-slot pickers have something to auto-pick from by type and colour.
+  static const _twoToneSlots = [
+    {'slot_id': 1, 'type': 'PLA', 'color': '#FFFFFF'},
+    {'slot_id': 2, 'type': 'PLA', 'color': '#1A1A1A'},
+    {'slot_id': 3, 'type': 'PETG', 'color': '#FF6A13'},
+    {'slot_id': 4, 'type': 'PETG', 'color': '#0ACCB8'},
+  ];
+
+  /// Which of [_twoToneSlots] each plate actually prints from. The point of the
+  /// table: the file declares four slots and no plate uses all four, so the
+  /// answer genuinely depends on `plate_id` — which is the trap the slice form
+  /// avoids by asking about the same plate it is going to slice.
+  static const _twoTonePlateSlots = {
+    1: [1, 2],
+    2: [3, 4],
+  };
+
+  /// `/library/files/{id}/filament-requirements`.
+  ///
+  /// `full_slots` is the difference between the two callers: the slice form
+  /// wants one row per **project** slot, because `filament_presets` is
+  /// positional, while print-time AMS matching wants only the slots the plate
+  /// consumes. A source with no filament table answers none, and the slice form
+  /// falls back to a single generic picker.
+  Map<String, dynamic> _libraryFilaments(
+    Map<String, dynamic> file,
+    Map<String, String> q,
+  ) {
+    final plateId = int.tryParse(q['plate_id'] ?? '') ?? 1;
+    final rows = <Map<String, dynamic>>[];
+    if ('${file['filename']}'.toLowerCase().endsWith('.3mf')) {
+      final used = file['id'] == _multiSlotFileId
+          ? (_twoTonePlateSlots[plateId] ?? const <int>[])
+          : const [1];
+      final slots = file['id'] == _multiSlotFileId
+          ? _twoToneSlots
+          : const [
+              {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'}
+            ];
+      for (final slot in slots) {
+        final inPlate = used.contains(slot['slot_id']);
+        if (!inPlate && q['full_slots'] != 'true') continue;
+        rows.add({
+          ...slot,
+          // No measured figure on a source that has never been sliced.
+          'used_grams': 0,
+          'used_meters': 0,
+          'used_in_plate': inPlate,
+        });
+      }
+    }
+    return {
+      'file_id': file['id'],
+      'filename': file['filename'],
+      'plate_id': plateId,
+      'filaments': rows,
+    };
+  }
+
+  /// `/archives/{id}/filament-requirements` — one slot, holding what the print
+  /// actually ran with. A sliced file's table is the used-only one, so every
+  /// row it can offer is used by definition.
+  Map<String, dynamic> _archiveFilaments(Map<String, dynamic> archive) {
+    final grams = toDouble(archive['filament_used_grams']);
+    return {
+      'archive_id': archive['id'],
+      'filename': archive['filename'],
+      'filaments': [
+        {
+          'slot_id': 1,
+          'type': archive['filament_type'],
+          'color': archive['filament_color'],
+          'used_grams': grams,
+          'used_meters': _r1(grams * 0.33),
+          'used_in_plate': true,
+        },
+      ],
+    };
+  }
+
+  /// Slice jobs this backend has handed out, by id. Never swept: the demo has
+  /// no retention window to model, and a job the dialog is still polling is the
+  /// only one anybody asks about.
+  final Map<int, Map<String, dynamic>> _sliceJobs = {};
+  int _nextSliceJobId = 700;
+
+  /// How long a demo slice takes. Comfortably longer than the dialog's 1.5 s
+  /// poll: a job already finished by the first poll would never show a stage or
+  /// a percentage, which is most of what that dialog is. Settable so a contract
+  /// test can watch a whole run without spending nine seconds on it.
+  static double sliceSeconds = 9;
+
+  /// `POST …/slice` — enqueue, exactly as the server does: 202 carrying the id
+  /// to poll and nothing else. What the slicer would produce is decided here,
+  /// from the source and the picked process preset, and handed out by
+  /// [_sliceJobRoute] once enough time has passed for it to be believable.
+  DemoResult _startSlice({
+    required bool isArchive,
+    required Map<String, dynamic> source,
+    required Map<String, dynamic> body,
+  }) {
+    final filename = '${source['filename']}'.toLowerCase();
+    if (!isArchive) {
+      // Both refusals land before a byte is read, and the STEP one is its own
+      // message because neither slicer CLI can load the format at all — read as
+      // a corrupt model, it would send the user looking in the wrong place.
+      if (filename.endsWith('.step') || filename.endsWith('.stp')) {
+        return (
+          status: 400,
+          body: {
+            'detail': 'STEP files cannot be sliced. The OrcaSlicer and Bambu '
+                'Studio command-line slicers load only STL and 3MF -- open the '
+                'STEP in your slicer and export it as one of those first.',
+          },
+        );
+      }
+      if (!filename.endsWith('.stl') && !filename.endsWith('.3mf')) {
+        return (
+          status: 400,
+          body: {'detail': 'Source file must be STL or 3MF'},
+        );
+      }
+    }
+    final jobId = _nextSliceJobId++;
+    final process = body['process_preset'];
+    _sliceJobs[jobId] = {
+      'kind': isArchive ? 'archive' : 'library_file',
+      'source': source,
+      'started_ms': DateTime.now().millisecondsSinceEpoch,
+      'created_at': _iso(DateTime.now()),
+      'embedded': body['use_embedded_settings'] == true,
+      'layer_height': _layerHeightOf(
+          process is Map ? '${process['id']}' : ''),
+      'printer_preset': body['printer_preset'],
+      'result': null,
+    };
+    return (
+      status: 202,
+      body: {
+        'job_id': jobId,
+        'status': 'pending',
+        'status_url': '/api/v1/slice-jobs/$jobId',
+      },
+    );
+  }
+
+  /// `GET /slice-jobs/{id}` — the status the progress dialog polls.
+  ///
+  /// Time-based like the print simulation: the phase and the percentage come
+  /// out of how long ago the job was enqueued, so it advances between polls
+  /// with nothing running in between.
+  DemoResult _sliceJobRoute(int? jobId) {
+    final job = _sliceJobs[jobId];
+    if (job == null) {
+      return (status: 404, body: {'detail': 'Slice job not found or expired'});
+    }
+    final elapsed =
+        (DateTime.now().millisecondsSinceEpoch - (job['started_ms'] as int)) /
+            1000;
+    final done = elapsed >= sliceSeconds;
+    // The sidecar publishes nothing for the first moment of a slice, which is
+    // what puts the dialog on an indeterminate bar instead of a 0%.
+    final started = elapsed >= 1;
+    final body = <String, dynamic>{
+      'job_id': jobId,
+      'status': done
+          ? 'completed'
+          : started
+              ? 'running'
+              : 'pending',
+      'kind': job['kind'],
+      'source_id': (job['source'] as Map)['id'],
+      'source_name': (job['source'] as Map)['filename'],
+      'created_at': job['created_at'],
+      'started_at': job['created_at'],
+      'progress': done || !started ? null : _sliceProgress(elapsed),
+    };
+    if (done) {
+      // Stamped alongside the result, so both are decided on the first poll
+      // that finds the job over rather than moving with each later one.
+      job['completed_at'] ??= _iso(DateTime.now());
+      body['result'] = _sliceResult(job);
+    }
+    body['completed_at'] = job['completed_at'];
+    return _ok(body);
+  }
+
+  /// The sidecar's own snapshot, which the server forwards verbatim: a stage
+  /// name and a whole-slice percentage.
+  static Map<String, dynamic> _sliceProgress(double elapsed) {
+    final percent = (elapsed / sliceSeconds * 100).clamp(1, 99).round();
+    final stage = switch (percent) {
+      < 25 => 'Processing triangulated mesh',
+      < 45 => 'Generating perimeters',
+      < 65 => 'Preparing infill',
+      < 85 => 'Generating G-code',
+      _ => 'Exporting G-code',
+    };
+    return {'stage': stage, 'total_percent': percent};
+  }
+
+  /// What the slice produced, filed where the server would have filed it.
+  ///
+  /// Built on the first poll that finds the job finished and kept on the job
+  /// afterwards: the row it adds to the library or the archives must be added
+  /// once, and this is polled repeatedly.
+  Map<String, dynamic> _sliceResult(Map<String, dynamic> job) {
+    final cached = job['result'];
+    if (cached is Map<String, dynamic>) return cached;
+
+    final source = job['source'] as Map<String, dynamic>;
+    final bytes = toInt(source['file_size']);
+    // A source that has been through a slicer already knows what it costs — an
+    // archive always does — and only an un-sliced upload has to be guessed at
+    // from its size. Either way the picked process preset moves the time, so
+    // the two presets do not produce the same estimate.
+    final known = toIntOrNull(source['print_time_seconds']);
+    final seconds =
+        ((known ?? bytes / 520) * (0.2 / (job['layer_height'] as double)))
+            .round();
+    final grams =
+        toDoubleOrNull(source['filament_used_grams']) ?? _r1(bytes / 26000);
+    final base = '${source['print_name'] ?? source['filename']}';
+    final result = <String, dynamic>{
+      'print_time_seconds': seconds,
+      'filament_used_g': grams,
+      // 1.75 mm filament runs about 330 mm to the gram.
+      'filament_used_mm': _r1(grams * 330),
+      'used_embedded_settings': job['embedded'] == true,
+      'external_write_fallback': null,
+    };
+    final printerPreset = job['printer_preset'];
+    final model = _modelOfPrinterPreset(
+        printerPreset is Map ? '${printerPreset['id']}' : '');
+    if (job['kind'] == 'archive') {
+      final archive = _resliceArchive(source, base, seconds, grams, model);
+      result['archive_id'] = archive['id'];
+      result['name'] = archive['print_name'];
+    } else {
+      final file = _slicedLibraryFile(source, base, seconds, grams, model);
+      result['library_file_id'] = file['id'];
+      result['name'] = file['filename'];
+    }
+    job['result'] = result;
+    return result;
+  }
+
+  /// The sliced output, filed in the library beside its source — which is where
+  /// the user goes looking for it, and the reason this is a row rather than a
+  /// number in a dialog.
+  Map<String, dynamic> _slicedLibraryFile(
+    Map<String, dynamic> source,
+    String base,
+    int seconds,
+    double grams,
+    String? model,
+  ) {
+    final file = _libFile(
+      _nextLibraryFileId++,
+      '$base.gcode.3mf',
+      source['folder_id'] as int?,
+      (grams * 21000).round(),
+      timeSec: seconds,
+      grams: grams,
+      model: model,
+    );
+    _libraryFiles.add(file);
+    return file;
+  }
+
+  /// The re-sliced output as an archive row: sliced but never printed, so it
+  /// carries the estimates and no run of its own.
+  Map<String, dynamic> _resliceArchive(
+    Map<String, dynamic> source,
+    String base,
+    int seconds,
+    double grams,
+    String? model,
+  ) {
+    // The output is for whatever printer was just picked, not for the one the
+    // source happened to print on — copying the source's model is what left a
+    // cross-printer re-slice wearing the old badge (server #2636 follow-up).
+    final printer =
+        _printers.where((p) => p['model'] == model).firstOrNull?['id'];
+    final archive = {
+      ...source,
+      'id': _archives.map((a) => toInt(a['id'])).reduce(math.max) + 1,
+      'filename': '$base.gcode.3mf',
+      'print_name': '$base (re-sliced)',
+      'printer_id': printer ?? source['printer_id'],
+      'sliced_for_model': model ?? source['sliced_for_model'],
+      'print_time_seconds': seconds,
+      'filament_used_grams': grams,
+      // Nothing ran, so there is nothing measured: no run, no accuracy, no
+      // energy. The demo's own statistics coerce these rather than assume a
+      // print behind every archive row.
+      'actual_time_seconds': 0,
+      'time_accuracy': null,
+      'total_filament_actual_grams': null,
+      'started_at': null,
+      'completed_at': null,
+      'run_count': 0,
+      'last_run_at': null,
+      'successful_run_count': 0,
+      'failed_run_count': 0,
+      'cost': _r1(grams * 0.025),
+      'energy_kwh': 0.0,
+      'energy_cost': 0.0,
+      'created_at': _iso(DateTime.now()),
+    };
+    _archives.insert(0, archive);
+    return archive;
+  }
+
+  /// Short model code for a printer preset the slice was sent with, so the
+  /// output row says which printer it is for. Matched the way the app matches
+  /// it — the code as a whole token in the preset's name — rather than by a
+  /// table of preset ids that would have to be kept in step with the catalogue.
+  String? _modelOfPrinterPreset(String presetId) {
+    final printers = (_slicerPresets['local']?['printer'] ?? const []) as List;
+    final name = printers
+        .whereType<Map<String, Object>>()
+        .where((p) => p['id'] == presetId)
+        .map((p) => '${p['name']}'.toUpperCase())
+        .firstOrNull;
+    if (name == null) return null;
+    for (final code in _printerModels.values) {
+      if (RegExp('(?<![A-Z0-9])$code(?![A-Z0-9])').hasMatch(name)) return code;
+    }
+    return null;
+  }
 
   // --- Printers + status ---
 
@@ -558,6 +1111,24 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
     },
+    // The second X1C, and the only reason the fleet is five rather than four:
+    // a pipeline targeting a *class* matches on `Printer.model`, so with four
+    // distinct models every class has exactly one member and the whole of
+    // fanout — the per-printer eligibility breakdown, "1 of 2 ready", copies
+    // spread over two machines — is unreachable. It carries PLA where printer 1
+    // carries PETG, which is what makes the mismatch in that breakdown real
+    // rather than fabricated.
+    {
+      'id': 5,
+      'name': 'X1 Carbon #2',
+      'serial_number': '01P00A390800001',
+      'ip_address': '192.168.4.25',
+      'access_code': '55019473',
+      'model': 'X1C',
+      'location': 'Workshop',
+      'is_active': true,
+      'nozzle_count': 1,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -573,6 +1144,10 @@ class DemoBackend {
         1 => _statusPrinting(),
         2 => _statusIdle(),
         4 => _statusAccessoryFans(),
+        5 => _statusSecondX1c(),
+        // Printer 3, and anything the fleet does not list. Written as the
+        // fallback rather than as `3 =>` because an id that reached here at all
+        // is one nothing should have asked about.
         _ => const {
             'name': 'A1 mini',
             'model': 'A1 mini',
@@ -719,6 +1294,53 @@ class DemoBackend {
         'firmware_version': '01.07.01.00',
         'cover_url': null,
         'supports_drying': false,
+        'awaiting_plate_clear': false,
+        'sdcard': true,
+        'ipcam': true,
+      };
+
+  /// The second X1C: idle, and loaded with PLA only.
+  ///
+  /// The filament is the point. Printer 1 is the other X1C and carries PETG,
+  /// so a pipeline whose filament preset is PETG makes the class report read
+  /// "1 of 2 ready" with this machine's own `filament_type_mismatch` under it —
+  /// the state the per-printer breakdown exists for, and one that needs two
+  /// machines of one model to reach.
+  Map<String, dynamic> _statusSecondX1c() => {
+        'name': 'X1 Carbon #2',
+        'model': 'X1C',
+        'connected': true,
+        'state': 'IDLE',
+        'current_print': null,
+        'gcode_file': null,
+        'progress': 0,
+        'remaining_time': 0,
+        'layer_num': 0,
+        'total_layers': 0,
+        'temperatures': {
+          'nozzle': _r1(24.1 + _wiggle(0.3, phase: 25)),
+          'nozzle_target': 0.0,
+          'bed': _r1(23.9 + _wiggle(0.2, phase: 60)),
+          'bed_target': 0.0,
+          'chamber': _r1(25.0 + _wiggle(0.3, phase: 80)),
+        },
+        'cooling_fan_speed': 0,
+        'big_fan1_speed': 0,
+        'big_fan2_speed': 0,
+        'heatbreak_fan_speed': 0,
+        'speed_level': _speedLevel[5] ?? 2,
+        'chamber_light': _chamberLight[5] ?? false,
+        'wifi_signal': -54,
+        'door_open': false,
+        'ams_exists': true,
+        'ams': [_amsUnitPlaOnly()],
+        'vt_tray': const <Object>[],
+        'tray_now': 255,
+        'active_extruder': 0,
+        'hms_errors': const <Object>[],
+        'firmware_version': '01.08.02.00',
+        'cover_url': null,
+        'supports_drying': true,
         'awaiting_plate_clear': false,
         'sdcard': true,
         'ipcam': true,
@@ -1017,6 +1639,26 @@ class DemoBackend {
               remain: 100,
               tagUid: 'B7A21C0439E5D168',
               trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
+          _tray(3, null, null),
+        ],
+      };
+
+  /// PLA in every filled slot — no PETG anywhere, which is what gives the
+  /// second X1C a real filament mismatch against a PETG pipeline.
+  Map<String, dynamic> _amsUnitPlaOnly() => {
+        'id': 0,
+        'humidity': 29,
+        'temp': _r1(24.5 + _wiggle(0.4, periodSec: 380)),
+        'is_ams_ht': false,
+        'module_type': 'ams',
+        'dry_time': 0,
+        'dry_status': 0,
+        'tray': [
+          _tray(0, '2F4F9AFF', 'PLA',
+              subBrand: 'PLA Matte', infoIdx: 'GFA01', remain: 64),
+          _tray(1, 'E8E8E8FF', 'PLA',
+              subBrand: 'PLA Basic', infoIdx: 'GFA00', remain: 88),
+          _tray(2, null, null),
           _tray(3, null, null),
         ],
       };
@@ -1994,14 +2636,27 @@ class DemoBackend {
           return _ok(const {'ok': true});
         }
         if (s.length >= 3 && s[2] == 'capabilities') {
-          return _ok(const {
+          return _ok({
             'has_model': false,
             'has_gcode': true,
-            'has_source': false,
+            // Only the one archive kept the project file it was sliced from,
+            // which is the whole of what `sliceable` asks about — every other
+            // demo archive is a plain `gcode.3mf` print output, and the server
+            // answers false for those too.
+            'has_source': aid == _sliceableArchiveId,
           });
         }
+        if (s.length >= 3 && s[2] == 'slice' && m == 'POST') {
+          if (aid != _sliceableArchiveId) {
+            return (
+              status: 400,
+              body: {'detail': 'Archive has no source file to slice'},
+            );
+          }
+          return _startSlice(isArchive: true, source: archive, body: body);
+        }
         if (s.length >= 3 && s[2] == 'filament-requirements') {
-          return _ok(const {'filaments': <Object>[]});
+          return _ok(_archiveFilaments(archive));
         }
         if (s.length >= 3 && s[2] == 'plates') {
           return _ok(_demoPlates(archive));
@@ -2125,10 +2780,13 @@ class DemoBackend {
               .firstOrNull?['name'] ??
           '?';
       byPrinter.update('$printerName', (v) => v + 1, ifAbsent: () => 1);
-      hours += (a['actual_time_seconds'] as int) / 3600;
-      grams += a['filament_used_grams'] as double;
-      cost += a['cost'] as double;
-      kwh += a['energy_kwh'] as double;
+      // Coerced, not cast: a re-sliced archive has never run, so the fields a
+      // completed print fills are null on it — and the server sends that row
+      // in the same list as every other.
+      hours += toDouble(a['actual_time_seconds']) / 3600;
+      grams += toDouble(a['filament_used_grams']);
+      cost += toDouble(a['cost']);
+      kwh += toDouble(a['energy_kwh']);
     }
     return {
       'total_prints': _archives.length,
@@ -2245,6 +2903,669 @@ class DemoBackend {
               'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
             },
       ];
+
+  // --- Slicer pipelines + runs ---
+
+  /// The saved bundles, seeded on first read.
+  ///
+  /// Two, chosen for the two states the screen has to show: one fully targeted
+  /// at the X1C **class** (which is why the fleet carries two X1Cs), and one
+  /// with no target at all — what every pipeline saved from the slice form
+  /// looks like, and the only way to reach the amber "set a target" line and
+  /// the edit screen behind it.
+  List<Map<String, dynamic>> get _pipelines =>
+      _pipelinesStore ??= [
+        {
+          'id': 1,
+          'name': 'Gridfinity PETG',
+          'description': 'Bins and baseplates, 0.20mm, engineering plate.',
+          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+          'process_preset': {'source': 'local', 'id': 'q-020-std'},
+          'filament_presets': [
+            {'source': 'local', 'id': 'f-petg-white'},
+          ],
+          'bed_type': 'Engineering Plate',
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': 'X1C',
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(_daysAgo(21)),
+          'updated_at': _iso(_daysAgo(3)),
+        },
+        {
+          'id': 2,
+          'name': 'Nightly ASA brackets',
+          'description': null,
+          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+          'process_preset': {'source': 'local', 'id': 'q-028-draft'},
+          'filament_presets': [
+            {'source': 'local', 'id': 'f-asa-black'},
+          ],
+          'bed_type': null,
+          // Untargeted, as `SlicerPipelineCreate` leaves every new bundle: the
+          // create schema declares none of these four fields.
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': null,
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(_daysAgo(2)),
+          'updated_at': _iso(_daysAgo(2)),
+        },
+      ];
+
+  /// `/slicer-pipelines` — CRUD, the pre-flight, and dispatch.
+  DemoResult? _pipelineRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') return _ok({'pipelines': _pipelines});
+      if (m == 'POST') {
+        // Only the bundle: the real create schema declares no target fields and
+        // Pydantic drops what it does not declare, so echoing them back would
+        // tell the app a write happened that did not.
+        final row = <String, dynamic>{
+          'id': _nextPipelineId++,
+          'name': '${body['name'] ?? 'Pipeline'}'.trim(),
+          'description': body['description'],
+          'printer_preset': body['printer_preset'],
+          'process_preset': body['process_preset'],
+          'filament_presets': body['filament_presets'] ?? const <Object>[],
+          'bed_type': body['bed_type'],
+          'target_kind': 'printer_class',
+          'target_printer_id': null,
+          'target_model_class': null,
+          'fanout_strategy': 'max_parallel',
+          'created_by': 1,
+          'created_at': _iso(DateTime.now()),
+          'updated_at': _iso(DateTime.now()),
+        };
+        _pipelines.insert(0, row);
+        return (status: 201, body: row);
+      }
+      return _fallback(m);
+    }
+
+    final pipelineId = int.tryParse(s[1]);
+    if (pipelineId == null) return _notFound();
+    final row = _pipelines.where((p) => p['id'] == pipelineId).firstOrNull;
+
+    if (s.length == 2) {
+      if (row == null) return _notFound();
+      if (m == 'GET') return _ok(row);
+      if (m == 'PUT') {
+        // Field by field under an `is not None` guard, like the real route: a
+        // key the caller omitted and a key sent as null are the same request,
+        // which is why the app clears a target with the sentinels below.
+        for (final key in const [
+          'name',
+          'description',
+          'printer_preset',
+          'process_preset',
+          'filament_presets',
+          'bed_type',
+          'target_kind',
+          'fanout_strategy',
+        ]) {
+          if (body[key] != null) row[key] = body[key];
+        }
+        // `0` clears the pinned printer and `''` clears the class — the two
+        // sentinels the API defines, because null cannot reach the column.
+        if (body['target_printer_id'] != null) {
+          row['target_printer_id'] =
+              body['target_printer_id'] == 0 ? null : body['target_printer_id'];
+        }
+        if (body['target_model_class'] != null) {
+          final asked = '${body['target_model_class']}';
+          row['target_model_class'] = asked.isEmpty ? null : asked;
+        }
+        row['updated_at'] = _iso(DateTime.now());
+        return _ok(row);
+      }
+      if (m == 'DELETE') {
+        // Soft, like the server: the row leaves the listing and every run that
+        // referenced it keeps its name.
+        _pipelines.remove(row);
+        return (status: 204, body: null);
+      }
+      return _fallback(m);
+    }
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'check-eligibility') {
+      if (row == null) return _notFound();
+      return _ok(_eligibility(row));
+    }
+    if (s.length == 3 && m == 'POST' && s[2] == 'run') {
+      if (row == null) return _notFound();
+      return _startRun(row, body);
+    }
+    if (s.length == 3 && m == 'GET' && s[2] == 'runs') {
+      return _ok({
+        'runs': [
+          for (final r in _pipelineRuns)
+            if (r['pipeline_id'] == pipelineId) r,
+        ],
+        'total': _pipelineRuns.where((r) => r['pipeline_id'] == pipelineId).length,
+      });
+    }
+    return _fallback(m);
+  }
+
+  /// The pre-flight, computed against the fleet rather than fabricated.
+  ///
+  /// A class target enumerates every printer whose `model` matches and reports
+  /// each one; the specific-printer path answers for that one machine in
+  /// `issues` and sends no `printer_reports`, which is the split the real
+  /// matcher makes.
+  Map<String, dynamic> _eligibility(Map<String, dynamic> pipeline) {
+    final kind = '${pipeline['target_kind']}';
+    final wanted = _pipelineFilamentType(pipeline);
+
+    if (kind == 'specific_printer') {
+      final id = pipeline['target_printer_id'];
+      if (id == null) {
+        return {
+          'ok': false,
+          'target_kind': kind,
+          'issues': [
+            {'kind': 'printer_not_set'},
+          ],
+          'printer_reports': const <Object>[],
+        };
+      }
+      final printer = _printers.where((p) => p['id'] == id).firstOrNull;
+      if (printer == null) {
+        return {
+          'ok': false,
+          'target_kind': kind,
+          'target_printer_id': id,
+          'issues': [
+            {'kind': 'printer_not_found'},
+          ],
+          'printer_reports': const <Object>[],
+        };
+      }
+      final issues = _printerIssues(printer, wanted);
+      return {
+        'ok': issues.isEmpty,
+        'target_kind': kind,
+        'target_printer_id': id,
+        'target_printer_name': printer['name'],
+        'issues': issues,
+        'printer_reports': const <Object>[],
+      };
+    }
+
+    final modelClass = pipeline['target_model_class'];
+    if (modelClass == null) {
+      return {
+        'ok': false,
+        'target_kind': kind,
+        'issues': [
+          {'kind': 'class_not_set'},
+        ],
+        'printer_reports': const <Object>[],
+      };
+    }
+    final candidates =
+        _printers.where((p) => p['model'] == modelClass).toList();
+    if (candidates.isEmpty) {
+      return {
+        'ok': false,
+        'target_kind': kind,
+        'target_model_class': modelClass,
+        'issues': [
+          {'kind': 'no_class_matches'},
+        ],
+        'printer_reports': const <Object>[],
+      };
+    }
+    final reports = [
+      for (final p in candidates)
+        {
+          'printer_id': p['id'],
+          'printer_name': p['name'],
+          'ok': _printerIssues(p, wanted).isEmpty,
+          'issues': _printerIssues(p, wanted),
+        },
+    ];
+    return {
+      'ok': reports.any((r) => r['ok'] == true),
+      'target_kind': kind,
+      'target_model_class': modelClass,
+      // Empty on the class path, exactly as the matcher leaves it: every
+      // problem belongs to a printer, so pooling them here would lose which.
+      'issues': const <Object>[],
+      'printer_reports': reports,
+    };
+  }
+
+  /// What the pipeline's first filament slot asks for, by type.
+  String? _pipelineFilamentType(Map<String, dynamic> pipeline) {
+    final slots = pipeline['filament_presets'];
+    if (slots is! List || slots.isEmpty) return null;
+    final first = slots.first;
+    if (first is! Map) return null;
+    final filaments = (_slicerPresets['local']?['filament'] ?? const []) as List;
+    for (final preset in filaments) {
+      if (preset is Map && preset['id'] == first['id']) {
+        return preset['filament_type'] as String?;
+      }
+    }
+    return null;
+  }
+
+  /// One printer measured against a wanted filament type — offline first,
+  /// because a machine that cannot be reached says nothing about its trays.
+  List<Map<String, dynamic>> _printerIssues(
+    Map<String, dynamic> printer,
+    String? wantedType,
+  ) {
+    final id = printer['id'] as int;
+    if (printer['is_active'] != true) {
+      return [
+        {'kind': 'printer_disabled'},
+      ];
+    }
+    final status = statusData(id);
+    if (status['connected'] != true) {
+      return [
+        {'kind': 'printer_offline'},
+      ];
+    }
+    if (wantedType == null) return [];
+    final loaded = <String>[];
+    for (final unit in (status['ams'] as List? ?? const [])) {
+      if (unit is! Map) continue;
+      for (final tray in (unit['tray'] as List? ?? const [])) {
+        if (tray is Map && tray['tray_type'] is String) {
+          loaded.add(tray['tray_type'] as String);
+        }
+      }
+    }
+    if (loaded.contains(wantedType)) return [];
+    return [
+      {
+        'kind': 'filament_type_mismatch',
+        'slot_index': 0,
+        'expected': wantedType,
+        'actual': loaded.isEmpty ? null : loaded.first,
+      },
+    ];
+  }
+
+  /// `POST /{id}/run` — 409 with the report when the pre-flight blocks and the
+  /// caller did not force, otherwise a 202 and a live run.
+  DemoResult _startRun(Map<String, dynamic> pipeline, Map<String, dynamic> body) {
+    final report = _eligibility(pipeline);
+    final forced = body['force'] == true;
+    if (report['ok'] != true && !forced) {
+      return (status: 409, body: {'detail': report});
+    }
+    final copies = (body['copies'] as num?)?.toInt() ?? 1;
+    final assigned = _pipelineAssignments(pipeline, copies);
+    final run = <String, dynamic>{
+      'id': _nextPipelineRunId++,
+      'pipeline_id': pipeline['id'],
+      'pipeline_name': pipeline['name'],
+      'source_library_file_id': body['source_library_file_id'],
+      'source_archive_id': body['source_archive_id'],
+      'source_filename': _pipelineSourceName(body),
+      'parent_run_id': null,
+      'copies': copies,
+      // Dispatching, with nothing finished: the demo has no clock a printer
+      // answers to, so a fresh run stays here — which is the state the screen's
+      // poll exists for, and the one Cancel acts on.
+      'status': 'dispatching',
+      'slice_job_id': _nextPipelineRunId,
+      'sliced_library_file_id': null,
+      'eligibility_overridden': forced && report['ok'] != true,
+      'error_message': null,
+      'created_by': 1,
+      'created_at': _iso(DateTime.now()),
+      'started_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'jobs': [
+        for (var i = 0; i < copies; i++)
+          {
+            'id': _nextPipelineJobId++,
+            'pipeline_run_id': _nextPipelineRunId - 1,
+            'copy_index': i,
+            'assigned_printer_id': assigned[i].$1,
+            'assigned_printer_name': assigned[i].$2,
+            'queue_entry_id': null,
+            'status': 'queued',
+            'error_message': null,
+            'dispatched_at': _iso(DateTime.now()),
+            'completed_at': null,
+          },
+      ],
+      'target_kind': pipeline['target_kind'],
+      'target_printer_id': pipeline['target_printer_id'],
+      'target_model_class': pipeline['target_model_class'],
+      'fanout_strategy': pipeline['fanout_strategy'],
+    };
+    _pipelineRuns.insert(0, run);
+    return (status: 202, body: run);
+  }
+
+  /// Which printer each copy went to, per the pipeline's fanout strategy.
+  ///
+  /// `max_parallel` pins nothing — the real scheduler hands each queue item to
+  /// whichever matching printer frees up first, so the copy has no printer name
+  /// until it does.
+  List<(int?, String?)> _pipelineAssignments(
+    Map<String, dynamic> pipeline,
+    int copies,
+  ) {
+    if (pipeline['target_kind'] == 'specific_printer') {
+      final id = pipeline['target_printer_id'] as int?;
+      final name =
+          _printers.where((p) => p['id'] == id).firstOrNull?['name'] as String?;
+      return [for (var i = 0; i < copies; i++) (id, name)];
+    }
+    final candidates = _printers
+        .where((p) => p['model'] == pipeline['target_model_class'])
+        .toList();
+    return switch ('${pipeline['fanout_strategy']}') {
+      'round_robin' => [
+          for (var i = 0; i < copies; i++)
+            candidates.isEmpty
+                ? (null, null)
+                : (
+                    candidates[i % candidates.length]['id'] as int,
+                    candidates[i % candidates.length]['name'] as String,
+                  ),
+        ],
+      'fill_one_first' => [
+          for (var i = 0; i < copies; i++)
+            candidates.isEmpty
+                ? (null, null)
+                : (
+                    candidates.first['id'] as int,
+                    candidates.first['name'] as String,
+                  ),
+        ],
+      _ => [for (var i = 0; i < copies; i++) (null, null)],
+    };
+  }
+
+  String? _pipelineSourceName(Map<String, dynamic> body) {
+    final libraryId = body['source_library_file_id'];
+    if (libraryId != null) {
+      return _libraryFiles.where((f) => f['id'] == libraryId).firstOrNull?['filename']
+          as String?;
+    }
+    final archiveId = body['source_archive_id'];
+    if (archiveId == null) return null;
+    final archive = _archives.where((a) => a['id'] == archiveId).firstOrNull;
+    return (archive?['print_name'] ?? archive?['filename']) as String?;
+  }
+
+  /// The run history, seeded on first read.
+  ///
+  /// Four hand-written runs for the four states the card renders differently,
+  /// then filler so `total` passes the 25-row page and the paginator is
+  /// reachable at all:
+  ///
+  /// * one **in flight** across both X1Cs — the progress bar, per-copy rows and
+  ///   Cancel;
+  /// * one **partial failure** with a copy to re-attempt — Retry;
+  /// * one partial failure whose **source has been deleted** (both source ids
+  ///   null, as `ondelete="SET NULL"` leaves them) — the run that must *not*
+  ///   offer Retry, because the server would answer 400;
+  /// * one **failed at the slice**, carrying the error the card shows.
+  List<Map<String, dynamic>> get _pipelineRuns =>
+      _pipelineRunsStore ??= [
+        _runRow(
+          id: 91,
+          status: 'in_progress',
+          copies: 4,
+          jobStatuses: const ['completed', 'printing', 'queued', 'queued'],
+          printerIds: const [1, 5, null, null],
+          minutesAgo: 26,
+        ),
+        _runRow(
+          id: 90,
+          status: 'partial_failure',
+          copies: 3,
+          jobStatuses: const ['completed', 'failed', 'completed'],
+          printerIds: const [1, 5, 1],
+          minutesAgo: 190,
+          completed: true,
+        ),
+        _runRow(
+          id: 89,
+          status: 'partial_failure',
+          copies: 2,
+          jobStatuses: const ['completed', 'failed'],
+          printerIds: const [1, 5],
+          minutesAgo: 1450,
+          completed: true,
+          sourceGone: true,
+        ),
+        _runRow(
+          id: 88,
+          status: 'failed',
+          copies: 2,
+          jobStatuses: const ['failed', 'failed'],
+          printerIds: const [null, null],
+          minutesAgo: 2880,
+          completed: true,
+          error: 'Slicing failed: filament preset is not compatible with the '
+              'selected printer',
+        ),
+        // Filler: enough finished runs that the list crosses one page, so
+        // "load more" and the row count under it are reachable.
+        for (var i = 0; i < 26; i++)
+          _runRow(
+            id: 62 - i,
+            status: 'completed',
+            copies: 1,
+            jobStatuses: const ['completed'],
+            printerIds: const [1],
+            minutesAgo: 4320 + i * 180,
+            completed: true,
+          ),
+      ];
+
+  /// One run row, with the roll-up counted from the per-copy statuses the way
+  /// `_materialise_run` counts it — so the card's progress and the numbers
+  /// under it cannot disagree.
+  Map<String, dynamic> _runRow({
+    required int id,
+    required String status,
+    required int copies,
+    required List<String> jobStatuses,
+    required List<int?> printerIds,
+    required int minutesAgo,
+    bool completed = false,
+    bool sourceGone = false,
+    String? error,
+  }) {
+    final created = _minutesAgo(minutesAgo);
+    int count(String s) => jobStatuses.where((j) => j == s).length;
+    return {
+      'id': id,
+      'pipeline_id': 1,
+      'pipeline_name': 'Gridfinity PETG',
+      // File 6 is the demo library's only un-sliced `.3mf` — the one thing in
+      // it a pipeline could actually re-slice. Its name is read back rather
+      // than repeated so the two cannot drift.
+      'source_library_file_id': sourceGone ? null : _pipelineSourceFileId,
+      'source_archive_id': null,
+      'source_filename': sourceGone
+          ? null
+          : _libraryFiles
+              .where((f) => f['id'] == _pipelineSourceFileId)
+              .firstOrNull?['filename'],
+      'parent_run_id': null,
+      'copies': copies,
+      'copies_completed': count('completed'),
+      'copies_failed': count('failed'),
+      'copies_cancelled': count('cancelled'),
+      'copies_in_progress': count('printing') + count('queued'),
+      'status': status,
+      'slice_job_id': 400 + id,
+      'sliced_library_file_id': sourceGone ? null : 1,
+      'eligibility_overridden': id == 90,
+      'error_message': error,
+      'created_by': 1,
+      'created_at': _iso(created),
+      'started_at': _iso(created.add(const Duration(seconds: 12))),
+      'completed_at':
+          completed ? _iso(created.add(const Duration(minutes: 74))) : null,
+      'jobs': [
+        for (var i = 0; i < jobStatuses.length; i++)
+          {
+            'id': id * 10 + i,
+            'pipeline_run_id': id,
+            'copy_index': i,
+            'assigned_printer_id': printerIds[i],
+            'assigned_printer_name': printerIds[i] == null
+                ? null
+                : _printers
+                    .where((p) => p['id'] == printerIds[i])
+                    .firstOrNull?['name'],
+            'queue_entry_id': null,
+            'status': jobStatuses[i],
+            'error_message':
+                jobStatuses[i] == 'failed' ? 'Print failed on layer 41' : null,
+            'dispatched_at': _iso(created),
+            'completed_at': jobStatuses[i] == 'completed' || jobStatuses[i] == 'failed'
+                ? _iso(created.add(const Duration(minutes: 68)))
+                : null,
+          },
+      ],
+      'target_kind': 'printer_class',
+      'target_printer_id': null,
+      'target_model_class': 'X1C',
+      'fanout_strategy': 'max_parallel',
+    };
+  }
+
+  /// The source every seeded run was sliced from.
+  static const _pipelineSourceFileId = 6;
+
+  static const _terminalRunStatuses = {
+    'completed',
+    'failed',
+    'cancelled',
+    'partial_failure',
+  };
+
+  /// `/pipeline-runs` — the dashboard's list with its four filters, one run,
+  /// cancel, retry-failed and the history purge.
+  DemoResult? _pipelineRunsRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    if (s.length == 1 && m == 'GET') {
+      final pipelineId = int.tryParse(q['pipeline_id'] ?? '');
+      final status = q['status'];
+      final targetPrinterId = int.tryParse(q['target_printer_id'] ?? '');
+      final targetModelClass = q['target_model_class'];
+      // Filtered on the pipeline's *current* target, joined the way the route
+      // joins it — so re-targeting a pipeline moves its whole history, and a
+      // run whose pipeline is gone drops out of a target-filtered query.
+      Map<String, dynamic>? pipelineOf(Map<String, dynamic> run) =>
+          _pipelines.where((p) => p['id'] == run['pipeline_id']).firstOrNull;
+      final matched = [
+        for (final run in _pipelineRuns)
+          if ((pipelineId == null || run['pipeline_id'] == pipelineId) &&
+              (status == null || run['status'] == status) &&
+              (targetPrinterId == null ||
+                  pipelineOf(run)?['target_printer_id'] == targetPrinterId) &&
+              (targetModelClass == null ||
+                  pipelineOf(run)?['target_model_class'] == targetModelClass))
+            run,
+      ];
+      // Clamped 1..100 silently, like the route — a caller asking for more gets
+      // the cap and a `total` that still describes the whole filtered set.
+      final limit = (int.tryParse(q['limit'] ?? '') ?? 25).clamp(1, 100);
+      final offset = (int.tryParse(q['offset'] ?? '') ?? 0).clamp(0, 1 << 30);
+      return _ok({
+        'runs': matched.skip(offset).take(limit).toList(),
+        'total': matched.length,
+      });
+    }
+
+    if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
+      final before = _pipelineRuns.length;
+      _pipelineRuns.removeWhere(
+          (r) => _terminalRunStatuses.contains(r['status']));
+      return _ok({'deleted': before - _pipelineRuns.length});
+    }
+
+    final runId = int.tryParse(s.length > 1 ? s[1] : '');
+    if (runId == null) return _notFound();
+    final run = _pipelineRuns.where((r) => r['id'] == runId).firstOrNull;
+    if (run == null) return _notFound();
+
+    if (s.length == 2 && m == 'GET') return _ok(run);
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'cancel') {
+      // Idempotent: a run already finished comes back untouched rather than
+      // refused, which is what lets the button be pressed twice safely.
+      if (_terminalRunStatuses.contains(run['status'])) return _ok(run);
+      run['status'] = 'cancelled';
+      run['completed_at'] = _iso(DateTime.now());
+      run['error_message'] ??= 'Cancelled by operator';
+      for (final job in (run['jobs'] as List)) {
+        if (job is Map && !_terminalRunStatuses.contains(job['status'])) {
+          job['status'] = 'cancelled';
+        }
+      }
+      run['copies_cancelled'] = (run['jobs'] as List)
+          .where((j) => j is Map && j['status'] == 'cancelled')
+          .length;
+      run['copies_in_progress'] = 0;
+      return _ok(run);
+    }
+
+    if (s.length == 3 && m == 'POST' && s[2] == 'retry-failed') {
+      // The three preconditions the route checks, each a 400 — the source one
+      // is why run 89 exists in the seed.
+      if (run['pipeline_id'] == null) {
+        return (
+          status: 400,
+          body: {'detail': 'Original pipeline was deleted; cannot retry'},
+        );
+      }
+      if (run['source_library_file_id'] == null &&
+          run['source_archive_id'] == null) {
+        return (
+          status: 400,
+          body: {'detail': 'Original source was deleted; cannot retry'},
+        );
+      }
+      final failed = (run['jobs'] as List)
+          .where((j) => j is Map && (j['status'] == 'failed' || j['status'] == 'cancelled'))
+          .length;
+      if (failed == 0) {
+        return (status: 400, body: {'detail': 'No failed copies to retry'});
+      }
+      final retry = _runRow(
+        id: _nextPipelineRunId++,
+        status: 'dispatching',
+        copies: failed,
+        jobStatuses: [for (var i = 0; i < failed; i++) 'queued'],
+        printerIds: [for (var i = 0; i < failed; i++) null],
+        minutesAgo: 0,
+      );
+      retry['parent_run_id'] = run['id'];
+      // Forced past the pre-flight: the operator already accepted it on the
+      // parent, which is what the route does too.
+      retry['eligibility_overridden'] = true;
+      _pipelineRuns.insert(0, retry);
+      return (status: 202, body: retry);
+    }
+    return _fallback(m);
+  }
 
   /// `/scheduled-dryings` — list, schedule, cancel. Served because the demo
   /// reports 1.2.6b1, which is the release the route shipped in: a version that
@@ -3083,11 +4404,26 @@ class DemoBackend {
         model: 'P1S'),
     _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
         model: 'P2S'),
-    _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf'),
+    // The un-sliced sources — the only files the Slice button is offered on,
+    // since anything already `gcode.3mf` is printable and cannot be re-sliced.
+    // Three of them because the form looks different for each: a plain 3MF
+    // fills one filament slot, the two-tone one fills four (two of which its
+    // plates never touch), and an STL has no plates and so no "as designed".
+    _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf', model: null),
+    _libFile(7, 'Hue dial two-tone.3mf', null, 2204160, fileType: '3mf', model: null),
+    _libFile(8, 'Lamp shade.stl', null, 1841664, fileType: 'stl', model: null),
+    // Uploaded straight from CAD, and refused before a byte is read: neither
+    // slicer CLI loads STEP. The button is still offered — the file is not
+    // printable — which is exactly the state the server's own message is for.
+    _libFile(9, 'Motor bracket.step', null, 412160, fileType: 'step', model: null),
   ];
 
   final List<Map<String, dynamic>> _libraryTrash = [];
   int _nextFolderId = 10;
+
+  /// Ids for the rows a slice files in the library. Above the fixtures so a
+  /// sliced output never collides with one.
+  int _nextLibraryFileId = 20;
 
   Map<String, dynamic> _libFile(
     int id,
@@ -3098,7 +4434,10 @@ class DemoBackend {
     int? timeSec,
     double? grams,
     String fileType = 'gcode.3mf',
-    String model = 'X1C',
+    // Null for a source that has never been through a slicer — the field
+    // records which printer the *output* was built for, so an un-sliced
+    // upload has no answer to give.
+    String? model = 'X1C',
   }) =>
       {
         'id': id,
@@ -3301,6 +4640,13 @@ class DemoBackend {
             });
             return _ok(const {'ok': true});
           }
+        }
+        if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
+        if (s.length >= 4 && s[3] == 'filament-requirements') {
+          return _ok(_libraryFilaments(file, q));
+        }
+        if (s.length >= 4 && s[3] == 'slice' && m == 'POST') {
+          return _startSlice(isArchive: false, source: file, body: body);
         }
         if (s.length >= 4 && s[3] == 'print') {
           return _ok(const {'ok': true});

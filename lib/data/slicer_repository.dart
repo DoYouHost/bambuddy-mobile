@@ -154,6 +154,11 @@ class SlicerRepository {
           return PresetValues.fromJson(res.data ?? const {});
         },
         absent: () => null,
+        // The preset is a query parameter, not a row the route looks up: an
+        // unresolvable one comes back `resolved: false`, not 404. So the 404
+        // really is the route, absent before 1.2.6 — which is the observation
+        // the doc above says outranks the version.
+        observing: treat404AsAbsent,
       );
     } on AuthException {
       rethrow;
@@ -178,12 +183,20 @@ class SlicerRepository {
   Future<int> sliceLibraryFile(int fileId, Map<String, dynamic> request) =>
       _enqueue(Endpoints.libraryFileSlice(fileId), request);
 
-  Future<int> _enqueue(String path, Map<String, dynamic> request) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(path, data: request);
-        final id = toIntOrNull(res.data?['job_id']);
-        if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
-        return id;
-      });
+  /// Not [guard]: these routes answer 400 for three unrelated reasons and the
+  /// status names none of them, so the server's `detail` has to survive —
+  /// `sliceRefusalMessage` turns it back into a sentence. A refusal raised
+  /// *during* the slice arrives on the job instead, where the dialog shows it.
+  Future<int> _enqueue(String path, Map<String, dynamic> request) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(path, data: request);
+      final id = toIntOrNull(res.data?['job_id']);
+      if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
+      return id;
+    } on DioException catch (e) {
+      throw mapDioExceptionKeepingDetail(e);
+    }
+  }
 
   /// GET /slice-jobs/{id} — poll a job's status/progress/result.
   Future<SliceJob> job(int jobId) => guard(() async {

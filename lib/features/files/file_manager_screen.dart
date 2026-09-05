@@ -28,6 +28,10 @@ import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
+import '../../data/pipelines_repository.dart' show PipelineSource;
+import '../pipelines/pipeline_run_screen.dart';
+import '../pipelines/pipelines_providers.dart'
+    show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
@@ -359,7 +363,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     // Slicing only applies to un-sliced models (not gcode), and only when the
     // server's slicer sidecar is enabled.
     final canSlice =
-        (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
+        ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
     final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
     dashSheet<void>(
       context,
@@ -441,6 +445,30 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _sliceFile(file);
                 },
               ).tagged('file_actions.slice'),
+            // Slice and dispatch in one go, using a saved bundle. Sits next to
+            // Slice because it needs the same source and the same permission
+            // to produce a print — only the picking of profiles differs.
+            //
+            // Its own [Consumer], where every other row here reads with
+            // `ref.read`: this gate is the one that is not settled yet. It is a
+            // probe of the server's routes, so it resolves after the first
+            // frames — and the screen's `ref` cannot rebuild a sheet that lives
+            // in its own route, which left the action missing on a server that
+            // does have pipelines.
+            if (canSlice)
+              Consumer(
+                builder: (_, sheetRef, _) =>
+                    sheetRef.watch(canRunPipelinesProvider).orFalse
+                        ? ListTile(
+                            leading: const Icon(Icons.account_tree_outlined),
+                            title: Text(l10n.pipelineRun),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _runPipeline(file);
+                            },
+                          ).tagged('file_actions.run_pipeline')
+                        : const SizedBox.shrink(),
+              ),
             ListTile(
               leading: const Icon(Icons.playlist_add),
               title: Text(l10n.fmAddToQueue),
@@ -755,6 +783,16 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       libraryFileId: file.id,
       title: file.displayName,
     ));
+  }
+
+  /// Run a saved pipeline against this file — slices it and dispatches the
+  /// copies without going through the four pickers.
+  Future<void> _runPipeline(LibraryFile file) async {
+    await showPipelineRunScreen(
+      context,
+      source: PipelineSource.libraryFile(file.id),
+      sourceName: file.displayName,
+    );
   }
 
   Future<void> _sliceFile(LibraryFile file) async {
