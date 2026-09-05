@@ -20,6 +20,11 @@ void main() {
   const wearManifestPath = 'android/app/src/wear/AndroidManifest.xml';
   const monitorPath = 'lib/core/notifications/background_monitor.dart';
 
+  /// The service the plugin owns. Scoping the type lookup to it keeps this test
+  /// from breaking the day the app declares a second, unrelated service.
+  const pluginService =
+      'com.pravera.flutter_foreground_task.service.ForegroundService';
+
   /// Manifest-declarable permissions that qualify an app for `connectedDevice`.
   /// The Bluetooth and UWB ones are runtime permissions and are deliberately
   /// not here: this app reaches its printers over the network.
@@ -41,38 +46,47 @@ void main() {
     monitor = File(monitorPath).readAsStringSync();
   });
 
-  /// `android.permission.FOO` entries the manifest declares, as bare names.
+  /// `android.permission.FOO` entries, as bare names.
+  ///
+  /// Reads the whole tag before looking inside it: XML puts no order on
+  /// attributes, and a regex that expects `android:name` first stops matching
+  /// the day something moves `tools:node` in front of it — silently, by
+  /// reporting no permissions rather than by failing.
   Set<String> permissionsIn(String source, {required bool removed}) {
-    final pattern = RegExp(
-      r'<uses-permission\s+android:name="android\.permission\.(\w+)"([^>]*)>',
-    );
+    final tags = RegExp(r'<uses-permission\b[^>]*>').allMatches(source);
+    final name = RegExp(r'android:name="android\.permission\.(\w+)"');
     return {
-      for (final match in pattern.allMatches(source))
-        if (match.group(2)!.contains('tools:node="remove"') == removed)
-          match.group(1)!,
+      for (final tag in tags)
+        if (name.firstMatch(tag.group(0)!) case final match?)
+          if (tag.group(0)!.contains('tools:node="remove"') == removed)
+            match.group(1)!,
     };
   }
 
+  /// The `foregroundServiceType` on the plugin's own service, and nothing else.
+  String declaredServiceType(String source) {
+    final tag = RegExp(r'<service\b[^>]*>')
+        .allMatches(source)
+        .map((m) => m.group(0)!)
+        .firstWhere((t) => t.contains(pluginService));
+    return RegExp(r'android:foregroundServiceType="(\w+)"')
+        .firstMatch(tag)!
+        .group(1)!;
+  }
+
   test('the manifest and the start call name the same service type', () {
-    final declared = RegExp(r'android:foregroundServiceType="(\w+)"')
-        .allMatches(manifest)
-        .map((m) => m.group(1)!)
-        .toSet();
     final started = RegExp(r'ForegroundServiceTypes\.(\w+)')
         .allMatches(monitor)
         .map((m) => m.group(1)!)
         .toSet();
 
-    // A scan that found neither would make the comparison vacuous.
-    expect(declared, isNotEmpty, reason: 'no service type in $manifestPath');
+    // A scan that found nothing would make the comparison vacuous.
     expect(started, isNotEmpty, reason: 'no service type in $monitorPath');
-    expect(declared, equals(started));
+    expect(started, equals({declaredServiceType(manifest)}));
   });
 
   test('the service type carries its own permission', () {
-    final type = RegExp(r'android:foregroundServiceType="(\w+)"')
-        .firstMatch(manifest)!
-        .group(1)!;
+    final type = declaredServiceType(manifest);
     // connectedDevice -> FOREGROUND_SERVICE_CONNECTED_DEVICE.
     final screamed = type
         .replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m.group(0)}')
@@ -110,22 +124,42 @@ void main() {
     expect(serviceOnly.difference(stripped), isEmpty);
   });
 
-  test('nothing asks the service to hold a wake lock', () {
-    // The lock the plugin takes for `allowWakeLock` has no timeout and lives as
-    // long as the service, which is as long as the app is backgrounded. Android
-    // vitals counts that against a 2 h daily budget and it put this app over the
-    // 5% bar; the socket does not need it (see lib/main.dart).
-    final sources = Directory('lib')
+  test('every service configuration turns the wake lock off by name', () {
+    // The lock the plugin takes has no timeout and lives as long as the service,
+    // which is as long as the app is backgrounded. Android vitals counts that
+    // against a 2 h daily budget and it put this app over the 5% bar; the socket
+    // does not need it (see lib/main.dart).
+    //
+    // Asserting the absence of `true` is not enough on its own: the plugin's
+    // constructor defaults `allowWakeLock` to `true`, so deleting the argument
+    // re-arms the lock while reading like a tidy-up. Every construction has to
+    // say `false` out loud.
+    final construction = RegExp(r'ForegroundTaskOptions\(');
+    final disabled = RegExp(r'allowWakeLock:\s*false');
+    final enabled = RegExp(r'allowWakeLock:\s*true');
+
+    var total = 0;
+    for (final file in Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'));
+        .where((f) => f.path.endsWith('.dart'))) {
+      final source = file.readAsStringSync();
+      final count = construction.allMatches(source).length;
+      total += count;
 
-    for (final file in sources) {
       expect(
-        file.readAsStringSync(),
-        isNot(contains(RegExp(r'allowWakeLock:\s*true'))),
+        enabled.hasMatch(source),
+        isFalse,
         reason: '${file.path} re-arms the service wake lock',
       );
+      expect(
+        disabled.allMatches(source).length,
+        count,
+        reason: '${file.path} builds ForegroundTaskOptions without saying '
+            'allowWakeLock: false, which the plugin reads as true',
+      );
     }
+
+    expect(total, greaterThan(0), reason: 'the sweep found no configuration');
   });
 }
