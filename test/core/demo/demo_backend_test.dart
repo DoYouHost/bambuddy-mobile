@@ -1163,22 +1163,13 @@ void main() {
     });
 
     test('STEP is refused before anything is read, in its own words', () async {
-      // Asserted on the wire rather than through the repository: `guard` maps a
-      // 400 without keeping its `detail`, so the sentence the server wrote
-      // never reaches the caller. Worth pinning here anyway — the demo is
-      // standing in for the server, and the server does say this.
-      final refusal = DemoBackend.instance.handle(
-        'POST',
-        Uri.parse('${DemoConfig.baseUrl}/api/v1/library/files/$step/slice'),
-        await slice(step),
-      );
-      expect(refusal.status, 400);
-      expect((refusal.body as Map)['detail'], contains('STEP'));
-
       await expectLater(
         slicer.sliceLibraryFile(step, await slice(step)),
         throwsA(isA<AppApiException>()
-            .having((e) => e.statusCode, 'status', 400)),
+            .having((e) => e.statusCode, 'status', 400)
+            .having((e) => e.detail, 'detail', contains('STEP'))),
+        reason: 'the detail has to survive the repository, or the sentence the '
+            'server wrote is replaced by "error 400"',
       );
     });
 

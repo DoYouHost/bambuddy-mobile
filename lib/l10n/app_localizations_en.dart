@@ -4740,6 +4740,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sliceRefusedStep =>
+      'STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.';
+
+  @override
+  String get sliceRefusedFormat => 'The source has to be an STL or a 3MF.';
+
+  @override
+  String get sliceRefusedNoSource =>
+      'This archive kept only the G-code it printed, not the model — there is nothing to slice again.';
+
+  @override
   String sliceResultFilament(String grams) {
     return 'Filament: $grams g';
   }

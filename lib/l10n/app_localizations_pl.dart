@@ -4816,6 +4816,17 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get sliceRefusedStep =>
+      'Plików STEP nie da się pociąć. Wyeksportuj model z CAD-a jako STL albo 3MF.';
+
+  @override
+  String get sliceRefusedFormat => 'Źródło musi być plikiem STL albo 3MF.';
+
+  @override
+  String get sliceRefusedNoSource =>
+      'To archiwum zachowało tylko wydrukowany G-code, nie model — nie ma czego pociąć ponownie.';
+
+  @override
   String sliceResultFilament(String grams) {
     return 'Filament: $grams g';
   }

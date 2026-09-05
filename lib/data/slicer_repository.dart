@@ -178,12 +178,20 @@ class SlicerRepository {
   Future<int> sliceLibraryFile(int fileId, Map<String, dynamic> request) =>
       _enqueue(Endpoints.libraryFileSlice(fileId), request);
 
-  Future<int> _enqueue(String path, Map<String, dynamic> request) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(path, data: request);
-        final id = toIntOrNull(res.data?['job_id']);
-        if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
-        return id;
-      });
+  /// Not [guard]: these routes answer 400 for three unrelated reasons and the
+  /// status names none of them, so the server's `detail` has to survive —
+  /// `sliceRefusalMessage` turns it back into a sentence. A refusal raised
+  /// *during* the slice arrives on the job instead, where the dialog shows it.
+  Future<int> _enqueue(String path, Map<String, dynamic> request) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(path, data: request);
+      final id = toIntOrNull(res.data?['job_id']);
+      if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
+      return id;
+    } on DioException catch (e) {
+      throw mapDioExceptionKeepingDetail(e);
+    }
+  }
 
   /// GET /slice-jobs/{id} — poll a job's status/progress/result.
   Future<SliceJob> job(int jobId) => guard(() async {

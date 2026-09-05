@@ -28,6 +28,7 @@ import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
 import 'slice_filament_colours.dart';
+import 'slice_refusal.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -777,7 +778,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     } on AppApiException catch (e) {
       if (mounted) setState(() => _submitting = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'slice.submit');
+          action: 'slice.submit', message: sliceRefusalMessage(l10n, e));
       return;
     }
     if (!mounted) return;

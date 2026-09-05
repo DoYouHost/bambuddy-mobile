@@ -8048,6 +8048,24 @@ abstract class AppLocalizations {
   /// **'Estimated time: {time}'**
   String sliceResultTime(String time);
 
+  /// No description provided for @sliceRefusedStep.
+  ///
+  /// In en, this message translates to:
+  /// **'STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.'**
+  String get sliceRefusedStep;
+
+  /// No description provided for @sliceRefusedFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'The source has to be an STL or a 3MF.'**
+  String get sliceRefusedFormat;
+
+  /// No description provided for @sliceRefusedNoSource.
+  ///
+  /// In en, this message translates to:
+  /// **'This archive kept only the G-code it printed, not the model — there is nothing to slice again.'**
+  String get sliceRefusedNoSource;
+
   /// No description provided for @sliceResultFilament.
   ///
   /// In en, this message translates to:
