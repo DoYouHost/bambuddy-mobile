@@ -47,6 +47,7 @@ class PipelineRunsScreen extends ConsumerStatefulWidget {
 
 class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   Timer? _poll;
+  late final AppLifecycleListener _lifecycle;
   final _scroll = ScrollController();
 
   @override
@@ -69,6 +70,21 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     // `created_by`, and there is nothing left here to poll for. Pull to
     // refresh is the way to see it, which is the trade for not waking a
     // request every four seconds on an idle screen.
+    _startPolling();
+    // A backgrounded app has no list to update, and this is the one screen in
+    // the feature that would otherwise wake the radio every four seconds for
+    // the whole time a batch is printing. Same handling as the queue screen.
+    _lifecycle = AppLifecycleListener(
+      onPause: _stopPolling,
+      onResume: () {
+        unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
+        _startPolling();
+      },
+    );
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
     _poll = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
       final view = ref.read(pipelineRunsProvider).valueOrNull;
@@ -79,9 +95,15 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     });
   }
 
+  void _stopPolling() {
+    _poll?.cancel();
+    _poll = null;
+  }
+
   @override
   void dispose() {
-    _poll?.cancel();
+    _stopPolling();
+    _lifecycle.dispose();
     _scroll.dispose();
     super.dispose();
   }

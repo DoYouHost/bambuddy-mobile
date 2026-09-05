@@ -28,7 +28,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   go_router: ^16.0.0
   intl: ^0.20.2
-  json_annotation: ^4.9.0
+  json_annotation: ^4.12.0
   # Annotations only; the generator behind them is a dev dependency. Both models
   # that carry a full-field copy are annotated, so the field list lives in the
   # constructor alone — a new field can no longer be dropped on the copy.

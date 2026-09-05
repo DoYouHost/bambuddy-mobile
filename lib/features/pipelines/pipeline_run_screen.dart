@@ -274,10 +274,11 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
           );
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineRunStarted)));
-      navigator.pop(true);
-      navigator.push(
-        MaterialPageRoute(builder: (_) => const PipelineRunsScreen()),
-      );
+      // Replace rather than pop-then-push: the run is dispatched, so this
+      // screen has nothing left to show, and popping first plays a whole
+      // dismissal animation before the dashboard slides in over it. `result`
+      // is what the caller's `await` receives, so the swap is invisible to it.
+      navigator.pushReplacement(pipelineRunsRoute(), result: true);
     } on PipelineNotEligible catch (e) {
       // The pre-flight passed a moment ago and the dispatch disagreed — a
       // printer went offline in between, most likely. Show what changed and

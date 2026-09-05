@@ -81,7 +81,13 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           Text(l10n.pipelineTargetType, style: theme.textTheme.labelLarge),
           RadioGroup<PipelineTargetKind>(
             groupValue: _targetKind,
-            onChanged: (v) => setState(() => _targetKind = v!),
+            // `RadioGroup` types the callback nullable because a toggleable
+            // radio clears the group; these are not toggleable, so a null here
+            // would be a deselection nothing asked for — ignore it rather than
+            // crash on it.
+            onChanged: (v) {
+              if (v != null) setState(() => _targetKind = v);
+            },
             child: Column(
               children: [
                 RadioListTile<PipelineTargetKind>(
