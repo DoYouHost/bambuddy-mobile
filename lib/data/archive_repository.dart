@@ -123,7 +123,11 @@ class ArchiveRepository {
     int archiveId,
     double? grams,
   ) async {
-    try {
+    // Keeps the detail: the server bounds the column (0..100 kg) and answers
+    // 422 with which bound was crossed. The field checks the same range before
+    // sending, so getting here means the two lists drifted — and then its
+    // sentence is worth more than ours.
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.archive(archiveId),
         data: <String, dynamic>{'filament_used_grams': grams},
@@ -133,13 +137,7 @@ class ArchiveRepository {
         archive: archive,
         applied: sameFilamentGrams(archive.filamentUsedGrams, grams),
       );
-    } on DioException catch (e) {
-      // The server bounds the column (0..100 kg) and answers 422 with which
-      // bound was crossed. The field checks the same range before sending, so
-      // getting here means the two lists drifted — and then its sentence is
-      // worth more than ours.
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by

@@ -1,47 +1,32 @@
+import '../../core/api/action_outcome.dart';
 import '../../core/models/user_write.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
-import 'users_providers.dart';
+import '../../l10n/server_refusal.dart';
 
 /// What to tell the user when an account write was refused.
 ///
-/// The rules live server-side and arrive as an English `detail` string. The
-/// ones worth naming are matched and localized; anything else is shown exactly
-/// as the server wrote it, which is still better than a generic failure — a
-/// server phrasing we don't know yet is usually the most informative thing on
-/// screen. Nothing is guessed at: no match and no detail falls back to the
-/// error code's own wording.
-String userWriteMessage(AppLocalizations l10n, UserWriteResult result) {
-  final detail = result.message;
-  if (detail != null) {
-    final known = _localizedRule(l10n, detail);
-    if (known != null) return known;
-    return detail;
-  }
-  final error = result.error;
-  if (error != null) return error.localized(l10n);
-  return l10n.usersSaveFailed;
-}
+/// The rules of `users.py` live server-side and arrive as an English `detail`;
+/// [serverRefusal] is the ladder every feature shares. Only called on the
+/// failing branch, so a success reads as the generic save failure — which is
+/// the honest thing to say about an outcome that carries no refusal at all.
+String userWriteMessage(AppLocalizations l10n, ActionOutcome result) =>
+    outcomeRefusal(l10n, result, _rules) ?? l10n.usersSaveFailed;
 
-/// The server's own wording for the rules of `users.py`, matched loosely
-/// (`contains`) so a version that adds punctuation or a name still lands.
-String? _localizedRule(AppLocalizations l10n, String detail) {
-  final d = detail.toLowerCase();
-  if (d.contains('last admin')) {
-    if (d.contains('delete')) return l10n.usersErrLastAdminDelete;
-    if (d.contains('deactivate')) return l10n.usersErrLastAdminDeactivate;
-    if (d.contains('role')) return l10n.usersErrLastAdminRole;
-    return l10n.usersErrLastAdmin;
-  }
-  if (d.contains('your own account')) return l10n.usersErrSelfDelete;
-  if (d.contains('username already exists')) return l10n.usersErrUsernameTaken;
-  if (d.contains('email already exists')) return l10n.usersErrEmailTaken;
-  if (d.contains('password for ldap')) return l10n.usersErrLdapPassword;
-  if (d.contains('email is required')) return l10n.usersErrEmailRequired;
-  if (d.contains('password is required')) return l10n.usersErrPasswordRequired;
-  if (d.contains('group ids')) return l10n.usersErrGroupsInvalid;
-  return null;
-}
+/// The three `last admin` rows come first and most-specific-first, so the bare
+/// one stays the fallback for a wording none of them recognize.
+final _rules = <RefusalRule>[
+  (['last admin', 'delete'], (l10n) => l10n.usersErrLastAdminDelete),
+  (['last admin', 'deactivate'], (l10n) => l10n.usersErrLastAdminDeactivate),
+  (['last admin', 'role'], (l10n) => l10n.usersErrLastAdminRole),
+  (['last admin'], (l10n) => l10n.usersErrLastAdmin),
+  (['your own account'], (l10n) => l10n.usersErrSelfDelete),
+  (['username already exists'], (l10n) => l10n.usersErrUsernameTaken),
+  (['email already exists'], (l10n) => l10n.usersErrEmailTaken),
+  (['password for ldap'], (l10n) => l10n.usersErrLdapPassword),
+  (['email is required'], (l10n) => l10n.usersErrEmailRequired),
+  (['password is required'], (l10n) => l10n.usersErrPasswordRequired),
+  (['group ids'], (l10n) => l10n.usersErrGroupsInvalid),
+];
 
 /// Why a typed password is not acceptable — the same rules the server applies
 /// in `_validate_password_complexity`, said before the request instead of as a

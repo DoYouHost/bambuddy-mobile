@@ -243,12 +243,9 @@ class PrinterCommandsRepository {
     Map<String, dynamic>? query,
     Map<String, dynamic>? data,
     bool keepDetail = false,
-  }) async {
-    try {
-      await _dio.post<dynamic>(path, queryParameters: query, data: data);
-    } on DioException catch (e) {
-      throw keepDetail ? mapDioExceptionKeepingDetail(e) : mapDioException(e);
-    }
+  }) {
+    send() => _dio.post<dynamic>(path, queryParameters: query, data: data);
+    return keepDetail ? guardKeepingDetail(send) : guard(send);
   }
 }
 

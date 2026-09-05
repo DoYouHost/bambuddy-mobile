@@ -23,51 +23,43 @@ class UsersRepository {
 
   /// GET /users/ — every account, oldest first (the server orders by
   /// `created_at`). `users:read`; an identity without it gets a 403.
-  Future<List<CurrentUser>> list() async {
-    try {
+  Future<List<CurrentUser>> list() {
+    return guardKeepingDetail(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.users);
       return parseJsonList(res.data, CurrentUser.fromJson);
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// GET /users/{id}/items-count — archives, queue items and library files
   /// created by this account.
-  Future<UserItemsCount> itemsCount(int userId) async {
-    try {
+  Future<UserItemsCount> itemsCount(int userId) {
+    return guardKeepingDetail(() async {
       final res = await _dio
           .get<Map<String, dynamic>>(Endpoints.userItemsCount(userId));
       return UserItemsCount.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// POST /users/ — the created account, as the server stored it.
-  Future<CurrentUser> create(UserCreateInput body) async {
-    try {
+  Future<CurrentUser> create(UserCreateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.users,
         data: body.toJson(),
       );
       return CurrentUser.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// PATCH /users/{id} — only the fields [body] carries are touched.
-  Future<CurrentUser> update(int userId, UserUpdateInput body) async {
-    try {
+  Future<CurrentUser> update(int userId, UserUpdateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.userById(userId),
         data: body.toJson(),
       );
       return CurrentUser.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /users/{id}.
@@ -77,15 +69,13 @@ class UsersRepository {
   /// (the server's own default) leaves them in place with no owner
   /// (`users.py::delete_user`). There is no third option, so the caller has to
   /// ask.
-  Future<void> delete(int userId, {required bool deleteItems}) async {
-    try {
+  Future<void> delete(int userId, {required bool deleteItems}) {
+    return guardKeepingDetail(() async {
       await _dio.delete<void>(
         Endpoints.userById(userId),
         queryParameters: {'delete_items': deleteItems},
       );
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// GET /auth/advanced-auth/status — whether the server mails a generated

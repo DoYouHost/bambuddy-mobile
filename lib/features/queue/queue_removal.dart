@@ -1,8 +1,7 @@
 import '../../core/api/action_outcome.dart';
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../../l10n/server_refusal.dart';
 
 /// How an item leaves the queue — one decision, because no single route takes
 /// every status and the app used to offer only one of them.
@@ -66,35 +65,24 @@ QueueRemoval queueRemovalFor(
       _ => QueueRemoval.delete,
     };
 
-/// What the user reads when a removal was refused.
+/// What the user reads when a queue write was refused, and `null` when it was
+/// not — the queue screen's one way from an [ActionOutcome] to a sentence.
 ///
-/// All three routes refuse on the same ground — the row moved on between the
-/// list being drawn and the button being pressed — and each words it
-/// differently. The status alone cannot say that: a 400 localizes to "server
-/// returned error 400", which is the whole of what the reporter's screen told
-/// them. Known refusals are localized, an unknown one is quoted, and no detail
-/// falls back to the code. Mirrors `sliceRefusalMessage`
-/// (`features/slicer/slice_refusal.dart`).
-String? queueRemovalMessage(AppLocalizations l10n, ActionOutcome outcome) =>
-    switch (outcome) {
-      ActionOk() => null,
-      ActionFailed(:final error) => _refusal(l10n, error),
-    };
+/// The three removal routes refuse on the same ground — the row moved on
+/// between the list being drawn and the button being pressed — and each words
+/// it differently, so all three map to one thing the user has to do.
+/// [serverRefusal] is the ladder every feature shares.
+String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
+    outcomeRefusal(l10n, outcome, _rules);
 
-String _refusal(AppLocalizations l10n, AppApiException error) {
-  final detail = error.detail;
-  if (detail == null || detail.trim().isEmpty) return error.localized(l10n);
-  return _localizedRefusal(l10n, detail) ?? detail;
-}
-
-/// The server's own wording, matched loosely (`contains`, case-folded) so a
-/// version that rewords the tail or names a different status still lands.
-String? _localizedRefusal(AppLocalizations l10n, String detail) {
-  final d = detail.toLowerCase();
-  if (d.contains('cannot cancel item with status') ||
-      d.contains('can only stop items that are printing') ||
-      d.contains('cannot delete item that is currently printing')) {
-    return l10n.queueRemovalStatusChanged;
-  }
-  return null;
-}
+/// Each entry is one route's phrasing of "that is not the status I found".
+/// Matched on a fragment, so a version that renames the status or reworks the
+/// tail still lands.
+final _rules = <RefusalRule>[
+  for (final phrase in const [
+    'cannot cancel item with status',
+    'can only stop items that are printing',
+    'cannot delete item that is currently printing',
+  ])
+    ([phrase], (l10n) => l10n.queueRemovalStatusChanged),
+];

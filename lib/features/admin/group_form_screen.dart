@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/group_write.dart';
@@ -255,7 +256,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final description = _description.text.trim();
     final permissions = _permissions.toList()..sort();
 
-    final result = await runUserWrite(() async {
+    final result = await runAction(() async {
       if (existing == null) {
         await repo.create(GroupCreateInput(
           name: name,
@@ -276,7 +277,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    }, 'group_form.save');
+    }, logId: 'group_form.save');
 
     ref.invalidate(groupsListProvider);
     if (existing != null) {
@@ -289,8 +290,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.snack(result.ok ? l10n.groupsSaved : userWriteMessage(l10n, result));
-    if (result.ok) navigator.pop();
+    messenger.snack(result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result));
+    if (result.isOk) navigator.pop();
   }
 
   bool _samePermissions(List<String> current) {

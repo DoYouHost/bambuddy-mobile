@@ -169,7 +169,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// [QueueRepository.updateItem]. Error → mapped [ActionOutcome].
   /// [logId] is the control the caller offered, so the seven mutations behind
   /// this notifier do not all report as one tag.
-  Future<ActionOutcome> runAction(
+  Future<ActionOutcome> runOnRepository(
     Future<void> Function(QueueRepository repo) action,
     String logId,
   ) =>
@@ -178,15 +178,8 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   Future<ActionOutcome> _serverAction(
     Future<void> Function() send,
     String logId,
-  ) async {
-    try {
-      await send();
-      await refresh();
-      return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: logId);
-    }
-  }
+  ) =>
+      runAction(send, logId: logId, onSuccess: refresh);
 }
 
 /// Candidate for target printer in "start next". Carries printer itself plus

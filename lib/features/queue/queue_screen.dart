@@ -13,7 +13,6 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
@@ -264,7 +263,7 @@ class _QueueList extends ConsumerWidget {
               final result = await ref
                   .read(queueProvider.notifier)
                   .reorder(oldIndex + offset, newIndex + offset);
-              _snackForResult(messenger, l10n, result);
+              _snackFailure(messenger, l10n, result);
             },
             itemBuilder: (context, i) => _QueueCard(
               key: ValueKey(reorderable[i].id),
@@ -401,10 +400,9 @@ class _QueueCard extends ConsumerWidget {
       onDismissed: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref.read(queueProvider.notifier).delete(item.id);
-        // Same wording as the menu's removal: the swipe hits `DELETE`, which
-        // refuses a row that started printing between the list and the finger.
-        final failure = queueRemovalMessage(l10n, result);
-        if (failure != null) messenger.snack(failure);
+        // The swipe hits `DELETE`, which refuses a row that started printing
+        // between the list being drawn and the finger arriving.
+        _snackFailure(messenger, l10n, result);
       },
       child: card,
     ).tagged('queue.swipe_delete');
@@ -553,7 +551,7 @@ class _QueueActions extends ConsumerWidget {
                 item: item, printerId: printerId, confirmLabel: l10n.fmSave);
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.snack(r.messageFor(l10n) ?? l10n.mappingSaved);
+            messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
             return;
           }
 
@@ -676,10 +674,7 @@ class _QueueActions extends ConsumerWidget {
       QueueRemoval.delete =>
         await notifier.delete(item.id, logId: 'queue.action.cancel'),
     };
-    // `queueRemovalMessage` rather than `messageFor`: all three routes answer
-    // 400 by naming the status they found, and that is the only thing that
-    // explains the refusal — a bare code reads as "server returned error 400".
-    final failure = queueRemovalMessage(l10n, result);
+    final failure = queueWriteMessage(l10n, result);
     if (failure != null) {
       messenger.snack(failure);
       return;
@@ -782,7 +777,7 @@ Future<void> _startQueueItem(
   final result = await providers
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
-  messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
+  messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -862,12 +857,14 @@ Future<Printer?> _pickQueuePrinter(
 
 
 /// Says nothing on success: the change is already visible in the list.
-void _snackForResult(
+/// Says nothing when [result] succeeded — the row leaving the list is the
+/// confirmation — and otherwise what [queueWriteMessage] made of the refusal.
+void _snackFailure(
   ScaffoldMessengerState messenger,
   AppLocalizations l10n,
   ActionOutcome result,
 ) {
-  final text = result.messageFor(l10n);
+  final text = queueWriteMessage(l10n, result);
   if (text == null) return;
   messenger.snack(text);
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
@@ -263,7 +264,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final password = _password.text;
     final groupIds = _groupIds.toList()..sort();
 
-    final result = await runUserWrite(() async {
+    final result = await runAction(() async {
       if (existing == null) {
         await repo.create(UserCreateInput(
           username: username,
@@ -293,13 +294,13 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    }, 'user_form.save');
+    }, logId: 'user_form.save');
 
     await ref.read(usersListProvider.notifier).refresh();
     // Editing your own account can change your own role, groups and therefore
     // what the app offers you — re-read the identity rather than keep the one
     // from before the edit.
-    if (result.ok && existing != null) {
+    if (result.isOk && existing != null) {
       final self = ref.read(currentUserProvider).valueOrNull;
       if (self != null && self.id == existing.id) {
         await ref.read(currentUserProvider.notifier).refresh();
@@ -308,8 +309,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.snack(result.ok ? l10n.usersSaved : userWriteMessage(l10n, result));
-    if (result.ok) navigator.pop();
+    messenger.snack(result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result));
+    if (result.isOk) navigator.pop();
   }
 
   static bool _sameGroups(List<UserGroup> current, List<int> picked) {

@@ -245,10 +245,10 @@ class QueueRepository {
 
   /// DELETE /queue/{id} — delete item from queue.
   ///
-  /// Not [guard]: refused with 400 for a row that is currently printing, and
-  /// the status it names is the only thing that explains the refusal — see
+  /// Keeps the detail: refused with 400 for a row that is currently printing,
+  /// and the status it names is the only thing that explains the refusal — see
   /// [stop].
-  Future<void> delete(int itemId) => _removal(
+  Future<void> delete(int itemId) => guardKeepingDetail(
       () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
 
   /// PATCH /queue/{id} — assign printer to item (before start).
@@ -362,8 +362,8 @@ class QueueRepository {
 
   /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
   /// item only; see [stop] for the rest and for why the detail is kept.
-  Future<void> cancel(int itemId) =>
-      _removal(() => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+  Future<void> cancel(int itemId) => guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
 
   /// POST /queue/{id}/stop — stop the print a `printing` item is running and
   /// drop the item out of the queue (the server writes it `cancelled`).
@@ -378,22 +378,13 @@ class QueueRepository {
   /// the server writes the row `cancelled` either way and says which of the
   /// two happened.
   ///
-  /// Not [guard]: the three removal routes all answer 400 by naming the status
-  /// they found ("Cannot cancel item with status 'printing'"), and that status
-  /// is the whole explanation. The plain mapper drops a 400's detail, which is
-  /// how the reporter's screen could only say "server error 400".
-  Future<void> stop(int itemId) =>
-      _removal(() => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)));
-
-  /// The three routes that take an item out of the queue, each of which
-  /// refuses a status it does not handle and explains itself only in `detail`.
-  Future<void> _removal(Future<void> Function() send) async {
-    try {
-      await send();
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
-  }
+  /// [guardKeepingDetail], like the other two removals: all three answer 400
+  /// by naming the status they found ("Cannot cancel item with status
+  /// 'printing'"), and that status is the whole explanation. Plain [guard]
+  /// drops a 400's detail, which is how the reporter's screen could only say
+  /// "server error 400".
+  Future<void> stop(int itemId) => guardKeepingDetail(
+      () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)));
 
   /// POST /queue/ — add new item from archive.
   ///

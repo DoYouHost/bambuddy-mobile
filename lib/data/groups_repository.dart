@@ -52,60 +52,50 @@ class GroupsRepository {
   }
 
   /// POST /groups/ — the group as the server stored it.
-  Future<GroupSummary> create(GroupCreateInput body) async {
-    try {
+  Future<GroupSummary> create(GroupCreateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.groups,
         data: body.toJson(),
       );
       return GroupSummary.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// PATCH /groups/{id}. Refused for a system group's name or permission set
   /// (`groups.py::update_group`, `:200`) — the form disables both rather than
   /// try.
-  Future<GroupSummary> update(int groupId, GroupUpdateInput body) async {
-    try {
+  Future<GroupSummary> update(int groupId, GroupUpdateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.groupById(groupId),
         data: body.toJson(),
       );
       return GroupSummary.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /groups/{id} — system groups are refused
   /// (`groups.py::delete_group`). Members are not deleted with it; they only
   /// lose what it granted.
-  Future<void> delete(int groupId) async {
-    try {
+  Future<void> delete(int groupId) {
+    return guardKeepingDetail(() async {
       await _dio.delete<void>(Endpoints.groupById(groupId));
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// POST /groups/{id}/users/{userId} — 400 "User is already in this group"
   /// when it is a repeat, which the caller shows rather than pre-empts.
-  Future<void> addMember(int groupId, int userId) async {
-    try {
+  Future<void> addMember(int groupId, int userId) {
+    return guardKeepingDetail(() async {
       await _dio.post<void>(Endpoints.groupMember(groupId, userId));
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /groups/{id}/users/{userId}.
-  Future<void> removeMember(int groupId, int userId) async {
-    try {
+  Future<void> removeMember(int groupId, int userId) {
+    return guardKeepingDetail(() async {
       await _dio.delete<void>(Endpoints.groupMember(groupId, userId));
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 }

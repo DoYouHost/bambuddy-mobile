@@ -76,9 +76,9 @@ void main() {
     });
   });
 
-  group('queueRemovalMessage', () {
+  group('queueWriteMessage', () {
     test('a success says nothing', () {
-      expect(queueRemovalMessage(en, ActionOutcome.ok), isNull);
+      expect(queueWriteMessage(en, ActionOutcome.ok), isNull);
     });
 
     test('each route\'s refusal reads as the row having moved on', () {
@@ -90,7 +90,7 @@ void main() {
       ];
       for (final detail in details) {
         expect(
-          queueRemovalMessage(en, _refused(detail, 400)),
+          queueWriteMessage(en, _refused(detail, 400)),
           en.queueRemovalStatusChanged,
           reason: detail,
         );
@@ -99,7 +99,7 @@ void main() {
 
     test('the refusal is translated, not quoted in English', () {
       expect(
-        queueRemovalMessage(AppLocalizationsPl(),
+        queueWriteMessage(AppLocalizationsPl(),
             _refused("Cannot cancel item with status 'printing'", 400)),
         AppLocalizationsPl().queueRemovalStatusChanged,
       );
@@ -109,14 +109,14 @@ void main() {
       // A phrasing we do not know yet still beats "server returned error 400",
       // which is all the reporter's screen could say.
       expect(
-        queueRemovalMessage(en, _refused('Budget reservation is locked', 400)),
+        queueWriteMessage(en, _refused('Budget reservation is locked', 400)),
         'Budget reservation is locked',
       );
     });
 
     test('a refusal with no detail falls back to the code', () {
       expect(
-        queueRemovalMessage(en, _refused(null, 400)),
+        queueWriteMessage(en, _refused(null, 400)),
         en.errBadResponse(400),
       );
     });
@@ -124,7 +124,7 @@ void main() {
     test('a permission refusal keeps its own wording', () {
       // 403 is not a removal rule; it must not be flattened into "refresh the
       // queue", which would send the user to retry something that cannot work.
-      final message = queueRemovalMessage(
+      final message = queueWriteMessage(
         en,
         ActionOutcome.failed(const ApiException(
           AppErrorCode.forbidden,
