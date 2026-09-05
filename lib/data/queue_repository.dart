@@ -244,8 +244,12 @@ class QueueRepository {
   }
 
   /// DELETE /queue/{id} — delete item from queue.
-  Future<void> delete(int itemId) =>
-      guard(() => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
+  ///
+  /// Not [guard]: refused with 400 for a row that is currently printing, and
+  /// the status it names is the only thing that explains the refusal — see
+  /// [stop].
+  Future<void> delete(int itemId) => _removal(
+      () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
 
   /// PATCH /queue/{id} — assign printer to item (before start).
   /// Body: `{"printer_id": ..}`.
@@ -356,9 +360,40 @@ class QueueRepository {
     await start(item.id);
   }
 
-  /// POST /queue/{id}/cancel — cancel queue item.
+  /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
+  /// item only; see [stop] for the rest and for why the detail is kept.
   Future<void> cancel(int itemId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+      _removal(() => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+
+  /// POST /queue/{id}/stop — stop the print a `printing` item is running and
+  /// drop the item out of the queue (the server writes it `cancelled`).
+  ///
+  /// The escape hatch for a row the server holds as `printing`: `/cancel`
+  /// takes `pending` alone, `DELETE` refuses a printing row, and the queue
+  /// screen offers no swipe on the pinned printing card — so before this the
+  /// app had no way to clear one. That is issue #35, where a print had failed
+  /// on the machine while its row stayed `printing`.
+  ///
+  /// Sends a stop to the printer, which is harmless when it already stopped:
+  /// the server writes the row `cancelled` either way and says which of the
+  /// two happened.
+  ///
+  /// Not [guard]: the three removal routes all answer 400 by naming the status
+  /// they found ("Cannot cancel item with status 'printing'"), and that status
+  /// is the whole explanation. The plain mapper drops a 400's detail, which is
+  /// how the reporter's screen could only say "server error 400".
+  Future<void> stop(int itemId) =>
+      _removal(() => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)));
+
+  /// The three routes that take an item out of the queue, each of which
+  /// refuses a status it does not handle and explains itself only in `detail`.
+  Future<void> _removal(Future<void> Function() send) async {
+    try {
+      await send();
+    } on DioException catch (e) {
+      throw mapDioExceptionKeepingDetail(e);
+    }
+  }
 
   /// POST /queue/ — add new item from archive.
   ///

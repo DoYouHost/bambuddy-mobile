@@ -97,7 +97,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   }
 
   /// Optimistic delete (swipe-to-delete). Error → restore item.
-  Future<ActionOutcome> delete(int itemId) async {
+  ///
+  /// [logId] is the control the user touched: the swipe is one door, the
+  /// overflow menu's removal is the other, and a failure that reports as the
+  /// swipe from either would send anyone reading the log to the wrong widget.
+  Future<ActionOutcome> delete(
+    int itemId, {
+    String logId = 'queue.swipe_delete',
+  }) async {
     final current = state.valueOrNull;
     if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
@@ -109,7 +116,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
       state = AsyncValue.data(current); // rollback
-      return ActionOutcome.failed(e, action: 'queue.swipe_delete');
+      return ActionOutcome.failed(e, action: logId);
     }
   }
 
@@ -123,6 +130,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   Future<ActionOutcome> cancel(int itemId) => _serverAction(
       () => ref.read(queueRepositoryProvider).cancel(itemId),
       'queue.cancel');
+
+  /// Stop the print a `printing` item is running, which also drops it from the
+  /// queue — the only route that clears such a row. On success, refresh list.
+  ///
+  /// Not optimistic like [delete]: the server decides whether the row ends up
+  /// `cancelled` or refuses outright, and the refreshed list is the answer.
+  Future<ActionOutcome> stop(int itemId) => _serverAction(
+      () => ref.read(queueRepositoryProvider).stop(itemId), 'queue.stop');
 
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
