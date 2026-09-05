@@ -71,7 +71,8 @@ class PipelinesRepository {
   }
 
   /// GET /slicer-pipelines/ — every saved pipeline, newest first.
-  Future<List<SlicerPipeline>> list() => _read.watching(() async {
+  Future<List<SlicerPipeline>> list() =>
+      _read.watching(observing: treat404AsAbsent, () async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.slicerPipelines,
         );
@@ -81,7 +82,7 @@ class PipelinesRepository {
   /// POST /slicer-pipelines/ — bundle only; the target needs a follow-up
   /// [update], which is the only schema that declares it.
   Future<SlicerPipeline> create(SlicerPipeline pipeline) =>
-      _write.watching(() async {
+      _write.watching(observing: treat404AsAbsent, () async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.slicerPipelines,
           data: pipeline.toCreateJson(),
@@ -108,7 +109,7 @@ class PipelinesRepository {
     String? targetModelClass,
     FanoutStrategy? fanoutStrategy,
   }) =>
-      _write.watching(observing: _refusalOnly, () async {
+      _write.watching(() async {
         final body = <String, dynamic>{
           'name': ?name,
           'description': ?description,
@@ -131,7 +132,7 @@ class PipelinesRepository {
 
   /// DELETE /slicer-pipelines/{id} — soft, so past runs keep their name.
   Future<void> delete(int pipelineId) =>
-      _write.watching(observing: _refusalOnly, () async {
+      _write.watching(() async {
         await _dio.delete<void>(Endpoints.slicerPipeline(pipelineId));
       });
 
@@ -140,7 +141,7 @@ class PipelinesRepository {
     int pipelineId, {
     required PipelineSource source,
   }) =>
-      _read.watching(observing: _refusalOnly, () async {
+      _read.watching(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.slicerPipelineCheckEligibility(pipelineId),
           data: source.toJson(),
@@ -156,7 +157,7 @@ class PipelinesRepository {
     int copies = 1,
     bool force = false,
   }) =>
-      _run.watching(observing: _refusalOnly, () async {
+      _run.watching(() async {
         try {
           final res = await _dio.post<Map<String, dynamic>>(
             Endpoints.slicerPipelineRun(pipelineId),
@@ -199,7 +200,7 @@ class PipelinesRepository {
     int offset = 0,
     PipelineRunFilter filter = const PipelineRunFilter(),
   }) =>
-      _read.watching(observing: _refusalOnly, () async {
+      _read.watching(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.pipelineRuns,
           queryParameters: {
@@ -219,7 +220,7 @@ class PipelinesRepository {
 
   /// GET /pipeline-runs/{id}.
   Future<PipelineRun> runById(int runId) =>
-      _read.watching(observing: _refusalOnly, () async {
+      _read.watching(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.pipelineRun(runId),
         );
@@ -229,7 +230,7 @@ class PipelinesRepository {
   /// POST /pipeline-runs/{id}/cancel — idempotent; a terminal run comes back
   /// unchanged rather than refused.
   Future<PipelineRun> cancel(int runId) =>
-      _run.watching(observing: _refusalOnly, () async {
+      _run.watching(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.pipelineRunCancel(runId),
         );
@@ -239,7 +240,7 @@ class PipelinesRepository {
   /// POST /pipeline-runs/{id}/retry-failed — a **new** run of the parent's
   /// failed + cancelled copies, forced past the pre-flight.
   Future<PipelineRun> retryFailed(int runId) =>
-      _run.watching(observing: _refusalOnly, () async {
+      _run.watching(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.pipelineRunRetryFailed(runId),
         );
@@ -248,18 +249,12 @@ class PipelinesRepository {
 
   /// POST /pipeline-runs/clear — drop every terminal run. Returns how many.
   Future<int> clearTerminalRuns() =>
-      _write.watching(observing: _refusalOnly, () async {
+      _write.watching(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.pipelineRunsClear,
         );
         return toIntOrNull(res.data?['deleted']) ?? 0;
       });
-
-  /// For a route where only a refusal is worth recording: these are addressed
-  /// by row id, and a 404 there is that pipeline or that run being gone. [list]
-  /// and [create] keep the default — they address the collection, so a 404 from
-  /// them really does mean the routes are absent.
-  static const _refusalOnly = {403};
 }
 
 /// The file a run slices: exactly one of the two ids, which the server enforces

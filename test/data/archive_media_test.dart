@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:dio/dio.dart';
@@ -129,16 +130,26 @@ void main() {
       repo = ArchiveRepository(dio);
     });
 
-    test('a 404 means this server has no such route', () async {
+    test('a 404 offers nothing without taking the button away', () async {
+      // The route 404s for an archive that is gone or not this caller's to see
+      // (`archives.py::_ensure_archive_visible`) as well as on a server that
+      // never had it, so it settles nothing — one purged archive used to take
+      // the recordings button off every other card until the app restarted.
+      //
+      // Against a version that claims the route, or the second assertion would
+      // pass on a repository that never asked anything.
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'x/y'}),
+      );
       adapter.onGet(
         '/api/v1/archives/7/printer-media',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
+        (s) => s.reply(404, {'detail': 'Archive not found'}),
       );
+      final versioned = ArchiveRepository(dio, ServerVersionService(dio));
 
-      expect(await repo.printerMedia(7), isNull);
-      // And the capability latches shut, so the entry point stops being
-      // offered without another request having to fail first.
-      expect(await repo.supportsPrinterMedia(), isFalse);
+      expect(await versioned.printerMedia(7), isNull);
+      expect(await versioned.supportsPrinterMedia(), isTrue);
     });
 
     test('any other failure is a broken search, not an empty one', () async {

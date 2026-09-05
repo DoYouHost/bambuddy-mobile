@@ -291,6 +291,24 @@ void main() {
       expect(await repo.supportsScheduling(), isFalse);
     });
 
+    test('cancelling something already gone does not hide scheduling',
+        () async {
+      // The bug this default exists for. `DELETE /scheduled-dryings/{id}` 404s
+      // routinely — the job started, or someone cancelled it from the web
+      // between the list refresh and the tap — and reading that as "this
+      // server has no scheduling" took the Later modes out of the drying sheet
+      // for the rest of the session.
+      replyVersion('1.2.6b1');
+      adapter.onDelete(
+        '/api/v1/scheduled-dryings/7',
+        (s) => s.reply(404, {'detail': 'Scheduled drying not found'}),
+      );
+
+      await expectLater(repo.cancel(7), throwsA(isA<AppApiException>()),
+          reason: 'the user pressed Cancel, so the failure still reaches them');
+      expect(await repo.supportsScheduling(), isTrue);
+    });
+
     test('a 403 hides it too, which no version could have said', () async {
       replyVersion('1.2.6b1');
       adapter.onGet(

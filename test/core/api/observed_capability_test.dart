@@ -102,8 +102,7 @@ void main() {
       expect(await cap.supported, isTrue);
     });
 
-    test('the two statuses the latch reads come back as the caller\'s answer',
-        () async {
+    test('both statuses come back as the caller\'s answer', () async {
       for (final status in [404, 403]) {
         final cap = capability('1.2.6b1');
 
@@ -111,10 +110,47 @@ void main() {
           await cap.watching(() => refusing<List<int>>(status),
               absent: () => const []),
           isEmpty,
+          reason: 'status $status still answers with `absent`',
         );
-        expect(await cap.supported, isFalse,
-            reason: 'status $status is also recorded, not only answered');
       }
+    });
+
+    test('by default a 404 answers without hiding the capability', () async {
+      // The whole point of the default: most of these routes are addressed by
+      // a row id, so a 404 is a stale id, and reading it as absence took the
+      // feature away for the rest of the session.
+      final cap = capability('1.2.6b1');
+
+      expect(
+        await cap.watching(() => refusing<List<int>>(404),
+            absent: () => const []),
+        isEmpty,
+      );
+      expect(await cap.supported, isTrue,
+          reason: 'the version still answers; nothing was observed');
+    });
+
+    test('a refusal is recorded whatever else is', () async {
+      final cap = capability('1.2.6b1');
+
+      expect(
+        await cap.watching(() => refusing<List<int>>(403),
+            absent: () => const []),
+        isEmpty,
+      );
+      expect(await cap.supported, isFalse);
+    });
+
+    test('treat404AsAbsent is what lets a 404 settle it', () async {
+      final cap = capability('1.2.6b1');
+
+      expect(
+        await cap.watching(() => refusing<List<int>>(404),
+            absent: () => const [], observing: treat404AsAbsent),
+        isEmpty,
+      );
+      expect(await cap.supported, isFalse,
+          reason: 'this route looks no row up, so its 404 is the route');
     });
 
     test('absentOn narrows it, so a refusal still reaches the user', () async {
@@ -141,7 +177,8 @@ void main() {
         cap.watching(() => refusing<String>(404)),
         throwsA(isA<AppApiException>()),
       );
-      expect(await cap.supported, isFalse);
+      expect(await cap.supported, isTrue,
+          reason: 'throwing it is not the same as concluding from it');
     });
 
     test('a failure that says nothing about the route throws and pins nothing',

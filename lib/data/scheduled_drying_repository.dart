@@ -50,6 +50,10 @@ class ScheduledDryingRepository {
           return parseJsonList(res.data, ScheduledDrying.fromJson);
         },
         absent: () => const [],
+        // The one call on this latch that may settle absence: the collection
+        // raises no 404, while `create` and `cancel` both do — for a missing
+        // printer and a missing job — and those are rows, not the route.
+        observing: treat404AsAbsent,
       );
 
   /// Schedule a run. [startAfter] null means "as soon as the printer is idle";

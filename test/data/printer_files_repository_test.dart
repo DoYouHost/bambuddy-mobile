@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -250,13 +251,22 @@ void main() {
     });
 
     test('a server without the route answers null, and says so once', () async {
+      // Against a version that claims the route, so the latch is what the
+      // second assertion measures: with no version service `supported` is
+      // false from the start and the 404 would prove nothing.
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'x/y'}),
+      );
       adapter.onPost(
         '/api/v1/printers/1/files/download-job',
         (s) => s.reply(404, {'detail': 'Not Found'}),
         data: Matchers.any,
       );
+      final versioned = PrinterFilesRepository(dio, ServerVersionService(dio));
+      expect(await versioned.supportsDownloadJobs(), isTrue);
 
-      final job = await repo.startDownloadJob(
+      final job = await versioned.startDownloadJob(
         1,
         paths: const ['/a.3mf'],
         sizes: const {},
@@ -266,8 +276,9 @@ void main() {
 
       expect(job, isNull);
       // Latched, so the next download goes straight down the legacy path
-      // instead of paying for the same 404 again.
-      expect(await repo.supportsDownloadJobs(), isFalse);
+      // instead of paying for the same 404 again. This route keeps
+      // `treat404AsAbsent` for exactly that — see the call site.
+      expect(await versioned.supportsDownloadJobs(), isFalse);
     });
 
     test('a refusal is not the route being absent', () async {

@@ -4,6 +4,14 @@ import 'api_exceptions.dart';
 import 'server_version.dart';
 import 'server_version_service.dart';
 
+/// [ObservedCapability.watching]'s `observing` for a route whose 404 can only
+/// mean the route is not there, because it looks no row up.
+///
+/// Read off the handler rather than assumed: one calling `_load_printer_or_404`,
+/// `_ensure_archive_visible` or their like has a second reason to answer 404
+/// and keeps the default.
+const treat404AsAbsent = {404, 403};
+
 /// A server capability the app settles by watching what the server actually
 /// answers, with [ServerVersion.introducedIn] behind it for before anything has
 /// been seen.
@@ -101,15 +109,19 @@ class ObservedCapability {
   /// does nothing and never says why.
   ///
   /// [observing] narrows which statuses may *settle* the latch, where
-  /// [absentOn] only picks what to answer with. It drops to `{403}` for a
-  /// route addressed by row id: there a 404 is the row being gone, not the
-  /// route being absent, and recording it as absence hides the whole
-  /// capability the first time a stale id is opened.
+  /// [absentOn] only picks what to answer with. It defaults to `{403}`, a
+  /// refusal only, because most of these routes are addressed by a row id and
+  /// there a 404 is that row being gone. Pass [treat404AsAbsent] on one that
+  /// looks no row up.
+  ///
+  /// Fail-safe in the direction that costs least: never recording absence
+  /// leaves the version table answering, while recording it wrongly takes a
+  /// working feature away with nothing on screen to say why.
   Future<T> watching<T>(
     Future<T> Function() request, {
     T Function()? absent,
     Set<int> absentOn = const {404, 403},
-    Set<int> observing = const {404, 403},
+    Set<int> observing = const {403},
   }) async {
     try {
       final answer = await request();

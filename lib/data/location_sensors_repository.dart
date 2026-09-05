@@ -50,6 +50,8 @@ class LocationSensorsRepository {
           return parseJsonList(res.data, LocationSensorBinding.fromJson);
         },
         absent: () => const [],
+        // The collection: it addresses nothing, so its 404 is the route.
+        observing: treat404AsAbsent,
       );
 
   /// The live state of one location's card-visible sensors, in the order the
@@ -65,5 +67,9 @@ class LocationSensorsRepository {
           return parseJsonList(res.data, LocationSensorReading.fromJson);
         },
         absent: () => const [],
+        // Addressed by location, but `by-location/{id}/readings` looks none up
+        // — an unbound location answers an empty list. The 404s in that file
+        // are on the sensor routes, which this repository does not call.
+        observing: treat404AsAbsent,
       );
 }

@@ -219,9 +219,12 @@ class ArchiveRepository {
   /// GET /archives/{id}/printer-media — the recordings this print can still be
   /// given, from the server's own copy and from the printer's storage.
   ///
-  /// **Null means this server has no such route** and the caller offers
-  /// nothing; every other failure bubbles up, because a search that broke is
-  /// not a search that found nothing.
+  /// **Null means there is nothing to offer** — an older server without the
+  /// route, or an archive that is gone or not this caller's to see, both of
+  /// which the route answers 404 to (`archives.py::_ensure_archive_visible`).
+  /// The two are indistinguishable here, so neither settles the latch. Every
+  /// other failure bubbles up: a search that broke is not one that found
+  /// nothing.
   ///
   /// The deadline is the server's own work: it lists up to five directories
   /// over the printer's FTP at 8 seconds each, so anything near the client

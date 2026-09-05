@@ -154,6 +154,11 @@ class SlicerRepository {
           return PresetValues.fromJson(res.data ?? const {});
         },
         absent: () => null,
+        // The preset is a query parameter, not a row the route looks up: an
+        // unresolvable one comes back `resolved: false`, not 404. So the 404
+        // really is the route, absent before 1.2.6 — which is the observation
+        // the doc above says outranks the version.
+        observing: treat404AsAbsent,
       );
     } on AuthException {
       rethrow;

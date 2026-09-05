@@ -104,8 +104,12 @@ class InventoryRepository {
   Future<bool> supportsPresetOverrides() => _presetOverrides.supported;
 
   /// One spool's per-printer-model preset overrides. A server without the route
-  /// answers with an empty list rather than throwing — the section reading this
-  /// is additive, and the latch has already recorded why there is nothing.
+  /// answers with an empty list rather than throwing: the section reading this
+  /// is additive, so it renders as if the spool simply had none.
+  ///
+  /// The 404 settles nothing, because the route also raises it for a spool that
+  /// is gone (`inventory.py::"Spool not found"`) and the two read alike. The
+  /// version row is what answers [supportsPresetOverrides].
   ///
   /// A **403** throws, unlike the 404: `inventory:read` is a permission the key
   /// either has or does not, and a spool form that quietly showed no overrides

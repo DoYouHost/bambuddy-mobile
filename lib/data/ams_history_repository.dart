@@ -29,7 +29,9 @@ class AmsHistoryRepository {
 
   /// Fetch the last [hours] of samples (backend clamps to 1..168).
   Future<AmsHistory> fetch(int printerId, int amsId, {int hours = 24}) =>
-      _history.watching(() async {
+      // `routes/ams_history.py` raises no 404 of its own — an unknown printer
+      // or AMS answers an empty series — so the only 404 left is the route.
+      _history.watching(observing: treat404AsAbsent, () async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.amsHistory(printerId, amsId),
           queryParameters: {'hours': hours},

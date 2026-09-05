@@ -157,6 +157,12 @@ class PrinterFilesRepository {
         // Not a 403: this runs because the user pressed Download, so a refusal
         // is the one thing they have to be told.
         absentOn: const {404},
+        // The one route that keeps this against the rule: `_load_printer_or
+        // _404` does give it a second reason to 404, but this latch picks
+        // between two *working* paths rather than between a feature and
+        // nothing. Wrong costs a slower download; not latching costs a wasted
+        // 404 before every download on a 1.2.6 daily older than the route.
+        observing: treat404AsAbsent,
       );
 
   /// [sizes] as the server may be told them, or **null when they are not worth
