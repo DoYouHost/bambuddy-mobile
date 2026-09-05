@@ -52,7 +52,10 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
     final l10n = systemAppLocalizations();
     await FlutterForegroundTask.startService(
       serviceId: foregroundServiceNotificationId,
-      serviceTypes: const [ForegroundServiceTypes.dataSync],
+      // Must name the same type the manifest declares, or `startForeground`
+      // throws on Android 14+. Why this one rather than `dataSync` is in the
+      // manifest, next to the declaration.
+      serviceTypes: const [ForegroundServiceTypes.connectedDevice],
       notificationTitle: l10n.bgServiceTitle,
       notificationText: l10n.bgServiceText,
       callback: startCallback,

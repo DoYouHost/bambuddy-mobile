@@ -34,7 +34,14 @@ Future<void> main() async {
       // Events come from WS stream, not periodic tick.
       eventAction: ForegroundTaskEventAction.nothing(),
       autoRunOnBoot: false,
-      allowWakeLock: true,
+      // Held for the whole life of the service, which is the whole time the app
+      // is backgrounded — and Android vitals counts a foreground service's lock
+      // like any other (2 h a day flags the app; we sat at 6.38% of sessions
+      // against a 5% bar). It bought nothing in exchange: Doze ignores wake
+      // locks, so the only devices it held awake were those already exempt from
+      // Doze. Listening on a socket needs no lock of ours — the radio raises a
+      // kernel one to deliver the packet.
+      allowWakeLock: false,
     ),
   );
 

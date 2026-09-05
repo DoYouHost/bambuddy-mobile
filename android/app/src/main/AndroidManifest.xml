@@ -17,10 +17,20 @@
     <!-- The foreground service keeps the process alive in the background so the
          WebSocket keeps receiving statuses and updating the print notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
-    <!-- flutter_foreground_task holds a wakelock so the background isolate
-         (WebSocket) doesn't fall asleep with the CPU during Doze. -->
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- `connectedDevice`, not `dataSync`: from targetSdk 35 on a dataSync
+         service is allowed 6 hours in a day and the counter resets only when
+         the user brings the app to the foreground, so a long print loses its
+         monitor half way through and nothing tells the user. connectedDevice
+         has no timeout. CHANGE_NETWORK_STATE is what qualifies the app for that
+         type over a network link — the type takes Bluetooth, NFC, IR, USB or a
+         network connection, and a printer reached through the bambuddy server
+         is the last of those. Both this and the Play Console declaration of the
+         foreground service type have to keep naming the same one. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <!-- No WAKE_LOCK of ours any more (see `allowWakeLock` in lib/main.dart).
+         flutter_foreground_task declares the permission in its own manifest, so
+         it still merges into the APK — nothing in this app acquires a lock. -->
     <!-- Battery optimization exemption request: critical for background survival
          on Samsung, and it unblocks starting a foreground service from the
          background. -->
@@ -66,13 +76,15 @@
         <!-- flutter_foreground_task's foreground service — hosts a separate Dart
              isolate that keeps the WebSocket open and posts print notifications
              in the background. Do NOT rename the service (plugin requirement).
-             The dataSync type is required from Android 14 on. stopWithTask=false:
+             The type is declared here and passed again from
+             `ForegroundServiceMonitor`; the two must agree or `startForeground`
+             throws on Android 14 and up. stopWithTask=false:
              the service (and with it WS monitoring) survives the app being
              swiped away from recents. -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="connectedDevice"
             android:stopWithTask="false" />
 
         <!-- Watch relay on a phone whose app is not running: Play services

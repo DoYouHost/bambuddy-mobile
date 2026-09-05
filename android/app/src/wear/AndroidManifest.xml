@@ -13,7 +13,8 @@
     <!-- The watch has no gallery screen and starts at API 30 anyway. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
     <!-- The watch never posts its own notifications (Wear OS bridges the
          phone's), so neither the runtime permission nor the reboot
