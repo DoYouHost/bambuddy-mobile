@@ -17,16 +17,13 @@ class _InfoRow extends StatelessWidget {
     if (dbm == null && doorOpen == null) return const SizedBox.shrink();
 
     Widget item(IconData icon, String text, Color color) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              text,
-              style: t.monoLabel.copyWith(color: color),
-            ),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text(text, style: t.monoLabel.copyWith(color: color)),
+      ],
+    );
 
     return Container(
       margin: const EdgeInsets.only(top: 14),
@@ -38,8 +35,11 @@ class _InfoRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (dbm != null)
-            item(_wifiIcon(dbm), '$dbm dBm',
-                _wifiColor(t, Theme.of(context).colorScheme, dbm))
+            item(
+              _wifiIcon(dbm),
+              '$dbm dBm',
+              _wifiColor(t, Theme.of(context).colorScheme, dbm),
+            )
           else
             const SizedBox.shrink(),
           if (doorOpen != null)
@@ -261,8 +261,8 @@ class _PrintPanel extends StatelessWidget {
                     value: showStage
                         ? null
                         : (progress == null
-                            ? null
-                            : (progress / 100).clamp(0.0, 1.0)),
+                              ? null
+                              : (progress / 100).clamp(0.0, 1.0)),
                     minHeight: 6,
                     backgroundColor: t.gaugeTrack,
                     valueColor: AlwaysStoppedAnimation(t.accentGreen),
@@ -271,10 +271,7 @@ class _PrintPanel extends StatelessWidget {
               ),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: 10),
-                Text(
-                  '${progress.toStringAsFixed(0)}%',
-                  style: t.monoValue,
-                ),
+                Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
               ],
             ],
           ),
@@ -307,15 +304,15 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
   @override
   Widget build(BuildContext context) {
     Widget placeholder() => ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.asset(
-            _CoverThumbnail._placeholderAsset,
-            key: const ValueKey('cover_placeholder'),
-            width: _CoverThumbnail._size,
-            height: _CoverThumbnail._size,
-            fit: BoxFit.cover,
-          ),
-        );
+      borderRadius: BorderRadius.circular(10),
+      child: Image.asset(
+        _CoverThumbnail._placeholderAsset,
+        key: const ValueKey('cover_placeholder'),
+        width: _CoverThumbnail._size,
+        height: _CoverThumbnail._size,
+        fit: BoxFit.cover,
+      ),
+    );
 
     final url = widget.coverUrl;
     if (url == null || url.isEmpty) return placeholder();
@@ -323,7 +320,9 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (baseUrl == null) return placeholder();
 
-    return ref.watch(cameraTokenProvider).when(
+    return ref
+        .watch(cameraTokenProvider)
+        .when(
           loading: placeholder,
           error: (_, _) => placeholder(),
           data: (token) => ClipRRect(
@@ -333,9 +332,10 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
               key: const ValueKey('cover_network'),
               width: _CoverThumbnail._size,
               height: _CoverThumbnail._size,
-              cacheWidth: (_CoverThumbnail._size *
-                      MediaQuery.devicePixelRatioOf(context))
-                  .round(),
+              cacheWidth:
+                  (_CoverThumbnail._size *
+                          MediaQuery.devicePixelRatioOf(context))
+                      .round(),
               fit: BoxFit.cover,
               gaplessPlayback: true,
               errorBuilder: (_, error, _) {
@@ -374,12 +374,15 @@ class _TempGrid extends StatelessWidget {
     // while the plain `nozzle` key is the LEFT one. Map each to the server's
     // hardware index (0=right/default, 1=left). On single-nozzle machines the
     // plain `nozzle` is the default → index 0.
-    final hasSecondNozzle =
-        readings.any((r) => r.kind == _TempKind.nozzle && r.index != null);
+    final hasSecondNozzle = readings.any(
+      (r) => r.kind == _TempKind.nozzle && r.index != null,
+    );
     // Built once for the whole grid: every tile's chart glyph opens the same
     // sheet, which switches between all of this printer's recorded sensors.
-    final historyKinds =
-        _heaterKindOptions(readings, AppLocalizations.of(context));
+    final historyKinds = _heaterKindOptions(
+      readings,
+      AppLocalizations.of(context),
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -503,9 +506,12 @@ class _FanCell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = DashTokens.of(context);
-    final pending =
-        ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final pending = ref.watch(
+      controlsProvider.select((s) => s.pendingFor(printerId)),
+    );
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
@@ -529,7 +535,10 @@ class _FanCell extends ConsumerWidget {
           const SizedBox(height: 3),
           Text(
             '$shown%',
-            style: tokens.monoTitle.copyWith(color: valueColor, fontFeatures: const [FontFeature.tabularFigures()]),
+            style: tokens.monoTitle.copyWith(
+              color: valueColor,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ],
       ),
@@ -643,10 +652,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      widget.label,
-                      style: t.titleLg,
-                    ),
+                    Text(widget.label, style: t.titleLg),
                     const SizedBox(height: 16),
                     Center(
                       child: Text(
@@ -672,7 +678,8 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                             value: _speed.toDouble(),
                             max: 100,
                             activeColor: accent,
-                            onChanged: (v) => setState(() => _speed = v.round()),
+                            onChanged: (v) =>
+                                setState(() => _speed = v.round()),
                           ).tagged('fan.slider'),
                         ),
                         _StepButton(
@@ -725,7 +732,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 }

@@ -51,26 +51,42 @@ void main() {
 
   test('a refusal outranks both, and a later reply clears it', () async {
     final cap = capability('1.2.6b1')..observeRefusal();
-    expect(await cap.supported, isFalse,
-        reason: 'the route is there, this session may not use it');
+    expect(
+      await cap.supported,
+      isFalse,
+      reason: 'the route is there, this session may not use it',
+    );
 
     cap.observe(present: true);
-    expect(await cap.supported, isTrue,
-        reason: 'a reply that arrived says the refusal is over');
+    expect(
+      await cap.supported,
+      isTrue,
+      reason: 'a reply that arrived says the refusal is over',
+    );
   });
 
-  test('a route\'s own answer: 404 absent, 403 refused, the rest silent',
-      () async {
-    expect(await (capability('1.2.6b1')..observeFailure(404)).supported, isFalse);
-    expect(await (capability('1.2.6b1')..observeFailure(403)).supported, isFalse);
-    // 401, 5xx and no response at all say nothing about the route — pinning
-    // either latch on them would disable a feature over a flaky network.
-    for (final status in [null, 401, 500, 502]) {
-      expect(await (capability('1.2.6b1')..observeFailure(status)).supported,
+  test(
+    'a route\'s own answer: 404 absent, 403 refused, the rest silent',
+    () async {
+      expect(
+        await (capability('1.2.6b1')..observeFailure(404)).supported,
+        isFalse,
+      );
+      expect(
+        await (capability('1.2.6b1')..observeFailure(403)).supported,
+        isFalse,
+      );
+      // 401, 5xx and no response at all say nothing about the route — pinning
+      // either latch on them would disable a feature over a flaky network.
+      for (final status in [null, 401, 500, 502]) {
+        expect(
+          await (capability('1.2.6b1')..observeFailure(status)).supported,
           isTrue,
-          reason: 'status $status must leave the version reading standing');
-    }
-  });
+          reason: 'status $status must leave the version reading standing',
+        );
+      }
+    },
+  );
 
   test('unversioned: offered until the route says otherwise', () async {
     expect(await ObservedCapability.unversioned().supported, isTrue);
@@ -83,16 +99,18 @@ void main() {
   group('watching', () {
     /// A request that fails the way Dio fails, so the wrapper sees what a
     /// repository sees.
-    Future<T> refusing<T>(int status) => Future<T>.error(DioException(
+    Future<T> refusing<T>(int status) => Future<T>.error(
+      DioException(
+        requestOptions: RequestOptions(path: '/x'),
+        // badResponse, or `mapDioException` reads it as a transport failure
+        // and no status reaches the mapping at all.
+        type: DioExceptionType.badResponse,
+        response: Response(
           requestOptions: RequestOptions(path: '/x'),
-          // badResponse, or `mapDioException` reads it as a transport failure
-          // and no status reaches the mapping at all.
-          type: DioExceptionType.badResponse,
-          response: Response(
-            requestOptions: RequestOptions(path: '/x'),
-            statusCode: status,
-          ),
-        ));
+          statusCode: status,
+        ),
+      ),
+    );
 
     test('an answer is the answer, and records the route as there', () async {
       final cap = capability('1.2.5.1');
@@ -107,8 +125,10 @@ void main() {
         final cap = capability('1.2.6b1');
 
         expect(
-          await cap.watching(() => refusing<List<int>>(status),
-              absent: () => const []),
+          await cap.watching(
+            () => refusing<List<int>>(status),
+            absent: () => const [],
+          ),
           isEmpty,
           reason: 'status $status still answers with `absent`',
         );
@@ -122,20 +142,27 @@ void main() {
       final cap = capability('1.2.6b1');
 
       expect(
-        await cap.watching(() => refusing<List<int>>(404),
-            absent: () => const []),
+        await cap.watching(
+          () => refusing<List<int>>(404),
+          absent: () => const [],
+        ),
         isEmpty,
       );
-      expect(await cap.supported, isTrue,
-          reason: 'the version still answers; nothing was observed');
+      expect(
+        await cap.supported,
+        isTrue,
+        reason: 'the version still answers; nothing was observed',
+      );
     });
 
     test('a refusal is recorded whatever else is', () async {
       final cap = capability('1.2.6b1');
 
       expect(
-        await cap.watching(() => refusing<List<int>>(403),
-            absent: () => const []),
+        await cap.watching(
+          () => refusing<List<int>>(403),
+          absent: () => const [],
+        ),
         isEmpty,
       );
       expect(await cap.supported, isFalse);
@@ -145,25 +172,37 @@ void main() {
       final cap = capability('1.2.6b1');
 
       expect(
-        await cap.watching(() => refusing<List<int>>(404),
-            absent: () => const [], observing: treat404AsAbsent),
+        await cap.watching(
+          () => refusing<List<int>>(404),
+          absent: () => const [],
+          observing: treat404AsAbsent,
+        ),
         isEmpty,
       );
-      expect(await cap.supported, isFalse,
-          reason: 'this route looks no row up, so its 404 is the route');
+      expect(
+        await cap.supported,
+        isFalse,
+        reason: 'this route looks no row up, so its 404 is the route',
+      );
     });
 
     test('absentOn narrows it, so a refusal still reaches the user', () async {
       final cap = capability('1.2.6b1');
 
       expect(
-        await cap.watching(() => refusing<String?>(404),
-            absent: () => null, absentOn: const {404}),
+        await cap.watching(
+          () => refusing<String?>(404),
+          absent: () => null,
+          absentOn: const {404},
+        ),
         isNull,
       );
       await expectLater(
-        cap.watching(() => refusing<String?>(403),
-            absent: () => null, absentOn: const {404}),
+        cap.watching(
+          () => refusing<String?>(403),
+          absent: () => null,
+          absentOn: const {404},
+        ),
         throwsA(isA<AuthException>()),
       );
       // And the refusal is still on the latch, whether or not it was thrown.
@@ -177,30 +216,37 @@ void main() {
         cap.watching(() => refusing<String>(404)),
         throwsA(isA<AppApiException>()),
       );
-      expect(await cap.supported, isTrue,
-          reason: 'throwing it is not the same as concluding from it');
-    });
-
-    test('a failure that says nothing about the route throws and pins nothing',
-        () async {
-      final cap = capability('1.2.6b1');
-
-      await expectLater(
-        cap.watching(() => refusing<List<int>>(500), absent: () => const []),
-        throwsA(isA<AppApiException>()),
-        reason: 'a 500 is a fault to report, not an empty shelf',
-      );
-      expect(await cap.supported, isTrue);
-    });
-
-    test('anything that is not a Dio failure passes straight through',
-        () async {
-      final cap = capability('1.2.6b1');
-
-      await expectLater(
-        cap.watching<int>(() => throw StateError('parser')),
-        throwsA(isA<StateError>()),
+      expect(
+        await cap.supported,
+        isTrue,
+        reason: 'throwing it is not the same as concluding from it',
       );
     });
+
+    test(
+      'a failure that says nothing about the route throws and pins nothing',
+      () async {
+        final cap = capability('1.2.6b1');
+
+        await expectLater(
+          cap.watching(() => refusing<List<int>>(500), absent: () => const []),
+          throwsA(isA<AppApiException>()),
+          reason: 'a 500 is a fault to report, not an empty shelf',
+        );
+        expect(await cap.supported, isTrue);
+      },
+    );
+
+    test(
+      'anything that is not a Dio failure passes straight through',
+      () async {
+        final cap = capability('1.2.6b1');
+
+        await expectLater(
+          cap.watching<int>(() => throw StateError('parser')),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
   });
 }

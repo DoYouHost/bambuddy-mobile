@@ -68,9 +68,12 @@ void main() {
       expect(_sortByColor([null, red]), [red, null]);
     });
 
-    test('a dark navy stays chromatic instead of falling into the neutrals', () {
-      expect(spoolColorSortKey(const Color(0xFF001F3F)).bucket, 0);
-    });
+    test(
+      'a dark navy stays chromatic instead of falling into the neutrals',
+      () {
+        expect(spoolColorSortKey(const Color(0xFF001F3F)).bucket, 0);
+      },
+    );
   });
 
   group('renderLabels', () {
@@ -187,19 +190,22 @@ void main() {
       );
     });
 
-    test('every template carries the wire value the backend contract names', () {
-      expect(
-        SpoolLabelTemplate.values.map((t) => t.wire),
-        containsAll([
-          'ams_holder_74x33',
-          'ams_holder_75x55',
-          'box_40x30',
-          'box_62x29',
-          'avery_l7160',
-          'avery_5160',
-        ]),
-      );
-    });
+    test(
+      'every template carries the wire value the backend contract names',
+      () {
+        expect(
+          SpoolLabelTemplate.values.map((t) => t.wire),
+          containsAll([
+            'ams_holder_74x33',
+            'ams_holder_75x55',
+            'box_40x30',
+            'box_62x29',
+            'avery_l7160',
+            'avery_5160',
+          ]),
+        );
+      },
+    );
   });
 
   group('starting_position', () {

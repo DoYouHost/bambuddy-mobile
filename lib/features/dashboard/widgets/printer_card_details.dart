@@ -126,7 +126,10 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .read(controlsProvider.notifier)
         .clearHmsErrors(widget.printerId);
     if (!mounted) return;
-    messenger.snack(result.messageFor(l10n) ?? l10n.hmsDismissed, clearQueue: true);
+    messenger.snack(
+      result.messageFor(l10n) ?? l10n.hmsDismissed,
+      clearQueue: true,
+    );
   }
 
   @override
@@ -153,12 +156,18 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
             onTap: () => setState(() => _expanded = !_expanded),
             child: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 18,
+                  color: scheme.error,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     l10n.hmsErrorsCount(widget.errors.length),
-                    style: DashTokens.of(context).bodyBold.copyWith(color: scheme.error),
+                    style: DashTokens.of(
+                      context,
+                    ).bodyBold.copyWith(color: scheme.error),
                   ),
                 ),
                 Icon(
@@ -252,7 +261,9 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
       if (!confirmed || !mounted) return;
     }
     setState(() => _pending = action);
-    final result = await ref.read(controlsProvider.notifier).executeHmsAction(
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .executeHmsAction(
           widget.printerId,
           printError: widget.error.fullCode!,
           action: action,
@@ -318,12 +329,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
           ],
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  error.displayCode,
-                  style: t.monoMicro,
-                ),
-              ),
+              Expanded(child: Text(error.displayCode, style: t.monoMicro)),
               if (url != null)
                 InkWell(
                   onTap: () => unawaited(
@@ -442,8 +448,11 @@ class _DetailsToggle extends StatelessWidget {
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.expand_more,
-                        size: 18, color: t.textSecondary),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 18,
+                      color: t.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -489,8 +498,7 @@ class _DetailsPanel extends ConsumerWidget {
           // resolves it through the inlet, but that is where the slot rests
           // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
-          slotExtruder:
-              dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
+          slotExtruder: dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           printerId: printerId,
@@ -506,8 +514,9 @@ class _DetailsPanel extends ConsumerWidget {
         _SpoolSection(
           trays: spools,
           active: active,
-          extruderOf:
-              dual ? (i) => status.extruderForExternal(spools[i].id) : (_) => null,
+          extruderOf: dual
+              ? (i) => status.extruderForExternal(spools[i].id)
+              : (_) => null,
           assignedOf: (i) => assigned.forExtruder(
             dual ? status.extruderForExternal(spools[i].id) : 1,
           ),
@@ -622,28 +631,32 @@ class _AmsSection extends ConsumerWidget {
 
     VoidCallback? openHistory(AmsHistoryMetric metric) => history
         ? () => showAmsHistorySheet(
-              context,
-              printerId: printerId,
-              amsId: unit.id ?? unitIndex,
-              amsLabel: l10n.amsUnit(unitIndex + 1),
-              initialMetric: metric,
-            )
+            context,
+            printerId: printerId,
+            amsId: unit.id ?? unitIndex,
+            amsLabel: l10n.amsUnit(unitIndex + 1),
+            initialMetric: metric,
+          )
         : null;
 
     final metaParts = <Widget>[];
     if (unit.humidity != null) {
-      metaParts.add(_AmsMeta(
-        icon: Icons.water_drop_outlined,
-        text: '${unit.humidity}%',
-        onTap: openHistory(AmsHistoryMetric.humidity),
-      ));
+      metaParts.add(
+        _AmsMeta(
+          icon: Icons.water_drop_outlined,
+          text: '${unit.humidity}%',
+          onTap: openHistory(AmsHistoryMetric.humidity),
+        ),
+      );
     }
     if (unit.temp != null) {
-      metaParts.add(_AmsMeta(
-        icon: Icons.thermostat,
-        text: '${unit.temp!.toStringAsFixed(0)}°',
-        onTap: openHistory(AmsHistoryMetric.temperature),
-      ));
+      metaParts.add(
+        _AmsMeta(
+          icon: Icons.thermostat,
+          text: '${unit.temp!.toStringAsFixed(0)}°',
+          onTap: openHistory(AmsHistoryMetric.temperature),
+        ),
+      );
     }
 
     return Column(
@@ -653,12 +666,17 @@ class _AmsSection extends ConsumerWidget {
           children: [
             Text(
               l10n.amsUnit(unitIndex + 1).toUpperCase(),
-              style: t.bodyBold.copyWith(color: t.textPrimary, letterSpacing: 0.4),
+              style: t.bodyBold.copyWith(
+                color: t.textPrimary,
+                letterSpacing: 0.4,
+              ),
             ),
             if (extruder != null) ...[
               const SizedBox(width: 8),
               _ExtruderBadge(
-                  extruder: extruder!, active: extruder == activeExtruder),
+                extruder: extruder!,
+                active: extruder == activeExtruder,
+              ),
             ],
             const Spacer(),
             for (var i = 0; i < metaParts.length; i++) ...[
@@ -689,8 +707,13 @@ class _AmsSection extends ConsumerWidget {
           ),
         const SizedBox(height: 10),
         if (trays.isEmpty)
-          Text('—',
-              style: TextStyle(fontFamily: DashTokens.fontMono, color: t.textTertiary))
+          Text(
+            '—',
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              color: t.textTertiary,
+            ),
+          )
         else
           for (var i = 0; i < trays.length; i++)
             _FilamentRow(
@@ -707,7 +730,8 @@ class _AmsSection extends ConsumerWidget {
                 printerName: printerName,
                 amsId: unit.id ?? unitIndex,
                 trayId: trays[i].id ?? 0,
-                label: '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                label:
+                    '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
                 printing: printing,
                 loadTrayId: amsLoadTrayId(
                   amsId: unit.id ?? unitIndex,
@@ -839,8 +863,9 @@ class _FilamentRow extends StatelessWidget {
     final empty = tray.isEmpty;
     final dotColor = empty ? null : _parseTrayColor(tray.trayColor);
 
-    final material =
-        empty ? l10n.traySlotEmpty : (tray.materialLabel ?? l10n.traySlotEmpty);
+    final material = empty
+        ? l10n.traySlotEmpty
+        : (tray.materialLabel ?? l10n.traySlotEmpty);
     final label = sidePrefix == null ? material : '$sidePrefix · $material';
 
     final remain = tray.remain;
@@ -947,10 +972,7 @@ class _AmsMeta extends StatelessWidget {
           children: [
             Icon(icon, size: 13, color: t.textTertiary),
             const SizedBox(width: 4),
-            Text(
-              text,
-              style: t.monoLabel,
-            ),
+            Text(text, style: t.monoLabel),
           ],
         ),
       ),
@@ -976,8 +998,9 @@ class _AmsDryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden =
-        ref.watch(controlRefusedProvider(ControlPermission.control));
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -985,8 +1008,9 @@ class _AmsDryControl extends ConsumerWidget {
     final drying = unit.isDrying;
     final remain = unit.dryTime ?? 0;
     final color = drying ? t.accentOrangeInk : t.textTertiary;
-    final label =
-        drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
+    final label = drying && remain > 0
+        ? formatMinutes(l10n, remain)
+        : l10n.ctrlDry;
 
     return InkWell(
       onTap: () {
@@ -1017,10 +1041,7 @@ class _AmsDryControl extends ConsumerWidget {
               color: color,
             ),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: t.monoLabel.copyWith(color: color),
-            ),
+            Text(label, style: t.monoLabel.copyWith(color: color)),
           ],
         ),
       ),
@@ -1076,7 +1097,8 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   /// AMS-HT tops out at 85 °C; AMS 2 Pro at 65 °C.
   bool get _isHt => widget.unit.isHtDryModule;
   int get _maxTemp => _isHt ? 85 : 65;
-  List<int> get _tempPresets => _isHt ? const [45, 65, 75, 85] : const [45, 55, 65];
+  List<int> get _tempPresets =>
+      _isHt ? const [45, 65, 75, 85] : const [45, 55, 65];
 
   @override
   void initState() {
@@ -1152,8 +1174,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       if (mounted) navigator.pop();
       messenger.snack(l10n.ctrlDryScheduled, clearQueue: true);
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'drying.schedule');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'drying.schedule',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1216,10 +1242,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            l10n.ctrlDry,
-                            style: t.titleLg,
-                          ),
+                          Text(l10n.ctrlDry, style: t.titleLg),
                           const Spacer(),
                           Text(
                             widget.amsLabel,
@@ -1242,7 +1265,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 
@@ -1252,7 +1275,11 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       Center(
         child: Column(
           children: [
-            Icon(Icons.local_fire_department, size: 32, color: t.accentOrangeInk),
+            Icon(
+              Icons.local_fire_department,
+              size: 32,
+              color: t.accentOrangeInk,
+            ),
             const SizedBox(height: 8),
             Text(
               remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
@@ -1273,112 +1300,115 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         busy: _busy,
         onTap: _busy
             ? null
-            : () => _run(() => ref
-                .read(controlsProvider.notifier)
-                .stopDrying(widget.printerId, amsId: widget.amsId)),
+            : () => _run(
+                () => ref
+                    .read(controlsProvider.notifier)
+                    .stopDrying(widget.printerId, amsId: widget.amsId),
+              ),
       ),
     ];
   }
 
   List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
-        dashCombo<String>(
-          context,
-          id: 'drying.filament',
-          initialSelection: _filament,
-          menuHeight: 280,
-          label: Text(l10n.ctrlDryFilament),
-          textStyle: t.bodyStrong,
-          // Tighter than the form chrome: this one sits inside a card, where
-          // the 14 px radius and the taller field read as a second card.
-          decorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: t.subCard,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: t.subCardBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: t.subCardBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: t.accentGreen),
-            ),
+    dashCombo<String>(
+      context,
+      id: 'drying.filament',
+      initialSelection: _filament,
+      menuHeight: 280,
+      label: Text(l10n.ctrlDryFilament),
+      textStyle: t.bodyStrong,
+      // Tighter than the form chrome: this one sits inside a card, where
+      // the 14 px radius and the taller field read as a second card.
+      decorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: t.subCard,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: t.subCardBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: t.subCardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: t.accentGreen),
+        ),
+      ),
+      onSelected: (v) {
+        if (v == null) return;
+        setState(() {
+          _touched = true;
+          _applyFilament(v);
+        });
+      },
+      entries: [
+        // Preset keys are Bambu material names, so the pick rides in the
+        // `mat` field instead of turning the identifier into content.
+        for (final f in _presets.keys)
+          DropdownMenuEntry(
+            value: f,
+            label: f,
+            labelWidget: logTagMaterial('drying.filament_option', f, Text(f)),
           ),
-          onSelected: (v) {
-            if (v == null) return;
-            setState(() {
-              _touched = true;
-              _applyFilament(v);
-            });
-          },
-          entries: [
-            // Preset keys are Bambu material names, so the pick rides in the
-            // `mat` field instead of turning the identifier into content.
-            for (final f in _presets.keys)
-              DropdownMenuEntry(
-                value: f,
-                label: f,
-                labelWidget:
-                    logTagMaterial('drying.filament_option', f, Text(f)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _DrySlider(
-          id: 'drying.temp',
-          label: l10n.ctrlDryTemp,
-          valueText: '$_temp°',
-          value: _temp,
-          min: 45,
-          max: _maxTemp,
-          presets: _tempPresets,
-          presetLabel: (p) => '$p°',
-          onChanged: (v) => setState(() {
-            _touched = true;
-            _temp = v;
-          }),
-        ),
-        const SizedBox(height: 16),
-        _DrySlider(
-          id: 'drying.hours',
-          label: l10n.ctrlDryDuration,
-          valueText: l10n.ctrlDryHours(_hours),
-          value: _hours,
-          min: 1,
-          max: 24,
-          presets: _durationPresets,
-          presetLabel: (p) => l10n.ctrlDryHours(p),
-          onChanged: (v) => setState(() {
-            _touched = true;
-            _hours = v;
-          }),
-        ),
-        ..._startWhen(l10n),
-        const SizedBox(height: 20),
-        // Two buttons rather than one with a chosen id: an identifier picked by
-        // an expression is invisible to the scan that keeps the log's action
-        // tags pointing at real controls (`action_tag_vocabulary_test`).
-        if (_startMode == DryStartMode.now)
-          _SheetButton(
-            label: l10n.ctrlDryStart,
-            id: 'drying.start',
-            filled: true,
-            busy: _busy,
-            onTap: _busy ? null : _submit,
-          )
-        else
-          _SheetButton(
-            label: l10n.ctrlDrySchedule,
-            id: 'drying.schedule',
-            filled: true,
-            busy: _busy,
-            onTap: _busy ? null : _submit,
-          ),
-      ];
+      ],
+    ),
+    const SizedBox(height: 16),
+    _DrySlider(
+      id: 'drying.temp',
+      label: l10n.ctrlDryTemp,
+      valueText: '$_temp°',
+      value: _temp,
+      min: 45,
+      max: _maxTemp,
+      presets: _tempPresets,
+      presetLabel: (p) => '$p°',
+      onChanged: (v) => setState(() {
+        _touched = true;
+        _temp = v;
+      }),
+    ),
+    const SizedBox(height: 16),
+    _DrySlider(
+      id: 'drying.hours',
+      label: l10n.ctrlDryDuration,
+      valueText: l10n.ctrlDryHours(_hours),
+      value: _hours,
+      min: 1,
+      max: 24,
+      presets: _durationPresets,
+      presetLabel: (p) => l10n.ctrlDryHours(p),
+      onChanged: (v) => setState(() {
+        _touched = true;
+        _hours = v;
+      }),
+    ),
+    ..._startWhen(l10n),
+    const SizedBox(height: 20),
+    // Two buttons rather than one with a chosen id: an identifier picked by
+    // an expression is invisible to the scan that keeps the log's action
+    // tags pointing at real controls (`action_tag_vocabulary_test`).
+    if (_startMode == DryStartMode.now)
+      _SheetButton(
+        label: l10n.ctrlDryStart,
+        id: 'drying.start',
+        filled: true,
+        busy: _busy,
+        onTap: _busy ? null : _submit,
+      )
+    else
+      _SheetButton(
+        label: l10n.ctrlDrySchedule,
+        id: 'drying.schedule',
+        filled: true,
+        busy: _busy,
+        onTap: _busy ? null : _submit,
+      ),
+  ];
 
   /// The start-time picker, on a server that has somewhere to put a schedule.
   ///
@@ -1389,8 +1419,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   /// sheet re-asks, and a picker that blinked out during that refresh would be
   /// the very thing this is avoiding.
   List<Widget> _startWhen(AppLocalizations l10n) {
-    final offered =
-        ref.watch(scheduledDryingSupportedProvider).orFalse;
+    final offered = ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [
       const SizedBox(height: 16),
@@ -1416,24 +1445,25 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     );
     final problem = start.problem;
     if (problem != null) {
-      ScaffoldMessenger.of(context).snack(
-        switch (problem) {
-          DryingStartProblem.noTimePicked => l10n.ctrlDryPickTime,
-          DryingStartProblem.timeInPast => l10n.ctrlDryScheduleTimePast,
-        },
-        clearQueue: true,
-      );
+      ScaffoldMessenger.of(context).snack(switch (problem) {
+        DryingStartProblem.noTimePicked => l10n.ctrlDryPickTime,
+        DryingStartProblem.timeInPast => l10n.ctrlDryScheduleTimePast,
+      }, clearQueue: true);
       return;
     }
     final startAfter = start.startAfter;
     if (startAfter == null) {
-      _run(() => ref.read(controlsProvider.notifier).startDrying(
-            widget.printerId,
-            amsId: widget.amsId,
-            temp: _temp,
-            duration: _hours,
-            filament: _filament,
-          ));
+      _run(
+        () => ref
+            .read(controlsProvider.notifier)
+            .startDrying(
+              widget.printerId,
+              amsId: widget.amsId,
+              temp: _temp,
+              duration: _hours,
+              filament: _filament,
+            ),
+      );
       return;
     }
     _schedule(startAfter);
@@ -1480,15 +1510,9 @@ class _DrySlider extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
-              label,
-              style: t.body.copyWith(color: t.textSecondary),
-            ),
+            Text(label, style: t.body.copyWith(color: t.textSecondary)),
             const Spacer(),
-            Text(
-              valueText,
-              style: t.monoTitle,
-            ),
+            Text(valueText, style: t.monoTitle),
           ],
         ),
         Row(
@@ -1638,18 +1662,18 @@ class _SlotRef {
   final Map<int, ExtruderSlot>? fedFrom;
 
   AmsSlotTarget get configTarget => AmsSlotTarget(
-        printerId: printerId,
-        amsId: amsId,
-        trayId: trayId,
-        label: label,
-        printerName: printerName,
-        printerModel: printerModel,
-        nozzleDiameter: nozzleDiameter,
-        currentFilamentId: trayInfoIdx,
-        currentColour: trayColour,
-        currentCaliIdx: caliIdx,
-        extruderId: extruderId,
-      );
+    printerId: printerId,
+    amsId: amsId,
+    trayId: trayId,
+    label: label,
+    printerName: printerName,
+    printerModel: printerModel,
+    nozzleDiameter: nozzleDiameter,
+    currentFilamentId: trayInfoIdx,
+    currentColour: trayColour,
+    currentCaliIdx: caliIdx,
+    extruderId: extruderId,
+  );
 }
 
 /// Printer-side filament actions for one slot: load it, unload whatever is in
@@ -1669,9 +1693,11 @@ class _SlotActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canDrive =
-        !ref.watch(controlRefusedProvider(ControlPermission.control));
-    final canReread = slot.canRereadRfid &&
+    final canDrive = !ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
+    final canReread =
+        slot.canRereadRfid &&
         !ref.watch(controlRefusedProvider(ControlPermission.amsRfid));
     // Load and unload share one gate and one row: both address the slot by its
     // global tray number, so a slot that has none can offer neither.
@@ -1682,8 +1708,11 @@ class _SlotActions extends ConsumerWidget {
     // and the configure route addresses it by unit and slot like any other.
     if (!canDrive && !canReread) return const SizedBox.shrink();
 
-    final busy = ref.watch(controlsProvider
-        .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
+    final busy = ref.watch(
+      controlsProvider.select(
+        (s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams),
+      ),
+    );
     final enabled = !busy && !slot.printing;
     final controls = ref.read(controlsProvider.notifier);
 
@@ -1701,22 +1730,21 @@ class _SlotActions extends ConsumerWidget {
     final unload = OutlinedButton.icon(
       onPressed: enabled
           ? () => _run(
-                context,
-                l10n,
-                // Naming the slot is what tells two hotends apart: `tray_now` is
-                // one value for the whole printer, so an unaddressed unload on a
-                // dual-nozzle machine empties whichever hotend that field
-                // happens to name, not the slot the sheet is about. A server
-                // that does not know the parameter ignores it and keeps the old
-                // printer-wide behaviour.
-                () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
-                l10n.amsUnloadStarted,
-                // The one status this route answers for a reason the user can
-                // act on, and which "server returned error 409" would hide.
-                wordFailure: (e) => e.statusCode == 409
-                    ? l10n.amsUnloadSlotNotLoaded
-                    : null,
-              )
+              context,
+              l10n,
+              // Naming the slot is what tells two hotends apart: `tray_now` is
+              // one value for the whole printer, so an unaddressed unload on a
+              // dual-nozzle machine empties whichever hotend that field
+              // happens to name, not the slot the sheet is about. A server
+              // that does not know the parameter ignores it and keeps the old
+              // printer-wide behaviour.
+              () => controls.amsUnload(slot.printerId, trayId: loadTrayId),
+              l10n.amsUnloadStarted,
+              // The one status this route answers for a reason the user can
+              // act on, and which "server returned error 409" would hide.
+              wordFailure: (e) =>
+                  e.statusCode == 409 ? l10n.amsUnloadSlotNotLoaded : null,
+            )
           : null,
       icon: const Icon(Icons.logout, size: 18),
       label: Text(l10n.amsUnload),
@@ -1725,15 +1753,15 @@ class _SlotActions extends ConsumerWidget {
     final reread = OutlinedButton.icon(
       onPressed: enabled
           ? () => _run(
-                context,
-                l10n,
-                () => controls.refreshAmsSlot(
-                  slot.printerId,
-                  amsId: slot.amsId,
-                  slotId: slot.trayId,
-                ),
-                l10n.amsRfidRereadStarted,
-              )
+              context,
+              l10n,
+              () => controls.refreshAmsSlot(
+                slot.printerId,
+                amsId: slot.amsId,
+                slotId: slot.trayId,
+              ),
+              l10n.amsRfidRereadStarted,
+            )
           : null,
       icon: const Icon(Icons.nfc, size: 18),
       label: Text(l10n.amsRfidReread),
@@ -1863,8 +1891,8 @@ class _SlotActions extends ConsumerWidget {
     await _run(
       context,
       l10n,
-      () => controls.amsLoad(slot.printerId, loadTrayId,
-          extruderId: extruderId),
+      () =>
+          controls.amsLoad(slot.printerId, loadTrayId, extruderId: extruderId),
       l10n.amsLoadStarted,
     );
   }
@@ -1876,10 +1904,7 @@ class _SlotActions extends ConsumerWidget {
   /// pairing is the one the sheet was opened on — a slot that becomes loaded
   /// while the dialog is up costs one refused command, which is a far smaller
   /// trap than a button that moves under the finger.
-  Future<int?> _askFeedDirection(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Future<int?> _askFeedDirection(BuildContext context, AppLocalizations l10n) {
     final fed = slot.fedFrom;
     bool alreadyFed(int extruderId) =>
         fed?[extruderId]?.holds(amsId: slot.amsId, slotId: slot.trayId) ??
@@ -1966,15 +1991,16 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       for (final s in spools)
         if (!s.isArchived && s.id != current?.id) s,
     ];
-    final options = [
-      for (final s in offered)
-        if (s.matchesSearch(_query)) s,
-    ]..sort((a, b) {
-        final ga = assignedElsewhere(a) ? 1 : 0;
-        final gb = assignedElsewhere(b) ? 1 : 0;
-        if (ga != gb) return ga - gb;
-        return a.remainingWeight.compareTo(b.remainingWeight);
-      });
+    final options =
+        [
+          for (final s in offered)
+            if (s.matchesSearch(_query)) s,
+        ]..sort((a, b) {
+          final ga = assignedElsewhere(a) ? 1 : 0;
+          final gb = assignedElsewhere(b) ? 1 : 0;
+          if (ga != gb) return ga - gb;
+          return a.remainingWeight.compareTo(b.remainingWeight);
+        });
 
     return logTag(
       'sheet.assign_spool',
@@ -2013,7 +2039,10 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
               const Divider(height: 24),
             ],
             if (current != null) ...[
-              Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
+              Text(
+                l10n.inventoryAssignCurrent,
+                style: theme.textTheme.labelLarge,
+              ),
               const SizedBox(height: 4),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -2046,7 +2075,9 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                   // Told apart on purpose: an empty inventory and a search that
                   // matched nothing look identical otherwise, and only one of
                   // them is fixed by clearing the field.
-                  offered.isEmpty ? l10n.inventoryEmpty : l10n.noSearchResults(_query),
+                  offered.isEmpty
+                      ? l10n.inventoryEmpty
+                      : l10n.noSearchResults(_query),
                   style: theme.textTheme.bodyMedium,
                 ),
               )
@@ -2082,7 +2113,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                 ),
           ],
         ),
-      )
+      ),
     );
   }
 
@@ -2164,7 +2195,8 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
     return switch (e.statusCode) {
       // FastAPI's own "Not Found" for a route that does not exist on this
       // server; the route's own 404 says the printer is not connected.
-      404 when detail.contains('not found') => l10n.inventoryFromSlotUnsupported,
+      404 when detail.contains('not found') =>
+        l10n.inventoryFromSlotUnsupported,
       404 => l10n.inventoryFromSlotOffline,
       400 => l10n.inventoryFromSlotNoTag,
       _ => null,
@@ -2224,12 +2256,16 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
   /// through [_assign], so taking a spool off another slot still asks first.
   Future<void> _scanAndAssign(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
-    final id = await Navigator.of(context, rootNavigator: true)
-        .push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
+    final id = await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
     if (id == null || !mounted) return;
 
     Spool? scanned() {
-      for (final s in ref.read(inventoryProvider).valueOrNull?.spools ?? const <Spool>[]) {
+      for (final s
+          in ref.read(inventoryProvider).valueOrNull?.spools ??
+              const <Spool>[]) {
         if (s.id == id) return s;
       }
       return null;
@@ -2250,7 +2286,10 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     // An archived spool is not offered in the list but is accepted here: the
     // user is holding it against the printer, which outranks a bookkeeping flag.
-    final from = ref.read(inventoryProvider).valueOrNull?.assignmentFor(spool.id);
+    final from = ref
+        .read(inventoryProvider)
+        .valueOrNull
+        ?.assignmentFor(spool.id);
     if (from != null &&
         from.printerId == slot.printerId &&
         from.amsId == slot.amsId &&
@@ -2289,7 +2328,9 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
 
     Navigator.of(context).pop();
     try {
-      await ref.read(inventoryProvider.notifier).assignSpool(
+      await ref
+          .read(inventoryProvider.notifier)
+          .assignSpool(
             SpoolAssignmentDraft(
               spoolId: spool.id,
               printerId: slot.printerId,
@@ -2349,10 +2390,7 @@ class _ExtruderBadge extends StatelessWidget {
         children: [
           Icon(Icons.print_outlined, size: 13, color: color),
           const SizedBox(width: 2),
-          Text(
-            short,
-            style: t.monoLabel.copyWith(color: color),
-          ),
+          Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
       ),
     );

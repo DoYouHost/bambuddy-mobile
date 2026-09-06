@@ -51,6 +51,12 @@ jobs:
       - name: Dependencies
         run: flutter pub get --enforce-lockfile
 
+      # Style is not a judgement call any more: `dart format` is the whole of
+      # it, so a diff carries only the change it is about. Fix a red run with
+      # `dart format lib test tool`, never by hand.
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
       - name: Analyze
         run: flutter analyze
 

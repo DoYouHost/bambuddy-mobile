@@ -22,10 +22,12 @@ void main() {
   });
 
   ProviderContainer container() {
-    final c = ProviderContainer(overrides: [
-      noServerProfileOverride,
-      statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        noServerProfileOverride,
+        statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }

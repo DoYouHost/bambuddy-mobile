@@ -115,7 +115,9 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
+      }
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -143,7 +145,9 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
+      }
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -185,23 +189,26 @@ class _TrashTile extends StatelessWidget {
         ),
         child: ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.insert_drive_file_outlined, color: t.textSecondary),
+          leading: Icon(
+            Icons.insert_drive_file_outlined,
+            color: t.textSecondary,
+          ),
           title: Text(
             file.filename,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: t.titleSm,
           ),
-          subtitle: Text(
-            meta.join(' · '),
-            style: t.monoLabel,
-          ),
+          subtitle: Text(meta.join(' · '), style: t.monoLabel),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 tooltip: l10n.fmRestore,
-                icon: Icon(Icons.restore_from_trash_outlined, color: t.accentGreenInk),
+                icon: Icon(
+                  Icons.restore_from_trash_outlined,
+                  color: t.accentGreenInk,
+                ),
                 onPressed: onRestore,
               ).tagged('trash.restore'),
               IconButton(

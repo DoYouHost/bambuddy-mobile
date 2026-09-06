@@ -37,15 +37,14 @@ class WearPrinterListBody extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: _PrinterRow(
               name: p.printer.name,
-              stateLabel: wearStateOf(p.status).label(
-                AppLocalizations.of(context),
-              ),
+              stateLabel: wearStateOf(
+                p.status,
+              ).label(AppLocalizations.of(context)),
               stateColor: wearStateOf(p.status).color,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => WearPrinterControlScreen(
-                    printerId: p.printer.id,
-                  ),
+                  builder: (_) =>
+                      WearPrinterControlScreen(printerId: p.printer.id),
                 ),
               ),
             ),
@@ -72,50 +71,56 @@ class _PrinterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: wearSurface,
-        borderRadius: BorderRadius.circular(wearRadiusRow),
-        child: InkWell(
-          // The same radius twice is not a repetition to fold away: Material
-          // clips the fill and InkWell clips the splash, and a splash with
-          // squarer corners than the row it lands in is what a literal here
-          // used to drift into.
-          borderRadius: BorderRadius.circular(wearRadiusRow),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration:
-                      BoxDecoration(color: stateColor, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: WearText.strong),
-                      // One line, like the name above it. Without this the
-                      // row grows a second line for any state whose label does
-                      // not fit — "Oczekiwanie na płytę" is 20 characters in a
-                      // ~100 dp column — and 16 dp of a 75 dp row is a lot to
-                      // spend on a wrapped word nobody needs to read twice.
-                      Text(stateLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: WearText.small.copyWith(color: stateColor)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 18),
-              ],
+    color: wearSurface,
+    borderRadius: BorderRadius.circular(wearRadiusRow),
+    child: InkWell(
+      // The same radius twice is not a repetition to fold away: Material
+      // clips the fill and InkWell clips the splash, and a splash with
+      // squarer corners than the row it lands in is what a literal here
+      // used to drift into.
+      borderRadius: BorderRadius.circular(wearRadiusRow),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: stateColor,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: WearText.strong,
+                  ),
+                  // One line, like the name above it. Without this the
+                  // row grows a second line for any state whose label does
+                  // not fit — "Oczekiwanie na płytę" is 20 characters in a
+                  // ~100 dp column — and 16 dp of a 75 dp row is a lot to
+                  // spend on a wrapped word nobody needs to read twice.
+                  Text(
+                    stateLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: WearText.small.copyWith(color: stateColor),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }

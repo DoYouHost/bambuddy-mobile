@@ -167,9 +167,8 @@ class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
                 recoverCameraTokenOnError(error, token);
                 return _message(l10n.archivePhotoFailed);
               },
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : const DashLoading(),
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : const DashLoading(),
             ),
           ),
         );

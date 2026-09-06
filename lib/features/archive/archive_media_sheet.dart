@@ -53,15 +53,14 @@ Future<void> openArchiveMediaSheet(
   Archive archive, {
   required VoidCallback onTimelapse,
   required VoidCallback onPhotos,
-}) =>
-    dashSheet<void>(
-      context,
-      builder: (_) => _ArchiveMediaSheet(
-        archive: archive,
-        onTimelapse: onTimelapse,
-        onPhotos: onPhotos,
-      ),
-    );
+}) => dashSheet<void>(
+  context,
+  builder: (_) => _ArchiveMediaSheet(
+    archive: archive,
+    onTimelapse: onTimelapse,
+    onPhotos: onPhotos,
+  ),
+);
 
 /// Everything a finished print has to look at or to keep, grouped by where it
 /// actually is — because what can be done with it follows from that.
@@ -130,7 +129,8 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   Future<void> _search() async {
     // The same gate the entry point watches, so the button and the section it
     // opens cannot disagree about whether this server can be asked.
-    final searchable = widget.archive.printerId != null &&
+    final searchable =
+        widget.archive.printerId != null &&
         await ref.read(archiveMediaSupportedProvider.future);
     if (!mounted) return;
     if (!searchable) {
@@ -146,8 +146,9 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       _error = null;
     });
     try {
-      final media =
-          await ref.read(archiveRepositoryProvider).printerMedia(widget.archive.id);
+      final media = await ref
+          .read(archiveRepositoryProvider)
+          .printerMedia(widget.archive.id);
       if (!mounted) return;
       setState(() {
         // Null is a server without the route, which the check above was meant
@@ -175,8 +176,9 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
     if (_busy || printerId == null || _selected.isEmpty) return;
     final l10n = AppLocalizations.of(context);
     final repo = ref.read(printerFilesRepositoryProvider);
-    final files =
-        _media!.remoteFiles.where((f) => _selected.contains(f.path)).toList();
+    final files = _media!.remoteFiles
+        .where((f) => _selected.contains(f.path))
+        .toList();
     final paths = files.map((f) => f.path).toList();
     final single = paths.length == 1;
     // A remote entry always has a path — the model drops one that has not — so
@@ -268,9 +270,11 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
         _snack(l10n.pfmDownloadNotSaved);
         return false;
       case DeviceFileOutcome.done:
-        _snack(extra == null
-            ? l10n.archiveMediaSaved
-            : '${l10n.archiveMediaSaved} · $extra');
+        _snack(
+          extra == null
+              ? l10n.archiveMediaSaved
+              : '${l10n.archiveMediaSaved} · $extra',
+        );
         return true;
     }
   }
@@ -345,15 +349,14 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   String _prepareFailureText(
     PrinterDownloadFailure failure,
     AppLocalizations l10n,
-  ) =>
-      switch (failure.reason) {
-        PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
-        // The server's own sentence names the limit or the file it stopped on,
-        // which is worth more than the generic line.
-        PrinterDownloadStopped.failed =>
-          failure.detail ?? l10n.pfmDownloadPrepareFailed,
-        PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
-      };
+  ) => switch (failure.reason) {
+    PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
+    // The server's own sentence names the limit or the file it stopped on,
+    // which is worth more than the generic line.
+    PrinterDownloadStopped.failed =>
+      failure.detail ?? l10n.pfmDownloadPrepareFailed,
+    PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
+  };
 
   /// The three refusals the download routes explain in a way the user can act
   /// on. Null for everything else, which keeps the shared wording — and null on
@@ -412,7 +415,9 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
                     id: 'archive_media.photos',
                     icon: Icons.photo_camera_outlined,
                     title: l10n.archivePhotosTitle,
-                    subtitle: l10n.archiveMediaPhotoCount(archive.photos.length),
+                    subtitle: l10n.archiveMediaPhotoCount(
+                      archive.photos.length,
+                    ),
                     onTap: widget.onPhotos,
                   ),
               ],
@@ -437,9 +442,11 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
                 'archive_media.select_all',
                 TextButton(
                   onPressed: _busy ? null : _toggleAll,
-                  child: Text(_selected.length == files.length
-                      ? l10n.pfmDeselectAll
-                      : l10n.pfmSelectAll),
+                  child: Text(
+                    _selected.length == files.length
+                        ? l10n.pfmDeselectAll
+                        : l10n.pfmSelectAll,
+                  ),
                 ),
               ),
       ),
@@ -457,8 +464,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
             TextButton(onPressed: _search, child: Text(l10n.retry)),
           ),
         ),
-      ]
-      else ...[
+      ] else ...[
         if (files.isEmpty)
           Text(l10n.archiveMediaNothingOnPrinter, style: t.bodySoft),
         for (final file in files)
@@ -515,9 +521,9 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   /// The attached video's own name. Known from the archive before the search
   /// answers; the search only confirms it and adds the size.
   String _timelapseName() => _nameOr(
-        _media?.localTimelapse?.name,
-        (widget.archive.timelapsePath ?? '').split('/').last,
-      );
+    _media?.localTimelapse?.name,
+    (widget.archive.timelapsePath ?? '').split('/').last,
+  );
 
   /// `Timelapse · 42 MB`, with the size only once the server has stated one.
   String _timelapseSubtitle(AppLocalizations l10n) {
@@ -528,19 +534,19 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   }
 
   void _toggle(String path) => setState(() {
-        if (!_selected.remove(path)) _selected.add(path);
-      });
+    if (!_selected.remove(path)) _selected.add(path);
+  });
 
   void _toggleAll() => setState(() {
-        final all = _media?.remoteFiles.map((f) => f.path) ?? const <String>[];
-        if (_selected.length == all.length) {
-          _selected.clear();
-        } else {
-          _selected
-            ..clear()
-            ..addAll(all);
-        }
-      });
+    final all = _media?.remoteFiles.map((f) => f.path) ?? const <String>[];
+    if (_selected.length == all.length) {
+      _selected.clear();
+    } else {
+      _selected
+        ..clear()
+        ..addAll(all);
+    }
+  });
 
   /// What the bar says: the phase while something is running, the count of what
   /// is ticked otherwise. The file count rides along with the phase rather than
@@ -613,12 +619,12 @@ class _Searching extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          const DashSpinner(size: 18),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: t.bodySoft)),
-        ],
-      );
+    children: [
+      const DashSpinner(size: 18),
+      const SizedBox(width: 10),
+      Expanded(child: Text(label, style: t.bodySoft)),
+    ],
+  );
 }
 
 /// One row of the sheet: a name, what it is, and a leading mark that says which
@@ -663,7 +669,9 @@ class _MediaRow extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
-          border: Border.all(color: picked ? t.accentGreenInk : t.subCardBorder),
+          border: Border.all(
+            color: picked ? t.accentGreenInk : t.subCardBorder,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -717,7 +725,9 @@ class _MediaRow extends StatelessWidget {
         // through.
         selected == null
             ? row
-            : MergeSemantics(child: Semantics(checked: picked, child: row)),
+            : MergeSemantics(
+                child: Semantics(checked: picked, child: row),
+              ),
       ),
     );
   }

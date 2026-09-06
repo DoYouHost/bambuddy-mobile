@@ -35,41 +35,49 @@ class _StubRepo extends HeaterHistoryRepository {
 }
 
 HeaterHistory _history({List<HeaterHistoryPoint>? nozzle}) => HeaterHistory(
-      printerId: 3,
-      series: [
-        HeaterSeries(
-          sensorKind: 'nozzle',
-          points: nozzle ??
-              [
-                HeaterHistoryPoint(
-                  recordedAt: DateTime.now().subtract(const Duration(hours: 1)),
-                  value: 24.5,
-                  target: 0,
-                ),
-                HeaterHistoryPoint(
-                  recordedAt: DateTime.now(),
-                  value: 219.8,
-                  target: 220,
-                ),
-              ],
-          minValue: 24.5,
-          maxValue: 220.4,
-          avgValue: 120.3,
-        ),
-        const HeaterSeries(sensorKind: 'bed', points: []),
-      ],
-    );
+  printerId: 3,
+  series: [
+    HeaterSeries(
+      sensorKind: 'nozzle',
+      points:
+          nozzle ??
+          [
+            HeaterHistoryPoint(
+              recordedAt: DateTime.now().subtract(const Duration(hours: 1)),
+              value: 24.5,
+              target: 0,
+            ),
+            HeaterHistoryPoint(
+              recordedAt: DateTime.now(),
+              value: 219.8,
+              target: 220,
+            ),
+          ],
+      minValue: 24.5,
+      maxValue: 220.4,
+      avgValue: 120.3,
+    ),
+    const HeaterSeries(sensorKind: 'bed', points: []),
+  ],
+);
 
 void main() {
   Future<void> pumpSheet(WidgetTester tester, _StubRepo repo) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [heaterHistoryRepositoryProvider.overrideWithValue(repo)],
-      child: plApp(const HeaterHistorySheet(
-        printerId: 3,
-        kinds: [(kind: 'nozzle', label: 'Dysza'), (kind: 'bed', label: 'Stół')],
-        initialKind: 'nozzle',
-      )),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [heaterHistoryRepositoryProvider.overrideWithValue(repo)],
+        child: plApp(
+          const HeaterHistorySheet(
+            printerId: 3,
+            kinds: [
+              (kind: 'nozzle', label: 'Dysza'),
+              (kind: 'bed', label: 'Stół'),
+            ],
+            initialKind: 'nozzle',
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -112,19 +120,22 @@ void main() {
     expect(find.byType(LineChart), findsNothing);
   });
 
-  testWidgets('długi zakres nie ładuje na wykres wszystkich próbek',
-      (tester) async {
+  testWidgets('długi zakres nie ładuje na wykres wszystkich próbek', (
+    tester,
+  ) async {
     // Tydzień zapisu co minutę: serwer oddaje ~10 tys. punktów, a wykres ma
     // kilkaset pikseli szerokości.
     final start = DateTime.now().subtract(const Duration(days: 7));
     final repo = _StubRepo(
-      history: _history(nozzle: [
-        for (var i = 0; i < 10080; i++)
-          HeaterHistoryPoint(
-            recordedAt: start.add(Duration(minutes: i)),
-            value: 200 + (i % 7),
-          ),
-      ]),
+      history: _history(
+        nozzle: [
+          for (var i = 0; i < 10080; i++)
+            HeaterHistoryPoint(
+              recordedAt: start.add(Duration(minutes: i)),
+              value: 200 + (i % 7),
+            ),
+        ],
+      ),
     );
 
     await pumpSheet(tester, repo);
@@ -134,16 +145,19 @@ void main() {
     expect(spots.length, lessThanOrEqualTo(481));
     // Ostatni punkt zostaje — z niego bierze się „Aktualna".
     expect(spots.last.y, 200 + (10079 % 7));
-    expect(find.text('${(200 + 10079 % 7).toStringAsFixed(1)}°C'),
-        findsOneWidget);
+    expect(
+      find.text('${(200 + 10079 % 7).toStringAsFixed(1)}°C'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('bez zadanych temperatur nie ma linii przerywanej ani legendy',
-      (tester) async {
+  testWidgets('bez zadanych temperatur nie ma linii przerywanej ani legendy', (
+    tester,
+  ) async {
     final repo = _StubRepo(
-      history: _history(nozzle: [
-        HeaterHistoryPoint(recordedAt: DateTime.now(), value: 24.5),
-      ]),
+      history: _history(
+        nozzle: [HeaterHistoryPoint(recordedAt: DateTime.now(), value: 24.5)],
+      ),
     );
 
     await pumpSheet(tester, repo);
@@ -153,8 +167,9 @@ void main() {
     expect(find.text('Zadana'), findsNothing);
   });
 
-  testWidgets('błąd pobrania pokazuje komunikat zamiast pustego wykresu',
-      (tester) async {
+  testWidgets('błąd pobrania pokazuje komunikat zamiast pustego wykresu', (
+    tester,
+  ) async {
     final repo = _StubRepo(error: Exception('boom'));
 
     await pumpSheet(tester, repo);

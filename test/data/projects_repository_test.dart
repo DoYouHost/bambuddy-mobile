@@ -54,20 +54,24 @@ void main() {
 
   group('completeSetsFor', () {
     test('komplet to najmniejsza liczba wydruków po plikach', () {
-      final done = completeSetsFor(const [1, 2, 3], const [
-        ProjectFileProgress(fileId: 1, completedCount: 10),
-        ProjectFileProgress(fileId: 2, completedCount: 2),
-        ProjectFileProgress(fileId: 3, completedCount: 5),
-      ]);
+      final done = completeSetsFor(
+        const [1, 2, 3],
+        const [
+          ProjectFileProgress(fileId: 1, completedCount: 10),
+          ProjectFileProgress(fileId: 2, completedCount: 2),
+          ProjectFileProgress(fileId: 3, completedCount: 5),
+        ],
+      );
       expect(done, 2);
     });
 
     test('plik bez wpisu liczy się jako zero', () {
       // Serwer zwraca tylko pliki, które cokolwiek ukończyły — brak wpisu nie
       // może udawać, że część jest gotowa.
-      final done = completeSetsFor(const [1, 2], const [
-        ProjectFileProgress(fileId: 1, completedCount: 4),
-      ]);
+      final done = completeSetsFor(
+        const [1, 2],
+        const [ProjectFileProgress(fileId: 1, completedCount: 4)],
+      );
       expect(done, 0);
     });
 
@@ -76,18 +80,23 @@ void main() {
     });
 
     test('każdy plik wydrukowany po tyle samo → tyle kompletów', () {
-      final done = completeSetsFor(const [1, 2], const [
-        ProjectFileProgress(fileId: 1, completedCount: 3),
-        ProjectFileProgress(fileId: 2, completedCount: 3),
-      ]);
+      final done = completeSetsFor(
+        const [1, 2],
+        const [
+          ProjectFileProgress(fileId: 1, completedCount: 3),
+          ProjectFileProgress(fileId: 2, completedCount: 3),
+        ],
+      );
       expect(done, 3);
     });
   });
 
   group('target_sets w body', () {
     test('pominięte, gdy nieustawione (stary serwer nie dostaje pola)', () {
-      expect(const ProjectCreate(name: 'X').toMap().containsKey('target_sets'),
-          isFalse);
+      expect(
+        const ProjectCreate(name: 'X').toMap().containsKey('target_sets'),
+        isFalse,
+      );
     });
 
     test('wysyłane, gdy ustawione', () {

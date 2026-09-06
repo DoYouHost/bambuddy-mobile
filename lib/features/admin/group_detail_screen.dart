@@ -43,8 +43,7 @@ class GroupDetailScreen extends ConsumerWidget {
           context,
           title: async.valueOrNull?.name ?? l10n.groupsTitle,
           actions: [
-            if (canManage && async.hasValue)
-              _GroupMenu(group: async.value!),
+            if (canManage && async.hasValue) _GroupMenu(group: async.value!),
           ],
         ),
         floatingActionButton: canManage && async.hasValue
@@ -62,7 +61,8 @@ class GroupDetailScreen extends ConsumerWidget {
         body: dashAsync(
           context,
           async,
-          onRetry: () => ref.read(groupDetailProvider(groupId).notifier).refresh(),
+          onRetry: () =>
+              ref.read(groupDetailProvider(groupId).notifier).refresh(),
           data: (group) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(groupDetailProvider(groupId).notifier).refresh(),
@@ -219,7 +219,9 @@ class _GroupMenu extends ConsumerWidget {
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.snack(result.isOk ? l10n.groupsDeleted : userWriteMessage(l10n, result));
+    messenger.snack(
+      result.isOk ? l10n.groupsDeleted : userWriteMessage(l10n, result),
+    );
     if (result.isOk) navigator.pop();
   }
 }
@@ -245,12 +247,7 @@ class _GroupHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  group.name,
-                  style: t.titleLg,
-                ),
-              ),
+              Expanded(child: Text(group.name, style: t.titleLg)),
               if (group.isSystem)
                 DashPill(
                   label: l10n.groupsSystemPill,
@@ -277,10 +274,7 @@ class _GroupHeader extends StatelessWidget {
             // The server refuses to rename a system group or to touch what it
             // grants (`groups.py::update_group`, `:200`); only its membership
             // moves.
-            Text(
-              l10n.groupsSystemNote,
-              style: t.labelSoft,
-            ),
+            Text(l10n.groupsSystemNote, style: t.labelSoft),
           ],
         ],
       ),
@@ -320,7 +314,9 @@ class _MemberRow extends StatelessWidget {
                 member.username,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: t.bodyStrong.copyWith(color: member.isActive ? t.textPrimary : t.textTertiary),
+                style: t.bodyStrong.copyWith(
+                  color: member.isActive ? t.textPrimary : t.textTertiary,
+                ),
               ),
             ),
             if (!member.isActive)
@@ -333,8 +329,11 @@ class _MemberRow extends StatelessWidget {
               ),
             if (onRemove != null)
               IconButton(
-                icon: Icon(Icons.person_remove_outlined,
-                    size: 18, color: t.danger),
+                icon: Icon(
+                  Icons.person_remove_outlined,
+                  size: 18,
+                  color: t.danger,
+                ),
                 tooltip: l10n.groupsRemoveMember,
                 onPressed: onRemove,
               ).tagged('group_detail.remove_member'),
@@ -350,11 +349,10 @@ class _MemberRow extends StatelessWidget {
 Future<CurrentUser?> pickAccountForGroup(
   BuildContext context,
   GroupDetail group,
-) =>
-    dashSheet<CurrentUser>(
-      context,
-      builder: (_) => _AccountPickerSheet(group: group),
-    );
+) => dashSheet<CurrentUser>(
+  context,
+  builder: (_) => _AccountPickerSheet(group: group),
+);
 
 class _AccountPickerSheet extends ConsumerWidget {
   const _AccountPickerSheet({required this.group});
@@ -377,10 +375,7 @@ class _AccountPickerSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.groupsAddMemberTitle(group.name),
-                style: t.titleMd,
-              ),
+              Text(l10n.groupsAddMemberTitle(group.name), style: t.titleMd),
               const SizedBox(height: 12),
               Flexible(
                 child: dashAsyncStrip(
@@ -409,13 +404,18 @@ class _AccountPickerSheet extends ConsumerWidget {
                       children: [
                         for (final u in candidates)
                           ListTile(
-                            leading: Icon(Icons.person_outline,
-                                color: t.textSecondary),
+                            leading: Icon(
+                              Icons.person_outline,
+                              color: t.textSecondary,
+                            ),
                             title: Text(u.username),
                             subtitle: u.groups.isEmpty
                                 ? null
-                                : Text([for (final g in u.groups) g.name]
-                                    .join(', ')),
+                                : Text(
+                                    [
+                                      for (final g in u.groups) g.name,
+                                    ].join(', '),
+                                  ),
                             onTap: () => Navigator.of(context).pop(u),
                           ).tagged('group_add_member.account'),
                       ],

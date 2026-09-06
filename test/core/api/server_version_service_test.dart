@@ -22,22 +22,28 @@ void main() {
   /// whether the service asked once, twice or never.
   int Function() countingReplies(Response<dynamic> Function() reply) {
     var requests = 0;
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      requests++;
-      final staged = reply();
-      handler.resolve(Response(
-        requestOptions: options,
-        statusCode: staged.statusCode,
-        data: staged.data,
-      ));
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          requests++;
+          final staged = reply();
+          handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: staged.statusCode,
+              data: staged.data,
+            ),
+          );
+        },
+      ),
+    );
     return () => requests;
   }
 
   void replyVersion(String version) => adapter.onGet(
-        '/api/v1/updates/version',
-        (server) => server.reply(200, {'version': version, 'repo': 'x/y'}),
-      );
+    '/api/v1/updates/version',
+    (server) => server.reply(200, {'version': version, 'repo': 'x/y'}),
+  );
 
   test('czyta wersję i rozpoznaje trójstan', () async {
     replyVersion('1.2.5.1');
@@ -54,11 +60,13 @@ void main() {
   });
 
   test('pyta raz, potem korzysta z zapamiętanej odpowiedzi', () async {
-    final calls = countingReplies(() => Response(
-          requestOptions: RequestOptions(),
-          statusCode: 200,
-          data: {'version': '1.2.5', 'repo': 'x/y'},
-        ));
+    final calls = countingReplies(
+      () => Response(
+        requestOptions: RequestOptions(),
+        statusCode: 200,
+        data: {'version': '1.2.5', 'repo': 'x/y'},
+      ),
+    );
 
     await service.current();
     await service.current();
@@ -68,11 +76,13 @@ void main() {
   });
 
   test('równoległe wywołania dzielą jedno żądanie', () async {
-    final calls = countingReplies(() => Response(
-          requestOptions: RequestOptions(),
-          statusCode: 200,
-          data: {'version': '1.2.5', 'repo': 'x/y'},
-        ));
+    final calls = countingReplies(
+      () => Response(
+        requestOptions: RequestOptions(),
+        statusCode: 200,
+        data: {'version': '1.2.5', 'repo': 'x/y'},
+      ),
+    );
 
     await Future.wait([
       service.current(),
@@ -100,8 +110,11 @@ void main() {
       );
 
       expect(await service.current(), isNull);
-      expect(await service.supports(ServerFeature.triStateCalibration), isFalse,
-          reason: 'nieznane traktujemy jak starsze');
+      expect(
+        await service.supports(ServerFeature.triStateCalibration),
+        isFalse,
+        reason: 'nieznane traktujemy jak starsze',
+      );
       expect(await service.reportedVersion(), isNull);
     });
 
@@ -133,7 +146,8 @@ void main() {
       // Sonda, która trafiła w moment bez sieci, nie może wyłączyć auto na całą
       // sesję — inaczej jedna chwila offline kosztuje funkcję do restartu apki.
       final calls = countingReplies(
-          () => Response(requestOptions: RequestOptions(), statusCode: 500));
+        () => Response(requestOptions: RequestOptions(), statusCode: 500),
+      );
 
       await service.current();
       await service.current();
@@ -147,7 +161,8 @@ void main() {
       // feature comes back at all: a probe that met a moment without a network
       // has to be retried once the window is out, not once the app restarts.
       final calls = countingReplies(
-          () => Response(requestOptions: RequestOptions(), statusCode: 500));
+        () => Response(requestOptions: RequestOptions(), statusCode: 500),
+      );
 
       final failedAt = DateTime(2026, 9, 3, 12);
       await withClock(Clock.fixed(failedAt), () async {
@@ -156,10 +171,12 @@ void main() {
       });
       expect(calls(), 1, reason: 'inside the window the server is left alone');
 
-      await withClock(Clock.fixed(failedAt.add(const Duration(minutes: 6))),
-          () async {
-        await service.current();
-      });
+      await withClock(
+        Clock.fixed(failedAt.add(const Duration(minutes: 6))),
+        () async {
+          await service.current();
+        },
+      );
       expect(calls(), 2);
     });
   });

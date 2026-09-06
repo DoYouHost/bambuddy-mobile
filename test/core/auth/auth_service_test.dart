@@ -22,7 +22,7 @@ class _CountingAdapter implements HttpClientAdapter {
 
   /// Returns the body for a request, or a future that completes later.
   final Future<ResponseBody> Function(RequestOptions options, int callNo)
-      respond;
+  respond;
 
   final calls = <RequestOptions>[];
 
@@ -44,12 +44,12 @@ class _CountingAdapter implements HttpClientAdapter {
 }
 
 ResponseBody _json(Object body, int status) => ResponseBody.fromString(
-      jsonEncode(body),
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
+  jsonEncode(body),
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
 
 void main() {
   late Dio dio;
@@ -89,20 +89,24 @@ void main() {
       expect(probe.requiresSetup, isFalse);
     });
 
-    test('auth on, setup flag still pending — a working, reachable server',
-        () async {
-      // The reported case: an install whose `setup_completed` row is missing
-      // reports requires_setup forever while auth works fine.
-      onStatus(
-          (s) => s.reply(200, readFixture('auth_status_setup_pending.json')));
-      final probe = await service.probeAuthStatus(baseUrl);
-      expect(probe.authEnabled, isTrue);
-      expect(probe.requiresSetup, isTrue);
-    });
+    test(
+      'auth on, setup flag still pending — a working, reachable server',
+      () async {
+        // The reported case: an install whose `setup_completed` row is missing
+        // reports requires_setup forever while auth works fine.
+        onStatus(
+          (s) => s.reply(200, readFixture('auth_status_setup_pending.json')),
+        );
+        final probe = await service.probeAuthStatus(baseUrl);
+        expect(probe.authEnabled, isTrue);
+        expect(probe.requiresSetup, isTrue);
+      },
+    );
 
     test('auth off, setup pending — a genuinely fresh server', () async {
       onStatus(
-          (s) => s.reply(200, readFixture('auth_status_fresh_server.json')));
+        (s) => s.reply(200, readFixture('auth_status_fresh_server.json')),
+      );
       final probe = await service.probeAuthStatus(baseUrl);
       expect(probe.authEnabled, isFalse);
       expect(probe.requiresSetup, isTrue);
@@ -120,8 +124,9 @@ void main() {
     });
 
     test('stringified booleans are not truthy', () async {
-      onStatus((s) =>
-          s.reply(200, {'auth_enabled': 'true', 'requires_setup': 'true'}));
+      onStatus(
+        (s) => s.reply(200, {'auth_enabled': 'true', 'requires_setup': 'true'}),
+      );
       final probe = await service.probeAuthStatus(baseUrl);
       expect(probe.authEnabled, isFalse);
       expect(probe.requiresSetup, isFalse);
@@ -135,14 +140,20 @@ void main() {
       for (final status in [500, 502, 503]) {
         final localDio = Dio();
         final localAdapter = DioAdapter(dio: localDio);
-        final localService =
-            AuthService(bareDio: localDio, credentials: store);
-        localAdapter.onGet('$baseUrl/api/v1/auth/status',
-            (s) => s.reply(status, {'detail': 'nope'}));
+        final localService = AuthService(bareDio: localDio, credentials: store);
+        localAdapter.onGet(
+          '$baseUrl/api/v1/auth/status',
+          (s) => s.reply(status, {'detail': 'nope'}),
+        );
         await expectLater(
           localService.probeAuthStatus(baseUrl),
-          throwsA(isA<ApiException>()
-              .having((e) => e.statusCode, 'statusCode', status)),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              status,
+            ),
+          ),
           reason: 'status $status',
         );
       }
@@ -152,35 +163,51 @@ void main() {
       onStatus((s) => s.reply(429, {'detail': 'Too many failed attempts.'}));
       await expectLater(
         service.probeAuthStatus(baseUrl),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.tooManyAttempts,
+          ),
+        ),
       );
     });
 
     test('unreachable host → NetworkException, no fallback probe', () async {
-      onStatus((s) => s.throws(
-            0,
-            DioException.connectionError(
-              requestOptions: RequestOptions(path: '/api/v1/auth/status'),
-              reason: 'refused',
-            ),
-          ));
+      onStatus(
+        (s) => s.throws(
+          0,
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: '/api/v1/auth/status'),
+            reason: 'refused',
+          ),
+        ),
+      );
       await expectLater(
         service.probeAuthStatus(baseUrl),
-        throwsA(isA<NetworkException>()
-            .having((e) => e.code, 'code', AppErrorCode.serverUnreachable)),
+        throwsA(
+          isA<NetworkException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.serverUnreachable,
+          ),
+        ),
       );
     });
   });
 
   group('probeAuthStatus — 404 fallback for servers without the endpoint', () {
     void onStatus404() => adapter.onGet(
-        '$baseUrl/api/v1/auth/status', (s) => s.reply(404, {'detail': 'Not Found'}));
+      '$baseUrl/api/v1/auth/status',
+      (s) => s.reply(404, {'detail': 'Not Found'}),
+    );
 
     test('/printers answers 200 → auth is off', () async {
       onStatus404();
-      adapter.onGet('$baseUrl/api/v1/printers/',
-          (s) => s.reply(200, readFixture('printers_list.json')));
+      adapter.onGet(
+        '$baseUrl/api/v1/printers/',
+        (s) => s.reply(200, readFixture('printers_list.json')),
+      );
       final probe = await service.probeAuthStatus(baseUrl);
       expect(probe.authEnabled, isFalse);
       expect(probe.requiresSetup, isFalse);
@@ -190,29 +217,37 @@ void main() {
       for (final status in [401, 403]) {
         final localDio = Dio();
         final localAdapter = DioAdapter(dio: localDio);
-        final localService =
-            AuthService(bareDio: localDio, credentials: store);
+        final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter
-          ..onGet('$baseUrl/api/v1/auth/status',
-              (s) => s.reply(404, {'detail': 'Not Found'}))
-          ..onGet('$baseUrl/api/v1/printers/',
-              (s) => s.reply(status, {'detail': 'denied'}));
+          ..onGet(
+            '$baseUrl/api/v1/auth/status',
+            (s) => s.reply(404, {'detail': 'Not Found'}),
+          )
+          ..onGet(
+            '$baseUrl/api/v1/printers/',
+            (s) => s.reply(status, {'detail': 'denied'}),
+          );
         final probe = await localService.probeAuthStatus(baseUrl);
         expect(probe.authEnabled, isTrue, reason: 'status $status');
       }
     });
 
-    test('/printers answers 500 → the error surfaces, not a guessed mode',
-        () async {
-      onStatus404();
-      adapter.onGet(
-          '$baseUrl/api/v1/printers/', (s) => s.reply(500, {'detail': 'boom'}));
-      await expectLater(
-        service.probeAuthStatus(baseUrl),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 500)),
-      );
-    });
+    test(
+      '/printers answers 500 → the error surfaces, not a guessed mode',
+      () async {
+        onStatus404();
+        adapter.onGet(
+          '$baseUrl/api/v1/printers/',
+          (s) => s.reply(500, {'detail': 'boom'}),
+        );
+        await expectLater(
+          service.probeAuthStatus(baseUrl),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'statusCode', 500),
+          ),
+        );
+      },
+    );
 
     test('/printers unreachable → NetworkException', () async {
       onStatus404();
@@ -238,15 +273,20 @@ void main() {
       void Function(dynamic server) reply, {
       String username = 'tester',
       String password = 'sekret',
-    }) =>
-        adapter.onPost('$baseUrl/api/v1/auth/login', reply,
-            data: {'username': username, 'password': password});
+    }) => adapter.onPost(
+      '$baseUrl/api/v1/auth/login',
+      reply,
+      data: {'username': username, 'password': password},
+    );
 
     test('stores the JWT; without remember it stores no password', () async {
       onLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
 
       final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
 
       final token = (result as LoginCompleted).token;
       expect(token, startsWith('eyJ'));
@@ -273,15 +313,18 @@ void main() {
       // Otherwise a typo would be persisted and then replayed by every silent
       // re-login, spending the server's failed-attempt budget in the
       // background — and that budget is shared per IP behind a reverse proxy.
-      onLogin((s) => s.reply(401, {'detail': 'Incorrect username or password'}),
-          password: 'zle');
+      onLogin(
+        (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
+        password: 'zle',
+      );
 
       await expectLater(
         service.login(
-            baseUrl: baseUrl,
-            username: 'tester',
-            password: 'zle',
-            remember: true),
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'zle',
+          remember: true,
+        ),
         throwsA(isA<AuthException>()),
       );
       expect(store.jwt, isNull);
@@ -289,12 +332,19 @@ void main() {
     });
 
     test('401 → invalidCredentials', () async {
-      onLogin((s) => s.reply(401, {'detail': 'Incorrect username or password'}),
-          password: 'zle');
+      onLogin(
+        (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
+        password: 'zle',
+      );
       await expectLater(
         service.login(baseUrl: baseUrl, username: 'tester', password: 'zle'),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.invalidCredentials)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.invalidCredentials,
+          ),
+        ),
       );
     });
 
@@ -302,54 +352,74 @@ void main() {
       // The server checks its rate limit before the password, so this is what a
       // locked-out user gets even when they finally type the right one. Telling
       // them the password is wrong would send them rotating credentials.
-      onLogin((s) =>
-          s.reply(429, {'detail': 'Too many failed attempts. Please try again later.'}));
+      onLogin(
+        (s) => s.reply(429, {
+          'detail': 'Too many failed attempts. Please try again later.',
+        }),
+      );
       await expectLater(
-        service.login(
-            baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+        service.login(baseUrl: baseUrl, username: 'tester', password: 'sekret'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.tooManyAttempts,
+          ),
+        ),
       );
       expect(store.jwt, isNull);
     });
 
-    test('400 (auth disabled server-side) is not a credentials problem',
-        () async {
-      // `POST /auth/login` answers 400 "Authentication is not enabled" when the
-      // admin turned auth off while the app was configured for JWT.
-      onLogin(
-          (s) => s.reply(400, {'detail': 'Authentication is not enabled'}));
-      await expectLater(
-        service.login(
-            baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.badResponse)
-            .having((e) => e.statusCode, 'statusCode', 400)),
-      );
-    });
+    test(
+      '400 (auth disabled server-side) is not a credentials problem',
+      () async {
+        // `POST /auth/login` answers 400 "Authentication is not enabled" when the
+        // admin turned auth off while the app was configured for JWT.
+        onLogin(
+          (s) => s.reply(400, {'detail': 'Authentication is not enabled'}),
+        );
+        await expectLater(
+          service.login(
+            baseUrl: baseUrl,
+            username: 'tester',
+            password: 'sekret',
+          ),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.code, 'code', AppErrorCode.badResponse)
+                .having((e) => e.statusCode, 'statusCode', 400),
+          ),
+        );
+      },
+    );
 
     test('500 → badResponse with the status', () async {
       onLogin((s) => s.reply(500, {'detail': 'Internal Server Error'}));
       await expectLater(
-        service.login(
-            baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 500)),
+        service.login(baseUrl: baseUrl, username: 'tester', password: 'sekret'),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 500),
+        ),
       );
     });
 
-    test('requires_2fa → a challenge to finish, and no JWT stored yet',
-        () async {
-      onLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
+    test(
+      'requires_2fa → a challenge to finish, and no JWT stored yet',
+      () async {
+        onLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
 
-      final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        final result = await service.login(
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'sekret',
+        );
 
-      final challenge = (result as LoginNeedsTwoFactor).challenge;
-      expect(challenge.preAuthToken, 'pre-auth-xyz');
-      expect(challenge.methods, [TwoFactorMethod.totp]);
-      expect(store.jwt, isNull);
-    });
+        final challenge = (result as LoginNeedsTwoFactor).challenge;
+        expect(challenge.preAuthToken, 'pre-auth-xyz');
+        expect(challenge.methods, [TwoFactorMethod.totp]);
+        expect(store.jwt, isNull);
+      },
+    );
 
     test('requires_2fa with remember=true still stores no password', () async {
       // The password alone cannot finish this login, and a secret on disk that
@@ -370,87 +440,118 @@ void main() {
       // Set-Cookie carries attributes (HttpOnly, Path, Max-Age) and the
       // response may set more than one cookie; only the value of
       // `2fa_challenge` is ours to send back.
-      final counting = _CountingAdapter((options, _) async =>
-          ResponseBody.fromString(
-            jsonEncode({
-              'requires_2fa': true,
-              'pre_auth_token': 'pre-auth-xyz',
-              'two_fa_methods': ['totp'],
-            }),
-            200,
-            headers: {
-              Headers.contentTypeHeader: [Headers.jsonContentType],
-              'set-cookie': [
-                'other=zzz; Path=/',
-                '2fa_challenge=wiazanie-123; HttpOnly; Path=/api/v1/auth/2fa; '
-                    'Max-Age=300; SameSite=lax',
-              ],
-            },
-          ));
+      final counting = _CountingAdapter(
+        (options, _) async => ResponseBody.fromString(
+          jsonEncode({
+            'requires_2fa': true,
+            'pre_auth_token': 'pre-auth-xyz',
+            'two_fa_methods': ['totp'],
+          }),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+            'set-cookie': [
+              'other=zzz; Path=/',
+              '2fa_challenge=wiazanie-123; HttpOnly; Path=/api/v1/auth/2fa; '
+                  'Max-Age=300; SameSite=lax',
+            ],
+          },
+        ),
+      );
       final localService = AuthService(
         bareDio: Dio()..httpClientAdapter = counting,
         credentials: InMemoryCredentialsStore(),
       );
 
       final result = await localService.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
 
-      expect((result as LoginNeedsTwoFactor).challenge.challengeCookie,
-          'wiazanie-123');
+      expect(
+        (result as LoginNeedsTwoFactor).challenge.challengeCookie,
+        'wiazanie-123',
+      );
     });
 
-    test('no Set-Cookie leaves the binding empty rather than guessed',
-        () async {
-      onLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
+    test(
+      'no Set-Cookie leaves the binding empty rather than guessed',
+      () async {
+        onLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
 
-      final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        final result = await service.login(
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'sekret',
+        );
 
-      expect((result as LoginNeedsTwoFactor).challenge.challengeCookie, isNull);
-    });
+        expect(
+          (result as LoginNeedsTwoFactor).challenge.challengeCookie,
+          isNull,
+        );
+      },
+    );
 
     test('requires_2fa without a pre-auth token is malformed', () async {
       // Nothing to answer the challenge with — the app cannot invent a token
       // and must not treat this as a login either.
       onLogin((s) => s.reply(200, {'requires_2fa': true}));
       await expectLater(
-        service.login(
-            baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.malformedResponse)),
+        service.login(baseUrl: baseUrl, username: 'tester', password: 'sekret'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.malformedResponse,
+          ),
+        ),
       );
       expect(store.jwt, isNull);
     });
 
-    test('an unknown method name does not leave the user without a field',
-        () async {
-      // A server that grows a fourth factor must not produce an empty picker;
-      // whatever the user types is checked server-side anyway.
-      onLogin((s) => s.reply(200, {
+    test(
+      'an unknown method name does not leave the user without a field',
+      () async {
+        // A server that grows a fourth factor must not produce an empty picker;
+        // whatever the user types is checked server-side anyway.
+        onLogin(
+          (s) => s.reply(200, {
             'requires_2fa': true,
             'pre_auth_token': 'pre-auth-xyz',
             'two_fa_methods': ['passkey'],
-          }));
+          }),
+        );
 
-      final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        final result = await service.login(
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'sekret',
+        );
 
-      expect((result as LoginNeedsTwoFactor).challenge.methods,
-          [TwoFactorMethod.totp]);
-    });
+        expect((result as LoginNeedsTwoFactor).challenge.methods, [
+          TwoFactorMethod.totp,
+        ]);
+      },
+    );
 
     test('requires_2fa wins even if a token came along with it', () async {
       // The 2FA answer carries `pre_auth_token`, not an access token, and a
       // future server that sent both must not be treated as a completed login.
-      onLogin((s) => s.reply(200, {
-            'requires_2fa': true,
-            'pre_auth_token': 'pre-auth-xyz',
-            'access_token': 'eyJ.looks.real',
-            'two_fa_methods': ['totp'],
-          }));
+      onLogin(
+        (s) => s.reply(200, {
+          'requires_2fa': true,
+          'pre_auth_token': 'pre-auth-xyz',
+          'access_token': 'eyJ.looks.real',
+          'two_fa_methods': ['totp'],
+        }),
+      );
 
       final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
 
       expect(result, isA<LoginNeedsTwoFactor>());
       expect(store.jwt, isNull);
@@ -464,21 +565,36 @@ void main() {
         {'token_type': 'bearer', 'access_token': null},
         {'access_token': ''},
         {'access_token': 12345},
-        {'access_token': ['eyJ']},
+        {
+          'access_token': ['eyJ'],
+        },
       ];
       for (final body in bodies) {
         final localDio = Dio();
         final localAdapter = DioAdapter(dio: localDio);
         final localStore = InMemoryCredentialsStore();
-        final localService =
-            AuthService(bareDio: localDio, credentials: localStore);
-        localAdapter.onPost('$baseUrl/api/v1/auth/login', (s) => s.reply(200, body),
-            data: {'username': 'tester', 'password': 'sekret'});
+        final localService = AuthService(
+          bareDio: localDio,
+          credentials: localStore,
+        );
+        localAdapter.onPost(
+          '$baseUrl/api/v1/auth/login',
+          (s) => s.reply(200, body),
+          data: {'username': 'tester', 'password': 'sekret'},
+        );
         await expectLater(
           localService.login(
-              baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-          throwsA(isA<ApiException>()
-              .having((e) => e.code, 'code', AppErrorCode.malformedResponse)),
+            baseUrl: baseUrl,
+            username: 'tester',
+            password: 'sekret',
+          ),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.malformedResponse,
+            ),
+          ),
           reason: 'body $body',
         );
         expect(localStore.jwt, isNull, reason: 'body $body');
@@ -488,7 +604,10 @@ void main() {
     test('a token with no token_type is still accepted', () async {
       onLogin((s) => s.reply(200, {'access_token': 'eyJ.bare.token'}));
       final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
       expect((result as LoginCompleted).token, 'eyJ.bare.token');
       expect(store.jwt, 'eyJ.bare.token');
     });
@@ -496,21 +615,26 @@ void main() {
     test('the embedded user comes back with the token', () async {
       // `LoginResponse.user` — the whole point of keeping it is that a fresh
       // sign-in then needs no `GET /auth/me` of its own.
-      onLogin((s) => s.reply(200, {
-            'access_token': 'eyJ.with.user',
-            'user': {
-              'id': 3,
-              'username': 'tester',
-              'is_admin': false,
-              'groups': [
-                {'id': 1, 'name': 'Household'},
-              ],
-              'permissions': ['users:read'],
-            },
-          }));
+      onLogin(
+        (s) => s.reply(200, {
+          'access_token': 'eyJ.with.user',
+          'user': {
+            'id': 3,
+            'username': 'tester',
+            'is_admin': false,
+            'groups': [
+              {'id': 1, 'name': 'Household'},
+            ],
+            'permissions': ['users:read'],
+          },
+        }),
+      );
 
       final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
 
       final user = (result as LoginCompleted).user;
       expect(user?.username, 'tester');
@@ -523,7 +647,10 @@ void main() {
       onLogin((s) => s.reply(200, {'access_token': 'eyJ.no.user'}));
 
       final result = await service.login(
-          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+        baseUrl: baseUrl,
+        username: 'tester',
+        password: 'sekret',
+      );
 
       expect((result as LoginCompleted).token, 'eyJ.no.user');
       expect(result.user, isNull);
@@ -552,8 +679,13 @@ void main() {
 
       await expectLater(
         service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_slaby'),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.apiKeyRejected)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.apiKeyRejected,
+          ),
+        ),
       );
       expect(store.apiKey, isNull);
     });
@@ -572,28 +704,37 @@ void main() {
 
       await expectLater(
         service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_slaby'),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.forbidden)
-            .having((e) => e.detail, 'detail', contains('printers:read'))),
+        throwsA(
+          isA<AuthException>()
+              .having((e) => e.code, 'code', AppErrorCode.forbidden)
+              .having((e) => e.detail, 'detail', contains('printers:read')),
+        ),
       );
       // Still unusable, so it must not reach the store either way.
       expect(store.apiKey, isNull);
     });
 
-    test('a server-side failure is not the key\'s fault, and stores nothing',
-        () async {
-      adapter.onGet(
-        '$baseUrl/api/v1/printers/',
-        (s) => s.reply(500, {'detail': 'boom'}),
-        headers: {'X-API-Key': 'bb_dobry'},
-      );
-      await expectLater(
-        service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_dobry'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.badResponse)),
-      );
-      expect(store.apiKey, isNull);
-    });
+    test(
+      'a server-side failure is not the key\'s fault, and stores nothing',
+      () async {
+        adapter.onGet(
+          '$baseUrl/api/v1/printers/',
+          (s) => s.reply(500, {'detail': 'boom'}),
+          headers: {'X-API-Key': 'bb_dobry'},
+        );
+        await expectLater(
+          service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_dobry'),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.badResponse,
+            ),
+          ),
+        );
+        expect(store.apiKey, isNull);
+      },
+    );
 
     test('an unreachable server stores nothing', () async {
       adapter.onGet(
@@ -617,7 +758,9 @@ void main() {
 
   group('silentReLogin', () {
     test('null when nothing was remembered, and no request is made', () async {
-      final counting = _CountingAdapter((o, _) async => _json(<String, dynamic>{}, 200));
+      final counting = _CountingAdapter(
+        (o, _) async => _json(<String, dynamic>{}, 200),
+      );
       final localDio = Dio()..httpClientAdapter = counting;
       final localService = AuthService(bareDio: localDio, credentials: store);
 
@@ -625,21 +768,23 @@ void main() {
       expect(counting.calls, isEmpty);
     });
 
-    test('logs in with the remembered credentials and returns a fresh JWT',
-        () async {
-      store
-        ..username = 'tester'
-        ..password = 'sekret';
-      adapter.onPost(
-        '$baseUrl/api/v1/auth/login',
-        (s) => s.reply(200, readFixture('login_response_ok.json')),
-        data: {'username': 'tester', 'password': 'sekret'},
-      );
+    test(
+      'logs in with the remembered credentials and returns a fresh JWT',
+      () async {
+        store
+          ..username = 'tester'
+          ..password = 'sekret';
+        adapter.onPost(
+          '$baseUrl/api/v1/auth/login',
+          (s) => s.reply(200, readFixture('login_response_ok.json')),
+          data: {'username': 'tester', 'password': 'sekret'},
+        );
 
-      final token = await service.silentReLogin(baseUrl);
-      expect(token, isNotNull);
-      expect(store.jwt, token);
-    });
+        final token = await service.silentReLogin(baseUrl);
+        expect(token, isNotNull);
+        expect(store.jwt, token);
+      },
+    );
 
     test('null instead of throwing when the server refuses', () async {
       // Callers are interceptors and background timers; an exception there
@@ -650,15 +795,20 @@ void main() {
           ..password = 'niewazne';
         final localDio = Dio();
         final localAdapter = DioAdapter(dio: localDio);
-        final localService =
-            AuthService(bareDio: localDio, credentials: localStore);
+        final localService = AuthService(
+          bareDio: localDio,
+          credentials: localStore,
+        );
         localAdapter.onPost(
           '$baseUrl/api/v1/auth/login',
           (s) => s.reply(status, {'detail': 'no'}),
           data: {'username': 'tester', 'password': 'niewazne'},
         );
-        expect(await localService.silentReLogin(baseUrl), isNull,
-            reason: 'status $status');
+        expect(
+          await localService.silentReLogin(baseUrl),
+          isNull,
+          reason: 'status $status',
+        );
         expect(localStore.jwt, isNull, reason: 'status $status');
       }
     });
@@ -717,7 +867,8 @@ void main() {
         ..username = 'tester'
         ..password = 'sekret';
       final counting = _CountingAdapter(
-          (options, _) async => _json(readFixture('login_response_ok.json'), 200));
+        (options, _) async => _json(readFixture('login_response_ok.json'), 200),
+      );
       final localDio = Dio()..httpClientAdapter = counting;
       final localService = AuthService(bareDio: localDio, credentials: store);
 
@@ -727,21 +878,25 @@ void main() {
       expect(counting.countOf('/api/v1/auth/login'), 2);
     });
 
-    test('a transient failure does not stick — the next one tries again',
-        () async {
-      store
-        ..username = 'tester'
-        ..password = 'sekret';
-      final counting = _CountingAdapter((options, callNo) async => callNo == 1
-          ? _json({'detail': 'Internal Server Error'}, 500)
-          : _json(readFixture('login_response_ok.json'), 200));
-      final localDio = Dio()..httpClientAdapter = counting;
-      final localService = AuthService(bareDio: localDio, credentials: store);
+    test(
+      'a transient failure does not stick — the next one tries again',
+      () async {
+        store
+          ..username = 'tester'
+          ..password = 'sekret';
+        final counting = _CountingAdapter(
+          (options, callNo) async => callNo == 1
+              ? _json({'detail': 'Internal Server Error'}, 500)
+              : _json(readFixture('login_response_ok.json'), 200),
+        );
+        final localDio = Dio()..httpClientAdapter = counting;
+        final localService = AuthService(bareDio: localDio, credentials: store);
 
-      expect(await localService.silentReLogin(baseUrl), isNull);
-      expect(await localService.silentReLogin(baseUrl), isNotNull);
-      expect(counting.countOf('/api/v1/auth/login'), 2);
-    });
+        expect(await localService.silentReLogin(baseUrl), isNull);
+        expect(await localService.silentReLogin(baseUrl), isNotNull);
+        expect(counting.countOf('/api/v1/auth/login'), 2);
+      },
+    );
   });
 
   group('silentReLogin when the credentials are definitively rejected', () {
@@ -752,12 +907,14 @@ void main() {
       InMemoryCredentialsStore store,
       _CountingAdapter adapter,
       List<SignInReason> rejections,
-    }) rejecting({int status = 401}) {
+    })
+    rejecting({int status = 401}) {
       final localStore = InMemoryCredentialsStore()
         ..username = 'tester'
         ..password = 'stare-haslo';
       final counting = _CountingAdapter(
-          (options, _) async => _json({'detail': 'no'}, status));
+        (options, _) async => _json({'detail': 'no'}, status),
+      );
       final rejections = <SignInReason>[];
       final localService = AuthService(
         bareDio: Dio()..httpClientAdapter = counting,
@@ -781,25 +938,33 @@ void main() {
 
       expect(await r.service.silentReLogin(baseUrl), isNull);
       expect(r.adapter.countOf('/api/v1/auth/login'), 1);
-      expect(await r.store.readRememberedLogin(), isNull,
-          reason: 'the rejected password must not be kept');
+      expect(
+        await r.store.readRememberedLogin(),
+        isNull,
+        reason: 'the rejected password must not be kept',
+      );
 
       for (var i = 0; i < 5; i++) {
         expect(await r.service.silentReLogin(baseUrl), isNull);
       }
-      expect(r.adapter.countOf('/api/v1/auth/login'), 1,
-          reason: 'no further attempts after the server said no');
+      expect(
+        r.adapter.countOf('/api/v1/auth/login'),
+        1,
+        reason: 'no further attempts after the server said no',
+      );
     });
 
-    test('the rejection is reported once, for the warning on next open',
-        () async {
-      final r = rejecting();
+    test(
+      'the rejection is reported once, for the warning on next open',
+      () async {
+        final r = rejecting();
 
-      await r.service.silentReLogin(baseUrl);
-      await r.service.silentReLogin(baseUrl);
+        await r.service.silentReLogin(baseUrl);
+        await r.service.silentReLogin(baseUrl);
 
-      expect(r.rejections, [SignInReason.credentialsRejected]);
-    });
+        expect(r.rejections, [SignInReason.credentialsRejected]);
+      },
+    );
 
     test('the JWT is left alone — only the password is forgotten', () async {
       // Clearing the token here would only turn a recoverable state into a
@@ -820,15 +985,24 @@ void main() {
       for (final status in [429, 500, 502, 503]) {
         final r = rejecting(status: status);
 
-        expect(await r.service.silentReLogin(baseUrl), isNull,
-            reason: 'status $status');
-        expect(await r.store.readRememberedLogin(), isNotNull,
-            reason: 'status $status must not discard the password');
+        expect(
+          await r.service.silentReLogin(baseUrl),
+          isNull,
+          reason: 'status $status',
+        );
+        expect(
+          await r.store.readRememberedLogin(),
+          isNotNull,
+          reason: 'status $status must not discard the password',
+        );
         expect(r.rejections, isEmpty, reason: 'status $status');
 
         await r.service.silentReLogin(baseUrl);
-        expect(r.adapter.countOf('/api/v1/auth/login'), 2,
-            reason: 'status $status should be retried later');
+        expect(
+          r.adapter.countOf('/api/v1/auth/login'),
+          2,
+          reason: 'status $status should be retried later',
+        );
       }
     });
 
@@ -861,36 +1035,44 @@ void main() {
       expect(rejections, isEmpty);
     });
 
-    test('an interactive sign-in that fails leaves the saved password alone',
-        () async {
-      // Only the silent path draws the conclusion. A wrong password typed into
-      // the form says nothing about the one already stored, and dropping it
-      // there would log the user out of a session that still works.
-      final localStore = InMemoryCredentialsStore()
-        ..username = 'tester'
-        ..password = 'stare-haslo';
-      final rejections = <SignInReason>[];
-      final localDio = Dio();
-      final localAdapter = DioAdapter(dio: localDio);
-      final localService = AuthService(
-        bareDio: localDio,
-        credentials: localStore,
-        onSignInRequired: (reason) async => rejections.add(reason),
-      );
-      localAdapter.onPost(
-        '$baseUrl/api/v1/auth/login',
-        (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
-        data: {'username': 'kto-inny', 'password': 'zle'},
-      );
+    test(
+      'an interactive sign-in that fails leaves the saved password alone',
+      () async {
+        // Only the silent path draws the conclusion. A wrong password typed into
+        // the form says nothing about the one already stored, and dropping it
+        // there would log the user out of a session that still works.
+        final localStore = InMemoryCredentialsStore()
+          ..username = 'tester'
+          ..password = 'stare-haslo';
+        final rejections = <SignInReason>[];
+        final localDio = Dio();
+        final localAdapter = DioAdapter(dio: localDio);
+        final localService = AuthService(
+          bareDio: localDio,
+          credentials: localStore,
+          onSignInRequired: (reason) async => rejections.add(reason),
+        );
+        localAdapter.onPost(
+          '$baseUrl/api/v1/auth/login',
+          (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
+          data: {'username': 'kto-inny', 'password': 'zle'},
+        );
 
-      await expectLater(
-        localService.login(
-            baseUrl: baseUrl, username: 'kto-inny', password: 'zle'),
-        throwsA(isA<AuthException>()),
-      );
-      expect((await localStore.readRememberedLogin())?.password, 'stare-haslo');
-      expect(rejections, isEmpty);
-    });
+        await expectLater(
+          localService.login(
+            baseUrl: baseUrl,
+            username: 'kto-inny',
+            password: 'zle',
+          ),
+          throwsA(isA<AuthException>()),
+        );
+        expect(
+          (await localStore.readRememberedLogin())?.password,
+          'stare-haslo',
+        );
+        expect(rejections, isEmpty);
+      },
+    );
   });
 
   group('the second step', () {
@@ -906,8 +1088,12 @@ void main() {
     /// A service whose every call is recorded, so the assertions can be about
     /// what went out (the cookie, the normalised code) and not only about what
     /// came back.
-    ({AuthService service, InMemoryCredentialsStore store, _CountingAdapter calls})
-        recording(Future<ResponseBody> Function(RequestOptions o) reply) {
+    ({
+      AuthService service,
+      InMemoryCredentialsStore store,
+      _CountingAdapter calls,
+    })
+    recording(Future<ResponseBody> Function(RequestOptions o) reply) {
       final localStore = InMemoryCredentialsStore();
       final counting = _CountingAdapter((options, _) => reply(options));
       return (
@@ -923,15 +1109,17 @@ void main() {
     test('finishing 2FA also identifies the session', () async {
       // `TwoFAVerifyResponse` carries the same `user` object as a one-step
       // login, so the code path that has it must not throw it away.
-      final r = recording((o) async => _json({
-            'access_token': 'eyJ.po.2fa',
-            'user': {
-              'id': 9,
-              'username': 'tester',
-              'is_admin': true,
-              'permissions': const <String>[],
-            },
-          }, 200));
+      final r = recording(
+        (o) async => _json({
+          'access_token': 'eyJ.po.2fa',
+          'user': {
+            'id': 9,
+            'username': 'tester',
+            'is_admin': true,
+            'permissions': const <String>[],
+          },
+        }, 200),
+      );
 
       final completed = await r.service.verifyTwoFactor(
         baseUrl: baseUrl,
@@ -950,7 +1138,9 @@ void main() {
       // cookie and refuses the token when the binding does not come back
       // (`peek_pre_auth_token`). Dio carries no cookie jar, so losing this
       // header turns every correct code into "invalid or expired token".
-      final r = recording((o) async => _json({'access_token': 'eyJ.po.2fa'}, 200));
+      final r = recording(
+        (o) async => _json({'access_token': 'eyJ.po.2fa'}, 200),
+      );
 
       await r.service.verifyTwoFactor(
         baseUrl: baseUrl,
@@ -1010,8 +1200,10 @@ void main() {
         ('Invalid TOTP code', AppErrorCode.twoFactorCodeRejected),
         ('Invalid OTP code', AppErrorCode.twoFactorCodeRejected),
         ('Invalid backup code', AppErrorCode.twoFactorCodeRejected),
-        ('Invalid or expired pre-auth token',
-            AppErrorCode.twoFactorChallengeExpired),
+        (
+          'Invalid or expired pre-auth token',
+          AppErrorCode.twoFactorChallengeExpired,
+        ),
       ]) {
         final r = recording((o) async => _json({'detail': detail}, 401));
         await expectLater(
@@ -1039,8 +1231,13 @@ void main() {
           method: TwoFactorMethod.totp,
           code: '123456',
         ),
-        throwsA(isA<AuthException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorCodeRejected)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.twoFactorCodeRejected,
+          ),
+        ),
       );
     });
 
@@ -1055,14 +1252,21 @@ void main() {
           method: TwoFactorMethod.totp,
           code: '123456',
         ),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.tooManyAttempts,
+          ),
+        ),
       );
     });
 
     test('400 means this method is gone, so offer another', () async {
       final r = recording(
-          (o) async => _json({'detail': 'TOTP is not enabled for this user'}, 400));
+        (o) async =>
+            _json({'detail': 'TOTP is not enabled for this user'}, 400),
+      );
       await expectLater(
         r.service.verifyTwoFactor(
           baseUrl: baseUrl,
@@ -1070,8 +1274,13 @@ void main() {
           method: TwoFactorMethod.totp,
           code: '123456',
         ),
-        throwsA(isA<AuthException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorMethodUnavailable)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.twoFactorMethodUnavailable,
+          ),
+        ),
       );
     });
 
@@ -1084,8 +1293,13 @@ void main() {
           method: TwoFactorMethod.totp,
           code: '123456',
         ),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.malformedResponse)),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.malformedResponse,
+          ),
+        ),
       );
       expect(r.store.jwt, isNull);
     });
@@ -1093,10 +1307,12 @@ void main() {
     test('sending an e-mail code swaps in the fresh pre-auth token', () async {
       // `/2fa/email/send` consumes the token it is given and issues another.
       // Carrying the old one forward is a guaranteed 401 at verification.
-      final r = recording((o) async => _json(
-            {'message': 'Code sent', 'pre_auth_token': 'pre-auth-2'},
-            200,
-          ));
+      final r = recording(
+        (o) async => _json({
+          'message': 'Code sent',
+          'pre_auth_token': 'pre-auth-2',
+        }, 200),
+      );
 
       final refreshed = await r.service.sendEmailOtp(
         baseUrl: baseUrl,
@@ -1104,11 +1320,16 @@ void main() {
       );
 
       expect(r.calls.calls.single.path, endsWith(sendPath));
-      expect(r.calls.calls.single.headers['Cookie'],
-          '2fa_challenge=wiazanie-123');
+      expect(
+        r.calls.calls.single.headers['Cookie'],
+        '2fa_challenge=wiazanie-123',
+      );
       expect(refreshed.preAuthToken, 'pre-auth-2');
-      expect(refreshed.challengeCookie, 'wiazanie-123',
-          reason: 'the binding carries through the e-mail step');
+      expect(
+        refreshed.challengeCookie,
+        'wiazanie-123',
+        reason: 'the binding carries through the e-mail step',
+      );
       expect(refreshed.methods, challenge.methods);
     });
 
@@ -1125,18 +1346,27 @@ void main() {
       expect(refreshed.preAuthToken, 'pre-auth-xyz');
     });
 
-    test('a server with no SMTP says so instead of failing generically',
-        () async {
-      // 500 "Email service is not configured" is a setup problem the user can
-      // only route around by picking another factor.
-      final r = recording((o) async =>
-          _json({'detail': 'Email service is not configured'}, 500));
-      await expectLater(
-        r.service.sendEmailOtp(baseUrl: baseUrl, challenge: challenge),
-        throwsA(isA<ApiException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorEmailUnavailable)),
-      );
-    });
+    test(
+      'a server with no SMTP says so instead of failing generically',
+      () async {
+        // 500 "Email service is not configured" is a setup problem the user can
+        // only route around by picking another factor.
+        final r = recording(
+          (o) async =>
+              _json({'detail': 'Email service is not configured'}, 500),
+        );
+        await expectLater(
+          r.service.sendEmailOtp(baseUrl: baseUrl, challenge: challenge),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.twoFactorEmailUnavailable,
+            ),
+          ),
+        );
+      },
+    );
 
     test('a failed send leaves the challenge for a retry', () async {
       // The server rolls the transaction back, so the token it was handed is
@@ -1152,17 +1382,24 @@ void main() {
   });
 
   group('silent re-login meeting 2FA', () {
-    ({AuthService service, InMemoryCredentialsStore store, _CountingAdapter calls, List<SignInReason> reasons})
-        withTwoFactorServer() {
+    ({
+      AuthService service,
+      InMemoryCredentialsStore store,
+      _CountingAdapter calls,
+      List<SignInReason> reasons,
+    })
+    withTwoFactorServer() {
       final localStore = InMemoryCredentialsStore()
         ..username = 'tester'
         ..password = 'sekret'
         ..jwt = 'wygasly';
-      final counting = _CountingAdapter((options, _) async => _json({
-            'requires_2fa': true,
-            'pre_auth_token': 'pre-auth-xyz',
-            'two_fa_methods': ['totp'],
-          }, 200));
+      final counting = _CountingAdapter(
+        (options, _) async => _json({
+          'requires_2fa': true,
+          'pre_auth_token': 'pre-auth-xyz',
+          'two_fa_methods': ['totp'],
+        }, 200),
+      );
       final reasons = <SignInReason>[];
       return (
         service: AuthService(

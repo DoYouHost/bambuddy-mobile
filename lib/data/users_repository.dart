@@ -34,8 +34,9 @@ class UsersRepository {
   /// created by this account.
   Future<UserItemsCount> itemsCount(int userId) {
     return guardKeepingDetail(() async {
-      final res = await _dio
-          .get<Map<String, dynamic>>(Endpoints.userItemsCount(userId));
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.userItemsCount(userId),
+      );
       return UserItemsCount.fromJson(res.data ?? const {});
     });
   }
@@ -84,12 +85,12 @@ class UsersRepository {
   /// form.
   Future<AdvancedAuthStatus> advancedAuthStatus() async {
     try {
-      final res = await _dio
-          .get<Map<String, dynamic>>(Endpoints.advancedAuthStatus);
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.advancedAuthStatus,
+      );
       return AdvancedAuthStatus.fromJson(res.data ?? const {});
     } on DioException {
       return AdvancedAuthStatus.legacy;
     }
   }
 }
-

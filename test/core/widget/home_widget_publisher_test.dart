@@ -24,7 +24,10 @@ void main() {
           hmsErrors: [HmsError(code: 'A', severity: 2)],
         ),
       };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeAll);
+      final key = HomeWidgetPublisher.keyFor(
+        statuses,
+        describeHms: _describeAll,
+      );
       expect(key.statusKey, 'offline');
     });
 
@@ -39,7 +42,10 @@ void main() {
           hmsErrors: [HmsError(code: 'A', severity: 2)],
         ),
       };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeAll);
+      final key = HomeWidgetPublisher.keyFor(
+        statuses,
+        describeHms: _describeAll,
+      );
       expect(key.statusKey, 'error');
     });
 
@@ -58,7 +64,10 @@ void main() {
           ],
         ),
       };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeNone);
+      final key = HomeWidgetPublisher.keyFor(
+        statuses,
+        describeHms: _describeNone,
+      );
       expect(key.statusKey, 'printing');
       expect(key.progressPct, 40);
     });

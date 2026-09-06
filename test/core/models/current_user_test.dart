@@ -7,21 +7,20 @@ Map<String, dynamic> _response({
   bool isAdmin = false,
   Object? permissions = const ['users:read', 'queue:read'],
   bool withPermissionsKey = true,
-}) =>
-    {
-      'id': 4,
-      'username': 'household',
-      'email': 'h@example.org',
-      'role': 'user',
-      'is_active': true,
-      'is_admin': isAdmin,
-      'auth_source': 'local',
-      'groups': [
-        {'id': 2, 'name': 'Operators'},
-      ],
-      if (withPermissionsKey) 'permissions': permissions,
-      'created_at': '2026-01-04T10:11:12.131415',
-    };
+}) => {
+  'id': 4,
+  'username': 'household',
+  'email': 'h@example.org',
+  'role': 'user',
+  'is_active': true,
+  'is_admin': isAdmin,
+  'auth_source': 'local',
+  'groups': [
+    {'id': 2, 'name': 'Operators'},
+  ],
+  if (withPermissionsKey) 'permissions': permissions,
+  'created_at': '2026-01-04T10:11:12.131415',
+};
 
 void main() {
   group('CurrentUser.fromJson', () {
@@ -168,8 +167,11 @@ void main() {
       expect(user.id, 0);
       expect(user.username, 'api-key:bb_1a2b3c');
       expect(user.isAdmin, isTrue);
-      expect(user.can('anything:at:all'), isTrue,
-          reason: 'the admin flag short-circuits, as it does server-side');
+      expect(
+        user.can('anything:at:all'),
+        isTrue,
+        reason: 'the admin flag short-circuits, as it does server-side',
+      );
     });
 
     test('1.2.6+: the key owner, and only the permissions the key admits', () {
@@ -197,27 +199,29 @@ void main() {
       expect(user.can('printers:control'), isFalse);
     });
 
-    test('1.2.6+: a key predating owners keeps id 0 but drops the admin claim',
-        () {
-      final user = CurrentUser.fromJson(const {
-        'id': 0,
-        'username': 'api-key:bb_1a2b3c',
-        'email': null,
-        'role': 'user',
-        'is_active': true,
-        'is_admin': false,
-        'auth_source': 'local',
-        'groups': <Object>[],
-        'permissions': ['printers:read'],
-        'created_at': '2026-02-01T08:00:00',
-      });
+    test(
+      '1.2.6+: a key predating owners keeps id 0 but drops the admin claim',
+      () {
+        final user = CurrentUser.fromJson(const {
+          'id': 0,
+          'username': 'api-key:bb_1a2b3c',
+          'email': null,
+          'role': 'user',
+          'is_active': true,
+          'is_admin': false,
+          'auth_source': 'local',
+          'groups': <Object>[],
+          'permissions': ['printers:read'],
+          'created_at': '2026-02-01T08:00:00',
+        });
 
-      // 0 is a placeholder for "no owner to name", not account number zero —
-      // it must never be sent back as a `created_by_id`.
-      expect(user.id, 0);
-      expect(user.isAdmin, isFalse);
-      expect(user.can('users:read'), isFalse);
-    });
+        // 0 is a placeholder for "no owner to name", not account number zero —
+        // it must never be sent back as a `created_by_id`.
+        expect(user.id, 0);
+        expect(user.isAdmin, isFalse);
+        expect(user.can('users:read'), isFalse);
+      },
+    );
   });
 
   test('Permissions holds the strings the server declares', () {

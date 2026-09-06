@@ -346,9 +346,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Session expiry → graceful return to setup, never crash or dead dashboard.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
       if (expired) {
-        ScaffoldMessenger.of(
-          context,
-        ).snack(l10n.sessionExpired);
+        ScaffoldMessenger.of(context).snack(l10n.sessionExpired);
         context.go('/setup');
       }
     });
@@ -419,10 +417,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     preferredSize: const Size.fromHeight(18),
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        profile!.label!,
-                        style: t.monoMicro,
-                      ),
+                      child: Text(profile!.label!, style: t.monoMicro),
                     ),
                   ),
           ),
@@ -554,8 +549,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     printers.isEmpty
                         ? l10n.noPrinters
                         : filtersActive
-                            ? l10n.noPrintersMatchFilters
-                            : l10n.noSearchResults(_query),
+                        ? l10n.noPrintersMatchFilters
+                        : l10n.noSearchResults(_query),
                   ),
                 ),
               ),
@@ -568,8 +563,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 itemBuilder: (_, i) => PrinterCard(
                   key: ValueKey(filtered[i].printer.id),
                   item: filtered[i],
-                  inTouchSince:
-                      ref.read(printerStatusesProvider.notifier).inTouchSince,
+                  inTouchSince: ref
+                      .read(printerStatusesProvider.notifier)
+                      .inTouchSince,
                 ),
               ),
             ),
@@ -939,12 +935,7 @@ class _DrawerTile extends StatelessWidget {
                     child: Icon(icon, size: 21, color: t.accentGreenInk),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: t.bodyStrong,
-                    ),
-                  ),
+                  Expanded(child: Text(label, style: t.bodyStrong)),
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 20,
@@ -1037,8 +1028,9 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                           const SizedBox(width: 8),
                           FilterButton(
                             count: filterCount,
-                            tooltip: AppLocalizations.of(context)
-                                .dashboardFilters,
+                            tooltip: AppLocalizations.of(
+                              context,
+                            ).dashboardFilters,
                             id: 'dashboard.filters',
                             onTap: onOpenFilters,
                           ),
@@ -1226,7 +1218,9 @@ class _SummaryHeader extends ConsumerWidget {
             active.isEmpty
                 ? l10n.noActivePrints
                 : l10n.printingCount(active.length),
-            style: t.body.copyWith(color: active.isEmpty ? t.textSecondary : t.textPrimary),
+            style: t.body.copyWith(
+              color: active.isEmpty ? t.textSecondary : t.textPrimary,
+            ),
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
@@ -1264,7 +1258,9 @@ class _SummaryHeader extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
-                    style: t.monoValue.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                    style: t.monoValue.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ],
               ),

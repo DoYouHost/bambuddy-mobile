@@ -10,7 +10,9 @@ class _MovementTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -39,10 +41,7 @@ class _MovementTile extends ConsumerWidget {
                 children: [
                   Icon(Icons.open_with, size: 18, color: t.textSecondary),
                   const SizedBox(width: 10),
-                  Text(
-                    l10n.ctrlMove,
-                    style: t.titleSm,
-                  ),
+                  Text(l10n.ctrlMove, style: t.titleSm),
                   const Spacer(),
                   Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
                 ],
@@ -82,7 +81,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
   /// Id of the button currently sending, so only it shows a spinner.
   String? _spin;
 
-  Future<void> _send(String btn, Future<ActionOutcome> Function() action) async {
+  Future<void> _send(
+    String btn,
+    Future<ActionOutcome> Function() action,
+  ) async {
     if (_busy) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -162,10 +164,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          l10n.ctrlMove,
-                          style: t.titleLg,
-                        ),
+                        Text(l10n.ctrlMove, style: t.titleLg),
                         const Spacer(),
                         _JogAction(
                           icon: Icons.home_outlined,
@@ -206,7 +205,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 
@@ -215,15 +214,15 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     Widget spacer() => const SizedBox(width: 56, height: 56);
 
     Widget center() => SizedBox(
-          width: 56,
-          height: 56,
-          child: Center(
-            child: Text(
-              '$_step',
-              style: t.monoTitle.copyWith(color: t.textTertiary),
-            ),
-          ),
-        );
+      width: 56,
+      height: 56,
+      child: Center(
+        child: Text(
+          '$_step',
+          style: t.monoTitle.copyWith(color: t.textTertiary),
+        ),
+      ),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -237,7 +236,9 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
               busy: _spin == 'y+',
               enabled: !locked,
               onTap: () => _send(
-                  'y+', () => _notifier.xyJog(widget.printerId, y: _step.toDouble())),
+                'y+',
+                () => _notifier.xyJog(widget.printerId, y: _step.toDouble()),
+              ),
             ),
             spacer(),
           ],
@@ -250,8 +251,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
               icon: Icons.keyboard_arrow_left,
               busy: _spin == 'x-',
               enabled: !locked,
-              onTap: () => _send('x-',
-                  () => _notifier.xyJog(widget.printerId, x: -_step.toDouble())),
+              onTap: () => _send(
+                'x-',
+                () => _notifier.xyJog(widget.printerId, x: -_step.toDouble()),
+              ),
             ),
             const SizedBox(width: 8),
             center(),
@@ -260,8 +263,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
               icon: Icons.keyboard_arrow_right,
               busy: _spin == 'x+',
               enabled: !locked,
-              onTap: () => _send('x+',
-                  () => _notifier.xyJog(widget.printerId, x: _step.toDouble())),
+              onTap: () => _send(
+                'x+',
+                () => _notifier.xyJog(widget.printerId, x: _step.toDouble()),
+              ),
             ),
           ],
         ),
@@ -274,8 +279,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
               icon: Icons.keyboard_arrow_down,
               busy: _spin == 'y-',
               enabled: !locked,
-              onTap: () => _send('y-',
-                  () => _notifier.xyJog(widget.printerId, y: -_step.toDouble())),
+              onTap: () => _send(
+                'y-',
+                () => _notifier.xyJog(widget.printerId, y: -_step.toDouble()),
+              ),
             ),
             spacer(),
           ],
@@ -291,18 +298,17 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       children: [
         Icon(Icons.height, size: 16, color: t.textSecondary),
         const SizedBox(width: 8),
-        Text(
-          l10n.ctrlMoveZ,
-          style: t.body.copyWith(color: t.textSecondary),
-        ),
+        Text(l10n.ctrlMoveZ, style: t.body.copyWith(color: t.textSecondary)),
         const Spacer(),
         _JogAction(
           icon: Icons.keyboard_arrow_up,
           label: l10n.ctrlMoveZUp,
           busy: _spin == 'z+',
           enabled: !locked,
-          onTap: () => _send('z+',
-              () => _notifier.bedJog(widget.printerId, -_step.toDouble())),
+          onTap: () => _send(
+            'z+',
+            () => _notifier.bedJog(widget.printerId, -_step.toDouble()),
+          ),
         ),
         const SizedBox(width: 8),
         _JogAction(
@@ -310,8 +316,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           label: l10n.ctrlMoveZDown,
           busy: _spin == 'z-',
           enabled: !locked,
-          onTap: () => _send('z-',
-              () => _notifier.bedJog(widget.printerId, _step.toDouble())),
+          onTap: () => _send(
+            'z-',
+            () => _notifier.bedJog(widget.printerId, _step.toDouble()),
+          ),
         ),
       ],
     );
@@ -326,8 +334,11 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             label: l10n.ctrlMoveRetract,
             busy: _spin == 'retract',
             enabled: !locked,
-            onTap: () => _send('retract',
-                () => _notifier.extruderJog(widget.printerId, -_length.toDouble())),
+            onTap: () => _send(
+              'retract',
+              () =>
+                  _notifier.extruderJog(widget.printerId, -_length.toDouble()),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -337,8 +348,10 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             label: l10n.ctrlMoveExtrude,
             busy: _spin == 'extrude',
             enabled: !locked,
-            onTap: () => _send('extrude',
-                () => _notifier.extruderJog(widget.printerId, _length.toDouble())),
+            onTap: () => _send(
+              'extrude',
+              () => _notifier.extruderJog(widget.printerId, _length.toDouble()),
+            ),
           ),
         ),
       ],
@@ -372,10 +385,7 @@ class _StepSelector extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Text(
-          label,
-          style: t.body.copyWith(color: t.textSecondary),
-        ),
+        Text(label, style: t.body.copyWith(color: t.textSecondary)),
         const Spacer(),
         Wrap(
           spacing: 8,
@@ -426,9 +436,7 @@ class _JogButton extends StatelessWidget {
             border: Border.all(color: t.subCardBorder),
           ),
           alignment: Alignment.center,
-          child: busy
-              ? const DashSpinner()
-              : Icon(icon, size: 26, color: fg),
+          child: busy ? const DashSpinner() : Icon(icon, size: 26, color: fg),
         ),
       ),
     );
@@ -474,10 +482,7 @@ class _JogAction extends StatelessWidget {
                   ? const DashSpinner(size: 16)
                   : Icon(icon, size: 16, color: fg),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: t.bodyBold.copyWith(color: fg),
-              ),
+              Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],
           ),
         ),
@@ -525,10 +530,7 @@ class _JogWideButton extends StatelessWidget {
                   ? const DashSpinner(size: 16)
                   : Icon(icon, size: 18, color: fg),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: t.bodyBold.copyWith(color: fg),
-              ),
+              Text(label, style: t.bodyBold.copyWith(color: fg)),
             ],
           ),
         ),

@@ -19,10 +19,14 @@ void main() {
     adapter = DioAdapter(dio: dio);
     repo = StatsRepository(dio);
     requested = [];
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      requested.add(options.path);
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          requested.add(options.path);
+          handler.next(options);
+        },
+      ),
+    );
   });
 
   const slim = '/api/v1/users/slim';
@@ -30,78 +34,87 @@ void main() {
 
   /// A row as `/users/slim` sends it — the whole `UserSlim` shape.
   List<Map<String, Object>> slimRows() => [
-        {'id': 2, 'username': 'zosia'},
-        {'id': 1, 'username': 'admin'},
-      ];
+    {'id': 2, 'username': 'zosia'},
+    {'id': 1, 'username': 'admin'},
+  ];
 
   /// The same two people as the full listing sends them: `UserResponse`, with
   /// everything the slim shape deliberately withholds.
   List<Map<String, Object?>> fullRows() => [
-        {
-          'id': 1,
-          'username': 'admin',
-          'email': 'admin@home.lan',
-          'role': 'admin',
-          'is_active': true,
-          'is_admin': true,
-          'auth_source': 'local',
-          'groups': [
-            {'id': 1, 'name': 'Administrators'},
-          ],
-          'permissions': ['users:read'],
-          'created_at': '2025-06-01T10:00:00',
-        },
-        {
-          'id': 2,
-          'username': 'zosia',
-          'email': null,
-          'role': 'user',
-          'is_active': true,
-          'is_admin': false,
-          'auth_source': 'local',
-          'groups': const <Object>[],
-          'permissions': const <String>[],
-          'created_at': '2026-01-15T09:30:00',
-        },
-      ];
+    {
+      'id': 1,
+      'username': 'admin',
+      'email': 'admin@home.lan',
+      'role': 'admin',
+      'is_active': true,
+      'is_admin': true,
+      'auth_source': 'local',
+      'groups': [
+        {'id': 1, 'name': 'Administrators'},
+      ],
+      'permissions': ['users:read'],
+      'created_at': '2025-06-01T10:00:00',
+    },
+    {
+      'id': 2,
+      'username': 'zosia',
+      'email': null,
+      'role': 'user',
+      'is_active': true,
+      'is_admin': false,
+      'auth_source': 'local',
+      'groups': const <Object>[],
+      'permissions': const <String>[],
+      'created_at': '2026-01-15T09:30:00',
+    },
+  ];
 
   group('fetchUsers', () {
-    test('a 1.2.6 server answers the slim route and nothing else is asked',
-        () async {
-      adapter.onGet(slim, (s) => s.reply(200, slimRows()));
+    test(
+      'a 1.2.6 server answers the slim route and nothing else is asked',
+      () async {
+        adapter.onGet(slim, (s) => s.reply(200, slimRows()));
 
-      final users = await repo.fetchUsers();
+        final users = await repo.fetchUsers();
 
-      expect(users.map((u) => u.username), ['admin', 'zosia']);
-      expect(users.map((u) => u.id), [1, 2]);
-      expect(requested, [slim]);
-    });
+        expect(users.map((u) => u.username), ['admin', 'zosia']);
+        expect(users.map((u) => u.id), [1, 2]);
+        expect(requested, [slim]);
+      },
+    );
 
-    test('an older server answers 422 and the full listing takes over',
-        () async {
-      // What a pre-1.2.6 server really does with this path: `/{user_id}` is
-      // declared `int`, so "slim" fails validation rather than 404ing.
-      adapter
-        ..onGet(slim, (s) => s.reply(422, {'detail': 'value is not a valid integer'}))
-        ..onGet(full, (s) => s.reply(200, fullRows()));
+    test(
+      'an older server answers 422 and the full listing takes over',
+      () async {
+        // What a pre-1.2.6 server really does with this path: `/{user_id}` is
+        // declared `int`, so "slim" fails validation rather than 404ing.
+        adapter
+          ..onGet(
+            slim,
+            (s) => s.reply(422, {'detail': 'value is not a valid integer'}),
+          )
+          ..onGet(full, (s) => s.reply(200, fullRows()));
 
-      final users = await repo.fetchUsers();
+        final users = await repo.fetchUsers();
 
-      expect(users.map((u) => u.username), ['admin', 'zosia']);
-      expect(requested, [slim, full]);
-    });
+        expect(users.map((u) => u.username), ['admin', 'zosia']);
+        expect(requested, [slim, full]);
+      },
+    );
 
-    test('an API key on an older server is refused the slim route with 403',
-        () async {
-      adapter
-        ..onGet(slim, (s) => s.reply(403, {'detail': 'administrative'}))
-        ..onGet(full, (s) => s.reply(200, fullRows()));
+    test(
+      'an API key on an older server is refused the slim route with 403',
+      () async {
+        adapter
+          ..onGet(slim, (s) => s.reply(403, {'detail': 'administrative'}))
+          ..onGet(full, (s) => s.reply(200, fullRows()));
 
-      final users = await repo.fetchUsers();
+        final users = await repo.fetchUsers();
 
-      expect(users.map((u) => u.username), ['admin', 'zosia']);
-      expect(requested, [slim, full]);
-    });
+        expect(users.map((u) => u.username), ['admin', 'zosia']);
+        expect(requested, [slim, full]);
+      },
+    );
 
     test('the probe is paid for once, not on every refresh', () async {
       adapter
@@ -151,8 +164,7 @@ void main() {
       expect(requested, [slim], reason: 'the full listing must not be tried');
     });
 
-    test('a 401 is propagated rather than treated as a missing route',
-        () async {
+    test('a 401 is propagated rather than treated as a missing route', () async {
       // The session needs refreshing; both listings would answer the same way,
       // and pinning the fallback here would outlive the expired token.
       adapter.onGet(slim, (s) => s.reply(401, {'detail': 'Unauthorized'}));

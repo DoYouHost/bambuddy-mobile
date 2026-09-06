@@ -20,8 +20,9 @@ class WearTextInputUnavailable implements Exception {
 /// app is never told about, leaving the field hidden underneath it. Details in
 /// the Kotlin doc for `requestWearText`.
 class WearTextInput {
-  static const MethodChannel _channel =
-      MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_input');
+  static const MethodChannel _channel = MethodChannel(
+    'page.codeberg.morganmlgman.bambuddy/wear_input',
+  );
 
   static const _platform = PlatformQuery(_channel);
 
@@ -41,8 +42,9 @@ class WearTextInput {
   /// tap.
   Future<String?> request({required String label}) async {
     try {
-      return await _channel
-          .invokeMethod<String>('requestText', {'label': label});
+      return await _channel.invokeMethod<String>('requestText', {
+        'label': label,
+      });
     } on MissingPluginException {
       throw const WearTextInputUnavailable();
     } on PlatformException catch (error) {

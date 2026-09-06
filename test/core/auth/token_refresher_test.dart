@@ -25,10 +25,10 @@ void main() {
 
   late List<_FakeTimer> timers;
   RefreshTimerFactory factory() => (d, cb) {
-        final t = _FakeTimer(d, cb);
-        timers.add(t);
-        return t;
-      };
+    final t = _FakeTimer(d, cb);
+    timers.add(t);
+    return t;
+  };
 
   setUp(() => timers = []);
 
@@ -92,20 +92,22 @@ void main() {
     expect(timers.last.duration, const Duration(minutes: 115)); // 120 − 5
   });
 
-  test('failed refresh → fallbackDelay (no spinning on an expired token)',
-      () async {
-    ProactiveTokenRefresher(
-      readExpiry: () async => t0.add(const Duration(hours: 1)),
-      refresh: () async => null, // e.g. no remembered credentials
-      clock: () => t0,
-      fallbackDelay: const Duration(hours: 6),
-      timerFactory: factory(),
-    ).start();
-    await settle();
-    timers.single.fire();
-    await settle();
-    expect(timers.last.duration, const Duration(hours: 6));
-  });
+  test(
+    'failed refresh → fallbackDelay (no spinning on an expired token)',
+    () async {
+      ProactiveTokenRefresher(
+        readExpiry: () async => t0.add(const Duration(hours: 1)),
+        refresh: () async => null, // e.g. no remembered credentials
+        clock: () => t0,
+        fallbackDelay: const Duration(hours: 6),
+        timerFactory: factory(),
+      ).start();
+      await settle();
+      timers.single.fire();
+      await settle();
+      expect(timers.last.duration, const Duration(hours: 6));
+    },
+  );
 
   test('failed refresh with the password kept → keeps trying', () async {
     // The network was in the way: the password stayed in the store, so the next
@@ -126,30 +128,32 @@ void main() {
     expect(timers.last.duration, const Duration(hours: 2));
   });
 
-  test('failed refresh after the password was rejected → stops scheduling',
-      () async {
-    // `silentReLogin` clears the remembered password only when the server
-    // rejected it — waking up every two hours would repeat a login that has
-    // nothing to succeed with, against the server's failed-attempt budget.
-    var refreshCount = 0;
-    ProactiveTokenRefresher(
-      readExpiry: () async => t0.add(const Duration(hours: 1)),
-      refresh: () async {
-        refreshCount++;
-        return null;
-      },
-      canRetry: () async => false,
-      clock: () => t0,
-      timerFactory: factory(),
-    ).start();
-    await settle();
-    timers.single.fire();
-    await settle();
+  test(
+    'failed refresh after the password was rejected → stops scheduling',
+    () async {
+      // `silentReLogin` clears the remembered password only when the server
+      // rejected it — waking up every two hours would repeat a login that has
+      // nothing to succeed with, against the server's failed-attempt budget.
+      var refreshCount = 0;
+      ProactiveTokenRefresher(
+        readExpiry: () async => t0.add(const Duration(hours: 1)),
+        refresh: () async {
+          refreshCount++;
+          return null;
+        },
+        canRetry: () async => false,
+        clock: () => t0,
+        timerFactory: factory(),
+      ).start();
+      await settle();
+      timers.single.fire();
+      await settle();
 
-    expect(refreshCount, 1);
-    expect(timers, hasLength(1), reason: 'does not schedule another attempt');
-    expect(timers.single.cancelled, isTrue);
-  });
+      expect(refreshCount, 1);
+      expect(timers, hasLength(1), reason: 'does not schedule another attempt');
+      expect(timers.single.cancelled, isTrue);
+    },
+  );
 
   test('a throw while reading the expiry does not kill the schedule', () async {
     // `flutter_secure_storage` throws on some OEMs. Nobody awaits this, so
@@ -190,27 +194,29 @@ void main() {
     expect(timers.last.duration, const Duration(hours: 2));
   });
 
-  test('stop() cancels the timer and blocks rescheduling after it fires',
-      () async {
-    var refreshCount = 0;
-    final r = ProactiveTokenRefresher(
-      readExpiry: () async => t0.add(const Duration(hours: 1)),
-      refresh: () async {
-        refreshCount++;
-        return null;
-      },
-      clock: () => t0,
-      timerFactory: factory(),
-    )..start();
-    await settle();
-    final first = timers.single;
-    r.stop();
-    expect(first.cancelled, isTrue);
-    first.fire(); // cancelled — must do nothing
-    await settle();
-    expect(refreshCount, 0);
-    expect(timers, hasLength(1)); // no new timer
-  });
+  test(
+    'stop() cancels the timer and blocks rescheduling after it fires',
+    () async {
+      var refreshCount = 0;
+      final r = ProactiveTokenRefresher(
+        readExpiry: () async => t0.add(const Duration(hours: 1)),
+        refresh: () async {
+          refreshCount++;
+          return null;
+        },
+        clock: () => t0,
+        timerFactory: factory(),
+      )..start();
+      await settle();
+      final first = timers.single;
+      r.stop();
+      expect(first.cancelled, isTrue);
+      first.fire(); // cancelled — must do nothing
+      await settle();
+      expect(refreshCount, 0);
+      expect(timers, hasLength(1)); // no new timer
+    },
+  );
 
   test('start() is idempotent (does not duplicate timers)', () async {
     final r = ProactiveTokenRefresher(

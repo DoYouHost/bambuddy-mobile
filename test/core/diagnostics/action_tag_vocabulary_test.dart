@@ -28,7 +28,7 @@ void main() {
     'project.attachment_upload': 'likewise',
     'pipeline_run.check':
         'the eligibility pre-flight, which runs itself between the pipeline '
-            'pick and the start button rather than from a control',
+        'pick and the start button rather than from a control',
     'spool_form.save_model_presets':
         'the second write the Save button makes, after the spool itself — '
         'a step in that flow, not a control of its own',
@@ -62,10 +62,11 @@ void main() {
   setUpAll(() {
     actions = {};
     controls = {};
-    for (final file in Directory('lib')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'))) {
+    for (final file
+        in Directory('lib')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))) {
       final source = file.readAsStringSync();
       for (final form in tagForms) {
         controls.addAll(form.allMatches(source).map((m) => m.group(1)!));
@@ -77,7 +78,12 @@ void main() {
     // `_TagSheetActions.createTag` composes its tag from the sheet it is on, so
     // neither vocabulary carries the whole string in source.
     controls.addAll(
-      ['tag_filter', 'file_tags', 'bulk_tags', 'tag_manage'].map((s) => '$s.new'),
+      [
+        'tag_filter',
+        'file_tags',
+        'bulk_tags',
+        'tag_manage',
+      ].map((s) => '$s.new'),
     );
   });
 
@@ -88,12 +94,15 @@ void main() {
   });
 
   test('every action tag names a control the user can actually touch', () {
-    final orphans = actions.difference(controls).difference(flowSteps.keys.toSet());
+    final orphans = actions
+        .difference(controls)
+        .difference(flowSteps.keys.toSet());
 
     expect(
       orphans,
       isEmpty,
-      reason: 'These tags correlate with no control, so a report cannot say '
+      reason:
+          'These tags correlate with no control, so a report cannot say '
           'which button was pressed. Either fix the tag to match the id on the '
           'control, add the id to the control, or list it in `flowSteps` with '
           'the reason it has none.',

@@ -35,17 +35,15 @@ void serveWearRelay() {
 /// engine can never answer a request that a live listener is answering as
 /// well. `WearRelayClaim` is the other half of that guarantee.
 class WearRelayEngine {
-  WearRelayEngine({
-    WatchConnectivity? watch,
-    Future<Dio?> Function()? openDio,
-  })  : _watch = watch ?? WatchConnectivity(),
-        _openDio = openDio ?? _dioFromPrefs;
+  WearRelayEngine({WatchConnectivity? watch, Future<Dio?> Function()? openDio})
+    : _watch = watch ?? WatchConnectivity(),
+      _openDio = openDio ?? _dioFromPrefs;
 
   /// The same client the foreground service builds, minus Riverpod: profile
   /// from prefs, credentials from the keystore, JWT re-login wired in.
-  static Future<Dio?> _dioFromPrefs() async =>
-      (await buildBackgroundApiClient(await SharedPreferences.getInstance()))
-          ?.dio;
+  static Future<Dio?> _dioFromPrefs() async => (await buildBackgroundApiClient(
+    await SharedPreferences.getInstance(),
+  ))?.dio;
 
   final WatchConnectivity _watch;
   final Future<Dio?> Function() _openDio;
@@ -76,7 +74,9 @@ class WearRelayEngine {
     // started from the app, and an open app holds the claim that stops the
     // service forwarding anything here. So one "no" is final, and the warm
     // path stops paying a prefs reload per request for it.
-    final recording = _mayRecord ? await DiagnosticRecorder.startAction() : null;
+    final recording = _mayRecord
+        ? await DiagnosticRecorder.startAction()
+        : null;
     _mayRecord = recording != null;
     final started = DateTime.now();
     var outcome = _WakeOutcome.answered;
@@ -94,8 +94,10 @@ class WearRelayEngine {
         _dioOpened = true;
         _dio = await _openDio();
       }
-      final handler = _handler ??=
-          WearRelayHandler(watch: _watch, dio: () => _dio);
+      final handler = _handler ??= WearRelayHandler(
+        watch: _watch,
+        dio: () => _dio,
+      );
       await handler.handle(req);
       return true;
     } on Object {

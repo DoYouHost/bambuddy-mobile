@@ -85,20 +85,20 @@ class ArchiveRepository {
   /// list: the finish photo is attached in the background after the print
   /// ends, so a list loaded before that still shows the print without it.
   Future<Archive> byId(int archiveId) => guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
-          Endpoints.archive(archiveId),
-        );
-        return Archive.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.archive(archiveId),
+    );
+    return Archive.fromJson(res.data ?? const {});
+  });
 
   /// POST /archives/{id}/favorite — toggle the favorite flag server-side and
   /// return the updated archive (defensively parsed).
   Future<Archive> toggleFavorite(int archiveId) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.archiveFavorite(archiveId),
-        );
-        return Archive.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.archiveFavorite(archiveId),
+    );
+    return Archive.fromJson(res.data ?? const {});
+  });
 
   /// PATCH /archives/{id} — write the filament weight this print is recorded
   /// with, or clear it with a null.
@@ -143,27 +143,28 @@ class ArchiveRepository {
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
   /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
   /// from aggregate statistics.
-  Future<void> delete(int archiveId, {bool purgeStats = false}) => guard(() => _dio.delete<dynamic>(
-        Endpoints.archive(archiveId),
-        queryParameters: {'purge_stats': purgeStats},
-      ));
+  Future<void> delete(int archiveId, {bool purgeStats = false}) => guard(
+    () => _dio.delete<dynamic>(
+      Endpoints.archive(archiveId),
+      queryParameters: {'purge_stats': purgeStats},
+    ),
+  );
 
   /// GET /archives/purge/preview — count + size of prints older than
   /// [olderThanDays] eligible for purge. Read-only.
   Future<ArchivePurgePreview> purgePreview({
     required int olderThanDays,
     bool purgeStats = false,
-  }) =>
-      guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
-          Endpoints.archivesPurgePreview,
-          queryParameters: {
-            'older_than_days': olderThanDays,
-            'purge_stats': purgeStats,
-          },
-        );
-        return ArchivePurgePreview.fromJson(res.data ?? const {});
-      });
+  }) => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.archivesPurgePreview,
+      queryParameters: {
+        'older_than_days': olderThanDays,
+        'purge_stats': purgeStats,
+      },
+    );
+    return ArchivePurgePreview.fromJson(res.data ?? const {});
+  });
 
   /// GET /archives/{id}/plates — the plates of a multi-plate 3MF.
   ///
@@ -202,10 +203,7 @@ class ArchiveRepository {
   /// POST /archives/purge — bulk-delete prints older than [olderThanDays].
   /// [purgeStats] also drops them from statistics (irreversible). Returns the
   /// number of deleted prints.
-  Future<int> purge({
-    required int olderThanDays,
-    bool purgeStats = false,
-  }) =>
+  Future<int> purge({required int olderThanDays, bool purgeStats = false}) =>
       guard(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.archivesPurge,
@@ -252,5 +250,5 @@ class ArchiveRepository {
 /// which are a whole typed number apart.
 bool sameFilamentGrams(double? stored, double? sent) =>
     stored == null || sent == null
-        ? stored == sent
-        : (stored - sent).abs() < 0.001;
+    ? stored == sent
+    : (stored - sent).abs() < 0.001;

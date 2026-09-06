@@ -28,8 +28,10 @@ class FailureAnalysisCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final rangeLabel =
-        statsRangeLabel(l10n, ref.watch(statsFilterProvider).range);
+    final rangeLabel = statsRangeLabel(
+      l10n,
+      ref.watch(statsFilterProvider).range,
+    );
     final async = ref.watch(failureAnalysisProvider);
     return SectionCard(
       title: l10n.statsFailureAnalysis,
@@ -70,10 +72,7 @@ class FailureAnalysisCard extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      rangeLabel,
-                      style: t.labelSoft,
-                    ),
+                    child: Text(rangeLabel, style: t.labelSoft),
                   ),
                 ],
               ),
@@ -87,7 +86,10 @@ class FailureAnalysisCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(
                     l10n.statsNoFailures,
-                    style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      color: t.textSecondary,
+                    ),
                   ),
                 )
               else ...[
@@ -111,10 +113,7 @@ class FailureAnalysisCard extends ConsumerWidget {
                             style: t.bodySoft,
                           ),
                         ),
-                        Text(
-                          '${e.value}',
-                          style: t.monoValue,
-                        ),
+                        Text('${e.value}', style: t.monoValue),
                       ],
                     ),
                   ),
@@ -199,10 +198,13 @@ class PrintActivityCard extends StatelessWidget {
                   for (var w = 0; w < weeks; w++)
                     SizedBox(
                       width: colW,
-                      child: (w == 0 ||
-                              dayAt(w, 0).month != dayAt(w - 1, 0).month)
-                          ? Text(fmt.monthAbbr(dayAt(w, 0)),
-                              style: labelStyle, overflow: TextOverflow.visible)
+                      child:
+                          (w == 0 || dayAt(w, 0).month != dayAt(w - 1, 0).month)
+                          ? Text(
+                              fmt.monthAbbr(dayAt(w, 0)),
+                              style: labelStyle,
+                              overflow: TextOverflow.visible,
+                            )
                           : null,
                     ),
                 ],
@@ -268,7 +270,9 @@ class PrintActivityCard extends StatelessWidget {
                   height: 13,
                   margin: const EdgeInsets.all(1.5),
                   decoration: BoxDecoration(
-                    color: frac == 0 ? track : Color.lerp(track, t.accentGreen, frac)!,
+                    color: frac == 0
+                        ? track
+                        : Color.lerp(track, t.accentGreen, frac)!,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -301,34 +305,56 @@ class RecordsCard extends StatelessWidget {
 
     final longest = data.longest;
     if (longest?.effectiveSeconds != null) {
-      add(Icons.schedule, l10n.statsLongestPrint,
-          formatSeconds(l10n, longest!.effectiveSeconds!), longest.printName);
+      add(
+        Icons.schedule,
+        l10n.statsLongestPrint,
+        formatSeconds(l10n, longest!.effectiveSeconds!),
+        longest.printName,
+      );
     }
     final heaviest = data.heaviest;
     if (heaviest?.filamentUsedGrams != null) {
-      add(Icons.inventory_2_outlined, l10n.statsHeaviestPrint,
-          fmtGrams(heaviest!.filamentUsedGrams!), heaviest.printName);
+      add(
+        Icons.inventory_2_outlined,
+        l10n.statsHeaviestPrint,
+        fmtGrams(heaviest!.filamentUsedGrams!),
+        heaviest.printName,
+      );
     }
     final exp = data.mostExpensive;
     if (exp?.cost != null) {
-      add(Icons.payments_outlined, l10n.statsMostExpensive,
-          fmtNum(exp!.cost!), exp.printName);
+      add(
+        Icons.payments_outlined,
+        l10n.statsMostExpensive,
+        fmtNum(exp!.cost!),
+        exp.printName,
+      );
     }
     // Server ≥ 1.2.5.2 only — stays absent rather than reading 0 kWh elsewhere.
     final hungriest = data.hungriest;
     if (hungriest?.energyKwh != null) {
-      add(Icons.bolt_outlined, l10n.statsMostEnergy,
-          l10n.statsKwh(hungriest!.energyKwh!.toStringAsFixed(2)),
-          hungriest.printName);
+      add(
+        Icons.bolt_outlined,
+        l10n.statsMostEnergy,
+        l10n.statsKwh(hungriest!.energyKwh!.toStringAsFixed(2)),
+        hungriest.printName,
+      );
     }
     if (data.busiestDay != null) {
-      add(Icons.calendar_today, l10n.statsBusiestDay,
-          l10n.statsPrintsCount(data.busiestDayCount),
-          fmt.dateNamedMonth(data.busiestDay!));
+      add(
+        Icons.calendar_today,
+        l10n.statsBusiestDay,
+        l10n.statsPrintsCount(data.busiestDayCount),
+        fmt.dateNamedMonth(data.busiestDay!),
+      );
     }
     if (data.bestSuccessStreak > 0) {
-      add(Icons.bolt, l10n.statsSuccessStreak,
-          l10n.statsConsecutive(data.bestSuccessStreak), null);
+      add(
+        Icons.bolt,
+        l10n.statsSuccessStreak,
+        l10n.statsConsecutive(data.bestSuccessStreak),
+        null,
+      );
     }
 
     return SectionCard(
@@ -365,10 +391,7 @@ class _RecordRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: t.label.copyWith(color: t.textSecondary),
-                ),
+                Text(label, style: t.label.copyWith(color: t.textSecondary)),
                 if (sub != null)
                   Text(
                     sub!,
@@ -380,10 +403,7 @@ class _RecordRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            value,
-            style: t.monoTitle,
-          ),
+          Text(value, style: t.monoTitle),
         ],
       ),
     );
@@ -396,7 +416,8 @@ class BarList extends StatelessWidget {
   const BarList({super.key, required this.rows});
 
   /// (label, value-text, fraction 0..1, optional color).
-  final List<({String label, String value, double fraction, Color? color})> rows;
+  final List<({String label, String value, double fraction, Color? color})>
+  rows;
 
   @override
   Widget build(BuildContext context) {
@@ -418,10 +439,7 @@ class BarList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    rows[i].value,
-                    style: t.monoLabel,
-                  ),
+                  Text(rows[i].value, style: t.monoLabel),
                 ],
               ),
               const SizedBox(height: 4),
@@ -464,7 +482,9 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
     final entries = widget.data.byPrinter.entries.toList()
       ..sort((a, b) => _metric.of(b.value).compareTo(_metric.of(a.value)));
     final maxVal = entries.fold<num>(
-        1, (m, e) => math.max(m, _metric.of(e.value)));
+      1,
+      (m, e) => math.max(m, _metric.of(e.value)),
+    );
 
     return SectionCard(
       title: l10n.statsByPrinter,
@@ -506,16 +526,18 @@ class FilamentTrendsHeader extends StatelessWidget {
         children: [
           Expanded(
             child: _Metric(
-                label: l10n.statsPeriodFilament,
-                value: fmtGrams(stats.totalFilamentGrams)),
+              label: l10n.statsPeriodFilament,
+              value: fmtGrams(stats.totalFilamentGrams),
+            ),
           ),
           Expanded(
             child: _Metric(
-                label: l10n.statsPeriodCost, value: fmtNum(stats.totalCost)),
+              label: l10n.statsPeriodCost,
+              value: fmtNum(stats.totalCost),
+            ),
           ),
           Expanded(
-            child: _Metric(
-                label: l10n.statsAvgPerPrint, value: fmtGrams(avg)),
+            child: _Metric(label: l10n.statsAvgPerPrint, value: fmtGrams(avg)),
           ),
         ],
       ),
@@ -535,14 +557,8 @@ class _Metric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: t.micro,
-        ),
-        Text(
-          value,
-          style: t.monoTitle,
-        ),
+        Text(label, style: t.micro),
+        Text(value, style: t.monoTitle),
       ],
     );
   }
@@ -558,13 +574,13 @@ class UsageOverTimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
-        title: AppLocalizations.of(context).statsUsageOverTime,
-        points: data.usageOverTime,
-        fmt: fmt,
-        color: DashTokens.of(context).accentGreen,
-        formatY: (v) =>
-            v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
-      );
+    title: AppLocalizations.of(context).statsUsageOverTime,
+    points: data.usageOverTime,
+    fmt: fmt,
+    color: DashTokens.of(context).accentGreen,
+    formatY: (v) =>
+        v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
+  );
 }
 
 /// Energy drawn per day. Only reachable when [StatsComputed.hasEnergyData] —
@@ -579,14 +595,14 @@ class EnergyOverTimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
-        title: AppLocalizations.of(context).statsEnergyOverTime,
-        points: data.energyOverTime,
-        fmt: fmt,
-        color: DashTokens.of(context).accentBlue,
-        // kWh per day lands in single digits, where the filament chart's
-        // integer axis would collapse every day into "0" or "1".
-        formatY: (v) => v.toStringAsFixed(v >= 10 ? 0 : 1),
-      );
+    title: AppLocalizations.of(context).statsEnergyOverTime,
+    points: data.energyOverTime,
+    fmt: fmt,
+    color: DashTokens.of(context).accentBlue,
+    // kWh per day lands in single digits, where the filament chart's
+    // integer axis would collapse every day into "0" or "1".
+    formatY: (v) => v.toStringAsFixed(v >= 10 ? 0 : 1),
+  );
 }
 
 class _OverTimeChart extends StatelessWidget {
@@ -615,8 +631,13 @@ class _OverTimeChart extends StatelessWidget {
         child: SizedBox(
           height: 60,
           child: Center(
-            child: Text(l10n.statsEmpty,
-                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
+            child: Text(
+              l10n.statsEmpty,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                color: t.textSecondary,
+              ),
+            ),
           ),
         ),
       );
@@ -638,8 +659,12 @@ class _OverTimeChart extends StatelessWidget {
             gridData: const FlGridData(show: false),
             borderData: FlBorderData(show: false),
             titlesData: FlTitlesData(
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
               leftTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
@@ -655,10 +680,15 @@ class _OverTimeChart extends StatelessWidget {
                   interval: (points.length / 4).ceilToDouble(),
                   getTitlesWidget: (v, meta) {
                     final i = v.round();
-                    if (i < 0 || i >= points.length) return const SizedBox.shrink();
+                    if (i < 0 || i >= points.length) {
+                      return const SizedBox.shrink();
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(fmt.dayNamedMonth(points[i].key), style: axisStyle),
+                      child: Text(
+                        fmt.dayNamedMonth(points[i].key),
+                        style: axisStyle,
+                      ),
                     );
                   },
                 ),
@@ -700,9 +730,14 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
   StatMetric _metric = StatMetric.weight;
 
   static const _palette = [
-    Color(0xFF22C55E), Color(0xFF3B82F6), Color(0xFFF59E0B),
-    Color(0xFFEF4444), Color(0xFFA855F7), Color(0xFF14B8A6),
-    Color(0xFFEC4899), Color(0xFF84CC16),
+    Color(0xFF22C55E),
+    Color(0xFF3B82F6),
+    Color(0xFFF59E0B),
+    Color(0xFFEF4444),
+    Color(0xFFA855F7),
+    Color(0xFF14B8A6),
+    Color(0xFFEC4899),
+    Color(0xFF84CC16),
   ];
 
   @override
@@ -851,8 +886,13 @@ class ColorDistributionCard extends StatelessWidget {
         child: SizedBox(
           height: 50,
           child: Center(
-            child: Text(l10n.statsEmpty,
-                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
+            child: Text(
+              l10n.statsEmpty,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                color: t.textSecondary,
+              ),
+            ),
           ),
         ),
       );
@@ -883,10 +923,7 @@ class ColorDistributionCard extends StatelessWidget {
           // and time, all three of which this screen also reports.
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              l10n.statsColorShareHint,
-              style: t.microSoft,
-            ),
+            child: Text(l10n.statsColorShareHint, style: t.microSoft),
           ),
           Row(
             children: [
@@ -932,10 +969,7 @@ class ColorDistributionCard extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              fmtGrams(total),
-                              style: t.monoValue,
-                            ),
+                            Text(fmtGrams(total), style: t.monoValue),
                             Text(
                               l10n.statsColorsCount(entries.length),
                               style: t.microSoft,
@@ -966,10 +1000,7 @@ class ColorDistributionCard extends StatelessWidget {
           if (moreCount > 0)
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                l10n.statsMoreCount(moreCount),
-                style: t.microSoft,
-              ),
+              child: Text(l10n.statsMoreCount(moreCount), style: t.microSoft),
             ),
         ],
       ),
@@ -1007,10 +1038,7 @@ class _ColorChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: t.monoLabel.copyWith(color: t.textPrimary),
-          ),
+          Text(label, style: t.monoLabel.copyWith(color: t.textPrimary)),
         ],
       ),
     );
@@ -1021,7 +1049,11 @@ class _ColorChip extends StatelessWidget {
 
 /// Shared bar chart with X-axis labels.
 class _BarHistogram extends StatelessWidget {
-  const _BarHistogram({required this.values, required this.labels, this.everyLabel = 1});
+  const _BarHistogram({
+    required this.values,
+    required this.labels,
+    this.everyLabel = 1,
+  });
 
   final List<double> values;
   final List<String> labels;
@@ -1044,8 +1076,12 @@ class _BarHistogram extends StatelessWidget {
           borderData: FlBorderData(show: false),
           barTouchData: BarTouchData(enabled: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -1061,7 +1097,9 @@ class _BarHistogram extends StatelessWidget {
                 reservedSize: 24,
                 getTitlesWidget: (v, meta) {
                   final i = v.round();
-                  if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                  if (i < 0 || i >= labels.length) {
+                    return const SizedBox.shrink();
+                  }
                   if (i % everyLabel != 0) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -1073,14 +1111,19 @@ class _BarHistogram extends StatelessWidget {
           ),
           barGroups: [
             for (var i = 0; i < values.length; i++)
-              BarChartGroupData(x: i, barRods: [
-                BarChartRodData(
-                  toY: values[i],
-                  color: t.accentGreen,
-                  width: 10,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                ),
-              ]),
+              BarChartGroupData(
+                x: i,
+                barRods: [
+                  BarChartRodData(
+                    toY: values[i],
+                    color: t.accentGreen,
+                    width: 10,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(3),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -1130,7 +1173,9 @@ class _HabitsCardState extends State<HabitsCard> {
         onChanged: (m) => setState(() => _metric = m),
       ),
       child: _BarHistogram(
-        values: [for (final b in widget.data.byWeekday) _metric.of(b).toDouble()],
+        values: [
+          for (final b in widget.data.byWeekday) _metric.of(b).toDouble(),
+        ],
         labels: labels,
       ),
     );

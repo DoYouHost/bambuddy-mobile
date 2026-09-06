@@ -91,10 +91,10 @@ void main() {
 
   group('BulkOutcome from the native shape', () {
     test('reads the count and the unknown ids', () {
-      final outcome = BulkOutcome.fromJson(
-        {'updated': 3, 'not_found': [98, 99]},
-        okKey: 'updated',
-      );
+      final outcome = BulkOutcome.fromJson({
+        'updated': 3,
+        'not_found': [98, 99],
+      }, okKey: 'updated');
 
       expect(outcome.ok, 3);
       expect(outcome.skipped, 0);
@@ -105,7 +105,11 @@ void main() {
 
     test('already-archived rows are skipped, not failed', () {
       final outcome = BulkOutcome.fromJson(
-        {'archived': 3, 'already_archived': [7, 8], 'not_found': []},
+        {
+          'archived': 3,
+          'already_archived': [7, 8],
+          'not_found': [],
+        },
         okKey: 'archived',
         skippedKey: 'already_archived',
       );
@@ -129,16 +133,13 @@ void main() {
 
   group('BulkOutcome from the Spoolman shape', () {
     test('counts the per-spool errors it reports instead of not_found', () {
-      final outcome = BulkOutcome.fromJson(
-        {
-          'updated': 2,
-          'errors': [
-            {'id': 5, 'status': 404, 'detail': 'not found'},
-            {'id': 6, 'status': 500, 'detail': 'boom'},
-          ],
-        },
-        okKey: 'updated',
-      );
+      final outcome = BulkOutcome.fromJson({
+        'updated': 2,
+        'errors': [
+          {'id': 5, 'status': 404, 'detail': 'not found'},
+          {'id': 6, 'status': 500, 'detail': 'boom'},
+        ],
+      }, okKey: 'updated');
 
       expect(outcome.ok, 2);
       expect(outcome.failed, 2);
@@ -157,10 +158,10 @@ void main() {
     });
 
     test('string-typed numbers from a proxy still parse', () {
-      final outcome = BulkOutcome.fromJson(
-        {'deleted': '2', 'not_found': ['9']},
-        okKey: 'deleted',
-      );
+      final outcome = BulkOutcome.fromJson({
+        'deleted': '2',
+        'not_found': ['9'],
+      }, okKey: 'deleted');
 
       expect(outcome.ok, 2);
       expect(outcome.notFound, [9]);
@@ -197,7 +198,9 @@ void main() {
 
   group('chunkIds', () {
     test('a selection inside the cap is one request', () {
-      expect(chunkIds([1, 2, 3]), [[1, 2, 3]]);
+      expect(chunkIds([1, 2, 3]), [
+        [1, 2, 3],
+      ]);
     });
 
     test('the cap itself is still one request', () {

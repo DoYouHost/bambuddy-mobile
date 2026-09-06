@@ -41,16 +41,19 @@ void main() {
     repo = SkipObjectsRepository(dio);
   }
 
-  test('skip: żąda Content-Type application/json i wysyła gołą listę id', () async {
-    setUpWithReply((_) => _empty(200));
+  test(
+    'skip: żąda Content-Type application/json i wysyła gołą listę id',
+    () async {
+      setUpWithReply((_) => _empty(200));
 
-    await repo.skip(1, [683]);
+      await repo.skip(1, [683]);
 
-    final req = adapter.requests.single;
-    expect(req.path, '/api/v1/printers/1/print/skip-objects');
-    expect(req.contentType, Headers.jsonContentType);
-    expect(req.data, [683]);
-  });
+      final req = adapter.requests.single;
+      expect(req.path, '/api/v1/printers/1/print/skip-objects');
+      expect(req.contentType, Headers.jsonContentType);
+      expect(req.data, [683]);
+    },
+  );
 
   test('fetchPickMask: prosi o widok pick z tokenem kamery w query', () async {
     setUpWithReply((_) => ResponseBody.fromBytes([1, 2, 3], 200));
@@ -72,7 +75,10 @@ void main() {
   test('fetchPickMask: 500 wypływa jako błąd API', () async {
     setUpWithReply((_) => _empty(500));
 
-    await expectLater(repo.fetchPickMask(1, 'cam-token'), throwsA(isA<ApiException>()));
+    await expectLater(
+      repo.fetchPickMask(1, 'cam-token'),
+      throwsA(isA<ApiException>()),
+    );
   });
 
   test('skip: 403 wypływa jako AuthException(forbidden)', () async {
@@ -80,8 +86,13 @@ void main() {
 
     await expectLater(
       repo.skip(1, [683]),
-      throwsA(isA<AuthException>()
-          .having((e) => e.code, 'code', AppErrorCode.forbidden)),
+      throwsA(
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.forbidden,
+        ),
+      ),
     );
   });
 }

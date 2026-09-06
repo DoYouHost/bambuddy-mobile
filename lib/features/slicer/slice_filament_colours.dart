@@ -58,10 +58,13 @@ String sliceSlotColour({
   // would otherwise order the candidates by nothing at all.
   final chosen = matches.length == 1 || requirement?.color == null
       ? matches.first
-      : (matches.toList()
-            ..sort((a, b) => colorDistance(a.color, requirement!.color)
-                .compareTo(colorDistance(b.color, requirement.color))))
-          .first;
+      : (matches.toList()..sort(
+              (a, b) => colorDistance(
+                a.color,
+                requirement!.color,
+              ).compareTo(colorDistance(b.color, requirement.color)),
+            ))
+            .first;
   return hexColour(chosen.color)!;
 }
 

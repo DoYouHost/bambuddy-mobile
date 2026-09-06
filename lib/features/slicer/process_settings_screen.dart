@@ -119,18 +119,17 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       body: !ready
           ? const DashLoading()
           : presetValues.value == null
-              ? _unavailable(l10n)
-              : _body(catalog, presetValues.value!),
+          ? _unavailable(l10n)
+          : _body(catalog, presetValues.value!),
     );
   }
 
   Widget _unavailable(AppLocalizations l10n) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.processSettingsUnavailable,
-              textAlign: TextAlign.center),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(l10n.processSettingsUnavailable, textAlign: TextAlign.center),
+    ),
+  );
 
   Widget _revertAllAction(ProcessSchemaCatalog? catalog, PresetValues? values) {
     if (catalog == null || values == null) return const SizedBox.shrink();
@@ -180,8 +179,10 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(l10n.processSettingsNoMatches,
-                        textAlign: TextAlign.center),
+                    child: Text(
+                      l10n.processSettingsNoMatches,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 )
               : ListView(
@@ -205,14 +206,18 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
                             key: ValueKey(key),
                             option: catalog.schema[key]!,
                             controller: _controllerFor(
-                                catalog.schema[key]!, presetValues),
+                              catalog.schema[key]!,
+                              presetValues,
+                            ),
                             value: _values[key],
                             presetValue: presetValues.values[key],
                             filamentSlots: widget.filamentSlots,
                             enabled: !disabled.contains(key),
                             onChanged: (value) => _setValue(key, value),
-                            onRevert: () => _revert(catalog.schema[key]!,
-                                presetValues.values[key]),
+                            onRevert: () => _revert(
+                              catalog.schema[key]!,
+                              presetValues.values[key],
+                            ),
                           ),
                       ],
                     ],
@@ -228,11 +233,11 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     // `develop` is upstream's own scratch tier and is never offered.
     const modes = [OptionMode.simple, OptionMode.advanced, OptionMode.expert];
     String label(OptionMode mode) => switch (mode) {
-          OptionMode.simple => l10n.processSettingsModeSimple,
-          OptionMode.advanced => l10n.processSettingsModeAdvanced,
-          OptionMode.expert => l10n.processSettingsModeExpert,
-          OptionMode.develop => '',
-        };
+      OptionMode.simple => l10n.processSettingsModeSimple,
+      OptionMode.advanced => l10n.processSettingsModeAdvanced,
+      OptionMode.expert => l10n.processSettingsModeExpert,
+      OptionMode.develop => '',
+    };
     return SegmentedButton<OptionMode>(
       segments: [
         for (final mode in modes)
@@ -270,9 +275,12 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
-      child: Text(page.toUpperCase(),
-          style: theme.textTheme.labelSmall
-              ?.copyWith(color: theme.colorScheme.primary)),
+      child: Text(
+        page.toUpperCase(),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
     );
   }
 
@@ -305,13 +313,19 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline,
-              size: 18, color: theme.colorScheme.onSecondaryContainer),
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text,
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSecondaryContainer)),
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
           ),
         ],
       ),
@@ -345,8 +359,10 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     for (final entry in _controllers.entries) {
       final option = catalog.schema[entry.key];
       if (option == null) continue;
-      entry.value.text =
-          baselineForDisplay(option, presetValues.values[entry.key]);
+      entry.value.text = baselineForDisplay(
+        option,
+        presetValues.values[entry.key],
+      );
     }
     setState(() {
       _values = {};
@@ -385,7 +401,8 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     PresetValues presetValues,
   ) {
     return _controllers[option.key] ??= TextEditingController(
-      text: _values[option.key]?.toString() ??
+      text:
+          _values[option.key]?.toString() ??
           baselineForDisplay(option, presetValues.values[option.key]),
     );
   }
@@ -503,7 +520,11 @@ class _OptionRow extends StatelessWidget {
         if (modified)
           Padding(
             padding: const EdgeInsets.only(left: 6),
-            child: Icon(Icons.circle, size: 8, color: theme.colorScheme.primary),
+            child: Icon(
+              Icons.circle,
+              size: 8,
+              color: theme.colorScheme.primary,
+            ),
           ),
         SizedBox(
           width: 36,
@@ -527,13 +548,15 @@ class _OptionRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: option.type == OptionType.coBool
-            ? Row(children: [
-                Expanded(child: label),
-                Switch(
-                  value: _asBool(),
-                  onChanged: enabled ? (v) => onChanged(v) : null,
-                ).tagged('process_settings.option_bool'),
-              ])
+            ? Row(
+                children: [
+                  Expanded(child: label),
+                  Switch(
+                    value: _asBool(),
+                    onChanged: enabled ? (v) => onChanged(v) : null,
+                  ).tagged('process_settings.option_bool'),
+                ],
+              )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -571,41 +594,45 @@ class _OptionRow extends StatelessWidget {
   /// nothing downstream can tell which control produced an edit.
   Widget _filamentSlotControl(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final current = value?.toString() ?? baselineForDisplay(option, presetValue);
+    final current =
+        value?.toString() ?? baselineForDisplay(option, presetValue);
     final offered = ['0', for (final slot in filamentSlots) '${slot.slot}'];
 
     // A preset (or the source file) can name a slot this file does not have. It
     // is shown as its own entry rather than left unselected: a blank control
     // would hide the one value worth seeing. An empty value is not one of those
     // — it is malformed, and a slot named "" would be an invention.
-    final missing =
-        current.isEmpty || offered.contains(current) ? null : current;
+    final missing = current.isEmpty || offered.contains(current)
+        ? null
+        : current;
 
     String slotLabel(FilamentSlotChoice slot) {
       final text = l10n.processSettingsFilamentSlot('${slot.slot}', slot.label);
       return slot.unused ? '$text · ${l10n.sliceFilamentUnused}' : text;
     }
 
-    DropdownMenuEntry<String> entry(String value, String label,
-            {bool dim = false}) =>
-        DropdownMenuEntry(
-          value: value,
-          label: label,
-          // A DropdownMenuEntry cannot be wrapped, so the tag rides on the label
-          // widget — as in [_enumControl]. Ellipsised because preset names run
-          // well past the field's width.
-          labelWidget: logTag(
-            'process_settings.option_filament_value',
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: dim
-                  ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
-                  : null,
-            ),
-          ),
-        );
+    DropdownMenuEntry<String> entry(
+      String value,
+      String label, {
+      bool dim = false,
+    }) => DropdownMenuEntry(
+      value: value,
+      label: label,
+      // A DropdownMenuEntry cannot be wrapped, so the tag rides on the label
+      // widget — as in [_enumControl]. Ellipsised because preset names run
+      // well past the field's width.
+      labelWidget: logTag(
+        'process_settings.option_filament_value',
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: dim
+              ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
+              : null,
+        ),
+      ),
+    );
 
     return dashCombo<String>(
       context,
@@ -620,8 +647,11 @@ class _OptionRow extends StatelessWidget {
         for (final slot in filamentSlots)
           entry('${slot.slot}', slotLabel(slot), dim: slot.unused),
         if (missing != null)
-          entry(missing, l10n.processSettingsFilamentSlotMissing(missing),
-              dim: true),
+          entry(
+            missing,
+            l10n.processSettingsFilamentSlotMissing(missing),
+            dim: true,
+          ),
       ],
     );
   }
@@ -631,8 +661,8 @@ class _OptionRow extends StatelessWidget {
   Widget _enumControl(BuildContext context) {
     final values = option.enumValues!;
     final labels = option.enumLabels;
-    final current = value?.toString() ??
-        baselineForDisplay(option, presetValue);
+    final current =
+        value?.toString() ?? baselineForDisplay(option, presetValue);
     final selectable = values.contains(current);
     return dashCombo<String>(
       context,
@@ -657,8 +687,10 @@ class _OptionRow extends StatelessWidget {
               // A DropdownMenuEntry cannot be wrapped, so the tag rides on the
               // label widget. One id for every entry: which value was picked is
               // never part of an id.
-              labelWidget:
-                  logTag('process_settings.option_enum_value', Text(text)),
+              labelWidget: logTag(
+                'process_settings.option_enum_value',
+                Text(text),
+              ),
             ),
       ],
     );
@@ -694,9 +726,11 @@ class _OptionRow extends StatelessWidget {
         helperText: enabled ? null : l10n.processSettingsDisabledHint,
       ),
       onChanged: (text) => onChanged(text),
-    ).tagged(numeric
-        ? 'process_settings.option_number'
-        : 'process_settings.option_text');
+    ).tagged(
+      numeric
+          ? 'process_settings.option_number'
+          : 'process_settings.option_text',
+    );
   }
 
   bool _outOfRange(double? min, double? max) {

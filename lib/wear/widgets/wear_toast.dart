@@ -106,7 +106,7 @@ class WearToast extends StatelessWidget {
   static int _lines(BuildContext context, double available) {
     final line =
         MediaQuery.textScalerOf(context).scale(WearText.body.fontSize!) *
-            _lineHeight;
+        _lineHeight;
     return (available / line).floor().clamp(1, _maxLines);
   }
 

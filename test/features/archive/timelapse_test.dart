@@ -45,10 +45,7 @@ void main() {
     });
 
     test('a path from the server means there is one', () {
-      expect(
-        _archive(timelapsePath: 'timelapses/42.mp4').hasTimelapse,
-        isTrue,
-      );
+      expect(_archive(timelapsePath: 'timelapses/42.mp4').hasTimelapse, isTrue);
     });
 
     test('withFavorite does not drop the recording path', () {
@@ -87,17 +84,22 @@ void main() {
     });
   });
 
-  testWidgets('the player with no server profile shows an error, not a spinner',
-      (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [noServerProfileOverride],
-        child: plApp(const TimelapseScreen(archiveId: 42)),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'the player with no server profile shows an error, not a spinner',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [noServerProfileOverride],
+          child: plApp(const TimelapseScreen(archiveId: 42)),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Nie udało się odtworzyć tego timelapse.'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-  });
+      expect(
+        find.text('Nie udało się odtworzyć tego timelapse.'),
+        findsOneWidget,
+      );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
 }

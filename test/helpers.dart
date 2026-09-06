@@ -42,22 +42,24 @@ class TempDirProvider extends PathProviderPlatform {
 /// Inert firmware for widget tests: the printer card reads firmware while it
 /// renders and the tests do not assert on it — null keeps the fetch off the
 /// network, which otherwise leaves a hanging Dio timer and fails the test.
-final inertFirmwareOverride =
-    printerFirmwareProvider.overrideWith((ref, id) => null);
+final inertFirmwareOverride = printerFirmwareProvider.overrideWith(
+  (ref, id) => null,
+);
 
 /// Inert total print time for widget tests: the printer card reads it from the
 /// maintenance overview while it renders. Null keeps that off the network, the
 /// same trap as [inertFirmwareOverride].
-final inertTotalPrintHoursOverride =
-    printerTotalPrintHoursProvider.overrideWith((ref, id) => null);
+final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider
+    .overrideWith((ref, id) => null);
 
 /// Inert chamber ceiling for widget tests. The temperature tiles read the
 /// server's `MAX_CHAMBER_TEMP_C` at render time, which otherwise hits
 /// `/updates/version` and leaves a hanging Dio timer — the same trap as
 /// [inertFirmwareOverride]. 60 is what an unknown version resolves to anyway,
 /// so gauges and sliders behave exactly as they do before the probe lands.
-final inertChamberMaxOverride =
-    chamberMaxTargetProvider.overrideWith((ref) async => 60);
+final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWith(
+  (ref) async => 60,
+);
 
 /// Inert history gating for widget tests. The temperature tiles and the AMS
 /// humidity/temperature chips ask whether the server keeps history, which reads
@@ -76,12 +78,12 @@ final inertHistorySupportOverrides = [
 /// the only place an inherited widget reaches a pushed route or a dialog as well
 /// as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
-      locale: const Locale('pl'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: builder,
-      home: child,
-    );
+  locale: const Locale('pl'),
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  builder: builder,
+  home: child,
+);
 
 /// Pumps a fixed span in place of `pumpAndSettle`, for the screens it can never
 /// finish on: a search field's cursor blinks forever, so no frame is ever free
@@ -122,19 +124,21 @@ Future<ProviderContainer> pumpWear(
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   late ProviderContainer container;
-  await tester.pumpWidget(ProviderScope(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
-      ...overrides,
-    ],
-    child: Builder(builder: (context) {
-      container = ProviderScope.containerOf(context, listen: false);
-      return wrapInApp
-          ? plApp(child, builder: wearShapeBuilder)
-          : child;
-    }),
-  ));
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
+        ...overrides,
+      ],
+      child: Builder(
+        builder: (context) {
+          container = ProviderScope.containerOf(context, listen: false);
+          return wrapInApp ? plApp(child, builder: wearShapeBuilder) : child;
+        },
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
   return container;
 }
@@ -179,8 +183,9 @@ void useWatchFace(WidgetTester tester, WearShape shape, Size face) {
 
 /// The channel [WearShapeQuery] talks to, so tests answer the same one the app
 /// asks.
-const wearShapeChannel =
-    MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_shape');
+const wearShapeChannel = MethodChannel(
+  'page.codeberg.morganmlgman.bambuddy/wear_shape',
+);
 
 /// Brings [finder] onto the watch face, scrolling the screen if it has to.
 ///
@@ -191,16 +196,22 @@ const wearShapeChannel =
 /// it is the same scroll Google Play's reviewer had to make.
 Future<void> revealOnWatch(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
-    await tester.scrollUntilVisible(finder, 40,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      finder,
+      40,
+      scrollable: find.byType(Scrollable).first,
+    );
   }
   // Into the *middle* of the face, not merely into the viewport. A curved list
   // runs all the way to the rim, so "on screen" now includes the last few
   // degrees of the circle, where an item is scaled almost to nothing — existing
   // there is not the same as being readable or hittable, and `scrollUntilVisible`
   // stops at the first of those. A user scrolls what they want to the centre.
-  await Scrollable.ensureVisible(finder.evaluate().first,
-      alignment: 0.5, duration: Duration.zero);
+  await Scrollable.ensureVisible(
+    finder.evaluate().first,
+    alignment: 0.5,
+    duration: Duration.zero,
+  );
   await tester.pumpAndSettle();
 }
 
@@ -265,11 +276,11 @@ class FakeWatchConfigSync extends WatchConfigSync {
     StreamController<WatchConfig>? pushes,
     this.failsToApply = false,
     this.applyGate,
-  })  : pushes = pushes ?? StreamController<WatchConfig>.broadcast(),
-        super(
-          watch: WatchConnectivity(),
-          credentials: InMemoryCredentialsStore(),
-        );
+  }) : pushes = pushes ?? StreamController<WatchConfig>.broadcast(),
+       super(
+         watch: WatchConnectivity(),
+         credentials: InMemoryCredentialsStore(),
+       );
 
   /// What the phone has latched — what [latestPending] answers.
   final WatchConfig? pending;
@@ -380,8 +391,7 @@ class RequestLog {
   /// `METHOD /path`, which is what a test asking "did it hit the right route"
   /// actually means. Assert the whole list, not a `contains`: a stray request
   /// then shows up instead of passing unnoticed.
-  List<String> get calls =>
-      [for (final r in requests) '${r.method} ${r.path}'];
+  List<String> get calls => [for (final r in requests) '${r.method} ${r.path}'];
 
   /// Waits until [count] requests have *finished*, for the fire-and-forget
   /// calls a repository starts with `unawaited`.
@@ -408,20 +418,22 @@ class RequestLog {
 /// the mock's own handler cannot do this.
 RequestLog captureRequests(Dio dio) {
   final log = RequestLog();
-  dio.interceptors.add(InterceptorsWrapper(
-    onRequest: (options, handler) {
-      log.requests.add(options);
-      handler.next(options);
-    },
-    onResponse: (response, handler) {
-      log.statuses.add(response.statusCode);
-      handler.next(response);
-    },
-    onError: (error, handler) {
-      log.statuses.add(error.response?.statusCode);
-      handler.next(error);
-    },
-  ));
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        log.requests.add(options);
+        handler.next(options);
+      },
+      onResponse: (response, handler) {
+        log.statuses.add(response.statusCode);
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        log.statuses.add(error.response?.statusCode);
+        handler.next(error);
+      },
+    ),
+  );
   return log;
 }
 
@@ -516,9 +528,9 @@ class FakeWearTransport implements WearTransport {
   /// the watch send", and it still shows a stray command rather than swallowing
   /// it.
   List<String> get commands => [
-        for (final call in calls)
-          if (call != 'getFleet') call,
-      ];
+    for (final call in calls)
+      if (call != 'getFleet') call,
+  ];
 
   Future<T> _log<T>(String call, T value) {
     calls.add(call);
@@ -555,9 +567,8 @@ class FakeWearTransport implements WearTransport {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _log(
-        'executeHmsAction:$printerId:$printError:$action:${jobId ?? ''}',
-        null,
-      );
+  }) => _log(
+    'executeHmsAction:$printerId:$printError:$action:${jobId ?? ''}',
+    null,
+  );
 }

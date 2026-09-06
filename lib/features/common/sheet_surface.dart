@@ -36,17 +36,17 @@ class DraggableSheetSurface extends StatelessWidget {
   /// take the [ScrollController] it is handed: one that ignores it drags the
   /// whole sheet instead of scrolling its own content.
   final Widget Function(BuildContext context, ScrollController controller)
-      builder;
+  builder;
 
   @override
   Widget build(BuildContext context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: initialSize,
-        maxChildSize: maxSize,
-        minChildSize: minSize,
-        builder: (context, controller) =>
-            SheetSurface(child: builder(context, controller)),
-      );
+    expand: false,
+    initialChildSize: initialSize,
+    maxChildSize: maxSize,
+    minChildSize: minSize,
+    builder: (context, controller) =>
+        SheetSurface(child: builder(context, controller)),
+  );
 }
 
 /// Rounded surface a draggable sheet sits on: own background, top hairline,
@@ -64,8 +64,10 @@ class SheetSurface extends StatelessWidget {
     // The sheet is drawn edge to edge, so the surface has to end the content
     // above the navigation bar itself. An open keyboard already covers that
     // strip, hence the subtraction rather than the larger of the two.
-    final navInset =
-        (mq.viewPadding.bottom - mq.viewInsets.bottom).clamp(0.0, double.infinity);
+    final navInset = (mq.viewPadding.bottom - mq.viewInsets.bottom).clamp(
+      0.0,
+      double.infinity,
+    );
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(

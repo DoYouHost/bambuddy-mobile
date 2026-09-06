@@ -229,8 +229,11 @@ class AuthService {
 
     final token = res.data?['access_token'];
     if (token is! String || token.isEmpty) {
-      AuthProbe.twoFactorVerified(method,
-          failure: TwoFactorFailure.server, status: res.statusCode);
+      AuthProbe.twoFactorVerified(
+        method,
+        failure: TwoFactorFailure.server,
+        status: res.statusCode,
+      );
       throw const ApiException(AppErrorCode.malformedResponse);
     }
     AuthProbe.twoFactorVerified(method);
@@ -249,9 +252,10 @@ class AuthService {
   }) {
     final status = e.response?.statusCode;
     final failure = switch (status) {
-      401 => _challengeGone(e.response?.data)
-          ? TwoFactorFailure.challenge
-          : TwoFactorFailure.code,
+      401 =>
+        _challengeGone(e.response?.data)
+            ? TwoFactorFailure.challenge
+            : TwoFactorFailure.code,
       429 => TwoFactorFailure.rateLimit,
       400 => TwoFactorFailure.method,
       _ => TwoFactorFailure.server,
@@ -260,25 +264,30 @@ class AuthService {
       AuthProbe.twoFactorVerified(method, failure: failure, status: status);
     }
     return switch (failure) {
-      TwoFactorFailure.code =>
-        const AuthException(AppErrorCode.twoFactorCodeRejected),
-      TwoFactorFailure.challenge =>
-        const AuthException(AppErrorCode.twoFactorChallengeExpired),
-      TwoFactorFailure.rateLimit =>
-        const ApiException(AppErrorCode.tooManyAttempts, statusCode: 429),
+      TwoFactorFailure.code => const AuthException(
+        AppErrorCode.twoFactorCodeRejected,
+      ),
+      TwoFactorFailure.challenge => const AuthException(
+        AppErrorCode.twoFactorChallengeExpired,
+      ),
+      TwoFactorFailure.rateLimit => const ApiException(
+        AppErrorCode.tooManyAttempts,
+        statusCode: 429,
+      ),
       TwoFactorFailure.method => AuthException(
-          // The e-mail path's own 400 is "no address on the account"; either
-          // way this method cannot be used and another one has to be picked.
-          method == null
-              ? AppErrorCode.twoFactorEmailUnavailable
-              : AppErrorCode.twoFactorMethodUnavailable,
-        ),
-      TwoFactorFailure.server => method == null && status != null && status >= 500
-          // `email/send` answers 500 when the server has no SMTP configured —
-          // a setup problem the user can only route around by using another
-          // method, not a transient server fault.
-          ? const ApiException(AppErrorCode.twoFactorEmailUnavailable)
-          : mapDioException(e),
+        // The e-mail path's own 400 is "no address on the account"; either
+        // way this method cannot be used and another one has to be picked.
+        method == null
+            ? AppErrorCode.twoFactorEmailUnavailable
+            : AppErrorCode.twoFactorMethodUnavailable,
+      ),
+      TwoFactorFailure.server =>
+        method == null && status != null && status >= 500
+            // `email/send` answers 500 when the server has no SMTP configured —
+            // a setup problem the user can only route around by using another
+            // method, not a transient server fault.
+            ? const ApiException(AppErrorCode.twoFactorEmailUnavailable)
+            : mapDioException(e),
     };
   }
 

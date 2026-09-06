@@ -18,10 +18,10 @@ void main() {
   final files = ['lib/l10n/app_en.arb', 'lib/l10n/app_pl.arb'];
 
   /// Top-level keys in the order they are written, `@`-entries included.
-  List<String> keysOf(String path) => RegExp(r'^  "([^"]+)":', multiLine: true)
-      .allMatches(File(path).readAsStringSync())
-      .map((m) => m.group(1)!)
-      .toList();
+  List<String> keysOf(String path) => RegExp(
+    r'^  "([^"]+)":',
+    multiLine: true,
+  ).allMatches(File(path).readAsStringSync()).map((m) => m.group(1)!).toList();
 
   for (final path in files) {
     final name = path.split('/').last;
@@ -44,8 +44,7 @@ void main() {
     // Not about duplicates, but the same class of silence: a key only one file
     // has is a screen that falls back to English without saying so.
     Set<String> stringsOf(String path) =>
-        (jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>)
-            .keys
+        (jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>).keys
             .where((k) => !k.startsWith('@'))
             .toSet();
 

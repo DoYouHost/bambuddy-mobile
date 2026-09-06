@@ -20,30 +20,29 @@ import '../../helpers.dart';
 late SharedPreferences _prefs;
 
 Widget _screen(Archive archive, {required bool supported}) => ProviderScope(
-      overrides: [
-        archiveListOverride([archive]),
-        no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
-        sharedPreferencesProvider.overrideWithValue(_prefs),
-        noServerProfileOverride,
-        archiveMediaSupportedProvider.overrideWith((ref) async => supported),
-      ],
-      child: plApp(const ArchiveScreen()),
-    );
+  overrides: [
+    archiveListOverride([archive]),
+    no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
+    noServerProfileOverride,
+    archiveMediaSupportedProvider.overrideWith((ref) async => supported),
+  ],
+  child: plApp(const ArchiveScreen()),
+);
 
 Archive _archive({
   int? printerId,
   String? timelapsePath,
   List<String> photos = const [],
-}) =>
-    Archive(
-      id: 1,
-      filename: 'benchy.gcode.3mf',
-      status: 'completed',
-      printName: 'Benchy',
-      printerId: printerId,
-      timelapsePath: timelapsePath,
-      photos: photos,
-    );
+}) => Archive(
+  id: 1,
+  filename: 'benchy.gcode.3mf',
+  status: 'completed',
+  printName: 'Benchy',
+  printerId: printerId,
+  timelapsePath: timelapsePath,
+  photos: photos,
+);
 
 void main() {
   setUp(() async {
@@ -61,8 +60,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('one entry in place of the two viewers it now holds',
-      (tester) async {
+  testWidgets('one entry in place of the two viewers it now holds', (
+    tester,
+  ) async {
     await openSheet(
       tester,
       _screen(
@@ -83,30 +83,27 @@ void main() {
     expect(find.text(t.archivePhotos(1)), findsNothing);
   });
 
-  testWidgets('offered for a print whose only media is still on the printer',
-      (tester) async {
-    await openSheet(
-      tester,
-      _screen(_archive(printerId: 2), supported: true),
-    );
+  testWidgets('offered for a print whose only media is still on the printer', (
+    tester,
+  ) async {
+    await openSheet(tester, _screen(_archive(printerId: 2), supported: true));
 
     expect(find.text(l10n(tester).archiveMediaAction), findsOneWidget);
   });
 
-  testWidgets('absent when the printer is all there was and cannot be asked',
-      (tester) async {
+  testWidgets('absent when the printer is all there was and cannot be asked', (
+    tester,
+  ) async {
     // An older server has no search route, so a print with no attached video
     // and no photos has nothing the sheet could show.
-    await openSheet(
-      tester,
-      _screen(_archive(printerId: 2), supported: false),
-    );
+    await openSheet(tester, _screen(_archive(printerId: 2), supported: false));
 
     expect(find.text(l10n(tester).archiveMediaAction), findsNothing);
   });
 
-  testWidgets('still offered on an older server when the archive has media',
-      (tester) async {
+  testWidgets('still offered on an older server when the archive has media', (
+    tester,
+  ) async {
     // The timelapse and the photos are the archive's own — the sheet is the way
     // to them whatever the server version.
     await openSheet(

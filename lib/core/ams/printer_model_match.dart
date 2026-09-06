@@ -25,10 +25,11 @@ const _modelAliases = <String, List<String>>{
 /// outcome this file is written to avoid.
 const _nozzleSuffix = r'(?:\s+[\d.]+\s*(?:mm)?\s*(?:nozzle)?)?$';
 
-final _bblSuffix =
-    RegExp('^BBL\\s+(.+?)$_nozzleSuffix', caseSensitive: false);
-final _longSuffix =
-    RegExp('^Bambu Lab\\s+(.+?)$_nozzleSuffix', caseSensitive: false);
+final _bblSuffix = RegExp('^BBL\\s+(.+?)$_nozzleSuffix', caseSensitive: false);
+final _longSuffix = RegExp(
+  '^Bambu Lab\\s+(.+?)$_nozzleSuffix',
+  caseSensitive: false,
+);
 
 /// Whether a model token taken from a preset name names the same printer as
 /// [printerModel] (the short code on our `Printer`).
@@ -63,10 +64,7 @@ bool presetFitsPrinterModel(
 ///
 /// [modelsLongToShort] is the registry verbatim: `{"Bambu Lab X1 Carbon":
 /// "X1C", …}`.
-String? presetPrinterModel(
-  String name,
-  Map<String, String> modelsLongToShort,
-) {
+String? presetPrinterModel(String name, Map<String, String> modelsLongToShort) {
   final atIndex = name.indexOf('@');
   if (atIndex >= 0) {
     final suffix = name.substring(atIndex + 1).trim();

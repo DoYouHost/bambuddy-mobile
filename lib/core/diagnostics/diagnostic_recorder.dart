@@ -333,8 +333,9 @@ class DiagnosticRecorder {
       if (elapsed.isNegative || elapsed >= recordingLimit) return null;
 
       final redactor = bambuddyRedactor();
-      (await loadSecrets?.call() ?? const <String, String>{})
-          .forEach(redactor.remember);
+      (await loadSecrets?.call() ?? const <String, String>{}).forEach(
+        redactor.remember,
+      );
 
       final file = LogFileSink.fileFor(directory, session, stream);
       final sink = opened = LogFileSink(file);

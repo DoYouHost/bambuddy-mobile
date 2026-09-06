@@ -59,10 +59,12 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     _notes = TextEditingController(text: p?.notes ?? '');
     _tags = TextEditingController(text: p?.tags ?? '');
     _url = TextEditingController(text: p?.url ?? '');
-    _targetCount =
-        TextEditingController(text: p?.targetCount?.toString() ?? '');
-    _targetParts =
-        TextEditingController(text: p?.targetPartsCount?.toString() ?? '');
+    _targetCount = TextEditingController(
+      text: p?.targetCount?.toString() ?? '',
+    );
+    _targetParts = TextEditingController(
+      text: p?.targetPartsCount?.toString() ?? '',
+    );
     _targetSets = TextEditingController(text: p?.targetSets?.toString() ?? '');
     _budget = TextEditingController(text: p?.budget?.toString() ?? '');
     _status = p?.status ?? 'active';
@@ -122,7 +124,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 TextFormField(
                   controller: _name,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t, labelText: l10n.projectName),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectName,
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.projectNameRequired
@@ -132,8 +137,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 TextFormField(
                   controller: _description,
                   style: fieldStyle,
-                  decoration:
-                      dashFieldDecoration(t, labelText: l10n.projectDescription),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectDescription,
+                  ),
                   maxLines: 2,
                 ).tagged('project_form.description'),
                 const SizedBox(height: 12),
@@ -143,20 +150,27 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _status,
                         style: fieldStyle,
-                        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-                        decoration:
-                            dashFieldDecoration(t, labelText: l10n.projectStatus),
+                        dropdownColor: t.isDark
+                            ? const Color(0xFF141A13)
+                            : Colors.white,
+                        decoration: dashFieldDecoration(
+                          t,
+                          labelText: l10n.projectStatus,
+                        ),
                         items: [
                           // Named per value — a fixed server-side list, and
                           // which status was set is the record.
                           for (final s in projectStatusValues)
                             DropdownMenuItem(
                               value: s,
-                              child: logTag('project_form.status.$s',
-                                  Text(projectStatusLabel(l10n, s))),
+                              child: logTag(
+                                'project_form.status.$s',
+                                Text(projectStatusLabel(l10n, s)),
+                              ),
                             ),
                         ],
-                        onChanged: (v) => setState(() => _status = v ?? _status),
+                        onChanged: (v) =>
+                            setState(() => _status = v ?? _status),
                       ).tagged('project_form.status'),
                     ),
                     const SizedBox(width: 12),
@@ -164,18 +178,25 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _priority,
                         style: fieldStyle,
-                        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-                        decoration:
-                            dashFieldDecoration(t, labelText: l10n.projectPriority),
+                        dropdownColor: t.isDark
+                            ? const Color(0xFF141A13)
+                            : Colors.white,
+                        decoration: dashFieldDecoration(
+                          t,
+                          labelText: l10n.projectPriority,
+                        ),
                         items: [
                           for (final s in projectPriorityValues)
                             DropdownMenuItem(
                               value: s,
-                              child: logTag('project_form.priority.$s',
-                                  Text(projectPriorityLabel(l10n, s))),
+                              child: logTag(
+                                'project_form.priority.$s',
+                                Text(projectPriorityLabel(l10n, s)),
+                              ),
                             ),
                         ],
-                        onChanged: (v) => setState(() => _priority = v ?? _priority),
+                        onChanged: (v) =>
+                            setState(() => _priority = v ?? _priority),
                       ).tagged('project_form.priority'),
                     ),
                   ],
@@ -191,8 +212,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                       child: TextFormField(
                         controller: _targetCount,
                         style: fieldStyle,
-                        decoration: dashFieldDecoration(t,
-                            labelText: l10n.projectTargetCount),
+                        decoration: dashFieldDecoration(
+                          t,
+                          labelText: l10n.projectTargetCount,
+                        ),
                         keyboardType: TextInputType.number,
                       ).tagged('project_form.target_count'),
                     ),
@@ -201,8 +224,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                       child: TextFormField(
                         controller: _targetParts,
                         style: fieldStyle,
-                        decoration: dashFieldDecoration(t,
-                            labelText: l10n.projectTargetPartsCount),
+                        decoration: dashFieldDecoration(
+                          t,
+                          labelText: l10n.projectTargetPartsCount,
+                        ),
                         keyboardType: TextInputType.number,
                       ).tagged('project_form.target_parts'),
                     ),
@@ -216,30 +241,42 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 TextFormField(
                   controller: _targetSets,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t,
-                      labelText: l10n.projectTargetSets,
-                      helperText: l10n.projectTargetSetsHint),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectTargetSets,
+                    helperText: l10n.projectTargetSetsHint,
+                  ),
                   keyboardType: TextInputType.number,
                 ).tagged('project_form.target_sets'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _budget,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t, labelText: l10n.projectBudget),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectBudget,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ).tagged('project_form.budget'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _tags,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t, labelText: l10n.projectTags),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectTags,
+                  ),
                 ).tagged('project_form.tags'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _url,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t, labelText: l10n.projectUrl),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectUrl,
+                  ),
                   keyboardType: TextInputType.url,
                 ).tagged('project_form.url'),
                 const SizedBox(height: 12),
@@ -248,7 +285,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 TextFormField(
                   controller: _notes,
                   style: fieldStyle,
-                  decoration: dashFieldDecoration(t, labelText: l10n.projectNotes),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.projectNotes,
+                  ),
                   maxLines: 4,
                 ).tagged('project_form.notes'),
               ],
@@ -287,12 +327,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: t.body,
-          ),
-        ),
+        Expanded(child: Text(label, style: t.body)),
         if (_dueDate != null)
           IconButton(
             icon: Icon(Icons.clear, color: t.textSecondary),
@@ -311,11 +346,14 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     );
   }
 
-  Widget _parentDropdown(AppLocalizations l10n, DashTokens t, TextStyle fieldStyle) {
+  Widget _parentDropdown(
+    AppLocalizations l10n,
+    DashTokens t,
+    TextStyle fieldStyle,
+  ) {
     final projects = ref.watch(projectsListProvider).valueOrNull ?? const [];
     // Cannot parent a project to itself.
-    final options =
-        projects.where((p) => p.id != widget.existing?.id).toList();
+    final options = projects.where((p) => p.id != widget.existing?.id).toList();
     final parentId = _parentId;
     // `projects` is status-filtered (and may still be loading) — the current
     // parent can be absent from `options` (e.g. it's archived/completed while
@@ -332,8 +370,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
       items: [
         DropdownMenuItem(
           value: null,
-          child:
-              logTag('project_form.parent_none', Text(l10n.projectParentNone)),
+          child: logTag(
+            'project_form.parent_none',
+            Text(l10n.projectParentNone),
+          ),
         ),
         if (missingParent)
           DropdownMenuItem(
@@ -375,46 +415,51 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
 
-    final dueIso =
-        _dueDate == null ? null : calendarDateToJson(_dueDate!);
+    final dueIso = _dueDate == null ? null : calendarDateToJson(_dueDate!);
 
     ActionOutcome result;
     try {
       if (widget.isEdit) {
         result = await ref
             .read(projectDetailProvider(widget.existing!.id).notifier)
-            .save(ProjectUpdate(
-              name: _name.text.trim(),
-              description: _emptyToNull(_description.text),
-              color: _color,
-              status: _status,
-              targetCount: _intOrNull(_targetCount.text),
-              targetPartsCount: _intOrNull(_targetParts.text),
-              targetSets: _intOrNull(_targetSets.text),
-              notes: _emptyToNull(_notes.text),
-              tags: _emptyToNull(_tags.text),
-              dueDate: dueIso,
-              priority: _priority,
-              budget: _doubleOrNull(_budget.text),
-              parentId: _parentId,
-              url: _emptyToNull(_url.text),
-            ));
+            .save(
+              ProjectUpdate(
+                name: _name.text.trim(),
+                description: _emptyToNull(_description.text),
+                color: _color,
+                status: _status,
+                targetCount: _intOrNull(_targetCount.text),
+                targetPartsCount: _intOrNull(_targetParts.text),
+                targetSets: _intOrNull(_targetSets.text),
+                notes: _emptyToNull(_notes.text),
+                tags: _emptyToNull(_tags.text),
+                dueDate: dueIso,
+                priority: _priority,
+                budget: _doubleOrNull(_budget.text),
+                parentId: _parentId,
+                url: _emptyToNull(_url.text),
+              ),
+            );
       } else {
-        await ref.read(projectsRepositoryProvider).create(ProjectCreate(
-              name: _name.text.trim(),
-              description: _emptyToNull(_description.text),
-              color: _color,
-              targetCount: _intOrNull(_targetCount.text),
-              targetPartsCount: _intOrNull(_targetParts.text),
-              targetSets: _intOrNull(_targetSets.text),
-              notes: _emptyToNull(_notes.text),
-              tags: _emptyToNull(_tags.text),
-              dueDate: dueIso,
-              priority: _priority,
-              budget: _doubleOrNull(_budget.text),
-              parentId: _parentId,
-              url: _emptyToNull(_url.text),
-            ));
+        await ref
+            .read(projectsRepositoryProvider)
+            .create(
+              ProjectCreate(
+                name: _name.text.trim(),
+                description: _emptyToNull(_description.text),
+                color: _color,
+                targetCount: _intOrNull(_targetCount.text),
+                targetPartsCount: _intOrNull(_targetParts.text),
+                targetSets: _intOrNull(_targetSets.text),
+                notes: _emptyToNull(_notes.text),
+                tags: _emptyToNull(_tags.text),
+                dueDate: dueIso,
+                priority: _priority,
+                budget: _doubleOrNull(_budget.text),
+                parentId: _parentId,
+                url: _emptyToNull(_url.text),
+              ),
+            );
         result = ActionOutcome.ok;
       }
     } on Object {
@@ -438,14 +483,14 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
 }
 
 /// Imperative entry: open the create form.
-Future<void> openProjectCreate(BuildContext context) =>
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const ProjectFormScreen()),
-    );
+Future<void> openProjectCreate(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute<void>(builder: (_) => const ProjectFormScreen()));
 
 /// Imperative entry: open the edit form for [project].
 Future<void> openProjectEdit(BuildContext context, ProjectResponse project) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-          builder: (_) => ProjectFormScreen(existing: project)),
+        builder: (_) => ProjectFormScreen(existing: project),
+      ),
     );

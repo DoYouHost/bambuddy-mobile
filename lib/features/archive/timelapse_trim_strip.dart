@@ -115,8 +115,10 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
   static const _trackLeft = TimelapseTrimStrip.handleWidth;
 
   double _seconds(double dx, double width) =>
-      ((dx - _trackLeft) / _trackWidth(width) * widget.duration)
-          .clamp(0, widget.duration);
+      ((dx - _trackLeft) / _trackWidth(width) * widget.duration).clamp(
+        0,
+        widget.duration,
+      );
 
   double _x(double seconds, double width) => widget.duration <= 0
       ? _trackLeft
@@ -154,7 +156,10 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
         widget.onTrimChanged(RangeValues(widget.trim.start, _draggedTo!));
       case _Grab.playhead:
         widget.onSeek(
-          at.clamp(widget.trim.start, math.max(widget.trim.start, widget.trim.end)),
+          at.clamp(
+            widget.trim.start,
+            math.max(widget.trim.start, widget.trim.end),
+          ),
         );
       case null:
         break;
@@ -353,11 +358,7 @@ class _Frames extends StatelessWidget {
     if (frames.isEmpty) {
       return ColoredBox(
         color: scheme.surfaceContainerHigh,
-        child: loading
-            ? const Center(
-                child: DashSpinner(size: 20),
-              )
-            : null,
+        child: loading ? const Center(child: DashSpinner(size: 20)) : null,
       );
     }
     return LayoutBuilder(

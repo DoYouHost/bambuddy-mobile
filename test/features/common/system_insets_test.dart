@@ -48,11 +48,7 @@ void main() {
   });
 
   testWidgets('a zero base still clears the navigation bar', (tester) async {
-    final padding = await resolve(
-      tester,
-      inset: 24,
-      base: EdgeInsets.zero,
-    );
+    final padding = await resolve(tester, inset: 24, base: EdgeInsets.zero);
 
     expect(padding, const EdgeInsets.only(bottom: 24));
   });

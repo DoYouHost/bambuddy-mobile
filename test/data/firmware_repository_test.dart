@@ -108,10 +108,7 @@ void main() {
       '/api/v1/firmware/updates/7',
       (s) => s.reply(401, {'detail': 'unauthorized'}),
     );
-    await expectLater(
-      repo.fetchForPrinter(7),
-      throwsA(isA<AuthException>()),
-    );
+    await expectLater(repo.fetchForPrinter(7), throwsA(isA<AuthException>()));
   });
 
   test('startUpload dokłada version w query i czyta started', () async {

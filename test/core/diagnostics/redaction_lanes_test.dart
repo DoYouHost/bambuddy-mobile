@@ -44,12 +44,12 @@ class _ScriptedAdapter implements HttpClientAdapter {
 }
 
 ResponseBody _json(String body, [int status = 200]) => ResponseBody.fromString(
-      body,
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
+  body,
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -84,8 +84,11 @@ void main() {
   /// Everything a leak could hide in, checked against the whole session at once.
   Future<void> expectNothingLeaked(String jsonl) async {
     for (final secret in [apiKey, jwt, host, serial, email, ip]) {
-      expect(jsonl, isNot(contains(secret)),
-          reason: '$secret reached the uploaded log');
+      expect(
+        jsonl,
+        isNot(contains(secret)),
+        reason: '$secret reached the uploaded log',
+      );
     }
   }
 
@@ -106,13 +109,17 @@ void main() {
     // The denylist works on the *name*, so a value the shape passes cannot
     // survive by looking innocent.
     final store = DiagnosticRecorder.active!;
-    store.add(LogSource.app, 'probe', fields: {
-      'password': 'hunter2',
-      'access_code': '12345678',
-      'authorization': 'Bearer abc',
-      'username': 'kacper',
-      'headers': {'X-API-Key': apiKey},
-    });
+    store.add(
+      LogSource.app,
+      'probe',
+      fields: {
+        'password': 'hunter2',
+        'access_code': '12345678',
+        'authorization': 'Bearer abc',
+        'username': 'kacper',
+        'headers': {'X-API-Key': apiKey},
+      },
+    );
 
     final jsonl = await recorder.stop();
     expect(jsonl, isNot(contains('hunter2')));
@@ -125,14 +132,18 @@ void main() {
     // A probe that logs a structure rather than a scalar must not be a hole:
     // `scrub` recurses through maps and lists at every depth.
     final store = DiagnosticRecorder.active!;
-    store.add(LogSource.app, 'probe', fields: {
-      'outer': {
-        'list': [
-          {'deep': 'ping $host'},
-          'token=$jwt',
-        ],
+    store.add(
+      LogSource.app,
+      'probe',
+      fields: {
+        'outer': {
+          'list': [
+            {'deep': 'ping $host'},
+            'token=$jwt',
+          ],
+        },
       },
-    });
+    );
 
     await expectNothingLeaked(await recorder.stop());
   });
@@ -145,28 +156,30 @@ void main() {
           ..options.baseUrl = 'http://$host:8080'
           ..httpClientAdapter = _ScriptedAdapter(reply);
 
-    test('a rejected login keeps neither what it sent nor where it went',
-        () async {
-      final dio = dioAnswering(
-        (_) => _json('{"detail":"Incorrect username or password"}', 401),
-      );
+    test(
+      'a rejected login keeps neither what it sent nor where it went',
+      () async {
+        final dio = dioAnswering(
+          (_) => _json('{"detail":"Incorrect username or password"}', 401),
+        );
 
-      await expectLater(
-        dio.post<dynamic>(
-          '/api/v1/auth/login',
-          data: {'username': 'kacper', 'password': 'hunter2'},
-          options: Options(headers: {'X-API-Key': apiKey}),
-        ),
-        throwsA(isA<DioException>()),
-      );
+        await expectLater(
+          dio.post<dynamic>(
+            '/api/v1/auth/login',
+            data: {'username': 'kacper', 'password': 'hunter2'},
+            options: Options(headers: {'X-API-Key': apiKey}),
+          ),
+          throwsA(isA<DioException>()),
+        );
 
-      final jsonl = await recorder.stop();
-      expect(jsonl, isNot(contains('hunter2')));
-      expect(jsonl, isNot(contains('X-API-Key')));
-      // The status is the diagnosis and survives.
-      expect(jsonl, contains('401'));
-      await expectNothingLeaked(jsonl);
-    });
+        final jsonl = await recorder.stop();
+        expect(jsonl, isNot(contains('hunter2')));
+        expect(jsonl, isNot(contains('X-API-Key')));
+        // The status is the diagnosis and survives.
+        expect(jsonl, contains('401'));
+        await expectNothingLeaked(jsonl);
+      },
+    );
 
     test('a camera token in the query never reaches the record', () async {
       // `?token=` is how the camera and thumbnail routes authenticate, and a
@@ -183,18 +196,20 @@ void main() {
       await expectNothingLeaked(jsonl);
     });
 
-    test('a serial the server echoes back is masked inside the sample',
-        () async {
-      // Sampled bodies go through the inverted rule, with the serial pattern
-      // applied on top of it.
-      final dio = dioAnswering(
-        (_) => _json('[{"id":1,"serial":"$serial","model":"X1C"}]'),
-      );
+    test(
+      'a serial the server echoes back is masked inside the sample',
+      () async {
+        // Sampled bodies go through the inverted rule, with the serial pattern
+        // applied on top of it.
+        final dio = dioAnswering(
+          (_) => _json('[{"id":1,"serial":"$serial","model":"X1C"}]'),
+        );
 
-      await dio.get<dynamic>('/api/v1/printers/');
+        await dio.get<dynamic>('/api/v1/printers/');
 
-      await expectNothingLeaked(await recorder.stop());
-    });
+        await expectNothingLeaked(await recorder.stop());
+      },
+    );
 
     test('an unreachable host is masked even in the socket message', () async {
       // "Failed host lookup: 'x.lan'" is a socket message, not a URL, so it
@@ -233,18 +248,20 @@ void main() {
     );
     // The screen's half of the same failure.
     recordActionFailure(
-      mapDioException(DioException(
-        requestOptions: RequestOptions(
-          path: '/api/v1/projects/3/attachments/$filename',
-          method: 'DELETE',
-          baseUrl: 'http://$host:8080',
+      mapDioException(
+        DioException(
+          requestOptions: RequestOptions(
+            path: '/api/v1/projects/3/attachments/$filename',
+            method: 'DELETE',
+            baseUrl: 'http://$host:8080',
+          ),
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: RequestOptions(path: ''),
+            statusCode: 403,
+          ),
         ),
-        type: DioExceptionType.badResponse,
-        response: Response<dynamic>(
-          requestOptions: RequestOptions(path: ''),
-          statusCode: 403,
-        ),
-      )),
+      ),
       action: 'project.attachment_delete',
     );
 
@@ -257,57 +274,63 @@ void main() {
     await expectNothingLeaked(jsonl);
   });
 
-  test('an exception built by hand cannot smuggle a path past the record',
-      () async {
-    // `path` is an ordinary field, so a guarantee that rests on every
-    // construction site going through `mapDioException` is not a guarantee.
-    // This is the shape that got past the first version of the fix.
-    recordActionFailure(
-      const AuthException(
-        AppErrorCode.forbidden,
-        method: 'DELETE',
-        path: '/api/v1/projects/3/attachments/faktura-jan-kowalski-2026.pdf',
-      ),
-      action: 'project.attachment_delete',
-    );
-
-    final jsonl = await recorder.stop();
-    expect(jsonl, isNot(contains('kowalski')));
-    expect(jsonl, contains('/api/v1/projects/3/attachments/<seg>'));
-  });
-
-  group('the lanes added with the action funnel', () {
-    test('a refusal quoting an address has it masked, and stays readable',
-        () async {
-      // The server's `detail` is quoted to the user verbatim, so whatever it
-      // wrote also lands in the record. It is the one field a 403 needs, and
-      // the one that can carry somebody's address.
+  test(
+    'an exception built by hand cannot smuggle a path past the record',
+    () async {
+      // `path` is an ordinary field, so a guarantee that rests on every
+      // construction site going through `mapDioException` is not a guarantee.
+      // This is the shape that got past the first version of the fix.
       recordActionFailure(
         const AuthException(
           AppErrorCode.forbidden,
-          detail: "User $email does not have 'printers:control' permission",
-          method: 'POST',
-          path: '/api/v1/printers/1/print/pause',
+          method: 'DELETE',
+          path: '/api/v1/projects/3/attachments/faktura-jan-kowalski-2026.pdf',
         ),
-        action: 'printer.pause',
+        action: 'project.attachment_delete',
       );
 
       final jsonl = await recorder.stop();
-      expect(jsonl, isNot(contains(email)));
-      // Masking the address must not cost the reason it was refused.
-      expect(jsonl, contains('printers:control'));
-      expect(jsonl, contains('/api/v1/printers/1/print/pause'));
-    });
+      expect(jsonl, isNot(contains('kowalski')));
+      expect(jsonl, contains('/api/v1/projects/3/attachments/<seg>'));
+    },
+  );
+
+  group('the lanes added with the action funnel', () {
+    test(
+      'a refusal quoting an address has it masked, and stays readable',
+      () async {
+        // The server's `detail` is quoted to the user verbatim, so whatever it
+        // wrote also lands in the record. It is the one field a 403 needs, and
+        // the one that can carry somebody's address.
+        recordActionFailure(
+          const AuthException(
+            AppErrorCode.forbidden,
+            detail: "User $email does not have 'printers:control' permission",
+            method: 'POST',
+            path: '/api/v1/printers/1/print/pause',
+          ),
+          action: 'printer.pause',
+        );
+
+        final jsonl = await recorder.stop();
+        expect(jsonl, isNot(contains(email)));
+        // Masking the address must not cost the reason it was refused.
+        expect(jsonl, contains('printers:control'));
+        expect(jsonl, contains('/api/v1/printers/1/print/pause'));
+      },
+    );
 
     test('the 2FA lane keeps the pre-auth token and the cookie out', () async {
       // Either one is a live credential for the next five minutes.
       const preAuth = 'pre_auth_9c2e8b1d4f6a0c5e7f3a';
       const cookie = '2fa_challenge=abc123def456; Path=/; HttpOnly';
-      AuthProbe.twoFactorRequired(const TwoFactorChallenge(
-        preAuthToken: preAuth,
-        methods: [TwoFactorMethod.totp, TwoFactorMethod.email],
-        challengeCookie: cookie,
-      ));
+      AuthProbe.twoFactorRequired(
+        const TwoFactorChallenge(
+          preAuthToken: preAuth,
+          methods: [TwoFactorMethod.totp, TwoFactorMethod.email],
+          challengeCookie: cookie,
+        ),
+      );
       AuthProbe.twoFactorVerified(
         TwoFactorMethod.totp,
         failure: TwoFactorFailure.code,

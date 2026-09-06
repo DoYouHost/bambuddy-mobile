@@ -14,10 +14,10 @@ class GroupCreateInput {
   final List<String> permissions;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        if (description != null) 'description': description,
-        'permissions': permissions,
-      };
+    'name': name,
+    if (description != null) 'description': description,
+    'permissions': permissions,
+  };
 }
 
 /// Body for `PATCH /groups/{id}` (`backend/app/schemas/group.py::GroupUpdate`).
@@ -37,8 +37,8 @@ class GroupUpdateInput {
       name == null && description == null && permissions == null;
 
   Map<String, dynamic> toJson() => {
-        if (name != null) 'name': name,
-        if (description != null) 'description': description,
-        if (permissions != null) 'permissions': permissions,
-      };
+    if (name != null) 'name': name,
+    if (description != null) 'description': description,
+    if (permissions != null) 'permissions': permissions,
+  };
 }

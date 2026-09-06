@@ -5,18 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('domyślne: wszystko włączone poza timelapse', () {
     const o = PrintOptions.initial;
-    expect(
-      [o.vibrationCali, o.layerInspect],
-      everyElement(isTrue),
-    );
+    expect([o.vibrationCali, o.layerInspect], everyElement(isTrue));
     expect(
       [o.bedLevelling, o.flowCali, o.nozzleOffsetCali],
       everyElement(CalibrationOption.on),
       reason: 'on, nie auto — starszy serwer nie ma gdzie zapisać auto',
     );
     expect(o.timelapse, isFalse, reason: 'nagranie tylko na żądanie');
-    expect(o.gcodeInjection, isFalse,
-        reason: 'wstrzykiwanie G-code tylko na wyraźne życzenie');
+    expect(
+      o.gcodeInjection,
+      isFalse,
+      reason: 'wstrzykiwanie G-code tylko na wyraźne życzenie',
+    );
   });
 
   test('encode → decode wraca tym samym', () {
@@ -32,19 +32,22 @@ void main() {
     expect(PrintOptions.decode(o.encode()), o);
   });
 
-  test('zapis z poprzedniej wersji: booleany na kalibracjach nadal się czytają', () {
-    // Blob written before the tri-state migration. The user should get their
-    // toggles back rather than fall back to the initial values.
-    final o = PrintOptions.decode(
-      '{"bed_levelling":false,"flow_cali":true,'
-      '"vibration_cali":true,"layer_inspect":false,'
-      '"timelapse":false,"nozzle_offset_cali":true}',
-    );
-    expect(o.bedLevelling, CalibrationOption.off);
-    expect(o.flowCali, CalibrationOption.on);
-    expect(o.nozzleOffsetCali, CalibrationOption.on);
-    expect(o.layerInspect, isFalse);
-  });
+  test(
+    'zapis z poprzedniej wersji: booleany na kalibracjach nadal się czytają',
+    () {
+      // Blob written before the tri-state migration. The user should get their
+      // toggles back rather than fall back to the initial values.
+      final o = PrintOptions.decode(
+        '{"bed_levelling":false,"flow_cali":true,'
+        '"vibration_cali":true,"layer_inspect":false,'
+        '"timelapse":false,"nozzle_offset_cali":true}',
+      );
+      expect(o.bedLevelling, CalibrationOption.off);
+      expect(o.flowCali, CalibrationOption.on);
+      expect(o.nozzleOffsetCali, CalibrationOption.on);
+      expect(o.layerInspect, isFalse);
+    },
+  );
 
   test('brak zapisu → domyślne', () {
     expect(PrintOptions.decode(null), PrintOptions.initial);
@@ -61,10 +64,16 @@ void main() {
     // toggle, not the whole print screen.
     final o = PrintOptions.decode('{"timelapse":true,"flow_cali":"tak"}');
     expect(o.timelapse, isTrue);
-    expect(o.flowCali, PrintOptions.initial.flowCali,
-        reason: 'zła wartość typu = brak wartości');
+    expect(
+      o.flowCali,
+      PrintOptions.initial.flowCali,
+      reason: 'zła wartość typu = brak wartości',
+    );
     expect(o.bedLevelling, PrintOptions.initial.bedLevelling);
-    expect(o.gcodeInjection, isFalse,
-        reason: 'zapis sprzed wstrzykiwania G-code = wyłączone');
+    expect(
+      o.gcodeInjection,
+      isFalse,
+      reason: 'zapis sprzed wstrzykiwania G-code = wyłączone',
+    );
   });
 }

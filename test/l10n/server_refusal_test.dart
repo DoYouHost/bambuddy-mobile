@@ -22,10 +22,10 @@ void main() {
   ];
 
   AppApiException refusal(String? detail, {int status = 400}) => ApiException(
-        status == 403 ? AppErrorCode.forbidden : AppErrorCode.badResponse,
-        statusCode: status,
-        detail: detail,
-      );
+    status == 403 ? AppErrorCode.forbidden : AppErrorCode.badResponse,
+    statusCode: status,
+    detail: detail,
+  );
 
   test('a known refusal is localized', () {
     expect(
@@ -108,8 +108,11 @@ void main() {
     expect(
       serverRefusal(
         en,
-        const ApiException(AppErrorCode.tooManyAttempts,
-            statusCode: 429, detail: 'Too many failed attempts'),
+        const ApiException(
+          AppErrorCode.tooManyAttempts,
+          statusCode: 429,
+          detail: 'Too many failed attempts',
+        ),
         rules,
       ),
       en.errTooManyAttempts,
@@ -123,8 +126,7 @@ void main() {
 
     test('a failure reads as the refusal it carries', () {
       expect(
-        outcomeRefusal(
-            en, ActionOutcome.failed(refusal('last admin')), rules),
+        outcomeRefusal(en, ActionOutcome.failed(refusal('last admin')), rules),
         en.usersErrLastAdmin,
       );
     });

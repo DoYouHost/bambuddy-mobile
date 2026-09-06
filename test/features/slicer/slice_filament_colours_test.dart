@@ -82,8 +82,7 @@ void main() {
       );
     });
 
-    test('picks the shelf colour closest to what the plate was designed with',
-        () {
+    test('picks the shelf colour closest to what the plate was designed with', () {
       // One preset covers every spool of that filament, so the name alone does
       // not name a colour — the plate is the only thing that says which of them
       // the user meant.
@@ -131,18 +130,20 @@ void main() {
       );
     });
 
-    test('keeps an unanswered slot as a hole rather than shortening the list',
-        () {
-      // Shortening would shift every slot after it onto the wrong colour.
-      expect(
-        sliceFilamentColours(
-          picked: [_pla, _petg],
-          owned: [_owned('Bambu PETG HF', '0000ffff', material: 'PETG')],
-          requirements: const [],
-        ),
-        ['', '#0000FF'],
-      );
-    });
+    test(
+      'keeps an unanswered slot as a hole rather than shortening the list',
+      () {
+        // Shortening would shift every slot after it onto the wrong colour.
+        expect(
+          sliceFilamentColours(
+            picked: [_pla, _petg],
+            owned: [_owned('Bambu PETG HF', '0000ffff', material: 'PETG')],
+            requirements: const [],
+          ),
+          ['', '#0000FF'],
+        );
+      },
+    );
 
     test('is empty when no slot has an answer, so the key can be dropped', () {
       // A request with nothing to say has to stay byte-identical to one from
@@ -164,7 +165,9 @@ void main() {
         sliceFilamentColours(
           picked: [_pla, _pla],
           owned: [_owned('Bambu PLA Basic', 'ff0000ff')],
-          requirements: const [FilamentRequirement(slotId: 1, color: '#FF0000')],
+          requirements: const [
+            FilamentRequirement(slotId: 1, color: '#FF0000'),
+          ],
         ),
         ['#FF0000', '#FF0000'],
       );

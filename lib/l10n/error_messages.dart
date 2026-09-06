@@ -6,27 +6,25 @@ import 'app_localizations.dart';
 /// code → string mapping out of the core, which stays independent of l10n.
 extension AppApiExceptionL10n on AppApiException {
   String localized(AppLocalizations l10n) => switch (code) {
-        AppErrorCode.serverUnreachable => l10n.errServerUnreachable,
-        AppErrorCode.unauthorized => l10n.errUnauthorized,
-        AppErrorCode.forbidden => _forbidden(l10n),
-        AppErrorCode.badResponse => l10n.errBadResponse(statusCode ?? 0),
-        AppErrorCode.badCertificate => l10n.errBadCertificate,
-        AppErrorCode.connectionError => l10n.errConnection,
-        AppErrorCode.malformedResponse => l10n.errMalformedResponse,
-        AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,
-        AppErrorCode.twoFactorUnsupported => l10n.errTwoFactorUnsupported,
-        AppErrorCode.twoFactorCodeRejected => l10n.errTwoFactorCodeRejected,
-        AppErrorCode.twoFactorChallengeExpired =>
-          l10n.errTwoFactorChallengeExpired,
-        AppErrorCode.twoFactorMethodUnavailable =>
-          l10n.errTwoFactorMethodUnavailable,
-        AppErrorCode.twoFactorEmailUnavailable =>
-          l10n.errTwoFactorEmailUnavailable,
-        AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
-        AppErrorCode.slotTagUnreadable => l10n.errSlotTagUnreadable,
-        AppErrorCode.printerOffline => l10n.errPrinterOffline,
-        AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
-      };
+    AppErrorCode.serverUnreachable => l10n.errServerUnreachable,
+    AppErrorCode.unauthorized => l10n.errUnauthorized,
+    AppErrorCode.forbidden => _forbidden(l10n),
+    AppErrorCode.badResponse => l10n.errBadResponse(statusCode ?? 0),
+    AppErrorCode.badCertificate => l10n.errBadCertificate,
+    AppErrorCode.connectionError => l10n.errConnection,
+    AppErrorCode.malformedResponse => l10n.errMalformedResponse,
+    AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,
+    AppErrorCode.twoFactorUnsupported => l10n.errTwoFactorUnsupported,
+    AppErrorCode.twoFactorCodeRejected => l10n.errTwoFactorCodeRejected,
+    AppErrorCode.twoFactorChallengeExpired => l10n.errTwoFactorChallengeExpired,
+    AppErrorCode.twoFactorMethodUnavailable =>
+      l10n.errTwoFactorMethodUnavailable,
+    AppErrorCode.twoFactorEmailUnavailable => l10n.errTwoFactorEmailUnavailable,
+    AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
+    AppErrorCode.slotTagUnreadable => l10n.errSlotTagUnreadable,
+    AppErrorCode.printerOffline => l10n.errPrinterOffline,
+    AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
+  };
 
   /// A refusal is the one error a code alone cannot explain: which permission
   /// is missing exists only in what the server wrote. So the frame is
@@ -36,9 +34,7 @@ extension AppApiExceptionL10n on AppApiException {
   String _forbidden(AppLocalizations l10n) {
     if (isApiKeyOwnerDisabled) return l10n.errApiKeyOwnerDisabled;
     final reason = detail;
-    return reason == null
-        ? l10n.errForbidden
-        : l10n.errForbiddenDetail(reason);
+    return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
 }
 
@@ -57,7 +53,7 @@ extension ActionOutcomeL10n on ActionOutcome {
   /// `null` when nothing failed, so a caller can `if (msg != null) snack(msg)`
   /// without asking twice.
   String? messageFor(AppLocalizations l10n) => switch (this) {
-        ActionOk() => null,
-        ActionFailed(:final error) => error.localized(l10n),
-      };
+    ActionOk() => null,
+    ActionFailed(:final error) => error.localized(l10n),
+  };
 }

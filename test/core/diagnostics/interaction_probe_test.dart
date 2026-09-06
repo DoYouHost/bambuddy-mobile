@@ -43,8 +43,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('records a tap with the role of what was pressed',
-      (tester) async {
+  testWidgets('records a tap with the role of what was pressed', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       Center(
@@ -63,8 +64,9 @@ void main() {
     expect(record['role'], 'button');
   });
 
-  testWidgets('stamps a touch with the moment the finger went down',
-      (tester) async {
+  testWidgets('stamps a touch with the moment the finger went down', (
+    tester,
+  ) async {
     // The widget's handler runs before the pointer-up event reaches this probe,
     // so a record stamped at write time lands *after* whatever the tap set off.
     // With HTTP, WebSocket and the background service on the same timeline,
@@ -93,8 +95,9 @@ void main() {
       ),
     );
 
-    final gesture =
-        await tester.startGesture(tester.getCenter(find.text('Kolejka')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Kolejka')),
+    );
     now = origin.add(const Duration(milliseconds: 120));
     await gesture.up();
     await tester.pump();
@@ -131,8 +134,9 @@ void main() {
     expect(stop().last['id'], 'stats.range.month');
   });
 
-  testWidgets('names a dropdown option through its own popup route',
-      (tester) async {
+  testWidgets('names a dropdown option through its own popup route', (
+    tester,
+  ) async {
     // A `DropdownButtonFormField` shows its options in a route of its own, so
     // the field's identifier does not reach them — picking an AMS slot recorded
     // as a bare `menuItem`. The tag has to go on each option, and this pins
@@ -162,8 +166,9 @@ void main() {
     expect(stop().last['id'], 'spool_assign.slot.2');
   });
 
-  testWidgets('names a dropdown option tagged below the node that is tapped',
-      (tester) async {
+  testWidgets('names a dropdown option tagged below the node that is tapped', (
+    tester,
+  ) async {
     // `DropdownButtonFormField` is the harder cousin of `PopupMenuItem`: the
     // option's tap sits on a node *above* the tag, and there is no
     // `MergeSemantics` to pull the identifier up into it. A live run recorded
@@ -195,8 +200,9 @@ void main() {
     expect(record['role'], 'menuItem');
   });
 
-  testWidgets('names a dropdown option tapped beside its label',
-      (tester) async {
+  testWidgets('names a dropdown option tapped beside its label', (
+    tester,
+  ) async {
     // The trap the previous test walks straight past: a tag has the geometry of
     // what it wraps, and an AMS slot label is 24 pixels tall inside a 48-pixel
     // row. Tapping dead centre finds it; a live run tapping the row normally
@@ -297,8 +303,9 @@ void main() {
     expect(stop().single['role'], 'button');
   });
 
-  testWidgets('logTag is what screens use to declare an identifier',
-      (tester) async {
+  testWidgets('logTag is what screens use to declare an identifier', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       Center(
@@ -315,8 +322,9 @@ void main() {
     expect(stop().single['id'], 'archive.card');
   });
 
-  testWidgets('records the filament material as a field of its own',
-      (tester) async {
+  testWidgets('records the filament material as a field of its own', (
+    tester,
+  ) async {
     // Material is the one thing on a card the log carries: it explains a share
     // of AMS reports and identifies nobody. It rides on the identifier because
     // semantics is the only channel the probe has, and comes back out split.
@@ -361,8 +369,9 @@ void main() {
     expect(record.containsKey('mat'), isFalse);
   });
 
-  testWidgets('the material reaches a control inside the tagged card',
-      (tester) async {
+  testWidgets('the material reaches a control inside the tagged card', (
+    tester,
+  ) async {
     // Same inheritance as the identifier: a tap on something deeper inside the
     // spool tile still knows what was in it.
     await pumpApp(
@@ -410,8 +419,9 @@ void main() {
     expect(stop(), isEmpty);
   });
 
-  testWidgets('reports the control, not the decoration inside it',
-      (tester) async {
+  testWidgets('reports the control, not the decoration inside it', (
+    tester,
+  ) async {
     // A card's fill-level bar is the deepest node under the finger, and it made
     // taps on the card read as `role: progressBar`.
     await pumpApp(
@@ -424,9 +434,7 @@ void main() {
             child: const SizedBox(
               width: 200,
               height: 80,
-              child: Center(
-                child: LinearProgressIndicator(value: 0.4),
-              ),
+              child: Center(child: LinearProgressIndicator(value: 0.4)),
             ),
           ),
         ),
@@ -441,8 +449,9 @@ void main() {
     expect(record['role'], 'button');
   });
 
-  testWidgets('reports the control under decoration that covers it',
-      (tester) async {
+  testWidgets('reports the control under decoration that covers it', (
+    tester,
+  ) async {
     // The real spool tile: the fill-level bar is a sibling painted over the
     // card's ink well, not a child of it, so it was reported instead of the tap
     // target.
@@ -478,8 +487,9 @@ void main() {
     expect(record['role'], 'button');
   });
 
-  testWidgets('climbs out of inert decoration to the control above it',
-      (tester) async {
+  testWidgets('climbs out of inert decoration to the control above it', (
+    tester,
+  ) async {
     // Same defect from the other direction: whatever the semantics tree looks
     // like, an inert node under the finger hands the press to the nearest
     // control above it — but never as far as the list it scrolls in.
@@ -534,8 +544,9 @@ void main() {
     expect(stop().last['role'], 'dismiss');
   });
 
-  testWidgets('says when a tap landed on an open route and nothing else',
-      (tester) async {
+  testWidgets('says when a tap landed on an open route and nothing else', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       Semantics(
@@ -622,8 +633,7 @@ void main() {
       tester,
       Center(
         child: TextField(
-          controller:
-              TextEditingController(text: 'sekretna-nazwa-drukarki'),
+          controller: TextEditingController(text: 'sekretna-nazwa-drukarki'),
         ),
       ),
     );
@@ -646,7 +656,9 @@ void main() {
       ),
     );
 
-    final gesture = await tester.startGesture(tester.getCenter(find.text('Kafelek')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Kafelek')),
+    );
     await tester.pump(const Duration(milliseconds: 700));
     await gesture.up(timeStamp: const Duration(milliseconds: 700));
     await tester.pump();
@@ -680,8 +692,10 @@ void main() {
       ListView(
         children: [
           for (var i = 0; i < 20; i++)
-            logTag('dashboard.printer_card',
-                SizedBox(height: 80, child: Text('Drukarka $i'))),
+            logTag(
+              'dashboard.printer_card',
+              SizedBox(height: 80, child: Text('Drukarka $i')),
+            ),
         ],
       ),
     );
@@ -694,8 +708,9 @@ void main() {
     expect(drag.containsKey('empty'), isFalse);
   });
 
-  testWidgets('a drag does not claim the material it started on',
-      (tester) async {
+  testWidgets('a drag does not claim the material it started on', (
+    tester,
+  ) async {
     // Scrolling the spool list named `inventory.spool` *and* its material in a
     // live run. One drag record stands for a folded burst of flicks over
     // different rows, so the field would speak for rows it never touched — and
@@ -733,10 +748,14 @@ void main() {
     for (var i = 0; i < 5; i++) {
       final gesture = await tester.createGesture();
       // Inside the quiet period, so everything after the first folds.
-      await gesture.down(const Offset(200, 300),
-          timeStamp: Duration(milliseconds: 100 * i));
-      await gesture.moveTo(const Offset(200, 100),
-          timeStamp: Duration(milliseconds: 100 * i + 50));
+      await gesture.down(
+        const Offset(200, 300),
+        timeStamp: Duration(milliseconds: 100 * i),
+      );
+      await gesture.moveTo(
+        const Offset(200, 100),
+        timeStamp: Duration(milliseconds: 100 * i + 50),
+      );
       await gesture.up(timeStamp: Duration(milliseconds: 100 * i + 50));
       await tester.pump();
     }
@@ -749,7 +768,9 @@ void main() {
   testWidgets('records nothing once detached', (tester) async {
     await pumpApp(
       tester,
-      Center(child: ElevatedButton(onPressed: () {}, child: const Text('X'))),
+      Center(
+        child: ElevatedButton(onPressed: () {}, child: const Text('X')),
+      ),
     );
 
     probe.detach();
@@ -759,8 +780,9 @@ void main() {
     expect(stop(), isEmpty);
   });
 
-  testWidgets('a row merged for the screen reader still names its control',
-      (tester) async {
+  testWidgets('a row merged for the screen reader still names its control', (
+    tester,
+  ) async {
     // `MergeSemantics` is how a setting's title is spoken together with the
     // switch that changes it — otherwise a reader announces "off, switch" and
     // six of them look alike. It also collapses the subtree into one node, so
@@ -789,8 +811,9 @@ void main() {
     expect(stop().last['id'], 'queue_edit.timelapse');
   });
 
-  testWidgets('a chip that announces it is selected still names itself',
-      (tester) async {
+  testWidgets('a chip that announces it is selected still names itself', (
+    tester,
+  ) async {
     // `logTag(selected:)` puts the state on the tagged node rather than on a
     // wrapper of its own, because a wrapper annotates a different node — the
     // reader was told nothing and the id would have moved. Both have to be on

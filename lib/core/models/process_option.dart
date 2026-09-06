@@ -1,4 +1,3 @@
-
 /// The vendored OrcaSlicer process-option metadata under `assets/slicer/` —
 /// what options exist, how each is edited, how they are grouped.
 ///
@@ -7,7 +6,6 @@
 /// describe that generated shape: what the generator could not express
 /// faithfully keeps the loose type it arrives in rather than being coerced.
 library;
-
 
 /// OrcaSlicer's `ConfigOptionType` names. The plural forms are per-extruder
 /// vectors, stored in a process preset as a list rather than a scalar.
@@ -146,10 +144,10 @@ class ProcessGroup {
   const ProcessGroup({required this.group, required this.options});
 
   factory ProcessGroup.fromJson(Map<String, dynamic> json) => ProcessGroup(
-        group: json['group'] as String? ?? '',
-        options: (json['options'] as List?)?.whereType<String>().toList() ??
-            const [],
-      );
+    group: json['group'] as String? ?? '',
+    options:
+        (json['options'] as List?)?.whereType<String>().toList() ?? const [],
+  );
 
   final String group;
 
@@ -163,14 +161,15 @@ class ProcessPage {
   const ProcessPage({required this.page, required this.groups, this.icon});
 
   factory ProcessPage.fromJson(Map<String, dynamic> json) => ProcessPage(
-        page: json['page'] as String? ?? '',
-        icon: json['icon'] as String?,
-        groups: (json['groups'] as List?)
-                ?.whereType<Map<String, dynamic>>()
-                .map(ProcessGroup.fromJson)
-                .toList() ??
-            const [],
-      );
+    page: json['page'] as String? ?? '',
+    icon: json['icon'] as String?,
+    groups:
+        (json['groups'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(ProcessGroup.fromJson)
+            .toList() ??
+        const [],
+  );
 
   final String page;
 
@@ -186,10 +185,9 @@ class ToggleRule {
   const ToggleRule({required this.fields, required this.enableIf});
 
   factory ToggleRule.fromJson(Map<String, dynamic> json) => ToggleRule(
-        fields:
-            (json['fields'] as List?)?.whereType<String>().toList() ?? const [],
-        enableIf: json['enable_if'] as String? ?? '',
-      );
+    fields: (json['fields'] as List?)?.whereType<String>().toList() ?? const [],
+    enableIf: json['enable_if'] as String? ?? '',
+  );
 
   /// Option keys this rule governs.
   final List<String> fields;
@@ -204,17 +202,18 @@ class ToggleRules {
   const ToggleRules({required this.locals, required this.rules});
 
   factory ToggleRules.fromJson(Map<String, dynamic> json) => ToggleRules(
-        locals: {
-          for (final e in ((json['locals'] as Map?) ?? const {}).entries)
-            if (e.key is String && e.value is String)
-              e.key as String: e.value as String,
-        },
-        rules: (json['rules'] as List?)
-                ?.whereType<Map<String, dynamic>>()
-                .map(ToggleRule.fromJson)
-                .toList() ??
-            const [],
-      );
+    locals: {
+      for (final e in ((json['locals'] as Map?) ?? const {}).entries)
+        if (e.key is String && e.value is String)
+          e.key as String: e.value as String,
+    },
+    rules:
+        (json['rules'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .map(ToggleRule.fromJson)
+            .toList() ??
+        const [],
+  );
 
   /// No rules means nothing is ever disabled, which is the fail-open answer the
   /// evaluator gives for anything it cannot decide anyway.

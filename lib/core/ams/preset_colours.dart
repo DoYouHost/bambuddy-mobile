@@ -16,10 +16,7 @@ import 'filament_naming.dart';
 /// A miss here costs nothing — the wheel underneath still picks any colour at
 /// all — so the matching leans generous: material either way round, and a brand
 /// that merely overlaps.
-List<ColorEntry> presetColours(
-  List<ColorEntry> catalogue,
-  String presetName,
-) {
+List<ColorEntry> presetColours(List<ColorEntry> catalogue, String presetName) {
   final parsed = parsePresetName(presetName);
   // Material plus variant, which is how the catalogue spells its own material
   // field ("PLA Basic", "PLA Silk"), rather than the bare material.

@@ -58,8 +58,9 @@ class _PromptNameDialog extends StatefulWidget {
 }
 
 class _PromptNameDialogState extends State<_PromptNameDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
 
   @override
   void dispose() {

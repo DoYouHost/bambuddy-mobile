@@ -31,8 +31,9 @@ class GroupsRepository {
   /// GET /groups/{id} — the group with its member list.
   Future<GroupDetail> get(int groupId) async {
     try {
-      final res =
-          await _dio.get<Map<String, dynamic>>(Endpoints.groupById(groupId));
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.groupById(groupId),
+      );
       return GroupDetail.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);
@@ -43,8 +44,9 @@ class GroupsRepository {
   /// from.
   Future<PermissionCatalog> permissions() async {
     try {
-      final res =
-          await _dio.get<Map<String, dynamic>>(Endpoints.groupPermissions);
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.groupPermissions,
+      );
       return PermissionCatalog.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);

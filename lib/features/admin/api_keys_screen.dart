@@ -133,20 +133,22 @@ class _ApiKeyCard extends ConsumerWidget {
                               apiKey.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: t.titleMd.copyWith(color: live ? t.textPrimary : t.textTertiary),
+                              style: t.titleMd.copyWith(
+                                color: live ? t.textPrimary : t.textTertiary,
+                              ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              subtitle.join(' · '),
-                              style: t.monoMicro,
-                            ),
+                            Text(subtitle.join(' · '), style: t.monoMicro),
                           ],
                         ),
                       ),
                       if (canRevoke)
                         IconButton(
-                          icon: Icon(Icons.delete_outline,
-                              size: 20, color: t.danger),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: t.danger,
+                          ),
                           tooltip: l10n.apiKeysRevoke,
                           onPressed: () => _revoke(context, ref),
                         ).tagged('api_keys.revoke'),
@@ -172,7 +174,8 @@ class _ApiKeyCard extends ConsumerWidget {
                       if (apiKey.expiresAt != null && !expired)
                         DashPill(
                           label: l10n.apiKeysExpiresOn(
-                              fmt.dateNamedMonth(apiKey.expiresAt!)),
+                            fmt.dateNamedMonth(apiKey.expiresAt!),
+                          ),
                           accent: t.accentOrange,
                           accentInk: t.accentOrangeInk,
                           icon: Icons.schedule,
@@ -180,7 +183,8 @@ class _ApiKeyCard extends ConsumerWidget {
                       if (apiKey.printerIds != null)
                         DashPill(
                           label: l10n.apiKeysPrinterLimited(
-                              apiKey.printerIds!.length),
+                            apiKey.printerIds!.length,
+                          ),
                           accent: t.accentBlue,
                           icon: Icons.print_outlined,
                         ),
@@ -226,7 +230,9 @@ class _ApiKeyCard extends ConsumerWidget {
       logId: 'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.snack(result.isOk ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
+    messenger.snack(
+      result.isOk ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
+    );
   }
 }
 

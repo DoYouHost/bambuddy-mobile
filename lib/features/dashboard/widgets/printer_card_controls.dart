@@ -17,7 +17,9 @@ class _ControlsActions extends ConsumerWidget {
     final connected = status.connected ?? false;
     if (!connected) return const SizedBox.shrink();
 
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     if (forbidden) {
       // API key lacks `can_control_printer`—show clear reason instead of dead buttons.
       return Padding(
@@ -133,7 +135,9 @@ class _LightSwitchRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connected = status.connected ?? false;
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     if (!connected || forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -167,8 +171,11 @@ class _LightSwitchRow extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(on ? Icons.lightbulb : Icons.lightbulb_outline,
-                          size: 18, color: t.accentGreenInk),
+                      Icon(
+                        on ? Icons.lightbulb : Icons.lightbulb_outline,
+                        size: 18,
+                        color: t.accentGreenInk,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.ctrlLight,
@@ -194,8 +201,9 @@ class _LightSwitchRow extends ConsumerWidget {
     required bool on,
   }) async {
     final l10n = AppLocalizations.of(context);
-    final result =
-        await ref.read(controlsProvider.notifier).setLight(printerId, on: on);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .setLight(printerId, on: on);
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
@@ -234,10 +242,7 @@ class _PillSwitch extends StatelessWidget {
         child: Container(
           width: 20,
           height: 20,
-          decoration: BoxDecoration(
-            color: knobColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: knobColor, shape: BoxShape.circle),
         ),
       ),
     );
@@ -285,10 +290,10 @@ class _SmartPlugButton extends ConsumerWidget {
         // reason the button is dead.
         ? '$stateLabel · ${l10n.smartPlugMonitorOnly}'
         : printing
-            ? l10n.smartPlugCantPowerOff
-            : !reachable
-                ? l10n.smartPlugUnreachable
-                : stateLabel;
+        ? l10n.smartPlugCantPowerOff
+        : !reachable
+        ? l10n.smartPlugUnreachable
+        : stateLabel;
 
     final fg = !reachable
         ? scheme.error
@@ -313,8 +318,12 @@ class _SmartPlugButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final confirmed = await confirmDialog(
       context,
-      title: want ? l10n.smartPlugOnConfirmTitle : l10n.smartPlugOffConfirmTitle,
-      message: want ? l10n.smartPlugOnConfirmBody : l10n.smartPlugOffConfirmBody,
+      title: want
+          ? l10n.smartPlugOnConfirmTitle
+          : l10n.smartPlugOffConfirmTitle,
+      message: want
+          ? l10n.smartPlugOnConfirmBody
+          : l10n.smartPlugOffConfirmBody,
       confirmLabel: want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff,
       // Cutting the power to a machine is the answer worth a red button;
       // turning it on is not.
@@ -448,7 +457,9 @@ class _LifecycleButton extends StatelessWidget {
     final t = DashTokens.of(context);
     final scheme = Theme.of(context).colorScheme;
     final fg = danger ? scheme.error : t.textPrimary;
-    final border = danger ? scheme.error.withValues(alpha: 0.5) : t.subCardBorder;
+    final border = danger
+        ? scheme.error.withValues(alpha: 0.5)
+        : t.subCardBorder;
     return Material(
       color: t.subCard,
       borderRadius: BorderRadius.circular(14),
@@ -468,10 +479,7 @@ class _LifecycleButton extends StatelessWidget {
               children: [
                 busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
                 const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: t.bodyBold.copyWith(color: fg),
-                ),
+                Text(label, style: t.bodyBold.copyWith(color: fg)),
               ],
             ),
           ),
@@ -495,7 +503,9 @@ class _SpeedControlTile extends ConsumerWidget {
     if (!(status.connected ?? false) || !status.isPrinting) {
       return const SizedBox.shrink();
     }
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -511,10 +521,7 @@ class _SpeedControlTile extends ConsumerWidget {
         children: [
           Icon(Icons.speed, size: 16, color: t.textSecondary),
           const SizedBox(width: 8),
-          Text(
-            l10n.ctrlSpeed,
-            style: t.body.copyWith(color: t.textSecondary),
-          ),
+          Text(l10n.ctrlSpeed, style: t.body.copyWith(color: t.textSecondary)),
           const Spacer(),
           _SpeedControl(
             level: speedLevel,
@@ -528,8 +535,9 @@ class _SpeedControlTile extends ConsumerWidget {
 
   Future<void> _setSpeed(BuildContext context, WidgetRef ref, int mode) async {
     final l10n = AppLocalizations.of(context);
-    final result =
-        await ref.read(controlsProvider.notifier).setSpeed(printerId, mode);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .setSpeed(printerId, mode);
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
@@ -580,12 +588,11 @@ class _SpeedControl extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            busy ? _btnSpinner : Icon(Icons.speed, size: 18, color: t.textSecondary),
+            busy
+                ? _btnSpinner
+                : Icon(Icons.speed, size: 18, color: t.textSecondary),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: t.bodyBold.copyWith(color: t.textPrimary),
-            ),
+            Text(label, style: t.bodyBold.copyWith(color: t.textPrimary)),
             Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
           ],
         ),
@@ -595,9 +602,9 @@ class _SpeedControl extends StatelessWidget {
 }
 
 String? _speedName(AppLocalizations l10n, int? level) => switch (level) {
-      1 => l10n.speedSilent,
-      2 => l10n.speedStandard,
-      3 => l10n.speedSport,
-      4 => l10n.speedLudicrous,
-      _ => null,
-    };
+  1 => l10n.speedSilent,
+  2 => l10n.speedStandard,
+  3 => l10n.speedSport,
+  4 => l10n.speedLudicrous,
+  _ => null,
+};

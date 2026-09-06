@@ -72,24 +72,23 @@ PrintLogEntry _entry({
   int? archiveId = 82,
   double? cost = 1.23,
   double? energyKwh = 0.42,
-}) =>
-    PrintLogEntry(
-      id: id,
-      status: status,
-      createdAt: DateTime(2026, 8, 1, 9, 59),
-      startedAt: DateTime(2026, 8, 1, 10),
-      completedAt: DateTime(2026, 8, 1, 11, 30),
-      archiveId: archiveId,
-      filamentType: 'PLA',
-      printName: name,
-      printerName: 'P1S',
-      createdByUsername: 'zosia',
-      durationSeconds: 5400,
-      filamentUsedGrams: 42.5,
-      failureReason: failureReason,
-      cost: cost,
-      energyKwh: energyKwh,
-    );
+}) => PrintLogEntry(
+  id: id,
+  status: status,
+  createdAt: DateTime(2026, 8, 1, 9, 59),
+  startedAt: DateTime(2026, 8, 1, 10),
+  completedAt: DateTime(2026, 8, 1, 11, 30),
+  archiveId: archiveId,
+  filamentType: 'PLA',
+  printName: name,
+  printerName: 'P1S',
+  createdByUsername: 'zosia',
+  durationSeconds: 5400,
+  filamentUsedGrams: 42.5,
+  failureReason: failureReason,
+  cost: cost,
+  energyKwh: energyKwh,
+);
 
 /// Starts the screen with filters already on, the way a user who opened the
 /// sheet before reaching for "clear log" has them.
@@ -117,22 +116,26 @@ void main() {
     PrintLogFilters? filters,
   }) async {
     final fake = _FakePrintLog(entries ?? [_entry()], failure: failure);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        printLogProvider.overrideWith(() => fake),
-        if (filters != null)
-          printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
-        printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
-        // Money needs the server's currency, which otherwise means building an
-        // API client — and there is no profile here to build one from.
-        serverSettingsProvider.overrideWith((ref) async => {'currency': 'PLN'}),
-        printersForPickerProvider.overrideWith(
-          (ref) async => const [Printer(id: 3, name: 'P1S')],
-        ),
-        noServerProfileOverride,
-      ],
-      child: plApp(const PrintLogScreen()),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          printLogProvider.overrideWith(() => fake),
+          if (filters != null)
+            printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
+          printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
+          // Money needs the server's currency, which otherwise means building an
+          // API client — and there is no profile here to build one from.
+          serverSettingsProvider.overrideWith(
+            (ref) async => {'currency': 'PLN'},
+          ),
+          printersForPickerProvider.overrideWith(
+            (ref) async => const [Printer(id: 3, name: 'P1S')],
+          ),
+          noServerProfileOverride,
+        ],
+        child: plApp(const PrintLogScreen()),
+      ),
+    );
     await settle(tester);
     return fake;
   }
@@ -163,7 +166,9 @@ void main() {
   const reasonCombo = 0;
   const statusCombo = 1;
 
-  testWidgets('a cause set on its own leaves the status unsent', (tester) async {
+  testWidgets('a cause set on its own leaves the status unsent', (
+    tester,
+  ) async {
     // The load-bearing case: this row carries `aborted`, which the PATCH
     // vocabulary has no value for. Sending the status field at all would cost
     // the row a value it can never be given back.
@@ -197,8 +202,9 @@ void main() {
     expect(fake.lastEdit?.reason, isNull);
   });
 
-  testWidgets('save stays dead until something actually changes',
-      (tester) async {
+  testWidgets('save stays dead until something actually changes', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     await openSheet(tester, 'Benchy');
 
@@ -210,8 +216,9 @@ void main() {
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
   });
 
-  testWidgets('the sheet says whether the chosen status counts as a failure',
-      (tester) async {
+  testWidgets('the sheet says whether the chosen status counts as a failure', (
+    tester,
+  ) async {
     // A cause on a run the server does not count as a failure is stored and
     // then shown nowhere — the sheet has to say so while the choice is made.
     await pumpScreen(tester, entries: [_entry(status: 'failed')]);
@@ -224,8 +231,9 @@ void main() {
     expect(find.text(l10n.printLogNotCountedAsFailure), findsOneWidget);
   });
 
-  testWidgets('an unwritable status is offered, and flagged as one-way',
-      (tester) async {
+  testWidgets('an unwritable status is offered, and flagged as one-way', (
+    tester,
+  ) async {
     await pumpScreen(tester, entries: [_entry(status: 'aborted')]);
     await openSheet(tester, 'Benchy');
 
@@ -255,8 +263,9 @@ void main() {
     );
   });
 
-  testWidgets('the sort menu shows the current state, not the next action',
-      (tester) async {
+  testWidgets('the sort menu shows the current state, not the next action', (
+    tester,
+  ) async {
     // It used to be one row labelled with what a tap would do — "Ascending"
     // while the list was sorted descending — which reads as the setting and
     // says the opposite of it.
@@ -294,8 +303,9 @@ void main() {
     expect(checked(l10n.printLogSortDescending), isFalse);
   });
 
-  testWidgets('the sheet spells out what the row can only abbreviate',
-      (tester) async {
+  testWidgets('the sheet spells out what the row can only abbreviate', (
+    tester,
+  ) async {
     // The card fits one line of numbers and cuts the rest; opening a run used
     // to show less than the row it was opened from.
     await pumpScreen(tester);
@@ -312,8 +322,9 @@ void main() {
     expect(find.textContaining('1.23 zł'), findsWidgets);
   });
 
-  testWidgets('the sheet drops the money rows a server withholds',
-      (tester) async {
+  testWidgets('the sheet drops the money rows a server withholds', (
+    tester,
+  ) async {
     await pumpScreen(tester, costEnergy: false);
     await openSheet(tester, 'Benchy');
 
@@ -322,22 +333,21 @@ void main() {
     expect(find.text(l10n.printLogDetailEnergy), findsNothing);
   });
 
-  testWidgets('a run with nothing recorded shows no empty rows',
-      (tester) async {
+  testWidgets('a run with nothing recorded shows no empty rows', (
+    tester,
+  ) async {
     // A blank right-hand side reads as a zero, which for cost and energy is a
     // different claim than "the server has no figure".
-    await pumpScreen(
-      tester,
-      entries: [_entry(cost: null, energyKwh: null)],
-    );
+    await pumpScreen(tester, entries: [_entry(cost: null, energyKwh: null)]);
     await openSheet(tester, 'Benchy');
 
     expect(find.text(l10n.printLogDetailCost), findsNothing);
     expect(find.text(l10n.printLogDetailEnergy), findsNothing);
   });
 
-  testWidgets('the printer filter reports "any" as no filter at all',
-      (tester) async {
+  testWidgets('the printer filter reports "any" as no filter at all', (
+    tester,
+  ) async {
     // "Any" is a real null row (`dashAnyOrOne`), and the query depends on it
     // arriving as null rather than as some stand-in the caller has to map back.
     await pumpScreen(tester);
@@ -381,11 +391,15 @@ void main() {
     expect(find.text(l10n.printLogOrphan), findsOneWidget);
   });
 
-  testWidgets('clearing the log asks first, and names the count',
-      (tester) async {
+  testWidgets('clearing the log asks first, and names the count', (
+    tester,
+  ) async {
     final fake = await pumpScreen(
       tester,
-      entries: [_entry(id: 1), _entry(id: 2, name: 'Cube')],
+      entries: [
+        _entry(id: 1),
+        _entry(id: 2, name: 'Cube'),
+      ],
     );
 
     await tester.tap(find.byIcon(Icons.more_vert));
@@ -402,14 +416,18 @@ void main() {
     expect(fake.cleared, 1);
   });
 
-  testWidgets('under a filter the question stops quoting the filtered count',
-      (tester) async {
+  testWidgets('under a filter the question stops quoting the filtered count', (
+    tester,
+  ) async {
     // `total` is what the filter matches; `DELETE /print-log/` takes no filter
     // and empties the table. Quoting the one while doing the other turned
     // "2 rows shown" into "All 2 runs go" over a log of thousands.
     final fake = await pumpScreen(
       tester,
-      entries: [_entry(id: 1), _entry(id: 2, name: 'Cube')],
+      entries: [
+        _entry(id: 1),
+        _entry(id: 2, name: 'Cube'),
+      ],
       filters: const PrintLogFilters(status: 'failed'),
     );
 
@@ -440,8 +458,9 @@ void main() {
     expect(fake.deleted, 7);
   });
 
-  testWidgets('a refused edit is told, and the sheet stays open',
-      (tester) async {
+  testWidgets('a refused edit is told, and the sheet stays open', (
+    tester,
+  ) async {
     // A key with read-only scope gets a 403 on every write; the row must not
     // look edited when nothing was.
     await pumpScreen(

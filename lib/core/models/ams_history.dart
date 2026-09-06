@@ -22,13 +22,14 @@ class AmsHistoryPoint {
   final double? temperature;
 
   static AmsHistoryPoint fromJson(Map<String, dynamic> json) => AmsHistoryPoint(
-        // Sensor rows are stamped naive, so the shared helper is what makes the
-        // chart's x-axis land on the hour the reading was actually taken.
-        recordedAt: dateTimeFromJson(json['recorded_at']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        humidity: toDoubleOrNull(json['humidity']),
-        temperature: toDoubleOrNull(json['temperature']),
-      );
+    // Sensor rows are stamped naive, so the shared helper is what makes the
+    // chart's x-axis land on the hour the reading was actually taken.
+    recordedAt:
+        dateTimeFromJson(json['recorded_at']) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    humidity: toDoubleOrNull(json['humidity']),
+    temperature: toDoubleOrNull(json['temperature']),
+  );
 }
 
 /// Full history response: the series plus server-computed min/max/avg per metric.

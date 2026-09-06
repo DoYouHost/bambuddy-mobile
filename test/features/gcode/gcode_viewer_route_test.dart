@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// What `router.dart` pulls back out of the link, so a round trip can be
 /// checked the way the app really does it.
 ({int? archive, int? libraryFile, int? plate, String? name}) parsed(
-    String route) {
+  String route,
+) {
   final q = Uri.parse(route).queryParameters;
   return (
     archive: int.tryParse(q['archive'] ?? ''),
@@ -17,15 +18,15 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('gcodeViewerRoute', () {
     test('an archive with a plate and a title', () {
-      final route = gcodeViewerRoute(
-        archiveId: 82,
-        plate: 3,
-        title: 'Benchy',
-      );
+      final route = gcodeViewerRoute(archiveId: 82, plate: 3, title: 'Benchy');
 
       expect(Uri.parse(route).path, gcodeViewerPath);
-      expect(parsed(route),
-          (archive: 82, libraryFile: null, plate: 3, name: 'Benchy'));
+      expect(parsed(route), (
+        archive: 82,
+        libraryFile: null,
+        plate: 3,
+        name: 'Benchy',
+      ));
     });
 
     test('a library file names its own parameter', () {
@@ -38,18 +39,30 @@ void main() {
     // The library route serves the first `.gcode` in the file whatever is
     // asked, so a plate on that link would promise something it cannot keep.
     test('a plate is dropped for a library file', () {
-      expect(parsed(gcodeViewerRoute(libraryFileId: 9, plate: 2)).plate, isNull);
+      expect(
+        parsed(gcodeViewerRoute(libraryFileId: 9, plate: 2)).plate,
+        isNull,
+      );
     });
 
-    test('no plate and a plate below 1 both leave the choice to the server', () {
-      expect(parsed(gcodeViewerRoute(archiveId: 82)).plate, isNull);
-      expect(parsed(gcodeViewerRoute(archiveId: 82, plate: 0)).plate, isNull);
-      expect(parsed(gcodeViewerRoute(archiveId: 82, plate: -3)).plate, isNull);
-    });
+    test(
+      'no plate and a plate below 1 both leave the choice to the server',
+      () {
+        expect(parsed(gcodeViewerRoute(archiveId: 82)).plate, isNull);
+        expect(parsed(gcodeViewerRoute(archiveId: 82, plate: 0)).plate, isNull);
+        expect(
+          parsed(gcodeViewerRoute(archiveId: 82, plate: -3)).plate,
+          isNull,
+        );
+      },
+    );
 
     test('an absent or blank title leaves the parameter out', () {
       expect(parsed(gcodeViewerRoute(archiveId: 82)).name, isNull);
-      expect(parsed(gcodeViewerRoute(archiveId: 82, title: '   ')).name, isNull);
+      expect(
+        parsed(gcodeViewerRoute(archiveId: 82, title: '   ')).name,
+        isNull,
+      );
     });
 
     // A print name is user data and carries whatever the designer typed. The

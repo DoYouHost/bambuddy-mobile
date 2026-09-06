@@ -49,12 +49,11 @@ class InventoryRepository {
     required int printerId,
     required int amsId,
     required int trayId,
-  }) =>
-      _source.createSpoolFromSlot(
-        printerId: printerId,
-        amsId: amsId,
-        trayId: trayId,
-      );
+  }) => _source.createSpoolFromSlot(
+    printerId: printerId,
+    amsId: amsId,
+    trayId: trayId,
+  );
 
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) =>
       _source.fetchUsage(spoolId);
@@ -92,7 +91,8 @@ class InventoryRepository {
   Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) =>
       _source.bulkResetUsage(spoolIds);
 
-  Future<List<CoreWeightEntry>> fetchCoreWeights() => _source.fetchCoreWeights();
+  Future<List<CoreWeightEntry>> fetchCoreWeights() =>
+      _source.fetchCoreWeights();
 
   Future<List<ColorEntry>> fetchColors() => _source.fetchColors();
 
@@ -129,8 +129,7 @@ class InventoryRepository {
   Future<void> savePresetOverrides(
     int spoolId,
     List<SpoolPresetOverride> overrides,
-  ) =>
-      _presetOverrides.watching(
-        () => _source.savePresetOverrides(spoolId, overrides),
-      );
+  ) => _presetOverrides.watching(
+    () => _source.savePresetOverrides(spoolId, overrides),
+  );
 }

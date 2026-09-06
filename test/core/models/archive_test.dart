@@ -7,7 +7,8 @@ void main() {
   group('Archive.fromJson', () {
     test('parsuje wpis archiwum, ignorując nieznane pola', () {
       final archive = Archive.fromJson(
-          readFixture('archive.json') as Map<String, dynamic>);
+        readFixture('archive.json') as Map<String, dynamic>,
+      );
 
       expect(archive.id, 82);
       expect(archive.displayName, 'The Smoothy - Y Splitter Connector');
@@ -80,10 +81,16 @@ void main() {
 
       expect(archive.id, 5);
       expect(archive.filename, 'minimalny.gcode');
-      expect(archive.isFavorite, isFalse,
-          reason: 'domyślna wartość false gdy pole nieobecne');
-      expect(archive.displayName, 'minimalny.gcode',
-          reason: 'brak printName → fallback na filename');
+      expect(
+        archive.isFavorite,
+        isFalse,
+        reason: 'domyślna wartość false gdy pole nieobecne',
+      );
+      expect(
+        archive.displayName,
+        'minimalny.gcode',
+        reason: 'brak printName → fallback na filename',
+      );
     });
 
     test('duplicate fields domyślnie 0 gdy nieobecne', () {
@@ -185,10 +192,10 @@ void main() {
     });
 
     test('rozdziela po przecinku i przycina spacje', () {
-      expect(
-        withColor('#FF0000, #00FF00').filamentColors,
-        ['#FF0000', '#00FF00'],
-      );
+      expect(withColor('#FF0000, #00FF00').filamentColors, [
+        '#FF0000',
+        '#00FF00',
+      ]);
     });
 
     test('pomija puste tokeny', () {

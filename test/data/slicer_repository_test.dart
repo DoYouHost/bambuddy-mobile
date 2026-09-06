@@ -71,18 +71,21 @@ void main() {
       expect(await repo.supportsProcessOverrides(), isTrue);
     });
 
-    test('any other failure degrades to unresolved rather than throwing', () async {
-      adapter.onGet(
-        '/api/v1/slicer/preset-values',
-        (s) => s.reply(500, {'detail': 'boom'}),
-        queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
-      );
+    test(
+      'any other failure degrades to unresolved rather than throwing',
+      () async {
+        adapter.onGet(
+          '/api/v1/slicer/preset-values',
+          (s) => s.reply(500, {'detail': 'boom'}),
+          queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
+        );
 
-      final values = await repo.presetValues(preset);
+        final values = await repo.presetValues(preset);
 
-      expect(values, isNotNull);
-      expect(values!.resolved, isFalse);
-    });
+        expect(values, isNotNull);
+        expect(values!.resolved, isFalse);
+      },
+    );
 
     test('an expired session throws instead of degrading', () async {
       // The one failure that must not be absorbed: swallowed here, nothing
@@ -95,11 +98,19 @@ void main() {
 
       await expectLater(
         repo.presetValues(preset),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
+        ),
       );
-      expect(repo.supportsProcessOverrides(), completion(isFalse),
-          reason: 'a rejected call proves nothing about the route');
+      expect(
+        repo.supportsProcessOverrides(),
+        completion(isFalse),
+        reason: 'a rejected call proves nothing about the route',
+      );
     });
 
     test('a refusal hides the panel without throwing', () async {
@@ -109,7 +120,8 @@ void main() {
       // cannot have — and the slice needs the same permission anyway.
       adapter.onGet(
         '/api/v1/slicer/preset-values',
-        (s) => s.reply(403, {'detail': "API key does not have 'library:upload'"}),
+        (s) =>
+            s.reply(403, {'detail': "API key does not have 'library:upload'"}),
         queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
       );
 
@@ -143,8 +155,11 @@ void main() {
       );
 
       expect(await repo.presetValues(preset), isNotNull);
-      expect(await repo.supportsProcessOverrides(), isTrue,
-          reason: 'the refusal was about the caller, not the server');
+      expect(
+        await repo.supportsProcessOverrides(),
+        isTrue,
+        reason: 'the refusal was about the caller, not the server',
+      );
     });
 
     test('a 400 from a bad slot is not read as the route being absent', () async {
@@ -161,8 +176,11 @@ void main() {
       final values = await repo.presetValues(preset);
       expect(values, isNotNull, reason: 'degrades to unresolved, not to null');
       expect(values!.resolved, isFalse);
-      expect(await repo.supportsProcessOverrides(), isFalse,
-          reason: 'no version and no observation — the older contract');
+      expect(
+        await repo.supportsProcessOverrides(),
+        isFalse,
+        reason: 'no version and no observation — the older contract',
+      );
     });
   });
 
@@ -186,8 +204,10 @@ void main() {
         }),
         queryParameters: {'full_slots': true, 'plate_id': 1},
       );
-      expect(anyUnused(await repo.filamentRequirements(id: 9, isArchive: false)),
-          isTrue);
+      expect(
+        anyUnused(await repo.filamentRequirements(id: 9, isArchive: false)),
+        isTrue,
+      );
     });
 
     // A multi-plate file consumes a different set of slots per plate, so the
@@ -204,8 +224,11 @@ void main() {
         queryParameters: {'full_slots': true, 'plate_id': 3},
       );
 
-      final reqs =
-          await repo.filamentRequirements(id: 9, isArchive: false, plateId: 3);
+      final reqs = await repo.filamentRequirements(
+        id: 9,
+        isArchive: false,
+        plateId: 3,
+      );
 
       expect(reqs.single.slotId, 4);
     });
@@ -218,8 +241,18 @@ void main() {
         path,
         (s) => s.reply(200, {
           'filaments': [
-            {'slot_id': 1, 'type': 'PLA', 'color': '#FF0000', 'used_in_plate': false},
-            {'slot_id': 2, 'type': 'PETG', 'color': '#00FF00', 'used_in_plate': true},
+            {
+              'slot_id': 1,
+              'type': 'PLA',
+              'color': '#FF0000',
+              'used_in_plate': false,
+            },
+            {
+              'slot_id': 2,
+              'type': 'PETG',
+              'color': '#00FF00',
+              'used_in_plate': true,
+            },
           ],
         }),
         queryParameters: {'full_slots': true, 'plate_id': 1},
@@ -247,8 +280,11 @@ void main() {
 
       final reqs = await repo.filamentRequirements(id: 9, isArchive: false);
       expect(reqs.single.usedInPlate, isTrue);
-      expect(anyUnused(reqs), isFalse,
-          reason: 'nothing was discriminated, so nothing may be marked');
+      expect(
+        anyUnused(reqs),
+        isFalse,
+        reason: 'nothing was discriminated, so nothing may be marked',
+      );
     });
 
     test('all-used is not a discrimination — the server falls back to it', () {

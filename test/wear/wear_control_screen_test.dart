@@ -57,60 +57,57 @@ class _NoProfileNotifier extends ServerProfileNotifier {
 /// An idle printer with a plate to free and nothing queued behind it: the one
 /// state that puts a real button and a placeholder in the same column.
 WearFleet _idle({String name = 'X2D-3DP'}) => WearFleet(
-      printers: [
-        PrinterWithStatus(
-          printer: Printer(id: 7, name: name),
-          status: const PrinterStatus(
-            id: 7,
-            connected: true,
-            state: 'IDLE',
-            awaitingPlateClear: true,
-          ),
-        ),
-      ],
-      queuePending: 0,
-    );
+  printers: [
+    PrinterWithStatus(
+      printer: Printer(id: 7, name: name),
+      status: const PrinterStatus(
+        id: 7,
+        connected: true,
+        state: 'IDLE',
+        awaitingPlateClear: true,
+      ),
+    ),
+  ],
+  queuePending: 0,
+);
 
 /// The same printer with its power cut — how every print ends with Auto Power
 /// Off, and the state the acknowledgement has to survive.
 WearFleet _offlineAwaiting() => WearFleet(
-      printers: [
-        PrinterWithStatus(
-          printer: const Printer(id: 7, name: 'X2D-3DP'),
-          status: const PrinterStatus(
-            id: 7,
-            connected: false,
-            awaitingPlateClear: true,
-          ),
-        ),
-      ],
-      queuePending: 0,
-    );
+  printers: [
+    PrinterWithStatus(
+      printer: const Printer(id: 7, name: 'X2D-3DP'),
+      status: const PrinterStatus(
+        id: 7,
+        connected: false,
+        awaitingPlateClear: true,
+      ),
+    ),
+  ],
+  queuePending: 0,
+);
 
 Future<void> _pump(
   WidgetTester tester,
   WearFleet fleet, {
   Size face = wearFaceSmall,
   WearTransport? transport,
-}) =>
-    pumpWear(
-      tester,
-      const WearPrinterControlScreen(printerId: 7),
-      face: face,
-      overrides: [
-        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
-        wearTransportProvider.overrideWith(
-          (ref) => HybridWearTransport(
-              relay: transport ?? _FakeTransport(fleet)),
-        ),
-        requirePlateClearProvider.overrideWith((ref) async => true),
-      ],
-    );
+}) => pumpWear(
+  tester,
+  const WearPrinterControlScreen(printerId: 7),
+  face: face,
+  overrides: [
+    serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+    wearTransportProvider.overrideWith(
+      (ref) => HybridWearTransport(relay: transport ?? _FakeTransport(fleet)),
+    ),
+    requirePlateClearProvider.overrideWith((ref) async => true),
+  ],
+);
 
 void main() {
   for (final face in [wearFaceSmall, wearFaceLarge]) {
-    testWidgets(
-        'a printer that has gone says so on the glass of a '
+    testWidgets('a printer that has gone says so on the glass of a '
         '${face.width.toInt()} px face', (tester) async {
       await _pump(tester, const WearFleet(printers: []), face: face);
 
@@ -120,8 +117,9 @@ void main() {
     });
   }
 
-  testWidgets('a placeholder is the size of the buttons it stands among',
-      (tester) async {
+  testWidgets('a placeholder is the size of the buttons it stands among', (
+    tester,
+  ) async {
     await _pump(tester, _idle());
 
     // "Nothing queued" is not a button you may press, and it is a disabled
@@ -133,15 +131,15 @@ void main() {
     await revealOnWatch(tester, placeholder);
 
     expect(tester.widget<FilledButton>(placeholder).onPressed, isNull);
-    expect(tester.getSize(placeholder).height,
-        tester.getSize(button).height);
+    expect(tester.getSize(placeholder).height, tester.getSize(button).height);
   });
 
   group('the plate-clear gate on an unreachable printer', () {
     final ack = find.widgetWithText(FilledButton, 'Zwolnij płytę');
 
-    testWidgets('is offered on the watch too, and acknowledged from it',
-        (tester) async {
+    testWidgets('is offered on the watch too, and acknowledged from it', (
+      tester,
+    ) async {
       final transport = _PlateTransport(_offlineAwaiting());
       await _pump(tester, _offlineAwaiting(), transport: transport);
       await revealOnWatch(tester, ack);
@@ -159,8 +157,10 @@ void main() {
       // which is why the classification is written against them.
       final transport = _PlateTransport(
         _offlineAwaiting(),
-        error: WearRelayRemoteError('badResponse',
-            reason: 'Printer not connected'),
+        error: WearRelayRemoteError(
+          'badResponse',
+          reason: 'Printer not connected',
+        ),
       );
       await _pump(tester, _offlineAwaiting(), transport: transport);
       await revealOnWatch(tester, ack);
@@ -173,9 +173,13 @@ void main() {
     });
   });
 
-  testWidgets('a printer name too long for the face is cut, not wrapped',
-      (tester) async {
-    await _pump(tester, _idle(name: 'Bambu Lab X1 Carbon w warsztacie na dole'));
+  testWidgets('a printer name too long for the face is cut, not wrapped', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _idle(name: 'Bambu Lab X1 Carbon w warsztacie na dole'),
+    );
 
     final header = find.byType(WearHeader);
     final line = find.descendant(of: header, matching: find.byType(Text));

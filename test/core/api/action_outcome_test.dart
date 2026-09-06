@@ -64,10 +64,7 @@ void main() {
     const boom = ApiException(AppErrorCode.badResponse, statusCode: 400);
 
     test('a write that lands reports ok', () async {
-      expect(
-        (await runAction(() async {}, logId: 'x.y')).isOk,
-        isTrue,
-      );
+      expect((await runAction(() async {}, logId: 'x.y')).isOk, isTrue);
     });
 
     test('a refusal arrives intact rather than as an exception', () async {
@@ -81,12 +78,18 @@ void main() {
 
     test('onSuccess runs only when the write landed', () async {
       var refreshed = 0;
-      await runAction(() async {},
-          logId: 'x.y', onSuccess: () async => refreshed++);
+      await runAction(
+        () async {},
+        logId: 'x.y',
+        onSuccess: () async => refreshed++,
+      );
       expect(refreshed, 1);
 
-      await runAction(() async => throw boom,
-          logId: 'x.y', onSuccess: () async => refreshed++);
+      await runAction(
+        () async => throw boom,
+        logId: 'x.y',
+        onSuccess: () async => refreshed++,
+      );
       expect(refreshed, 1, reason: 'nothing changed, so nothing to reload');
     });
 
@@ -135,63 +138,69 @@ void main() {
       ];
     }
 
-    test('a failure the user is told about is recorded with its reason',
-        () async {
-      // `http` already logs every error response. What it cannot say is which
-      // of them stopped somebody — a screen that absorbs a 403 and one that
-      // blocks on it look identical there.
-      ActionOutcome.failed(
-        const AuthException(
-          AppErrorCode.forbidden,
-          detail: "API key owner does not have 'printers:control' permission",
-        ),
-        action: 'printer.pause',
-      );
+    test(
+      'a failure the user is told about is recorded with its reason',
+      () async {
+        // `http` already logs every error response. What it cannot say is which
+        // of them stopped somebody — a screen that absorbs a 403 and one that
+        // blocks on it look identical there.
+        ActionOutcome.failed(
+          const AuthException(
+            AppErrorCode.forbidden,
+            detail: "API key owner does not have 'printers:control' permission",
+          ),
+          action: 'printer.pause',
+        );
 
-      final rows = await failures();
-      expect(rows, hasLength(1));
-      expect(rows.single['action'], 'printer.pause');
-      expect(rows.single['code'], 'forbidden');
-      expect(rows.single['reason'], contains('printers:control'));
-    });
+        final rows = await failures();
+        expect(rows, hasLength(1));
+        expect(rows.single['action'], 'printer.pause');
+        expect(rows.single['code'], 'forbidden');
+        expect(rows.single['reason'], contains('printers:control'));
+      },
+    );
 
     test('a success writes nothing', () async {
       expect(ActionOutcome.ok.isOk, isTrue);
       expect(await failures(), isEmpty);
     });
 
-    test('a failure is recorded even where the caller named no action',
-        () async {
-      // The action tag is a nicety; losing the record because a call site did
-      // not pass one would be the same silence this replaced.
-      ActionOutcome.failed(
-        const ApiException(AppErrorCode.badResponse, statusCode: 500),
-      );
+    test(
+      'a failure is recorded even where the caller named no action',
+      () async {
+        // The action tag is a nicety; losing the record because a call site did
+        // not pass one would be the same silence this replaced.
+        ActionOutcome.failed(
+          const ApiException(AppErrorCode.badResponse, statusCode: 500),
+        );
 
-      final rows = await failures();
-      expect(rows, hasLength(1));
-      expect(rows.single['status'], 500);
-      expect(rows.single.containsKey('action'), isFalse);
-    });
+        final rows = await failures();
+        expect(rows, hasLength(1));
+        expect(rows.single['status'], 500);
+        expect(rows.single.containsKey('action'), isFalse);
+      },
+    );
 
-    test('the record names the call, so it stands without the http lane',
-        () async {
-      // Two requests in flight and the `http` record above this one is a coin
-      // toss; the method and path make it unambiguous.
-      recordActionFailure(
-        const AuthException(
-          AppErrorCode.forbidden,
-          detail: 'nope',
-          method: 'POST',
-          path: '/api/v1/queue/12/start',
-        ),
-        action: 'queue.start',
-      );
+    test(
+      'the record names the call, so it stands without the http lane',
+      () async {
+        // Two requests in flight and the `http` record above this one is a coin
+        // toss; the method and path make it unambiguous.
+        recordActionFailure(
+          const AuthException(
+            AppErrorCode.forbidden,
+            detail: 'nope',
+            method: 'POST',
+            path: '/api/v1/queue/12/start',
+          ),
+          action: 'queue.start',
+        );
 
-      final rows = await failures();
-      expect(rows.single['method'], 'POST');
-      expect(rows.single['path'], '/api/v1/queue/12/start');
-    });
+        final rows = await failures();
+        expect(rows.single['method'], 'POST');
+        expect(rows.single['path'], '/api/v1/queue/12/start');
+      },
+    );
 
     test('a message nobody was there to read is marked as such', () async {
       // The screen was left while the request was in flight. Before this the

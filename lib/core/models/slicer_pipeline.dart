@@ -18,9 +18,9 @@ class PresetRef {
   const PresetRef({required this.source, required this.id});
 
   factory PresetRef.fromJson(Map<String, dynamic> json) => PresetRef(
-        source: json['source'] as String? ?? 'standard',
-        id: json['id']?.toString() ?? '',
-      );
+    source: json['source'] as String? ?? 'standard',
+    id: json['id']?.toString() ?? '',
+  );
 
   /// One of `local`, `orca_cloud`, `cloud`, `standard` — same tiers as
   /// [SlicerPreset.source].
@@ -51,15 +51,15 @@ enum PipelineTargetKind {
   static const fallback = PipelineTargetKind.printerClass;
 
   static PipelineTargetKind parse(String? raw) => switch (raw) {
-        'specific_printer' => PipelineTargetKind.specificPrinter,
-        'printer_class' => PipelineTargetKind.printerClass,
-        _ => fallback,
-      };
+    'specific_printer' => PipelineTargetKind.specificPrinter,
+    'printer_class' => PipelineTargetKind.printerClass,
+    _ => fallback,
+  };
 
   String get wire => switch (this) {
-        PipelineTargetKind.specificPrinter => 'specific_printer',
-        PipelineTargetKind.printerClass => 'printer_class',
-      };
+    PipelineTargetKind.specificPrinter => 'specific_printer',
+    PipelineTargetKind.printerClass => 'printer_class',
+  };
 }
 
 /// How copies are spread over the printers of a targeted class. Ignored for
@@ -72,17 +72,17 @@ enum FanoutStrategy {
   static const fallback = FanoutStrategy.maxParallel;
 
   static FanoutStrategy parse(String? raw) => switch (raw) {
-        'max_parallel' => FanoutStrategy.maxParallel,
-        'fill_one_first' => FanoutStrategy.fillOneFirst,
-        'round_robin' => FanoutStrategy.roundRobin,
-        _ => fallback,
-      };
+    'max_parallel' => FanoutStrategy.maxParallel,
+    'fill_one_first' => FanoutStrategy.fillOneFirst,
+    'round_robin' => FanoutStrategy.roundRobin,
+    _ => fallback,
+  };
 
   String get wire => switch (this) {
-        FanoutStrategy.maxParallel => 'max_parallel',
-        FanoutStrategy.fillOneFirst => 'fill_one_first',
-        FanoutStrategy.roundRobin => 'round_robin',
-      };
+    FanoutStrategy.maxParallel => 'max_parallel',
+    FanoutStrategy.fillOneFirst => 'fill_one_first',
+    FanoutStrategy.roundRobin => 'round_robin',
+  };
 }
 
 /// One saved pipeline (`SlicerPipelineResponse`).
@@ -105,23 +105,24 @@ class SlicerPipeline {
   });
 
   factory SlicerPipeline.fromJson(Map<String, dynamic> json) => SlicerPipeline(
-        id: toIntOrNull(json['id']) ?? 0,
-        name: json['name'] as String? ?? '',
-        description: json['description'] as String?,
-        printerPreset: _ref(json['printer_preset']),
-        processPreset: _ref(json['process_preset']),
-        filamentPresets:
-            parseJsonList(json['filament_presets'], PresetRef.fromJson),
-        bedType: json['bed_type'] as String?,
-        targetKind: PipelineTargetKind.parse(json['target_kind'] as String?),
-        targetPrinterId: toIntOrNull(json['target_printer_id']),
-        targetModelClass: json['target_model_class'] as String?,
-        fanoutStrategy:
-            FanoutStrategy.parse(json['fanout_strategy'] as String?),
-        createdBy: toIntOrNull(json['created_by']),
-        createdAt: dateTimeFromJson(json['created_at']),
-        updatedAt: dateTimeFromJson(json['updated_at']),
-      );
+    id: toIntOrNull(json['id']) ?? 0,
+    name: json['name'] as String? ?? '',
+    description: json['description'] as String?,
+    printerPreset: _ref(json['printer_preset']),
+    processPreset: _ref(json['process_preset']),
+    filamentPresets: parseJsonList(
+      json['filament_presets'],
+      PresetRef.fromJson,
+    ),
+    bedType: json['bed_type'] as String?,
+    targetKind: PipelineTargetKind.parse(json['target_kind'] as String?),
+    targetPrinterId: toIntOrNull(json['target_printer_id']),
+    targetModelClass: json['target_model_class'] as String?,
+    fanoutStrategy: FanoutStrategy.parse(json['fanout_strategy'] as String?),
+    createdBy: toIntOrNull(json['created_by']),
+    createdAt: dateTimeFromJson(json['created_at']),
+    updatedAt: dateTimeFromJson(json['updated_at']),
+  );
 
   /// A required nested ref, read tolerantly: an absent or unreadable one
   /// becomes an empty `standard` ref, which [resolvePresetRef] then shows as
@@ -163,19 +164,19 @@ class SlicerPipeline {
   /// this rather than reporting the server's `printer_not_set` /
   /// `class_not_set` back as a failure.
   bool get isRunnable => switch (targetKind) {
-        PipelineTargetKind.specificPrinter => targetPrinterId != null,
-        PipelineTargetKind.printerClass =>
-          (targetModelClass ?? '').trim().isNotEmpty,
-      };
+    PipelineTargetKind.specificPrinter => targetPrinterId != null,
+    PipelineTargetKind.printerClass =>
+      (targetModelClass ?? '').trim().isNotEmpty,
+  };
 
   /// The create body (`SlicerPipelineCreate`) — without the four target fields,
   /// which that schema does not declare and Pydantic would drop silently.
   Map<String, dynamic> toCreateJson() => {
-        'name': name,
-        if (description != null) 'description': description,
-        'printer_preset': printerPreset.toJson(),
-        'process_preset': processPreset.toJson(),
-        'filament_presets': [for (final f in filamentPresets) f.toJson()],
-        if (bedType != null) 'bed_type': bedType,
-      };
+    'name': name,
+    if (description != null) 'description': description,
+    'printer_preset': printerPreset.toJson(),
+    'process_preset': processPreset.toJson(),
+    'filament_presets': [for (final f in filamentPresets) f.toJson()],
+    if (bedType != null) 'bed_type': bedType,
+  };
 }

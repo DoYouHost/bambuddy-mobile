@@ -13,33 +13,53 @@ ArchiveSlim _a({
   int? printerId,
   double? energyKwh,
   double? energyCost,
-}) =>
-    ArchiveSlim.fromJson({
-      'status': status,
-      'created_at': createdAt,
-      'actual_time_seconds': seconds,
-      'filament_used_grams': grams,
-      'filament_type': material,
-      'filament_color': color,
-      'cost': cost,
-      'printer_id': printerId,
-      'energy_kwh': energyKwh,
-      'energy_cost': energyCost,
-    });
+}) => ArchiveSlim.fromJson({
+  'status': status,
+  'created_at': createdAt,
+  'actual_time_seconds': seconds,
+  'filament_used_grams': grams,
+  'filament_type': material,
+  'filament_color': color,
+  'cost': cost,
+  'printer_id': printerId,
+  'energy_kwh': energyKwh,
+  'energy_cost': energyCost,
+});
 
 void main() {
   group('ArchiveSlim', () {
     test('primaryColor bierze pierwszy segment i normalizuje do #RRGGBB', () {
-      expect(_a(status: 'completed', createdAt: '2026-06-01', color: '#0acc38,#91202b')
-          .primaryColor, '#0ACC38');
-      expect(_a(status: 'completed', createdAt: '2026-06-01', color: '#FFFFFF')
-          .primaryColor, '#FFFFFF');
-      expect(_a(status: 'completed', createdAt: '2026-06-01', color: null)
-          .primaryColor, isNull);
+      expect(
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01',
+          color: '#0acc38,#91202b',
+        ).primaryColor,
+        '#0ACC38',
+      );
+      expect(
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01',
+          color: '#FFFFFF',
+        ).primaryColor,
+        '#FFFFFF',
+      );
+      expect(
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01',
+          color: null,
+        ).primaryColor,
+        isNull,
+      );
     });
 
     test('isSuccess true tylko dla completed', () {
-      expect(_a(status: 'completed', createdAt: '2026-06-01').isSuccess, isTrue);
+      expect(
+        _a(status: 'completed', createdAt: '2026-06-01').isSuccess,
+        isTrue,
+      );
       expect(_a(status: 'failed', createdAt: '2026-06-01').isSuccess, isFalse);
     });
   });
@@ -66,9 +86,36 @@ void main() {
     }
 
     final items = [
-      _a(status: 'completed', createdAt: noon.toIso8601String(), seconds: 1000, grams: 50, material: 'PLA', color: '#FF0000', cost: 1.5, printerId: 1),
-      _a(status: 'completed', createdAt: afterNoon.toIso8601String(), seconds: 5000, grams: 120, material: 'PETG', color: '#00FF00', cost: 4.0, printerId: 1),
-      _a(status: 'failed', createdAt: failedAt.toIso8601String(), seconds: 90000, grams: 300, material: 'PLA', color: '#FF0000', cost: 9.0, printerId: 2),
+      _a(
+        status: 'completed',
+        createdAt: noon.toIso8601String(),
+        seconds: 1000,
+        grams: 50,
+        material: 'PLA',
+        color: '#FF0000',
+        cost: 1.5,
+        printerId: 1,
+      ),
+      _a(
+        status: 'completed',
+        createdAt: afterNoon.toIso8601String(),
+        seconds: 5000,
+        grams: 120,
+        material: 'PETG',
+        color: '#00FF00',
+        cost: 4.0,
+        printerId: 1,
+      ),
+      _a(
+        status: 'failed',
+        createdAt: failedAt.toIso8601String(),
+        seconds: 90000,
+        grams: 300,
+        material: 'PLA',
+        color: '#FF0000',
+        cost: 9.0,
+        printerId: 2,
+      ),
     ];
     final c = StatsComputed.from(items);
 
@@ -136,8 +183,16 @@ void main() {
 
     test('sumuje kWh po dniach i wskazuje najbardziej prądożerny wydruk', () {
       final c = StatsComputed.from([
-        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', energyKwh: 0.4),
-        _a(status: 'completed', createdAt: '2026-06-01T20:00:00Z', energyKwh: 1.1),
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01T10:00:00Z',
+          energyKwh: 0.4,
+        ),
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01T20:00:00Z',
+          energyKwh: 1.1,
+        ),
         _a(status: 'failed', createdAt: '2026-06-02T09:00:00Z', energyKwh: 0.3),
       ]);
       expect(c.hasEnergyData, isTrue);
@@ -150,7 +205,11 @@ void main() {
       // Energia bywa null także na nowym serwerze — dla przebiegów sprzed
       // włączenia śledzenia. Takie mają być pominięte, nie liczone jako 0.
       final c = StatsComputed.from([
-        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', energyKwh: 0.8),
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01T10:00:00Z',
+          energyKwh: 0.8,
+        ),
         _a(status: 'completed', createdAt: '2026-06-03T10:00:00Z'),
       ]);
       expect(c.energyOverTime, hasLength(1));
@@ -159,10 +218,20 @@ void main() {
 
     test('kubełek drukarki sumuje energię i jej koszt', () {
       final c = StatsComputed.from([
-        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z',
-            printerId: 1, energyKwh: 0.5, energyCost: 0.25),
-        _a(status: 'completed', createdAt: '2026-06-02T10:00:00Z',
-            printerId: 1, energyKwh: 0.5, energyCost: 0.25),
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-01T10:00:00Z',
+          printerId: 1,
+          energyKwh: 0.5,
+          energyCost: 0.25,
+        ),
+        _a(
+          status: 'completed',
+          createdAt: '2026-06-02T10:00:00Z',
+          printerId: 1,
+          energyKwh: 0.5,
+          energyCost: 0.25,
+        ),
       ]);
       expect(c.byPrinter[1]!.energyKwh, closeTo(1.0, 1e-9));
       expect(c.byPrinter[1]!.energyCost, closeTo(0.5, 1e-9));

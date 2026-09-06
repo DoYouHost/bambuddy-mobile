@@ -22,8 +22,11 @@ void main() {
     test('spaces around and inside the number are not part of it', () {
       expect(parseUserDecimal('  42  '), 42.0);
       expect(parseUserDecimal('1 234,5'), 1234.5);
-      expect(parseUserDecimal('1 234'), 1234.0,
-          reason: 'the non-breaking space a formatted number groups with');
+      expect(
+        parseUserDecimal('1 234'),
+        1234.0,
+        reason: 'the non-breaking space a formatted number groups with',
+      );
     });
 
     // Both conventions write the same number, and a paste is how either gets

@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// The sentences the server actually writes, copied from
 /// `routes/library.py::slice_library_file` and `routes/archives.py::slice_archive`.
-const _step = 'STEP files cannot be sliced. The OrcaSlicer and Bambu Studio '
+const _step =
+    'STEP files cannot be sliced. The OrcaSlicer and Bambu Studio '
     'command-line slicers load only STL and 3MF -- open the STEP in your '
     'slicer and export it as one of those first.';
 const _libraryFormat = 'Source file must be STL or 3MF';
-const _archiveFormat = "Archive's source file must be STL, 3MF, or STEP to slice";
+const _archiveFormat =
+    "Archive's source file must be STL, 3MF, or STEP to slice";
 const _noSource = 'Archive has no source file to slice';
 
 AppApiException _refusal([String? detail]) =>
@@ -31,16 +33,24 @@ void main() {
   });
 
   test('both routes phrase the format refusal their own way; both land', () {
-    expect(sliceRefusalMessage(en, _refusal(_libraryFormat)),
-        en.sliceRefusedFormat);
-    expect(sliceRefusalMessage(en, _refusal(_archiveFormat)),
-        en.sliceRefusedFormat,
-        reason: 'it names STEP without being about STEP — the format check has '
-            'to run first or this reads as the STEP refusal');
+    expect(
+      sliceRefusalMessage(en, _refusal(_libraryFormat)),
+      en.sliceRefusedFormat,
+    );
+    expect(
+      sliceRefusalMessage(en, _refusal(_archiveFormat)),
+      en.sliceRefusedFormat,
+      reason:
+          'it names STEP without being about STEP — the format check has '
+          'to run first or this reads as the STEP refusal',
+    );
   });
 
   test('an archive with no model kept says so', () {
-    expect(sliceRefusalMessage(en, _refusal(_noSource)), en.sliceRefusedNoSource);
+    expect(
+      sliceRefusalMessage(en, _refusal(_noSource)),
+      en.sliceRefusedNoSource,
+    );
   });
 
   test('a refusal we do not know is quoted rather than swallowed', () {
@@ -58,7 +68,10 @@ void main() {
 
   test('a failure that never reached the server keeps its own wording', () {
     expect(
-      sliceRefusalMessage(en, const ApiException(AppErrorCode.serverUnreachable)),
+      sliceRefusalMessage(
+        en,
+        const ApiException(AppErrorCode.serverUnreachable),
+      ),
       en.errServerUnreachable,
     );
     // With the detail a real `NetworkException` carries: Dio's own message,
@@ -66,8 +79,10 @@ void main() {
     expect(
       sliceRefusalMessage(
         en,
-        const NetworkException(AppErrorCode.serverUnreachable,
-            detail: 'Connecting timed out [10000ms]'),
+        const NetworkException(
+          AppErrorCode.serverUnreachable,
+          detail: 'Connecting timed out [10000ms]',
+        ),
       ),
       en.errServerUnreachable,
     );

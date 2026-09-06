@@ -5,7 +5,8 @@ void main() {
   group('drying presets from the server setting', () {
     /// The shape the server stores: a JSON **string**, one object per filament,
     /// `n3f`/`n3s` being the AMS 2 Pro and the AMS-HT.
-    const configured = '{"PETG":{"n3f":70,"n3s":72,"n3f_hours":8,'
+    const configured =
+        '{"PETG":{"n3f":70,"n3s":72,"n3f_hours":8,'
         '"n3s_hours":6},"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,'
         '"n3s_hours":12}}';
 
@@ -19,13 +20,15 @@ void main() {
     /// The server uses a configured blob whole rather than merging it over the
     /// defaults, so a filament left out of it is one its own auto-drying has
     /// never heard of either.
-    test('a configured table replaces the built-in one, it does not extend it',
-        () {
-      final presets = dryingPresetsFrom(configured);
+    test(
+      'a configured table replaces the built-in one, it does not extend it',
+      () {
+        final presets = dryingPresetsFrom(configured);
 
-      expect(presets.keys, ['PETG', 'PLA']);
-      expect(presets.containsKey('ABS'), isFalse);
-    });
+        expect(presets.keys, ['PETG', 'PLA']);
+        expect(presets.containsKey('ABS'), isFalse);
+      },
+    );
 
     test('an object, not a string, is read the same way', () {
       final presets = dryingPresetsFrom({
@@ -91,22 +94,54 @@ void main() {
     /// disagreeing is the whole failure this reads the setting to avoid.
     test('the bundled fallback is the server\'s own default table', () {
       expect(defaultDryingPresets, hasLength(8));
-      expect(defaultDryingPresets['PLA'],
-          (temp: 45, htTemp: 45, hours: 12, htHours: 12));
-      expect(defaultDryingPresets['PETG'],
-          (temp: 65, htTemp: 65, hours: 12, htHours: 12));
-      expect(defaultDryingPresets['TPU'],
-          (temp: 65, htTemp: 75, hours: 12, htHours: 18));
-      expect(defaultDryingPresets['ABS'],
-          (temp: 65, htTemp: 80, hours: 12, htHours: 8));
-      expect(defaultDryingPresets['ASA'],
-          (temp: 65, htTemp: 80, hours: 12, htHours: 8));
-      expect(defaultDryingPresets['PA'],
-          (temp: 65, htTemp: 85, hours: 12, htHours: 12));
-      expect(defaultDryingPresets['PC'],
-          (temp: 65, htTemp: 80, hours: 12, htHours: 8));
-      expect(defaultDryingPresets['PVA'],
-          (temp: 65, htTemp: 85, hours: 12, htHours: 18));
+      expect(defaultDryingPresets['PLA'], (
+        temp: 45,
+        htTemp: 45,
+        hours: 12,
+        htHours: 12,
+      ));
+      expect(defaultDryingPresets['PETG'], (
+        temp: 65,
+        htTemp: 65,
+        hours: 12,
+        htHours: 12,
+      ));
+      expect(defaultDryingPresets['TPU'], (
+        temp: 65,
+        htTemp: 75,
+        hours: 12,
+        htHours: 18,
+      ));
+      expect(defaultDryingPresets['ABS'], (
+        temp: 65,
+        htTemp: 80,
+        hours: 12,
+        htHours: 8,
+      ));
+      expect(defaultDryingPresets['ASA'], (
+        temp: 65,
+        htTemp: 80,
+        hours: 12,
+        htHours: 8,
+      ));
+      expect(defaultDryingPresets['PA'], (
+        temp: 65,
+        htTemp: 85,
+        hours: 12,
+        htHours: 12,
+      ));
+      expect(defaultDryingPresets['PC'], (
+        temp: 65,
+        htTemp: 80,
+        hours: 12,
+        htHours: 8,
+      ));
+      expect(defaultDryingPresets['PVA'], (
+        temp: 65,
+        htTemp: 85,
+        hours: 12,
+        htHours: 18,
+      ));
     });
   });
 

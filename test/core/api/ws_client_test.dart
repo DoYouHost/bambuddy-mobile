@@ -283,33 +283,36 @@ void main() {
       });
     });
 
-    test('port zawierający „403" w błędzie łączności nie wyzwala re-loginu', () {
-      // Regresja: serwer na porcie 8403 sprawia, że zwykły SocketException
-      // (adres w komunikacie) zawiera podciąg „403" — klasyfikator MUSI
-      // patrzeć na typ/kod, nie na goły substring `toString()`.
-      fakeAsync((async) {
-        var refreshCalls = 0;
-        final (:client, :conns) = build(
-          refreshAuth: () async {
-            refreshCalls++;
-            return true;
-          },
-        );
-        client.start();
-        async.flushMicrotasks();
+    test(
+      'port zawierający „403" w błędzie łączności nie wyzwala re-loginu',
+      () {
+        // Regresja: serwer na porcie 8403 sprawia, że zwykły SocketException
+        // (adres w komunikacie) zawiera podciąg „403" — klasyfikator MUSI
+        // patrzeć na typ/kod, nie na goły substring `toString()`.
+        fakeAsync((async) {
+          var refreshCalls = 0;
+          final (:client, :conns) = build(
+            refreshAuth: () async {
+              refreshCalls++;
+              return true;
+            },
+          );
+          client.start();
+          async.flushMicrotasks();
 
-        conns[0].connectFail(
-          'SocketException: Connection refused (host:8403)',
-        );
-        async.flushMicrotasks();
+          conns[0].connectFail(
+            'SocketException: Connection refused (host:8403)',
+          );
+          async.flushMicrotasks();
 
-        expect(refreshCalls, 0);
-        expect(client.state, WsConnectionState.waitingRetry);
+          expect(refreshCalls, 0);
+          expect(client.state, WsConnectionState.waitingRetry);
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
-    });
+          client.dispose();
+          async.flushMicrotasks();
+        });
+      },
+    );
 
     test('re-login najwyżej raz na serię niepowodzeń', () {
       fakeAsync((async) {
@@ -386,8 +389,7 @@ void main() {
       });
     });
 
-    test(
-        'błąd mintu tokenu (rzucony, nie null) → backoff i retry, '
+    test('błąd mintu tokenu (rzucony, nie null) → backoff i retry, '
         'NIE fallback header-only', () {
       // WsTokenService.token() zwraca null TYLKO na 404 (stary serwer);
       // rzucony wyjątek to przejściowa awaria mintu (5xx/sieć) — nie może
@@ -468,7 +470,8 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       recorder = DiagnosticRecorder(
         settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async => const SessionFacts(app: '1.0+1', flavor: 'mobile'),
+        loadFacts: () async =>
+            const SessionFacts(app: '1.0+1', flavor: 'mobile'),
         resolveDirectory: () async => null,
       );
       // Nagrywanie startuje POZA `fakeAsync`: `start()` czeka na prefsy przez
@@ -487,45 +490,47 @@ void main() {
       ];
     }
 
-    test('życie połączenia: connect → open → ramka → disconnect → retry',
-        () async {
-      fakeAsync((async) {
-        final (:client, :conns) = build(queryToken: () async => 'tok');
-        client.start();
-        async.flushMicrotasks();
-        conns[0].connectOk();
-        async.flushMicrotasks();
+    test(
+      'życie połączenia: connect → open → ramka → disconnect → retry',
+      () async {
+        fakeAsync((async) {
+          final (:client, :conns) = build(queryToken: () async => 'tok');
+          client.start();
+          async.flushMicrotasks();
+          conns[0].connectOk();
+          async.flushMicrotasks();
 
-        conns[0].push(readFixtureString('ws_printer_status.json'));
-        async.flushMicrotasks();
-        conns[0].serverClose(code: 1006, reason: 'no close frame');
-        async.flushMicrotasks();
+          conns[0].push(readFixtureString('ws_printer_status.json'));
+          async.flushMicrotasks();
+          conns[0].serverClose(code: 1006, reason: 'no close frame');
+          async.flushMicrotasks();
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
+          client.dispose();
+          async.flushMicrotasks();
+        });
 
-      final records = await wsRecords();
-      expect(
-        records.map((r) => r['evt']),
-        containsAllInOrder([
-          'connect',
-          'open',
-          'frame',
-          'disconnect',
-          'retry',
-        ]),
-      );
-      expect(records.first['via'], 'token');
-      // Ramka przeszła przez parser klienta, więc rekord niesie jej treść.
-      final frame = records.firstWhere((r) => r['evt'] == 'frame');
-      expect(frame['type'], 'printer_status');
-      expect(frame['printer_id'], 1);
-      final close = records.firstWhere((r) => r['evt'] == 'disconnect');
-      expect(close['reason'], 'remote');
-      expect(close['code'], 1006);
-      expect(close['close_reason'], 'no close frame');
-    });
+        final records = await wsRecords();
+        expect(
+          records.map((r) => r['evt']),
+          containsAllInOrder([
+            'connect',
+            'open',
+            'frame',
+            'disconnect',
+            'retry',
+          ]),
+        );
+        expect(records.first['via'], 'token');
+        // Ramka przeszła przez parser klienta, więc rekord niesie jej treść.
+        final frame = records.firstWhere((r) => r['evt'] == 'frame');
+        expect(frame['type'], 'printer_status');
+        expect(frame['printer_id'], 1);
+        final close = records.firstWhere((r) => r['evt'] == 'disconnect');
+        expect(close['reason'], 'remote');
+        expect(close['code'], 1006);
+        expect(close['close_reason'], 'no close frame');
+      },
+    );
 
     test('klient melduje sondzie swój stan, więc migawka go zna', () async {
       fakeAsync((async) {
@@ -544,8 +549,9 @@ void main() {
         async.flushMicrotasks();
       });
 
-      final snapshot =
-          (await wsRecords()).firstWhere((r) => r['evt'] == 'state');
+      final snapshot = (await wsRecords()).firstWhere(
+        (r) => r['evt'] == 'state',
+      );
       expect(snapshot['state'], 'connected');
     });
 
@@ -561,8 +567,9 @@ void main() {
         async.flushMicrotasks();
       });
 
-      final error =
-          (await wsRecords()).firstWhere((r) => r['evt'] == 'connect_error');
+      final error = (await wsRecords()).firstWhere(
+        (r) => r['evt'] == 'connect_error',
+      );
       expect(error['phase'], 'handshake');
       expect(error['status'], 401);
       expect(error['cause'], 'WebSocketException');
@@ -584,7 +591,9 @@ void main() {
       });
 
       expect(
-        (await wsRecords()).firstWhere((r) => r['evt'] == 'disconnect')['reason'],
+        (await wsRecords()).firstWhere(
+          (r) => r['evt'] == 'disconnect',
+        )['reason'],
         'idle',
       );
     });
@@ -605,8 +614,10 @@ void main() {
       });
 
       final records = await wsRecords();
-      expect(records.firstWhere((r) => r['evt'] == 'disconnect')['reason'],
-          'suspend');
+      expect(
+        records.firstWhere((r) => r['evt'] == 'disconnect')['reason'],
+        'suspend',
+      );
       // Zawieszenie nie planuje ponowienia — inaczej log obiecywałby powrót,
       // którego nie będzie do `resume()`.
       expect(records.map((r) => r['evt']), isNot(contains('retry')));

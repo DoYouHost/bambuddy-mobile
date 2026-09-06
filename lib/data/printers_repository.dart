@@ -12,7 +12,12 @@ import '../core/models/printer_status.dart';
 /// Why creating a printer failed — mapped to a localized message in the UI.
 /// Kept separate from [AppErrorCode] because the create flow needs the server's
 /// response body (`detail.code`), which the generic [mapDioException] discards.
-enum CreatePrinterFailure { connectionFailed, duplicateSerial, forbidden, generic }
+enum CreatePrinterFailure {
+  connectionFailed,
+  duplicateSerial,
+  forbidden,
+  generic,
+}
 
 /// Thrown by [PrintersRepository.createPrinter]. Auth (401) still bubbles as an
 /// [AuthException] so the app redirects to setup as usual.
@@ -52,11 +57,12 @@ class PrintersRepository {
   /// Auth must bubble up (UI redirects to config); others degrade to
   /// "status unavailable" card instead of breaking dashboard.
   Future<PrinterStatus?> fetchStatus(int printerId) => guardOrNull(() async {
-        final res =
-            await _dio.get<Map<String, dynamic>>(Endpoints.printerStatus(printerId));
-        final body = res.data;
-        return body == null ? null : PrinterStatus.fromJson(body);
-      });
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.printerStatus(printerId),
+    );
+    final body = res.data;
+    return body == null ? null : PrinterStatus.fromJson(body);
+  });
 
   /// Filaments loaded on active printers of [model] (optionally filtered by
   /// [location]) — options for model-based filament overrides. Degrades to an
@@ -64,17 +70,16 @@ class PrintersRepository {
   Future<List<AvailableFilament>> fetchAvailableFilaments(
     String model, {
     String? location,
-  }) =>
-      guard(() async {
-        final res = await _dio.get<List<dynamic>>(
-          Endpoints.printersAvailableFilaments,
-          queryParameters: <String, dynamic>{
-            'model': model,
-            if (location != null && location.isNotEmpty) 'location': location,
-          },
-        );
-        return AvailableFilament.parseList(res.data ?? const []);
-      });
+  }) => guard(() async {
+    final res = await _dio.get<List<dynamic>>(
+      Endpoints.printersAvailableFilaments,
+      queryParameters: <String, dynamic>{
+        'model': model,
+        if (location != null && location.isNotEmpty) 'location': location,
+      },
+    );
+    return AvailableFilament.parseList(res.data ?? const []);
+  });
 
   /// Add a printer (`POST /printers/`). The server verifies the MQTT connection
   /// before persisting, so a bad access code / unreachable IP surfaces here as
@@ -90,7 +95,9 @@ class PrintersRepository {
         data: data.toJson(),
       );
       final body = res.data;
-      if (body == null) throw const CreatePrinterException(CreatePrinterFailure.generic);
+      if (body == null) {
+        throw const CreatePrinterException(CreatePrinterFailure.generic);
+      }
       return Printer.fromJson(body);
     } on DioException catch (e) {
       final status = e.response?.statusCode;
@@ -111,20 +118,19 @@ class PrintersRepository {
     required String ipAddress,
     String? serialNumber,
     String? accessCode,
-  }) =>
-      guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.printersDiagnostic,
-          data: {
-            'ip_address': ipAddress,
-            if (serialNumber != null && serialNumber.isNotEmpty)
-              'serial_number': serialNumber,
-            if (accessCode != null && accessCode.isNotEmpty)
-              'access_code': accessCode,
-          },
-        );
-        return PrinterDiagnosticResult.fromJson(res.data ?? const {});
-      });
+  }) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.printersDiagnostic,
+      data: {
+        'ip_address': ipAddress,
+        if (serialNumber != null && serialNumber.isNotEmpty)
+          'serial_number': serialNumber,
+        if (accessCode != null && accessCode.isNotEmpty)
+          'access_code': accessCode,
+      },
+    );
+    return PrinterDiagnosticResult.fromJson(res.data ?? const {});
+  });
 
   /// Map a 400 body to a failure reason. FastAPI sends either
   /// `{detail: {code, message}}` (connection test) or `{detail: "…"}` (plain
@@ -132,7 +138,9 @@ class PrintersRepository {
   CreatePrinterException _classify400(dynamic body) {
     final detail = body is Map ? body['detail'] : null;
     if (detail is Map && detail['code'] == 'printer_connection_failed') {
-      return const CreatePrinterException(CreatePrinterFailure.connectionFailed);
+      return const CreatePrinterException(
+        CreatePrinterFailure.connectionFailed,
+      );
     }
     if (detail is String && detail.toLowerCase().contains('serial number')) {
       return const CreatePrinterException(CreatePrinterFailure.duplicateSerial);
@@ -143,8 +151,7 @@ class PrintersRepository {
   /// List and statuses fetched in parallel.
   Future<List<PrinterWithStatus>> fetchAll() async {
     final printers = await fetchPrinters();
-    final statuses =
-        await Future.wait(printers.map((p) => fetchStatus(p.id)));
+    final statuses = await Future.wait(printers.map((p) => fetchStatus(p.id)));
     return [
       for (var i = 0; i < printers.length; i++)
         PrinterWithStatus(printer: printers[i], status: statuses[i]),

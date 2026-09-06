@@ -55,8 +55,11 @@ void main() {
     await expectLater(
       repo.pause(1),
       throwsA(
-        isA<AuthException>().having((e) => e.code, 'code',
-            AppErrorCode.forbidden),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.forbidden,
+        ),
       ),
     );
   });
@@ -69,8 +72,11 @@ void main() {
     await expectLater(
       repo.stop(1),
       throwsA(
-        isA<AuthException>().having((e) => e.code, 'code',
-            AppErrorCode.unauthorized),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.unauthorized,
+        ),
       ),
     );
   });
@@ -84,7 +90,10 @@ void main() {
   });
 
   test('refresh-status posts to the printer', () async {
-    adapter.onPost('/api/v1/printers/4/refresh-status', (s) => s.reply(200, null));
+    adapter.onPost(
+      '/api/v1/printers/4/refresh-status',
+      (s) => s.reply(200, null),
+    );
     await repo.refreshStatus(4);
   });
 
@@ -92,7 +101,9 @@ void main() {
     test('nudges every printer it is given', () async {
       for (final id in [4, 7]) {
         adapter.onPost(
-            '/api/v1/printers/$id/refresh-status', (s) => s.reply(200, null));
+          '/api/v1/printers/$id/refresh-status',
+          (s) => s.reply(200, null),
+        );
       }
       final sent = captureRequests(dio);
 
@@ -110,10 +121,14 @@ void main() {
       // republish is a hint, and neither is a reason to fail the action the
       // user actually asked for.
       adapter
-        ..onPost('/api/v1/printers/4/refresh-status',
-            (s) => s.reply(400, {'detail': 'Printer not connected'}))
-        ..onPost('/api/v1/printers/7/refresh-status',
-            (s) => s.reply(403, {'detail': 'forbidden'}));
+        ..onPost(
+          '/api/v1/printers/4/refresh-status',
+          (s) => s.reply(400, {'detail': 'Printer not connected'}),
+        )
+        ..onPost(
+          '/api/v1/printers/7/refresh-status',
+          (s) => s.reply(403, {'detail': 'forbidden'}),
+        );
 
       final sent = captureRequests(dio);
 

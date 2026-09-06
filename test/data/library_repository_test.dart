@@ -61,25 +61,34 @@ void main() {
 
       expect(
         repo.listTags(),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
+        ),
       );
     });
   });
 
-  test('createTag: 409 zachowuje status, by UI powiedział „już istnieje"',
-      () async {
-    adapter.onPost(
-      '/api/v1/library/tags',
-      (s) => s.reply(409, {'detail': 'Tag with this name already exists'}),
-      data: {'name': 'zabawki'},
-    );
+  test(
+    'createTag: 409 zachowuje status, by UI powiedział „już istnieje"',
+    () async {
+      adapter.onPost(
+        '/api/v1/library/tags',
+        (s) => s.reply(409, {'detail': 'Tag with this name already exists'}),
+        data: {'name': 'zabawki'},
+      );
 
-    expect(
-      repo.createTag('zabawki'),
-      throwsA(isA<AppApiException>().having((e) => e.statusCode, 'status', 409)),
-    );
-  });
+      expect(
+        repo.createTag('zabawki'),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+        ),
+      );
+    },
+  );
 
   test('createTag: zwraca utworzony tag', () async {
     adapter.onPost(
@@ -94,31 +103,35 @@ void main() {
     expect(tag.name, 'petg');
   });
 
-  test('listFilesByTags: wysyła powtórzone tag_ids i parsuje tagi pliku',
-      () async {
-    adapter.onGet(
-      '/api/v1/library/files',
-      (s) => s.reply(200, [
-        {
-          'id': 11,
-          'filename': 'kubek.3mf',
-          'file_type': '3mf',
-          'file_size': 1024,
-          'print_count': 0,
-          'tags': [
-            {'id': 1, 'name': 'zabawki'},
-            'śmieć',
-          ],
+  test(
+    'listFilesByTags: wysyła powtórzone tag_ids i parsuje tagi pliku',
+    () async {
+      adapter.onGet(
+        '/api/v1/library/files',
+        (s) => s.reply(200, [
+          {
+            'id': 11,
+            'filename': 'kubek.3mf',
+            'file_type': '3mf',
+            'file_size': 1024,
+            'print_count': 0,
+            'tags': [
+              {'id': 1, 'name': 'zabawki'},
+              'śmieć',
+            ],
+          },
+        ]),
+        queryParameters: {
+          'tag_ids': [1, 2],
         },
-      ]),
-      queryParameters: {'tag_ids': [1, 2]},
-    );
+      );
 
-    final files = await repo.listFilesByTags([1, 2]);
+      final files = await repo.listFilesByTags([1, 2]);
 
-    expect(files, hasLength(1));
-    expect(files.first.tagNames, ['zabawki']);
-  });
+      expect(files, hasLength(1));
+      expect(files.first.tagNames, ['zabawki']);
+    },
+  );
 
   // Kształt URL, nie tylko mapa parametrów: FastAPI czyta `tag_ids` jako listę
   // z POWTÓRZONEGO klucza. Gdyby Dio zserializował go jako `tag_ids[]=` albo
@@ -126,14 +139,20 @@ void main() {
   // filtr wyglądałby na zepsuty dopiero na ekranie.
   test('listFilesByTags: tag_ids lecą jako powtórzony klucz', () async {
     String? query;
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      query = options.uri.query;
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          query = options.uri.query;
+          handler.next(options);
+        },
+      ),
+    );
     adapter.onGet(
       '/api/v1/library/files',
       (s) => s.reply(200, <dynamic>[]),
-      queryParameters: {'tag_ids': [1, 2]},
+      queryParameters: {
+        'tag_ids': [1, 2],
+      },
     );
 
     await repo.listFilesByTags([1, 2]);
@@ -161,75 +180,79 @@ void main() {
     expect(files.single.tags, isEmpty);
   });
 
-  test('assignTags: wysyła akcję po nazwie z kontraktu i czyta liczniki',
-      () async {
-    adapter.onPost(
-      '/api/v1/library/tags/bulk-assign',
-      (s) => s.reply(200, {
-        'files_updated': 2,
-        'associations_added': 0,
-        'associations_removed': 4,
-      }),
-      data: {
-        'file_ids': [11, 12],
-        'tag_ids': <int>[],
-        'action': 'replace',
-      },
-    );
+  test(
+    'assignTags: wysyła akcję po nazwie z kontraktu i czyta liczniki',
+    () async {
+      adapter.onPost(
+        '/api/v1/library/tags/bulk-assign',
+        (s) => s.reply(200, {
+          'files_updated': 2,
+          'associations_added': 0,
+          'associations_removed': 4,
+        }),
+        data: {
+          'file_ids': [11, 12],
+          'tag_ids': <int>[],
+          'action': 'replace',
+        },
+      );
 
-    final result = await repo.assignTags(
-      fileIds: [11, 12],
-      tagIds: const [],
-      action: TagAssignAction.replace,
-    );
+      final result = await repo.assignTags(
+        fileIds: [11, 12],
+        tagIds: const [],
+        action: TagAssignAction.replace,
+      );
 
-    expect(result.filesUpdated, 2);
-    expect(result.removed, 4);
-    expect(result.added, 0);
-  });
+      expect(result.filesUpdated, 2);
+      expect(result.removed, 4);
+      expect(result.added, 0);
+    },
+  );
 
-  test('assignTags: mniej plików niż wysłano = częściowe zastosowanie',
-      () async {
-    adapter.onPost(
-      '/api/v1/library/tags/bulk-assign',
-      (s) => s.reply(200, {'files_updated': 1}), // reszta pól nieobecna → 0
-      data: {
-        'file_ids': [11, 12],
-        'tag_ids': [1],
-        'action': 'add',
-      },
-    );
+  test(
+    'assignTags: mniej plików niż wysłano = częściowe zastosowanie',
+    () async {
+      adapter.onPost(
+        '/api/v1/library/tags/bulk-assign',
+        (s) => s.reply(200, {'files_updated': 1}), // reszta pól nieobecna → 0
+        data: {
+          'file_ids': [11, 12],
+          'tag_ids': [1],
+          'action': 'add',
+        },
+      );
 
-    final result = await repo.assignTags(
-      fileIds: [11, 12],
-      tagIds: const [1],
-      action: TagAssignAction.add,
-    );
+      final result = await repo.assignTags(
+        fileIds: [11, 12],
+        tagIds: const [1],
+        action: TagAssignAction.add,
+      );
 
-    expect(result.filesUpdated, 1);
-    expect(result.added, 0);
-  });
+      expect(result.filesUpdated, 1);
+      expect(result.added, 0);
+    },
+  );
 
   group('cross-model variants (#671)', () {
     /// One listing row in the 1.2.6 shape — variant fields present.
     Map<String, dynamic> row126({int variantCount = 0, int? groupId}) => {
-          'id': 7,
-          'filename': 'mug.3mf',
-          'file_type': '3mf',
-          'file_size': 1024,
-          'print_count': 0,
-          'variant_group_id': groupId,
-          'variant_count': variantCount,
-        };
+      'id': 7,
+      'filename': 'mug.3mf',
+      'file_type': '3mf',
+      'file_size': 1024,
+      'print_count': 0,
+      'variant_group_id': groupId,
+      'variant_count': variantCount,
+    };
 
     /// The same row before 1.2.6 — the variant keys are absent entirely.
     Map<String, dynamic> row125() => {
-          'id': 7,
-          'filename': 'mug.3mf',
-          'file_type': '3mf',
-          'file_size': 1024,
-          'print_count': 0,
-        };
+      'id': 7,
+      'filename': 'mug.3mf',
+      'file_type': '3mf',
+      'file_size': 1024,
+      'print_count': 0,
+    };
 
     test('variant_count present in the listing turns support on', () async {
       adapter.onGet(
@@ -255,8 +278,7 @@ void main() {
       expect(await repo.supportsCrossModelVariants(), isFalse);
     });
 
-    test('an empty listing settles nothing — the cautious no stands',
-        () async {
+    test('an empty listing settles nothing — the cautious no stands', () async {
       // A library with no files says nothing about the server generation, so
       // the observation must stay undecided rather than record "unsupported".
       adapter.onGet(
@@ -301,15 +323,18 @@ void main() {
       expect(group!.targetModels, ['H2C', 'H2S']);
     });
 
-    test('404 → null: an ungrouped file and an old server read the same',
-        () async {
-      adapter.onGet(
-        '/api/v1/library/variant-groups/by-file/7',
-        (s) => s.reply(404, {'detail': 'File is not part of a variant group'}),
-      );
+    test(
+      '404 → null: an ungrouped file and an old server read the same',
+      () async {
+        adapter.onGet(
+          '/api/v1/library/variant-groups/by-file/7',
+          (s) =>
+              s.reply(404, {'detail': 'File is not part of a variant group'}),
+        );
 
-      expect(await repo.variantGroupForFile(7), isNull);
-    });
+        expect(await repo.variantGroupForFile(7), isNull);
+      },
+    );
 
     test('createVariantGroup sends members in priority order', () async {
       adapter.onPost(
@@ -357,8 +382,11 @@ void main() {
       expect(plates.isMultiPlate, isTrue);
       expect(plates.embedded.printer, 'Bambu Lab X2D 0.4 nozzle');
       expect(plates.embedded.serverSupportsAsDesigned, isTrue);
-      expect(plates.hasGcode, isFalse,
-          reason: 'the library route does not answer has_gcode at all');
+      expect(
+        plates.hasGcode,
+        isFalse,
+        reason: 'the library route does not answer has_gcode at all',
+      );
     });
 
     // The picker and the "as designed" switch are both niceties on top of a
@@ -366,10 +394,14 @@ void main() {
     // down with it, and neither must a route that is not there.
     test('a failure and a missing route both leave nothing to offer', () async {
       adapter
-        ..onGet('/api/v1/library/files/9/plates',
-            (s) => s.reply(500, {'detail': 'boom'}))
-        ..onGet('/api/v1/library/files/8/plates',
-            (s) => s.reply(404, {'detail': 'Not Found'}));
+        ..onGet(
+          '/api/v1/library/files/9/plates',
+          (s) => s.reply(500, {'detail': 'boom'}),
+        )
+        ..onGet(
+          '/api/v1/library/files/8/plates',
+          (s) => s.reply(404, {'detail': 'Not Found'}),
+        );
 
       expect((await repo.plates(9)).embedded.isAvailable, isFalse);
       expect((await repo.plates(8)).plates, isEmpty);

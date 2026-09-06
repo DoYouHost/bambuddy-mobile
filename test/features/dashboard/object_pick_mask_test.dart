@@ -24,15 +24,15 @@ Uint8List _rgba(int width, int height, int Function(int x, int y) idAt) {
 /// 10×10 plate: object 80 as a 4×3 block, object 300 (an id that only decodes
 /// right if the green channel is read) as a 5×5 ring around a hole.
 ObjectPickMask _plate() => ObjectPickMask.fromRgba(
-      _rgba(10, 10, (x, y) {
-        if (x >= 1 && x <= 4 && y >= 1 && y <= 3) return 80;
-        final ring = x >= 5 && x <= 9 && y >= 5 && y <= 9;
-        final hole = x >= 6 && x <= 8 && y >= 6 && y <= 8;
-        return ring && !hole ? 300 : 0;
-      }),
-      10,
-      10,
-    )!;
+  _rgba(10, 10, (x, y) {
+    if (x >= 1 && x <= 4 && y >= 1 && y <= 3) return 80;
+    final ring = x >= 5 && x <= 9 && y >= 5 && y <= 9;
+    final hole = x >= 6 && x <= 8 && y >= 6 && y <= 8;
+    return ring && !hole ? 300 : 0;
+  }),
+  10,
+  10,
+)!;
 
 void main() {
   const box = Size(100, 100); // 10 logical px per mask pixel.

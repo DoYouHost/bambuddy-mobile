@@ -242,8 +242,10 @@ void main() {
         'finish_20260815_115900_bbbb.jpg', // this run
       ];
 
-      expect(FinishPhotoNotifier.finishPhotoIn(photos),
-          'finish_20260815_115900_bbbb.jpg');
+      expect(
+        FinishPhotoNotifier.finishPhotoIn(photos),
+        'finish_20260815_115900_bbbb.jpg',
+      );
     });
 
     test('the enhanced shot (prepended) beats the earlier one', () {
@@ -252,16 +254,19 @@ void main() {
         'finish_20260815_115900_bbbb.jpg',
       ];
 
-      expect(FinishPhotoNotifier.finishPhotoIn(photos),
-          'finish_20260815_120200_cccc.jpg');
+      expect(
+        FinishPhotoNotifier.finishPhotoIn(photos),
+        'finish_20260815_120200_cccc.jpg',
+      );
     });
 
     test('user-uploaded photos do not pass as a printer shot', () {
       expect(FinishPhotoNotifier.finishPhotoIn(const ['ab12cd34.jpg']), isNull);
       expect(
-        FinishPhotoNotifier.finishPhotoIn(
-          const ['ab12cd34.jpg', 'finish_20260815_115900_bbbb.jpg'],
-        ),
+        FinishPhotoNotifier.finishPhotoIn(const [
+          'ab12cd34.jpg',
+          'finish_20260815_115900_bbbb.jpg',
+        ]),
         'finish_20260815_115900_bbbb.jpg',
       );
     });
@@ -272,8 +277,7 @@ void main() {
   });
 
   group('archive polling (the server does not announce an ordinary photo)', () {
-    test('a photo found by polling lands on the notification',
-        () async {
+    test('a photo found by polling lands on the notification', () async {
       await memory.remember(_alert());
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
@@ -284,17 +288,19 @@ void main() {
       expect(notifications.posted.single['photo'], '/tmp/finish_photo.png');
     });
 
-    test('an archive without a photo → nothing, the entry waits for the next pass',
-        () async {
-      await memory.remember(_alert());
-      newest = _archive();
+    test(
+      'an archive without a photo → nothing, the entry waits for the next pass',
+      () async {
+        await memory.remember(_alert());
+        newest = _archive();
 
-      await pollOnce();
+        await pollOnce();
 
-      expect(notifications.posted, isEmpty);
-      expect(pictureFetches, 0);
-      expect(await memory.recall(3, _now), isNotNull);
-    });
+        expect(notifications.posted, isEmpty);
+        expect(pictureFetches, 0);
+        expect(await memory.recall(3, _now), isNotNull);
+      },
+    );
 
     test('once attached, the next pass does nothing', () async {
       await memory.remember(_alert());
@@ -312,7 +318,11 @@ void main() {
 
       await pollOnce(now: _now.add(const Duration(minutes: 16)));
 
-      expect(newestFetches, 0, reason: 'the server will not send anything more for this print');
+      expect(
+        newestFetches,
+        0,
+        reason: 'the server will not send anything more for this print',
+      );
       expect(notifications.posted, isEmpty);
     });
 
@@ -378,18 +388,20 @@ void main() {
     expect(pictureFetches, 0, reason: 'no reason to fetch the picture');
   });
 
-  test('an alert older than the window → treated as a different print', () async {
-    await memory.remember(
-      _alert(postedAt: _now.subtract(const Duration(minutes: 45))),
-    );
+  test(
+    'an alert older than the window → treated as a different print',
+    () async {
+      await memory.remember(
+        _alert(postedAt: _now.subtract(const Duration(minutes: 45))),
+      );
 
-    await send(photoFrame);
+      await send(photoFrame);
 
-    expect(notifications.posted, isEmpty);
-  });
+      expect(notifications.posted, isEmpty);
+    },
+  );
 
-  test('a notification dismissed DURING the fetch → also not resurrected',
-      () async {
+  test('a notification dismissed DURING the fetch → also not resurrected', () async {
     // The fetch can take a dozen-odd seconds (Dio timeouts plus the retry after a
     // 401), and `onlyAlertOnce` only mutes an update to an existing entry — once
     // cancelled, Android counts the post as new, so it would ring a second time.
@@ -418,15 +430,17 @@ void main() {
     );
   });
 
-  test('a second frame (enhanced shot) does not post the notification twice',
-      () async {
-    await memory.remember(_alert());
+  test(
+    'a second frame (enhanced shot) does not post the notification twice',
+    () async {
+      await memory.remember(_alert());
 
-    await send(photoFrame);
-    await send(const WsArchiveUpdated(82, photoAdded: 'finish_2.jpg'));
+      await send(photoFrame);
+      await send(const WsArchiveUpdated(82, photoAdded: 'finish_2.jpg'));
 
-    expect(notifications.posted, hasLength(1));
-  });
+      expect(notifications.posted, hasLength(1));
+    },
+  );
 
   test('a failed picture fetch leaves the next frame a chance', () async {
     await memory.remember(_alert());
@@ -469,17 +483,23 @@ void main() {
     frames.add(photoFrame);
     await Future<void>.delayed(Duration.zero);
 
-    expect(notifications.posted, hasLength(1), reason: 'the chain is still alive');
+    expect(
+      notifications.posted,
+      hasLength(1),
+      reason: 'the chain is still alive',
+    );
     await expectLater(notifier.stop(), completes);
   });
 
-  test('an archive without a printer → does not guess which alert it matches',
-      () async {
-    await memory.remember(_alert());
-    archive = _archive(printerId: null);
+  test(
+    'an archive without a printer → does not guess which alert it matches',
+    () async {
+      await memory.remember(_alert());
+      archive = _archive(printerId: null);
 
-    await send(photoFrame);
+      await send(photoFrame);
 
-    expect(notifications.posted, isEmpty);
-  });
+      expect(notifications.posted, isEmpty);
+    },
+  );
 }

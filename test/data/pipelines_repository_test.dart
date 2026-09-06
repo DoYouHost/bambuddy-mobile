@@ -12,26 +12,25 @@ Map<String, dynamic> pipelineJson({
   String? targetKind = 'printer_class',
   int? targetPrinterId,
   String? targetModelClass,
-}) =>
-    {
-      'id': id,
-      'name': 'X2D 0.6 Gridfinity PETG',
-      'description': null,
-      'printer_preset': {'source': 'local', 'id': '3'},
-      'process_preset': {'source': 'standard', 'id': '0.30mm Gridfinity'},
-      'filament_presets': [
-        {'source': 'local', 'id': '11'},
-        {'source': 'standard', 'id': 'Generic ABS'},
-      ],
-      'bed_type': 'Engineering Plate',
-      'target_kind': targetKind,
-      'target_printer_id': targetPrinterId,
-      'target_model_class': targetModelClass,
-      'fanout_strategy': 'max_parallel',
-      'created_by': 1,
-      'created_at': '2026-08-01T10:00:00',
-      'updated_at': '2026-08-01T10:00:00',
-    };
+}) => {
+  'id': id,
+  'name': 'X2D 0.6 Gridfinity PETG',
+  'description': null,
+  'printer_preset': {'source': 'local', 'id': '3'},
+  'process_preset': {'source': 'standard', 'id': '0.30mm Gridfinity'},
+  'filament_presets': [
+    {'source': 'local', 'id': '11'},
+    {'source': 'standard', 'id': 'Generic ABS'},
+  ],
+  'bed_type': 'Engineering Plate',
+  'target_kind': targetKind,
+  'target_printer_id': targetPrinterId,
+  'target_model_class': targetModelClass,
+  'fanout_strategy': 'max_parallel',
+  'created_by': 1,
+  'created_at': '2026-08-01T10:00:00',
+  'updated_at': '2026-08-01T10:00:00',
+};
 
 void main() {
   late Dio dio;
@@ -49,9 +48,7 @@ void main() {
       adapter.onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(200, {
-          'pipelines': [
-            pipelineJson(targetModelClass: 'X2D'),
-          ],
+          'pipelines': [pipelineJson(targetModelClass: 'X2D')],
         }),
       );
 
@@ -69,26 +66,28 @@ void main() {
       expect(await repo.isSupported, isTrue);
     });
 
-    test('an unknown target kind or strategy falls back, never throws',
-        () async {
-      adapter.onGet(
-        '/api/v1/slicer-pipelines/',
-        (s) => s.reply(200, {
-          'pipelines': [
-            {
-              ...pipelineJson(),
-              'target_kind': 'some_future_kind',
-              'fanout_strategy': 'spiral',
-            },
-          ],
-        }),
-      );
+    test(
+      'an unknown target kind or strategy falls back, never throws',
+      () async {
+        adapter.onGet(
+          '/api/v1/slicer-pipelines/',
+          (s) => s.reply(200, {
+            'pipelines': [
+              {
+                ...pipelineJson(),
+                'target_kind': 'some_future_kind',
+                'fanout_strategy': 'spiral',
+              },
+            ],
+          }),
+        );
 
-      final p = (await repo.list()).single;
+        final p = (await repo.list()).single;
 
-      expect(p.targetKind, PipelineTargetKind.printerClass);
-      expect(p.fanoutStrategy, FanoutStrategy.maxParallel);
-    });
+        expect(p.targetKind, PipelineTargetKind.printerClass);
+        expect(p.fanoutStrategy, FanoutStrategy.maxParallel);
+      },
+    );
   });
 
   group('isRunnable', () {
@@ -143,10 +142,14 @@ void main() {
         (s) => s.reply(201, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        sent = Map<String, dynamic>.from(o.data as Map);
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            sent = Map<String, dynamic>.from(o.data as Map);
+            h.next(o);
+          },
+        ),
+      );
 
       await repo.create(
         const SlicerPipeline(
@@ -181,10 +184,14 @@ void main() {
         (s) => s.reply(200, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        sent = Map<String, dynamic>.from(o.data as Map);
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            sent = Map<String, dynamic>.from(o.data as Map);
+            h.next(o);
+          },
+        ),
+      );
 
       await repo.update(7, name: 'Renamed');
 
@@ -200,10 +207,14 @@ void main() {
         (s) => s.reply(200, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        sent = Map<String, dynamic>.from(o.data as Map);
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            sent = Map<String, dynamic>.from(o.data as Map);
+            h.next(o);
+          },
+        ),
+      );
 
       await repo.update(
         7,
@@ -221,42 +232,46 @@ void main() {
   });
 
   group('run', () {
-    test('a 409 yields the eligibility report, not a generic failure',
-        () async {
-      adapter.onPost(
-        '/api/v1/slicer-pipelines/7/run',
-        (s) => s.reply(409, {
-          'detail': {
-            'ok': false,
-            'target_kind': 'specific_printer',
-            'target_printer_id': 4,
-            'target_printer_name': 'X1C left',
-            'issues': [
-              {'kind': 'printer_offline'},
-              {
-                'kind': 'filament_type_mismatch',
-                'slot_index': 1,
-                'expected': 'PETG',
-                'actual': 'PLA',
-              },
-            ],
-          },
-        }),
-        data: Matchers.any,
-      );
+    test(
+      'a 409 yields the eligibility report, not a generic failure',
+      () async {
+        adapter.onPost(
+          '/api/v1/slicer-pipelines/7/run',
+          (s) => s.reply(409, {
+            'detail': {
+              'ok': false,
+              'target_kind': 'specific_printer',
+              'target_printer_id': 4,
+              'target_printer_name': 'X1C left',
+              'issues': [
+                {'kind': 'printer_offline'},
+                {
+                  'kind': 'filament_type_mismatch',
+                  'slot_index': 1,
+                  'expected': 'PETG',
+                  'actual': 'PLA',
+                },
+              ],
+            },
+          }),
+          data: Matchers.any,
+        );
 
-      await expectLater(
-        repo.run(7, source: const PipelineSource.libraryFile(12)),
-        throwsA(isA<PipelineNotEligible>().having(
-          (e) => e.report.allIssues.map((i) => i.kind),
-          'issue kinds',
-          containsAll([
-            EligibilityIssueKind.printerOffline,
-            EligibilityIssueKind.filamentTypeMismatch,
-          ]),
-        )),
-      );
-    });
+        await expectLater(
+          repo.run(7, source: const PipelineSource.libraryFile(12)),
+          throwsA(
+            isA<PipelineNotEligible>().having(
+              (e) => e.report.allIssues.map((i) => i.kind),
+              'issue kinds',
+              containsAll([
+                EligibilityIssueKind.printerOffline,
+                EligibilityIssueKind.filamentTypeMismatch,
+              ]),
+            ),
+          ),
+        );
+      },
+    );
 
     test('a 409 that is not a report stays an ordinary failure', () async {
       adapter.onPost(
@@ -278,10 +293,14 @@ void main() {
         (s) => s.reply(202, {'id': 1, 'copies': 3, 'status': 'queued'}),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        sent = Map<String, dynamic>.from(o.data as Map);
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            sent = Map<String, dynamic>.from(o.data as Map);
+            h.next(o);
+          },
+        ),
+      );
 
       await repo.run(
         7,
@@ -298,8 +317,7 @@ void main() {
   });
 
   group('support probe', () {
-    test('a 404 on the collection means the server has no pipelines',
-        () async {
+    test('a 404 on the collection means the server has no pipelines', () async {
       adapter.onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -309,19 +327,22 @@ void main() {
       expect(await repo.isSupported, isFalse);
     });
 
-    test('a 403 on the collection hides it — the routes are not ours', () async {
-      // Where an API key lands on a server before 1.2.5.3, which denied a key
-      // all three pipeline permissions. Nothing can be read, so nothing is
-      // offered.
-      adapter.onGet(
-        '/api/v1/slicer-pipelines/',
-        (s) => s.reply(403, {'detail': 'Forbidden'}),
-      );
+    test(
+      'a 403 on the collection hides it — the routes are not ours',
+      () async {
+        // Where an API key lands on a server before 1.2.5.3, which denied a key
+        // all three pipeline permissions. Nothing can be read, so nothing is
+        // offered.
+        adapter.onGet(
+          '/api/v1/slicer-pipelines/',
+          (s) => s.reply(403, {'detail': 'Forbidden'}),
+        );
 
-      expect(await repo.probe(), isFalse);
-      expect(await repo.canRun, isFalse);
-      expect(await repo.canWrite, isFalse);
-    });
+        expect(await repo.probe(), isFalse);
+        expect(await repo.canRun, isFalse);
+        expect(await repo.canWrite, isFalse);
+      },
+    );
 
     test('a 404 on one pipeline does not hide the feature', () async {
       // A stale row being gone says nothing about the routes; reading it as
@@ -351,9 +372,13 @@ void main() {
       // And on the latch the 404 actually landed on. `isSupported` alone reads
       // the *read* latch, which a failed update never touches — so it passed
       // either way and pinned nothing.
-      expect(await repo.canWrite, isTrue,
-          reason: 'editing a pipeline that is gone is not the write routes '
-              'being absent');
+      expect(
+        await repo.canWrite,
+        isTrue,
+        reason:
+            'editing a pipeline that is gone is not the write routes '
+            'being absent',
+      );
     });
 
     test('an offline server is not cached as unsupported', () async {
@@ -397,26 +422,34 @@ void main() {
     test('a refused write leaves reading and running alone', () async {
       adapter.onPost(
         '/api/v1/slicer-pipelines/',
-        (s) => s.reply(403, {'detail': 'API keys cannot be used for '
-            'administrative operations'}),
+        (s) => s.reply(403, {
+          'detail':
+              'API keys cannot be used for '
+              'administrative operations',
+        }),
         data: Matchers.any,
       );
 
       await repo.probe();
       await expectLater(
-        repo.create(const SlicerPipeline(
-          id: 0,
-          name: 'Nightly PETG',
-          printerPreset: PresetRef(source: 'local', id: '3'),
-          processPreset: PresetRef(source: 'local', id: '9'),
-          filamentPresets: [PresetRef(source: 'local', id: '11')],
-        )),
+        repo.create(
+          const SlicerPipeline(
+            id: 0,
+            name: 'Nightly PETG',
+            printerPreset: PresetRef(source: 'local', id: '3'),
+            processPreset: PresetRef(source: 'local', id: '9'),
+            filamentPresets: [PresetRef(source: 'local', id: '11')],
+          ),
+        ),
         throwsA(isA<AppApiException>()),
       );
 
       expect(await repo.canWrite, isFalse);
-      expect(await repo.isSupported, isTrue,
-          reason: 'the list route answered; authoring is a separate permission');
+      expect(
+        await repo.isSupported,
+        isTrue,
+        reason: 'the list route answered; authoring is a separate permission',
+      );
       expect(await repo.canRun, isTrue);
     });
 
@@ -448,10 +481,7 @@ void main() {
       );
 
       await repo.probe();
-      await expectLater(
-        repo.cancel(999),
-        throwsA(isA<AppApiException>()),
-      );
+      await expectLater(repo.cancel(999), throwsA(isA<AppApiException>()));
 
       expect(await repo.canRun, isTrue);
       expect(await repo.isSupported, isTrue);
@@ -475,10 +505,14 @@ void main() {
 
     test('the probe asks once, however many entry points gate on it', () async {
       var calls = 0;
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        if (o.path == '/api/v1/slicer-pipelines/') calls++;
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            if (o.path == '/api/v1/slicer-pipelines/') calls++;
+            h.next(o);
+          },
+        ),
+      );
 
       await Future.wait([repo.probe(), repo.probe(), repo.probe()]);
       await repo.probe();
@@ -505,9 +539,19 @@ void main() {
               'eligibility_overridden': false,
               'created_at': '2026-08-10T09:00:00',
               'jobs': [
-                {'id': 1, 'pipeline_run_id': 5, 'copy_index': 0, 'status': 'completed'},
+                {
+                  'id': 1,
+                  'pipeline_run_id': 5,
+                  'copy_index': 0,
+                  'status': 'completed',
+                },
                 'not an object at all',
-                {'id': 2, 'pipeline_run_id': 5, 'copy_index': 1, 'status': 'failed'},
+                {
+                  'id': 2,
+                  'pipeline_run_id': 5,
+                  'copy_index': 1,
+                  'status': 'failed',
+                },
               ],
             },
             42,
@@ -519,46 +563,63 @@ void main() {
 
       final page = await repo.runs();
 
-      expect(page.runs, hasLength(1), reason: 'the number is dropped, not read');
-      expect(page.runs.single.jobs.map((j) => j.id), [1, 2],
-          reason: 'the string between them costs only itself');
+      expect(
+        page.runs,
+        hasLength(1),
+        reason: 'the number is dropped, not read',
+      );
+      expect(
+        page.runs.single.jobs.map((j) => j.id),
+        [1, 2],
+        reason: 'the string between them costs only itself',
+      );
     });
 
-    test('a nested ref survives a map that is not Map<String, dynamic>',
-        () async {
-      // What a platform channel hands back. The strict type test dropped it,
-      // and a pipeline then lost the preset it points at silently.
-      final relayed = <Object?, Object?>{'source': 'local', 'id': '3'};
-      final pipeline = SlicerPipeline.fromJson({
-        'id': 7,
-        'name': 'Relayed',
-        'printer_preset': relayed,
-        'process_preset': {'source': 'local', 'id': '9'},
-        'filament_presets': [relayed],
-      });
+    test(
+      'a nested ref survives a map that is not Map<String, dynamic>',
+      () async {
+        // What a platform channel hands back. The strict type test dropped it,
+        // and a pipeline then lost the preset it points at silently.
+        final relayed = <Object?, Object?>{'source': 'local', 'id': '3'};
+        final pipeline = SlicerPipeline.fromJson({
+          'id': 7,
+          'name': 'Relayed',
+          'printer_preset': relayed,
+          'process_preset': {'source': 'local', 'id': '9'},
+          'filament_presets': [relayed],
+        });
 
-      expect(pipeline.printerPreset, const PresetRef(source: 'local', id: '3'));
-      expect(pipeline.filamentPresets, hasLength(1));
-    });
+        expect(
+          pipeline.printerPreset,
+          const PresetRef(source: 'local', id: '3'),
+        );
+        expect(pipeline.filamentPresets, hasLength(1));
+      },
+    );
 
-    test('a missing preset ref reads as gone from the catalog, not as a throw',
-        () async {
-      final pipeline = SlicerPipeline.fromJson({
-        'id': 7,
-        'name': 'Half a bundle',
-        'process_preset': {'source': 'local', 'id': '9'},
-      });
+    test(
+      'a missing preset ref reads as gone from the catalog, not as a throw',
+      () async {
+        final pipeline = SlicerPipeline.fromJson({
+          'id': 7,
+          'name': 'Half a bundle',
+          'process_preset': {'source': 'local', 'id': '9'},
+        });
 
-      expect(pipeline.printerPreset.id, isEmpty);
-      expect(pipeline.filamentPresets, isEmpty);
-    });
+        expect(pipeline.printerPreset.id, isEmpty);
+        expect(pipeline.filamentPresets, isEmpty);
+      },
+    );
   });
 
   group('PipelineRunFilter', () {
     test('sends only the keys that are set', () async {
       // The route reads `None` as "do not filter"; an explicit null in a query
       // string arrives as the four characters `None` and filters on that.
-      const filter = PipelineRunFilter(status: 'failed', targetModelClass: 'X1C');
+      const filter = PipelineRunFilter(
+        status: 'failed',
+        targetModelClass: 'X1C',
+      );
 
       expect(filter.queryParameters, {
         'status': 'failed',
@@ -604,43 +665,49 @@ void main() {
       );
     });
 
-    test('the status filter reaches the query, and page 1 comes back',
-        () async {
-      late Map<String, dynamic> query;
-      adapter.onGet(
-        '/api/v1/pipeline-runs',
-        (s) => s.reply(200, {'runs': [], 'total': 0}),
-        queryParameters: {
-          'limit': 25,
-          'offset': 50,
-          'pipeline_id': 7,
-          'status': 'partial_failure',
-          'target_printer_id': 4,
-          'target_model_class': 'X1C',
-        },
-      );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        query = Map<String, dynamic>.from(o.queryParameters);
-        h.next(o);
-      }));
+    test(
+      'the status filter reaches the query, and page 1 comes back',
+      () async {
+        late Map<String, dynamic> query;
+        adapter.onGet(
+          '/api/v1/pipeline-runs',
+          (s) => s.reply(200, {'runs': [], 'total': 0}),
+          queryParameters: {
+            'limit': 25,
+            'offset': 50,
+            'pipeline_id': 7,
+            'status': 'partial_failure',
+            'target_printer_id': 4,
+            'target_model_class': 'X1C',
+          },
+        );
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (o, h) {
+              query = Map<String, dynamic>.from(o.queryParameters);
+              h.next(o);
+            },
+          ),
+        );
 
-      await repo.runs(
-        offset: 50,
-        filter: const PipelineRunFilter(
-          pipelineId: 7,
-          status: 'partial_failure',
-          targetPrinterId: 4,
-          targetModelClass: 'X1C',
-        ),
-      );
+        await repo.runs(
+          offset: 50,
+          filter: const PipelineRunFilter(
+            pipelineId: 7,
+            status: 'partial_failure',
+            targetPrinterId: 4,
+            targetModelClass: 'X1C',
+          ),
+        );
 
-      expect(query['limit'], PipelinesRepository.pageSize);
-      expect(query['offset'], 50);
-      expect(query['pipeline_id'], 7);
-      expect(query['status'], 'partial_failure');
-      expect(query['target_printer_id'], 4);
-      expect(query['target_model_class'], 'X1C');
-    });
+        expect(query['limit'], PipelinesRepository.pageSize);
+        expect(query['offset'], 50);
+        expect(query['pipeline_id'], 7);
+        expect(query['status'], 'partial_failure');
+        expect(query['target_printer_id'], 4);
+        expect(query['target_model_class'], 'X1C');
+      },
+    );
   });
 
   group('PipelineRunStatus', () {
@@ -658,11 +725,15 @@ void main() {
       // It stands for a status this build has not heard of, so there is no
       // value to ask the server for.
       expect(PipelineRunStatus.unknown.wire, isNull);
-      expect(PipelineRunStatus.filterable,
-          isNot(contains(PipelineRunStatus.unknown)));
-      expect(PipelineRunStatus.filterable,
-          hasLength(PipelineRunStatus.values.length - 1),
-          reason: 'every status but unknown can be filtered by');
+      expect(
+        PipelineRunStatus.filterable,
+        isNot(contains(PipelineRunStatus.unknown)),
+      );
+      expect(
+        PipelineRunStatus.filterable,
+        hasLength(PipelineRunStatus.values.length - 1),
+        reason: 'every status but unknown can be filtered by',
+      );
     });
   });
 
@@ -758,26 +829,30 @@ void main() {
       int? libraryFileId = 12,
       int? archiveId,
       int failed = 1,
-    }) =>
-        PipelineRun.fromJson({
-          'id': 5,
-          'pipeline_id': pipelineId,
-          'source_library_file_id': libraryFileId,
-          'source_archive_id': archiveId,
-          'copies': 2,
-          'copies_completed': 2 - failed,
-          'copies_failed': failed,
-          'status': status,
-          'eligibility_overridden': false,
-          'created_at': '2026-08-10T09:00:00',
-        });
-
-    test('a terminal run with failed copies and both links intact can retry',
-        () {
-      expect(run().canRetry, isTrue);
-      expect(run(libraryFileId: null, archiveId: 4).canRetry, isTrue,
-          reason: 'an archive source is the other half of the XOR');
+    }) => PipelineRun.fromJson({
+      'id': 5,
+      'pipeline_id': pipelineId,
+      'source_library_file_id': libraryFileId,
+      'source_archive_id': archiveId,
+      'copies': 2,
+      'copies_completed': 2 - failed,
+      'copies_failed': failed,
+      'status': status,
+      'eligibility_overridden': false,
+      'created_at': '2026-08-10T09:00:00',
     });
+
+    test(
+      'a terminal run with failed copies and both links intact can retry',
+      () {
+        expect(run().canRetry, isTrue);
+        expect(
+          run(libraryFileId: null, archiveId: 4).canRetry,
+          isTrue,
+          reason: 'an archive source is the other half of the XOR',
+        );
+      },
+    );
 
     test('a run still in flight cannot', () {
       expect(run(status: 'in_progress').canRetry, isFalse);
@@ -874,9 +949,7 @@ void main() {
       final issue = (await repo.checkEligibility(
         7,
         source: const PipelineSource.libraryFile(12),
-      ))
-          .allIssues
-          .single;
+      )).allIssues.single;
 
       expect(issue.kind, EligibilityIssueKind.unknown);
       expect(issue.rawKind, 'nozzle_diameter_mismatch');
@@ -886,9 +959,12 @@ void main() {
 
   group('PipelineSource', () {
     test('sets exactly one id — the server 422s on both or neither', () {
-      expect(const PipelineSource.libraryFile(3).toJson(),
-          {'source_library_file_id': 3});
-      expect(const PipelineSource.archive(3).toJson(), {'source_archive_id': 3});
+      expect(const PipelineSource.libraryFile(3).toJson(), {
+        'source_library_file_id': 3,
+      });
+      expect(const PipelineSource.archive(3).toJson(), {
+        'source_archive_id': 3,
+      });
     });
   });
 }

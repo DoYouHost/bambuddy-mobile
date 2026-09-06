@@ -72,19 +72,18 @@ void main() {
     String unit = '%',
     bool alerting = false,
     bool reachable = true,
-  }) =>
-      LocationSensorReading(
-        id: value.round(),
-        name: name,
-        entityId: 'sensor.dry_box_$deviceClass',
-        numeric: true,
-        deviceClass: deviceClass,
-        unit: unit,
-        state: '$value',
-        value: value,
-        alerting: alerting,
-        reachable: reachable,
-      );
+  }) => LocationSensorReading(
+    id: value.round(),
+    name: name,
+    entityId: 'sensor.dry_box_$deviceClass',
+    numeric: true,
+    deviceClass: deviceClass,
+    unit: unit,
+    state: '$value',
+    value: value,
+    alerting: alerting,
+    reachable: reachable,
+  );
 
   final climate = LocationClimate(
     location: dryBox,
@@ -133,26 +132,32 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        inventoryProvider.overrideWith(() => _Shelf(spools)),
-        locationClimateProvider.overrideWith((ref) async => climates),
-        noServerProfileOverride,
-      ],
-      child: plApp(const InventoryScreen()),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryProvider.overrideWith(() => _Shelf(spools)),
+          locationClimateProvider.overrideWith((ref) async => climates),
+          noServerProfileOverride,
+        ],
+        child: plApp(const InventoryScreen()),
+      ),
+    );
     await settle(tester);
   }
 
-  testWidgets("a spool's card says what its shelf reads right now",
-      (tester) async {
+  testWidgets("a spool's card says what its shelf reads right now", (
+    tester,
+  ) async {
     await pumpShelf(tester, climates: {'dry box': climate});
 
     await tester.tap(find.text('Polymaker PETG'));
     await settle(tester);
 
-    expect(find.text('Temperature 24°C'), findsOneWidget,
-        reason: 'a whole number needs no decimal place');
+    expect(
+      find.text('Temperature 24°C'),
+      findsOneWidget,
+      reason: 'a whole number needs no decimal place',
+    );
     expect(find.text('Humidity 47.2%'), findsOneWidget);
     // The unreachable one keeps its last value and trades its icon for the
     // struck-through sensor, which is the whole of how it says "not current".
@@ -161,8 +166,9 @@ void main() {
     expect(find.byIcon(Icons.thermostat), findsWidgets);
   });
 
-  testWidgets('a spool on a shelf with no sensor shows no pills',
-      (tester) async {
+  testWidgets('a spool on a shelf with no sensor shows no pills', (
+    tester,
+  ) async {
     await pumpShelf(tester);
 
     await tester.tap(find.text('Polymaker PETG'));
@@ -172,15 +178,17 @@ void main() {
     expect(find.byIcon(Icons.sensors_off), findsNothing);
   });
 
-  testWidgets('the app bar offers nothing when no shelf is measured',
-      (tester) async {
+  testWidgets('the app bar offers nothing when no shelf is measured', (
+    tester,
+  ) async {
     await pumpShelf(tester);
 
     expect(find.byIcon(Icons.thermostat), findsNothing);
   });
 
-  testWidgets('a shelf within range reads as plain storage conditions',
-      (tester) async {
+  testWidgets('a shelf within range reads as plain storage conditions', (
+    tester,
+  ) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('pl'));
 
     await pumpShelf(tester, climates: {'dry box': calmClimate});
@@ -188,8 +196,9 @@ void main() {
     expect(find.byTooltip(l10n.inventoryClimateTitle), findsOneWidget);
   });
 
-  testWidgets('the app bar says an alert out loud, not only in amber',
-      (tester) async {
+  testWidgets('the app bar says an alert out loud, not only in amber', (
+    tester,
+  ) async {
     // The amber ink is the whole of how the icon shows this to a sighted user,
     // and a tooltip is an icon button's semantic label — so the sentence has
     // to change with the colour.
@@ -201,8 +210,9 @@ void main() {
     expect(find.byTooltip(l10n.inventoryClimateTitle), findsNothing);
   });
 
-  testWidgets('the app bar opens the sheet where a sensor is bound',
-      (tester) async {
+  testWidgets('the app bar opens the sheet where a sensor is bound', (
+    tester,
+  ) async {
     await pumpShelf(tester, climates: {'dry box': climate});
 
     expect(find.byIcon(Icons.thermostat), findsOneWidget);
@@ -218,29 +228,29 @@ void main() {
     const shelfA = StorageLocation(id: 1, name: 'Shelf A', spoolCount: 4);
 
     LocationSensorBinding binding(int id, int locationId, {bool card = true}) =>
-        LocationSensorBinding(
-          id: id,
-          locationId: locationId,
-          showOnCard: card,
-        );
+        LocationSensorBinding(id: id, locationId: locationId, showOnCard: card);
 
     Future<(Map<String, LocationClimate>, _FakeSensors)> resolve(
       _FakeSensors sensors, {
       List<StorageLocation> catalog = const [shelfA, dryBox],
     }) async {
-      final container = ProviderContainer(overrides: [
-        locationSensorsRepositoryProvider.overrideWithValue(sensors),
-        locationCatalogProvider.overrideWith((ref) async => catalog),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          locationSensorsRepositoryProvider.overrideWithValue(sensors),
+          locationCatalogProvider.overrideWith((ref) async => catalog),
+        ],
+      );
       addTearDown(container.dispose);
       return (await container.read(locationClimateProvider.future), sensors);
     }
 
     test('asks only the locations something is bound to', () async {
-      final (climates, sensors) = await resolve(_FakeSensors(
-        bindings: [binding(1, dryBox.id)],
-        readingsByLocation: {dryBox.id: climate.readings},
-      ));
+      final (climates, sensors) = await resolve(
+        _FakeSensors(
+          bindings: [binding(1, dryBox.id)],
+          readingsByLocation: {dryBox.id: climate.readings},
+        ),
+      );
 
       expect(sensors.asked, [dryBox.id]);
       expect(climates.keys, ['dry box']);
@@ -248,46 +258,56 @@ void main() {
       expect(climates['dry box']!.alerting, isTrue);
     });
 
-    test('a sensor the server hides from the card is not one to ask about',
-        () async {
-      final (climates, sensors) = await resolve(_FakeSensors(
-        bindings: [binding(1, dryBox.id, card: false)],
-        readingsByLocation: {dryBox.id: climate.readings},
-      ));
+    test(
+      'a sensor the server hides from the card is not one to ask about',
+      () async {
+        final (climates, sensors) = await resolve(
+          _FakeSensors(
+            bindings: [binding(1, dryBox.id, card: false)],
+            readingsByLocation: {dryBox.id: climate.readings},
+          ),
+        );
 
-      expect(sensors.asked, isEmpty);
-      expect(climates, isEmpty);
-    });
+        expect(sensors.asked, isEmpty);
+        expect(climates, isEmpty);
+      },
+    );
 
     test('a location whose readings come back empty is left out', () async {
-      final (climates, _) = await resolve(_FakeSensors(
-        bindings: [binding(1, shelfA.id)],
-        readingsByLocation: const {},
-      ));
-
-      expect(climates, isEmpty);
-    });
-
-    test('a binding naming a location the catalog does not have is skipped',
-        () async {
-      final (climates, sensors) = await resolve(
+      final (climates, _) = await resolve(
         _FakeSensors(
-          bindings: [binding(1, 99)],
-          readingsByLocation: {99: climate.readings},
+          bindings: [binding(1, shelfA.id)],
+          readingsByLocation: const {},
         ),
-        catalog: const [shelfA],
       );
 
-      expect(sensors.asked, isEmpty);
       expect(climates, isEmpty);
     });
 
+    test(
+      'a binding naming a location the catalog does not have is skipped',
+      () async {
+        final (climates, sensors) = await resolve(
+          _FakeSensors(
+            bindings: [binding(1, 99)],
+            readingsByLocation: {99: climate.readings},
+          ),
+          catalog: const [shelfA],
+        );
+
+        expect(sensors.asked, isEmpty);
+        expect(climates, isEmpty);
+      },
+    );
+
     test('an older server is not asked at all', () async {
-      final (climates, sensors) = await resolve(_FakeSensors(
-        supported: false,
-        bindings: [binding(1, dryBox.id)],
-        readingsByLocation: {dryBox.id: climate.readings},
-      ));
+      final (climates, sensors) = await resolve(
+        _FakeSensors(
+          supported: false,
+          bindings: [binding(1, dryBox.id)],
+          readingsByLocation: {dryBox.id: climate.readings},
+        ),
+      );
 
       expect(sensors.asked, isEmpty);
       expect(climates, isEmpty);
@@ -300,11 +320,10 @@ void main() {
 
       for (final written in ['Dry box', ' dry BOX ', 'DRY BOX']) {
         expect(
-          climateOfSpool(climates, Spool(
-            id: 1,
-            material: 'PLA',
-            storageLocation: written,
-          )),
+          climateOfSpool(
+            climates,
+            Spool(id: 1, material: 'PLA', storageLocation: written),
+          ),
           same(climate),
           reason: 'the server keys location names on LOWER(TRIM(name))',
         );

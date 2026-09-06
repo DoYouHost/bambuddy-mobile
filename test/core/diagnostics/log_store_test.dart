@@ -15,27 +15,26 @@ void main() {
     int maxChars = 512 * 1024,
     LogRedactor? redactor,
     void Function(String line)? onLine,
-  }) =>
-      LogStore(
-        header: LogHeader(
-          ts: start,
-          session: 'test-session',
-          app: '0.11.2+1102',
-          flavor: 'mobile',
-        ),
-        redactor: redactor,
-        maxRecords: maxRecords,
-        maxChars: maxChars,
-        clock: () => now,
-        onLine: onLine,
-      );
+  }) => LogStore(
+    header: LogHeader(
+      ts: start,
+      session: 'test-session',
+      app: '0.11.2+1102',
+      flavor: 'mobile',
+    ),
+    redactor: redactor,
+    maxRecords: maxRecords,
+    maxChars: maxChars,
+    clock: () => now,
+    onLine: onLine,
+  );
 
   setUp(() => now = start);
 
   List<Map<String, dynamic>> parse(String jsonl) => [
-        for (final line in const LineSplitter().convert(jsonl))
-          jsonDecode(line) as Map<String, dynamic>,
-      ];
+    for (final line in const LineSplitter().convert(jsonl))
+      jsonDecode(line) as Map<String, dynamic>,
+  ];
 
   test('exports in the order things happened, not the order they arrived', () {
     final store = makeStore();
@@ -68,8 +67,12 @@ void main() {
 
     store.add(LogSource.ui, 'route', fields: const {'to': '/dashboard'});
     now = start.add(const Duration(milliseconds: 1843));
-    store.add(LogSource.http, 'response',
-        lvl: LogLevel.warn, fields: const {'status': 502});
+    store.add(
+      LogSource.http,
+      'response',
+      lvl: LogLevel.warn,
+      fields: const {'status': 502},
+    );
 
     final lines = parse(store.export());
 
@@ -162,10 +165,14 @@ void main() {
     final redactor = bambuddyRedactor()..remember('my-secret-key', '[APIKEY]');
     final store = makeStore(redactor: redactor);
 
-    store.add(LogSource.http, 'error', fields: const {
-      'msg': 'rejected my-secret-key from 192.168.1.9',
-      'token': 'raw-token',
-    });
+    store.add(
+      LogSource.http,
+      'error',
+      fields: const {
+        'msg': 'rejected my-secret-key from 192.168.1.9',
+        'token': 'raw-token',
+      },
+    );
 
     final record = parse(store.export())[1];
     expect(record['msg'], 'rejected [APIKEY] from [IP]');

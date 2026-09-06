@@ -111,15 +111,23 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'POST') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'POST') {
+            sent = options.data as Map<String, dynamic>;
+          }
+          handler.next(options);
+        },
+      ),
+    );
 
-    final created = await repo.create(const ApiKeyCreateInput(
-      name: 'SpoolBuddy',
-      scopes: {ApiKeyScope.readStatus},
-    ));
+    final created = await repo.create(
+      const ApiKeyCreateInput(
+        name: 'SpoolBuddy',
+        scopes: {ApiKeyScope.readStatus},
+      ),
+    );
 
     expect(created.key, 'bb_newkey_full_value');
     expect(created.apiKey.id, 5);
@@ -132,36 +140,44 @@ void main() {
     expect(sent!['can_manage_projects'], isFalse);
   });
 
-  test('update sends only what changed, and can lift a printer limit',
-      () async {
-    Map<String, dynamic>? sent;
-    adapter.onPatch(
-      '/api/v1/api-keys/5',
-      (s) => s.reply(200, {
-        'id': 5,
-        'name': 'SpoolBuddy',
-        'key_prefix': 'bb_new',
-        'user_id': 1,
-        'can_read_status': true,
-        'printer_ids': null,
-        'enabled': false,
-        'created_at': '2026-08-04T09:00:00',
-      }),
-      data: Matchers.any,
-    );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'PATCH') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
+  test(
+    'update sends only what changed, and can lift a printer limit',
+    () async {
+      Map<String, dynamic>? sent;
+      adapter.onPatch(
+        '/api/v1/api-keys/5',
+        (s) => s.reply(200, {
+          'id': 5,
+          'name': 'SpoolBuddy',
+          'key_prefix': 'bb_new',
+          'user_id': 1,
+          'can_read_status': true,
+          'printer_ids': null,
+          'enabled': false,
+          'created_at': '2026-08-04T09:00:00',
+        }),
+        data: Matchers.any,
+      );
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.method == 'PATCH') {
+              sent = options.data as Map<String, dynamic>;
+            }
+            handler.next(options);
+          },
+        ),
+      );
 
-    await repo.update(
-      5,
-      const ApiKeyUpdateInput(enabled: false, clearPrinterIds: true),
-    );
+      await repo.update(
+        5,
+        const ApiKeyUpdateInput(enabled: false, clearPrinterIds: true),
+      );
 
-    expect(sent, {'printer_ids': null, 'enabled': false});
-    expect(sent!.containsKey('can_read_status'), isFalse);
-  });
+      expect(sent, {'printer_ids': null, 'enabled': false});
+      expect(sent!.containsKey('can_read_status'), isFalse);
+    },
+  );
 
   test('cloud access refused at creation keeps the server\'s reason', () async {
     adapter.onPost(
@@ -174,21 +190,24 @@ void main() {
     );
 
     await expectLater(
-      repo.create(const ApiKeyCreateInput(
-        name: 'x',
-        scopes: {ApiKeyScope.accessCloud},
-      )),
-      throwsA(isA<ApiException>().having(
-        (e) => e.detail,
-        'detail',
-        contains('requires authentication to be enabled'),
-      )),
+      repo.create(
+        const ApiKeyCreateInput(name: 'x', scopes: {ApiKeyScope.accessCloud}),
+      ),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.detail,
+          'detail',
+          contains('requires authentication to be enabled'),
+        ),
+      ),
     );
   });
 
   test('revoking hits the key\'s own path', () async {
     adapter.onDelete(
-        '/api/v1/api-keys/5', (s) => s.reply(200, {'message': 'deleted'}));
+      '/api/v1/api-keys/5',
+      (s) => s.reply(200, {'message': 'deleted'}),
+    );
     final sent = captureRequests(dio);
 
     await repo.delete(5);

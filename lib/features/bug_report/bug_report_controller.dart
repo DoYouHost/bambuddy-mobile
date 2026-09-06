@@ -34,33 +34,32 @@ class BugReportState {
   });
 
   const BugReportState.idle({RecoveredSession? recovered, ReportKind? kind})
-      : this._(
-          BugReportPhase.idle,
-          recovered: recovered,
-          kind: kind ?? ReportKind.bug,
-        );
+    : this._(
+        BugReportPhase.idle,
+        recovered: recovered,
+        kind: kind ?? ReportKind.bug,
+      );
 
   const BugReportState.recording(DateTime startedAt)
-      : this._(BugReportPhase.recording, startedAt: startedAt);
+    : this._(BugReportPhase.recording, startedAt: startedAt);
 
   const BugReportState.review(String log, {String? autoStoppedBy})
-      : this._(BugReportPhase.review, log: log, autoStoppedBy: autoStoppedBy);
+    : this._(BugReportPhase.review, log: log, autoStoppedBy: autoStoppedBy);
 
   BugReportState copyWith({
     ReportKind? kind,
     ReportDestination? destination,
     SendState? send,
-  }) =>
-      BugReportState._(
-        phase,
-        startedAt: startedAt,
-        log: log,
-        autoStoppedBy: autoStoppedBy,
-        recovered: recovered,
-        kind: kind ?? this.kind,
-        destination: destination ?? this.destination,
-        send: send ?? this.send,
-      );
+  }) => BugReportState._(
+    phase,
+    startedAt: startedAt,
+    log: log,
+    autoStoppedBy: autoStoppedBy,
+    recovered: recovered,
+    kind: kind ?? this.kind,
+    destination: destination ?? this.destination,
+    send: send ?? this.send,
+  );
 
   final BugReportPhase phase;
 
@@ -105,8 +104,7 @@ class RecoveredSession {
   final String log;
 }
 
-final bugReportProvider =
-    NotifierProvider<BugReportController, BugReportState>(
+final bugReportProvider = NotifierProvider<BugReportController, BugReportState>(
   BugReportController.new,
 );
 
@@ -235,7 +233,9 @@ class BugReportController extends Notifier<BugReportState> {
       return false;
     }
 
-    await ref.read(reportSenderProvider).submitRequest(
+    await ref
+        .read(reportSenderProvider)
+        .submitRequest(
           kind: state.kind,
           description: description,
           envelope: requestEnvelope(
@@ -257,10 +257,8 @@ class BugReportController extends Notifier<BugReportState> {
   /// The salvaged session is carried over too. Nothing else offers it — the
   /// crashed log is looked for once per process, in [build] — so dropping it
   /// here would leave its files on disk with no way left to open or delete them.
-  void reset() => state = BugReportState.idle(
-        kind: state.kind,
-        recovered: state.recovered,
-      );
+  void reset() =>
+      state = BugReportState.idle(kind: state.kind, recovered: state.recovered);
 
   Future<void> start() async {
     if (state.isRecording) return;

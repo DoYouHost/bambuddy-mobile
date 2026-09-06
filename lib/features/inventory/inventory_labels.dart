@@ -99,10 +99,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        l10n.inventoryLabelsTitle,
-                        style: t.display,
-                      ),
+                      child: Text(l10n.inventoryLabelsTitle, style: t.display),
                     ),
                     Text(
                       l10n.inventorySelectedCount(_selected.length),
@@ -252,7 +249,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
 
     setState(() => _busy = true);
     try {
-      final pdf = await ref.read(inventoryRepositoryProvider).renderLabels(
+      final pdf = await ref
+          .read(inventoryRepositoryProvider)
+          .renderLabels(
             SpoolLabelRequest(
               spoolIds: ids,
               template: template,
@@ -276,8 +275,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       }
     } on AppApiException catch (e) {
       if (mounted) setState(() => _busy = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'labels.print');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'labels.print',
+      );
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -358,10 +361,7 @@ class _LabelSpoolRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              '#${spool.id}',
-              style: t.monoMicro,
-            ),
+            Text('#${spool.id}', style: t.monoMicro),
           ],
         ),
       ),
@@ -427,8 +427,10 @@ class _LabelFooter extends StatelessWidget {
               onPressed: onPrint,
               icon: busy
                   ? DashSpinner(color: _onAccentGreen)
-                  : Icon(share ? Icons.ios_share : Icons.print_outlined,
-                      size: 18),
+                  : Icon(
+                      share ? Icons.ios_share : Icons.print_outlined,
+                      size: 18,
+                    ),
               label: Text(
                 '${l10n.inventoryLabelsPrint} ($count)',
                 style: const TextStyle(
@@ -490,10 +492,7 @@ class _TemplateSheet extends StatelessWidget {
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Text(
-            l10n.inventoryLabelsPickTemplate,
-            style: t.titleLg,
-          ),
+          Text(l10n.inventoryLabelsPickTemplate, style: t.titleLg),
           const SizedBox(height: 12),
           for (final (template, label, hint) in options)
             Padding(
@@ -513,15 +512,9 @@ class _TemplateSheet extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          label,
-                          style: t.titleSm,
-                        ),
+                        Text(label, style: t.titleSm),
                         const SizedBox(height: 4),
-                        Text(
-                          hint,
-                          style: t.labelSoft,
-                        ),
+                        Text(hint, style: t.labelSoft),
                       ],
                     ),
                   ),
@@ -637,10 +630,7 @@ class _ChipRow<T> extends StatelessWidget {
     final t = DashTokens.of(context);
     return Row(
       children: [
-        Text(
-          label,
-          style: t.microSoft,
-        ),
+        Text(label, style: t.microSoft),
         const SizedBox(width: 8),
         Expanded(
           child: SingleChildScrollView(
@@ -697,7 +687,9 @@ class _MiniChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: t.micro.copyWith(color: selected ? t.accentGreenInk : t.textSecondary),
+            style: t.micro.copyWith(
+              color: selected ? t.accentGreenInk : t.textSecondary,
+            ),
           ),
         ),
       ).tagged('labels.chip'),
@@ -728,7 +720,9 @@ class _TextAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Text(
           label,
-          style: t.micro.copyWith(color: onPressed == null ? color.withValues(alpha: 0.4) : color),
+          style: t.micro.copyWith(
+            color: onPressed == null ? color.withValues(alpha: 0.4) : color,
+          ),
         ),
       ),
     ).tagged('labels.text_action');
@@ -770,15 +764,8 @@ class _CheckRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: t.body,
-                  ),
-                  if (hint != null)
-                    Text(
-                      hint!,
-                      style: t.microSoft,
-                    ),
+                  Text(label, style: t.body),
+                  if (hint != null) Text(hint!, style: t.microSoft),
                 ],
               ),
             ),

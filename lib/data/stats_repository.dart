@@ -173,10 +173,9 @@ class StatsRepository {
   /// which route answered. `toList()` because [parseJsonList] can hand back a
   /// `const []`, which cannot be sorted in place.
   static List<UserSummary> _byUsername(List<dynamic>? data) =>
-      parseJsonList(data, UserSummary.fromJson).toList()
-        ..sort((a, b) =>
-            a.username.toLowerCase().compareTo(b.username.toLowerCase()));
+      parseJsonList(data, UserSummary.fromJson).toList()..sort(
+        (a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()),
+      );
 
-  static String? _ymd(DateTime? d) =>
-      d == null ? null : calendarDateToJson(d);
+  static String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
 }

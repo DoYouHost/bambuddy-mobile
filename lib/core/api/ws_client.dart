@@ -39,10 +39,8 @@ abstract class WsConnection {
   String? get closeReason;
 }
 
-typedef WsConnector = WsConnection Function(
-  Uri url,
-  Map<String, String> headers,
-);
+typedef WsConnector =
+    WsConnection Function(Uri url, Map<String, String> headers);
 
 class _IoWsConnection implements WsConnection {
   _IoWsConnection(this._channel);
@@ -86,24 +84,23 @@ class WsClient {
     this.heartbeatInterval = const Duration(seconds: 25),
     this.idleTimeout = const Duration(seconds: 60),
     this.stableThreshold = const Duration(seconds: 30),
-  })  :
-        // An initializing formal cannot be private, so the lint cannot be
-        // satisfied while the fields stay private.
-        // ignore: prefer_initializing_formals
-        _url = url,
-        // ignore: prefer_initializing_formals
-        _authHeaders = authHeaders,
-        // ignore: prefer_initializing_formals
-        _connect = connect,
-        // ignore: prefer_initializing_formals
-        _refreshAuth = refreshAuth,
-        // ignore: prefer_initializing_formals
-        _queryToken = queryToken,
-        // ignore: prefer_initializing_formals
-        _invalidateQueryToken = invalidateQueryToken,
-        _isAuthError = isAuthError ?? _defaultIsAuthError,
-        _probe = probe ?? WsProbe(),
-        _backoff = backoff ?? WsBackoff();
+  }) : // An initializing formal cannot be private, so the lint cannot be
+       // satisfied while the fields stay private.
+       // ignore: prefer_initializing_formals
+       _url = url,
+       // ignore: prefer_initializing_formals
+       _authHeaders = authHeaders,
+       // ignore: prefer_initializing_formals
+       _connect = connect,
+       // ignore: prefer_initializing_formals
+       _refreshAuth = refreshAuth,
+       // ignore: prefer_initializing_formals
+       _queryToken = queryToken,
+       // ignore: prefer_initializing_formals
+       _invalidateQueryToken = invalidateQueryToken,
+       _isAuthError = isAuthError ?? _defaultIsAuthError,
+       _probe = probe ?? WsProbe(),
+       _backoff = backoff ?? WsBackoff();
 
   final Uri _url;
   final Future<Map<String, String>> Function() _authHeaders;
@@ -359,11 +356,7 @@ class WsClient {
     _scheduleRetry();
   }
 
-  void _onClosed(
-    int generation,
-    WsDisconnectReason reason, {
-    Object? error,
-  }) {
+  void _onClosed(int generation, WsDisconnectReason reason, {Object? error}) {
     if (generation != _generation) return;
     // Before teardown: the close code lives on the connection about to be
     // dropped, and the peer only fills it in once the stream is done.

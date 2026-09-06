@@ -20,17 +20,16 @@ InputDecoration dashDecoration(
   String? helperText,
   Widget? suffixIcon,
   Widget? prefixIcon,
-}) =>
-    dashFieldDecoration(
-      t,
-      labelText: labelText,
-      hintText: hintText,
-      helperText: helperText,
-      errorText: errorText,
-      suffixText: suffixText,
-      suffixIcon: suffixIcon,
-      prefixIcon: prefixIcon,
-    );
+}) => dashFieldDecoration(
+  t,
+  labelText: labelText,
+  hintText: hintText,
+  helperText: helperText,
+  errorText: errorText,
+  suffixText: suffixText,
+  suffixIcon: suffixIcon,
+  prefixIcon: prefixIcon,
+);
 
 /// The same chrome as an [InputDecorationTheme], for [DropdownMenu] — it builds
 /// its own text field internally and takes no [InputDecoration]. Read off
@@ -85,25 +84,24 @@ Widget dashCombo<T>(
   TextStyle? textStyle,
   InputDecorationTheme? decorationTheme,
   ValueChanged<T?>? onSelected,
-}) =>
-    DropdownMenu<T>(
-      key: fieldKey,
-      controller: controller,
-      initialSelection: initialSelection,
-      enabled: enabled,
-      label: label,
-      helperText: helperText,
-      errorText: errorText,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: menuHeight,
-      enableFilter: filterable,
-      requestFocusOnTap: filterable,
-      textStyle: textStyle,
-      inputDecorationTheme:
-          decorationTheme ?? dashInputTheme(DashTokens.of(context)),
-      onSelected: onSelected,
-      dropdownMenuEntries: entries,
-    ).tagged(id);
+}) => DropdownMenu<T>(
+  key: fieldKey,
+  controller: controller,
+  initialSelection: initialSelection,
+  enabled: enabled,
+  label: label,
+  helperText: helperText,
+  errorText: errorText,
+  expandedInsets: EdgeInsets.zero,
+  menuHeight: menuHeight,
+  enableFilter: filterable,
+  requestFocusOnTap: filterable,
+  textStyle: textStyle,
+  inputDecorationTheme:
+      decorationTheme ?? dashInputTheme(DashTokens.of(context)),
+  onSelected: onSelected,
+  dropdownMenuEntries: entries,
+).tagged(id);
 
 /// A [dashCombo] whose first row means "no filter" — what every server-side
 /// filter picker needs, and the shape three screens had each written their own
@@ -129,30 +127,29 @@ Widget dashAnyOrOne<T extends Object>(
   String? helperText,
   bool enabled = true,
   TextStyle? textStyle,
-}) =>
-    dashCombo<T?>(
-      context,
-      id: id,
-      label: label,
-      helperText: helperText,
-      enabled: enabled,
-      textStyle: textStyle,
-      initialSelection: selected,
-      onSelected: onPick,
-      entries: [
-        DropdownMenuEntry(
-          value: null,
-          label: anyLabel,
-          labelWidget: logTag('$id.any', Text(anyLabel)),
-        ),
-        for (final (value, optionLabel) in options)
-          DropdownMenuEntry(
-            value: value,
-            label: optionLabel,
-            labelWidget: logTag('$id.option', Text(optionLabel)),
-          ),
-      ],
-    );
+}) => dashCombo<T?>(
+  context,
+  id: id,
+  label: label,
+  helperText: helperText,
+  enabled: enabled,
+  textStyle: textStyle,
+  initialSelection: selected,
+  onSelected: onPick,
+  entries: [
+    DropdownMenuEntry(
+      value: null,
+      label: anyLabel,
+      labelWidget: logTag('$id.any', Text(anyLabel)),
+    ),
+    for (final (value, optionLabel) in options)
+      DropdownMenuEntry(
+        value: value,
+        label: optionLabel,
+        labelWidget: logTag('$id.option', Text(optionLabel)),
+      ),
+  ],
+);
 
 /// A field that opens a picker instead of taking typed input: the app's field
 /// chrome, the current value (or a placeholder) inside it, and the affordance
@@ -188,21 +185,20 @@ Widget dashPickerField(
   ({String id, VoidCallback onPressed})? clear,
   TextStyle? valueStyle,
   EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 6),
-}) =>
-    _DashPickerField(
-      id: id,
-      label: label,
-      placeholder: placeholder,
-      onTap: onTap,
-      value: value,
-      helperText: helperText,
-      leading: leading,
-      prefixIcon: prefixIcon,
-      trailingIcon: trailingIcon,
-      clear: clear,
-      valueStyle: valueStyle,
-      padding: padding,
-    );
+}) => _DashPickerField(
+  id: id,
+  label: label,
+  placeholder: placeholder,
+  onTap: onTap,
+  value: value,
+  helperText: helperText,
+  leading: leading,
+  prefixIcon: prefixIcon,
+  trailingIcon: trailingIcon,
+  clear: clear,
+  valueStyle: valueStyle,
+  padding: padding,
+);
 
 /// Stateful only to carry the focus flag: an [InputDecorator] paints the
 /// theme's focused border when it is told it has focus, and it cannot tell on

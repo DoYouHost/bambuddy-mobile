@@ -95,10 +95,14 @@ void main() {
     test('wpis starszy niż okno nie jest oddawany', () async {
       await memory.remember(_alert());
 
-      expect(await memory.recall(3, _now.add(const Duration(minutes: 19))),
-          isNotNull);
-      expect(await memory.recall(3, _now.add(const Duration(minutes: 21))),
-          isNull);
+      expect(
+        await memory.recall(3, _now.add(const Duration(minutes: 19))),
+        isNotNull,
+      );
+      expect(
+        await memory.recall(3, _now.add(const Duration(minutes: 21))),
+        isNull,
+      );
     });
 
     test('nowy alert sprząta przeterminowane wpisy innych drukarek', () async {
@@ -186,24 +190,26 @@ void main() {
       expect(await memory.recall(3, _now), isNull);
     });
 
-    test('post ze zdjęciem to już aktualizacja — nie uzbraja się ponownie',
-        () async {
-      final service = RememberingNotifications(
-        _FakeNotifications(),
-        memory,
-        () => _now,
-      );
+    test(
+      'post ze zdjęciem to już aktualizacja — nie uzbraja się ponownie',
+      () async {
+        final service = RememberingNotifications(
+          _FakeNotifications(),
+          memory,
+          () => _now,
+        );
 
-      await service.showAlert(
-        event: NotifEvent.printFinished,
-        printerId: 3,
-        id: 1003,
-        title: 't',
-        body: 'b',
-        picture: const AlertPicture(photoPath: '/tmp/x.png'),
-      );
+        await service.showAlert(
+          event: NotifEvent.printFinished,
+          printerId: 3,
+          id: 1003,
+          title: 't',
+          body: 'b',
+          picture: const AlertPicture(photoPath: '/tmp/x.png'),
+        );
 
-      expect(await memory.recall(3, _now), isNull);
-    });
+        expect(await memory.recall(3, _now), isNull);
+      },
+    );
   });
 }

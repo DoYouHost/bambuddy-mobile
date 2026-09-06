@@ -54,12 +54,13 @@ class _FakeCommands implements PrinterCommandsRepository {
   Future<void> selectExtruder(int id, int extruder) =>
       _do('extruder:$id:$extruder');
   @override
-  Future<void> startDrying(int id,
-          {required int amsId,
-          required int temp,
-          required int duration,
-          String filament = ''}) =>
-      _do('dryStart:$id:$amsId:$temp:$duration:$filament');
+  Future<void> startDrying(
+    int id, {
+    required int amsId,
+    required int temp,
+    required int duration,
+    String filament = '',
+  }) => _do('dryStart:$id:$amsId:$temp:$duration:$filament');
   @override
   Future<void> stopDrying(int id, {required int amsId}) =>
       _do('dryStop:$id:$amsId');
@@ -82,6 +83,7 @@ class _FakeCommands implements PrinterCommandsRepository {
       unawaited(refreshStatus(id).catchError((Object _) {}));
     }
   }
+
   @override
   Future<void> amsLoad(int id, int trayId, {int? extruderId}) =>
       _do('amsLoad:$id:$trayId:${extruderId ?? '-'}');
@@ -89,16 +91,20 @@ class _FakeCommands implements PrinterCommandsRepository {
   Future<void> amsUnload(int id, {int? trayId}) =>
       _do('amsUnload:$id:${trayId ?? '-'}');
   @override
-  Future<void> refreshAmsSlot(int id, {required int amsId, required int slotId}) =>
-      _do('amsRfid:$id:$amsId:$slotId');
+  Future<void> refreshAmsSlot(
+    int id, {
+    required int amsId,
+    required int slotId,
+  }) => _do('amsRfid:$id:$amsId:$slotId');
   @override
   Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
   @override
-  Future<void> executeHmsAction(int id,
-          {required String printError,
-          required String action,
-          String? jobId}) =>
-      _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
+  Future<void> executeHmsAction(
+    int id, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
 }
 
 ProviderContainer _container(_FakeCommands fake) {
@@ -113,31 +119,38 @@ ProviderContainer _container(_FakeCommands fake) {
 }
 
 void main() {
-  test('setLight: optymistycznie ustawia stan i „w locie", potem sukces',
-      () async {
-    final fake = _FakeCommands()..gate = Completer<void>();
-    final c = _container(fake);
-    final notifier = c.read(controlsProvider.notifier);
+  test(
+    'setLight: optymistycznie ustawia stan i „w locie", potem sukces',
+    () async {
+      final fake = _FakeCommands()..gate = Completer<void>();
+      final c = _container(fake);
+      final notifier = c.read(controlsProvider.notifier);
 
-    final future = notifier.setLight(1, on: true);
-    await Future<void>.delayed(Duration.zero); // wejdź w _run aż do bramki
+      final future = notifier.setLight(1, on: true);
+      await Future<void>.delayed(Duration.zero); // wejdź w _run aż do bramki
 
-    final midFlight = c.read(controlsProvider).pendingFor(1);
-    expect(midFlight.light, true, reason: 'optymistyczne nadpisanie od razu');
-    expect(midFlight.isBusy(ControlAction.light), true);
+      final midFlight = c.read(controlsProvider).pendingFor(1);
+      expect(midFlight.light, true, reason: 'optymistyczne nadpisanie od razu');
+      expect(midFlight.isBusy(ControlAction.light), true);
 
-    fake.gate!.complete();
-    final result = await future;
+      fake.gate!.complete();
+      final result = await future;
 
-    expect(result.isOk, isTrue);
-    final after = c.read(controlsProvider).pendingFor(1);
-    expect(after.isBusy(ControlAction.light), false, reason: 'zdjęte „w locie"');
-    expect(after.light, true, reason: 'nadpisanie zostaje (sticky) do czasu');
-    expect(fake.calls, ['light:1:true']);
-  });
+      expect(result.isOk, isTrue);
+      final after = c.read(controlsProvider).pendingFor(1);
+      expect(
+        after.isBusy(ControlAction.light),
+        false,
+        reason: 'zdjęte „w locie"',
+      );
+      expect(after.light, true, reason: 'nadpisanie zostaje (sticky) do czasu');
+      expect(fake.calls, ['light:1:true']);
+    },
+  );
 
   test('błąd → rollback: nadpisanie znika, brak blokady forbidden', () async {
-    final fake = _FakeCommands()..error = const ApiException(AppErrorCode.badResponse);
+    final fake = _FakeCommands()
+      ..error = const ApiException(AppErrorCode.badResponse);
     final c = _container(fake);
 
     final result = await c.read(controlsProvider.notifier).setSpeed(1, 3);
@@ -151,7 +164,8 @@ void main() {
   });
 
   test('403 → odmowa i lepka blokada sterowania', () async {
-    final fake = _FakeCommands()..error = const AuthException(AppErrorCode.forbidden);
+    final fake = _FakeCommands()
+      ..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
 
     final result = await c.read(controlsProvider.notifier).pause(1);
@@ -159,30 +173,35 @@ void main() {
     expect(result.isForbidden, isTrue);
     expect(c.read(controlsProvider).isRefused(ControlPermission.control), true);
     // Lifecycle nie ma nadpisania, ale „w locie" musi być zdjęte.
-    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),
-        false);
+    expect(
+      c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),
+      false,
+    );
   });
 
-  test('rollback jest chirurgiczny: błąd jednej akcji nie kasuje drugiej',
-      () async {
-    final fake = _FakeCommands();
-    final c = _container(fake);
-    final notifier = c.read(controlsProvider.notifier);
+  test(
+    'rollback jest chirurgiczny: błąd jednej akcji nie kasuje drugiej',
+    () async {
+      final fake = _FakeCommands();
+      final c = _container(fake);
+      final notifier = c.read(controlsProvider.notifier);
 
-    // Najpierw udane światło (sticky), potem prędkość która padnie.
-    await notifier.setLight(1, on: true);
-    fake.error = const ApiException(AppErrorCode.badResponse);
-    await notifier.setSpeed(1, 4);
+      // Najpierw udane światło (sticky), potem prędkość która padnie.
+      await notifier.setLight(1, on: true);
+      fake.error = const ApiException(AppErrorCode.badResponse);
+      await notifier.setSpeed(1, 4);
 
-    final st = c.read(controlsProvider).pendingFor(1);
-    expect(st.light, true, reason: 'sticky światło przeżywa błąd prędkości');
-    expect(st.speedLevel, isNull, reason: 'prędkość wycofana');
-  });
+      final st = c.read(controlsProvider).pendingFor(1);
+      expect(st.light, true, reason: 'sticky światło przeżywa błąd prędkości');
+      expect(st.speedLevel, isNull, reason: 'prędkość wycofana');
+    },
+  );
 
   test('an RFID refusal leaves the rest of the controls alone', () async {
     // The re-read has a permission of its own, so its 403 says nothing about
     // whether this key may drive the printer.
-    final fake = _FakeCommands()..error = const AuthException(AppErrorCode.forbidden);
+    final fake = _FakeCommands()
+      ..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
 
     final result = await c
@@ -191,10 +210,16 @@ void main() {
 
     expect(result.isForbidden, isTrue);
     final st = c.read(controlsProvider);
-    expect(st.isRefused(ControlPermission.amsRfid), true,
-        reason: 'the tag re-read itself stops being offered');
-    expect(st.isRefused(ControlPermission.control), false,
-        reason: 'every other control is behind a different gate');
+    expect(
+      st.isRefused(ControlPermission.amsRfid),
+      true,
+      reason: 'the tag re-read itself stops being offered',
+    );
+    expect(
+      st.isRefused(ControlPermission.control),
+      false,
+      reason: 'every other control is behind a different gate',
+    );
     expect(st.pendingFor(1).isBusy(ControlAction.ams), false);
   });
 
@@ -205,13 +230,18 @@ void main() {
 
     final loading = notifier.amsLoad(1, 6);
     await Future<void>.delayed(Duration.zero);
-    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams), true,
-        reason: 'the whole slot sheet locks, not one button');
+    expect(
+      c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
+      true,
+      reason: 'the whole slot sheet locks, not one button',
+    );
 
     fake.gate!.complete();
     await loading;
-    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
-        false);
+    expect(
+      c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
+      false,
+    );
     expect(fake.calls, ['amsLoad:1:6:-']);
   });
 
@@ -226,9 +256,14 @@ void main() {
 
       expect(c.read(controlsProvider).pendingFor(2).light, true);
 
-      async.elapse(ControlsNotifier.optimisticHold + const Duration(seconds: 1));
-      expect(c.read(controlsProvider).pendingFor(2).light, isNull,
-          reason: 'nadpisanie sprzątnięte po czasie');
+      async.elapse(
+        ControlsNotifier.optimisticHold + const Duration(seconds: 1),
+      );
+      expect(
+        c.read(controlsProvider).pendingFor(2).light,
+        isNull,
+        reason: 'nadpisanie sprzątnięte po czasie',
+      );
     });
   });
 }

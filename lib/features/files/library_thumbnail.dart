@@ -52,7 +52,9 @@ class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (!widget.hasThumbnail || baseUrl == null) return placeholder();
 
-    return ref.watch(cameraTokenProvider).when(
+    return ref
+        .watch(cameraTokenProvider)
+        .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
           data: (token) => ClipRRect(
@@ -65,10 +67,9 @@ class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
                 height: size,
                 // Avoid decoding server's full-res render for a ~56dp tile —
                 // paginated lists of these otherwise spike memory/jank.
-                cacheWidth: (size *
-                        zoom *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .round(),
+                cacheWidth:
+                    (size * zoom * MediaQuery.devicePixelRatioOf(context))
+                        .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {

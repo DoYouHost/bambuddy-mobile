@@ -34,6 +34,6 @@ typedef DetachedHandles = ({
 /// await still needs its own `mounted` check, and `showApiFailure` still wants
 /// `mounted ? messenger : null` so a refusal nobody saw is recorded as one.
 DetachedHandles detachFrom(BuildContext context) => (
-      providers: ProviderScope.containerOf(context, listen: false),
-      messenger: ScaffoldMessenger.of(context),
-    );
+  providers: ProviderScope.containerOf(context, listen: false),
+  messenger: ScaffoldMessenger.of(context),
+);

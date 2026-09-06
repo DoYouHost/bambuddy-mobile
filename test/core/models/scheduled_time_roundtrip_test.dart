@@ -22,13 +22,12 @@ void main() {
   String outbound(DateTime picked) => picked.toUtc().toIso8601String();
 
   /// Co ekran edycji odczytuje z pozycji z serwera.
-  DateTime inbound(String fromServer) =>
-      QueueItem.fromJson({
-        'id': 1,
-        'position': 1,
-        'status': 'pending',
-        'scheduled_time': fromServer,
-      }).scheduledTime!;
+  DateTime inbound(String fromServer) => QueueItem.fromJson({
+    'id': 1,
+    'position': 1,
+    'status': 'pending',
+    'scheduled_time': fromServer,
+  }).scheduledTime!;
 
   test('wybrana godzina wraca tą samą godziną', () {
     // 18:00 czasu lokalnego, jakkolwiek strefa urządzenia jest ustawiona.

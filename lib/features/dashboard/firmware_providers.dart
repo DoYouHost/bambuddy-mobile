@@ -13,8 +13,8 @@ import '../../providers.dart';
 /// show firmware (`valueOrNull == null`), never crashes dashboard.
 final firmwareProvider =
     AsyncNotifierProvider<FirmwareNotifier, Map<int, FirmwareUpdateInfo>>(
-  FirmwareNotifier.new,
-);
+      FirmwareNotifier.new,
+    );
 
 class FirmwareNotifier extends AsyncNotifier<Map<int, FirmwareUpdateInfo>> {
   @override
@@ -43,8 +43,10 @@ class FirmwareNotifier extends AsyncNotifier<Map<int, FirmwareUpdateInfo>> {
 
 /// Single printer firmware (or `null` when no data/still loading).
 /// Thin selector over [firmwareProvider] — card doesn't need to know map shape.
-final printerFirmwareProvider =
-    Provider.family<FirmwareUpdateInfo?, int>((ref, printerId) {
+final printerFirmwareProvider = Provider.family<FirmwareUpdateInfo?, int>((
+  ref,
+  printerId,
+) {
   return ref.watch(firmwareProvider).valueOrNull?[printerId];
 });
 

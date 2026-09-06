@@ -16,7 +16,13 @@ import '../common/hex_color.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
-typedef _Tray = ({int global, String? type, String? color, int? remain, bool external});
+typedef _Tray = ({
+  int global,
+  String? type,
+  String? color,
+  int? remain,
+  bool external,
+});
 
 /// Loaded filaments for a printer's AMS. Prefers the printer's LIVE AMS state:
 /// that's the source of truth the firmware resolves the mapping against, so a
@@ -25,40 +31,41 @@ typedef _Tray = ({int global, String? type, String? color, int? remain, bool ext
 /// reject the job with "unable to fetch AMS mapping". Falls back to persisted
 /// inventory assignments only when the printer is OFFLINE (assignments survive
 /// server-side), so mapping save-ahead-of-time still works.
-final printerTraysProvider =
-    FutureProvider.autoDispose.family<List<_Tray>, int>((ref, printerId) async {
-  try {
-    final live = _traysFromStatus(
-        await ref.watch(printersRepositoryProvider).fetchStatus(printerId));
-    if (live.isNotEmpty) return live;
-  } on AppApiException {
-    // Offline / unreachable — fall through to inventory assignments.
-  }
-  final inv = ref.watch(inventoryRepositoryProvider);
-  var assignments = const <SpoolAssignment>[];
-  var spools = const <Spool>[];
-  try {
-    assignments = await inv.fetchAssignments();
-    spools = await inv.fetchSpools();
-  } on AppApiException {
-    return const [];
-  }
-  final byId = {for (final s in spools) s.id: s};
-  final out = <_Tray>[];
-  for (final a in assignments) {
-    if (a.printerId != printerId) continue;
-    final s = byId[a.spoolId];
-    final global = globalTrayId(amsId: a.amsId, trayId: a.trayId);
-    out.add((
-      global: global,
-      type: s?.material,
-      color: s?.rgba,
-      remain: null,
-      external: a.isExternalSpool,
-    ));
-  }
-  return out;
-});
+final printerTraysProvider = FutureProvider.autoDispose
+    .family<List<_Tray>, int>((ref, printerId) async {
+      try {
+        final live = _traysFromStatus(
+          await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
+        );
+        if (live.isNotEmpty) return live;
+      } on AppApiException {
+        // Offline / unreachable — fall through to inventory assignments.
+      }
+      final inv = ref.watch(inventoryRepositoryProvider);
+      var assignments = const <SpoolAssignment>[];
+      var spools = const <Spool>[];
+      try {
+        assignments = await inv.fetchAssignments();
+        spools = await inv.fetchSpools();
+      } on AppApiException {
+        return const [];
+      }
+      final byId = {for (final s in spools) s.id: s};
+      final out = <_Tray>[];
+      for (final a in assignments) {
+        if (a.printerId != printerId) continue;
+        final s = byId[a.spoolId];
+        final global = globalTrayId(amsId: a.amsId, trayId: a.trayId);
+        out.add((
+          global: global,
+          type: s?.material,
+          color: s?.rgba,
+          remain: null,
+          external: a.isExternalSpool,
+        ));
+      }
+      return out;
+    });
 
 List<_Tray> _traysFromStatus(PrinterStatus? status) {
   if (status == null) return const [];
@@ -178,39 +185,54 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     final sourceId = _sourceId;
 
     Widget wrap(Widget child) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                16, 0, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
-            child: child,
-          ),
-        );
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: child,
+      ),
+    );
 
     if (sourceId == null) {
       return logTag(
         'sheet.queue_mapping',
-        wrap(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Text(l10n.mappingNoSlots),
-        ))
+        wrap(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text(l10n.mappingNoSlots),
+          ),
+        ),
       );
     }
 
-    final reqsAsync = ref.watch(filamentRequirementsProvider(
-        (isArchive: _isArchive, id: sourceId, plate: _plateId)));
+    final reqsAsync = ref.watch(
+      filamentRequirementsProvider((
+        isArchive: _isArchive,
+        id: sourceId,
+        plate: _plateId,
+      )),
+    );
     final traysAsync = ref.watch(printerTraysProvider(widget.printerId));
 
     return wrap(
       reqsAsync.isLoading || traysAsync.isLoading
-          ? const Padding(
-              padding: EdgeInsets.all(32),
-              child: DashLoading())
-          : _content(theme, reqsAsync.valueOrNull ?? const [],
-              traysAsync.valueOrNull ?? const []),
+          ? const Padding(padding: EdgeInsets.all(32), child: DashLoading())
+          : _content(
+              theme,
+              reqsAsync.valueOrNull ?? const [],
+              traysAsync.valueOrNull ?? const [],
+            ),
     );
   }
 
   Widget _content(
-      ThemeData theme, List<FilamentRequirement> reqs, List<_Tray> trays) {
+    ThemeData theme,
+    List<FilamentRequirement> reqs,
+    List<_Tray> trays,
+  ) {
     final l10n = _l10n;
     if (reqs.isEmpty) {
       // No per-slot info — nothing to map; let the caller proceed with defaults.
@@ -236,49 +258,64 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       children: [
         Text(l10n.queueFilamentMapping, style: theme.textTheme.titleLarge),
         const SizedBox(height: 2),
-        Text(widget.item.displayName,
-            style: theme.textTheme.bodySmall,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis),
+        Text(
+          widget.item.displayName,
+          style: theme.textTheme.bodySmall,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         if (trays.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-                l10n.mappingNoAms(
-                    widget.printerName ?? widget.item.printerName ?? ''),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              l10n.mappingNoAms(
+                widget.printerName ?? widget.item.printerName ?? '',
+              ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         const SizedBox(height: 12),
         for (var i = 0; i < reqs.length; i++)
           _slotRow(theme, i, reqs[i], trays),
         const SizedBox(height: 16),
         // Untouched → empty mapping = "let the backend auto-map from live AMS".
-        _confirmButton(_touched ? [for (final s in _selected) s ?? -1] : const []),
+        _confirmButton(
+          _touched ? [for (final s in _selected) s ?? -1] : const [],
+        ),
       ],
     );
   }
 
   Widget _confirmButton(List<int> mapping) => FilledButton.icon(
-        icon: const Icon(Icons.check),
-        label: Text(widget.confirmLabel),
-        onPressed: () => Navigator.pop(context, mapping),
-      ).tagged('queue_mapping.confirm');
+    icon: const Icon(Icons.check),
+    label: Text(widget.confirmLabel),
+    onPressed: () => Navigator.pop(context, mapping),
+  ).tagged('queue_mapping.confirm');
 
   Widget _slotRow(
-      ThemeData theme, int i, FilamentRequirement req, List<_Tray> trays) {
+    ThemeData theme,
+    int i,
+    FilamentRequirement req,
+    List<_Tray> trays,
+  ) {
     final l10n = _l10n;
     final sel = _selected[i];
     final matches = sel == null ? null : trays.where((t) => t.global == sel);
-    final selTray = (matches != null && matches.isNotEmpty) ? matches.first : null;
+    final selTray = (matches != null && matches.isNotEmpty)
+        ? matches.first
+        : null;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         // Show the chosen filament's colour once mapped, else the file's
         // required colour.
         leading: _swatch(theme, selTray?.color ?? req.color, 28),
-        title: Text(l10n.sliceFilamentNumbered('${i + 1}'),
-            style: theme.textTheme.labelMedium),
+        title: Text(
+          l10n.sliceFilamentNumbered('${i + 1}'),
+          style: theme.textTheme.labelMedium,
+        ),
         subtitle: Text(
           selTray == null
               ? l10n.mappingPickTray
@@ -307,10 +344,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               ListTile(
                 leading: _swatch(theme, t.color, 28),
                 title: Text(_trayLabel(t)),
-                subtitle: Text([
-                  ?t.type,
-                  if (t.remain != null && t.remain! >= 0) '${t.remain}%',
-                ].join(' · ')),
+                subtitle: Text(
+                  [
+                    ?t.type,
+                    if (t.remain != null && t.remain! >= 0) '${t.remain}%',
+                  ].join(' · '),
+                ),
                 trailing: _selected[slot] == t.global
                     ? Icon(Icons.check, color: theme.colorScheme.primary)
                     : null,
@@ -345,13 +384,18 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   }
 
   int? _autoMatch(FilamentRequirement req, List<_Tray> trays) {
-    final ofType = [
-      for (final t in trays)
-        if (req.type == null ||
-            (t.type != null && _typeMatches(t.type!, req.type!)))
-          t,
-    ]..sort((a, b) => colorDistance(a.color, req.color)
-        .compareTo(colorDistance(b.color, req.color)));
+    final ofType =
+        [
+          for (final t in trays)
+            if (req.type == null ||
+                (t.type != null && _typeMatches(t.type!, req.type!)))
+              t,
+        ]..sort(
+          (a, b) => colorDistance(
+            a.color,
+            req.color,
+          ).compareTo(colorDistance(b.color, req.color)),
+        );
     if (ofType.isNotEmpty) return ofType.first.global;
     return trays.length == 1 ? trays.first.global : null;
   }
@@ -373,8 +417,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         border: Border.all(color: theme.dividerColor),
       ),
       child: c == null
-          ? Icon(Icons.help_outline,
-              size: size * 0.6, color: theme.colorScheme.onSurfaceVariant)
+          ? Icon(
+              Icons.help_outline,
+              size: size * 0.6,
+              color: theme.colorScheme.onSurfaceVariant,
+            )
           : null,
     );
   }

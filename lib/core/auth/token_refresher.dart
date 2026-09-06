@@ -31,17 +31,16 @@ class ProactiveTokenRefresher {
     Future<bool> Function()? canRetry,
     DateTime Function()? clock,
     RefreshTimerFactory? timerFactory,
-  })  :
-        // An initializing formal would need a private parameter name, so the
-        // lint cannot be satisfied while the fields stay private.
-        // ignore: prefer_initializing_formals
-        _readExpiry = readExpiry,
-        // ignore: prefer_initializing_formals
-        _refresh = refresh,
-        // ignore: prefer_initializing_formals
-        _canRetry = canRetry,
-        _now = clock ?? (() => ambient.clock.now()),
-        _timerFactory = timerFactory ?? Timer.new;
+  }) : // An initializing formal would need a private parameter name, so the
+       // lint cannot be satisfied while the fields stay private.
+       // ignore: prefer_initializing_formals
+       _readExpiry = readExpiry,
+       // ignore: prefer_initializing_formals
+       _refresh = refresh,
+       // ignore: prefer_initializing_formals
+       _canRetry = canRetry,
+       _now = clock ?? (() => ambient.clock.now()),
+       _timerFactory = timerFactory ?? Timer.new;
 
   /// `null` when the expiry cannot be read.
   final Future<DateTime?> Function() _readExpiry;
@@ -166,11 +165,10 @@ ProactiveTokenRefresher jwtTokenRefresher({
   required CredentialsStore credentials,
   required AuthService auth,
   required String baseUrl,
-}) =>
-    ProactiveTokenRefresher(
-      readExpiry: () async => jwtExpiry(await credentials.readJwt()),
-      refresh: () async => jwtExpiry(await auth.silentReLogin(baseUrl)),
-      // `silentReLogin` clears the saved login only when the server rejected it,
-      // so an empty store separates that from the network being in the way.
-      canRetry: () async => await credentials.readRememberedLogin() != null,
-    );
+}) => ProactiveTokenRefresher(
+  readExpiry: () async => jwtExpiry(await credentials.readJwt()),
+  refresh: () async => jwtExpiry(await auth.silentReLogin(baseUrl)),
+  // `silentReLogin` clears the saved login only when the server rejected it,
+  // so an empty store separates that from the network being in the way.
+  canRetry: () async => await credentials.readRememberedLogin() != null,
+);

@@ -8,8 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 void main() {
-  testWidgets('the resolve button is exactly as tall as the URL field',
-      (tester) async {
+  testWidgets('the resolve button is exactly as tall as the URL field', (
+    tester,
+  ) async {
     // It used to be forced to a constant 56, eight pixels taller than the
     // field next to it — and a constant would drift again the moment the
     // system font size changed the field's height.

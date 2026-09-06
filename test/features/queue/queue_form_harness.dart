@@ -71,13 +71,17 @@ const printerH2C = Printer(id: 1, name: 'H2C-1', model: 'H2C');
 /// server can store.
 QueueRepository queueFormRepo({required bool triState}) {
   final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
-  dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-    // The version probe is a GET with no body; only the queue writes matter.
-    if (options.data != null) {
-      capturedBody = options.data as Map<String, dynamic>?;
-    }
-    handler.next(options);
-  }));
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        // The version probe is a GET with no body; only the queue writes matter.
+        if (options.data != null) {
+          capturedBody = options.data as Map<String, dynamic>?;
+        }
+        handler.next(options);
+      },
+    ),
+  );
   DioAdapter(dio: dio)
     ..onGet(
       '/api/v1/updates/version',
@@ -126,29 +130,26 @@ Widget queueFormScreen(
   List<Printer> printers = const [printerX2D],
   List<FilamentRequirement> requirements = const [],
   List<NozzleRackSlot>? nozzleRack,
-}) =>
-    ProviderScope(
-      overrides: [
-        noServerProfileOverride,
-        queueRepositoryProvider
-            .overrideWithValue(queueFormRepo(triState: triState)),
-        allPrintersProvider.overrideWith((ref) async => printers),
-        sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
-        triStateCalibrationProvider.overrideWith((ref) async => triState),
-        gcodeSnippetModelsProvider.overrideWith((ref) async => snippets),
-        plateListProvider.overrideWith((ref, arg) async => plates),
-        filamentRequirementsProvider
-            .overrideWith((ref, arg) async => requirements),
-        printerStatusOnceProvider.overrideWith(
-          (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
-        ),
-      ],
-      child: plApp(QueueEditScreen(
-        item: item,
-        mode: mode,
-        initialSchedule: schedule,
-      )),
-    );
+}) => ProviderScope(
+  overrides: [
+    noServerProfileOverride,
+    queueRepositoryProvider.overrideWithValue(
+      queueFormRepo(triState: triState),
+    ),
+    allPrintersProvider.overrideWith((ref) async => printers),
+    sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
+    triStateCalibrationProvider.overrideWith((ref) async => triState),
+    gcodeSnippetModelsProvider.overrideWith((ref) async => snippets),
+    plateListProvider.overrideWith((ref, arg) async => plates),
+    filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
+    printerStatusOnceProvider.overrideWith(
+      (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
+    ),
+  ],
+  child: plApp(
+    QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),
+  ),
+);
 
 /// A reprint draft of an archive, sliced for [model].
 QueueItem archiveDraft({
@@ -156,19 +157,22 @@ QueueItem archiveDraft({
   int? plateId,
   int? printerId = 1,
   String model = 'X2D',
-}) =>
-    QueueItem.draft(
-      archiveId: 77,
-      name: 'cube.3mf',
-      printerId: printerId,
-      slicedForModel: model,
-      plateId: plateId,
-      manualStart: manualStart,
-    );
+}) => QueueItem.draft(
+  archiveId: 77,
+  name: 'cube.3mf',
+  printerId: printerId,
+  slicedForModel: model,
+  plateId: plateId,
+  manualStart: manualStart,
+);
 
 /// Presses the one action of the form, whichever mode it is in.
 Future<void> submitQueueForm(WidgetTester tester, {bool edit = false}) async {
-  await tester.tap(find.widgetWithText(FilledButton,
-      edit ? formL10n.queueEditSave : formL10n.queueCreateSubmit));
+  await tester.tap(
+    find.widgetWithText(
+      FilledButton,
+      edit ? formL10n.queueEditSave : formL10n.queueCreateSubmit,
+    ),
+  );
   await tester.pumpAndSettle();
 }

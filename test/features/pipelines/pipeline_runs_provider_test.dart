@@ -16,17 +16,17 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 /// One run as `PipelineRunResponse` serialises it, with only the fields the
 /// dashboard reads filled in.
 Map<String, dynamic> runJson(int id, {String status = 'completed'}) => {
-      'id': id,
-      'pipeline_id': 3,
-      'pipeline_name': 'Gridfinity PETG',
-      'source_library_file_id': 12,
-      'copies': 1,
-      'copies_completed': status == 'completed' ? 1 : 0,
-      'status': status,
-      'eligibility_overridden': false,
-      'created_at': '2026-08-10T09:00:00',
-      'jobs': const [],
-    };
+  'id': id,
+  'pipeline_id': 3,
+  'pipeline_name': 'Gridfinity PETG',
+  'source_library_file_id': 12,
+  'copies': 1,
+  'copies_completed': status == 'completed' ? 1 : 0,
+  'status': status,
+  'eligibility_overridden': false,
+  'created_at': '2026-08-10T09:00:00',
+  'jobs': const [],
+};
 
 void main() {
   late Dio dio;
@@ -41,31 +41,34 @@ void main() {
     required List<int> ids,
     required int total,
     int limit = PipelinesRepository.pageSize,
-  }) =>
-      adapter.onGet(
-        '/api/v1/pipeline-runs',
-        (s) => s.reply(200, {
-          'runs': [for (final id in ids) runJson(id)],
-          'total': total,
-        }),
-        queryParameters: {'limit': limit, 'offset': offset},
-      );
+  }) => adapter.onGet(
+    '/api/v1/pipeline-runs',
+    (s) => s.reply(200, {
+      'runs': [for (final id in ids) runJson(id)],
+      'total': total,
+    }),
+    queryParameters: {'limit': limit, 'offset': offset},
+  );
 
   setUp(() {
     dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
     adapter = DioAdapter(dio: dio);
     repo = PipelinesRepository(dio);
-    container = ProviderContainer(overrides: [
-      pipelinesRepositoryProvider.overrideWithValue(repo),
-      // The notifier subscribes to `pipelineRunUpdates` in build(). The stream
-      // is all these cases need — `patch` is driven directly, so the socket
-      // never has to open.
-      wsClientProvider.overrideWithValue(WsClient(
-        url: Uri.parse('wss://s.local/api/v1/ws'),
-        authHeaders: () async => const {},
-        connect: (_, _) => throw StateError('no socket in these tests'),
-      )),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        pipelinesRepositoryProvider.overrideWithValue(repo),
+        // The notifier subscribes to `pipelineRunUpdates` in build(). The stream
+        // is all these cases need — `patch` is driven directly, so the socket
+        // never has to open.
+        wsClientProvider.overrideWithValue(
+          WsClient(
+            url: Uri.parse('wss://s.local/api/v1/ws'),
+            authHeaders: () async => const {},
+            connect: (_, _) => throw StateError('no socket in these tests'),
+          ),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
     // The list is autoDispose, kept alive in the app by the screen watching it.
     // Without a subscription here every read would rebuild it from loading and
@@ -94,8 +97,11 @@ void main() {
 
       final view = container.read(pipelineRunsProvider).requireValue;
       expect(view.runs.map((r) => r.id), [9, 8, 7, 6, 5]);
-      expect(view.hasMore, isFalse,
-          reason: 'five loaded of five — the footer stops offering more');
+      expect(
+        view.hasMore,
+        isFalse,
+        reason: 'five loaded of five — the footer stops offering more',
+      );
     });
 
     test('loadMore is a no-op once everything is loaded', () async {
@@ -158,8 +164,10 @@ void main() {
 
       await container.read(pipelineRunsProvider.future);
       await container.read(pipelineRunsProvider.notifier).loadMore();
-      expect(container.read(pipelineRunsProvider).requireValue.runs,
-          hasLength(5));
+      expect(
+        container.read(pipelineRunsProvider).requireValue.runs,
+        hasLength(5),
+      );
 
       // One request at the page floor, replacing all five rows.
       adapter.onGet(
@@ -171,17 +179,17 @@ void main() {
           ],
           'total': 5,
         }),
-        queryParameters: {
-          'limit': PipelinesRepository.pageSize,
-          'offset': 0,
-        },
+        queryParameters: {'limit': PipelinesRepository.pageSize, 'offset': 0},
       );
       await container.read(pipelineRunsProvider.notifier).refreshLoaded();
 
       final view = container.read(pipelineRunsProvider).requireValue;
       expect(view.runs.map((r) => r.id), [9, 8, 7, 6, 5]);
-      expect(view.runs.first.status, PipelineRunStatus.failed,
-          reason: 'the whole window is re-read, not just the first page');
+      expect(
+        view.runs.first.status,
+        PipelineRunStatus.failed,
+        reason: 'the whole window is re-read, not just the first page',
+      );
     });
 
     test('a window past one page is asked for whole', () async {
@@ -191,14 +199,18 @@ void main() {
 
       await container.read(pipelineRunsProvider.future);
       await container.read(pipelineRunsProvider.notifier).loadMore();
-      expect(container.read(pipelineRunsProvider).requireValue.runs,
-          hasLength(30));
+      expect(
+        container.read(pipelineRunsProvider).requireValue.runs,
+        hasLength(30),
+      );
 
       page(offset: 0, ids: [...first, 5, 4, 3, 2, 1], total: 30, limit: 30);
       await container.read(pipelineRunsProvider.notifier).refreshLoaded();
 
-      expect(container.read(pipelineRunsProvider).requireValue.runs,
-          hasLength(30));
+      expect(
+        container.read(pipelineRunsProvider).requireValue.runs,
+        hasLength(30),
+      );
     });
 
     test('stops at the cap the route applies silently', () async {
@@ -219,14 +231,20 @@ void main() {
       while (container.read(pipelineRunsProvider).requireValue.hasMore) {
         await container.read(pipelineRunsProvider.notifier).loadMore();
       }
-      expect(container.read(pipelineRunsProvider).requireValue.runs,
-          hasLength(150));
+      expect(
+        container.read(pipelineRunsProvider).requireValue.runs,
+        hasLength(150),
+      );
 
       var askedFor = 0;
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-        askedFor = o.queryParameters['limit'] as int;
-        h.next(o);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            askedFor = o.queryParameters['limit'] as int;
+            h.next(o);
+          },
+        ),
+      );
       page(
         offset: 0,
         ids: ids.take(PipelinesRepository.maxPageSize).toList(),
@@ -253,10 +271,7 @@ void main() {
       adapter.onGet(
         '/api/v1/pipeline-runs',
         (s) => s.reply(503, {'detail': 'gone away'}),
-        queryParameters: {
-          'limit': PipelinesRepository.pageSize,
-          'offset': 0,
-        },
+        queryParameters: {'limit': PipelinesRepository.pageSize, 'offset': 0},
       );
 
       expect(
@@ -337,14 +352,19 @@ void main() {
           .replace(const PipelineRunFilter(status: 'failed'));
 
       final view = await container.read(pipelineRunsProvider.future);
-      expect(view.runs.map((r) => r.id), [4],
-          reason: 'offsets and total both describe one filtered set');
+      expect(
+        view.runs.map((r) => r.id),
+        [4],
+        reason: 'offsets and total both describe one filtered set',
+      );
       expect(view.total, 1);
     });
 
     test('clear puts every field back', () {
       final notifier = container.read(pipelineRunFilterProvider.notifier);
-      notifier.replace(const PipelineRunFilter(pipelineId: 7, status: 'failed'));
+      notifier.replace(
+        const PipelineRunFilter(pipelineId: 7, status: 'failed'),
+      );
 
       notifier.clear();
 

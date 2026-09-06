@@ -5,10 +5,11 @@ import '../../providers.dart';
 
 /// State of "resolve URL" action on MakerWorld screen. `null` (data) = nothing
 /// resolved yet (initial state); loading during request; error with exception.
-final makerworldResolveProvider = AutoDisposeAsyncNotifierProvider<
-    MakerWorldResolveNotifier, MakerWorldResolvedModel?>(
-  MakerWorldResolveNotifier.new,
-);
+final makerworldResolveProvider =
+    AutoDisposeAsyncNotifierProvider<
+      MakerWorldResolveNotifier,
+      MakerWorldResolvedModel?
+    >(MakerWorldResolveNotifier.new);
 
 class MakerWorldResolveNotifier
     extends AutoDisposeAsyncNotifier<MakerWorldResolvedModel?> {

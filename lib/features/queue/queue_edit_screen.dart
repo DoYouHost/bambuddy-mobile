@@ -183,7 +183,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // Create passes the segment it wants instead: printing now vs. lining a job
     // up are different intents, and the entry point is the one that knows which.
     _scheduledTime = it.scheduledTime;
-    _scheduleType = widget.initialSchedule ??
+    _scheduleType =
+        widget.initialSchedule ??
         (it.scheduledTime != null
             ? QueueScheduleType.scheduled
             : QueueScheduleType.queue);
@@ -342,10 +343,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.queueEditPrintJob,
-                style: t.micro,
-              ),
+              Text(l10n.queueEditPrintJob, style: t.micro),
               const SizedBox(height: 2),
               Text(
                 it.displayName,
@@ -366,13 +364,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final models = <String>{
       for (final p in printers)
         if (p.model != null && p.model!.isNotEmpty) p.model!,
-    }.toList()
-      ..sort();
+    }.toList()..sort();
     final locations = <String>{
       for (final p in printers)
         if (p.location != null && p.location!.isNotEmpty) p.location!,
-    }.toList()
-      ..sort();
+    }.toList()..sort();
     // Model dropdown mirrors web: hidden when the file has a known sliced model
     // (the target is fixed to it), shown only for model-agnostic files.
     final slicedModel = widget.item.slicedForModel;
@@ -380,8 +376,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final anyLabel = modelFixed
         ? l10n.queueEditAnyModel(slicedModel)
         : (_targetModel != null && _targetModel!.isNotEmpty
-            ? l10n.queueEditAnyModel(_targetModel!)
-            : l10n.queueEditAnyModelGeneric);
+              ? l10n.queueEditAnyModel(_targetModel!)
+              : l10n.queueEditAnyModelGeneric);
 
     return _SectionCard(
       title: l10n.queueEditTarget,
@@ -392,7 +388,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             id: 'queue_edit.target_mode',
             selected: _modelMode,
             segments: [
-              (value: false, label: l10n.queueEditSpecificPrinter, icon: Icons.print_outlined),
+              (
+                value: false,
+                label: l10n.queueEditSpecificPrinter,
+                icon: Icons.print_outlined,
+              ),
               (value: true, label: anyLabel, icon: Icons.groups_outlined),
             ],
             onChanged: (v) => setState(() {
@@ -409,8 +409,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             _printerList(l10n, t, printers)
           else
             _modelTarget(l10n, t, models, locations, modelFixed),
-          ?_missingSnippetNote(l10n,
-              padding: const EdgeInsets.only(top: 10)),
+          ?_missingSnippetNote(l10n, padding: const EdgeInsets.only(top: 10)),
         ],
       ),
     );
@@ -418,8 +417,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
     if (printers.isEmpty) {
-      return Text(l10n.queueNoFreePrinters,
-          style: t.bodyPlain.copyWith(color: t.textTertiary));
+      return Text(
+        l10n.queueNoFreePrinters,
+        style: t.bodyPlain.copyWith(color: t.textTertiary),
+      );
     }
     return Column(
       children: [
@@ -440,8 +441,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
-  Widget _modelTarget(AppLocalizations l10n, DashTokens t, List<String> models,
-      List<String> locations, bool modelFixed) {
+  Widget _modelTarget(
+    AppLocalizations l10n,
+    DashTokens t,
+    List<String> models,
+    List<String> locations,
+    bool modelFixed,
+  ) {
     return Column(
       children: [
         if (!modelFixed && models.isNotEmpty)
@@ -463,8 +469,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           placeholder: l10n.queueEditAnyLocation,
           items: [
             (value: null, label: l10n.queueEditAnyLocation, swatch: null),
-            for (final loc in locations)
-              (value: loc, label: loc, swatch: null),
+            for (final loc in locations) (value: loc, label: loc, swatch: null),
           ],
           onChanged: (v) => setState(() => _targetLocation = v),
         ),
@@ -485,7 +490,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: FilledButton(
         style: dashPrimaryButtonStyle(t).copyWith(
           padding: const WidgetStatePropertyAll(
-              EdgeInsets.symmetric(horizontal: 18)),
+            EdgeInsets.symmetric(horizontal: 18),
+          ),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -493,7 +499,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ),
         onPressed: _saving ? null : _submit,
         child: Text(
-            widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave),
+          widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave,
+        ),
       ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
     );
   }
@@ -544,11 +551,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              widget._isCreate ? label : l10n.queueEditPlateFixed(_plateId ?? 1),
+              widget._isCreate
+                  ? label
+                  : l10n.queueEditPlateFixed(_plateId ?? 1),
               style: t.body,
             ),
           ),
-          if (widget._isCreate) Icon(Icons.chevron_right, color: t.textTertiary),
+          if (widget._isCreate)
+            Icon(Icons.chevron_right, color: t.textTertiary),
         ],
       ),
     );
@@ -623,8 +633,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   printerId == null
                       ? l10n.queueEditMappingNeedsPrinter
                       : (mapped > 0
-                          ? l10n.queueEditMappingSummary(mapped)
-                          : l10n.queueEditMappingAuto),
+                            ? l10n.queueEditMappingSummary(mapped)
+                            : l10n.queueEditMappingAuto),
                   style: t.body,
                 ),
               ),
@@ -712,9 +722,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     };
     final fits = {
       for (final entry in rack.entries)
-        if (rackSlotFits(entry.value,
-            diameter: group.need.nozzleDiameter,
-            volumeType: group.need.volumeType))
+        if (rackSlotFits(
+          entry.value,
+          diameter: group.need.nozzleDiameter,
+          volumeType: group.need.volumeType,
+        ))
           entry.key,
     };
     final positions = rack.keys.toList()..sort();
@@ -738,7 +750,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           _Dropdown<int?>(
             label: l10n.queueEditRackGroupLabel(
-                group.slots.map((s) => '$s').join(', '), needed),
+              group.slots.map((s) => '$s').join(', '),
+              needed,
+            ),
             value: _nozzleRackChoice[group.id],
             placeholder: l10n.queueEditRackAuto,
             items: [
@@ -802,12 +816,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// What one rack position holds, or the empty-dock label.
   String _rackSlotLabel(AppLocalizations l10n, NozzleRackSlot slot) =>
       slot.isEmpty
-          ? l10n.queueEditRackEmpty
-          : _nozzleLabel(
-              l10n,
-              diameter: slot.nozzleDiameter ?? '',
-              highFlow: highFlowFromCode(slot.nozzleType),
-            );
+      ? l10n.queueEditRackEmpty
+      : _nozzleLabel(
+          l10n,
+          diameter: slot.nozzleDiameter ?? '',
+          highFlow: highFlowFromCode(slot.nozzleType),
+        );
 
   /// A nozzle as both sides of this screen name it: `0.4 High flow`. The flow
   /// type is dropped when nothing states it, rather than guessed at standard.
@@ -838,18 +852,25 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final it = widget.item;
     if (it.archiveId != null) {
       return ref
-              .watch(filamentRequirementsProvider(
-                  (isArchive: true, id: it.archiveId!, plate: _plateId ?? 1)))
+              .watch(
+                filamentRequirementsProvider((
+                  isArchive: true,
+                  id: it.archiveId!,
+                  plate: _plateId ?? 1,
+                )),
+              )
               .valueOrNull ??
           const [];
     }
     if (it.libraryFileId != null) {
       return ref
-              .watch(filamentRequirementsProvider((
-                isArchive: false,
-                id: it.libraryFileId!,
-                plate: _plateId ?? 1,
-              )))
+              .watch(
+                filamentRequirementsProvider((
+                  isArchive: false,
+                  id: it.libraryFileId!,
+                  plate: _plateId ?? 1,
+                )),
+              )
               .valueOrNull ??
           const [];
     }
@@ -874,8 +895,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-    final colors =
-        (it.filamentColor ?? '').split(',').map((s) => s.trim()).toList();
+    final colors = (it.filamentColor ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .toList();
     return [
       for (var i = 0; i < types.length; i++)
         (
@@ -891,19 +914,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final available = model.isEmpty
         ? const <AvailableFilament>[]
         : (ref
-                .watch(availableFilamentsProvider((model, _targetLocation ?? '')))
-                .valueOrNull ??
-            const <AvailableFilament>[]);
+                  .watch(
+                    availableFilamentsProvider((model, _targetLocation ?? '')),
+                  )
+                  .valueOrNull ??
+              const <AvailableFilament>[]);
     final reqs = _requirements();
     return _SectionCard(
       title: l10n.queueEditFilamentOverride,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.queueEditFilamentOverrideDesc,
-            style: t.labelSoft,
-          ),
+          Text(l10n.queueEditFilamentOverrideDesc, style: t.labelSoft),
           const SizedBox(height: 12),
           if (reqs.isEmpty)
             Text(
@@ -931,7 +953,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         if (f.type.trim().toUpperCase() == canon) f,
     ];
     final override = _overrides[req.slotId];
-    final selected = override == null ? null : '${override.type}|${override.color}';
+    final selected = override == null
+        ? null
+        : '${override.type}|${override.color}';
     final typeLabel = req.type.isEmpty ? '—' : req.type;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -960,8 +984,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 _overrides.remove(req.slotId);
               } else {
                 final parts = v.split('|');
-                _overrides[req.slotId] =
-                    (type: parts[0], color: parts.length > 1 ? parts[1] : '');
+                _overrides[req.slotId] = (
+                  type: parts[0],
+                  color: parts.length > 1 ? parts[1] : '',
+                );
               }
             }),
           ),
@@ -1014,8 +1040,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // Two states until the server is known to have a third. A pre-1.2.5 server
     // rejects `auto` outright, so offering the position before the probe answers
     // would promise something we cannot deliver.
-    final triState =
-        ref.watch(triStateCalibrationProvider).orFalse;
+    final triState = ref.watch(triStateCalibrationProvider).orFalse;
     return _SectionCard(
       title: l10n.queueEditPrintOptions,
       child: Column(
@@ -1078,10 +1103,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.queueEditPreheatDesc,
-            style: t.labelSoft,
-          ),
+          Text(l10n.queueEditPreheatDesc, style: t.labelSoft),
           const SizedBox(height: 12),
           _SegToggle<String>(
             id: 'queue_edit.preheat_override',
@@ -1127,9 +1149,21 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             id: 'queue_edit.schedule_type',
             selected: _scheduleType,
             segments: [
-              (value: QueueScheduleType.asap, label: l10n.queueScheduleAsap, icon: Icons.schedule),
-              (value: QueueScheduleType.queue, label: l10n.queueScheduleQueue, icon: Icons.list),
-              (value: QueueScheduleType.scheduled, label: l10n.queueScheduleSchedule, icon: Icons.calendar_today),
+              (
+                value: QueueScheduleType.asap,
+                label: l10n.queueScheduleAsap,
+                icon: Icons.schedule,
+              ),
+              (
+                value: QueueScheduleType.queue,
+                label: l10n.queueScheduleQueue,
+                icon: Icons.list,
+              ),
+              (
+                value: QueueScheduleType.scheduled,
+                label: l10n.queueScheduleSchedule,
+                icon: Icons.calendar_today,
+              ),
             ],
             onChanged: (v) => setState(() {
               _scheduleType = v;
@@ -1178,8 +1212,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           // as the direct answer to the tap just made, and a reader that says
           // nothing leaves the tick looking like it worked. Only one of the two
           // says it, or the same sentence is read out twice.
-          ?_missingSnippetNote(l10n,
-              padding: const EdgeInsets.only(left: 4, top: 2), announce: true),
+          ?_missingSnippetNote(
+            l10n,
+            padding: const EdgeInsets.only(left: 4, top: 2),
+            announce: true,
+          ),
         ],
       ),
     );
@@ -1193,12 +1230,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: t.monoValue,
-          ),
-        ),
+        Expanded(child: Text(label, style: t.monoValue)),
         OutlinedButton(
           style: OutlinedButton.styleFrom(
             foregroundColor: t.textPrimary,
@@ -1244,8 +1276,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     final result = await ref
         .read(queueProvider.notifier)
-        .runOnRepository(widget._isCreate ? _create : _update,
-            widget._isCreate ? 'queue_edit.create' : 'queue_edit.save');
+        .runOnRepository(
+          widget._isCreate ? _create : _update,
+          widget._isCreate ? 'queue_edit.create' : 'queue_edit.save',
+        );
 
     // Remember the toggles only once a job was really created with them.
     // Editing an existing item is about THAT item — treating it as "what I print
@@ -1265,14 +1299,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   /// The print toggles as they stand in the form.
   PrintOptions get _options => PrintOptions(
-        bedLevelling: _bedLevelling,
-        flowCali: _flowCali,
-        vibrationCali: _vibrationCali,
-        layerInspect: _layerInspect,
-        timelapse: _timelapse,
-        nozzleOffsetCali: _nozzleOffsetCali,
-        gcodeInjection: _gcodeInjection,
-      );
+    bedLevelling: _bedLevelling,
+    flowCali: _flowCali,
+    vibrationCali: _vibrationCali,
+    layerInspect: _layerInspect,
+    timelapse: _timelapse,
+    nozzleOffsetCali: _nozzleOffsetCali,
+    gcodeInjection: _gcodeInjection,
+  );
 
   /// The injection flag as it may ship, or null to leave the key out.
   ///
@@ -1307,7 +1341,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         'on': _gcodeInjection,
         'sent': _gcodeInjectionPayload != null,
         'models': models.length,
-        'match': _gcodeInjection &&
+        'match':
+            _gcodeInjection &&
             models.contains(_resolvedTargetModel(watch: false)),
       },
     );
@@ -1318,8 +1353,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// omitted from the body.
   String? get _scheduledTimeIso =>
       _scheduleType == QueueScheduleType.scheduled && _scheduledTime != null
-          ? _scheduledTime!.toUtc().toIso8601String()
-          : null;
+      ? _scheduledTime!.toUtc().toIso8601String()
+      : null;
 
   /// The server's chamber ceiling — 65 from 1.2.6, 60 before it and until the
   /// version is known.
@@ -1346,37 +1381,35 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   CalibrationOption? _calibrationUpdate(
     CalibrationOption current,
     CalibrationOption stored,
-  ) =>
-      current == stored ? null : current;
+  ) => current == stored ? null : current;
 
   Future<void> _update(QueueRepository repo) => repo.updateItem(
-        widget.item.id,
-        printerId: _modelMode ? null : _printerId,
-        targetModel: _modelMode ? _targetModel : null,
-        targetLocation: _modelMode ? _targetLocation : null,
-        amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
-        filamentOverrides:
-            _modelMode ? _buildFilamentOverrides() : kQueueUpdateUnset,
-        scheduledTime: _scheduledTimeIso,
-        requirePreviousSuccess: _requirePreviousSuccess,
-        autoOffAfter: _autoOffAfter,
-        manualStart:
-            _scheduleType == QueueScheduleType.queue && _requireManualStart,
-        bedLevelling:
-            _calibrationUpdate(_bedLevelling, widget.item.bedLevelling),
-        flowCali: _calibrationUpdate(_flowCali, widget.item.flowCali),
-        vibrationCali: _vibrationCali,
-        layerInspect: _layerInspect,
-        timelapse: _timelapse,
-        nozzleOffsetCali: _showNozzleOffset
-            ? _calibrationUpdate(
-                _nozzleOffsetCali, widget.item.nozzleOffsetCali)
-            : null,
-        gcodeInjection: _gcodeInjectionPayload,
-        preheatOverride: _preheatOverride,
-        preheatChamberTargetOverride: _chamberTargetValue,
-        nozzleRackChoice: _rackChoiceUpdate,
-      );
+    widget.item.id,
+    printerId: _modelMode ? null : _printerId,
+    targetModel: _modelMode ? _targetModel : null,
+    targetLocation: _modelMode ? _targetLocation : null,
+    amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
+    filamentOverrides: _modelMode
+        ? _buildFilamentOverrides()
+        : kQueueUpdateUnset,
+    scheduledTime: _scheduledTimeIso,
+    requirePreviousSuccess: _requirePreviousSuccess,
+    autoOffAfter: _autoOffAfter,
+    manualStart:
+        _scheduleType == QueueScheduleType.queue && _requireManualStart,
+    bedLevelling: _calibrationUpdate(_bedLevelling, widget.item.bedLevelling),
+    flowCali: _calibrationUpdate(_flowCali, widget.item.flowCali),
+    vibrationCali: _vibrationCali,
+    layerInspect: _layerInspect,
+    timelapse: _timelapse,
+    nozzleOffsetCali: _showNozzleOffset
+        ? _calibrationUpdate(_nozzleOffsetCali, widget.item.nozzleOffsetCali)
+        : null,
+    gcodeInjection: _gcodeInjectionPayload,
+    preheatOverride: _preheatOverride,
+    preheatChamberTargetOverride: _chamberTargetValue,
+    nozzleRackChoice: _rackChoiceUpdate,
+  );
 
   /// The rack pick for a PATCH: the chosen positions, `null` to clear one the
   /// item still carries, and [kQueueUpdateUnset] when there is nothing to say —
@@ -1418,10 +1451,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final insertAtTop = _scheduleType == QueueScheduleType.asap;
     final printerId = _modelMode ? null : _printerId;
     return it.archiveId != null
-        ? repo.addFromArchive(it.archiveId!,
-            printerId: printerId, insertAtTop: insertAtTop, options: options)
-        : repo.addFromLibraryFile(it.libraryFileId!,
-            printerId: printerId, insertAtTop: insertAtTop, options: options);
+        ? repo.addFromArchive(
+            it.archiveId!,
+            printerId: printerId,
+            insertAtTop: insertAtTop,
+            options: options,
+          )
+        : repo.addFromLibraryFile(
+            it.libraryFileId!,
+            printerId: printerId,
+            insertAtTop: insertAtTop,
+            options: options,
+          );
   }
 }
 
@@ -1477,10 +1518,7 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: t.bodyBold.copyWith(letterSpacing: 0.2),
-          ),
+          Text(title, style: t.bodyBold.copyWith(letterSpacing: 0.2)),
           const SizedBox(height: 12),
           child,
         ],
@@ -1519,9 +1557,7 @@ class _SegToggle<T> extends StatelessWidget {
       children: [
         for (var i = 0; i < segments.length; i++) ...[
           if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: _segButton(t, segments[i]),
-          ),
+          Expanded(child: _segButton(t, segments[i])),
         ],
       ],
     );
@@ -1550,9 +1586,11 @@ class _SegToggle<T> extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (seg.icon != null) ...[
-                Icon(seg.icon,
-                    size: 16,
-                    color: isSel ? _onGreenFill : t.textSecondary),
+                Icon(
+                  seg.icon,
+                  size: 16,
+                  color: isSel ? _onGreenFill : t.textSecondary,
+                ),
                 const SizedBox(width: 6),
               ],
               Flexible(
@@ -1560,7 +1598,9 @@ class _SegToggle<T> extends StatelessWidget {
                   seg.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: t.bodyBold.copyWith(color: isSel ? _onGreenFill : t.textPrimary),
+                  style: t.bodyBold.copyWith(
+                    color: isSel ? _onGreenFill : t.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -1626,15 +1666,9 @@ class _CalibrationRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: t.titleSm,
-          ),
+          Text(title, style: t.titleSm),
           const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: t.labelSoft,
-          ),
+          Text(subtitle, style: t.labelSoft),
           const SizedBox(height: 8),
           _SegToggle<CalibrationOption>(
             id: id,
@@ -1643,7 +1677,7 @@ class _CalibrationRow extends StatelessWidget {
               (
                 value: CalibrationOption.auto,
                 label: l10n.commonAuto,
-                icon: null
+                icon: null,
               ),
               (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
               (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
@@ -1689,15 +1723,9 @@ class _OptionSwitch extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: t.titleSm,
-                  ),
+                  Text(title, style: t.titleSm),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: t.labelSoft,
-                  ),
+                  Text(subtitle, style: t.labelSoft),
                 ],
               ),
             ),
@@ -1752,12 +1780,7 @@ class _CheckRow extends StatelessWidget {
             ),
             Icon(icon, size: 18, color: t.textSecondary),
             const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: t.body,
-              ),
-            ),
+            Expanded(child: Text(label, style: t.body)),
           ],
         ),
       ),
@@ -1803,23 +1826,29 @@ class _Dropdown<T> extends StatelessWidget {
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
             elevation: const WidgetStatePropertyAll(8),
             padding: const WidgetStatePropertyAll(
-                EdgeInsets.symmetric(vertical: 6)),
+              EdgeInsets.symmetric(vertical: 6),
+            ),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(color: t.overlayBorder),
               ),
             ),
-            minimumSize:
-                WidgetStatePropertyAll(Size(constraints.maxWidth, 0)),
+            minimumSize: WidgetStatePropertyAll(Size(constraints.maxWidth, 0)),
             maximumSize: WidgetStatePropertyAll(
-                Size(constraints.maxWidth, double.infinity)),
+              Size(constraints.maxWidth, double.infinity),
+            ),
           ),
           menuChildren: [
             for (final it in items)
-              _menuItem(t, it.label, it.swatch, it.value == value,
-                  disabled?.contains(it.value) ?? false,
-                  () => onChanged(it.value)),
+              _menuItem(
+                t,
+                it.label,
+                it.swatch,
+                it.value == value,
+                disabled?.contains(it.value) ?? false,
+                () => onChanged(it.value),
+              ),
           ],
           builder: (context, controller, _) => _field(
             t,
@@ -1834,8 +1863,14 @@ class _Dropdown<T> extends StatelessWidget {
     );
   }
 
-  Widget _menuItem(DashTokens t, String label, Color? swatch, bool selected,
-      bool disabled, VoidCallback onTap) {
+  Widget _menuItem(
+    DashTokens t,
+    String label,
+    Color? swatch,
+    bool selected,
+    bool disabled,
+    VoidCallback onTap,
+  ) {
     return MenuItemButton(
       onPressed: disabled ? null : onTap,
       leadingIcon: swatch != null
@@ -1888,15 +1923,9 @@ class _Dropdown<T> extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      style: t.micro,
-                    ),
+                    Text(label, style: t.micro),
                     const SizedBox(height: 2),
-                    Text(
-                      text,
-                      style: t.titleSm,
-                    ),
+                    Text(text, style: t.titleSm),
                   ],
                 ),
               ),
@@ -1924,7 +1953,10 @@ class _SwatchDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: ring ?? t.hairline, width: ring != null ? 2 : 1),
+        border: Border.all(
+          color: ring ?? t.hairline,
+          width: ring != null ? 2 : 1,
+        ),
       ),
     );
   }
@@ -1960,27 +1992,26 @@ class _SelectableTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? t.accentGreen.withValues(alpha: 0.5) : t.groupCardBorder,
+                color: selected
+                    ? t.accentGreen.withValues(alpha: 0.5)
+                    : t.groupCardBorder,
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.print_outlined,
-                    size: 20, color: selected ? t.accentGreenInk : t.textSecondary),
+                Icon(
+                  Icons.print_outlined,
+                  size: 20,
+                  color: selected ? t.accentGreenInk : t.textSecondary,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: t.titleSm,
-                      ),
+                      Text(title, style: t.titleSm),
                       if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: t.monoMicro,
-                        ),
+                        Text(subtitle, style: t.monoMicro),
                     ],
                   ),
                 ),

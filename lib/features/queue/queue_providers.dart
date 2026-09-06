@@ -11,16 +11,16 @@ import '../../providers.dart';
 
 /// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
 /// Used by the queue filament-mapping sheet to list loaded AMS filaments.
-final printerStatusOnceProvider =
-    FutureProvider.autoDispose.family<PrinterStatus?, int>(
-  (ref, printerId) =>
-      ref.watch(printersRepositoryProvider).fetchStatus(printerId),
-);
+final printerStatusOnceProvider = FutureProvider.autoDispose
+    .family<PrinterStatus?, int>(
+      (ref, printerId) =>
+          ref.watch(printersRepositoryProvider).fetchStatus(printerId),
+    );
 
 final queueProvider =
     AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
-  QueueNotifier.new,
-);
+      QueueNotifier.new,
+    );
 
 /// Print queue (M5). Shows only ACTIVE items (pending, scheduled, printing, paused)
 /// sorted by `position` — history (completed/cancelled) lives in archive, not queue.
@@ -46,13 +46,12 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     // until queue is arranged, so stable tiebreaker is needed or order is undefined.
     int printingFirst(QueueItem i) =>
         i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
-    return items.where((i) => i.isActive).toList()
-      ..sort((a, b) {
-        final byPrinting = printingFirst(a).compareTo(printingFirst(b));
-        if (byPrinting != 0) return byPrinting;
-        final byPos = a.position.compareTo(b.position);
-        return byPos != 0 ? byPos : a.id.compareTo(b.id);
-      });
+    return items.where((i) => i.isActive).toList()..sort((a, b) {
+      final byPrinting = printingFirst(a).compareTo(printingFirst(b));
+      if (byPrinting != 0) return byPrinting;
+      final byPos = a.position.compareTo(b.position);
+      return byPos != 0 ? byPos : a.id.compareTo(b.id);
+    });
   }
 
   /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
@@ -108,9 +107,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     final current = state.valueOrNull;
     if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
-    state = AsyncValue.data(
-      current.where((i) => i.id != itemId).toList(),
-    );
+    state = AsyncValue.data(current.where((i) => i.id != itemId).toList());
     try {
       await ref.read(queueRepositoryProvider).delete(itemId);
       return ActionOutcome.ok;
@@ -123,13 +120,15 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// Manually start item — triggers physical print. On success, fetch fresh list
   /// (status changes server-side).
   Future<ActionOutcome> start(int itemId) => _serverAction(
-      () => ref.read(queueRepositoryProvider).start(itemId),
-      'queue.start');
+    () => ref.read(queueRepositoryProvider).start(itemId),
+    'queue.start',
+  );
 
   /// Cancel queue item. On success, refresh list.
   Future<ActionOutcome> cancel(int itemId) => _serverAction(
-      () => ref.read(queueRepositoryProvider).cancel(itemId),
-      'queue.cancel');
+    () => ref.read(queueRepositoryProvider).cancel(itemId),
+    'queue.cancel',
+  );
 
   /// Stop the print a `printing` item is running, which also drops it from the
   /// queue — the only route that clears such a row. On success, refresh list.
@@ -137,14 +136,17 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// Not optimistic like [delete]: the server decides whether the row ends up
   /// `cancelled` or refuses outright, and the refreshed list is the answer.
   Future<ActionOutcome> stop(int itemId) => _serverAction(
-      () => ref.read(queueRepositoryProvider).stop(itemId), 'queue.stop');
+    () => ref.read(queueRepositoryProvider).stop(itemId),
+    'queue.stop',
+  );
 
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
   Future<ActionOutcome> saveMapping(int itemId, List<int> mapping) =>
       _serverAction(
-          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping),
-          'queue.save_mapping');
+        () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping),
+        'queue.save_mapping',
+      );
 
   /// Assign indicated (free) printer and start item — triggers physical print.
   /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
@@ -154,15 +156,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     int itemId,
     int printerId, {
     List<int>? amsMapping,
-  }) =>
-      _serverAction(() async {
-        final repo = ref.read(queueRepositoryProvider);
-        await repo.assignPrinter(itemId, printerId);
-        if (amsMapping != null && amsMapping.isNotEmpty) {
-          await repo.setAmsMapping(itemId, amsMapping);
-        }
-        await repo.start(itemId);
-      }, 'queue.start_on_printer');
+  }) => _serverAction(() async {
+    final repo = ref.read(queueRepositoryProvider);
+    await repo.assignPrinter(itemId, printerId);
+    if (amsMapping != null && amsMapping.isNotEmpty) {
+      await repo.setAmsMapping(itemId, amsMapping);
+    }
+    await repo.start(itemId);
+  }, 'queue.start_on_printer');
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via
@@ -172,14 +173,12 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   Future<ActionOutcome> runOnRepository(
     Future<void> Function(QueueRepository repo) action,
     String logId,
-  ) =>
-      _serverAction(() => action(ref.read(queueRepositoryProvider)), logId);
+  ) => _serverAction(() => action(ref.read(queueRepositoryProvider)), logId);
 
   Future<ActionOutcome> _serverAction(
     Future<void> Function() send,
     String logId,
-  ) =>
-      runAction(send, logId: logId, onSuccess: refresh);
+  ) => runAction(send, logId: logId, onSuccess: refresh);
 }
 
 /// Candidate for target printer in "start next". Carries printer itself plus
@@ -191,54 +190,56 @@ typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
 /// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,
 /// so the item's currently-assigned printer is always present and selectable
 /// (mirrors the web edit modal's `showInactive`).
-final allPrintersProvider = FutureProvider.autoDispose<List<Printer>>(
-  (ref) async {
-    final all = await ref.watch(printersRepositoryProvider).fetchAll();
-    return [for (final p in all) p.printer];
-  },
-);
+final allPrintersProvider = FutureProvider.autoDispose<List<Printer>>((
+  ref,
+) async {
+  final all = await ref.watch(printersRepositoryProvider).fetchAll();
+  return [for (final p in all) p.printer];
+});
 
 /// Filaments loaded on active printers of a model, for the Edit Queue Item
 /// filament-override dropdowns. Keyed by `(model, location)` — location `''`
 /// means no filter.
 final availableFilamentsProvider = FutureProvider.autoDispose
     .family<List<AvailableFilament>, (String, String)>(
-  (ref, key) => ref.watch(printersRepositoryProvider).fetchAvailableFilaments(
-        key.$1,
-        location: key.$2.isEmpty ? null : key.$2,
-      ),
-);
+      (ref, key) => ref
+          .watch(printersRepositoryProvider)
+          .fetchAvailableFilaments(
+            key.$1,
+            location: key.$2.isEmpty ? null : key.$2,
+          ),
+    );
 
 /// Printers available to start next print on. Only exclude those ACTUALLY busy
 /// (printing/paused) — OFFLINE printers stay in list because bambuddy will wake
 /// them before start (with own smart plug or otherwise). Fetches printers + statuses
 /// + plug map fresh on each call (autoDispose) because availability changes over time.
 final availablePrintersProvider =
-    FutureProvider.autoDispose<List<PrinterCandidate>>(
-  (ref) async {
-    final all = await ref.watch(printersRepositoryProvider).fetchAll();
+    FutureProvider.autoDispose<List<PrinterCandidate>>((ref) async {
+      final all = await ref.watch(printersRepositoryProvider).fetchAll();
 
-    // Plug assignments are optional enrichment — their absence/failure can't block
-    // printer selection, so treat error as "no plugs".
-    Set<int> printersWithPlug = const {};
-    try {
-      final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
-      printersWithPlug = {
-        for (final plug in plugs)
-          if ((plug.enabled ?? true) && plug.printerId != null) plug.printerId!,
-      };
-    } on AppApiException {
-      // Leave empty set — no plug markings
-    }
+      // Plug assignments are optional enrichment — their absence/failure can't block
+      // printer selection, so treat error as "no plugs".
+      Set<int> printersWithPlug = const {};
+      try {
+        final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
+        printersWithPlug = {
+          for (final plug in plugs)
+            if ((plug.enabled ?? true) && plug.printerId != null)
+              plug.printerId!,
+        };
+      } on AppApiException {
+        // Leave empty set — no plug markings
+      }
 
-    return [
-      for (final p in all)
-        if (!(p.status?.isPrinting ?? false) && !(p.status?.isPaused ?? false))
-          (
-            printer: p.printer,
-            online: p.status?.connected ?? false,
-            hasPlug: printersWithPlug.contains(p.printer.id),
-          ),
-    ];
-  },
-);
+      return [
+        for (final p in all)
+          if (!(p.status?.isPrinting ?? false) &&
+              !(p.status?.isPaused ?? false))
+            (
+              printer: p.printer,
+              online: p.status?.connected ?? false,
+              hasPlug: printersWithPlug.contains(p.printer.id),
+            ),
+      ];
+    });

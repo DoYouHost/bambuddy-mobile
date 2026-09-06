@@ -50,7 +50,6 @@ const List<int> _milestones = [25, 50, 75];
 /// drops whatever follows without a word.
 const int _maxAlertActions = 3;
 
-
 /// How long an HMS code is remembered after it last appeared. A code that drops
 /// out of `hms_errors` for less than this is treated as the SAME ongoing fault
 /// and won't re-alert when it flickers back — some codes (e.g. chamber-temp
@@ -90,11 +89,10 @@ const Duration _humidityAlertCooldown = Duration(hours: 1);
 /// a print we joined halfway or to the one that just ended.
 const int _firstLayerLayerCeiling = 10;
 
-
 /// Monitor state for one printer — tracks event edges between frames.
 class _PrinterMemo {
   _PrinterMemo(TimerFactory timerFactory)
-      : offline = OfflineDebounce(timerFactory: timerFactory);
+    : offline = OfflineDebounce(timerFactory: timerFactory);
 
   bool printing = false;
   bool firstLayerSent = false;
@@ -196,12 +194,12 @@ class PrintMonitor {
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
-  })  : _l10n = l10n ?? systemAppLocalizations,
-        _now = clock ?? (() => ambient.clock.now()),
-        _formats = formats ?? DateTimeFormats.system,
-        _timer = timerFactory ?? Timer.new,
-        // ignore: prefer_initializing_formals — private field with a named param
-        _hmsDescribe = hmsDescribe;
+  }) : _l10n = l10n ?? systemAppLocalizations,
+       _now = clock ?? (() => ambient.clock.now()),
+       _formats = formats ?? DateTimeFormats.system,
+       _timer = timerFactory ?? Timer.new,
+       // ignore: prefer_initializing_formals — private field with a named param
+       _hmsDescribe = hmsDescribe;
 
   final NotificationService _notifications;
   final NotificationPrefs _prefs;
@@ -301,8 +299,11 @@ class PrintMonitor {
   /// Printer name from frame (status may not be known), with fallback to list title.
   void onPlateNotEmpty(int printerId, String? printerName) {
     if (!_on(NotifEvent.plateNotEmpty)) {
-      NotifProbe.suppressed(_offReason,
-          printerId: printerId, event: NotifEvent.plateNotEmpty);
+      NotifProbe.suppressed(
+        _offReason,
+        printerId: printerId,
+        event: NotifEvent.plateNotEmpty,
+      );
       return;
     }
     _alertPlate(printerId, printerName);
@@ -402,8 +403,11 @@ class PrintMonitor {
       if (_on(NotifEvent.printStarted)) {
         _alertStarted(id, status);
       } else {
-        NotifProbe.suppressed(_offReason,
-            printerId: id, event: NotifEvent.printStarted);
+        NotifProbe.suppressed(
+          _offReason,
+          printerId: id,
+          event: NotifEvent.printStarted,
+        );
       }
     }
 
@@ -417,8 +421,11 @@ class PrintMonitor {
           if (_on(NotifEvent.printFinished)) {
             _alertFinished(id, status);
           } else {
-            NotifProbe.suppressed(_offReason,
-                printerId: id, event: NotifEvent.printFinished);
+            NotifProbe.suppressed(
+              _offReason,
+              printerId: id,
+              event: NotifEvent.printFinished,
+            );
           }
           // Maintenance reminder independent of print finish prefs.
           _onPrintEnded?.call(id);
@@ -427,8 +434,11 @@ class PrintMonitor {
           if (_on(NotifEvent.printFailed)) {
             _alertFailed(id, status);
           } else {
-            NotifProbe.suppressed(_offReason,
-                printerId: id, event: NotifEvent.printFailed);
+            NotifProbe.suppressed(
+              _offReason,
+              printerId: id,
+              event: NotifEvent.printFailed,
+            );
           }
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
@@ -476,8 +486,11 @@ class PrintMonitor {
       if (_on(NotifEvent.firstLayer)) {
         _alertFirstLayer(id, status);
       } else {
-        NotifProbe.suppressed(_offReason,
-            printerId: id, event: NotifEvent.firstLayer);
+        NotifProbe.suppressed(
+          _offReason,
+          printerId: id,
+          event: NotifEvent.firstLayer,
+        );
       }
     }
 
@@ -496,10 +509,12 @@ class PrintMonitor {
             if (on) {
               _alertMilestone(id, status, m);
             } else {
-              NotifProbe.suppressed(_offReason,
-                  printerId: id,
-                  event: NotifEvent.milestones,
-                  fields: {'pct': m});
+              NotifProbe.suppressed(
+                _offReason,
+                printerId: id,
+                event: NotifEvent.milestones,
+                fields: {'pct': m},
+              );
             }
           }
         }
@@ -629,10 +644,10 @@ class PrintMonitor {
   /// The job half of a frame. The name is compared, never recorded — a print's
   /// file name is user data and stays out of the log (`docs/diagnostics-log.md`).
   static _JobFrame _jobFrame(PrinterStatus status) => (
-        layer: status.layerNum,
-        progress: status.progress?.round(),
-        job: status.currentPrint ?? status.gcodeFile,
-      );
+    layer: status.layerNum,
+    progress: status.progress?.round(),
+    job: status.currentPrint ?? status.gcodeFile,
+  );
 
   /// One record per print for the progress this gate ignored. Prep lasts minutes
   /// and every frame in it carries a percentage, so recording each would bury the
@@ -655,16 +670,22 @@ class PrintMonitor {
         if (_on(NotifEvent.printerOffline)) {
           _alertOffline(id, status);
         } else {
-          NotifProbe.suppressed(_offReason,
-              printerId: id, event: NotifEvent.printerOffline);
+          NotifProbe.suppressed(
+            _offReason,
+            printerId: id,
+            event: NotifEvent.printerOffline,
+          );
         }
       },
       // The alert the wait was holding back never happened, which answers both
       // "the offline alert came fifteen seconds late" and "it never came at
       // all". One record per flap: a disconnect already alerted for is not
       // holding anything back.
-      onFlicker: () => NotifProbe.suppressed(NotifSkip.reconnected,
-          printerId: id, event: NotifEvent.printerOffline),
+      onFlicker: () => NotifProbe.suppressed(
+        NotifSkip.reconnected,
+        printerId: id,
+        event: NotifEvent.printerOffline,
+      ),
     );
   }
 
@@ -689,8 +710,9 @@ class PrintMonitor {
     // evidence that anything cleared, so the whole memory holds still for the
     // outage rather than ageing out against a clock nothing is answering.
     if (online) {
-      memo.hmsLastSeen
-          .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
+      memo.hmsLastSeen.removeWhere(
+        (_, seen) => now.difference(seen) >= _hmsClearGrace,
+      );
       memo.hmsDeferredOffline.clear();
     }
 
@@ -792,8 +814,11 @@ class PrintMonitor {
     if (_on(NotifEvent.lowFilament)) {
       _alertLowFilament(id, status, triggeredRemain ?? threshold);
     } else {
-      NotifProbe.suppressed(_offReason,
-          printerId: id, event: NotifEvent.lowFilament);
+      NotifProbe.suppressed(
+        _offReason,
+        printerId: id,
+        event: NotifEvent.lowFilament,
+      );
     }
   }
 
@@ -847,8 +872,11 @@ class PrintMonitor {
     if (_on(NotifEvent.amsHumidity)) {
       _alertHumidity(id, status, value, isHt ?? false);
     } else {
-      NotifProbe.suppressed(_offReason,
-          printerId: id, event: NotifEvent.amsHumidity);
+      NotifProbe.suppressed(
+        _offReason,
+        printerId: id,
+        event: NotifEvent.amsHumidity,
+      );
     }
   }
 
@@ -861,8 +889,11 @@ class PrintMonitor {
       if (_on(NotifEvent.bedCooled)) {
         _alertBedCooled(id, status, bed.round());
       } else {
-        NotifProbe.suppressed(_offReason,
-            printerId: id, event: NotifEvent.bedCooled);
+        NotifProbe.suppressed(
+          _offReason,
+          printerId: id,
+          event: NotifEvent.bedCooled,
+        );
       }
     }
   }
@@ -870,8 +901,10 @@ class PrintMonitor {
   /// Ongoing notification for currently printing (one, for earliest ETA).
   void _updateOngoing(Map<int, PrinterStatus> statuses) {
     final printing = statuses.values.where((s) => s.isPrinting).toList()
-      ..sort((a, b) => (a.remainingTime ?? 1 << 30)
-          .compareTo(b.remainingTime ?? 1 << 30));
+      ..sort(
+        (a, b) =>
+            (a.remainingTime ?? 1 << 30).compareTo(b.remainingTime ?? 1 << 30),
+      );
 
     if (printing.isEmpty) {
       if (_lastOngoing != null) {
@@ -884,7 +917,12 @@ class PrintMonitor {
 
     final lead = printing.first; // Finishes earliest
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
-    final key = _OngoingKey(lead.id, percent, lead.remainingTime, printing.length);
+    final key = _OngoingKey(
+      lead.id,
+      percent,
+      lead.remainingTime,
+      printing.length,
+    );
     if (key == _lastOngoing) return; // Nothing material changed
     _lastOngoing = key;
     // Recorded here rather than in the notification decorator: by the time the
@@ -970,8 +1008,9 @@ class PrintMonitor {
 
   void _alertPlate(int id, String? printerName) {
     final l = _l10n();
-    final name =
-        (printerName?.trim().isNotEmpty ?? false) ? printerName!.trim() : null;
+    final name = (printerName?.trim().isNotEmpty ?? false)
+        ? printerName!.trim()
+        : null;
     _notifications.showAlert(
       event: NotifEvent.plateNotEmpty,
       printerId: id,
@@ -1131,15 +1170,15 @@ class PrintMonitor {
   String? _etaClock(int? minutes) {
     if (minutes == null) return null;
     final now = _now();
-    return _formats()
-        .clockOnDay(now.add(Duration(minutes: minutes)), now: now);
+    return _formats().clockOnDay(now.add(Duration(minutes: minutes)), now: now);
   }
 }
 
 /// System locale narrowed to supported ones (en/pl) — `lookupAppLocalizations`
 /// throws on unsupported language, and monitor (and background isolate) runs outside
 /// widget tree, so no `BuildContext` for normal `AppLocalizations.of`.
-AppLocalizations systemAppLocalizations() => lookupAppLocalizations(systemLocale());
+AppLocalizations systemAppLocalizations() =>
+    lookupAppLocalizations(systemLocale());
 
 /// System locale narrowed to supported ones (en/pl) — also used by HMS catalog.
 Locale systemLocale() {

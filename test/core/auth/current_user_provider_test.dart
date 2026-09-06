@@ -37,17 +37,18 @@ CurrentUser _user({
   bool isAdmin = false,
   Set<String> permissions = const {},
   bool permissionsKnown = true,
-}) =>
-    CurrentUser(
-      id: 1,
-      username: 'u',
-      isAdmin: isAdmin,
-      permissions: permissions,
-      permissionsKnown: permissionsKnown,
-    );
+}) => CurrentUser(
+  id: 1,
+  username: 'u',
+  isAdmin: isAdmin,
+  permissions: permissions,
+  permissionsKnown: permissionsKnown,
+);
 
-const _jwtProfile =
-    ServerProfile(baseUrl: 'http://s.local:8000', authMode: AuthMode.jwt);
+const _jwtProfile = ServerProfile(
+  baseUrl: 'http://s.local:8000',
+  authMode: AuthMode.jwt,
+);
 
 void main() {
   late _FakeAccount account;
@@ -69,13 +70,15 @@ void main() {
   });
 
   group('currentUserProvider', () {
-    test('without a profile nobody is signed in and nothing is asked',
-        () async {
-      final container = makeContainer();
+    test(
+      'without a profile nobody is signed in and nothing is asked',
+      () async {
+        final container = makeContainer();
 
-      expect(await container.read(currentUserProvider.future), isNull);
-      expect(account.calls, 0);
-    });
+        expect(await container.read(currentUserProvider.future), isNull);
+        expect(account.calls, 0);
+      },
+    );
 
     test('a restored session reads GET /auth/me once', () async {
       // Startup path: the profile comes from settings, no login ran, so the
@@ -108,28 +111,35 @@ void main() {
       expect(account.calls, 0);
     });
 
-    test('the hand-off is spent once — the next profile change refetches',
-        () async {
-      final container = makeContainer();
-      await container.read(currentUserProvider.future);
-      final notifier =
-          container.read(serverProfileProvider.notifier) as _TestProfileNotifier;
+    test(
+      'the hand-off is spent once — the next profile change refetches',
+      () async {
+        final container = makeContainer();
+        await container.read(currentUserProvider.future);
+        final notifier =
+            container.read(serverProfileProvider.notifier)
+                as _TestProfileNotifier;
 
-      container.read(currentUserProvider.notifier).adopt(_user(isAdmin: true));
-      notifier.set(_jwtProfile);
-      await container.read(currentUserProvider.future);
-      expect(account.calls, 0);
+        container
+            .read(currentUserProvider.notifier)
+            .adopt(_user(isAdmin: true));
+        notifier.set(_jwtProfile);
+        await container.read(currentUserProvider.future);
+        expect(account.calls, 0);
 
-      // Switching servers must not carry the previous server's identity over.
-      account.user = _user(permissions: {'groups:read'});
-      notifier.set(const ServerProfile(
-        baseUrl: 'http://other.local:8000',
-        authMode: AuthMode.jwt,
-      ));
-      final user = await container.read(currentUserProvider.future);
-      expect(account.calls, 1);
-      expect(user?.can(Permissions.groupsRead), isTrue);
-    });
+        // Switching servers must not carry the previous server's identity over.
+        account.user = _user(permissions: {'groups:read'});
+        notifier.set(
+          const ServerProfile(
+            baseUrl: 'http://other.local:8000',
+            authMode: AuthMode.jwt,
+          ),
+        );
+        final user = await container.read(currentUserProvider.future);
+        expect(account.calls, 1);
+        expect(user?.can(Permissions.groupsRead), isTrue);
+      },
+    );
 
     test('a server with auth off is not asked at all', () async {
       // `/auth/me` requires credentials and would only answer 401 there.
@@ -143,32 +153,39 @@ void main() {
       expect(account.calls, 0);
     });
 
-    test('the demo profile is asked, despite carrying no credentials',
-        () async {
-      // The demo backend serves `/auth/me` itself, so the app shows the demo
-      // identity rather than an unknown one.
-      _TestProfileNotifier.initial = const ServerProfile(
-        baseUrl: DemoConfig.baseUrl,
-        authMode: AuthMode.none,
-      );
-      account.user = _user(isAdmin: true);
-      final container = makeContainer();
+    test(
+      'the demo profile is asked, despite carrying no credentials',
+      () async {
+        // The demo backend serves `/auth/me` itself, so the app shows the demo
+        // identity rather than an unknown one.
+        _TestProfileNotifier.initial = const ServerProfile(
+          baseUrl: DemoConfig.baseUrl,
+          authMode: AuthMode.none,
+        );
+        account.user = _user(isAdmin: true);
+        final container = makeContainer();
 
-      expect((await container.read(currentUserProvider.future))?.isAdmin, isTrue);
-      expect(account.calls, 1);
-    });
+        expect(
+          (await container.read(currentUserProvider.future))?.isAdmin,
+          isTrue,
+        );
+        expect(account.calls, 1);
+      },
+    );
 
-    test('a failed request leaves the identity unknown, not an error state',
-        () async {
-      // An older server (404) or an offline one must not put an error on the
-      // screen — nothing here is user-facing on its own.
-      _TestProfileNotifier.initial = _jwtProfile;
-      account.error = const ApiException(AppErrorCode.serverUnreachable);
-      final container = makeContainer();
+    test(
+      'a failed request leaves the identity unknown, not an error state',
+      () async {
+        // An older server (404) or an offline one must not put an error on the
+        // screen — nothing here is user-facing on its own.
+        _TestProfileNotifier.initial = _jwtProfile;
+        account.error = const ApiException(AppErrorCode.serverUnreachable);
+        final container = makeContainer();
 
-      expect(await container.read(currentUserProvider.future), isNull);
-      expect(container.read(currentUserProvider).hasError, isFalse);
-    });
+        expect(await container.read(currentUserProvider.future), isNull);
+        expect(container.read(currentUserProvider).hasError, isFalse);
+      },
+    );
 
     test('refresh re-reads the server', () async {
       _TestProfileNotifier.initial = _jwtProfile;
@@ -181,7 +198,10 @@ void main() {
       await container.read(currentUserProvider.notifier).refresh();
 
       expect(account.calls, 2);
-      expect(container.read(permissionProvider(Permissions.groupsRead)), isTrue);
+      expect(
+        container.read(permissionProvider(Permissions.groupsRead)),
+        isTrue,
+      );
     });
 
     test('signing out drops the identity', () async {
@@ -204,7 +224,10 @@ void main() {
       await container.read(currentUserProvider.future);
 
       expect(container.read(permissionProvider(Permissions.usersRead)), isTrue);
-      expect(container.read(permissionProvider(Permissions.groupsRead)), isFalse);
+      expect(
+        container.read(permissionProvider(Permissions.groupsRead)),
+        isFalse,
+      );
       expect(container.read(isAdminProvider), isFalse);
     });
 
@@ -214,7 +237,10 @@ void main() {
       final container = makeContainer();
       await container.read(currentUserProvider.future);
 
-      expect(container.read(permissionProvider(Permissions.usersRead)), isFalse);
+      expect(
+        container.read(permissionProvider(Permissions.usersRead)),
+        isFalse,
+      );
       expect(container.read(isAdminProvider), isFalse);
     });
 
@@ -224,7 +250,10 @@ void main() {
       final container = makeContainer();
       await container.read(currentUserProvider.future);
 
-      expect(container.read(permissionProvider(Permissions.apiKeysRead)), isTrue);
+      expect(
+        container.read(permissionProvider(Permissions.apiKeysRead)),
+        isTrue,
+      );
       expect(container.read(isAdminProvider), isTrue);
     });
 
@@ -245,15 +274,20 @@ void main() {
       expect(failed.read(isAdminProvider), isTrue);
     });
 
-    test('a server that sends no permissions field grants everything',
-        () async {
-      _TestProfileNotifier.initial = _jwtProfile;
-      account.user = _user(permissionsKnown: false);
-      final container = makeContainer();
-      await container.read(currentUserProvider.future);
+    test(
+      'a server that sends no permissions field grants everything',
+      () async {
+        _TestProfileNotifier.initial = _jwtProfile;
+        account.user = _user(permissionsKnown: false);
+        final container = makeContainer();
+        await container.read(currentUserProvider.future);
 
-      expect(container.read(permissionProvider(Permissions.usersRead)), isTrue);
-      expect(container.read(permissionProvider('anything:at:all')), isTrue);
-    });
+        expect(
+          container.read(permissionProvider(Permissions.usersRead)),
+          isTrue,
+        );
+        expect(container.read(permissionProvider('anything:at:all')), isTrue);
+      },
+    );
   });
 }

@@ -7,8 +7,10 @@ void main() {
       '{"A1 mini":{"start_gcode":"G4 S1","end_gcode":""},'
       '"X1C":{"start_gcode":"","end_gcode":";plate-swap"}}',
     );
-    expect(models, {'A1 mini', 'X1C'},
-        reason: 'wystarczy jeden z dwóch snippetów');
+    expect(models, {
+      'A1 mini',
+      'X1C',
+    }, reason: 'wystarczy jeden z dwóch snippetów');
   });
 
   test('model z pustymi snippetami się nie liczy', () {
@@ -31,8 +33,11 @@ void main() {
     expect(gcodeSnippetModels('{nie-json'), isEmpty);
     expect(gcodeSnippetModels('[1,2,3]'), isEmpty);
     expect(gcodeSnippetModels(42), isEmpty);
-    expect(gcodeSnippetModels('{"X1C":"G4 S1"}'), isEmpty,
-        reason: 'wpis musi być obiektem ze start_gcode/end_gcode');
+    expect(
+      gcodeSnippetModels('{"X1C":"G4 S1"}'),
+      isEmpty,
+      reason: 'wpis musi być obiektem ze start_gcode/end_gcode',
+    );
   });
 
   test('serwer oddający obiekt zamiast stringa też jest rozumiany', () {
@@ -47,7 +52,8 @@ void main() {
   test('klucz to model dokładnie tak, jak go podaje drukarka', () {
     // Server matches `printer.model` verbatim — no case folding, no trimming,
     // so "a1 mini" is a different model than "A1 mini" and must not match.
-    expect(gcodeSnippetModels('{"a1 mini":{"start_gcode":"G28"}}'),
-        {'a1 mini'});
+    expect(gcodeSnippetModels('{"a1 mini":{"start_gcode":"G28"}}'), {
+      'a1 mini',
+    });
   });
 }

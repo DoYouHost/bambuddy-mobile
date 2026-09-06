@@ -59,7 +59,10 @@ void main() {
 
     expect(f.server, isNull);
     expect(f.app, '0.11.6+1106');
-    expect(f.serverUrl?.scheme, 'https',
-        reason: 'pozostałe fakty zebrane normalnie');
+    expect(
+      f.serverUrl?.scheme,
+      'https',
+      reason: 'pozostałe fakty zebrane normalnie',
+    );
   });
 }

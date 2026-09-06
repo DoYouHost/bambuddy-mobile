@@ -7,7 +7,8 @@ void main() {
   group('QueueItem.fromJson', () {
     test('parsuje drukujący element kolejki, ignorując nieznane pola', () {
       final item = QueueItem.fromJson(
-          readFixture('queue_item.json') as Map<String, dynamic>);
+        readFixture('queue_item.json') as Map<String, dynamic>,
+      );
 
       expect(item.id, 78);
       expect(item.position, 1);
@@ -15,10 +16,16 @@ void main() {
       expect(item.statusKind, QueueItemStatusKind.printing);
       expect(item.isActive, isTrue);
       expect(item.printerName, 'X2D-3DP');
-      expect(item.filamentType, 'PETG, PLA',
-          reason: 'przecinkowe złączenie typów musi być zachowane');
-      expect(item.filamentColor, contains(','),
-          reason: 'kolor wielokolorowy rozdzielony przecinkami');
+      expect(
+        item.filamentType,
+        'PETG, PLA',
+        reason: 'przecinkowe złączenie typów musi być zachowane',
+      );
+      expect(
+        item.filamentColor,
+        contains(','),
+        reason: 'kolor wielokolorowy rozdzielony przecinkami',
+      );
       expect(item.archiveId, 77);
       expect(item.beenJumped, isFalse);
       expect(item.createdAt, isA<DateTime>());
@@ -37,7 +44,11 @@ void main() {
     });
 
     test('mapowanie AMS ze slicera: brak pola = brak (stary serwer)', () {
-      final item = QueueItem.fromJson(const {'id': 1, 'position': 1, 'status': 'pending'});
+      final item = QueueItem.fromJson(const {
+        'id': 1,
+        'position': 1,
+        'status': 'pending',
+      });
       expect(item.archiveHasSlicerAmsMapping, isFalse);
     });
 
@@ -93,8 +104,7 @@ void main() {
   });
 
   group('QueueItem.isActive', () {
-    bool active(String s) =>
-        QueueItem(id: 1, position: 1, status: s).isActive;
+    bool active(String s) => QueueItem(id: 1, position: 1, status: s).isActive;
 
     test('aktywne statusy zwracają true', () {
       expect(active('printing'), isTrue);

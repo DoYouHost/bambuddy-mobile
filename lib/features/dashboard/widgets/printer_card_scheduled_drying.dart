@@ -88,8 +88,12 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
       await repository.cancel(widget.row.id);
       providers.invalidate(scheduledDryingsProvider);
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'printer.drying_schedule_cancel');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'printer.drying_schedule_cancel',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -108,10 +112,10 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
             row.errorMessage ?? l10n.ctrlDryScheduleFailedUnknown,
           )
         : row.startAfter == null
-            ? l10n.ctrlDryScheduledAsap
-            : l10n.ctrlDryScheduledFor(
-                DateTimeFormats.of(context).dateTime(row.startAfter!),
-              );
+        ? l10n.ctrlDryScheduledAsap
+        : l10n.ctrlDryScheduledFor(
+            DateTimeFormats.of(context).dateTime(row.startAfter!),
+          );
     // Only while it is still pending: a failed row's error message already says
     // what happened, and the reason the scheduler last wrote is what it was
     // waiting for before that.
@@ -136,12 +140,12 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(headline, style: t.bodyPlain.copyWith(color: t.textPrimary)),
+                Text(
+                  headline,
+                  style: t.bodyPlain.copyWith(color: t.textPrimary),
+                ),
                 if (waiting != null)
-                  Text(
-                    waiting,
-                    style: t.body.copyWith(color: t.textSecondary),
-                  ),
+                  Text(waiting, style: t.body.copyWith(color: t.textSecondary)),
               ],
             ),
           ),

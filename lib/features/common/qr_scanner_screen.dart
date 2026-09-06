@@ -140,7 +140,11 @@ class _QrScannerScreenState<T extends Object>
                   child: Text(
                     widget.hint,
                     textAlign: TextAlign.center,
-                    style: t.titleMd.copyWith(shadows: const [Shadow(blurRadius: 8, color: Colors.black)]),
+                    style: t.titleMd.copyWith(
+                      shadows: const [
+                        Shadow(blurRadius: 8, color: Colors.black),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -168,8 +172,7 @@ class _ScannerError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _kScanTokens;
-    final denied =
-        error.errorCode == MobileScannerErrorCode.permissionDenied;
+    final denied = error.errorCode == MobileScannerErrorCode.permissionDenied;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -193,7 +196,9 @@ class _ScannerError extends StatelessWidget {
                 l10n.cameraPermissionBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: DashTokens.fontUi, color: t.textSecondary),
+                  fontFamily: DashTokens.fontUi,
+                  color: t.textSecondary,
+                ),
               ),
             ],
             const SizedBox(height: 24),

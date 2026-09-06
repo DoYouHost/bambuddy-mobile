@@ -100,7 +100,10 @@ Widget dashAsyncStrip<T>(
 }) {
   final l10n = AppLocalizations.of(context);
   Widget strip(Widget child) {
-    final padded = Padding(padding: padding, child: Center(child: child));
+    final padded = Padding(
+      padding: padding,
+      child: Center(child: child),
+    );
     return height == null ? padded : SizedBox(height: height, child: padded);
   }
 
@@ -113,11 +116,13 @@ Widget dashAsyncStrip<T>(
           ? error.localized(l10n)
           : failureMessage ?? l10n.connectFailed;
       return failureBuilder?.call(message) ??
-          strip(Text(
-            message,
-            textAlign: TextAlign.center,
-            style: DashTokens.of(context).labelSoft,
-          ));
+          strip(
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: DashTokens.of(context).labelSoft,
+            ),
+          );
     },
     data: data,
   );

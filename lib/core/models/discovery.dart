@@ -29,10 +29,10 @@ class ScanStatus {
   });
 
   factory ScanStatus.fromJson(Map<String, dynamic> json) => ScanStatus(
-        running: json['running'] == true,
-        scanned: (json['scanned'] as num?)?.toInt() ?? 0,
-        total: (json['total'] as num?)?.toInt() ?? 0,
-      );
+    running: json['running'] == true,
+    scanned: (json['scanned'] as num?)?.toInt() ?? 0,
+    total: (json['total'] as num?)?.toInt() ?? 0,
+  );
 
   final bool running;
   final int scanned;

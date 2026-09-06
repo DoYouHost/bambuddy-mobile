@@ -97,8 +97,8 @@ final wsClientProvider = Provider<WsClient>((ref) {
 /// printer roster still managed by `dashboardProvider` — WS doesn't send list.
 final printerStatusesProvider =
     NotifierProvider<PrinterStatusesNotifier, Map<int, PrinterStatus>>(
-  PrinterStatusesNotifier.new,
-);
+      PrinterStatusesNotifier.new,
+    );
 
 class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// When the app last (re)gained an unbroken line to the server, or `null`
@@ -256,8 +256,10 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     if (prev == null || prev.awaitingPlateClear != true) return;
     state = {
       ...state,
-      printerId:
-          PrinterStatus(id: printerId, awaitingPlateClear: false).mergedWith(prev),
+      printerId: PrinterStatus(
+        id: printerId,
+        awaitingPlateClear: false,
+      ).mergedWith(prev),
     };
   }
 

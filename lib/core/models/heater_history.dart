@@ -7,11 +7,7 @@ import 'json_utils.dart';
 /// The server samples every 60 s for connected printers and keeps 30 days by
 /// default, so a window right after a printer comes online is still sparse.
 class HeaterHistoryPoint {
-  const HeaterHistoryPoint({
-    required this.recordedAt,
-    this.value,
-    this.target,
-  });
+  const HeaterHistoryPoint({required this.recordedAt, this.value, this.target});
 
   /// Sample time, normalized to local time for chart display.
   final DateTime recordedAt;
@@ -26,7 +22,8 @@ class HeaterHistoryPoint {
       HeaterHistoryPoint(
         // Sensor rows are stamped naive, so the shared helper is what makes the
         // chart's x-axis land on the hour the reading was actually taken.
-        recordedAt: dateTimeFromJson(json['recorded_at']) ??
+        recordedAt:
+            dateTimeFromJson(json['recorded_at']) ??
             DateTime.fromMillisecondsSinceEpoch(0),
         value: toDoubleOrNull(json['value']),
         target: toDoubleOrNull(json['target']),

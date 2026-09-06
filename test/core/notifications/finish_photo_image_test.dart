@@ -17,14 +17,16 @@ Future<ui.Image> _decode(Uint8List bytes) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('zdjęcie szersze niż cel jest zmniejszane z zachowaniem proporcji',
-      () async {
-    final scaled = await FinishPhotoImage.scaled(_png, 32);
+  test(
+    'zdjęcie szersze niż cel jest zmniejszane z zachowaniem proporcji',
+    () async {
+      final scaled = await FinishPhotoImage.scaled(_png, 32);
 
-    final image = await _decode(scaled);
-    expect(image.width, 32);
-    expect(image.height, 16, reason: '64×32 → 32×16');
-  });
+      final image = await _decode(scaled);
+      expect(image.width, 32);
+      expect(image.height, 16, reason: '64×32 → 32×16');
+    },
+  );
 
   test('zdjęcie węższe niż cel wraca bez przekodowania', () async {
     final scaled = await FinishPhotoImage.scaled(_png, 1024);

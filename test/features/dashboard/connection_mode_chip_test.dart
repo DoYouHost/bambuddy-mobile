@@ -8,14 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 Widget _chip(WsConnectionState? state) => ProviderScope(
-      overrides: [
-        wsConnectionStateProvider.overrideWith(
-          (ref) =>
-              state == null ? const Stream.empty() : Stream.value(state),
-        ),
-      ],
-      child: plApp(const Scaffold(body: ConnectionModeChip())),
-    );
+  overrides: [
+    wsConnectionStateProvider.overrideWith(
+      (ref) => state == null ? const Stream.empty() : Stream.value(state),
+    ),
+  ],
+  child: plApp(const Scaffold(body: ConnectionModeChip())),
+);
 
 void main() {
   testWidgets('WS connected → etykieta „Na żywo"', (tester) async {
@@ -28,8 +27,9 @@ void main() {
     expect(find.byIcon(Icons.sync), findsNothing);
   });
 
-  testWidgets('WS rozłączony → etykieta „Odświeżanie" (polling)',
-      (tester) async {
+  testWidgets('WS rozłączony → etykieta „Odświeżanie" (polling)', (
+    tester,
+  ) async {
     await tester.pumpWidget(_chip(WsConnectionState.waitingRetry));
     await tester.pump();
 

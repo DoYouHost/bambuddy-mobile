@@ -16,22 +16,21 @@ Archive _a(
   int duplicateSequence = 0,
   int? totalLayers,
   DateTime? createdAt,
-}) =>
-    Archive(
-      id: id,
-      filename: filename,
-      status: status,
-      printName: name,
-      printerId: printerId,
-      filamentType: filamentType,
-      filamentColor: filamentColor,
-      isFavorite: favorite,
-      fileSize: fileSize,
-      duplicateCount: duplicateCount,
-      duplicateSequence: duplicateSequence,
-      totalLayers: totalLayers,
-      createdAt: createdAt,
-    );
+}) => Archive(
+  id: id,
+  filename: filename,
+  status: status,
+  printName: name,
+  printerId: printerId,
+  filamentType: filamentType,
+  filamentColor: filamentColor,
+  isFavorite: favorite,
+  fileSize: fileSize,
+  duplicateCount: duplicateCount,
+  duplicateSequence: duplicateSequence,
+  totalLayers: totalLayers,
+  createdAt: createdAt,
+);
 
 List<int> _ids(List<Archive> l) => l.map((a) => a.id).toList();
 
@@ -48,10 +47,7 @@ void main() {
     });
 
     test('search dopasowuje displayName (case-insensitive)', () {
-      final list = [
-        _a(1, name: 'Benchy Boat'),
-        _a(2, name: 'Gridfinity Bin'),
-      ];
+      final list = [_a(1, name: 'Benchy Boat'), _a(2, name: 'Gridfinity Bin')];
       final out = applyArchiveFilters(
         list,
         const ArchiveFilters(query: 'bench'),
@@ -158,18 +154,21 @@ void main() {
         _a(3, filename: 'c.3mf', totalLayers: 50),
       ];
       expect(
-        _ids(applyArchiveFilters(
-          list,
-          const ArchiveFilters(fileType: ArchiveFileType.gcode),
-        ))
-          ..sort(),
+        _ids(
+          applyArchiveFilters(
+            list,
+            const ArchiveFilters(fileType: ArchiveFileType.gcode),
+          ),
+        )..sort(),
         [1, 3],
       );
       expect(
-        _ids(applyArchiveFilters(
-          list,
-          const ArchiveFilters(fileType: ArchiveFileType.source),
-        )),
+        _ids(
+          applyArchiveFilters(
+            list,
+            const ArchiveFilters(fileType: ArchiveFileType.source),
+          ),
+        ),
         [2],
       );
     });
@@ -181,17 +180,21 @@ void main() {
         _a(3, name: 'Charlie', fileSize: 200),
       ];
       expect(
-        _ids(applyArchiveFilters(
-          list,
-          const ArchiveFilters(sort: ArchiveSort.nameAsc),
-        )),
+        _ids(
+          applyArchiveFilters(
+            list,
+            const ArchiveFilters(sort: ArchiveSort.nameAsc),
+          ),
+        ),
         [2, 1, 3],
       );
       expect(
-        _ids(applyArchiveFilters(
-          list,
-          const ArchiveFilters(sort: ArchiveSort.sizeDesc),
-        )),
+        _ids(
+          applyArchiveFilters(
+            list,
+            const ArchiveFilters(sort: ArchiveSort.sizeDesc),
+          ),
+        ),
         [1, 3, 2],
       );
     });
@@ -218,8 +221,7 @@ void main() {
     test('domyślne = 0; search i sort się nie liczą', () {
       expect(const ArchiveFilters().activeCount, 0);
       expect(
-        const ArchiveFilters(query: 'x', sort: ArchiveSort.nameAsc)
-            .activeCount,
+        const ArchiveFilters(query: 'x', sort: ArchiveSort.nameAsc).activeCount,
         0,
       );
     });

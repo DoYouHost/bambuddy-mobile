@@ -6,7 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../../data/maintenance_repository.dart';
-import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders;
+import '../../features/dashboard/ws_providers.dart'
+    show wsUrlFor, wsAuthHeaders;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
@@ -300,7 +301,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
         ).catchError((_) {}),
       );
       unawaited(
-        MultiWidgetPublisher.publish(Map.of(_statuses), l10n).catchError((_) {}),
+        MultiWidgetPublisher.publish(
+          Map.of(_statuses),
+          l10n,
+        ).catchError((_) {}),
       );
     });
     // "Plate not empty" event arrives as a separate frame (not in status) —
@@ -586,9 +590,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
 /// sent via the regular channel through [LocalNotificationService].
 class _FgsNotificationService implements NotificationService {
   _FgsNotificationService(this._alerts, AppLocalizations l10n)
-      : _l10n = l10n,
-        _title = l10n.bgServiceTitle,
-        _text = l10n.bgServiceText;
+    : _l10n = l10n,
+      _title = l10n.bgServiceTitle,
+      _text = l10n.bgServiceText;
 
   final NotificationService _alerts;
   final AppLocalizations _l10n;
@@ -632,9 +636,9 @@ class _FgsNotificationService implements NotificationService {
   /// Re-posts the ongoing notification with the last content — after the user
   /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
   Future<void> repost() => FlutterForegroundTask.updateService(
-        notificationTitle: _title,
-        notificationText: _text,
-      );
+    notificationTitle: _title,
+    notificationText: _text,
+  );
 
   @override
   Future<void> showAlert({
@@ -646,17 +650,16 @@ class _FgsNotificationService implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
-  }) =>
-      _alerts.showAlert(
-        event: event,
-        printerId: printerId,
-        id: id,
-        title: title,
-        body: body,
-        payload: payload,
-        actions: actions,
-        picture: picture,
-      );
+  }) => _alerts.showAlert(
+    event: event,
+    printerId: printerId,
+    id: id,
+    title: title,
+    body: body,
+    payload: payload,
+    actions: actions,
+    picture: picture,
+  );
 
   @override
   Future<bool> isAlertActive(int id) => _alerts.isAlertActive(id);

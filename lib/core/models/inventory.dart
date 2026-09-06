@@ -80,37 +80,37 @@ class Spool {
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
   factory Spool.fromNative(Map<String, dynamic> json) => Spool(
-        id: toIntOrNull(json['id']) ?? -1,
-        material: (json['material'] as String?)?.trim().isNotEmpty == true
-            ? json['material'] as String
-            : 'Unknown',
-        subtype: toStringOrNull(json['subtype']),
-        colorName: toStringOrNull(json['color_name']),
-        rgba: toStringOrNull(json['rgba']),
-        extraColors: toStringOrNull(json['extra_colors']),
-        effectType: toStringOrNull(json['effect_type']),
-        brand: toStringOrNull(json['brand']),
-        labelWeight: toIntOrNull(json['label_weight']) ?? 0,
-        weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
-        weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
-        coreWeight: toIntOrNull(json['core_weight']) ?? 250,
-        coreWeightCatalogId: toIntOrNull(json['core_weight_catalog_id']),
-        lastScaleWeight: toIntOrNull(json['last_scale_weight']),
-        costPerKg: toDoubleOrNull(json['cost_per_kg']),
-        lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
-        storageLocation: toStringOrNull(json['storage_location']),
-        category: toStringOrNull(json['category']),
-        note: toStringOrNull(json['note']),
-        nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
-        nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
-        tagUid: toStringOrNull(json['tag_uid']),
-        trayUuid: toStringOrNull(json['tray_uuid']),
-        archivedAt: toStringOrNull(json['archived_at']),
-        lastUsed: toStringOrNull(json['last_used']),
-        slicerFilament: toStringOrNull(json['slicer_filament']),
-        slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
-        kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
-      );
+    id: toIntOrNull(json['id']) ?? -1,
+    material: (json['material'] as String?)?.trim().isNotEmpty == true
+        ? json['material'] as String
+        : 'Unknown',
+    subtype: toStringOrNull(json['subtype']),
+    colorName: toStringOrNull(json['color_name']),
+    rgba: toStringOrNull(json['rgba']),
+    extraColors: toStringOrNull(json['extra_colors']),
+    effectType: toStringOrNull(json['effect_type']),
+    brand: toStringOrNull(json['brand']),
+    labelWeight: toIntOrNull(json['label_weight']) ?? 0,
+    weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
+    weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
+    coreWeight: toIntOrNull(json['core_weight']) ?? 250,
+    coreWeightCatalogId: toIntOrNull(json['core_weight_catalog_id']),
+    lastScaleWeight: toIntOrNull(json['last_scale_weight']),
+    costPerKg: toDoubleOrNull(json['cost_per_kg']),
+    lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
+    storageLocation: toStringOrNull(json['storage_location']),
+    category: toStringOrNull(json['category']),
+    note: toStringOrNull(json['note']),
+    nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
+    nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
+    tagUid: toStringOrNull(json['tag_uid']),
+    trayUuid: toStringOrNull(json['tray_uuid']),
+    archivedAt: toStringOrNull(json['archived_at']),
+    lastUsed: toStringOrNull(json['last_used']),
+    slicerFilament: toStringOrNull(json['slicer_filament']),
+    slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
+    kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
+  );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
   /// tolerantly from several possible keys.
@@ -119,31 +119,44 @@ class Spool {
     final fil = filament is Map<String, dynamic> ? filament : const {};
     return Spool(
       id: toIntOrNull(json['id']) ?? -1,
-      material: toStringOrNull(json['material']) ??
+      material:
+          toStringOrNull(json['material']) ??
           toStringOrNull(fil['material']) ??
           toStringOrNull(json['filament_type']) ??
           'Unknown',
       subtype: toStringOrNull(json['subtype']),
-      colorName: toStringOrNull(json['color_name']) ?? toStringOrNull(fil['name']),
+      colorName:
+          toStringOrNull(json['color_name']) ?? toStringOrNull(fil['name']),
       rgba: toStringOrNull(json['rgba']) ?? toStringOrNull(fil['color_hex']),
-      brand: toStringOrNull(json['brand']) ?? toStringOrNull((fil['vendor'] as Map?)?['name']),
-      labelWeight: toIntOrNull(json['label_weight']) ??
+      brand:
+          toStringOrNull(json['brand']) ??
+          toStringOrNull((fil['vendor'] as Map?)?['name']),
+      labelWeight:
+          toIntOrNull(json['label_weight']) ??
           toIntOrNull(json['initial_weight']) ??
           toIntOrNull(fil['weight']) ??
           0,
-      weightUsed: toDoubleOrNull(json['weight_used']) ?? toDoubleOrNull(json['used_weight']) ?? 0,
+      weightUsed:
+          toDoubleOrNull(json['weight_used']) ??
+          toDoubleOrNull(json['used_weight']) ??
+          0,
       // Spoolman has no such column: the backend derives the baseline from its
       // `used_weight` vs `remaining_weight` pair and hands it over under the
       // native name (`routes/_spoolman_helpers.py::_map_spoolman_spool`).
       weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
-      costPerKg: toDoubleOrNull(json['cost_per_kg']) ?? toDoubleOrNull(fil['price']),
+      costPerKg:
+          toDoubleOrNull(json['cost_per_kg']) ?? toDoubleOrNull(fil['price']),
       lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
-      storageLocation: toStringOrNull(json['storage_location']) ?? toStringOrNull(json['location']),
+      storageLocation:
+          toStringOrNull(json['storage_location']) ??
+          toStringOrNull(json['location']),
       category: toStringOrNull(json['category']),
       note: toStringOrNull(json['note']) ?? toStringOrNull(json['comment']),
       tagUid: toStringOrNull(json['tag_uid']),
       trayUuid: toStringOrNull(json['tray_uuid']),
-      archivedAt: toStringOrNull(json['archived_at']) ?? toStringOrNull(json['archived']),
+      archivedAt:
+          toStringOrNull(json['archived_at']) ??
+          toStringOrNull(json['archived']),
       lastUsed: toStringOrNull(json['last_used']),
     );
   }
@@ -259,7 +272,14 @@ class Spool {
   bool matchesSearch(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return true;
-    for (final field in [material, subtype, brand, colorName, storageLocation, category]) {
+    for (final field in [
+      material,
+      subtype,
+      brand,
+      colorName,
+      storageLocation,
+      category,
+    ]) {
       if (field != null && field.toLowerCase().contains(q)) return true;
     }
     return false;
@@ -298,28 +318,28 @@ class SpoolDraft {
 
   /// Draft from existing spool — for edit form prefill.
   factory SpoolDraft.fromSpool(Spool s) => SpoolDraft(
-        material: s.material,
-        subtype: s.subtype,
-        brand: s.brand,
-        colorName: s.colorName,
-        rgba: s.rgba,
-        extraColors: s.extraColors,
-        effectType: s.effectType,
-        labelWeight: s.labelWeight,
-        weightUsed: s.weightUsed,
-        coreWeight: s.coreWeight,
-        coreWeightCatalogId: s.coreWeightCatalogId,
-        lastScaleWeight: s.lastScaleWeight,
-        costPerKg: s.costPerKg,
-        lowStockThresholdPct: s.lowStockThresholdPct,
-        storageLocation: s.storageLocation,
-        category: s.category,
-        nozzleTempMin: s.nozzleTempMin,
-        nozzleTempMax: s.nozzleTempMax,
-        slicerFilament: s.slicerFilament,
-        slicerFilamentName: s.slicerFilamentName,
-        note: s.note,
-      );
+    material: s.material,
+    subtype: s.subtype,
+    brand: s.brand,
+    colorName: s.colorName,
+    rgba: s.rgba,
+    extraColors: s.extraColors,
+    effectType: s.effectType,
+    labelWeight: s.labelWeight,
+    weightUsed: s.weightUsed,
+    coreWeight: s.coreWeight,
+    coreWeightCatalogId: s.coreWeightCatalogId,
+    lastScaleWeight: s.lastScaleWeight,
+    costPerKg: s.costPerKg,
+    lowStockThresholdPct: s.lowStockThresholdPct,
+    storageLocation: s.storageLocation,
+    category: s.category,
+    nozzleTempMin: s.nozzleTempMin,
+    nozzleTempMax: s.nozzleTempMax,
+    slicerFilament: s.slicerFilament,
+    slicerFilamentName: s.slicerFilamentName,
+    note: s.note,
+  );
 
   final String material;
   final String? subtype;
@@ -346,47 +366,46 @@ class SpoolDraft {
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
   /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
   Map<String, dynamic> toNativeJson() => {
-        'material': material,
-        if (subtype != null) 'subtype': subtype,
-        if (brand != null) 'brand': brand,
-        if (colorName != null) 'color_name': colorName,
-        if (rgba != null) 'rgba': rgba,
-        if (extraColors != null) 'extra_colors': extraColors,
-        if (effectType != null) 'effect_type': effectType,
-        if (labelWeight != null) 'label_weight': labelWeight,
-        if (weightUsed != null) 'weight_used': weightUsed,
-        if (coreWeight != null) 'core_weight': coreWeight,
-        if (coreWeightCatalogId != null)
-          'core_weight_catalog_id': coreWeightCatalogId,
-        if (lastScaleWeight != null) 'last_scale_weight': lastScaleWeight,
-        if (costPerKg != null) 'cost_per_kg': costPerKg,
-        if (lowStockThresholdPct != null)
-          'low_stock_threshold_pct': lowStockThresholdPct,
-        if (storageLocation != null) 'storage_location': storageLocation,
-        if (category != null) 'category': category,
-        if (nozzleTempMin != null) 'nozzle_temp_min': nozzleTempMin,
-        if (nozzleTempMax != null) 'nozzle_temp_max': nozzleTempMax,
-        if (slicerFilament != null) 'slicer_filament': slicerFilament,
-        if (slicerFilamentName != null)
-          'slicer_filament_name': slicerFilamentName,
-        if (note != null) 'note': note,
-      };
+    'material': material,
+    if (subtype != null) 'subtype': subtype,
+    if (brand != null) 'brand': brand,
+    if (colorName != null) 'color_name': colorName,
+    if (rgba != null) 'rgba': rgba,
+    if (extraColors != null) 'extra_colors': extraColors,
+    if (effectType != null) 'effect_type': effectType,
+    if (labelWeight != null) 'label_weight': labelWeight,
+    if (weightUsed != null) 'weight_used': weightUsed,
+    if (coreWeight != null) 'core_weight': coreWeight,
+    if (coreWeightCatalogId != null)
+      'core_weight_catalog_id': coreWeightCatalogId,
+    if (lastScaleWeight != null) 'last_scale_weight': lastScaleWeight,
+    if (costPerKg != null) 'cost_per_kg': costPerKg,
+    if (lowStockThresholdPct != null)
+      'low_stock_threshold_pct': lowStockThresholdPct,
+    if (storageLocation != null) 'storage_location': storageLocation,
+    if (category != null) 'category': category,
+    if (nozzleTempMin != null) 'nozzle_temp_min': nozzleTempMin,
+    if (nozzleTempMax != null) 'nozzle_temp_max': nozzleTempMax,
+    if (slicerFilament != null) 'slicer_filament': slicerFilament,
+    if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
+    if (note != null) 'note': note,
+  };
 
   /// Body for Spoolman (`SpoolmanInventoryCreate`/`Update`) — narrower field set;
   /// fields unsupported by Spoolman are skipped.
   Map<String, dynamic> toSpoolmanJson() => {
-        if (material.isNotEmpty) 'material': material,
-        if (subtype != null) 'subtype': subtype,
-        if (brand != null) 'brand': brand,
-        if (colorName != null) 'color_name': colorName,
-        if (rgba != null) 'rgba': rgba,
-        if (labelWeight != null) 'label_weight': labelWeight,
-        if (weightUsed != null) 'weight_used': weightUsed,
-        if (coreWeight != null) 'core_weight': coreWeight,
-        if (costPerKg != null) 'cost_per_kg': costPerKg,
-        if (storageLocation != null) 'storage_location': storageLocation,
-        if (note != null) 'note': note,
-      };
+    if (material.isNotEmpty) 'material': material,
+    if (subtype != null) 'subtype': subtype,
+    if (brand != null) 'brand': brand,
+    if (colorName != null) 'color_name': colorName,
+    if (rgba != null) 'rgba': rgba,
+    if (labelWeight != null) 'label_weight': labelWeight,
+    if (weightUsed != null) 'weight_used': weightUsed,
+    if (coreWeight != null) 'core_weight': coreWeight,
+    if (costPerKg != null) 'cost_per_kg': costPerKg,
+    if (storageLocation != null) 'storage_location': storageLocation,
+    if (note != null) 'note': note,
+  };
 }
 
 /// Spool assignment to AMS slot — normalized from native
@@ -440,13 +459,11 @@ class SpoolAssignment {
   /// physically LEFT, PLA `ams=255, tray=1` RIGHT. Note that [trayId] here is
   /// the holder **side**, not the `vt_tray` id the dashboard shows — see
   /// [slot_addressing] for the two.
-  int? get extruder =>
-      isExternalSpool ? extruderForExternalSide(trayId) : null;
+  int? get extruder => isExternalSpool ? extruderForExternalSide(trayId) : null;
 
   /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
   /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.
-  String get slotLabel =>
-      amsLabel ?? 'AMS$amsId · ${trayId + 1}';
+  String get slotLabel => amsLabel ?? 'AMS$amsId · ${trayId + 1}';
 }
 
 /// Spool-to-slot assignment request (`SpoolAssignmentCreate`). Physical key
@@ -466,11 +483,11 @@ class SpoolAssignmentDraft {
   final int trayId;
 
   Map<String, dynamic> toNativeJson() => {
-        'spool_id': spoolId,
-        'printer_id': printerId,
-        'ams_id': amsId,
-        'tray_id': trayId,
-      };
+    'spool_id': spoolId,
+    'printer_id': printerId,
+    'ams_id': amsId,
+    'tray_id': trayId,
+  };
 }
 
 /// Spool usage history entry (`SpoolUsageHistoryResponse`).
@@ -516,15 +533,14 @@ class SpoolKProfile {
   });
 
   factory SpoolKProfile.fromJson(Map<String, dynamic> json) => SpoolKProfile(
-        id: toIntOrNull(json['id']) ?? -1,
-        name: toStringOrNull(json['name']),
-        kValue: toDoubleOrNull(json['k_value']),
-        nozzleDiameter: toStringOrNull(json['nozzle_diameter']),
-      );
+    id: toIntOrNull(json['id']) ?? -1,
+    name: toStringOrNull(json['name']),
+    kValue: toDoubleOrNull(json['k_value']),
+    nozzleDiameter: toStringOrNull(json['nozzle_diameter']),
+  );
 
   final int id;
   final String? name;
   final double? kValue;
   final String? nozzleDiameter;
 }
-

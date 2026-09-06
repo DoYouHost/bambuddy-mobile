@@ -22,8 +22,10 @@ void main() {
     test('ten sam zakres i createdById → ten sam podpis', () {
       const a = StatsFilter(range: StatsRange.last30Days, createdById: 5);
       const b = StatsFilter(range: StatsRange.last30Days, createdById: 5);
-      expect(FailureAnalysisCache.signature(a),
-          FailureAnalysisCache.signature(b));
+      expect(
+        FailureAnalysisCache.signature(a),
+        FailureAnalysisCache.signature(b),
+      );
     });
   });
 }

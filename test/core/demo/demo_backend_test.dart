@@ -95,8 +95,11 @@ void main() {
       );
       expect(items.first.flowCali, CalibrationOption.off);
       expect(items.first.nozzleOffsetCali, CalibrationOption.auto);
-      expect(items.first.vibrationCali, isTrue,
-          reason: 'te trzy nie migrowały i zostają boolem');
+      expect(
+        items.first.vibrationCali,
+        isTrue,
+        reason: 'te trzy nie migrowały i zostają boolem',
+      );
     });
 
     test('demo raportuje wersję, która obsługuje trójstan', () async {
@@ -108,18 +111,26 @@ void main() {
       expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
     });
 
-    test('the reported version matches what this backend actually serves',
-        () async {
-      // A version claiming less than the payload hides a control over data that
-      // is there; claiming more shows one over data that is not. Both read as
-      // "the app is broken", so the two are pinned together here.
-      final version = ServerVersionService(dio);
+    test(
+      'the reported version matches what this backend actually serves',
+      () async {
+        // A version claiming less than the payload hides a control over data that
+        // is there; claiming more shows one over data that is not. Both read as
+        // "the app is broken", so the two are pinned together here.
+        final version = ServerVersionService(dio);
 
-      expect(await version.supports(ServerFeature.printLogCostEnergy), isTrue,
-          reason: 'the print log serves cost, energy and sorting');
-      expect(await version.supports(ServerFeature.crossModelVariants), isTrue,
-          reason: 'library variant groups are served below');
-    });
+        expect(
+          await version.supports(ServerFeature.printLogCostEnergy),
+          isTrue,
+          reason: 'the print log serves cost, energy and sorting',
+        );
+        expect(
+          await version.supports(ServerFeature.crossModelVariants),
+          isTrue,
+          reason: 'library variant groups are served below',
+        );
+      },
+    );
 
     test('archive list, search and purge preview', () async {
       final repo = ArchiveRepository(dio);
@@ -138,24 +149,29 @@ void main() {
       final multi = list.where((a) => a.plateId != null).toList();
       final single = list.where((a) => a.plateId == null).first;
 
-      expect(multi, hasLength(1),
-          reason: 'the demo needs one, to have a plate picker to show');
+      expect(
+        multi,
+        hasLength(1),
+        reason: 'the demo needs one, to have a plate picker to show',
+      );
       final plates = await repo.plates(multi.single.id);
       expect(plates.isMultiPlate, isTrue);
       expect(plates.plates.map((p) => p.index), [1, 2, 3]);
-      expect(plates.byIndex(multi.single.plateId), isNotNull,
-          reason: 'the plate the print ran on has to be one of the choices');
+      expect(
+        plates.byIndex(multi.single.plateId),
+        isNotNull,
+        reason: 'the plate the print ran on has to be one of the choices',
+      );
 
       expect((await repo.plates(single.id)).isMultiPlate, isFalse);
     });
 
     test('printer media: the three outcomes the sheet has to render', () async {
       final repo = ArchiveRepository(dio);
-      final printed =
-          (await repo.list()).where((a) => a.printerId != null).toList();
-      final media = [
-        for (final a in printed) (await repo.printerMedia(a.id))!,
-      ];
+      final printed = (await repo.list())
+          .where((a) => a.printerId != null)
+          .toList();
+      final media = [for (final a in printed) (await repo.printerMedia(a.id))!];
 
       // Nothing the demo server keeps: a viewer row would open onto
       // `http://demo`, which resolves nowhere.
@@ -169,14 +185,16 @@ void main() {
         reason: 'a print whose card has been cleared since',
       );
       expect(
-        media.where((m) =>
-            m.remoteFiles.any((f) => f.kind == ArchiveMediaKind.ipcam)),
+        media.where(
+          (m) => m.remoteFiles.any((f) => f.kind == ArchiveMediaKind.ipcam),
+        ),
         isNotEmpty,
         reason: 'a print with the camera chunks still there',
       );
       expect(
         media.where(
-            (m) => m.warnings.contains(ArchiveMediaWarning.ipcamUnavailable)),
+          (m) => m.warnings.contains(ArchiveMediaWarning.ipcamUnavailable),
+        ),
         isNotEmpty,
         reason: 'a printer with camera recording turned off',
       );
@@ -188,32 +206,39 @@ void main() {
       );
     });
 
-    test('a video the sheet offers is the one the file manager lists',
-        () async {
-      // The two views are generated from the same prints, so a file named in
-      // one has to be findable in the other — otherwise the demo teaches a
-      // relationship the real server does not have.
-      final archives = ArchiveRepository(dio);
-      final files = PrinterFilesRepository(dio);
-      final print = (await archives.list())
-          .firstWhere((a) => a.printerId != null && a.id % 3 == 1);
-      final offered = (await archives.printerMedia(print.id))!.remoteFiles;
-      expect(offered, isNotEmpty);
+    test(
+      'a video the sheet offers is the one the file manager lists',
+      () async {
+        // The two views are generated from the same prints, so a file named in
+        // one has to be findable in the other — otherwise the demo teaches a
+        // relationship the real server does not have.
+        final archives = ArchiveRepository(dio);
+        final files = PrinterFilesRepository(dio);
+        final print = (await archives.list()).firstWhere(
+          (a) => a.printerId != null && a.id % 3 == 1,
+        );
+        final offered = (await archives.printerMedia(print.id))!.remoteFiles;
+        expect(offered, isNotEmpty);
 
-      for (final file in offered) {
-        final dir = file.path.substring(0, file.path.lastIndexOf('/'));
-        final listed = await files.listFiles(print.printerId!, dir);
-        final match =
-            listed.files.where((f) => f.path == file.path).singleOrNull;
-        expect(match, isNotNull, reason: '${file.path} is not in $dir');
-        expect(match!.size, file.size);
-      }
-    });
+        for (final file in offered) {
+          final dir = file.path.substring(0, file.path.lastIndexOf('/'));
+          final listed = await files.listFiles(print.printerId!, dir);
+          final match = listed.files
+              .where((f) => f.path == file.path)
+              .singleOrNull;
+          expect(match, isNotNull, reason: '${file.path} is not in $dir');
+          expect(match!.size, file.size);
+        }
+      },
+    );
 
     test('no-3mf nudge: the demo has nothing to complain about', () async {
       // Unrouted in the demo backend, which answers 404 — the same answer an
       // older server gives, and the same "no banner" for both.
-      expect((await ArchiveRepository(dio).no3mfWarning()).hasFallback, isFalse);
+      expect(
+        (await ArchiveRepository(dio).no3mfWarning()).hasFallback,
+        isFalse,
+      );
     });
 
     test('stats, slim, failures, users', () async {
@@ -255,17 +280,19 @@ void main() {
       expect(searched.total, 1);
     });
 
-    test('cost and energy come through, and a plugless run stays null',
-        () async {
-      final page = await repo.list();
-      final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
+    test(
+      'cost and energy come through, and a plugless run stays null',
+      () async {
+        final page = await repo.list();
+        final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
 
-      expect(withPlug.cost, isNotNull);
-      expect(withPlug.energyCost, isNotNull);
-      // Null, not zero: "no smart plug behind this printer" has to read
-      // differently from a run that drew nothing.
-      expect(page.items.any((e) => e.energyKwh == null), isTrue);
-    });
+        expect(withPlug.cost, isNotNull);
+        expect(withPlug.energyCost, isNotNull);
+        // Null, not zero: "no smart plug behind this printer" has to read
+        // differently from a run that drew nothing.
+        expect(page.items.any((e) => e.energyKwh == null), isTrue);
+      },
+    );
 
     test('sorting is applied, not accepted and ignored', () async {
       final cheapest = await repo.list(
@@ -286,9 +313,10 @@ void main() {
       expect(first.items, hasLength(3));
       expect(first.total, second.total);
       expect(
-        first.items.map((e) => e.id).toSet().intersection(
-              second.items.map((e) => e.id).toSet(),
-            ),
+        first.items
+            .map((e) => e.id)
+            .toSet()
+            .intersection(second.items.map((e) => e.id).toSet()),
         isEmpty,
       );
     });
@@ -341,57 +369,73 @@ void main() {
         final slot = ref == pipeline.printerPreset
             ? PresetSlot.printer
             : ref == pipeline.processPreset
-                ? PresetSlot.process
-                : PresetSlot.filament;
-        expect(isUnresolved(resolvePresetRef(presets, ref, slot)), isFalse,
-            reason: '${ref.source}/${ref.id} is missing from the catalogue');
+            ? PresetSlot.process
+            : PresetSlot.filament;
+        expect(
+          isUnresolved(resolvePresetRef(presets, ref, slot)),
+          isFalse,
+          reason: '${ref.source}/${ref.id} is missing from the catalogue',
+        );
       }
     });
 
-    test('a class pre-flight reports every candidate, and why each fails',
-        () async {
-      // The reason the fleet carries two X1Cs. Printer 1 holds PETG and
-      // printer 5 holds PLA only, so the mismatch is computed off the fixture
-      // rather than fabricated.
-      final report = await PipelinesRepository(dio)
-          .checkEligibility(1, source: const PipelineSource.libraryFile(6));
+    test(
+      'a class pre-flight reports every candidate, and why each fails',
+      () async {
+        // The reason the fleet carries two X1Cs. Printer 1 holds PETG and
+        // printer 5 holds PLA only, so the mismatch is computed off the fixture
+        // rather than fabricated.
+        final report = await PipelinesRepository(
+          dio,
+        ).checkEligibility(1, source: const PipelineSource.libraryFile(6));
 
-      expect(report.ok, isTrue, reason: 'one candidate passing is enough');
-      expect(report.printerReports, hasLength(2));
-      expect(report.eligibleCount, 1);
-      expect(report.issues, isEmpty,
-          reason: 'on the class path every problem belongs to a printer');
+        expect(report.ok, isTrue, reason: 'one candidate passing is enough');
+        expect(report.printerReports, hasLength(2));
+        expect(report.eligibleCount, 1);
+        expect(
+          report.issues,
+          isEmpty,
+          reason: 'on the class path every problem belongs to a printer',
+        );
 
-      final bad = report.printerReports.firstWhere((r) => !r.ok);
-      expect(bad.printerName, 'X1 Carbon #2');
-      expect(bad.issues.single.kind,
-          EligibilityIssueKind.filamentTypeMismatch);
-      expect(bad.issues.single.expected, 'PETG');
-      expect(bad.issues.single.actual, 'PLA');
-    });
+        final bad = report.printerReports.firstWhere((r) => !r.ok);
+        expect(bad.printerName, 'X1 Carbon #2');
+        expect(
+          bad.issues.single.kind,
+          EligibilityIssueKind.filamentTypeMismatch,
+        );
+        expect(bad.issues.single.expected, 'PETG');
+        expect(bad.issues.single.actual, 'PLA');
+      },
+    );
 
-    test('an untargeted pipeline is refused before it can spend anything',
-        () async {
-      final report = await PipelinesRepository(dio)
-          .checkEligibility(2, source: const PipelineSource.libraryFile(6));
+    test(
+      'an untargeted pipeline is refused before it can spend anything',
+      () async {
+        final report = await PipelinesRepository(
+          dio,
+        ).checkEligibility(2, source: const PipelineSource.libraryFile(6));
 
-      expect(report.ok, isFalse);
-      expect(report.issues.single.kind, EligibilityIssueKind.classNotSet);
-    });
+        expect(report.ok, isFalse);
+        expect(report.issues.single.kind, EligibilityIssueKind.classNotSet);
+      },
+    );
 
     test('running it unforced is refused with the report itself', () async {
       // The 409 whose body *is* the pre-flight, which is what lets one widget
       // render both answers.
       await expectLater(
-        PipelinesRepository(dio)
-            .run(2, source: const PipelineSource.libraryFile(6)),
+        PipelinesRepository(
+          dio,
+        ).run(2, source: const PipelineSource.libraryFile(6)),
         throwsA(isA<PipelineNotEligible>()),
       );
     });
 
     test('a forced run dispatches, and records that it was forced', () async {
-      final run = await PipelinesRepository(dio)
-          .run(2, source: const PipelineSource.libraryFile(6), force: true);
+      final run = await PipelinesRepository(
+        dio,
+      ).run(2, source: const PipelineSource.libraryFile(6), force: true);
 
       expect(run.status, PipelineRunStatus.dispatching);
       expect(run.eligibilityOverridden, isTrue);
@@ -399,8 +443,9 @@ void main() {
     });
 
     test('copies spread over the class per the fanout strategy', () async {
-      final run = await PipelinesRepository(dio)
-          .run(1, source: const PipelineSource.libraryFile(6), copies: 3);
+      final run = await PipelinesRepository(
+        dio,
+      ).run(1, source: const PipelineSource.libraryFile(6), copies: 3);
 
       expect(run.copies, 3);
       // `max_parallel` pins nothing: the scheduler hands each copy to whichever
@@ -411,8 +456,11 @@ void main() {
     test('the copies ceiling comes from the server, not a built-in', () async {
       final settings = await SlicerRepository(dio).serverSettings();
 
-      expect(settings['pipeline_max_copies'], 12,
-          reason: 'deliberately not the server default of 50');
+      expect(
+        settings['pipeline_max_copies'],
+        12,
+        reason: 'deliberately not the server default of 50',
+      );
     });
   });
 
@@ -427,8 +475,9 @@ void main() {
       final second = await repo.runs(offset: 25);
       expect(second.runs, isNotEmpty);
       expect(
-        {...first.runs.map((r) => r.id)}
-            .intersection({...second.runs.map((r) => r.id)}),
+        {
+          ...first.runs.map((r) => r.id),
+        }.intersection({...second.runs.map((r) => r.id)}),
         isEmpty,
         reason: 'the second page does not repeat the first',
       );
@@ -438,12 +487,15 @@ void main() {
       final runs = (await PipelinesRepository(dio).runs()).runs;
       final byStatus = {for (final r in runs) r.status};
 
-      expect(byStatus, containsAll([
-        PipelineRunStatus.inProgress,
-        PipelineRunStatus.partialFailure,
-        PipelineRunStatus.failed,
-        PipelineRunStatus.completed,
-      ]));
+      expect(
+        byStatus,
+        containsAll([
+          PipelineRunStatus.inProgress,
+          PipelineRunStatus.partialFailure,
+          PipelineRunStatus.failed,
+          PipelineRunStatus.completed,
+        ]),
+      );
     });
 
     test('a run whose source was deleted offers no retry', () async {
@@ -454,10 +506,14 @@ void main() {
       // too and a looser finder would pick one of those.
       final runs = (await PipelinesRepository(dio).runs()).runs;
       final orphan = runs.firstWhere(
-          (r) => r.hasRetryableCopies && r.sourceLibraryFileId == null);
+        (r) => r.hasRetryableCopies && r.sourceLibraryFileId == null,
+      );
 
-      expect(orphan.hasRetryableCopies, isTrue,
-          reason: 'it did fail — this is not the "nothing to retry" case');
+      expect(
+        orphan.hasRetryableCopies,
+        isTrue,
+        reason: 'it did fail — this is not the "nothing to retry" case',
+      );
       expect(orphan.canRetry, isFalse);
       await expectLater(
         PipelinesRepository(dio).retryFailed(orphan.id),
@@ -466,26 +522,27 @@ void main() {
       );
     });
 
-    test('retry-failed opens a new run linked to the one it re-attempts',
-        () async {
+    test(
+      'retry-failed opens a new run linked to the one it re-attempts',
+      () async {
+        final repo = PipelinesRepository(dio);
+        final parent = (await repo.runs()).runs.firstWhere(
+          (r) => r.canRetry && r.copiesFailed == 1,
+        );
+
+        final retry = await repo.retryFailed(parent.id);
+
+        expect(retry.id, isNot(parent.id));
+        expect(retry.parentRunId, parent.id);
+        expect(retry.copies, 1, reason: 'one copy failed, one is re-attempted');
+      },
+    );
+
+    test('cancelling is idempotent, and stops the copies not yet sent', () async {
       final repo = PipelinesRepository(dio);
-      final parent = (await repo.runs())
-          .runs
-          .firstWhere((r) => r.canRetry && r.copiesFailed == 1);
-
-      final retry = await repo.retryFailed(parent.id);
-
-      expect(retry.id, isNot(parent.id));
-      expect(retry.parentRunId, parent.id);
-      expect(retry.copies, 1, reason: 'one copy failed, one is re-attempted');
-    });
-
-    test('cancelling is idempotent, and stops the copies not yet sent',
-        () async {
-      final repo = PipelinesRepository(dio);
-      final live = (await repo.runs())
-          .runs
-          .firstWhere((r) => r.status == PipelineRunStatus.inProgress);
+      final live = (await repo.runs()).runs.firstWhere(
+        (r) => r.status == PipelineRunStatus.inProgress,
+      );
 
       final cancelled = await repo.cancel(live.id);
       expect(cancelled.status, PipelineRunStatus.cancelled);
@@ -516,7 +573,11 @@ void main() {
     test('overview, types, perform resets counters', () async {
       final repo = MaintenanceRepository(dio);
       final overview = await repo.fetchOverview();
-      expect(overview, hasLength(5), reason: 'one row per printer in the fleet');
+      expect(
+        overview,
+        hasLength(5),
+        reason: 'one row per printer in the fleet',
+      );
       final x1c = overview.firstWhere((o) => o.printerId == 1);
       expect(x1c.dueCount, greaterThan(0));
       final dueItem = x1c.maintenanceItems.firstWhere((i) => i.isDue);
@@ -526,7 +587,10 @@ void main() {
 
       await repo.perform(dueItem.id);
       final after = await repo.fetchPrinter(1);
-      expect(after!.maintenanceItems.firstWhere((i) => i.id == dueItem.id).isDue, isFalse);
+      expect(
+        after!.maintenanceItems.firstWhere((i) => i.id == dueItem.id).isDue,
+        isFalse,
+      );
       final history = await repo.fetchHistory(dueItem.id);
       expect(history, isNotEmpty);
     });
@@ -564,15 +628,18 @@ void main() {
       // must not be reconstructible from each other.
       final reset = spools.firstWhere((s) => s.weightUsedBaseline > 0);
       expect(reset.consumedWeight, lessThan(reset.weightUsed));
-      expect(spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
-          greaterThan(0),
-          reason: 'the shelf total the list header shows');
+      expect(
+        spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
+        greaterThan(0),
+        reason: 'the shelf total the list header shows',
+      );
 
       // Resetting zeroes the counter and leaves the spool as empty as it was.
       final target = spools.firstWhere((s) => s.consumedWeight > 0);
       await source.resetUsage(target.id);
-      final after = (await source.fetchSpools())
-          .firstWhere((s) => s.id == target.id);
+      final after = (await source.fetchSpools()).firstWhere(
+        (s) => s.id == target.id,
+      );
       expect(after.consumedWeight, 0);
       expect(after.remainingWeight, target.remainingWeight);
     });
@@ -614,11 +681,10 @@ void main() {
       ];
       const unknown = 999999;
 
-      final updated =
-          await source.bulkUpdate([...ids, unknown], const SpoolBulkPatch(
-        brand: 'Bulked',
-        note: 'mass edit',
-      ));
+      final updated = await source.bulkUpdate([
+        ...ids,
+        unknown,
+      ], const SpoolBulkPatch(brand: 'Bulked', note: 'mass edit'));
       expect((updated.ok, updated.failed), (3, 1));
       expect(updated.notFound, [unknown]);
       final shelf = await source.fetchSpools(includeArchived: true);
@@ -650,8 +716,13 @@ void main() {
       // Posted raw: the source short-circuits both before they leave the
       // phone, so going through it would assert the client guard and never
       // reach the refusal these routes actually answer with.
-      Matcher rejects(int status) => throwsA(isA<DioException>()
-          .having((e) => e.response?.statusCode, 'status', status));
+      Matcher rejects(int status) => throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          status,
+        ),
+      );
 
       await expectLater(
         dio.post<dynamic>(
@@ -663,7 +734,10 @@ void main() {
       await expectLater(
         dio.post<dynamic>(
           '/api/v1/inventory/spools/bulk-update',
-          data: {'ids': [1], 'update': <String, dynamic>{}},
+          data: {
+            'ids': [1],
+            'update': <String, dynamic>{},
+          },
         ),
         rejects(400),
       );
@@ -671,45 +745,45 @@ void main() {
 
     // Last in the group on purpose: it registers a spool and pins it to a
     // slot, and the counts asserted above are taken before that.
-    test('registering an AMS slot creates the spool and pins it there',
-        () async {
-      // P1S slot 3 holds a tagged Bambu spool the shelf has never seen — the
-      // state the affordance exists for.
-      final id = await source.createSpoolFromSlot(
-        printerId: 2,
-        amsId: 0,
-        trayId: 2,
-      );
-      expect(id, isNotNull);
+    test(
+      'registering an AMS slot creates the spool and pins it there',
+      () async {
+        // P1S slot 3 holds a tagged Bambu spool the shelf has never seen — the
+        // state the affordance exists for.
+        final id = await source.createSpoolFromSlot(
+          printerId: 2,
+          amsId: 0,
+          trayId: 2,
+        );
+        expect(id, isNotNull);
 
-      final spools = await source.fetchSpools();
-      final created = spools.firstWhere((s) => s.id == id);
-      expect(created.material, 'PLA');
-      expect(created.subtype, 'Basic');
-      expect(created.rgba, '00AE42FF');
-      expect(normalizeTagUid(created.tagUid), 'B7A21C0439E5D168');
+        final spools = await source.fetchSpools();
+        final created = spools.firstWhere((s) => s.id == id);
+        expect(created.material, 'PLA');
+        expect(created.subtype, 'Basic');
+        expect(created.rgba, '00AE42FF');
+        expect(normalizeTagUid(created.tagUid), 'B7A21C0439E5D168');
 
-      final assignments = await source.fetchAssignments();
-      final pinned = assignments.firstWhere((a) => a.spoolId == id);
-      expect(pinned.printerId, 2);
-      expect(pinned.amsId, 0);
-      expect(pinned.trayId, 2);
-    });
+        final assignments = await source.fetchAssignments();
+        final pinned = assignments.firstWhere((a) => a.spoolId == id);
+        expect(pinned.printerId, 2);
+        expect(pinned.amsId, 0);
+        expect(pinned.trayId, 2);
+      },
+    );
 
     test('a slot without a tag is refused, not silently duplicated', () async {
       // X1C slot 3 runs a third-party PETG: filament, but no identity.
       await expectLater(
         () => source.createSpoolFromSlot(printerId: 1, amsId: 0, trayId: 2),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'status', 400)),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 400)),
       );
     });
 
     test('an empty slot is refused too', () async {
       await expectLater(
         () => source.createSpoolFromSlot(printerId: 2, amsId: 0, trayId: 3),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'status', 400)),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 400)),
       );
     });
   });
@@ -726,14 +800,11 @@ void main() {
       expect(bindings.every((b) => b.showOnCard), isTrue);
 
       final readings = await repo.readings(3);
-      expect(
-        readings.map((r) => r.category),
-        [
-          LocationSensorCategory.temperature,
-          LocationSensorCategory.humidity,
-          LocationSensorCategory.battery,
-        ],
-      );
+      expect(readings.map((r) => r.category), [
+        LocationSensorCategory.temperature,
+        LocationSensorCategory.humidity,
+        LocationSensorCategory.battery,
+      ]);
       expect(readings.map((r) => r.formattedValue), ['24.4°C', '47.2%', '78%']);
       // The three states the pills draw differently: plain, over threshold,
       // and last-known because the poller could not reach it.
@@ -791,8 +862,11 @@ void main() {
 
       final settings = await SlicerRepository(dio).serverSettings();
       expect(settings['require_plate_clear'], isFalse);
-      expect(settings['use_slicer_api'], isTrue,
-          reason: 'the flag that gates every Slice button in the app');
+      expect(
+        settings['use_slicer_api'],
+        isTrue,
+        reason: 'the flag that gates every Slice button in the app',
+      );
     });
 
     test('printer files + storage + AMS history', () async {
@@ -809,22 +883,23 @@ void main() {
       final dir = Directory.systemTemp.createTempSync('demo-printer-files');
       addTearDown(() => dir.deleteSync(recursive: true));
       final one = '${dir.path}/one.3mf';
-      await PrinterFilesRepository(dio)
-          .downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
+      await PrinterFilesRepository(
+        dio,
+      ).downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
       // The listing claims 2 108 509 bytes for this one; the cap is what lands.
       expect(File(one).lengthSync(), 2 * 1024 * 1024);
 
       final small = '${dir.path}/small.3mf';
-      await PrinterFilesRepository(dio)
-          .downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
+      await PrinterFilesRepository(
+        dio,
+      ).downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
       expect(File(small).lengthSync(), 1524736);
 
       final zip = '${dir.path}/bundle.zip';
-      await PrinterFilesRepository(dio).downloadZipTo(
-        1,
-        const ['/cache/Benchy.gcode.3mf', '/cache/Cable clips x8.gcode.3mf'],
-        zip,
-      );
+      await PrinterFilesRepository(dio).downloadZipTo(1, const [
+        '/cache/Benchy.gcode.3mf',
+        '/cache/Cable clips x8.gcode.3mf',
+      ], zip);
       // The 22 bytes of an empty archive, starting with the ZIP signature.
       expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
 
@@ -906,8 +981,7 @@ void main() {
       await conn.close();
       final messages = [for (final f in frames) parseWsMessage(f as String)];
       expect(messages.whereType<WsPrinterStatus>(), hasLength(2));
-      final status =
-          messages.whereType<WsPrinterStatus>().first.status;
+      final status = messages.whereType<WsPrinterStatus>().first.status;
       expect(status.id, isPositive);
     });
   });
@@ -918,20 +992,33 @@ void main() {
     test('the picker has a built-in tier and imported presets', () async {
       // No cloud login in the demo, which the sheet is built to survive: the
       // other two tiers are what it falls back to.
-      expect(repo.cloudFilaments(),
-          throwsA(isA<AuthException>()
-              .having((e) => e.code, 'code', AppErrorCode.unauthorized)));
+      expect(
+        repo.cloudFilaments(),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
+        ),
+      );
 
       final builtin = await repo.builtinFilaments();
       expect(builtin, isNotEmpty);
-      expect(builtin.map((p) => p.id), contains('GFA00'),
-          reason: 'the id the demo trays report, so a slot can be named');
+      expect(
+        builtin.map((p) => p.id),
+        contains('GFA00'),
+        reason: 'the id the demo trays report, so a slot can be named',
+      );
 
       final local = await repo.localFilaments();
       expect(local, isNotEmpty);
       expect(local.first.filamentType, isNotNull);
-      expect(local.first.compatiblePrinters, isNotNull,
-          reason: 'the printer filter needs something to filter on');
+      expect(
+        local.first.compatiblePrinters,
+        isNotNull,
+        reason: 'the printer filter needs something to filter on',
+      );
     });
 
     test('the printer-model registry resolves the demo printers', () async {
@@ -945,52 +1032,66 @@ void main() {
       expect(fine.every((p) => p.nozzleDiameter == '0.4'), isTrue);
 
       final coarse = await repo.kProfiles(1, nozzleDiameter: '0.6');
-      expect(coarse.map((p) => p.slotId),
-          isNot(anyElement(isIn(fine.map((p) => p.slotId)))));
+      expect(
+        coarse.map((p) => p.slotId),
+        isNot(anyElement(isIn(fine.map((p) => p.slotId)))),
+      );
     });
 
-    test('configuring a slot shows on the card, and clearing it undoes that',
-        () async {
-      const preset = AmsFilamentPreset(
-        source: AmsPresetSource.builtin,
-        id: 'GFB99',
-        name: 'Generic ABS',
-      );
-      await repo.configureSlot(
-        1,
-        amsId: 0,
-        trayId: 3,
-        configuration: SlotConfiguration.forPreset(
+    test(
+      'configuring a slot shows on the card, and clearing it undoes that',
+      () async {
+        const preset = AmsFilamentPreset(
+          source: AmsPresetSource.builtin,
+          id: 'GFB99',
+          name: 'Generic ABS',
+        );
+        await repo.configureSlot(
+          1,
+          amsId: 0,
+          trayId: 3,
+          configuration: SlotConfiguration.forPreset(
+            preset: preset,
+            colourHex: '1A1A1A',
+            nozzleDiameter: '0.4',
+          ),
+        );
+        await repo.saveSlotPreset(
+          1,
+          amsId: 0,
+          trayId: 3,
           preset: preset,
-          colourHex: '1A1A1A',
-          nozzleDiameter: '0.4',
-        ),
-      );
-      await repo.saveSlotPreset(1, amsId: 0, trayId: 3,
-          preset: preset, presetName: preset.name);
+          presetName: preset.name,
+        );
 
-      var tray = (await PrintersRepository(dio).fetchStatus(1))!
-          .ams!
-          .first
-          .trays!
-          .firstWhere((t) => t.id == 3);
-      expect(tray.trayType, 'ABS', reason: 'the empty slot now holds something');
-      expect(tray.trayColor, '1A1A1AFF');
-      expect(tray.trayInfoIdx, 'GFB99');
-      expect((await repo.slotPreset(1, amsId: 0, trayId: 3))?.presetName,
-          'Generic ABS');
+        var tray = (await PrintersRepository(
+          dio,
+        ).fetchStatus(1))!.ams!.first.trays!.firstWhere((t) => t.id == 3);
+        expect(
+          tray.trayType,
+          'ABS',
+          reason: 'the empty slot now holds something',
+        );
+        expect(tray.trayColor, '1A1A1AFF');
+        expect(tray.trayInfoIdx, 'GFB99');
+        expect(
+          (await repo.slotPreset(1, amsId: 0, trayId: 3))?.presetName,
+          'Generic ABS',
+        );
 
-      await repo.resetSlot(1, amsId: 0, trayId: 3);
+        await repo.resetSlot(1, amsId: 0, trayId: 3);
 
-      tray = (await PrintersRepository(dio).fetchStatus(1))!
-          .ams!
-          .first
-          .trays!
-          .firstWhere((t) => t.id == 3);
-      expect(tray.trayType, isNull);
-      expect(await repo.slotPreset(1, amsId: 0, trayId: 3), isNull,
-          reason: 'the reset drops the mapping too');
-    });
+        tray = (await PrintersRepository(
+          dio,
+        ).fetchStatus(1))!.ams!.first.trays!.firstWhere((t) => t.id == 3);
+        expect(tray.trayType, isNull);
+        expect(
+          await repo.slotPreset(1, amsId: 0, trayId: 3),
+          isNull,
+          reason: 'the reset drops the mapping too',
+        );
+      },
+    );
   });
 
   group('printer commands (mutate simulation — keep last)', () {
@@ -1027,21 +1128,25 @@ void main() {
       final p1s = files.firstWhere((f) => f.slicedForModel == 'P1S');
 
       final group = await library.createVariantGroup([x1c.id, p1s.id]);
-      expect(group.targetModels, ['X1C', 'P1S'],
-          reason: 'selection order is the priority order');
+      expect(group.targetModels, [
+        'X1C',
+        'P1S',
+      ], reason: 'selection order is the priority order');
 
       // The listing has to show it too, or the file rows would not know they
       // are grouped.
-      final grouped = (await library.listAllFiles())
-          .firstWhere((f) => f.id == x1c.id);
+      final grouped = (await library.listAllFiles()).firstWhere(
+        (f) => f.id == x1c.id,
+      );
       expect(grouped.variantGroupId, group.id);
       expect(grouped.hasVariants, isTrue);
 
       expect((await library.variantGroupForFile(p1s.id))?.id, group.id);
 
       await library.deleteVariantGroup(group.id);
-      final ungrouped = (await library.listAllFiles())
-          .firstWhere((f) => f.id == x1c.id);
+      final ungrouped = (await library.listAllFiles()).firstWhere(
+        (f) => f.id == x1c.id,
+      );
       expect(ungrouped.variantGroupId, isNull);
       expect(await library.variantGroupForFile(p1s.id), isNull);
     });
@@ -1050,8 +1155,10 @@ void main() {
       // The refusal is the point of the feature: a group is a choice between
       // printers, and two X1C files express none.
       final files = await library.listAllFiles();
-      final sameModel =
-          files.where((f) => f.slicedForModel == 'X1C').take(2).toList();
+      final sameModel = files
+          .where((f) => f.slicedForModel == 'X1C')
+          .take(2)
+          .toList();
 
       await expectLater(
         library.createVariantGroup([for (final f in sameModel) f.id]),
@@ -1066,12 +1173,16 @@ void main() {
     test('classify, refuse a value off the list, delete, clear', () async {
       final target = (await repo.list(status: 'failed')).items.first;
 
-      final classified =
-          await repo.updateEntry(target.id, failureReason: 'layerShift');
+      final classified = await repo.updateEntry(
+        target.id,
+        failureReason: 'layerShift',
+      );
       expect(classified.failureReason, 'layerShift');
 
-      final cleared =
-          await repo.updateEntry(target.id, clearFailureReason: true);
+      final cleared = await repo.updateEntry(
+        target.id,
+        clearFailureReason: true,
+      );
       expect(cleared.failureReason, isNull);
 
       // The demo refuses what the real server refuses; an editor that looked
@@ -1100,75 +1211,116 @@ void main() {
     // STL and the CAD export no slicer can load.
     const plain = 6, twoTone = 7, stl = 8, step = 9;
 
-    Future<Map<String, dynamic>> slice(int fileId, {String process = 'q-020-std'}) =>
-        Future.value({
-          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
-          'process_preset': {'source': 'local', 'id': process},
-          'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
-        });
-
-    test('a 3MF names the presets it was designed with; an STL names none',
-        () async {
-      final designed =
-          await LibraryRepository(dio).plates(plain).then((p) => p.embedded);
-      expect(designed.isAvailable, isTrue);
-      expect(designed.matchesPrinter('X1C 0.4 nozzle'), isTrue,
-          reason: 'spelled as /slicer/presets spells it, or the switch never '
-              'appears');
-
-      final none =
-          await LibraryRepository(dio).plates(stl).then((p) => p.embedded);
-      expect(none.isAvailable, isFalse);
-      expect(none.serverSupportsAsDesigned, isFalse,
-          reason: 'no design_overrides key at all on a non-3MF');
+    Future<Map<String, dynamic>> slice(
+      int fileId, {
+      String process = 'q-020-std',
+    }) => Future.value({
+      'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+      'process_preset': {'source': 'local', 'id': process},
+      'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
     });
 
-    test('full_slots offers every project slot, flagging the spare ones',
-        () async {
-      final slots = await slicer.filamentRequirements(
-          id: twoTone, isArchive: false, plateId: 1);
-      expect(slots, hasLength(4));
-      expect(anyUnused(slots), isTrue,
-          reason: 'the form can only mark spare slots when some are spare');
-      expect(slots.where((s) => s.usedInPlate).map((s) => s.slotId), [1, 2]);
-    });
+    test(
+      'a 3MF names the presets it was designed with; an STL names none',
+      () async {
+        final designed = await LibraryRepository(
+          dio,
+        ).plates(plain).then((p) => p.embedded);
+        expect(designed.isAvailable, isTrue);
+        expect(
+          designed.matchesPrinter('X1C 0.4 nozzle'),
+          isTrue,
+          reason:
+              'spelled as /slicer/presets spells it, or the switch never '
+              'appears',
+        );
+
+        final none = await LibraryRepository(
+          dio,
+        ).plates(stl).then((p) => p.embedded);
+        expect(none.isAvailable, isFalse);
+        expect(
+          none.serverSupportsAsDesigned,
+          isFalse,
+          reason: 'no design_overrides key at all on a non-3MF',
+        );
+      },
+    );
+
+    test(
+      'full_slots offers every project slot, flagging the spare ones',
+      () async {
+        final slots = await slicer.filamentRequirements(
+          id: twoTone,
+          isArchive: false,
+          plateId: 1,
+        );
+        expect(slots, hasLength(4));
+        expect(
+          anyUnused(slots),
+          isTrue,
+          reason: 'the form can only mark spare slots when some are spare',
+        );
+        expect(slots.where((s) => s.usedInPlate).map((s) => s.slotId), [1, 2]);
+      },
+    );
 
     test('which slots are spare depends on the plate asked about', () async {
       final second = await slicer.filamentRequirements(
-          id: twoTone, isArchive: false, plateId: 2);
+        id: twoTone,
+        isArchive: false,
+        plateId: 2,
+      );
       expect(second.where((s) => s.usedInPlate).map((s) => s.slotId), [3, 4]);
     });
 
-    test('a source with no filament table falls back to one generic slot',
-        () async {
-      expect(
-        await slicer.filamentRequirements(id: stl, isArchive: false),
-        isEmpty,
-      );
-    });
+    test(
+      'a source with no filament table falls back to one generic slot',
+      () async {
+        expect(
+          await slicer.filamentRequirements(id: stl, isArchive: false),
+          isEmpty,
+        );
+      },
+    );
 
-    test('a local process preset resolves; the standard tier says why not',
-        () async {
-      final local = await slicer.presetValues(
-          const SlicerPreset(source: 'local', id: 'q-028-draft', name: ''));
-      expect(local?.resolved, isTrue);
-      expect(local?.values['layer_height'], '0.28',
-          reason: 'a string, as a process JSON spells it — a number would read '
-              'as user-modified the moment the panel opened');
+    test(
+      'a local process preset resolves; the standard tier says why not',
+      () async {
+        final local = await slicer.presetValues(
+          const SlicerPreset(source: 'local', id: 'q-028-draft', name: ''),
+        );
+        expect(local?.resolved, isTrue);
+        expect(
+          local?.values['layer_height'],
+          '0.28',
+          reason:
+              'a string, as a process JSON spells it — a number would read '
+              'as user-modified the moment the panel opened',
+        );
 
-      final standard = await slicer.presetValues(const SlicerPreset(
-          source: 'standard', id: '0.20mm Standard @BBL X1C', name: ''));
-      expect(standard?.resolved, isFalse);
-      expect(standard?.cause, PresetValuesCause.sidecarOutdated);
-    });
+        final standard = await slicer.presetValues(
+          const SlicerPreset(
+            source: 'standard',
+            id: '0.20mm Standard @BBL X1C',
+            name: '',
+          ),
+        );
+        expect(standard?.resolved, isFalse);
+        expect(standard?.cause, PresetValuesCause.sidecarOutdated);
+      },
+    );
 
     test('STEP is refused before anything is read, in its own words', () async {
       await expectLater(
         slicer.sliceLibraryFile(step, await slice(step)),
-        throwsA(isA<AppApiException>()
-            .having((e) => e.statusCode, 'status', 400)
-            .having((e) => e.detail, 'detail', contains('STEP'))),
-        reason: 'the detail has to survive the repository, or the sentence the '
+        throwsA(
+          isA<AppApiException>()
+              .having((e) => e.statusCode, 'status', 400)
+              .having((e) => e.detail, 'detail', contains('STEP')),
+        ),
+        reason:
+            'the detail has to survive the repository, or the sentence the '
             'server wrote is replaced by "error 400"',
       );
     });
@@ -1186,9 +1338,13 @@ void main() {
       addTearDown(() => DemoBackend.sliceSeconds = 9);
 
       final jobId = await slicer.sliceLibraryFile(plain, await slice(plain));
-      expect((await slicer.job(jobId)).status, 'pending',
-          reason: 'the sidecar publishes nothing for the first moment, which '
-              'is what puts the dialog on an indeterminate bar');
+      expect(
+        (await slicer.job(jobId)).status,
+        'pending',
+        reason:
+            'the sidecar publishes nothing for the first moment, which '
+            'is what puts the dialog on an indeterminate bar',
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 1300));
       final done = await slicer.job(jobId);
@@ -1197,15 +1353,21 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 300));
       final again = await slicer.job(jobId);
-      expect(again.result?.libraryFileId, done.result!.libraryFileId,
-          reason: 'the output is filed once, not once per poll');
+      expect(
+        again.result?.libraryFileId,
+        done.result!.libraryFileId,
+        reason: 'the output is filed once, not once per poll',
+      );
     });
 
     test('a running job reports a stage and a percentage', () async {
       DemoBackend.sliceSeconds = 4;
       addTearDown(() => DemoBackend.sliceSeconds = 9);
 
-      final jobId = await slicer.sliceLibraryFile(twoTone, await slice(twoTone));
+      final jobId = await slicer.sliceLibraryFile(
+        twoTone,
+        await slice(twoTone),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 1500));
       final running = await slicer.job(jobId);
       expect(running.status, 'running');
@@ -1219,7 +1381,10 @@ void main() {
       final library = LibraryRepository(dio);
       final before = (await library.listAllFiles()).length;
 
-      final jobId = await slicer.sliceLibraryFile(twoTone, await slice(twoTone));
+      final jobId = await slicer.sliceLibraryFile(
+        twoTone,
+        await slice(twoTone),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 1300));
       final result = (await slicer.job(jobId)).result!;
 
@@ -1227,37 +1392,50 @@ void main() {
       expect(after, hasLength(before + 1));
       final output = after.firstWhere((f) => f.id == result.libraryFileId);
       expect(output.filename, result.name);
-      expect(output.isPrintable, isTrue,
-          reason: 'the whole point of slicing it');
-      expect(output.slicedForModel, 'X1C',
-          reason: 'the printer that was picked, not the source it came from');
+      expect(
+        output.isPrintable,
+        isTrue,
+        reason: 'the whole point of slicing it',
+      );
+      expect(
+        output.slicedForModel,
+        'X1C',
+        reason: 'the printer that was picked, not the source it came from',
+      );
     });
 
-    test('a re-sliced archive keeps the source estimate and the picked printer',
-        () async {
-      DemoBackend.sliceSeconds = 1;
-      addTearDown(() => DemoBackend.sliceSeconds = 9);
-      final archives = ArchiveRepository(dio);
-      final benchy = (await archives.list())
-          .firstWhere((a) => a.printName == 'Benchy');
+    test(
+      'a re-sliced archive keeps the source estimate and the picked printer',
+      () async {
+        DemoBackend.sliceSeconds = 1;
+        addTearDown(() => DemoBackend.sliceSeconds = 9);
+        final archives = ArchiveRepository(dio);
+        final benchy = (await archives.list()).firstWhere(
+          (a) => a.printName == 'Benchy',
+        );
 
-      final jobId = await slicer.sliceArchive(benchy.id, {
-        'printer_preset': {'source': 'local', 'id': 'p-p1s-04'},
-        'process_preset': {'source': 'local', 'id': 'q-020-std'},
-        'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
-      });
-      await Future<void>.delayed(const Duration(milliseconds: 1300));
-      final result = (await slicer.job(jobId)).result!;
+        final jobId = await slicer.sliceArchive(benchy.id, {
+          'printer_preset': {'source': 'local', 'id': 'p-p1s-04'},
+          'process_preset': {'source': 'local', 'id': 'q-020-std'},
+          'filament_preset': {'source': 'local', 'id': 'f-petg-white'},
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 1300));
+        final result = (await slicer.job(jobId)).result!;
 
-      expect(result.printTimeSeconds, benchy.printTimeSeconds,
-          reason: 'same layer height as the source, so the same estimate — an '
-              'archive knows what it costs and need not be guessed at');
-      final resliced = (await archives.list())
-          .firstWhere((a) => a.printName == 'Benchy (re-sliced)');
-      expect(resliced.slicedForModel, 'P1S');
-      expect(resliced.completedAt, isNull,
-          reason: 'sliced, never printed');
-      expect(resliced.runCount, 0);
-    });
+        expect(
+          result.printTimeSeconds,
+          benchy.printTimeSeconds,
+          reason:
+              'same layer height as the source, so the same estimate — an '
+              'archive knows what it costs and need not be guessed at',
+        );
+        final resliced = (await archives.list()).firstWhere(
+          (a) => a.printName == 'Benchy (re-sliced)',
+        );
+        expect(resliced.slicedForModel, 'P1S');
+        expect(resliced.completedAt, isNull, reason: 'sliced, never printed');
+        expect(resliced.runCount, 0);
+      },
+    );
   });
 }

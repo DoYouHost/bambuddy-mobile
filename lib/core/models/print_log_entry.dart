@@ -94,28 +94,29 @@ class PrintLogEntry {
   });
 
   factory PrintLogEntry.fromJson(Map<String, dynamic> json) => PrintLogEntry(
-        id: toInt(json['id']),
-        status: toStringOrNull(json['status']) ?? 'unknown',
-        createdAt: dateTimeFromJson(json['created_at']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        archiveId: toIntOrNull(json['archive_id']),
-        printName: toStringOrNull(json['print_name']),
-        printerName: toStringOrNull(json['printer_name']),
-        printerId: toIntOrNull(json['printer_id']),
-        startedAt: dateTimeFromJson(json['started_at']),
-        completedAt: dateTimeFromJson(json['completed_at']),
-        durationSeconds: toIntOrNull(json['duration_seconds']),
-        filamentType: toStringOrNull(json['filament_type']),
-        filamentColor: toStringOrNull(json['filament_color']),
-        filamentUsedGrams: toDoubleOrNull(json['filament_used_grams']),
-        cost: toDoubleOrNull(json['cost']),
-        energyKwh: toDoubleOrNull(json['energy_kwh']),
-        energyCost: toDoubleOrNull(json['energy_cost']),
-        failureReason: toStringOrNull(json['failure_reason']),
-        thumbnailPath: toStringOrNull(json['thumbnail_path']),
-        createdById: toIntOrNull(json['created_by_id']),
-        createdByUsername: toStringOrNull(json['created_by_username']),
-      );
+    id: toInt(json['id']),
+    status: toStringOrNull(json['status']) ?? 'unknown',
+    createdAt:
+        dateTimeFromJson(json['created_at']) ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    archiveId: toIntOrNull(json['archive_id']),
+    printName: toStringOrNull(json['print_name']),
+    printerName: toStringOrNull(json['printer_name']),
+    printerId: toIntOrNull(json['printer_id']),
+    startedAt: dateTimeFromJson(json['started_at']),
+    completedAt: dateTimeFromJson(json['completed_at']),
+    durationSeconds: toIntOrNull(json['duration_seconds']),
+    filamentType: toStringOrNull(json['filament_type']),
+    filamentColor: toStringOrNull(json['filament_color']),
+    filamentUsedGrams: toDoubleOrNull(json['filament_used_grams']),
+    cost: toDoubleOrNull(json['cost']),
+    energyKwh: toDoubleOrNull(json['energy_kwh']),
+    energyCost: toDoubleOrNull(json['energy_cost']),
+    failureReason: toStringOrNull(json['failure_reason']),
+    thumbnailPath: toStringOrNull(json['thumbnail_path']),
+    createdById: toIntOrNull(json['created_by_id']),
+    createdByUsername: toStringOrNull(json['created_by_username']),
+  );
 
   final int id;
 

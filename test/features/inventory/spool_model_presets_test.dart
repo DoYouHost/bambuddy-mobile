@@ -29,9 +29,9 @@ class _FakeInventory extends InventoryNotifier {
   final List<String> writes = [];
 
   @override
-  Future<InventoryState> build() async => const InventoryState(spools: [
-        Spool(id: 7, material: 'PLA', brand: 'Bambu'),
-      ]);
+  Future<InventoryState> build() async => const InventoryState(
+    spools: [Spool(id: 7, material: 'PLA', brand: 'Bambu')],
+  );
 
   @override
   Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) async {
@@ -74,40 +74,47 @@ void main() {
     when(() => repo.savePresetOverrides(any(), any())).thenAnswer((_) async {
       if (writeFails != null) throw writeFails;
     });
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        inventoryProvider.overrideWith(() => inventory ?? _FakeInventory()),
-        inventoryRepositoryProvider.overrideWithValue(repo),
-        noServerProfileOverride,
-        presetOverridesSupportedProvider.overrideWith((_) async => supported),
-        printerModelsProvider.overrideWith((_) async => models),
-        slicerPresetsProvider.overrideWith((_) async => UnifiedPresets(
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryProvider.overrideWith(() => inventory ?? _FakeInventory()),
+          inventoryRepositoryProvider.overrideWithValue(repo),
+          noServerProfileOverride,
+          presetOverridesSupportedProvider.overrideWith((_) async => supported),
+          printerModelsProvider.overrideWith((_) async => models),
+          slicerPresetsProvider.overrideWith(
+            (_) async => UnifiedPresets(
               printers: const [],
               processes: const [],
               filaments: presets,
-            )),
-        printerModelRegistryProvider
-            .overrideWith((_) async => const {'Bambu Lab P1S': 'P1S'}),
-        spoolPresetOverridesProvider(7).overrideWith((_) {
-          if (pendingRead != null) return pendingRead;
-          if (readFails != null) throw readFails;
-          return stored;
-        }),
-      ],
-      child: plApp(Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () => openSpoolForm(
-              context,
-              existing: newSpool
-                  ? null
-                  : const Spool(id: 7, material: 'PLA', brand: 'Bambu'),
             ),
-            child: const Text('open'),
+          ),
+          printerModelRegistryProvider.overrideWith(
+            (_) async => const {'Bambu Lab P1S': 'P1S'},
+          ),
+          spoolPresetOverridesProvider(7).overrideWith((_) {
+            if (pendingRead != null) return pendingRead;
+            if (readFails != null) throw readFails;
+            return stored;
+          }),
+        ],
+        child: plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => openSpoolForm(
+                  context,
+                  existing: newSpool
+                      ? null
+                      : const Spool(id: 7, material: 'PLA', brand: 'Bambu'),
+                ),
+                child: const Text('open'),
+              ),
+            ),
           ),
         ),
-      )),
-    ));
+      ),
+    );
     await tester.tap(find.text('open'));
     await settle(tester);
     if (newSpool) {
@@ -134,8 +141,7 @@ void main() {
     return repo;
   }
 
-  Finder saveButton() =>
-      find.widgetWithText(FilledButton, l10n.inventorySave);
+  Finder saveButton() => find.widgetWithText(FilledButton, l10n.inventorySave);
 
   /// The section heading as `_FormSection` renders it — upper case.
   Finder heading() =>
@@ -148,20 +154,20 @@ void main() {
     expect(find.text('P1S'), findsOneWidget);
     expect(find.text('X1C'), findsOneWidget);
     // Nothing overridden yet, so both rows say the spool's own preset applies.
-    expect(
-      find.text(l10n.inventoryPrinterPresetDefault),
-      findsNWidgets(2),
-    );
+    expect(find.text(l10n.inventoryPrinterPresetDefault), findsNWidgets(2));
   });
 
   testWidgets('a stored override shows the preset it names', (tester) async {
-    await openForm(tester, stored: const [
-      SpoolPresetOverride(
-        printerModel: 'X1C',
-        slicerFilament: 'GFA00',
-        slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
-      ),
-    ]);
+    await openForm(
+      tester,
+      stored: const [
+        SpoolPresetOverride(
+          printerModel: 'X1C',
+          slicerFilament: 'GFA00',
+          slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
+        ),
+      ],
+    );
 
     expect(find.text('Bambu PLA Basic @BBL X1C'), findsOneWidget);
     expect(find.text(l10n.inventoryPrinterPresetDefault), findsOneWidget);
@@ -169,14 +175,18 @@ void main() {
 
   testWidgets('a per-nozzle row the web wrote keeps its own line, whatever '
       'the fleet reports', (tester) async {
-    await openForm(tester, models: const ['X1C'], stored: const [
-      SpoolPresetOverride(
-        printerModel: 'H2D',
-        nozzleDiameter: '0.2',
-        slicerFilament: 'GFA01',
-        slicerFilamentName: 'Bambu PLA Matte @BBL H2D 0.2 nozzle',
-      ),
-    ]);
+    await openForm(
+      tester,
+      models: const ['X1C'],
+      stored: const [
+        SpoolPresetOverride(
+          printerModel: 'H2D',
+          nozzleDiameter: '0.2',
+          slicerFilament: 'GFA01',
+          slicerFilamentName: 'Bambu PLA Matte @BBL H2D 0.2 nozzle',
+        ),
+      ],
+    );
 
     expect(
       find.text(l10n.inventoryPrinterPresetNozzle('H2D', '0.2')),
@@ -186,9 +196,12 @@ void main() {
 
   testWidgets('an untouched section writes nothing — the route replaces the '
       'whole list', (tester) async {
-    final repo = await openForm(tester, stored: const [
-      SpoolPresetOverride(printerModel: 'X1C', slicerFilament: 'GFA00'),
-    ]);
+    final repo = await openForm(
+      tester,
+      stored: const [
+        SpoolPresetOverride(printerModel: 'X1C', slicerFilament: 'GFA00'),
+      ],
+    );
 
     await tester.tap(saveButton());
     await settle(tester);
@@ -196,46 +209,52 @@ void main() {
     verifyNever(() => repo.savePresetOverrides(any(), any()));
   });
 
-  testWidgets('a read that failed says so and offers no rows to edit',
-      (tester) async {
+  testWidgets('a read that failed says so and offers no rows to edit', (
+    tester,
+  ) async {
     await openForm(tester, readFails: Exception('boom'));
 
     expect(find.text(l10n.inventoryPrinterPresetsLoadFailed), findsOneWidget);
     expect(find.text('P1S'), findsNothing);
   });
 
-  testWidgets('a server without the routes has no section at all',
-      (tester) async {
+  testWidgets('a server without the routes has no section at all', (
+    tester,
+  ) async {
     await openForm(tester, supported: false);
 
     expect(heading(), findsNothing);
     expect(find.text('P1S'), findsNothing);
   });
 
-  testWidgets('clearing a row drops it, and the save sends what is left',
-      (tester) async {
-    final repo = await openForm(tester, stored: const [
-      SpoolPresetOverride(
-        printerModel: 'X1C',
-        slicerFilament: 'GFA00',
-        slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
-      ),
-      SpoolPresetOverride(
-        printerModel: 'H2D',
-        nozzleDiameter: '0.2',
-        slicerFilament: 'GFA01',
-        slicerFilamentName: 'Bambu PLA Matte @BBL H2D 0.2 nozzle',
-      ),
-    ]);
+  testWidgets('clearing a row drops it, and the save sends what is left', (
+    tester,
+  ) async {
+    final repo = await openForm(
+      tester,
+      stored: const [
+        SpoolPresetOverride(
+          printerModel: 'X1C',
+          slicerFilament: 'GFA00',
+          slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
+        ),
+        SpoolPresetOverride(
+          printerModel: 'H2D',
+          nozzleDiameter: '0.2',
+          slicerFilament: 'GFA01',
+          slicerFilamentName: 'Bambu PLA Matte @BBL H2D 0.2 nozzle',
+        ),
+      ],
+    );
 
     await tester.tap(find.byIcon(Icons.clear).first);
     await settle(tester);
     await tester.tap(saveButton());
     await settle(tester);
 
-    final sent = verify(() => repo.savePresetOverrides(7, captureAny()))
-        .captured
-        .single as List<SpoolPresetOverride>;
+    final sent =
+        verify(() => repo.savePresetOverrides(7, captureAny())).captured.single
+            as List<SpoolPresetOverride>;
     // The row the web wrote survives a clear on a different model: it is still
     // in the list the replace sends.
     expect(sent.map((o) => o.key), ['H2D|0.2']);
@@ -243,11 +262,23 @@ void main() {
 
   testWidgets('the picker opens narrowed to the row\'s model and the spool\'s '
       'material, and either filter can be switched off', (tester) async {
-    await openForm(tester, models: const ['P1S'], presets: const [
-      SlicerPreset(source: 'cloud', id: '1', name: 'Bambu PLA Basic @BBL P1S'),
-      SlicerPreset(source: 'cloud', id: '2', name: 'Bambu PETG HF @BBL P1S'),
-      SlicerPreset(source: 'cloud', id: '3', name: 'Bambu PLA Basic @BBL X1C'),
-    ]);
+    await openForm(
+      tester,
+      models: const ['P1S'],
+      presets: const [
+        SlicerPreset(
+          source: 'cloud',
+          id: '1',
+          name: 'Bambu PLA Basic @BBL P1S',
+        ),
+        SlicerPreset(source: 'cloud', id: '2', name: 'Bambu PETG HF @BBL P1S'),
+        SlicerPreset(
+          source: 'cloud',
+          id: '3',
+          name: 'Bambu PLA Basic @BBL X1C',
+        ),
+      ],
+    );
 
     await tester.tap(find.text(l10n.inventoryPrinterPresetDefault));
     await settle(tester);
@@ -267,8 +298,9 @@ void main() {
   });
 
   testWidgets('nothing is editable until the stored rows are in hand — a pick '
-      'made first would be the whole list the save replaces with',
-      (tester) async {
+      'made first would be the whole list the save replaces with', (
+    tester,
+  ) async {
     final pending = Completer<List<SpoolPresetOverride>>();
     await openForm(tester, pendingRead: pending.future);
 
@@ -300,7 +332,11 @@ void main() {
       models: const ['P1S'],
       writeFails: Exception('boom'),
       presets: const [
-        SlicerPreset(source: 'cloud', id: '1', name: 'Bambu PLA Basic @BBL P1S'),
+        SlicerPreset(
+          source: 'cloud',
+          id: '1',
+          name: 'Bambu PLA Basic @BBL P1S',
+        ),
       ],
     );
 

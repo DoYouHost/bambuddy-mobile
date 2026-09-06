@@ -102,19 +102,28 @@ const _tree = [
         'group': 'Layer height',
         'options': ['layer_height', 'initial_layer_print_height'],
       },
-      {'group': 'Seam', 'options': ['seam_position']},
+      {
+        'group': 'Seam',
+        'options': ['seam_position'],
+      },
     ],
   },
   {
     'page': 'Strength',
     'groups': [
-      {'group': 'Walls', 'options': ['wall_loops', 'detect_thin_wall']},
+      {
+        'group': 'Walls',
+        'options': ['wall_loops', 'detect_thin_wall'],
+      },
     ],
   },
   {
     'page': 'Speed',
     'groups': [
-      {'group': 'Speeds', 'options': ['outer_wall_speed']},
+      {
+        'group': 'Speeds',
+        'options': ['outer_wall_speed'],
+      },
     ],
   },
   {
@@ -140,7 +149,10 @@ const _toggles = {
     'have_support_material': 'config->opt_bool("enable_support")',
   },
   'rules': [
-    {'fields': ['outer_wall_speed'], 'enable_if': 'have_perimeters'},
+    {
+      'fields': ['outer_wall_speed'],
+      'enable_if': 'have_perimeters',
+    },
     {
       'fields': ['support_interface_filament'],
       'enable_if': 'have_support_material',
@@ -152,9 +164,9 @@ const _toggles = {
 /// renders a `TextField` of its own, so the enum rows and the search box all
 /// answer to `find.byType(TextField)`.
 Finder _fieldOf(String key) => find.descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.byType(TextField),
-    );
+  of: find.byKey(ValueKey(key)),
+  matching: find.byType(TextField),
+);
 
 final _searchBox = find.descendant(
   of: find.byType(DashSearchField),
@@ -164,16 +176,18 @@ final _searchBox = find.descendant(
 /// The per-row revert button, by its tooltip: a `DropdownMenu` contributes an
 /// `IconButton` of its own for the chevron.
 Finder _revertOf(String key) => find.descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.byTooltip('Przywróć wartość z presetu'),
-    );
+  of: find.byKey(ValueKey(key)),
+  matching: find.byTooltip('Przywróć wartość z presetu'),
+);
 
 Future<ProcessSchemaCatalog> _catalog() async {
-  final catalog = ProcessSchemaCatalog(readAsset: (key) async => switch (key) {
-        'assets/slicer/process-schema.json' => jsonEncode(_schema),
-        'assets/slicer/process-ui-tree.json' => jsonEncode(_tree),
-        _ => jsonEncode(_toggles),
-      });
+  final catalog = ProcessSchemaCatalog(
+    readAsset: (key) async => switch (key) {
+      'assets/slicer/process-schema.json' => jsonEncode(_schema),
+      'assets/slicer/process-ui-tree.json' => jsonEncode(_tree),
+      _ => jsonEncode(_toggles),
+    },
+  );
   await catalog.load();
   return catalog;
 }
@@ -197,21 +211,28 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     Map<String, Object> values = const {},
-    PresetValues? presetValues = const PresetValues(resolved: true, reason: 'ok'),
+    PresetValues? presetValues = const PresetValues(
+      resolved: true,
+      reason: 'ok',
+    ),
     List<FilamentSlotChoice> filamentSlots = const [],
   }) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        processSchemaProvider.overrideWith((ref) async => catalog),
-        presetValuesProvider.overrideWith((ref, arg) async => presetValues),
-      ],
-      child: plApp(ProcessSettingsScreen(
-        preset: const ('local', '12'),
-        initialValues: values,
-        onChanged: (next) => reported.add(next),
-        filamentSlots: filamentSlots,
-      )),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          processSchemaProvider.overrideWith((ref) async => catalog),
+          presetValuesProvider.overrideWith((ref, arg) async => presetValues),
+        ],
+        child: plApp(
+          ProcessSettingsScreen(
+            preset: const ('local', '12'),
+            initialValues: values,
+            onChanged: (next) => reported.add(next),
+            filamentSlots: filamentSlots,
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -222,8 +243,9 @@ void main() {
       expect(find.text('Initial layer height'), findsNothing);
     });
 
-    testWidgets('advanced reveals them without losing the simple ones',
-        (tester) async {
+    testWidgets('advanced reveals them without losing the simple ones', (
+      tester,
+    ) async {
       await pump(tester);
       await tester.tap(find.text('Zaawansowane'));
       await tester.pumpAndSettle();
@@ -263,8 +285,9 @@ void main() {
       expect(find.text('Layer height'), findsNothing);
     });
 
-    testWidgets('the group name is searchable, not just the label',
-        (tester) async {
+    testWidgets('the group name is searchable, not just the label', (
+      tester,
+    ) async {
       await pump(tester);
       await tester.enterText(_searchBox, 'seam');
       await tester.pumpAndSettle();
@@ -275,34 +298,47 @@ void main() {
       await pump(tester);
       await tester.enterText(_searchBox, 'zzzz');
       await tester.pumpAndSettle();
-      expect(find.text('Żadne ustawienie nie pasuje do zapytania.'),
-          findsOneWidget);
+      expect(
+        find.text('Żadne ustawienie nie pasuje do zapytania.'),
+        findsOneWidget,
+      );
     });
   });
 
   group('rules', () {
-    testWidgets('a setting the slicer ignores is shown, greyed, not editable',
-        (tester) async {
+    testWidgets('a setting the slicer ignores is shown, greyed, not editable', (
+      tester,
+    ) async {
       // wall_loops 0 turns have_perimeters false, which disables outer_wall_speed.
       await pump(tester, values: {'wall_loops': '0'});
       await tester.enterText(_searchBox, 'outer wall speed');
       await tester.pumpAndSettle();
 
-      expect(find.text('Outer wall speed'), findsOneWidget,
-          reason: 'a missing row would read as a missing feature');
-      expect(tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
-          isFalse);
-      expect(find.text('Przy obecnych ustawieniach slicer to pomija.'),
-          findsOneWidget);
+      expect(
+        find.text('Outer wall speed'),
+        findsOneWidget,
+        reason: 'a missing row would read as a missing feature',
+      );
+      expect(
+        tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
+        isFalse,
+      );
+      expect(
+        find.text('Przy obecnych ustawieniach slicer to pomija.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('it becomes editable once the dependency is back',
-        (tester) async {
+    testWidgets('it becomes editable once the dependency is back', (
+      tester,
+    ) async {
       await pump(tester, values: {'wall_loops': '2'});
       await tester.enterText(_searchBox, 'outer wall speed');
       await tester.pumpAndSettle();
-      expect(tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
-          isTrue);
+      expect(
+        tester.widget<TextField>(_fieldOf('outer_wall_speed')).enabled,
+        isTrue,
+      );
     });
   });
 
@@ -322,16 +358,20 @@ void main() {
       await tester.tap(find.text('Strength'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byKey(const ValueKey('detect_thin_wall')),
-          matching: find.byType(Switch)));
+          matching: find.byType(Switch),
+        ),
+      );
       await tester.pumpAndSettle();
       // A bool, not '1': the codec spells it for the wire, the state stays typed.
       expect(reported.last['detect_thin_wall'], isTrue);
     });
 
-    testWidgets('reverting an enum whose preset value is not a listed option',
-        (tester) async {
+    testWidgets('reverting an enum whose preset value is not a listed option', (
+      tester,
+    ) async {
       // A preset can hold a value the vendored schema does not declare, so the
       // dropdown starts blank. Picking and then reverting has to go back to
       // blank: leaving the old label up would show a setting the slice will not
@@ -339,19 +379,21 @@ void main() {
       await pump(
         tester,
         presetValues: const PresetValues(
-            resolved: true,
-            reason: 'ok',
-            values: {'seam_position': 'some_unlisted_mode'}),
+          resolved: true,
+          reason: 'ok',
+          values: {'seam_position': 'some_unlisted_mode'},
+        ),
       );
-      String shown() => tester
-          .widget<TextField>(_fieldOf('seam_position'))
-          .controller!
-          .text;
+      String shown() =>
+          tester.widget<TextField>(_fieldOf('seam_position')).controller!.text;
       expect(shown(), isEmpty);
 
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byKey(const ValueKey('seam_position')),
-          matching: find.byType(DropdownMenu<String>)));
+          matching: find.byType(DropdownMenu<String>),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Nearest').last);
       await tester.pumpAndSettle();
@@ -363,11 +405,16 @@ void main() {
       expect(shown(), isEmpty);
     });
 
-    testWidgets('an enum reports the wire value, not its label', (tester) async {
+    testWidgets('an enum reports the wire value, not its label', (
+      tester,
+    ) async {
       await pump(tester);
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byKey(const ValueKey('seam_position')),
-          matching: find.byType(DropdownMenu<String>)));
+          matching: find.byType(DropdownMenu<String>),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Nearest').last);
       await tester.pumpAndSettle();
@@ -381,8 +428,9 @@ void main() {
       expect(find.textContaining('Przywróć'), findsNothing);
     });
 
-    testWidgets('a change offers a counted reset that clears everything',
-        (tester) async {
+    testWidgets('a change offers a counted reset that clears everything', (
+      tester,
+    ) async {
       await pump(tester, values: {'layer_height': '0.28'});
       expect(find.text('Przywróć 1'), findsOneWidget);
 
@@ -393,38 +441,56 @@ void main() {
       expect(find.text('Przywróć 1'), findsNothing);
     });
 
-    testWidgets('a value equal to the preset is not counted as a change',
-        (tester) async {
+    testWidgets('a value equal to the preset is not counted as a change', (
+      tester,
+    ) async {
       // The whole reason preset values are fetched: matching what the preset
       // already says is not an override.
       await pump(
         tester,
         values: {'layer_height': '0.28'},
         presetValues: const PresetValues(
-            resolved: true, reason: 'ok', values: {'layer_height': '0.28'}),
+          resolved: true,
+          reason: 'ok',
+          values: {'layer_height': '0.28'},
+        ),
       );
       expect(find.textContaining('Przywróć'), findsNothing);
     });
   });
 
   group('when the preset values could not be read', () {
-    testWidgets('an outdated sidecar is named, and the screen still works',
-        (tester) async {
-      await pump(tester,
-          presetValues:
-              const PresetValues(resolved: false, reason: 'sidecar_outdated'));
-      expect(find.textContaining('kontener slicera jest starszy'),
-          findsOneWidget);
+    testWidgets('an outdated sidecar is named, and the screen still works', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        presetValues: const PresetValues(
+          resolved: false,
+          reason: 'sidecar_outdated',
+        ),
+      );
+      expect(
+        find.textContaining('kontener slicera jest starszy'),
+        findsOneWidget,
+      );
       expect(find.text('Layer height'), findsWidgets);
     });
 
-    testWidgets('a missing sidecar config gets its own wording',
-        (tester) async {
-      await pump(tester,
-          presetValues:
-              const PresetValues(resolved: false, reason: 'not_configured'));
-      expect(find.textContaining('żaden kontener slicera nie jest'),
-          findsOneWidget);
+    testWidgets('a missing sidecar config gets its own wording', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        presetValues: const PresetValues(
+          resolved: false,
+          reason: 'not_configured',
+        ),
+      );
+      expect(
+        find.textContaining('żaden kontener slicera nie jest'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a resolved read shows no notice at all', (tester) async {
@@ -446,9 +512,9 @@ void main() {
     }
 
     Finder dropdownOf(String key) => find.descendant(
-          of: find.byKey(ValueKey(key)),
-          matching: find.byType(DropdownMenu<String>),
-        );
+      of: find.byKey(ValueKey(key)),
+      matching: find.byType(DropdownMenu<String>),
+    );
 
     /// What the closed control displays.
     String shown(WidgetTester tester, String key) =>
@@ -469,15 +535,17 @@ void main() {
       expect(find.text('2: Bambu Support for PLA'), findsWidgets);
     });
 
-    testWidgets("start on the slicer's 0, meaning no specific filament",
-        (tester) async {
+    testWidgets("start on the slicer's 0, meaning no specific filament", (
+      tester,
+    ) async {
       await pump(tester, filamentSlots: slots);
       await openSupport(tester);
       expect(shown(tester, 'support_filament'), defaultLabel);
     });
 
-    testWidgets('report the slot index, spelled as the number field spells it',
-        (tester) async {
+    testWidgets('report the slot index, spelled as the number field spells it', (
+      tester,
+    ) async {
       // A string, not an int: the control it replaces emits strings, and the
       // codec downstream must not be able to tell which one produced the edit.
       await pump(tester, filamentSlots: slots);
@@ -489,8 +557,9 @@ void main() {
       expect(reported.last['support_filament'], '2');
     });
 
-    testWidgets('stay a plain number field when no filaments are known',
-        (tester) async {
+    testWidgets('stay a plain number field when no filaments are known', (
+      tester,
+    ) async {
       // An STL source has no slot list; an empty dropdown would be worse than
       // the field it replaced.
       await pump(tester);
@@ -499,76 +568,102 @@ void main() {
       expect(_fieldOf('support_filament'), findsOneWidget);
     });
 
-    testWidgets('obey the slicer\'s own gating like every other row',
-        (tester) async {
+    testWidgets('obey the slicer\'s own gating like every other row', (
+      tester,
+    ) async {
       // support_interface_filament sits behind have_support_material. Becoming a
       // dropdown must not exempt it from the rules.
       await pump(tester, filamentSlots: slots);
       await openSupport(tester);
       expect(
-          tester
-              .widget<DropdownMenu<String>>(
-                  dropdownOf('support_interface_filament'))
-              .enabled,
-          isFalse);
+        tester
+            .widget<DropdownMenu<String>>(
+              dropdownOf('support_interface_filament'),
+            )
+            .enabled,
+        isFalse,
+      );
 
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byKey(const ValueKey('enable_support')),
-          matching: find.byType(Switch)));
+          matching: find.byType(Switch),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(
-          tester
-              .widget<DropdownMenu<String>>(
-                  dropdownOf('support_interface_filament'))
-              .enabled,
-          isTrue);
+        tester
+            .widget<DropdownMenu<String>>(
+              dropdownOf('support_interface_filament'),
+            )
+            .enabled,
+        isTrue,
+      );
     });
 
     testWidgets('mark a slot the plate does not consume', (tester) async {
-      await pump(tester, filamentSlots: const [
-        FilamentSlotChoice(slot: 1, label: 'Bambu PLA Basic'),
-        FilamentSlotChoice(
-            slot: 2, label: 'Bambu Support for PLA', unused: true),
-      ]);
+      await pump(
+        tester,
+        filamentSlots: const [
+          FilamentSlotChoice(slot: 1, label: 'Bambu PLA Basic'),
+          FilamentSlotChoice(
+            slot: 2,
+            label: 'Bambu Support for PLA',
+            unused: true,
+          ),
+        ],
+      );
       await openSupport(tester);
       await openMenu(tester, 'support_filament');
 
       expect(find.textContaining('Nieużywany na tej płycie'), findsWidgets);
     });
 
-    testWidgets('show a slot this file does not have rather than nothing',
-        (tester) async {
+    testWidgets('show a slot this file does not have rather than nothing', (
+      tester,
+    ) async {
       // The preset can name slot 5 on a two-slot file. Leaving the control blank
       // would hide the one value worth seeing.
       await pump(
         tester,
         filamentSlots: slots,
         presetValues: const PresetValues(
-            resolved: true, reason: 'ok', values: {'support_filament': '5'}),
+          resolved: true,
+          reason: 'ok',
+          values: {'support_filament': '5'},
+        ),
       );
       await openSupport(tester);
-      expect(shown(tester, 'support_filament'),
-          'Slot 5 — ten plik nie ma takiego slotu');
-    });
-
-    testWidgets('leave the control blank on a value that is not a slot at all',
-        (tester) async {
-      // Malformed rather than out of range: a slot named "" would be an
-      // invention, so nothing is claimed.
-      await pump(
-        tester,
-        filamentSlots: slots,
-        presetValues: const PresetValues(
-            resolved: true, reason: 'ok', values: {'support_filament': ''}),
+      expect(
+        shown(tester, 'support_filament'),
+        'Slot 5 — ten plik nie ma takiego slotu',
       );
-      await openSupport(tester);
-      expect(shown(tester, 'support_filament'), isEmpty);
-      expect(find.textContaining('Slot'), findsNothing);
     });
 
-    testWidgets('revert goes back to the default, not to the last pick',
-        (tester) async {
+    testWidgets(
+      'leave the control blank on a value that is not a slot at all',
+      (tester) async {
+        // Malformed rather than out of range: a slot named "" would be an
+        // invention, so nothing is claimed.
+        await pump(
+          tester,
+          filamentSlots: slots,
+          presetValues: const PresetValues(
+            resolved: true,
+            reason: 'ok',
+            values: {'support_filament': ''},
+          ),
+        );
+        await openSupport(tester);
+        expect(shown(tester, 'support_filament'), isEmpty);
+        expect(find.textContaining('Slot'), findsNothing);
+      },
+    );
+
+    testWidgets('revert goes back to the default, not to the last pick', (
+      tester,
+    ) async {
       // The enum control had exactly this bug: `DropdownMenu` re-applies
       // `initialSelection` only when it changes identity.
       await pump(tester, filamentSlots: slots);
@@ -595,11 +690,14 @@ void main() {
     });
   });
 
-  testWidgets('no values at all means the screen has nothing to offer',
-      (tester) async {
+  testWidgets('no values at all means the screen has nothing to offer', (
+    tester,
+  ) async {
     // Only reachable as a race: the entry point gates on the same read.
     await pump(tester, presetValues: null);
     expect(
-        find.textContaining('nie potrafi podać ustawień procesu'), findsOneWidget);
+      find.textContaining('nie potrafi podać ustawień procesu'),
+      findsOneWidget,
+    );
   });
 }

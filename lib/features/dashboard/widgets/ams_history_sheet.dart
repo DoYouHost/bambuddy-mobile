@@ -24,10 +24,10 @@ typedef AmsHistoryQuery = ({int printerId, int amsId, int hours});
 /// closes; keyed by hours so switching the range refetches.
 final amsHistoryDataProvider = FutureProvider.autoDispose
     .family<AmsHistory, AmsHistoryQuery>((ref, q) async {
-  return ref
-      .watch(amsHistoryRepositoryProvider)
-      .fetch(q.printerId, q.amsId, hours: q.hours);
-});
+      return ref
+          .watch(amsHistoryRepositoryProvider)
+          .fetch(q.printerId, q.amsId, hours: q.hours);
+    });
 
 /// Whether the AMS humidity/temperature chips open a chart at all: the route is
 /// there and this session may read it. Invalidated by the sheet after a failed
@@ -56,9 +56,13 @@ final amsThresholdsProvider = FutureProvider<AmsThresholds>((ref) async {
   final s = await ref.watch(serverSettingsProvider.future);
   return (
     humidityGood: s.settingDouble(
-        'ams_humidity_good', _defaultAmsThresholds.humidityGood),
+      'ams_humidity_good',
+      _defaultAmsThresholds.humidityGood,
+    ),
     humidityFair: s.settingDouble(
-        'ams_humidity_fair', _defaultAmsThresholds.humidityFair),
+      'ams_humidity_fair',
+      _defaultAmsThresholds.humidityFair,
+    ),
     tempGood: s.settingDouble('ams_temp_good', _defaultAmsThresholds.tempGood),
     tempFair: s.settingDouble('ams_temp_fair', _defaultAmsThresholds.tempFair),
   );
@@ -125,10 +129,8 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     final async = ref.watch(amsHistoryDataProvider(query));
     final thresholds =
         ref.watch(amsThresholdsProvider).valueOrNull ?? _defaultAmsThresholds;
-    final good =
-        isHumidity ? thresholds.humidityGood : thresholds.tempGood;
-    final fair =
-        isHumidity ? thresholds.humidityFair : thresholds.tempFair;
+    final good = isHumidity ? thresholds.humidityGood : thresholds.tempGood;
+    final fair = isHumidity ? thresholds.humidityFair : thresholds.tempFair;
 
     return logTag(
       'sheet.ams_history',
@@ -185,16 +187,16 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
               Text(
                 l10n.amsHistoryRecordingInfo,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
         ),
-      )
+      ),
     );
   }
-
 }
 
 class _Content extends StatelessWidget {
@@ -237,7 +239,9 @@ class _Content extends StatelessWidget {
     final avg = isHumidity ? history.avgHumidity : history.avgTemperature;
     final min = isHumidity ? history.minHumidity : history.minTemperature;
     final max = isHumidity ? history.maxHumidity : history.maxTemperature;
-    final color = isHumidity ? const Color(0xFF3B82F6) : const Color(0xFFF97316);
+    final color = isHumidity
+        ? const Color(0xFF3B82F6)
+        : const Color(0xFFF97316);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,9 +249,13 @@ class _Content extends StatelessWidget {
         Row(
           children: [
             HistoryStat(
-                label: l10n.sensorHistoryCurrent, value: _fmt(current, unit)),
+              label: l10n.sensorHistoryCurrent,
+              value: _fmt(current, unit),
+            ),
             HistoryStat(
-                label: l10n.sensorHistoryAverage, value: _fmt(avg, unit)),
+              label: l10n.sensorHistoryAverage,
+              value: _fmt(avg, unit),
+            ),
             HistoryStat(label: l10n.sensorHistoryMin, value: _fmt(min, unit)),
             HistoryStat(label: l10n.sensorHistoryMax, value: _fmt(max, unit)),
           ],
@@ -261,7 +269,8 @@ class _Content extends StatelessWidget {
     );
   }
 
-  double? _valueOf(AmsHistoryPoint p) => isHumidity ? p.humidity : p.temperature;
+  double? _valueOf(AmsHistoryPoint p) =>
+      isHumidity ? p.humidity : p.temperature;
 
   static String _fmt(double? v, String unit) =>
       v == null ? '—' : '${v.toStringAsFixed(unit == '%' ? 0 : 1)}$unit';
@@ -269,8 +278,9 @@ class _Content extends StatelessWidget {
   LineChartData _chartData(BuildContext context, List<FlSpot> spots, Color c) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final axis = theme.textTheme.bodySmall
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final axis = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
@@ -308,18 +318,16 @@ class _Content extends StatelessWidget {
         ],
       ),
       titlesData: FlTitlesData(
-        topTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 36,
-            getTitlesWidget: (v, meta) => Text(
-              v.toInt().toString(),
-              style: axis,
-            ),
+            getTitlesWidget: (v, meta) =>
+                Text(v.toInt().toString(), style: axis),
           ),
         ),
         bottomTitles: AxisTitles(
@@ -330,9 +338,7 @@ class _Content extends StatelessWidget {
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                axisLabel(
-                  DateTime.fromMillisecondsSinceEpoch(v.toInt()),
-                ),
+                axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
                 style: axis,
               ),
             ),

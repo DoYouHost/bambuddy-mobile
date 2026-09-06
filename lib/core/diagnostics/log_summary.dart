@@ -34,7 +34,9 @@ class LogSummary {
     if (rows.isEmpty) return LogSummary.empty;
 
     // The header is the only row without `t`.
-    final header = rows.first.containsKey('t') ? const <String, Object?>{} : rows.first;
+    final header = rows.first.containsKey('t')
+        ? const <String, Object?>{}
+        : rows.first;
     final body = rows.first.containsKey('t') ? rows : rows.skip(1);
 
     final lines = <LogLine>[];
@@ -97,10 +99,10 @@ class LogSummary {
 
   /// Sources in [LogSource] order, skipping the ones this session never used.
   List<MapEntry<String, int>> get sourceCounts => [
-        for (final source in LogSource.values)
-          if (bySource[source.name] != null)
-            MapEntry(source.name, bySource[source.name]!),
-      ];
+    for (final source in LogSource.values)
+      if (bySource[source.name] != null)
+        MapEntry(source.name, bySource[source.name]!),
+  ];
 }
 
 /// One record, with the record's own keys split from the extra fields so the
@@ -116,16 +118,16 @@ class LogLine {
   });
 
   factory LogLine.fromJson(Map<String, Object?> row) => LogLine(
-        t: ((row['t'] as num?) ?? 0).toInt(),
-        src: '${row['src'] ?? '?'}',
-        evt: '${row['evt'] ?? '?'}',
-        lvl: row['lvl'] as String?,
-        iso: row['iso'] as String?,
-        fields: {
-          for (final e in row.entries)
-            if (!LogEvent.reservedKeys.contains(e.key)) e.key: e.value,
-        },
-      );
+    t: ((row['t'] as num?) ?? 0).toInt(),
+    src: '${row['src'] ?? '?'}',
+    evt: '${row['evt'] ?? '?'}',
+    lvl: row['lvl'] as String?,
+    iso: row['iso'] as String?,
+    fields: {
+      for (final e in row.entries)
+        if (!LogEvent.reservedKeys.contains(e.key)) e.key: e.value,
+    },
+  );
 
   final int t;
   final String src;

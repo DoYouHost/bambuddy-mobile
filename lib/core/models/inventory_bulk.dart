@@ -64,23 +64,22 @@ class SpoolBulkPatch {
   /// `create: True`). `location_id` is what would be dangerous: an id the
   /// server does not know fails the *whole* batch with 400.
   Map<String, dynamic> toNativeJson() => {
-        if (material != null) 'material': material,
-        if (subtype != null) 'subtype': subtype,
-        if (brand != null) 'brand': brand,
-        if (colorName != null) 'color_name': colorName,
-        if (rgba != null) 'rgba': rgba,
-        if (storageLocation != null) 'storage_location': storageLocation,
-        if (slicerFilament != null) 'slicer_filament': slicerFilament,
-        if (slicerFilamentName != null)
-          'slicer_filament_name': slicerFilamentName,
-        if (costPerKg != null) 'cost_per_kg': costPerKg,
-        if (note != null) 'note': note,
-        if (labelWeight != null) 'label_weight': labelWeight,
-        if (coreWeight != null) 'core_weight': coreWeight,
-        if (category != null) 'category': category,
-        if (lowStockThresholdPct != null)
-          'low_stock_threshold_pct': lowStockThresholdPct,
-      };
+    if (material != null) 'material': material,
+    if (subtype != null) 'subtype': subtype,
+    if (brand != null) 'brand': brand,
+    if (colorName != null) 'color_name': colorName,
+    if (rgba != null) 'rgba': rgba,
+    if (storageLocation != null) 'storage_location': storageLocation,
+    if (slicerFilament != null) 'slicer_filament': slicerFilament,
+    if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
+    if (costPerKg != null) 'cost_per_kg': costPerKg,
+    if (note != null) 'note': note,
+    if (labelWeight != null) 'label_weight': labelWeight,
+    if (coreWeight != null) 'core_weight': coreWeight,
+    if (category != null) 'category': category,
+    if (lowStockThresholdPct != null)
+      'low_stock_threshold_pct': lowStockThresholdPct,
+  };
 
   /// The narrower set Spoolman's schema accepts. `category` and
   /// `low_stock_threshold_pct` are native-only columns and are dropped, the
@@ -88,20 +87,19 @@ class SpoolBulkPatch {
   /// `core_weight` is kept for that parity even though Spoolman stores it on
   /// the filament type rather than the spool and silently ignores it here.
   Map<String, dynamic> toSpoolmanJson() => {
-        if (material != null) 'material': material,
-        if (subtype != null) 'subtype': subtype,
-        if (brand != null) 'brand': brand,
-        if (colorName != null) 'color_name': colorName,
-        if (rgba != null) 'rgba': rgba,
-        if (storageLocation != null) 'storage_location': storageLocation,
-        if (slicerFilament != null) 'slicer_filament': slicerFilament,
-        if (slicerFilamentName != null)
-          'slicer_filament_name': slicerFilamentName,
-        if (costPerKg != null) 'cost_per_kg': costPerKg,
-        if (note != null) 'note': note,
-        if (labelWeight != null) 'label_weight': labelWeight,
-        if (coreWeight != null) 'core_weight': coreWeight,
-      };
+    if (material != null) 'material': material,
+    if (subtype != null) 'subtype': subtype,
+    if (brand != null) 'brand': brand,
+    if (colorName != null) 'color_name': colorName,
+    if (rgba != null) 'rgba': rgba,
+    if (storageLocation != null) 'storage_location': storageLocation,
+    if (slicerFilament != null) 'slicer_filament': slicerFilament,
+    if (slicerFilamentName != null) 'slicer_filament_name': slicerFilamentName,
+    if (costPerKg != null) 'cost_per_kg': costPerKg,
+    if (note != null) 'note': note,
+    if (labelWeight != null) 'label_weight': labelWeight,
+    if (coreWeight != null) 'core_weight': coreWeight,
+  };
 
   /// Nothing to send — the routes answer 400 to an empty `update`, and the
   /// Apply button stays disabled while this holds.
@@ -177,20 +175,18 @@ class BulkOutcome {
 
   /// Sums the chunks a selection was split into for the 500-id cap.
   BulkOutcome operator +(BulkOutcome other) => BulkOutcome(
-        ok: ok + other.ok,
-        skipped: skipped + other.skipped,
-        failed: failed + other.failed,
-        notFound: [...notFound, ...other.notFound],
-      );
+    ok: ok + other.ok,
+    skipped: skipped + other.skipped,
+    failed: failed + other.failed,
+    notFound: [...notFound, ...other.notFound],
+  );
 }
 
 /// Ints out of a server-sent id list, tolerant of the string-typed numbers an
 /// older build or a proxy may hand back.
 List<int> _idList(Object? value) {
   if (value is! List) return const [];
-  return [
-    for (final item in value) ?toIntOrNull(item),
-  ];
+  return [for (final item in value) ?toIntOrNull(item)];
 }
 
 /// Length of a list, or the number itself — `already_archived` is a list of ids
@@ -211,6 +207,6 @@ const bulkIdLimit = 500;
 /// they reject an empty `ids` list, so the right number of requests to send for
 /// nothing is zero.
 List<List<int>> chunkIds(List<int> ids, {int limit = bulkIdLimit}) => [
-      for (var start = 0; start < ids.length; start += limit)
-        ids.sublist(start, start + limit > ids.length ? ids.length : start + limit),
-    ];
+  for (var start = 0; start < ids.length; start += limit)
+    ids.sublist(start, start + limit > ids.length ? ids.length : start + limit),
+];

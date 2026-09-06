@@ -18,58 +18,61 @@ void main() {
   });
 
   void replyVersion(String version) => adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-      );
+    '/api/v1/updates/version',
+    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+  );
 
   group('listBindings', () {
-    test('reads the location each sensor hangs off, and whether it shows',
-        () async {
-      adapter.onGet(
-        '/api/v1/location-ha-sensors/',
-        (s) => s.reply(200, [
-          {
-            'id': 4,
-            'location_id': 3,
-            'name': 'Humidity',
-            'entity_id': 'sensor.dry_box_humidity',
-            'kind': 'numeric',
-            'show_on_card': true,
-            'created_at': '2026-08-30T10:00:00Z',
-            'updated_at': '2026-08-30T10:00:00Z',
-          },
-          {
-            'id': 5,
-            'location_id': 3,
-            'name': 'Door',
-            'entity_id': 'binary_sensor.dry_box_door',
-            'kind': 'binary',
-            'show_on_card': false,
-            'created_at': '2026-08-30T10:00:00Z',
-            'updated_at': '2026-08-30T10:00:00Z',
-          },
-        ]),
-      );
+    test(
+      'reads the location each sensor hangs off, and whether it shows',
+      () async {
+        adapter.onGet(
+          '/api/v1/location-ha-sensors/',
+          (s) => s.reply(200, [
+            {
+              'id': 4,
+              'location_id': 3,
+              'name': 'Humidity',
+              'entity_id': 'sensor.dry_box_humidity',
+              'kind': 'numeric',
+              'show_on_card': true,
+              'created_at': '2026-08-30T10:00:00Z',
+              'updated_at': '2026-08-30T10:00:00Z',
+            },
+            {
+              'id': 5,
+              'location_id': 3,
+              'name': 'Door',
+              'entity_id': 'binary_sensor.dry_box_door',
+              'kind': 'binary',
+              'show_on_card': false,
+              'created_at': '2026-08-30T10:00:00Z',
+              'updated_at': '2026-08-30T10:00:00Z',
+            },
+          ]),
+        );
 
-      final rows = await repo.listBindings();
+        final rows = await repo.listBindings();
 
-      expect(rows.map((r) => r.id), [4, 5]);
-      expect(rows.map((r) => r.locationId), [3, 3]);
-      expect(rows.map((r) => r.showOnCard), [true, false]);
-    });
+        expect(rows.map((r) => r.id), [4, 5]);
+        expect(rows.map((r) => r.locationId), [3, 3]);
+        expect(rows.map((r) => r.showOnCard), [true, false]);
+      },
+    );
 
-    test('a 404 answers with nothing rather than throwing at a screen',
-        () async {
-      adapter.onGet(
-        '/api/v1/location-ha-sensors/',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
-      );
+    test(
+      'a 404 answers with nothing rather than throwing at a screen',
+      () async {
+        adapter.onGet(
+          '/api/v1/location-ha-sensors/',
+          (s) => s.reply(404, {'detail': 'Not Found'}),
+        );
 
-      expect(await repo.listBindings(), isEmpty);
-    });
+        expect(await repo.listBindings(), isEmpty);
+      },
+    );
 
-    test('a 403 answers the same way — an API key cannot read these',
-        () async {
+    test('a 403 answers the same way — an API key cannot read these', () async {
       adapter.onGet(
         '/api/v1/location-ha-sensors/',
         (s) => s.reply(403, {'detail': 'Missing required permissions'}),
@@ -124,49 +127,53 @@ void main() {
       expect(reading.lastChanged!.toUtc(), DateTime.utc(2026, 9, 4, 8, 15));
     });
 
-    test('a stamp without the Z is UTC too, not the phone\'s wall clock',
-        () async {
-      adapter.onGet(
-        '/api/v1/location-ha-sensors/by-location/3/readings',
-        (s) => s.reply(200, [
-          {
-            'id': 4,
-            'name': 'Humidity',
-            'kind': 'numeric',
-            'last_changed': '2026-09-04T08:15:00',
-          },
-        ]),
-      );
+    test(
+      'a stamp without the Z is UTC too, not the phone\'s wall clock',
+      () async {
+        adapter.onGet(
+          '/api/v1/location-ha-sensors/by-location/3/readings',
+          (s) => s.reply(200, [
+            {
+              'id': 4,
+              'name': 'Humidity',
+              'kind': 'numeric',
+              'last_changed': '2026-09-04T08:15:00',
+            },
+          ]),
+        );
 
-      final reading = (await repo.readings(3)).single;
+        final reading = (await repo.readings(3)).single;
 
-      expect(reading.lastChanged!.toUtc(), DateTime.utc(2026, 9, 4, 8, 15));
-    });
+        expect(reading.lastChanged!.toUtc(), DateTime.utc(2026, 9, 4, 8, 15));
+      },
+    );
 
-    test('a sensor the poller has not reached yet is not passed off as fresh',
-        () async {
-      adapter.onGet(
-        '/api/v1/location-ha-sensors/by-location/3/readings',
-        (s) => s.reply(200, [
-          {
-            'id': 4,
-            'name': 'Battery',
-            'kind': 'numeric',
-            'device_class': 'battery',
-            'unit': '%',
-            'state': '78',
-            'value': 78.0,
-            'reachable': false,
-          },
-        ]),
-      );
+    test(
+      'a sensor the poller has not reached yet is not passed off as fresh',
+      () async {
+        adapter.onGet(
+          '/api/v1/location-ha-sensors/by-location/3/readings',
+          (s) => s.reply(200, [
+            {
+              'id': 4,
+              'name': 'Battery',
+              'kind': 'numeric',
+              'device_class': 'battery',
+              'unit': '%',
+              'state': '78',
+              'value': 78.0,
+              'reachable': false,
+            },
+          ]),
+        );
 
-      final reading = (await repo.readings(3)).single;
+        final reading = (await repo.readings(3)).single;
 
-      expect(reading.reachable, isFalse);
-      // The last known value is still the most useful thing to show.
-      expect(reading.formattedValue, '78%');
-    });
+        expect(reading.reachable, isFalse);
+        // The last known value is still the most useful thing to show.
+        expect(reading.formattedValue, '78%');
+      },
+    );
 
     test('a 404 is an older server, not an error to show', () async {
       adapter.onGet(
@@ -191,15 +198,17 @@ void main() {
       expect(await newer.supportsLocationSensors(), isTrue);
     });
 
-    test('an unknown version keeps it off rather than asking and 404ing',
-        () async {
-      adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(500, {'detail': 'boom'}),
-      );
+    test(
+      'an unknown version keeps it off rather than asking and 404ing',
+      () async {
+        adapter.onGet(
+          '/api/v1/updates/version',
+          (s) => s.reply(500, {'detail': 'boom'}),
+        );
 
-      expect(await repo.supportsLocationSensors(), isFalse);
-    });
+        expect(await repo.supportsLocationSensors(), isFalse);
+      },
+    );
 
     test('with no version service at all it stays off', () async {
       expect(
@@ -233,20 +242,22 @@ void main() {
       expect(await repo.supportsLocationSensors(), isFalse);
     });
 
-    test('a listing that came back says yes, whatever the version read',
-        () async {
-      adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(500, {'detail': 'boom'}),
-      );
-      adapter.onGet(
-        '/api/v1/location-ha-sensors/',
-        (s) => s.reply(200, const []),
-      );
+    test(
+      'a listing that came back says yes, whatever the version read',
+      () async {
+        adapter.onGet(
+          '/api/v1/updates/version',
+          (s) => s.reply(500, {'detail': 'boom'}),
+        );
+        adapter.onGet(
+          '/api/v1/location-ha-sensors/',
+          (s) => s.reply(200, const []),
+        );
 
-      await repo.listBindings();
+        await repo.listBindings();
 
-      expect(await repo.supportsLocationSensors(), isTrue);
-    });
+        expect(await repo.supportsLocationSensors(), isTrue);
+      },
+    );
   });
 }

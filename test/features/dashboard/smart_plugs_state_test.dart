@@ -18,18 +18,17 @@ SmartPlug _ha(
   String? powerEntity,
   bool enabled = true,
   bool showOnPrinterCard = true,
-}) =>
-    SmartPlug(
-      id: id,
-      name: entityId,
-      plugType: 'homeassistant',
-      printerId: printerId,
-      haEntityId: entityId,
-      haPowerEntity: powerEntity,
-      controlsPrinterPower: controlsPrinterPower,
-      enabled: enabled,
-      showOnPrinterCard: showOnPrinterCard,
-    );
+}) => SmartPlug(
+  id: id,
+  name: entityId,
+  plugType: 'homeassistant',
+  printerId: printerId,
+  haEntityId: entityId,
+  haPowerEntity: powerEntity,
+  controlsPrinterPower: controlsPrinterPower,
+  enabled: enabled,
+  showOnPrinterCard: showOnPrinterCard,
+);
 
 void main() {
   group('plugForPrinterCard', () {
@@ -47,10 +46,18 @@ void main() {
     });
 
     test('skips disabled and hidden plugs', () {
-      const disabled =
-          SmartPlug(id: 1, printerId: 5, enabled: false, showOnPrinterCard: true);
-      const hidden =
-          SmartPlug(id: 2, printerId: 6, enabled: true, showOnPrinterCard: false);
+      const disabled = SmartPlug(
+        id: 1,
+        printerId: 5,
+        enabled: false,
+        showOnPrinterCard: true,
+      );
+      const hidden = SmartPlug(
+        id: 2,
+        printerId: 6,
+        enabled: true,
+        showOnPrinterCard: false,
+      );
       const state = SmartPlugsState(plugs: [disabled, hidden]);
       expect(state.plugForPrinterCard(5), isNull);
       expect(state.plugForPrinterCard(6), isNull);
@@ -69,7 +76,11 @@ void main() {
   // `routes/smart_plugs.py::_main_plug_rank`.
   group('plugForPrinterCard — main plug ranking', () {
     test('the outlet beats the fan that was listed first', () {
-      final fan = _ha(1, entityId: 'switch.exhaust_fan', controlsPrinterPower: false);
+      final fan = _ha(
+        1,
+        entityId: 'switch.exhaust_fan',
+        controlsPrinterPower: false,
+      );
       final outlet = _ha(
         2,
         entityId: 'switch.x1c_outlet',
@@ -81,7 +92,11 @@ void main() {
 
     test('a switch beats a script', () {
       final script = _ha(1, entityId: 'script.start');
-      final outlet = _ha(2, entityId: 'switch.outlet', controlsPrinterPower: false);
+      final outlet = _ha(
+        2,
+        entityId: 'switch.outlet',
+        controlsPrinterPower: false,
+      );
       final state = SmartPlugsState(plugs: [script, outlet]);
       expect(state.plugForPrinterCard(5), same(outlet));
     });
@@ -96,7 +111,11 @@ void main() {
       );
       final outlet = _ha(2, entityId: 'switch.outlet');
       const state = SmartPlugsState(plugs: [monitor]);
-      expect(state.plugForPrinterCard(5), same(monitor), reason: 'alone it holds the row');
+      expect(
+        state.plugForPrinterCard(5),
+        same(monitor),
+        reason: 'alone it holds the row',
+      );
       expect(
         SmartPlugsState(plugs: [monitor, outlet]).plugForPrinterCard(5),
         same(outlet),

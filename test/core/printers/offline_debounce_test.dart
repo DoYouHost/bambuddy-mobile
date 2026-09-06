@@ -34,19 +34,21 @@ void main() {
   setUp(() {
     timers = [];
     events = [];
-    debounce = OfflineDebounce(timerFactory: (d, cb) {
-      final t = _FakeTimer(d, cb);
-      timers.add(t);
-      return t;
-    });
+    debounce = OfflineDebounce(
+      timerFactory: (d, cb) {
+        final t = _FakeTimer(d, cb);
+        timers.add(t);
+        return t;
+      },
+    );
   });
 
   void observe(bool? connected, {bool debounceIt = true}) => debounce.observe(
-        connected,
-        debounce: debounceIt,
-        onSustained: () => events.add('sustained'),
-        onFlicker: () => events.add('flicker'),
-      );
+    connected,
+    debounce: debounceIt,
+    onSustained: () => events.add('sustained'),
+    onFlicker: () => events.add('flicker'),
+  );
 
   test('a disconnect is believed only after the window', () {
     observe(true);
@@ -124,11 +126,13 @@ void main() {
 
     // Seeding also drops a wait in progress — the caller is declaring the
     // state, not observing a change.
-    final fresh = OfflineDebounce(timerFactory: (d, cb) {
-      final t = _FakeTimer(d, cb);
-      timers.add(t);
-      return t;
-    });
+    final fresh = OfflineDebounce(
+      timerFactory: (d, cb) {
+        final t = _FakeTimer(d, cb);
+        timers.add(t);
+        return t;
+      },
+    );
     fresh.observe(false, onSustained: () => events.add('sustained'));
     fresh.seed(true);
     expect(timers.last.cancelled, isTrue);

@@ -7,9 +7,9 @@ class UserGroup {
   const UserGroup({required this.id, required this.name});
 
   factory UserGroup.fromJson(Map<String, dynamic> json) => UserGroup(
-        id: toInt(json['id']),
-        name: toStringOrNull(json['name']) ?? '',
-      );
+    id: toInt(json['id']),
+    name: toStringOrNull(json['name']) ?? '',
+  );
 
   final int id;
   final String name;
@@ -35,25 +35,25 @@ class CurrentUser {
   });
 
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
-        id: toInt(json['id']),
-        username: toStringOrNull(json['username']) ?? '',
-        email: toStringOrNull(json['email']),
-        role: toStringOrNull(json['role']) ?? 'user',
-        isActive: json['is_active'] != false,
-        isAdmin: json['is_admin'] == true,
-        authSource: toStringOrNull(json['auth_source']) ?? 'local',
-        groups: parseJsonList(json['groups'], UserGroup.fromJson),
-        permissions: toStringList(json['permissions']).toSet(),
-        // Key presence, not "has entries": the server declares `permissions:
-        // list[str] = []` and computes it as the union over the user's groups
-        // (`backend/app/models/user.py::get_permissions`), so an empty list is
-        // a real answer — a member of a group that grants nothing. Treating
-        // that as "unknown" would show them every screen and let the server
-        // answer 403. Only a response that omits the field entirely (or sends
-        // something that isn't a list) leaves us without an answer.
-        permissionsKnown: json['permissions'] is List,
-        createdAt: dateTimeFromJson(json['created_at']),
-      );
+    id: toInt(json['id']),
+    username: toStringOrNull(json['username']) ?? '',
+    email: toStringOrNull(json['email']),
+    role: toStringOrNull(json['role']) ?? 'user',
+    isActive: json['is_active'] != false,
+    isAdmin: json['is_admin'] == true,
+    authSource: toStringOrNull(json['auth_source']) ?? 'local',
+    groups: parseJsonList(json['groups'], UserGroup.fromJson),
+    permissions: toStringList(json['permissions']).toSet(),
+    // Key presence, not "has entries": the server declares `permissions:
+    // list[str] = []` and computes it as the union over the user's groups
+    // (`backend/app/models/user.py::get_permissions`), so an empty list is
+    // a real answer — a member of a group that grants nothing. Treating
+    // that as "unknown" would show them every screen and let the server
+    // answer 403. Only a response that omits the field entirely (or sends
+    // something that isn't a list) leaves us without an answer.
+    permissionsKnown: json['permissions'] is List,
+    createdAt: dateTimeFromJson(json['created_at']),
+  );
 
   final int id;
   final String username;

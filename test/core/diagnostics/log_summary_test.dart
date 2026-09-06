@@ -15,24 +15,34 @@ void main() {
   };
 
   test('splits the header off from the records', () {
-    final summary = LogSummary.parse(jsonl([
-      header,
-      {'t': 0, 'src': 'app', 'evt': 'recording_started'},
-      {'t': 10, 'src': 'ui', 'evt': 'tap'},
-    ]));
+    final summary = LogSummary.parse(
+      jsonl([
+        header,
+        {'t': 0, 'src': 'app', 'evt': 'recording_started'},
+        {'t': 10, 'src': 'ui', 'evt': 'tap'},
+      ]),
+    );
 
     expect(summary.header['session'], 's1');
     expect(summary.lines, hasLength(2));
   });
 
   test('counts records per source, warnings, errors and markers', () {
-    final summary = LogSummary.parse(jsonl([
-      header,
-      {'t': 1, 'src': 'http', 'evt': 'response', 'lvl': 'warn', 'status': 502},
-      {'t': 2, 'src': 'http', 'evt': 'response', 'status': 200},
-      {'t': 3, 'src': 'err', 'evt': 'uncaught', 'lvl': 'error'},
-      {'t': 4, 'src': 'app', 'evt': 'user_marker'},
-    ]));
+    final summary = LogSummary.parse(
+      jsonl([
+        header,
+        {
+          't': 1,
+          'src': 'http',
+          'evt': 'response',
+          'lvl': 'warn',
+          'status': 502,
+        },
+        {'t': 2, 'src': 'http', 'evt': 'response', 'status': 200},
+        {'t': 3, 'src': 'err', 'evt': 'uncaught', 'lvl': 'error'},
+        {'t': 4, 'src': 'app', 'evt': 'user_marker'},
+      ]),
+    );
 
     expect(summary.bySource, {'http': 2, 'err': 1, 'app': 1});
     expect(summary.warnings, 1);
@@ -41,21 +51,28 @@ void main() {
   });
 
   test('orders the source chips by the enum, not by first appearance', () {
-    final summary = LogSummary.parse(jsonl([
-      header,
-      {'t': 1, 'src': 'err', 'evt': 'uncaught'},
-      {'t': 2, 'src': 'http', 'evt': 'response'},
-      {'t': 3, 'src': 'ui', 'evt': 'tap'},
-    ]));
+    final summary = LogSummary.parse(
+      jsonl([
+        header,
+        {'t': 1, 'src': 'err', 'evt': 'uncaught'},
+        {'t': 2, 'src': 'http', 'evt': 'response'},
+        {'t': 3, 'src': 'ui', 'evt': 'tap'},
+      ]),
+    );
 
-    expect([for (final e in summary.sourceCounts) e.key], ['http', 'ui', 'err']);
+    expect(
+      [for (final e in summary.sourceCounts) e.key],
+      ['http', 'ui', 'err'],
+    );
   });
 
   test('flags a truncated session', () {
-    final summary = LogSummary.parse(jsonl([
-      header,
-      {'t': 0, 'src': 'app', 'evt': 'truncated', 'dropped': 120},
-    ]));
+    final summary = LogSummary.parse(
+      jsonl([
+        header,
+        {'t': 0, 'src': 'app', 'evt': 'truncated', 'dropped': 120},
+      ]),
+    );
 
     expect(summary.truncated, isTrue);
   });
@@ -71,9 +88,11 @@ void main() {
   });
 
   test('handles a stream with no header at all', () {
-    final summary = LogSummary.parse(jsonl([
-      {'t': 1, 'src': 'ui', 'evt': 'tap'},
-    ]));
+    final summary = LogSummary.parse(
+      jsonl([
+        {'t': 1, 'src': 'ui', 'evt': 'tap'},
+      ]),
+    );
 
     expect(summary.header, isEmpty);
     expect(summary.lines, hasLength(1));

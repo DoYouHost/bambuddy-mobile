@@ -24,7 +24,8 @@ String generateSwatchCode([Random? rng]) {
   return String.fromCharCodes(
     List.generate(
       swatchCodeLength,
-      (_) => swatchCodeAlphabet.codeUnitAt(r.nextInt(swatchCodeAlphabet.length)),
+      (_) =>
+          swatchCodeAlphabet.codeUnitAt(r.nextInt(swatchCodeAlphabet.length)),
     ),
   );
 }
@@ -88,16 +89,16 @@ class SwatchCode {
   });
 
   factory SwatchCode.fromJson(Map<String, dynamic> json) => SwatchCode(
-        code: normalizeSwatchCode((json['code'] as String?) ?? ''),
-        material: ((json['material'] as String?)?.trim().isNotEmpty == true)
-            ? (json['material'] as String).trim()
-            : 'Unknown',
-        brand: toStringOrNull(json['brand']),
-        variant: toStringOrNull(json['variant']),
-        colorName: toStringOrNull(json['color_name']),
-        rgba: toStringOrNull(json['rgba']),
-        createdAt: toStringOrNull(json['created_at']),
-      );
+    code: normalizeSwatchCode((json['code'] as String?) ?? ''),
+    material: ((json['material'] as String?)?.trim().isNotEmpty == true)
+        ? (json['material'] as String).trim()
+        : 'Unknown',
+    brand: toStringOrNull(json['brand']),
+    variant: toStringOrNull(json['variant']),
+    colorName: toStringOrNull(json['color_name']),
+    rgba: toStringOrNull(json['rgba']),
+    createdAt: toStringOrNull(json['created_at']),
+  );
 
   final String code;
   final String material;
@@ -109,28 +110,28 @@ class SwatchCode {
 
   /// Filament identity key (for matching to inventory spools).
   String get identityKey => filamentIdentityKey(
-        brand: brand,
-        material: material,
-        variant: variant,
-        colorName: colorName,
-      );
+    brand: brand,
+    material: material,
+    variant: variant,
+    colorName: colorName,
+  );
 
   String get displayName => filamentIdentityName(
-        brand: brand,
-        material: material,
-        variant: variant,
-        colorName: colorName,
-      );
+    brand: brand,
+    material: material,
+    variant: variant,
+    colorName: colorName,
+  );
 
   Map<String, dynamic> toJson() => {
-        'code': code,
-        'material': material,
-        if (brand != null) 'brand': brand,
-        if (variant != null) 'variant': variant,
-        if (colorName != null) 'color_name': colorName,
-        if (rgba != null) 'rgba': rgba,
-        if (createdAt != null) 'created_at': createdAt,
-      };
+    'code': code,
+    'material': material,
+    if (brand != null) 'brand': brand,
+    if (variant != null) 'variant': variant,
+    if (colorName != null) 'color_name': colorName,
+    if (rgba != null) 'rgba': rgba,
+    if (createdAt != null) 'created_at': createdAt,
+  };
 }
 
 /// Light filament identity extracted from inventory (no specific spool) — for
@@ -151,16 +152,16 @@ class FilamentIdentity {
   final String? rgba;
 
   String get key => filamentIdentityKey(
-        brand: brand,
-        material: material,
-        variant: variant,
-        colorName: colorName,
-      );
+    brand: brand,
+    material: material,
+    variant: variant,
+    colorName: colorName,
+  );
 
   String get displayName => filamentIdentityName(
-        brand: brand,
-        material: material,
-        variant: variant,
-        colorName: colorName,
-      );
+    brand: brand,
+    material: material,
+    variant: variant,
+    colorName: colorName,
+  );
 }

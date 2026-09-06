@@ -39,8 +39,10 @@ class GcodeViewerScreen extends ConsumerStatefulWidget {
     this.libraryFileId,
     this.plate,
     this.title,
-  }) : assert(archiveId != null || libraryFileId != null,
-            'archiveId or libraryFileId required');
+  }) : assert(
+         archiveId != null || libraryFileId != null,
+         'archiveId or libraryFileId required',
+       );
 
   /// Archive id to view. Mutually exclusive with [libraryFileId].
   final int? archiveId;
@@ -112,10 +114,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   }
 
   String get _gcodeUrl => gcodeSourceUrl(
-        archiveId: widget.archiveId,
-        libraryFileId: widget.libraryFileId,
-        plate: widget.plate,
-      );
+    archiveId: widget.archiveId,
+    libraryFileId: widget.libraryFileId,
+    plate: widget.plate,
+  );
 
   /// Loads the preview, in two halves that one gate separates.
   ///
@@ -129,8 +131,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     final attempt = _attempt;
     final profile = ref.read(serverProfileProvider);
     if (profile == null) {
-      setState(() =>
-          _failure = const GcodeViewerReport.failed(GcodeViewerError.network));
+      setState(
+        () =>
+            _failure = const GcodeViewerReport.failed(GcodeViewerError.network),
+      );
       return;
     }
 
@@ -204,8 +208,11 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           // the page's own, and it reports that one itself with the status.
           onWebResourceError: (error) {
             if (error.isForMainFrame == true && mounted) {
-              setState(() => _failure =
-                  const GcodeViewerReport.failed(GcodeViewerError.script));
+              setState(
+                () => _failure = const GcodeViewerReport.failed(
+                  GcodeViewerError.script,
+                ),
+              );
             }
           },
         ),
@@ -227,16 +234,20 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   /// The slots are project-wide, so a multi-plate archive previewing plate 3
   /// still gets the right colours for the tools that plate uses.
   Future<List<String?>> _filamentColors() async {
-    final requirements =
-        await ref.read(slicerRepositoryProvider).filamentRequirements(
-              id: widget.archiveId ?? widget.libraryFileId!,
-              isArchive: widget.archiveId != null,
-            );
+    final requirements = await ref
+        .read(slicerRepositoryProvider)
+        .filamentRequirements(
+          id: widget.archiveId ?? widget.libraryFileId!,
+          isArchive: widget.archiveId != null,
+        );
     if (requirements.isEmpty) return const [];
 
     // `slot_id` is 1-based and the G-code's tool numbers are 0-based, so a
     // colour indexed straight by the slot lands one filament out.
-    final highest = requirements.fold(0, (max, r) => r.slotId > max ? r.slotId : max);
+    final highest = requirements.fold(
+      0,
+      (max, r) => r.slotId > max ? r.slotId : max,
+    );
     final colors = List<String?>.filled(highest, null);
     for (final requirement in requirements) {
       if (requirement.slotId < 1) continue;
@@ -254,16 +265,18 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     _watchdog?.cancel();
     _watchdog = Timer(limit, () {
       if (!mounted || _ready || _failure != null) return;
-      setState(() => _failure =
-          const GcodeViewerReport.failed(GcodeViewerError.script));
+      setState(
+        () =>
+            _failure = const GcodeViewerReport.failed(GcodeViewerError.script),
+      );
     });
   }
 
   /// The page's `--bg`, so Flutter's ground and the WebView's agree.
   static Color _pageBackground(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF0B0F0C)
-          : const Color(0xFFF6F8F4);
+      ? const Color(0xFF0B0F0C)
+      : const Color(0xFFF6F8F4);
 
   Future<Map<String, String>> _authHeaders(ServerProfile profile) async {
     final creds = ref.read(credentialsStoreProvider);
@@ -312,14 +325,12 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       switch (f.error!) {
         GcodeViewerError.empty => (l10n.gcodeViewerEmpty, false),
         GcodeViewerError.http => (
-            l10n.gcodeViewerHttpError(f.status ?? 0),
-            // 401/403 outlive a retry; a 5xx or a proxy hiccup does not.
-            f.status == null || f.status! >= 500,
-          ),
-        GcodeViewerError.network || GcodeViewerError.script => (
-            l10n.gcodeViewerError,
-            true,
-          ),
+          l10n.gcodeViewerHttpError(f.status ?? 0),
+          // 401/403 outlive a retry; a 5xx or a proxy hiccup does not.
+          f.status == null || f.status! >= 500,
+        ),
+        GcodeViewerError.network ||
+        GcodeViewerError.script => (l10n.gcodeViewerError, true),
       };
 
   @override
@@ -347,23 +358,22 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       body: failure != null
           ? _errorView(l10n, failure)
           : controller == null
-              ? const DashLoading()
-              // The page keeps its controls at its own edges, so it must not
-              // extend under the navigation bar: down there the system takes
-              // the touch and the slider never sees it.
-              : SafeArea(
-                  top: false,
-                  child: Stack(
-                    children: [
-                      WebViewWidget(controller: controller),
-                      // Only until the page speaks: from then on it draws its
-                      // own progress, and two spinners would sit one on top of
-                      // the other with the page's text between them.
-                      if (!_alive)
-                        const DashLoading(),
-                    ],
-                  ),
-                ),
+          ? const DashLoading()
+          // The page keeps its controls at its own edges, so it must not
+          // extend under the navigation bar: down there the system takes
+          // the touch and the slider never sees it.
+          : SafeArea(
+              top: false,
+              child: Stack(
+                children: [
+                  WebViewWidget(controller: controller),
+                  // Only until the page speaks: from then on it draws its
+                  // own progress, and two spinners would sit one on top of
+                  // the other with the page's text between them.
+                  if (!_alive) const DashLoading(),
+                ],
+              ),
+            ),
     );
   }
 

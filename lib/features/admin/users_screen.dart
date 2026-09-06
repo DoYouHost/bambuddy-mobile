@@ -63,7 +63,12 @@ class UsersScreen extends ConsumerWidget {
                     icon: Icons.people_outline,
                   )
                 : ListView.builder(
-                    padding: EdgeInsets.fromLTRB(12, 8, 12, canManage ? 88 : 24),
+                    padding: EdgeInsets.fromLTRB(
+                      12,
+                      8,
+                      12,
+                      canManage ? 88 : 24,
+                    ),
                     itemCount: users.length,
                     itemBuilder: (_, i) => _UserCard(user: users[i]),
                   ),
@@ -128,7 +133,9 @@ class _UserCard extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Text(
                                 l10n.usersYou,
-                                style: t.micro.copyWith(color: t.accentGreenInk),
+                                style: t.micro.copyWith(
+                                  color: t.accentGreenInk,
+                                ),
                               ),
                             ],
                           ],
@@ -140,7 +147,9 @@ class _UserCard extends ConsumerWidget {
                               user.email!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: t.labelSoft.copyWith(color: t.textSecondary),
+                              style: t.labelSoft.copyWith(
+                                color: t.textSecondary,
+                              ),
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -205,8 +214,9 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final accent = user.isAdmin ? t.accentGreen : t.accentBlue;
-    final initial =
-        user.username.isEmpty ? '?' : user.username.characters.first.toUpperCase();
+    final initial = user.username.isEmpty
+        ? '?'
+        : user.username.characters.first.toUpperCase();
     return Container(
       width: 44,
       height: 44,
@@ -218,7 +228,9 @@ class _Avatar extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: t.titleLg.copyWith(color: user.isActive ? accent : t.textTertiary),
+        style: t.titleLg.copyWith(
+          color: user.isActive ? accent : t.textTertiary,
+        ),
       ),
     );
   }
@@ -227,10 +239,7 @@ class _Avatar extends StatelessWidget {
 /// Opens the per-account detail: what the list has no room for, plus what the
 /// account owns (one request, made only when someone opens this).
 Future<void> showUserDetailSheet(BuildContext context, CurrentUser user) =>
-    dashSheet<void>(
-      context,
-      builder: (_) => _UserDetailSheet(user: user),
-    );
+    dashSheet<void>(context, builder: (_) => _UserDetailSheet(user: user));
 
 class _UserDetailSheet extends ConsumerWidget {
   const _UserDetailSheet({required this.user});
@@ -254,10 +263,7 @@ class _UserDetailSheet extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  user.username,
-                  style: t.display,
-                ),
+                Text(user.username, style: t.display),
                 const SizedBox(height: 16),
                 _DetailRow(
                   icon: Icons.alternate_email,
@@ -378,7 +384,9 @@ class _SheetActions extends ConsumerWidget {
       logId: 'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.snack(result.isOk ? l10n.usersDeleted : userWriteMessage(l10n, result));
+    messenger.snack(
+      result.isOk ? l10n.usersDeleted : userWriteMessage(l10n, result),
+    );
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();
@@ -398,39 +406,39 @@ class _OwnedCounts extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return dashAsyncStrip(
-          context,
-          ref.watch(userItemsCountProvider(userId)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          loading: const DashSpinner(size: 20),
-          failureMessage: l10n.usersOwnedFailed,
-          data: (counts) => Row(
-            children: [
-              Expanded(
-                child: _CountTile(
-                  label: l10n.usersOwnedArchives,
-                  value: counts.archives,
-                  icon: Icons.inventory_2_outlined,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _CountTile(
-                  label: l10n.usersOwnedQueue,
-                  value: counts.queueItems,
-                  icon: Icons.playlist_play_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _CountTile(
-                  label: l10n.usersOwnedLibrary,
-                  value: counts.libraryFiles,
-                  icon: Icons.folder_outlined,
-                ),
-              ),
-            ],
+      context,
+      ref.watch(userItemsCountProvider(userId)),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      loading: const DashSpinner(size: 20),
+      failureMessage: l10n.usersOwnedFailed,
+      data: (counts) => Row(
+        children: [
+          Expanded(
+            child: _CountTile(
+              label: l10n.usersOwnedArchives,
+              value: counts.archives,
+              icon: Icons.inventory_2_outlined,
+            ),
           ),
-        );
+          const SizedBox(width: 8),
+          Expanded(
+            child: _CountTile(
+              label: l10n.usersOwnedQueue,
+              value: counts.queueItems,
+              icon: Icons.playlist_play_rounded,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _CountTile(
+              label: l10n.usersOwnedLibrary,
+              value: counts.libraryFiles,
+              icon: Icons.folder_outlined,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -459,17 +467,9 @@ class _CountTile extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: t.textSecondary),
           const SizedBox(height: 6),
-          Text(
-            '$value',
-            style: t.monoHeadline,
-          ),
+          Text('$value', style: t.monoHeadline),
           const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: t.micro,
-          ),
+          Text(label, textAlign: TextAlign.center, maxLines: 2, style: t.micro),
         ],
       ),
     );
@@ -499,17 +499,9 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(width: 10),
           SizedBox(
             width: 110,
-            child: Text(
-              label,
-              style: t.label.copyWith(color: t.textSecondary),
-            ),
+            child: Text(label, style: t.label.copyWith(color: t.textSecondary)),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: t.body,
-            ),
-          ),
+          Expanded(child: Text(value, style: t.body)),
         ],
       ),
     );

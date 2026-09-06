@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-
 const _archive = Archive(
   id: 1,
   filename: 'benchy.gcode.3mf',
@@ -21,14 +20,14 @@ const _archive = Archive(
 late SharedPreferences _prefs;
 
 Widget _screen(No3mfWarning warning) => ProviderScope(
-      overrides: [
-        archiveListOverride(const [_archive]),
-        no3mfWarningProvider.overrideWith((ref) async => warning),
-        sharedPreferencesProvider.overrideWithValue(_prefs),
-        noServerProfileOverride,
-      ],
-      child: plApp(const ArchiveScreen()),
-    );
+  overrides: [
+    archiveListOverride(const [_archive]),
+    no3mfWarningProvider.overrideWith((ref) async => warning),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
+    noServerProfileOverride,
+  ],
+  child: plApp(const ArchiveScreen()),
+);
 
 void main() {
   setUp(() async {
@@ -45,12 +44,17 @@ void main() {
 
   // The original wording, which is also what an older server's reasonless
   // answer has to keep showing.
-  testWidgets('no reason blames the slicer setting and links install step 4',
-      (tester) async {
-    await tester.pumpWidget(_screen(const No3mfWarning(
-      hasFallback: true,
-      reason: No3mfReason.slicerSetting,
-    )));
+  testWidgets('no reason blames the slicer setting and links install step 4', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(
+        const No3mfWarning(
+          hasFallback: true,
+          reason: No3mfReason.slicerSetting,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining('bez miniatur'), findsOneWidget);
@@ -58,25 +62,38 @@ void main() {
   });
 
   // #2780: the same advice was actively wrong here — the setting is already on.
-  testWidgets('internal storage gets its own text and its own link',
-      (tester) async {
-    await tester.pumpWidget(_screen(const No3mfWarning(
-      hasFallback: true,
-      reason: No3mfReason.internalStorage,
-    )));
+  testWidgets('internal storage gets its own text and its own link', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(
+        const No3mfWarning(
+          hasFallback: true,
+          reason: No3mfReason.internalStorage,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('została w pamięci wewnętrznej'), findsOneWidget);
+    expect(
+      find.textContaining('została w pamięci wewnętrznej'),
+      findsOneWidget,
+    );
     expect(find.text('Dlaczego tak się dzieje'), findsOneWidget);
     expect(find.text('Zobacz krok 4 instalacji'), findsNothing);
   });
 
-  testWidgets('an empty card slot has nothing to link — the fix is the fix',
-      (tester) async {
-    await tester.pumpWidget(_screen(const No3mfWarning(
-      hasFallback: true,
-      reason: No3mfReason.noExternalStorage,
-    )));
+  testWidgets('an empty card slot has nothing to link — the fix is the fix', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(
+        const No3mfWarning(
+          hasFallback: true,
+          reason: No3mfReason.noExternalStorage,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining('brak nośnika w drukarce'), findsOneWidget);
@@ -84,10 +101,14 @@ void main() {
   });
 
   testWidgets('dismissing hides it and remembers', (tester) async {
-    await tester.pumpWidget(_screen(const No3mfWarning(
-      hasFallback: true,
-      reason: No3mfReason.noExternalStorage,
-    )));
+    await tester.pumpWidget(
+      _screen(
+        const No3mfWarning(
+          hasFallback: true,
+          reason: No3mfReason.noExternalStorage,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.close));
@@ -97,20 +118,22 @@ void main() {
     expect(_prefs.getBool('archive_no3mf_dismissed'), isTrue);
   });
 
-  testWidgets('an install that already dismissed it is not asked again',
-      (tester) async {
-    SharedPreferences.setMockInitialValues(
-        {'archive_no3mf_dismissed': true});
+  testWidgets('an install that already dismissed it is not asked again', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'archive_no3mf_dismissed': true});
     _prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        archiveListOverride(const [_archive]),
-        sharedPreferencesProvider.overrideWithValue(_prefs),
-        noServerProfileOverride,
-      ],
-      child: plApp(const ArchiveScreen()),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          archiveListOverride(const [_archive]),
+          sharedPreferencesProvider.overrideWithValue(_prefs),
+          noServerProfileOverride,
+        ],
+        child: plApp(const ArchiveScreen()),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // The real provider is in play here: dismissed means it never asks the

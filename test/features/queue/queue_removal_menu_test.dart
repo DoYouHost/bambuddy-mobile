@@ -22,9 +22,9 @@ import '../../helpers.dart';
 void main() {
   /// The reporter's item: the server still calls it `printing`.
   QueueItem printingItem() => QueueItem.fromJson({
-        ...readFixture('queue_item.json') as Map<String, dynamic>,
-        'status': 'printing',
-      });
+    ...readFixture('queue_item.json') as Map<String, dynamic>,
+    'status': 'printing',
+  });
 
   Widget screen(_RecordingQueue queue, {required String printerState}) =>
       ProviderScope(
@@ -41,8 +41,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a print the machine has failed offers removal, not a stop',
-      (tester) async {
+  testWidgets('a print the machine has failed offers removal, not a stop', (
+    tester,
+  ) async {
     // Exactly the reporter's state: item `printing`, printer FAILED.
     final queue = _RecordingQueue([printingItem()]);
     await tester.pumpWidget(screen(queue, printerState: 'FAILED'));
@@ -50,8 +51,11 @@ void main() {
 
     await openRemoval(tester);
     expect(find.widgetWithText(ListTile, 'Usuń z kolejki'), findsOneWidget);
-    expect(find.widgetWithText(ListTile, 'Zatrzymaj wydruk'), findsNothing,
-        reason: 'nothing is printing, so there is nothing to stop');
+    expect(
+      find.widgetWithText(ListTile, 'Zatrzymaj wydruk'),
+      findsNothing,
+      reason: 'nothing is printing, so there is nothing to stop',
+    );
 
     await tester.tap(find.widgetWithText(ListTile, 'Usuń z kolejki'));
     await tester.pumpAndSettle();
@@ -62,13 +66,15 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
     await tester.pumpAndSettle();
 
-    expect(queue.stopped, [78],
-        reason: '/stop is the only route that clears a printing row');
+    expect(queue.stopped, [
+      78,
+    ], reason: '/stop is the only route that clears a printing row');
     expect(queue.cancelled, isEmpty, reason: '/cancel is what answered 400');
   });
 
-  testWidgets('a print actually running warns that it will be aborted',
-      (tester) async {
+  testWidgets('a print actually running warns that it will be aborted', (
+    tester,
+  ) async {
     final queue = _RecordingQueue([printingItem()]);
     await tester.pumpWidget(screen(queue, printerState: 'RUNNING'));
     await tester.pumpAndSettle();
@@ -80,8 +86,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Zatrzymać ten wydruk?'), findsOneWidget);
-    expect(find.textContaining('nie da się wznowić'), findsOneWidget,
-        reason: 'aborting a running print is the destructive case');
+    expect(
+      find.textContaining('nie da się wznowić'),
+      findsOneWidget,
+      reason: 'aborting a running print is the destructive case',
+    );
   });
 
   testWidgets('backing out of the confirmation sends nothing', (tester) async {
@@ -98,8 +107,9 @@ void main() {
     expect(queue.stopped, isEmpty);
   });
 
-  testWidgets('a waiting item still cancels, without a confirmation',
-      (tester) async {
+  testWidgets('a waiting item still cancels, without a confirmation', (
+    tester,
+  ) async {
     // The behaviour that already worked, kept: /cancel takes a pending item,
     // and undoing it is re-queueing rather than a loss.
     final pending = QueueItem.fromJson({
@@ -118,14 +128,16 @@ void main() {
     expect(queue.stopped, isEmpty);
   });
 
-  testWidgets('a refusal explains itself instead of naming the status code',
-      (tester) async {
+  testWidgets('a refusal explains itself instead of naming the status code', (
+    tester,
+  ) async {
     // What the reporter saw was "server returned error 400", twice.
     final queue = _RecordingQueue([printingItem()])
       ..stopFailure = const ApiException(
         AppErrorCode.badResponse,
         statusCode: 400,
-        detail: "Can only stop items that are printing, current status: "
+        detail:
+            "Can only stop items that are printing, current status: "
             "'completed'",
       );
     await tester.pumpWidget(screen(queue, printerState: 'FAILED'));
@@ -186,6 +198,7 @@ class _Statuses extends PrinterStatusesNotifier {
   final String reported;
 
   @override
-  Map<int, PrinterStatus> build() =>
-      {1: PrinterStatus(id: 1, connected: true, state: reported)};
+  Map<int, PrinterStatus> build() => {
+    1: PrinterStatus(id: 1, connected: true, state: reported),
+  };
 }

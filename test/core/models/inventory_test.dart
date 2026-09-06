@@ -70,8 +70,11 @@ void main() {
     });
 
     test('a server that says nothing about it counts from zero', () {
-      final spool = Spool.fromNative(
-          {'id': 1, 'material': 'PLA', 'weight_used': 120.0});
+      final spool = Spool.fromNative({
+        'id': 1,
+        'material': 'PLA',
+        'weight_used': 120.0,
+      });
 
       expect(spool.weightUsedBaseline, 0);
       expect(spool.consumedWeight, 120);
@@ -79,14 +82,13 @@ void main() {
   });
 
   group('Spool getters', () {
-    Spool spool({int label = 1000, double used = 0, int? threshold}) =>
-        Spool(
-          id: 1,
-          material: 'PLA',
-          labelWeight: label,
-          weightUsed: used,
-          lowStockThresholdPct: threshold,
-        );
+    Spool spool({int label = 1000, double used = 0, int? threshold}) => Spool(
+      id: 1,
+      material: 'PLA',
+      labelWeight: label,
+      weightUsed: used,
+      lowStockThresholdPct: threshold,
+    );
 
     test('remainingWeight nie schodzi poniżej zera', () {
       expect(spool(label: 1000, used: 1200).remainingWeight, 0);
@@ -142,14 +144,19 @@ void main() {
 
     test('isArchived po niepustym archived_at', () {
       expect(
-        Spool.fromNative({'id': 1, 'material': 'PLA', 'archived_at': ''})
-            .isArchived,
+        Spool.fromNative({
+          'id': 1,
+          'material': 'PLA',
+          'archived_at': '',
+        }).isArchived,
         isFalse,
       );
       expect(
-        Spool.fromNative(
-                {'id': 1, 'material': 'PLA', 'archived_at': '2026-06-01'})
-            .isArchived,
+        Spool.fromNative({
+          'id': 1,
+          'material': 'PLA',
+          'archived_at': '2026-06-01',
+        }).isArchived,
         isTrue,
       );
     });
@@ -157,12 +164,7 @@ void main() {
 
   group('SpoolAssignment — slot vs szpula zewnętrzna', () {
     SpoolAssignment assign(int amsId, {int trayId = 0}) =>
-        SpoolAssignment(
-          spoolId: 1,
-          printerId: 1,
-          amsId: amsId,
-          trayId: trayId,
-        );
+        SpoolAssignment(spoolId: 1, printerId: 1, amsId: amsId, trayId: trayId);
 
     test('zwykły slot AMS: nie jest zewnętrzny, label AMS·tray+1', () {
       final a = assign(0, trayId: 1);

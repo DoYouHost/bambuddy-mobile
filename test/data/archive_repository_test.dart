@@ -59,33 +59,37 @@ void main() {
     expect(archives, hasLength(1));
   });
 
-  test('toggleFavorite: POST /archives/82/favorite zwraca zaktualizowany wpis',
-      () async {
-    final favorited = {
-      ...readFixture('archive.json') as Map<String, dynamic>,
-      'is_favorite': true,
-    };
-    adapter.onPost(
-      '/api/v1/archives/82/favorite',
-      (server) => server.reply(200, favorited),
-    );
+  test(
+    'toggleFavorite: POST /archives/82/favorite zwraca zaktualizowany wpis',
+    () async {
+      final favorited = {
+        ...readFixture('archive.json') as Map<String, dynamic>,
+        'is_favorite': true,
+      };
+      adapter.onPost(
+        '/api/v1/archives/82/favorite',
+        (server) => server.reply(200, favorited),
+      );
 
-    final archive = await repo.toggleFavorite(82);
+      final archive = await repo.toggleFavorite(82);
 
-    expect(archive.id, 82);
-    expect(archive.isFavorite, isTrue);
-  });
+      expect(archive.id, 82);
+      expect(archive.isFavorite, isTrue);
+    },
+  );
 
-  test('delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
-      () async {
-    adapter.onDelete(
-      '/api/v1/archives/82',
-      (server) => server.reply(200, null),
-      queryParameters: {'purge_stats': false},
-    );
+  test(
+    'delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
+    () async {
+      adapter.onDelete(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, null),
+        queryParameters: {'purge_stats': false},
+      );
 
-    await repo.delete(82);
-  });
+      await repo.delete(82);
+    },
+  );
 
   test('delete: purgeStats=true ustawia purge_stats=true w query', () async {
     adapter.onDelete(
@@ -158,15 +162,19 @@ void main() {
 
       expect(archive.runCount, 0);
       expect(archive.totalFilamentActualGrams, isNull);
-      expect(archive.filamentUsedGrams, 17.1, reason: 'its own figure is not the aggregate');
+      expect(
+        archive.filamentUsedGrams,
+        17.1,
+        reason: 'its own figure is not the aggregate',
+      );
     });
   });
 
   group('setFilamentGrams', () {
     Map<String, dynamic> archiveWith(Object? grams) => {
-          ...readFixture('archive.json') as Map<String, dynamic>,
-          'filament_used_grams': grams,
-        };
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      'filament_used_grams': grams,
+    };
 
     test('sends the weight and reads back the stored one', () async {
       adapter.onPatch(
@@ -185,20 +193,25 @@ void main() {
     // still has the route and still answers 200 — its request model just drops
     // the key it cannot name — so the archive comes back with the weight it had
     // and the status code says nothing at all.
-    test('a server that drops the key answers 200 and changes nothing',
-        () async {
-      adapter.onPatch(
-        '/api/v1/archives/82',
-        (server) => server.reply(200, archiveWith(17.1)),
-        data: {'filament_used_grams': 42.0},
-      );
+    test(
+      'a server that drops the key answers 200 and changes nothing',
+      () async {
+        adapter.onPatch(
+          '/api/v1/archives/82',
+          (server) => server.reply(200, archiveWith(17.1)),
+          data: {'filament_used_grams': 42.0},
+        );
 
-      final result = await repo.setFilamentGrams(82, 42.0);
+        final result = await repo.setFilamentGrams(82, 42.0);
 
-      expect(result.applied, isFalse);
-      expect(result.archive.filamentUsedGrams, 17.1,
-          reason: 'the row the user is looking at, not the one they asked for');
-    });
+        expect(result.applied, isFalse);
+        expect(
+          result.archive.filamentUsedGrams,
+          17.1,
+          reason: 'the row the user is looking at, not the one they asked for',
+        );
+      },
+    );
 
     // A present null, never an omitted key: the server applies `exclude_unset`,
     // so leaving it out means "do not touch this column" and would clear
@@ -255,8 +268,13 @@ void main() {
 
       await expectLater(
         repo.setFilamentGrams(82, 200000.0),
-        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
-            contains('less than or equal to 100000'))),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            contains('less than or equal to 100000'),
+          ),
+        ),
       );
     });
   });
@@ -269,8 +287,12 @@ void main() {
           'archive_id': 82,
           'filename': 'multi.gcode.3mf',
           'plates': [
-            {'index': 1, 'name': 'Left', 'has_thumbnail': true,
-              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1'},
+            {
+              'index': 1,
+              'name': 'Left',
+              'has_thumbnail': true,
+              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1',
+            },
             {'index': 2, 'name': 'Right', 'has_thumbnail': false},
           ],
           'is_multi_plate': true,
@@ -282,8 +304,10 @@ void main() {
 
       expect(plates.isMultiPlate, isTrue);
       expect(plates.plates.map((p) => p.index), [1, 2]);
-      expect(plates.byIndex(1)?.thumbnailPath,
-          '/api/v1/archives/82/plate-thumbnail/1');
+      expect(
+        plates.byIndex(1)?.thumbnailPath,
+        '/api/v1/archives/82/plate-thumbnail/1',
+      );
     });
 
     // One request, both answers: the slice screen's "as designed" gate used to
@@ -327,8 +351,10 @@ void main() {
     test('reads the flag and the reason', () async {
       adapter.onGet(
         '/api/v1/archives/no-3mf-warning',
-        (server) =>
-            server.reply(200, {'has_fallback': true, 'reason': 'internal_storage'}),
+        (server) => server.reply(200, {
+          'has_fallback': true,
+          'reason': 'internal_storage',
+        }),
       );
 
       final warning = await repo.no3mfWarning();

@@ -17,63 +17,68 @@ void main() {
   });
 
   void replyVersion(String version) => adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-      );
+    '/api/v1/updates/version',
+    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+  );
 
   Map<String, dynamic> response() => {
-        'printer_id': 3,
-        'series': [
-          {
-            'sensor_kind': 'nozzle',
-            'data': [
-              // Naive stamp — the server sends UTC without the `Z`.
-              {'recorded_at': '2026-08-16T10:00:00', 'value': 219.8, 'target': 220},
-              {'recorded_at': '2026-08-16T10:01:00', 'value': null, 'target': null},
-              'nie-punkt',
-            ],
-            'min_value': 24.0,
-            'max_value': 220.4,
-            'avg_value': 180.2,
-          },
-          {
-            'sensor_kind': 'bed',
-            'data': <Object>[],
-            'min_value': null,
-            'max_value': null,
-            'avg_value': null,
-          },
+    'printer_id': 3,
+    'series': [
+      {
+        'sensor_kind': 'nozzle',
+        'data': [
+          // Naive stamp — the server sends UTC without the `Z`.
+          {'recorded_at': '2026-08-16T10:00:00', 'value': 219.8, 'target': 220},
+          {'recorded_at': '2026-08-16T10:01:00', 'value': null, 'target': null},
+          'nie-punkt',
         ],
-      };
+        'min_value': 24.0,
+        'max_value': 220.4,
+        'avg_value': 180.2,
+      },
+      {
+        'sensor_kind': 'bed',
+        'data': <Object>[],
+        'min_value': null,
+        'max_value': null,
+        'avg_value': null,
+      },
+    ],
+  };
 
-  test('fetch: parsuje serie, pomija niepoprawny punkt, czyta czas jako UTC',
-      () async {
-    adapter.onGet(
-      '/api/v1/printer-sensor-history/3',
-      (s) => s.reply(200, response()),
-      queryParameters: {'hours': 24, 'kinds': 'nozzle,bed'},
-    );
+  test(
+    'fetch: parsuje serie, pomija niepoprawny punkt, czyta czas jako UTC',
+    () async {
+      adapter.onGet(
+        '/api/v1/printer-sensor-history/3',
+        (s) => s.reply(200, response()),
+        queryParameters: {'hours': 24, 'kinds': 'nozzle,bed'},
+      );
 
-    final history = await repo.fetch(3, kinds: const ['nozzle', 'bed']);
+      final history = await repo.fetch(3, kinds: const ['nozzle', 'bed']);
 
-    expect(history.printerId, 3);
-    expect(history.series, hasLength(2));
+      expect(history.printerId, 3);
+      expect(history.series, hasLength(2));
 
-    final nozzle = history.seriesFor('nozzle')!;
-    expect(nozzle.points, hasLength(2)); // wpis-string pominięty
-    expect(nozzle.points.first.value, 219.8);
-    expect(nozzle.points.first.target, 220);
-    expect(nozzle.points.first.recordedAt.isUtc, isFalse); // lokalny czas do wykresu
-    expect(
-      nozzle.points.first.recordedAt.toUtc(),
-      DateTime.utc(2026, 8, 16, 10),
-    );
-    expect(nozzle.points.last.value, isNull); // luka w zapisie, nie zero
-    expect(nozzle.avgValue, 180.2);
+      final nozzle = history.seriesFor('nozzle')!;
+      expect(nozzle.points, hasLength(2)); // wpis-string pominięty
+      expect(nozzle.points.first.value, 219.8);
+      expect(nozzle.points.first.target, 220);
+      expect(
+        nozzle.points.first.recordedAt.isUtc,
+        isFalse,
+      ); // lokalny czas do wykresu
+      expect(
+        nozzle.points.first.recordedAt.toUtc(),
+        DateTime.utc(2026, 8, 16, 10),
+      );
+      expect(nozzle.points.last.value, isNull); // luka w zapisie, nie zero
+      expect(nozzle.avgValue, 180.2);
 
-    expect(history.seriesFor('bed')!.isEmpty, isTrue);
-    expect(history.seriesFor('chamber'), isNull); // nieproszony czujnik
-  });
+      expect(history.seriesFor('bed')!.isEmpty, isTrue);
+      expect(history.seriesFor('chamber'), isNull); // nieproszony czujnik
+    },
+  );
 
   test('fetch: bez kinds pyta o wszystkie czujniki', () async {
     adapter.onGet(
@@ -87,20 +92,23 @@ void main() {
     expect(history.series, isEmpty);
   });
 
-  test('fetch: 404 (stary serwer bez tej trasy) wypływa jako AppApiException',
-      () async {
-    adapter.onGet(
-      '/api/v1/printer-sensor-history/3',
-      (s) => s.reply(404, {'detail': 'Not Found'}),
-      queryParameters: {'hours': 24},
-    );
+  test(
+    'fetch: 404 (stary serwer bez tej trasy) wypływa jako AppApiException',
+    () async {
+      adapter.onGet(
+        '/api/v1/printer-sensor-history/3',
+        (s) => s.reply(404, {'detail': 'Not Found'}),
+        queryParameters: {'hours': 24},
+      );
 
-    expect(
-      () => repo.fetch(3),
-      throwsA(isA<AppApiException>()
-          .having((e) => e.statusCode, 'statusCode', 404)),
-    );
-  });
+      expect(
+        () => repo.fetch(3),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'statusCode', 404),
+        ),
+      );
+    },
+  );
 
   group('czy w ogóle proponować wykres', () {
     /// Trasa weszła w v0.2.4.8, czyli jeszcze w starym numerowaniu — próg musi
@@ -151,19 +159,21 @@ void main() {
       expect(await repo.supportsHistory(), isFalse);
     });
 
-    test('403 (klucz bez uprawnienia) chowa wykres mimo istniejącej trasy',
-        () async {
-      replyVersion('1.2.5.1');
-      adapter.onGet(
-        '/api/v1/printer-sensor-history/3',
-        (s) => s.reply(403, {'detail': 'Missing required permissions'}),
-        queryParameters: {'hours': 24},
-      );
+    test(
+      '403 (klucz bez uprawnienia) chowa wykres mimo istniejącej trasy',
+      () async {
+        replyVersion('1.2.5.1');
+        adapter.onGet(
+          '/api/v1/printer-sensor-history/3',
+          (s) => s.reply(403, {'detail': 'Missing required permissions'}),
+          queryParameters: {'hours': 24},
+        );
 
-      await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
+        await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
 
-      expect(await repo.supportsHistory(), isFalse);
-    });
+        expect(await repo.supportsHistory(), isFalse);
+      },
+    );
 
     test('udana odpowiedź kasuje wcześniejszą odmowę', () async {
       replyVersion('1.2.5.1');

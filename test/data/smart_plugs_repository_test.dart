@@ -116,8 +116,13 @@ void main() {
     );
     await expectLater(
       repo.control(1, SmartPlugAction.on),
-      throwsA(isA<AuthException>()
-          .having((e) => e.code, 'code', AppErrorCode.forbidden)),
+      throwsA(
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.forbidden,
+        ),
+      ),
     );
   });
 }

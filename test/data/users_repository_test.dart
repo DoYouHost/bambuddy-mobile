@@ -63,35 +63,34 @@ void main() {
     expect(users.last.permissionsKnown, isTrue);
   });
 
-  test('an account from a server that omits `permissions` stays unknown',
-      () async {
-    adapter.onGet(
-      '/api/v1/users/',
-      (s) => s.reply(200, [
-        {
-          'id': 3,
-          'username': 'stary-serwer',
-          'role': 'user',
-          'is_active': true,
-          'is_admin': false,
-          'created_at': '2025-01-01T00:00:00',
-        },
-      ]),
-    );
+  test(
+    'an account from a server that omits `permissions` stays unknown',
+    () async {
+      adapter.onGet(
+        '/api/v1/users/',
+        (s) => s.reply(200, [
+          {
+            'id': 3,
+            'username': 'stary-serwer',
+            'role': 'user',
+            'is_active': true,
+            'is_admin': false,
+            'created_at': '2025-01-01T00:00:00',
+          },
+        ]),
+      );
 
-    final user = (await repo.list()).single;
-    expect(user.permissionsKnown, isFalse);
-    expect(user.groups, isEmpty);
-  });
+      final user = (await repo.list()).single;
+      expect(user.permissionsKnown, isFalse);
+      expect(user.groups, isEmpty);
+    },
+  );
 
   test('itemsCount() parses what the account owns', () async {
     adapter.onGet(
       '/api/v1/users/2/items-count',
-      (s) => s.reply(200, {
-        'archives': 12,
-        'queue_items': 3,
-        'library_files': 7,
-      }),
+      (s) =>
+          s.reply(200, {'archives': 12, 'queue_items': 3, 'library_files': 7}),
     );
 
     final counts = await repo.itemsCount(2);
@@ -138,17 +137,25 @@ void main() {
         }),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'POST') sent = options.data as Map<String, dynamic>;
-        handler.next(options);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.method == 'POST') {
+              sent = options.data as Map<String, dynamic>;
+            }
+            handler.next(options);
+          },
+        ),
+      );
 
-      final created = await repo.create(const UserCreateInput(
-        username: 'zosia',
-        password: 'Sekret!23',
-        role: UserRoles.user,
-        groupIds: [5],
-      ));
+      final created = await repo.create(
+        const UserCreateInput(
+          username: 'zosia',
+          password: 'Sekret!23',
+          role: UserRoles.user,
+          groupIds: [5],
+        ),
+      );
 
       expect(created.id, 4);
       expect(sent, {
@@ -178,10 +185,16 @@ void main() {
         }),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'PATCH') sent = options.data as Map<String, dynamic>;
-        handler.next(options);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.method == 'PATCH') {
+              sent = options.data as Map<String, dynamic>;
+            }
+            handler.next(options);
+          },
+        ),
+      );
 
       await repo.update(2, const UserUpdateInput(isActive: false));
 
@@ -191,10 +204,14 @@ void main() {
     test('delete carries the choice about the account\'s items', () async {
       Map<String, dynamic>? query;
       adapter.onDelete('/api/v1/users/2', (s) => s.reply(204, null));
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'DELETE') query = options.queryParameters;
-        handler.next(options);
-      }));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.method == 'DELETE') query = options.queryParameters;
+            handler.next(options);
+          },
+        ),
+      );
 
       await repo.delete(2, deleteItems: true);
 
@@ -211,47 +228,63 @@ void main() {
       // which lives only server-side — is lost.
       await expectLater(
         repo.delete(1, deleteItems: false),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 400)
-            .having((e) => e.detail, 'detail',
-                'Cannot delete the last admin user')),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', 400)
+              .having(
+                (e) => e.detail,
+                'detail',
+                'Cannot delete the last admin user',
+              ),
+        ),
       );
     });
 
-    test('a 422 from the password validator is unwrapped to its message',
-        () async {
-      adapter.onPost(
-        '/api/v1/users/',
-        (s) => s.reply(422, {
-          'detail': [
-            {
-              'loc': ['body', 'password'],
-              'msg': 'Value error, Password must contain at least one digit',
-              'type': 'value_error',
-            },
-          ],
-        }),
-        data: Matchers.any,
-      );
+    test(
+      'a 422 from the password validator is unwrapped to its message',
+      () async {
+        adapter.onPost(
+          '/api/v1/users/',
+          (s) => s.reply(422, {
+            'detail': [
+              {
+                'loc': ['body', 'password'],
+                'msg': 'Value error, Password must contain at least one digit',
+                'type': 'value_error',
+              },
+            ],
+          }),
+          data: Matchers.any,
+        );
 
-      await expectLater(
-        repo.create(const UserCreateInput(username: 'x', password: 'nodigits')),
-        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
-            'Password must contain at least one digit')),
-      );
-    });
+        await expectLater(
+          repo.create(
+            const UserCreateInput(username: 'x', password: 'nodigits'),
+          ),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              'Password must contain at least one digit',
+            ),
+          ),
+        );
+      },
+    );
 
-    test('advanced-auth status falls back on a server without the route',
-        () async {
-      adapter.onGet(
-        '/api/v1/auth/advanced-auth/status',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
-      );
+    test(
+      'advanced-auth status falls back on a server without the route',
+      () async {
+        adapter.onGet(
+          '/api/v1/auth/advanced-auth/status',
+          (s) => s.reply(404, {'detail': 'Not Found'}),
+        );
 
-      final status = await repo.advancedAuthStatus();
-      expect(status.enabled, isFalse);
-      expect(status.smtpConfigured, isFalse);
-    });
+        final status = await repo.advancedAuthStatus();
+        expect(status.enabled, isFalse);
+        expect(status.smtpConfigured, isFalse);
+      },
+    );
 
     test('advanced-auth status reads both flags the form needs', () async {
       adapter.onGet(

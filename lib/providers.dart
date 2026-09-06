@@ -70,13 +70,15 @@ final notificationServiceProvider = Provider<NotificationService>(
   (ref) => throw UnimplementedError('Override in ProviderScope'),
 );
 
-final credentialsStoreProvider =
-    Provider<CredentialsStore>((ref) => SecureCredentialsStore());
+final credentialsStoreProvider = Provider<CredentialsStore>(
+  (ref) => SecureCredentialsStore(),
+);
 
 /// Wear OS Data Layer bridge. Cheap to construct on any platform; on the phone
 /// with no paired watch its calls simply no-op.
-final watchConnectivityProvider =
-    Provider<WatchConnectivity>((ref) => WatchConnectivity());
+final watchConnectivityProvider = Provider<WatchConnectivity>(
+  (ref) => WatchConnectivity(),
+);
 
 /// Phone→watch config handoff. Phone pushes the active profile; the watch entry
 /// point overrides this with a `settings`-backed instance to apply it.
@@ -106,8 +108,9 @@ final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
 
 /// Background monitoring mechanism. Currently always foreground service; gate
 /// for push = swap implementation here (see [BackgroundMonitor]).
-final backgroundMonitorProvider =
-    Provider<BackgroundMonitor>((ref) => ForegroundServiceMonitor());
+final backgroundMonitorProvider = Provider<BackgroundMonitor>(
+  (ref) => ForegroundServiceMonitor(),
+);
 
 /// Background monitoring enabled (user toggle, default true).
 final bgMonitoringEnabledProvider =
@@ -129,8 +132,8 @@ class BgMonitoringNotifier extends Notifier<bool> {
 /// startup.
 final notificationPrefsProvider =
     NotifierProvider<NotificationPrefsNotifier, NotificationPrefs>(
-  NotificationPrefsNotifier.new,
-);
+      NotificationPrefsNotifier.new,
+    );
 
 class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
   @override
@@ -173,7 +176,8 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 /// off — and two copies of this argument list would be two places for the
 /// server version to be fetched differently.
 final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
-  (ref) => () => loadSessionFacts(
+  (ref) =>
+      () => loadSessionFacts(
         profile: ref.read(serverProfileProvider),
         credentials: ref.read(credentialsStoreProvider),
         // Read through the provider only when a profile exists: without one
@@ -204,7 +208,9 @@ final relayClientProvider = Provider<RelayClient>(
   (ref) => RelayClient(ref.watch(bareDioProvider), baseUrl: relayBaseUrl),
 );
 
-final reportOutboxProvider = Provider<ReportOutbox>((ref) => const ReportOutbox());
+final reportOutboxProvider = Provider<ReportOutbox>(
+  (ref) => const ReportOutbox(),
+);
 
 /// One per app: it owns the single outbox slot and a timer, and two of them
 /// would race each other over both.
@@ -267,8 +273,7 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
 /// fetch in the FGS isolate re-mints reactively); kept alive +
 /// lifecycle-controlled by the dashboard, like [tokenRefresherProvider]. Demo
 /// mode has no token to refresh.
-final cameraTokenRefresherProvider =
-    Provider<ProactiveTokenRefresher?>((ref) {
+final cameraTokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
   final service = ref.watch(cameraTokenServiceProvider);
@@ -294,13 +299,12 @@ final cameraTokenRefresherProvider =
 /// Active server profile; `null` = unconfigured (router → /setup).
 final serverProfileProvider =
     NotifierProvider<ServerProfileNotifier, ServerProfile?>(
-  ServerProfileNotifier.new,
-);
+      ServerProfileNotifier.new,
+    );
 
 class ServerProfileNotifier extends Notifier<ServerProfile?> {
   @override
-  ServerProfile? build() =>
-      ref.watch(settingsRepositoryProvider).loadProfile();
+  ServerProfile? build() => ref.watch(settingsRepositoryProvider).loadProfile();
 
   Future<void> save(ServerProfile profile) async {
     final settings = ref.read(settingsRepositoryProvider);
@@ -372,8 +376,8 @@ final accountRepositoryProvider = Provider<AccountRepository>(
 /// `GET /auth/me` here is for.
 final currentUserProvider =
     AsyncNotifierProvider<CurrentUserNotifier, CurrentUser?>(
-  CurrentUserNotifier.new,
-);
+      CurrentUserNotifier.new,
+    );
 
 class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
   /// Set by [adopt] and consumed by the very next [build]. Saving the profile
@@ -751,9 +755,9 @@ final currencySymbolProvider = Provider<String>((ref) {
 /// starting queued prints. Gates the plate badge / "clear plate" button and the
 /// pre-start confirmation.
 final requirePlateClearProvider = FutureProvider<bool>(
-  (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))
-          .settingBool('require_plate_clear'),
+  (ref) async => (await ref.watch(
+    serverSettingsProvider.future,
+  )).settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
@@ -790,15 +794,15 @@ final makerworldStatusProvider = FutureProvider.autoDispose<MakerWorldStatus>(
 /// Recent MakerWorld imports. Invalidated on successful import.
 final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
-  (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
-);
+      (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
+    );
 
 /// Chosen filament inventory backend (native by default). User toggle;
 /// Spoolman is drop-in — see [SpoolInventorySource].
 final inventoryBackendProvider =
     NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
-  InventoryBackendNotifier.new,
-);
+      InventoryBackendNotifier.new,
+    );
 
 class InventoryBackendNotifier extends Notifier<InventoryBackend> {
   @override
@@ -811,7 +815,9 @@ class InventoryBackendNotifier extends Notifier<InventoryBackend> {
   }
 
   Future<void> set(InventoryBackend backend) async {
-    await ref.read(settingsRepositoryProvider).saveInventoryBackend(backend.name);
+    await ref
+        .read(settingsRepositoryProvider)
+        .saveInventoryBackend(backend.name);
     state = backend;
   }
 }

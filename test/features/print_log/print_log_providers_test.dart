@@ -53,16 +53,16 @@ class _FakeRepository extends PrintLogRepository {
 }
 
 PrintLogEntry _entry(int id) => PrintLogEntry(
-      id: id,
-      status: 'completed',
-      createdAt: DateTime(2026, 8, 1),
-      printName: 'Run $id',
-    );
+  id: id,
+  status: 'completed',
+  createdAt: DateTime(2026, 8, 1),
+  printName: 'Run $id',
+);
 
 PrintLogPage _page(List<int> ids, {int? total}) => PrintLogPage(
-      items: [for (final id in ids) _entry(id)],
-      total: total ?? ids.length,
-    );
+  items: [for (final id in ids) _entry(id)],
+  total: total ?? ids.length,
+);
 
 void main() {
   late _FakeRepository repo;
@@ -72,11 +72,13 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     repo = _FakeRepository();
-    container = ProviderContainer(overrides: [
-      printLogRepositoryProvider.overrideWithValue(repo),
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      noServerProfileOverride,
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        printLogRepositoryProvider.overrideWithValue(repo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        noServerProfileOverride,
+      ],
+    );
     // Keep the notifier alive for the whole test: it is autoDispose, and a
     // listener is what a screen would be.
     container.listen(printLogProvider, (_, _) {});
@@ -142,7 +144,9 @@ void main() {
     );
     expect(container.read(printLogProvider).valueOrNull, isNull);
 
-    final error = await container.read(printLogProvider.notifier).deleteEntry(7);
+    final error = await container
+        .read(printLogProvider.notifier)
+        .deleteEntry(7);
 
     expect(error, isNull);
     expect(repo.deleted, [7], reason: 'the request has to go regardless');

@@ -45,17 +45,17 @@ void main() {
   /// request reads them straight from there — there is no recording to carry
   /// them.
   List<Override> overrides([List<Override> extra = const []]) => [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        sessionFactsProvider.overrideWithValue(() async => facts),
-        diagnosticRecorderProvider.overrideWith(
-          (ref) => DiagnosticRecorder(
-            settings: ref.watch(settingsRepositoryProvider),
-            loadFacts: () async => facts,
-            resolveDirectory: () async => null,
-          ),
-        ),
-        ...extra,
-      ];
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    sessionFactsProvider.overrideWithValue(() async => facts),
+    diagnosticRecorderProvider.overrideWith(
+      (ref) => DiagnosticRecorder(
+        settings: ref.watch(settingsRepositoryProvider),
+        loadFacts: () async => facts,
+        resolveDirectory: () async => null,
+      ),
+    ),
+    ...extra,
+  ];
 
   Future<ProviderContainer> pumpScreen(WidgetTester tester) async {
     final container = ProviderContainer(overrides: overrides());
@@ -80,8 +80,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('opens on the explanation, not on a running recording',
-      (tester) async {
+  testWidgets('opens on the explanation, not on a running recording', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     expect(find.text('Jak to działa'), findsOneWidget);
@@ -90,8 +91,9 @@ void main() {
     expect(DiagnosticRecorder.isRecording, isFalse);
   });
 
-  testWidgets('says what the log will contain, background service included',
-      (tester) async {
+  testWidgets('says what the log will contain, background service included', (
+    tester,
+  ) async {
     // The screen used to list what was *not* wired up yet. Now that the service
     // and its notification decisions are in the log, saying so is the point —
     // this is what the user agrees to before anything is recorded, and it is a
@@ -106,8 +108,9 @@ void main() {
     expect(find.textContaining('zanim opuści telefon'), findsOneWidget);
   });
 
-  testWidgets('the three steps replace the paragraph that described them',
-      (tester) async {
+  testWidgets('the three steps replace the paragraph that described them', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     expect(find.text('Włącz nagrywanie'), findsOneWidget);
@@ -144,8 +147,11 @@ void main() {
     // (`flutter test` runs files across isolates) — and when it was, the give-up
     // was silent: the run died several lines later on whatever the un-awaited
     // state broke, naming an assertion that was never the problem.
-    expect(settled, isTrue,
-        reason: 'condition never became true within the settle deadline');
+    expect(
+      settled,
+      isTrue,
+      reason: 'condition never became true within the settle deadline',
+    );
     await tester.pumpAndSettle();
   }
 
@@ -174,7 +180,10 @@ void main() {
   }) async {
     if (withProfile) {
       await SettingsRepository(prefs).saveProfile(
-        const ServerProfile(baseUrl: 'https://printer.example', authMode: AuthMode.apiKey),
+        const ServerProfile(
+          baseUrl: 'https://printer.example',
+          authMode: AuthMode.apiKey,
+        ),
       );
     }
     final container = ProviderContainer(overrides: overrides(extra));
@@ -190,7 +199,10 @@ void main() {
           path: '/setup',
           builder: (_, _) => const Scaffold(body: Text('setup')),
         ),
-        GoRoute(path: bugReportRoute, builder: (_, _) => const BugReportScreen()),
+        GoRoute(
+          path: bugReportRoute,
+          builder: (_, _) => const BugReportScreen(),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -208,8 +220,9 @@ void main() {
     return container;
   }
 
-  testWidgets('starting hands the app straight back to the user',
-      (tester) async {
+  testWidgets('starting hands the app straight back to the user', (
+    tester,
+  ) async {
     final container = await pumpRouted(tester);
 
     await scrollToActions(tester);
@@ -224,8 +237,9 @@ void main() {
     await container.read(bugReportProvider.notifier).discard();
   });
 
-  testWidgets('a recording can start before the server is set up',
-      (tester) async {
+  testWidgets('a recording can start before the server is set up', (
+    tester,
+  ) async {
     // The setup screen is exactly where the app can be broken enough to report,
     // and there is no dashboard to go back to yet.
     final container = await pumpRouted(tester, withProfile: false);
@@ -240,8 +254,9 @@ void main() {
     await container.read(bugReportProvider.notifier).discard();
   });
 
-  testWidgets('coming back mid-recording shows the recording view',
-      (tester) async {
+  testWidgets('coming back mid-recording shows the recording view', (
+    tester,
+  ) async {
     final container = await pumpScreen(tester);
 
     await container.read(bugReportProvider.notifier).start();
@@ -289,9 +304,8 @@ void main() {
 
   group('a record too long to skim', () {
     /// The detail of the one record whose text is [needle].
-    Text detailOf(WidgetTester tester, String needle) => tester.widget<Text>(
-          find.textContaining(needle),
-        );
+    Text detailOf(WidgetTester tester, String needle) =>
+        tester.widget<Text>(find.textContaining(needle));
 
     Future<ProviderContainer> pumpWithLongRecord(WidgetTester tester) async {
       final container = await pumpScreen(tester);
@@ -322,8 +336,9 @@ void main() {
       return container;
     }
 
-    testWidgets('is clamped, and says it has more with a chevron',
-        (tester) async {
+    testWidgets('is clamped, and says it has more with a chevron', (
+      tester,
+    ) async {
       await pumpWithLongRecord(tester);
 
       expect(detailOf(tester, 'field_0').maxLines, 2);
@@ -350,8 +365,9 @@ void main() {
     });
   });
 
-  testWidgets('the raw log is one tap away and holds the header',
-      (tester) async {
+  testWidgets('the raw log is one tap away and holds the header', (
+    tester,
+  ) async {
     final container = await pumpScreen(tester);
     await container.read(bugReportProvider.notifier).start();
     await tester.pumpAndSettle();
@@ -364,8 +380,9 @@ void main() {
     expect(find.textContaining('"app":"0.11.2+1102"'), findsOneWidget);
   });
 
-  testWidgets('discarding asks first, then returns to the start',
-      (tester) async {
+  testWidgets('discarding asks first, then returns to the start', (
+    tester,
+  ) async {
     final container = await pumpScreen(tester);
     await container.read(bugReportProvider.notifier).start();
     await tester.pumpAndSettle();
@@ -378,10 +395,12 @@ void main() {
 
     // Confirm — the dialog's button carries the same label as the one that
     // opened it, so target the one inside the dialog.
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Odrzuć'),
-    ));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Odrzuć'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Jak to działa'), findsOneWidget);
@@ -416,14 +435,14 @@ void main() {
     Override fakeSaver(
       DeviceFileOutcome result, {
       void Function(String fileName, String log)? onCall,
-    }) =>
-        logFileSaverProvider.overrideWithValue((
-          {required String fileName,
-          required String log,
-          String? dialogTitle}) async {
-          onCall?.call(fileName, log);
-          return result;
-        });
+    }) => logFileSaverProvider.overrideWithValue(({
+      required String fileName,
+      required String log,
+      String? dialogTitle,
+    }) async {
+      onCall?.call(fileName, log);
+      return result;
+    });
 
     testWidgets('the clipboard is not one of the ways out', (tester) async {
       // Copying was there and was taken out: a log of this size janks the whole
@@ -437,19 +456,23 @@ void main() {
       expect(find.text('Zapisz'), findsOneWidget);
     });
 
-    testWidgets('saving it names a text file and then cleans up',
-        (tester) async {
+    testWidgets('saving it names a text file and then cleans up', (
+      tester,
+    ) async {
       String? name;
       String? written;
-      final container = await pumpReview(tester, extra: [
-        fakeSaver(
-          DeviceFileOutcome.done,
-          onCall: (fileName, log) {
-            name = fileName;
-            written = log;
-          },
-        ),
-      ]);
+      final container = await pumpReview(
+        tester,
+        extra: [
+          fakeSaver(
+            DeviceFileOutcome.done,
+            onCall: (fileName, log) {
+              name = fileName;
+              written = log;
+            },
+          ),
+        ],
+      );
 
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
@@ -472,8 +495,9 @@ void main() {
     Override outboxIn(Directory root) =>
         reportOutboxProvider.overrideWithValue(ReportOutbox(root: root));
 
-    testWidgets('opens on keeping the log, not on publishing it',
-        (tester) async {
+    testWidgets('opens on keeping the log, not on publishing it', (
+      tester,
+    ) async {
       final relay = _FakeRelay();
       await pumpReview(tester, extra: [fakeRelay(relay)]);
 
@@ -486,8 +510,9 @@ void main() {
       expect(relay.challenges, 0);
     });
 
-    testWidgets('choosing GitHub asks for the challenge there and then',
-        (tester) async {
+    testWidgets('choosing GitHub asks for the challenge there and then', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
       await pumpReview(tester, extra: [fakeRelay(relay)]);
 
@@ -501,8 +526,9 @@ void main() {
       expect(find.text('Zgłoś'), findsOneWidget);
     });
 
-    testWidgets('flipping the destination does not buy a second challenge',
-        (tester) async {
+    testWidgets('flipping the destination does not buy a second challenge', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
       await pumpReview(tester, extra: [fakeRelay(relay)]);
 
@@ -519,14 +545,19 @@ void main() {
       expect(relay.challenges, 1);
     });
 
-    testWidgets('discarding calls off a report that is still queued',
-        (tester) async {
+    testWidgets('discarding calls off a report that is still queued', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final outbox = ReportOutbox(root: root);
-      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
-      final container =
-          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+      final relay = _FakeRelay(
+        issued: _ticket(wait: const Duration(minutes: 5)),
+      );
+      final container = await pumpReview(
+        tester,
+        extra: [fakeRelay(relay), outboxIn(root)],
+      );
 
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
@@ -581,8 +612,10 @@ void main() {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final relay = _FakeRelay(issued: _ticket());
-      final container =
-          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+      final container = await pumpReview(
+        tester,
+        extra: [fakeRelay(relay), outboxIn(root)],
+      );
 
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
@@ -608,14 +641,19 @@ void main() {
       expect(find.text('Otwórz zgłoszenie'), findsOneWidget);
     });
 
-    testWidgets('a ticket that is not due yet queues instead of failing',
-        (tester) async {
+    testWidgets('a ticket that is not due yet queues instead of failing', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final outbox = ReportOutbox(root: root);
-      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
-      final container =
-          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+      final relay = _FakeRelay(
+        issued: _ticket(wait: const Duration(minutes: 5)),
+      );
+      final container = await pumpReview(
+        tester,
+        extra: [fakeRelay(relay), outboxIn(root)],
+      );
 
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
@@ -632,7 +670,10 @@ void main() {
       expect(relay.sends, 0);
       // m:ss, not a bare second count — 5 minutes reads as 4:5x by the time the
       // first tick lands.
-      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      expect(
+        find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')),
+        findsOneWidget,
+      );
       // The queued copy is what gets sent, so the field must stop pretending
       // that carrying on typing changes anything.
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
@@ -655,8 +696,9 @@ void main() {
       expect(container.read(bugReportProvider).log, isNotNull);
     });
 
-    testWidgets('a save that fails says so and keeps the report',
-        (tester) async {
+    testWidgets('a save that fails says so and keeps the report', (
+      tester,
+    ) async {
       final container = await pumpReview(
         tester,
         extra: [fakeSaver(DeviceFileOutcome.failed)],
@@ -670,14 +712,19 @@ void main() {
       expect(container.read(bugReportProvider).log, isNotNull);
     });
 
-    testWidgets('a long session goes out whole, size being the file\'s problem',
-        (tester) async {
+    testWidgets('a long session goes out whole, size being the file\'s problem', (
+      tester,
+    ) async {
       // ~300k characters — the size that made the clipboard unusable. The file
       // takes it in one piece, which is the whole reason it is the only way out.
       String? written;
-      final container = await pumpReview(tester, padding: 150, extra: [
-        fakeSaver(DeviceFileOutcome.done, onCall: (_, log) => written = log),
-      ]);
+      final container = await pumpReview(
+        tester,
+        padding: 150,
+        extra: [
+          fakeSaver(DeviceFileOutcome.done, onCall: (_, log) => written = log),
+        ],
+      );
       final recorded = container.read(bugReportProvider).log!;
       expect(recorded.length, greaterThan(256 * 1024));
 
@@ -689,31 +736,37 @@ void main() {
       expect(container.read(bugReportProvider).log, isNull);
     });
 
-    testWidgets('the raw view shows a window onto a long session, and says so',
-        (tester) async {
-      // Laying out 300k characters of `SelectableText` on the frame the user
-      // taps "show raw log" is what this window exists to avoid.
-      final container = await pumpReview(tester, padding: 150);
-      final recorded = container.read(bugReportProvider).log!;
+    testWidgets(
+      'the raw view shows a window onto a long session, and says so',
+      (tester) async {
+        // Laying out 300k characters of `SelectableText` on the frame the user
+        // taps "show raw log" is what this window exists to avoid.
+        final container = await pumpReview(tester, padding: 150);
+        final recorded = container.read(bugReportProvider).log!;
 
-      await tester.tap(find.text('Pokaż surowy log'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Pokaż surowy log'));
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('nie są tu pokazane'), findsOneWidget);
-      final shown = tester
-          .widgetList<SelectableText>(find.byType(SelectableText))
-          .single
-          .data!;
-      expect(shown.length, lessThan(recorded.length));
-      expect(shown, startsWith('{"v":1,'),
-          reason: 'the header stays, whatever gets clipped');
-      // The end of the session is what the window keeps.
-      expect(shown, endsWith(recorded.substring(recorded.length - 200)));
-    });
+        expect(find.textContaining('nie są tu pokazane'), findsOneWidget);
+        final shown = tester
+            .widgetList<SelectableText>(find.byType(SelectableText))
+            .single
+            .data!;
+        expect(shown.length, lessThan(recorded.length));
+        expect(
+          shown,
+          startsWith('{"v":1,'),
+          reason: 'the header stays, whatever gets clipped',
+        );
+        // The end of the session is what the window keeps.
+        expect(shown, endsWith(recorded.substring(recorded.length - 200)));
+      },
+    );
   });
 
-  testWidgets('a session id left over from a crash does not fake a recording',
-      (tester) async {
+  testWidgets('a session id left over from a crash does not fake a recording', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'diagnostics_session': 'abc123'});
     prefs = await SharedPreferences.getInstance();
 
@@ -733,7 +786,8 @@ void main() {
     late Directory dir;
 
     const session = 'deadbeefdeadbeefdeadbeefdeadbeef';
-    const header = '{"v":1,"ts":"2026-07-26T12:00:00.000Z","session":"$session",'
+    const header =
+        '{"v":1,"ts":"2026-07-26T12:00:00.000Z","session":"$session",'
         '"stream":"ui","app":"0.11.2+1102","flavor":"mobile"}';
 
     setUp(() {
@@ -756,16 +810,18 @@ void main() {
       await SettingsRepository(prefs).saveDiagnosticsSession(session);
       sessionFile().writeAsStringSync(log);
 
-      final container = ProviderContainer(overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        diagnosticRecorderProvider.overrideWith(
-          (ref) => DiagnosticRecorder(
-            settings: ref.watch(settingsRepositoryProvider),
-            loadFacts: () async => facts,
-            resolveDirectory: () async => dir,
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          diagnosticRecorderProvider.overrideWith(
+            (ref) => DiagnosticRecorder(
+              settings: ref.watch(settingsRepositoryProvider),
+              loadFacts: () async => facts,
+              resolveDirectory: () async => dir,
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
       addTearDown(container.dispose);
       // Pumped inside `runAsync`: the salvaged log is read off disk, and real
       // file IO only completes on the real event loop, which the fake one a
@@ -838,8 +894,9 @@ void main() {
       expect(sessionFile().existsSync(), isFalse);
     });
 
-    testWidgets('finishing something else does not take the offer away',
-        (tester) async {
+    testWidgets('finishing something else does not take the offer away', (
+      tester,
+    ) async {
       final container = await pumpAfterCrash(
         tester,
         log: '$header\n{"t":5,"src":"app","evt":"user_marker"}\n',
@@ -924,8 +981,9 @@ void main() {
         .ancestor(of: find.text(clockText), matching: find.byType(Material))
         .first;
 
-    testWidgets('stays out of the way until something is recording',
-        (tester) async {
+    testWidgets('stays out of the way until something is recording', (
+      tester,
+    ) async {
       await pumpBanner(tester);
 
       expect(find.text('Zakończ'), findsNothing);
@@ -1058,8 +1116,9 @@ void main() {
       expect(formatElapsed(const Duration(minutes: 12, seconds: 5)), '12:05');
     });
 
-    testWidgets('the bar\'s buttons work without an Overlay above them',
-        (tester) async {
+    testWidgets('the bar\'s buttons work without an Overlay above them', (
+      tester,
+    ) async {
       final container = await pumpBanner(tester);
       await container.read(bugReportProvider.notifier).start();
       await tester.pumpAndSettle();
@@ -1113,8 +1172,7 @@ void main() {
     Future<ProviderContainer> pumpIdle(
       WidgetTester tester, {
       List<Override> extra = const [],
-    }) =>
-        pumpRouted(tester, extra: extra);
+    }) => pumpRouted(tester, extra: extra);
 
     /// Picks a kind on the screen everything starts from.
     Future<void> choose(WidgetTester tester, String label) async {
@@ -1122,10 +1180,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('opens on the bug, which is the kind that records',
-        (tester) async {
+    testWidgets('opens on the bug, which is the kind that records', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
-      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+      await pumpIdle(
+        tester,
+        extra: [relayClientProvider.overrideWithValue(relay)],
+      );
 
       await scrollToActions(tester);
       expect(find.text('Rozpocznij nagrywanie'), findsOneWidget);
@@ -1133,10 +1195,14 @@ void main() {
       expect(relay.challenges, 0);
     });
 
-    testWidgets('a request replaces the recording flow with a form',
-        (tester) async {
+    testWidgets('a request replaces the recording flow with a form', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
-      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+      await pumpIdle(
+        tester,
+        extra: [relayClientProvider.overrideWithValue(relay)],
+      );
 
       await choose(tester, 'Funkcję');
 
@@ -1148,10 +1214,14 @@ void main() {
       expect(relay.challenges, 0);
     });
 
-    testWidgets('the wait starts on the first word, not on the segment',
-        (tester) async {
+    testWidgets('the wait starts on the first word, not on the segment', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
-      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+      await pumpIdle(
+        tester,
+        extra: [relayClientProvider.overrideWithValue(relay)],
+      );
 
       await choose(tester, 'Zmianę');
       await tester.enterText(find.byType(TextField), 'p');
@@ -1162,8 +1232,9 @@ void main() {
       expect(relay.challenges, 1);
     });
 
-    testWidgets('typing on does not buy a challenge per keystroke',
-        (tester) async {
+    testWidgets('typing on does not buy a challenge per keystroke', (
+      tester,
+    ) async {
       // The round trip is held open for all four keystrokes: a fast typist on a
       // slow connection. The ticket only lands once the trip is over, so the
       // "already have one" check cannot see it — without the sender joining a
@@ -1171,7 +1242,10 @@ void main() {
       // each one doubles the user's next wait.
       final gate = Completer<void>();
       final relay = _FakeRelay(issued: _ticket(), gate: gate.future);
-      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+      await pumpIdle(
+        tester,
+        extra: [relayClientProvider.overrideWithValue(relay)],
+      );
 
       await choose(tester, 'Zmianę');
       for (final text in ['p', 'po', 'pow', 'powi']) {
@@ -1185,11 +1259,15 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('the change wording is not the feature wording',
-        (tester) async {
-      await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(_FakeRelay(issued: _ticket())),
-      ]);
+    testWidgets('the change wording is not the feature wording', (
+      tester,
+    ) async {
+      await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(_FakeRelay(issued: _ticket())),
+        ],
+      );
 
       await choose(tester, 'Zmianę');
 
@@ -1197,10 +1275,14 @@ void main() {
       expect(find.text('Czego brakuje?'), findsNothing);
     });
 
-    testWidgets('flipping between requests does not buy a second challenge',
-        (tester) async {
+    testWidgets('flipping between requests does not buy a second challenge', (
+      tester,
+    ) async {
       final relay = _FakeRelay(issued: _ticket());
-      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+      await pumpIdle(
+        tester,
+        extra: [relayClientProvider.overrideWithValue(relay)],
+      );
 
       await choose(tester, 'Funkcję');
       await tester.enterText(find.byType(TextField), 'niech to robi tamto');
@@ -1219,10 +1301,13 @@ void main() {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final relay = _FakeRelay(issued: _ticket());
-      await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(relay),
-        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
-      ]);
+      await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(relay),
+          reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+        ],
+      );
 
       await choose(tester, 'Funkcję');
       await scrollToActions(tester);
@@ -1233,15 +1318,19 @@ void main() {
       expect(relay.sends, 0);
     });
 
-    testWidgets('sends the request with no log and offers the link back',
-        (tester) async {
+    testWidgets('sends the request with no log and offers the link back', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final relay = _FakeRelay(issued: _ticket());
-      final container = await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(relay),
-        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
-      ]);
+      final container = await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(relay),
+          reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+        ],
+      );
 
       await choose(tester, 'Funkcję');
       await tester.enterText(
@@ -1270,16 +1359,22 @@ void main() {
       expect(find.text('Otwórz zgłoszenie'), findsOneWidget);
     });
 
-    testWidgets('a queued request can be called off before it goes',
-        (tester) async {
+    testWidgets('a queued request can be called off before it goes', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final outbox = ReportOutbox(root: root);
-      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
-      final container = await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(relay),
-        reportOutboxProvider.overrideWithValue(outbox),
-      ]);
+      final relay = _FakeRelay(
+        issued: _ticket(wait: const Duration(minutes: 5)),
+      );
+      final container = await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(relay),
+          reportOutboxProvider.overrideWithValue(outbox),
+        ],
+      );
 
       await choose(tester, 'Zmianę');
       await tester.enterText(find.byType(TextField), 'inaczej to ułóż');
@@ -1293,7 +1388,10 @@ void main() {
 
       // There is no "discard the recording" here to double as a cancel, so the
       // wait needs its own way out.
-      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      expect(
+        find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')),
+        findsOneWidget,
+      );
       // Below the fold on a test-sized screen, and a lazy list does not build
       // what it has not scrolled to.
       await tester.drag(find.byType(ListView), const Offset(0, -300));
@@ -1309,16 +1407,22 @@ void main() {
       expect(queued, isNull);
     });
 
-    testWidgets('switching back to the bug keeps the queued request in sight',
-        (tester) async {
+    testWidgets('switching back to the bug keeps the queued request in sight', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final outbox = ReportOutbox(root: root);
-      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
-      final container = await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(relay),
-        reportOutboxProvider.overrideWithValue(outbox),
-      ]);
+      final relay = _FakeRelay(
+        issued: _ticket(wait: const Duration(minutes: 5)),
+      );
+      final container = await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(relay),
+          reportOutboxProvider.overrideWithValue(outbox),
+        ],
+      );
 
       await choose(tester, 'Zmianę');
       await tester.enterText(find.byType(TextField), 'inaczej to ułóż');
@@ -1337,7 +1441,10 @@ void main() {
       await tester.pumpAndSettle();
       await choose(tester, 'Błąd');
 
-      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      expect(
+        find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')),
+        findsOneWidget,
+      );
       await tapAndSettleAsync(
         tester,
         find.text('Anuluj wysyłanie'),
@@ -1348,21 +1455,25 @@ void main() {
       expect(await tester.runAsync(outbox.peek), isNull);
     });
 
-    testWidgets('facts it cannot read say so instead of hanging the button',
-        (tester) async {
+    testWidgets('facts it cannot read say so instead of hanging the button', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final relay = _FakeRelay(issued: _ticket());
       // Reading the facts is a platform channel and a request to the server for
       // its version. Nothing downstream ever sees an attempt that dies here, so
       // without this the tap would leave a live button and a silent screen.
-      final container = await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(relay),
-        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
-        sessionFactsProvider.overrideWithValue(
-          () => Future.error(StateError('no package info')),
-        ),
-      ]);
+      final container = await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(relay),
+          reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+          sessionFactsProvider.overrideWithValue(
+            () => Future.error(StateError('no package info')),
+          ),
+        ],
+      );
 
       await choose(tester, 'Funkcję');
       await tester.enterText(find.byType(TextField), 'coś nowego');
@@ -1378,15 +1489,19 @@ void main() {
       expect(find.text('Zgłoś'), findsOneWidget);
     });
 
-    testWidgets('a failed request is not told to save a log it never had',
-        (tester) async {
+    testWidgets('a failed request is not told to save a log it never had', (
+      tester,
+    ) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       // No ticket: the relay cannot be reached at all.
-      final container = await pumpIdle(tester, extra: [
-        relayClientProvider.overrideWithValue(_FakeRelay()),
-        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
-      ]);
+      final container = await pumpIdle(
+        tester,
+        extra: [
+          relayClientProvider.overrideWithValue(_FakeRelay()),
+          reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+        ],
+      );
 
       await choose(tester, 'Funkcję');
       await tester.enterText(find.byType(TextField), 'coś nowego');
@@ -1398,8 +1513,10 @@ void main() {
             container.read(bugReportProvider).send.phase == SendPhase.failed,
       );
 
-      expect(find.textContaining('Sprawdź połączenie i spróbuj ponownie'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Sprawdź połączenie i spróbuj ponownie'),
+        findsOneWidget,
+      );
       expect(find.textContaining('zapisz log do pliku'), findsNothing);
     });
   });
@@ -1420,8 +1537,7 @@ RelayTicket _ticket({Duration wait = Duration.zero}) {
 /// Stands in for the relay. What matters here is not the protocol — the worker's
 /// own suite covers that — but *when* this screen talks to it.
 class _FakeRelay extends RelayClient {
-  _FakeRelay({this.issued, this.gate})
-      : super(Dio(), baseUrl: relayBaseUrl);
+  _FakeRelay({this.issued, this.gate}) : super(Dio(), baseUrl: relayBaseUrl);
 
   final RelayTicket? issued;
 

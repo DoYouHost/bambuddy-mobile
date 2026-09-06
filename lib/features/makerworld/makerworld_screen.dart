@@ -69,7 +69,10 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
     await ref.read(makerworldResolveProvider.notifier).resolve(url);
   }
 
-  Future<void> _import(MakerWorldResolvedModel model, MakerWorldInstance plate) async {
+  Future<void> _import(
+    MakerWorldResolvedModel model,
+    MakerWorldInstance plate,
+  ) async {
     // Login gate: without valid cloud token — go to login screen.
     final status = ref.read(makerworldStatusProvider).valueOrNull;
     if (status == null || !status.canDownload) {
@@ -85,10 +88,9 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
     final key = _key(plate.profileId);
     setState(() => _importing.add(key));
     try {
-      final res = await ref.read(makerworldRepositoryProvider).import(
-            modelId: model.modelId,
-            profileId: plate.profileId,
-          );
+      final res = await ref
+          .read(makerworldRepositoryProvider)
+          .import(modelId: model.modelId, profileId: plate.profileId);
       if (!mounted) return;
       setState(() => _imported.add(key));
       ref.invalidate(makerworldRecentImportsProvider);
@@ -100,8 +102,12 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
         ),
       );
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? ScaffoldMessenger.of(context) : null, e, _l10n,
-          action: 'makerworld.import_plate');
+      showApiFailure(
+        mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        _l10n,
+        action: 'makerworld.import_plate',
+      );
     } finally {
       if (mounted) setState(() => _importing.remove(key));
     }
@@ -125,10 +131,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
             const EdgeInsets.fromLTRB(16, 8, 16, 32),
           ),
           children: [
-            Text(
-              l10n.mwIntro,
-              style: t.bodySoft,
-            ),
+            Text(l10n.mwIntro, style: t.bodySoft),
             const SizedBox(height: 16),
             _UrlBar(
               controller: _urlController,
@@ -137,12 +140,14 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
             ),
             if (!canDownload) ...[
               const SizedBox(height: 16),
-              _LoginBanner(onSignIn: () async {
-                await context.push('/settings/cloud');
-                if (!mounted) return;
-                ref.invalidate(cloudAuthStatusProvider);
-                ref.invalidate(makerworldStatusProvider);
-              }),
+              _LoginBanner(
+                onSignIn: () async {
+                  await context.push('/settings/cloud');
+                  if (!mounted) return;
+                  ref.invalidate(cloudAuthStatusProvider);
+                  ref.invalidate(makerworldStatusProvider);
+                },
+              ),
             ],
             const SizedBox(height: 8),
             dashAsyncStrip(
@@ -202,10 +207,10 @@ class _UrlBar extends StatelessWidget {
               textInputAction: TextInputAction.go,
               onSubmitted: (_) => onResolve(),
               style: t.bodyStrong,
-              decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
-                  .copyWith(
-                prefixIcon: Icon(Icons.link, color: t.textTertiary),
-              ),
+              decoration: dashFieldDecoration(
+                t,
+                hintText: l10n.mwUrlHint,
+              ).copyWith(prefixIcon: Icon(Icons.link, color: t.textTertiary)),
             ).tagged('makerworld.url'),
           ),
           const SizedBox(width: 12),
@@ -215,8 +220,7 @@ class _UrlBar extends StatelessWidget {
               style: dashPrimaryButtonStyle(t),
               onPressed: loading ? null : onResolve,
               icon: loading
-                  ? DashSpinner(color: Color(0xFF0A0C08),
-                    )
+                  ? DashSpinner(color: Color(0xFF0A0C08))
                   : const Icon(Icons.arrow_forward),
               label: Text(l10n.mwResolve),
             ),
@@ -248,12 +252,7 @@ class _LoginBanner extends StatelessWidget {
         children: [
           Icon(Icons.cloud_off, color: t.accentOrangeInk),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              l10n.mwLoginRequired,
-              style: t.body,
-            ),
-          ),
+          Expanded(child: Text(l10n.mwLoginRequired, style: t.body)),
           const SizedBox(width: 8),
           logTag(
             'makerworld.sign_in',
@@ -328,7 +327,9 @@ class _ResolvedModelState extends State<_ResolvedModel> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: MakerWorldThumbnail(
-                    coverUrl: model.design.coverUrl, size: 72),
+                  coverUrl: model.design.coverUrl,
+                  size: 72,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -355,10 +356,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
           if (model.instances.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                l10n.mwNoPlates,
-                style: t.bodyPlain,
-              ),
+              child: Text(l10n.mwNoPlates, style: t.bodyPlain),
             )
           else ...[
             ...visible.map((plate) {
@@ -376,13 +374,16 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                 child: logTag(
                   'makerworld.toggle_plates',
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+                    style: TextButton.styleFrom(
+                      foregroundColor: t.accentGreenInk,
+                    ),
                     onPressed: () => setState(() => _expanded = !_expanded),
                     icon: Icon(
-                        _expanded ? Icons.expand_less : Icons.expand_more),
-                    label: Text(_expanded
-                        ? l10n.mwShowLess
-                        : l10n.mwShowAllPlates(total)),
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    label: Text(
+                      _expanded ? l10n.mwShowLess : l10n.mwShowAllPlates(total),
+                    ),
                   ),
                 ),
               ),
@@ -433,7 +434,8 @@ class _PlateRow extends StatelessWidget {
             TextButton.icon(
               onPressed: null,
               style: TextButton.styleFrom(
-                  foregroundColor: t.accentGreenInk.withValues(alpha: 0.6)),
+                foregroundColor: t.accentGreenInk.withValues(alpha: 0.6),
+              ),
               icon: const Icon(Icons.check_circle, size: 18),
               label: Text(l10n.mwInLibrary),
             ).tagged('makerworld.plate')
@@ -443,12 +445,12 @@ class _PlateRow extends StatelessWidget {
               FilledButton.icon(
                 style: dashPrimaryButtonStyle(t).copyWith(
                   padding: const WidgetStatePropertyAll(
-                      EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
                 ),
                 onPressed: importing ? null : onImport,
                 icon: importing
-                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08),
-                      )
+                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08))
                     : const Icon(Icons.download, size: 18),
                 label: Text(l10n.mwImport),
               ),
@@ -470,10 +472,7 @@ class _RecentImports extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.mwRecentImports,
-          style: t.titleSm,
-        ),
+        Text(l10n.mwRecentImports, style: t.titleSm),
         const SizedBox(height: 8),
         async.when(
           loading: () => const Padding(
@@ -484,9 +483,7 @@ class _RecentImports extends ConsumerWidget {
           data: (items) => items.isEmpty
               ? Text(l10n.mwNoRecent, style: emptyStyle)
               : Column(
-                  children: [
-                    for (final item in items) _RecentRow(item: item),
-                  ],
+                  children: [for (final item in items) _RecentRow(item: item)],
                 ),
         ),
       ],
@@ -544,8 +541,11 @@ class _RecentRow extends StatelessWidget {
                       'makerworld.open_source',
                       IconButton(
                         tooltip: l10n.mwOpenOnMakerworld,
-                        icon: Icon(Icons.open_in_new,
-                            size: 18, color: t.textSecondary),
+                        icon: Icon(
+                          Icons.open_in_new,
+                          size: 18,
+                          color: t.textSecondary,
+                        ),
                         onPressed: () => launchUrl(
                           Uri.parse(source),
                           mode: LaunchMode.externalApplication,
@@ -579,11 +579,7 @@ class _InlineError extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 40, color: t.danger),
           const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: t.bodyPlain,
-          ),
+          Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
           const SizedBox(height: 12),
           OutlinedButton(
             style: OutlinedButton.styleFrom(

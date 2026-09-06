@@ -55,9 +55,7 @@ class InlineNote extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: ink),
           const SizedBox(width: 6),
-          Expanded(
-            child: Text(text, style: t.labelSoft),
-          ),
+          Expanded(child: Text(text, style: t.labelSoft)),
         ],
       ),
     );
@@ -75,13 +73,12 @@ InlineNote? inlineNote(
   IconData icon = Icons.warning_amber_rounded,
   bool urgent = false,
   bool announce = false,
-}) =>
-    text == null
-        ? null
-        : InlineNote(
-            text,
-            padding: padding,
-            icon: icon,
-            urgent: urgent,
-            announce: announce,
-          );
+}) => text == null
+    ? null
+    : InlineNote(
+        text,
+        padding: padding,
+        icon: icon,
+        urgent: urgent,
+        announce: announce,
+      );

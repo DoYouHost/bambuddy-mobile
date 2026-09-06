@@ -30,8 +30,7 @@ void main() {
       )
       ..onGet(
         '/api/v1/printers/2/status',
-        (server) =>
-            server.reply(200, readFixture('printer_status_idle.json')),
+        (server) => server.reply(200, readFixture('printer_status_idle.json')),
       );
 
     final all = await repo.fetchAll();
@@ -80,8 +79,7 @@ void main() {
     expect(printers.single.name, 'OK');
   });
 
-  test('401 na liście → AuthException (UI odsyła do konfiguracji)',
-      () async {
+  test('401 na liście → AuthException (UI odsyła do konfiguracji)', () async {
     adapter.onGet(
       '/api/v1/printers/',
       (server) => server.reply(401, {'detail': 'Unauthorized'}),

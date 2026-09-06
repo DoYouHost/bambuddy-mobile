@@ -25,7 +25,7 @@ abstract class CredentialsStore {
 /// Implementation using Android Keystore via flutter_secure_storage.
 class SecureCredentialsStore implements CredentialsStore {
   SecureCredentialsStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _jwtKey = 'jwt';
   static const _apiKeyKey = 'api_key';

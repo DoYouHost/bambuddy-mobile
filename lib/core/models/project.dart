@@ -76,7 +76,8 @@ class ProjectListResponse {
   @JsonKey(fromJson: _archivesFromJson)
   final List<ArchivePreview> archives;
 
-  bool get hasCover => coverImageFilename != null && coverImageFilename!.isNotEmpty;
+  bool get hasCover =>
+      coverImageFilename != null && coverImageFilename!.isNotEmpty;
 }
 
 /// Lightweight archive thumbnail entry embedded in project list/detail.
@@ -314,7 +315,8 @@ class ProjectResponse {
   final String? url;
   final String? coverImageFilename;
 
-  bool get hasCover => coverImageFilename != null && coverImageFilename!.isNotEmpty;
+  bool get hasCover =>
+      coverImageFilename != null && coverImageFilename!.isNotEmpty;
 
   /// A date, not a moment — the form sends it back as `YYYY-MM-DD`, so it must
   /// not be shifted across a day boundary by the device's zone.
@@ -429,20 +431,20 @@ class ProjectCreate {
   final String? url;
 
   Map<String, dynamic> toMap() => <String, dynamic>{
-        'name': name,
-        'description': ?description,
-        'color': ?color,
-        'target_count': ?targetCount,
-        'target_parts_count': ?targetPartsCount,
-        'target_sets': ?targetSets,
-        'notes': ?notes,
-        'tags': ?tags,
-        'due_date': ?dueDate,
-        'priority': priority,
-        'budget': ?budget,
-        'parent_id': ?parentId,
-        'url': ?url,
-      };
+    'name': name,
+    'description': ?description,
+    'color': ?color,
+    'target_count': ?targetCount,
+    'target_parts_count': ?targetPartsCount,
+    'target_sets': ?targetSets,
+    'notes': ?notes,
+    'tags': ?tags,
+    'due_date': ?dueDate,
+    'priority': priority,
+    'budget': ?budget,
+    'parent_id': ?parentId,
+    'url': ?url,
+  };
 }
 
 /// Body for `PATCH /projects/{id}` (`ProjectUpdate`) — all fields optional;
@@ -481,21 +483,21 @@ class ProjectUpdate {
   final String? url;
 
   Map<String, dynamic> toMap() => <String, dynamic>{
-        'name': ?name,
-        'description': ?description,
-        'color': ?color,
-        'status': ?status,
-        'target_count': ?targetCount,
-        'target_parts_count': ?targetPartsCount,
-        'target_sets': ?targetSets,
-        'notes': ?notes,
-        'tags': ?tags,
-        'due_date': ?dueDate,
-        'priority': ?priority,
-        'budget': ?budget,
-        'parent_id': ?parentId,
-        'url': ?url,
-      };
+    'name': ?name,
+    'description': ?description,
+    'color': ?color,
+    'status': ?status,
+    'target_count': ?targetCount,
+    'target_parts_count': ?targetPartsCount,
+    'target_sets': ?targetSets,
+    'notes': ?notes,
+    'tags': ?tags,
+    'due_date': ?dueDate,
+    'priority': ?priority,
+    'budget': ?budget,
+    'parent_id': ?parentId,
+    'url': ?url,
+  };
 }
 
 /// Body for `POST /projects/{id}/bom` (`BOMItemCreate`) and reused for PATCH.

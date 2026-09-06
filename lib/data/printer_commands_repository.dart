@@ -49,17 +49,25 @@ class PrinterCommandsRepository {
 
   /// Nozzle target temperature (°C, 0 turns heating off). [nozzle] 0=right/
   /// default, 1=left (dual-head only).
-  Future<void> setNozzleTemperature(int printerId, int target,
-      {int nozzle = 0}) {
+  Future<void> setNozzleTemperature(
+    int printerId,
+    int target, {
+    int nozzle = 0,
+  }) {
     assert(target >= 0 && target <= 320, 'nozzle target out of range: $target');
-    return _post(Endpoints.nozzleTemperature(printerId),
-        query: {'target': target, 'nozzle': nozzle});
+    return _post(
+      Endpoints.nozzleTemperature(printerId),
+      query: {'target': target, 'nozzle': nozzle},
+    );
   }
 
   /// Bed target temperature (°C, 0 turns heating off).
   Future<void> setBedTemperature(int printerId, int target) {
     assert(target >= 0 && target <= 140, 'bed target out of range: $target');
-    return _post(Endpoints.bedTemperature(printerId), query: {'target': target});
+    return _post(
+      Endpoints.bedTemperature(printerId),
+      query: {'target': target},
+    );
   }
 
   /// Chamber target temperature (°C, 0 turns heating off). Only call for models
@@ -72,14 +80,17 @@ class PrinterCommandsRepository {
   /// disagrees answers 422, which is a server answer and not an assertion.
   Future<void> setChamberTemperature(int printerId, int target) {
     assert(target >= 0 && target <= 65, 'chamber target out of range: $target');
-    return _post(Endpoints.chamberTemperature(printerId),
-        query: {'target': target});
+    return _post(
+      Endpoints.chamberTemperature(printerId),
+      query: {'target': target},
+    );
   }
 
   /// Airduct flap mode. Only call for models with an airduct (P2S/X2D/H2*).
-  Future<void> setAirductMode(int printerId, {required bool heating}) =>
-      _post(Endpoints.airductMode(printerId),
-          query: {'mode': heating ? 'heating' : 'cooling'});
+  Future<void> setAirductMode(int printerId, {required bool heating}) => _post(
+    Endpoints.airductMode(printerId),
+    query: {'mode': heating ? 'heating' : 'cooling'},
+  );
 
   /// Fan speed as a percentage. [fan] is 'part', 'aux', 'chamber', or — from
   /// server 1.2.5.2 — 'aux2' for the left auxiliary fan. Only send 'aux2' for a
@@ -87,15 +98,19 @@ class PrinterCommandsRepository {
   /// with 400 otherwise, and an older one rejects it always.
   Future<void> setFanSpeed(int printerId, String fan, int speed) {
     assert(speed >= 0 && speed <= 100, 'fan speed out of range: $speed');
-    return _post(Endpoints.fanSpeed(printerId),
-        query: {'fan': fan, 'speed': speed});
+    return _post(
+      Endpoints.fanSpeed(printerId),
+      query: {'fan': fan, 'speed': speed},
+    );
   }
 
   /// Select active extruder (0=right, 1=left) on dual-nozzle printers.
   Future<void> selectExtruder(int printerId, int extruder) {
     assert(extruder == 0 || extruder == 1, 'extruder must be 0 or 1');
-    return _post(Endpoints.selectExtruder(printerId),
-        query: {'extruder': extruder});
+    return _post(
+      Endpoints.selectExtruder(printerId),
+      query: {'extruder': extruder},
+    );
   }
 
   /// Start AMS drying. [temp] 45–85 °C, [duration] 1–24 hours. Filament is
@@ -109,12 +124,15 @@ class PrinterCommandsRepository {
   }) {
     assert(temp >= 45 && temp <= 85, 'dry temp out of range: $temp');
     assert(duration >= 1 && duration <= 24, 'dry duration out of range');
-    return _post(Endpoints.dryingStart(printerId), query: {
-      'ams_id': amsId,
-      'temp': temp,
-      'duration': duration,
-      if (filament.isNotEmpty) 'filament': filament,
-    });
+    return _post(
+      Endpoints.dryingStart(printerId),
+      query: {
+        'ams_id': amsId,
+        'temp': temp,
+        'duration': duration,
+        if (filament.isNotEmpty) 'filament': filament,
+      },
+    );
   }
 
   /// Stop AMS drying for one unit.
@@ -126,14 +144,18 @@ class PrinterCommandsRepository {
   /// inverts the Z sign on A1 bed-slingers so "up" is consistent across models.
   Future<void> bedJog(int printerId, double distance, {bool force = false}) {
     assert(distance != 0 && distance.abs() <= 200, 'bed jog out of range');
-    return _post(Endpoints.bedJog(printerId),
-        query: {'distance': distance, 'force': force});
+    return _post(
+      Endpoints.bedJog(printerId),
+      query: {'distance': distance, 'force': force},
+    );
   }
 
   /// Relative toolhead X/Y jog (mm).
   Future<void> xyJog(int printerId, {double x = 0, double y = 0}) {
-    assert((x != 0 || y != 0) && x.abs() <= 200 && y.abs() <= 200,
-        'xy jog out of range');
+    assert(
+      (x != 0 || y != 0) && x.abs() <= 200 && y.abs() <= 200,
+      'xy jog out of range',
+    );
     return _post(Endpoints.xyJog(printerId), query: {'x': x, 'y': y});
   }
 
@@ -142,8 +164,10 @@ class PrinterCommandsRepository {
   /// rejected at the printer.
   Future<void> extruderJog(int printerId, double distance) {
     assert(distance != 0 && distance.abs() <= 100, 'extruder jog out of range');
-    return _post(Endpoints.extruderJog(printerId),
-        query: {'distance': distance});
+    return _post(
+      Endpoints.extruderJog(printerId),
+      query: {'distance': distance},
+    );
   }
 
   /// Run the printer's full auto-home sequence (`G28`).
@@ -171,12 +195,14 @@ class PrinterCommandsRepository {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _post(Endpoints.hmsExecuteAction(printerId), data: {
-        'print_error': printError,
-        'action': action,
-        if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
-      });
+  }) => _post(
+    Endpoints.hmsExecuteAction(printerId),
+    data: {
+      'print_error': printError,
+      'action': action,
+      if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
+    },
+  );
 
   /// Nudge the printer into republishing its full state. Read-level route, so
   /// it works with a key that may not control anything; callers treat it as a
@@ -209,12 +235,14 @@ class PrinterCommandsRepository {
   /// already know. See `PrinterStatus.filaSwitch` for when it is needed.
   Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) {
     assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
-    assert(extruderId == null || extruderId == 0 || extruderId == 1,
-        'extruder id out of range: $extruderId');
-    return _post(Endpoints.amsLoad(printerId), query: {
-      'tray_id': trayId,
-      'extruder_id': ?extruderId,
-    });
+    assert(
+      extruderId == null || extruderId == 0 || extruderId == 1,
+      'extruder id out of range: $extruderId',
+    );
+    return _post(
+      Endpoints.amsLoad(printerId),
+      query: {'tray_id': trayId, 'extruder_id': ?extruderId},
+    );
   }
 
   /// Unload filament. [trayId] — the global number from [amsLoadTrayId], as on
@@ -222,12 +250,11 @@ class PrinterCommandsRepository {
   /// its own `tray_now` names. See [Endpoints.amsUnload] for why naming it
   /// matters on a dual-nozzle machine.
   Future<void> amsUnload(int printerId, {int? trayId}) {
-    assert(trayId == null || _isLoadableTrayId(trayId),
-        'tray id not loadable: $trayId');
-    return _post(
-      Endpoints.amsUnload(printerId),
-      query: {'tray_id': ?trayId},
+    assert(
+      trayId == null || _isLoadableTrayId(trayId),
+      'tray id not loadable: $trayId',
     );
+    return _post(Endpoints.amsUnload(printerId), query: {'tray_id': ?trayId});
   }
 
   /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
@@ -235,8 +262,7 @@ class PrinterCommandsRepository {
     int printerId, {
     required int amsId,
     required int slotId,
-  }) =>
-      _post(Endpoints.amsSlotRfidRefresh(printerId, amsId, slotId));
+  }) => _post(Endpoints.amsSlotRfidRefresh(printerId, amsId, slotId));
 
   Future<void> _post(
     String path, {

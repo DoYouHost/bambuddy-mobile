@@ -113,7 +113,10 @@ class _FilterSheet extends ConsumerWidget {
             FilterGroupLabel(label: l10n.inventoryFilterStock),
             SegmentedButton<bool>(
               segments: [
-                ButtonSegment(value: false, label: Text(l10n.inventoryStockAll)),
+                ButtonSegment(
+                  value: false,
+                  label: Text(l10n.inventoryStockAll),
+                ),
                 ButtonSegment(
                   value: true,
                   label: Text(l10n.inventoryStockLow),
@@ -160,7 +163,7 @@ class _FilterSheet extends ConsumerWidget {
             ],
           ],
         ),
-      )
+      ),
     );
   }
 }

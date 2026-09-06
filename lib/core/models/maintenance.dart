@@ -45,8 +45,10 @@ class PrinterMaintenanceOverview {
   /// Overdue items (disappear after counter reset). Excludes tasks the user
   /// muted server-side — [MaintenanceStatus.enabled] — so a disabled task
   /// never resurfaces here even while its counter stays overdue.
-  List<MaintenanceStatus> get dueItems =>
-      [for (final i in maintenanceItems) if (i.enabled && i.isDue) i];
+  List<MaintenanceStatus> get dueItems => [
+    for (final i in maintenanceItems)
+      if (i.enabled && i.isDue) i,
+  ];
 }
 
 /// State of a single maintenance task (`MaintenanceStatus`).
@@ -124,8 +126,8 @@ class MaintenanceStatus {
   MaintenanceSeverity get severity => isDue
       ? MaintenanceSeverity.due
       : isWarning
-          ? MaintenanceSeverity.warning
-          : MaintenanceSeverity.ok;
+      ? MaintenanceSeverity.warning
+      : MaintenanceSeverity.ok;
 
   /// Progress to due date in range 0..1 (for progress bar). Beyond due clamped to 1.
   double get progress {
@@ -199,14 +201,14 @@ class MaintenanceTypeDraft {
   final String? wikiUrl;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        if (description != null) 'description': description,
-        if (defaultIntervalHours != null)
-          'default_interval_hours': defaultIntervalHours,
-        if (intervalType != null) 'interval_type': intervalType,
-        if (icon != null) 'icon': icon,
-        if (wikiUrl != null) 'wiki_url': wikiUrl,
-      };
+    'name': name,
+    if (description != null) 'description': description,
+    if (defaultIntervalHours != null)
+      'default_interval_hours': defaultIntervalHours,
+    if (intervalType != null) 'interval_type': intervalType,
+    if (icon != null) 'icon': icon,
+    if (wikiUrl != null) 'wiki_url': wikiUrl,
+  };
 }
 
 /// Maintenance execution history entry (`MaintenanceHistoryResponse`).

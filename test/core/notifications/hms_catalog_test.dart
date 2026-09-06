@@ -45,15 +45,16 @@ void main() {
       // `description` is the server's own text for the fault, under the bundled
       // catalogue in `HmsCatalog.describe`. Three wire shapes: present, blank,
       // and missing — the last one being every server older than 0.2.5.x.
-      HmsError parse(Map<String, dynamic> json) => HmsError.fromJson({
-            'code': '0x8004',
-            'attr': 0x03008004,
-            ...json,
-          });
-      expect(parse({'description': 'Filament ran out.'}).description,
-          'Filament ran out.');
-      expect(parse({'description': '  Door is open. '}).description,
-          'Door is open.');
+      HmsError parse(Map<String, dynamic> json) =>
+          HmsError.fromJson({'code': '0x8004', 'attr': 0x03008004, ...json});
+      expect(
+        parse({'description': 'Filament ran out.'}).description,
+        'Filament ran out.',
+      );
+      expect(
+        parse({'description': '  Door is open. '}).description,
+        'Door is open.',
+      );
       expect(parse({'description': '   '}).description, isNull);
       expect(parse({'description': null}).description, isNull);
       expect(parse({}).description, isNull);
@@ -63,12 +64,21 @@ void main() {
       // Dashboard state is compared frame to frame; a fault whose text changed
       // is a changed fault, or the card keeps the older server's silence.
       const bare = HmsError(code: '0x8004', attr: 0x03008004);
-      const named =
-          HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.');
+      const named = HmsError(
+        code: '0x8004',
+        attr: 0x03008004,
+        description: 'Ran out.',
+      );
       expect(named, isNot(bare));
       expect(named.hashCode, isNot(bare.hashCode));
-      expect(named,
-          const HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.'));
+      expect(
+        named,
+        const HmsError(
+          code: '0x8004',
+          attr: 0x03008004,
+          description: 'Ran out.',
+        ),
+      );
     });
   });
 
@@ -85,82 +95,101 @@ void main() {
 
     test('bare code when nothing is known — nothing is composed from '
         'severity/module', () {
-      const e = HmsError(code: '0x20070', attr: 83887616, severity: 1, module: 5);
+      const e = HmsError(
+        code: '0x20070',
+        attr: 83887616,
+        severity: 1,
+        module: 5,
+      );
       expect(hmsLabel(e), isNull);
       expect(hmsHumanText(e), '0500-0600-0002-0070');
     });
   });
 
   group('displayable means nameable — swept over every non-text field', () {
-    test('no severity/module combination makes an unnamed error displayable',
-        () {
-      for (final c in _codes) {
-        for (final sev in _severities) {
-          for (final mod in _modules) {
-            for (final message in _blanks) {
-              for (final description in _blanks) {
-                final e = HmsError(
-                  code: c.code,
-                  attr: c.attr,
-                  severity: sev,
-                  module: mod,
-                  message: message,
-                  description: description,
-                );
-                final where = 'code=${c.code} sev=$sev mod=$mod '
-                    'message=${message?.length} desc=${description?.length}';
-                expect(
-                  hmsIsDisplayable(e, description: description),
-                  isFalse,
-                  reason: 'displayed with nothing to say it: $where',
-                );
-                expect(
-                  hmsLabel(e, description: description),
-                  isNull,
-                  reason: 'label invented from severity/module: $where',
-                );
-                // The one text an unnamed error may produce is its own code —
-                // reached only by callers that bypass the gate.
-                final text = hmsHumanText(e, description: description);
-                expect(text, c.displayed, reason: where);
-                expect(
-                  text,
-                  matches(_codeOnly),
-                  reason: 'words composed for an unnamed error: $where',
-                );
+    test(
+      'no severity/module combination makes an unnamed error displayable',
+      () {
+        for (final c in _codes) {
+          for (final sev in _severities) {
+            for (final mod in _modules) {
+              for (final message in _blanks) {
+                for (final description in _blanks) {
+                  final e = HmsError(
+                    code: c.code,
+                    attr: c.attr,
+                    severity: sev,
+                    module: mod,
+                    message: message,
+                    description: description,
+                  );
+                  final where =
+                      'code=${c.code} sev=$sev mod=$mod '
+                      'message=${message?.length} desc=${description?.length}';
+                  expect(
+                    hmsIsDisplayable(e, description: description),
+                    isFalse,
+                    reason: 'displayed with nothing to say it: $where',
+                  );
+                  expect(
+                    hmsLabel(e, description: description),
+                    isNull,
+                    reason: 'label invented from severity/module: $where',
+                  );
+                  // The one text an unnamed error may produce is its own code —
+                  // reached only by callers that bypass the gate.
+                  final text = hmsHumanText(e, description: description);
+                  expect(text, c.displayed, reason: where);
+                  expect(
+                    text,
+                    matches(_codeOnly),
+                    reason: 'words composed for an unnamed error: $where',
+                  );
+                }
               }
             }
           }
         }
-      }
-    });
+      },
+    );
 
-    test('text from either source makes it displayable, whatever else says', () {
-      for (final c in _codes) {
-        for (final sev in _severities) {
-          for (final mod in _modules) {
-            final base = HmsError(code: c.code, attr: c.attr, severity: sev, module: mod);
-            final fromMessage = HmsError(
-              code: c.code,
-              attr: c.attr,
-              severity: sev,
-              module: mod,
-              message: 'Filament runout',
-            );
-            final where = 'code=${c.code} sev=$sev mod=$mod';
-            expect(hmsIsDisplayable(fromMessage), isTrue, reason: where);
-            expect(hmsLabel(fromMessage), 'Filament runout', reason: where);
-            expect(
-              hmsIsDisplayable(base, description: 'Nozzle clog'),
-              isTrue,
-              reason: where,
-            );
-            expect(hmsLabel(base, description: 'Nozzle clog'), 'Nozzle clog',
-                reason: where);
+    test(
+      'text from either source makes it displayable, whatever else says',
+      () {
+        for (final c in _codes) {
+          for (final sev in _severities) {
+            for (final mod in _modules) {
+              final base = HmsError(
+                code: c.code,
+                attr: c.attr,
+                severity: sev,
+                module: mod,
+              );
+              final fromMessage = HmsError(
+                code: c.code,
+                attr: c.attr,
+                severity: sev,
+                module: mod,
+                message: 'Filament runout',
+              );
+              final where = 'code=${c.code} sev=$sev mod=$mod';
+              expect(hmsIsDisplayable(fromMessage), isTrue, reason: where);
+              expect(hmsLabel(fromMessage), 'Filament runout', reason: where);
+              expect(
+                hmsIsDisplayable(base, description: 'Nozzle clog'),
+                isTrue,
+                reason: where,
+              );
+              expect(
+                hmsLabel(base, description: 'Nozzle clog'),
+                'Nozzle clog',
+                reason: where,
+              );
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     test('anything worth notifying is worth displaying', () {
       for (final c in _codes) {
@@ -178,7 +207,8 @@ void main() {
               expect(
                 hmsIsDisplayable(e, description: description),
                 isTrue,
-                reason: 'notified but hidden from the card: sev=$sev '
+                reason:
+                    'notified but hidden from the card: sev=$sev '
                     'text=${text?.length} viaMessage=$viaMessage',
               );
             }
@@ -193,7 +223,12 @@ void main() {
       // The X2D report: bambuddy derives severity from `(attr >> 8) & 0xF`, so a
       // status message arrives as level 1 / module 5 and used to render as
       // "Fatal · mainboard" on a card while the printer was healthy.
-      const fatalish = HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1);
+      const fatalish = HmsError(
+        code: '0x20070',
+        attr: 83887616,
+        module: 5,
+        severity: 1,
+      );
       expect(hmsIsDisplayable(fatalish), isFalse);
       for (final severity in [1, 2, 3, 4, 6]) {
         expect(
@@ -215,8 +250,14 @@ void main() {
     });
 
     test('blank message/description does not count as recognized', () {
-      expect(hmsIsDisplayable(const HmsError(code: 'x', message: '  ')), isFalse);
-      expect(hmsIsDisplayable(const HmsError(code: 'x'), description: ' '), isFalse);
+      expect(
+        hmsIsDisplayable(const HmsError(code: 'x', message: '  ')),
+        isFalse,
+      );
+      expect(
+        hmsIsDisplayable(const HmsError(code: 'x'), description: ' '),
+        isFalse,
+      );
     });
   });
 
@@ -224,7 +265,8 @@ void main() {
     // The catalogue is not loaded in this suite, so the only text a fault can
     // resolve to is the one the caller's describer returns — which is exactly
     // what makes the filter observable here.
-    String? named(HmsError e) => e.fullCode == '03008004' ? 'Filament runout' : null;
+    String? named(HmsError e) =>
+        e.fullCode == '03008004' ? 'Filament runout' : null;
 
     const runout = HmsError(code: '0x8004', fullCode: '03008004');
     const unnameable = HmsError(code: '0x20070', fullCode: '05000600');
@@ -264,8 +306,10 @@ void main() {
     test('no status, no faults, and no describer are each just empty', () {
       expect(displayableHmsErrors(null, describe: named), isEmpty);
       expect(
-        displayableHmsErrors(const PrinterStatus(id: 1, connected: true),
-            describe: named),
+        displayableHmsErrors(
+          const PrinterStatus(id: 1, connected: true),
+          describe: named,
+        ),
         isEmpty,
       );
       // An isolate without a catalogue passes null, and a fault the server did
@@ -285,8 +329,7 @@ void main() {
         fullCode: '0300FFFF',
         message: 'The toolhead reported a fault this app has no text for.',
       );
-      const status =
-          PrinterStatus(id: 1, connected: true, hmsErrors: [spoken]);
+      const status = PrinterStatus(id: 1, connected: true, hmsErrors: [spoken]);
 
       expect(displayableHmsErrors(status, describe: null), [spoken]);
     });
@@ -317,8 +360,11 @@ void main() {
     });
 
     test('a disconnected printer answers null, like the list does', () {
-      const status =
-          PrinterStatus(id: 1, connected: false, hmsErrors: [runout]);
+      const status = PrinterStatus(
+        id: 1,
+        connected: false,
+        hmsErrors: [runout],
+      );
 
       expect(
         firstDisplayableHmsError(status, describe: (_) => 'named'),
@@ -335,20 +381,32 @@ void main() {
   });
 
   group('hmsIsNotifiable', () {
-    test('known severity without a description → no alert (bambuddy parity)', () {
-      expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 1)), isFalse);
-      expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 4)), isFalse);
-    });
+    test(
+      'known severity without a description → no alert (bambuddy parity)',
+      () {
+        expect(
+          hmsIsNotifiable(const HmsError(code: 'x', severity: 1)),
+          isFalse,
+        );
+        expect(
+          hmsIsNotifiable(const HmsError(code: 'x', severity: 4)),
+          isFalse,
+        );
+      },
+    );
 
     test('catalog description → alert', () {
       const e = HmsError(code: 'x', severity: 6);
       expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
     });
 
-    test('severity 1 with a description → no alert (bambuddy drops sev < 2)', () {
-      const e = HmsError(code: 'x', severity: 1);
-      expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
-    });
+    test(
+      'severity 1 with a description → no alert (bambuddy drops sev < 2)',
+      () {
+        const e = HmsError(code: 'x', severity: 1);
+        expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
+      },
+    );
 
     test('server message → alert', () {
       const e = HmsError(code: 'x', message: 'Filament runout');
@@ -369,13 +427,19 @@ void main() {
       // Bambu publishes no per-code page for the print_error channel, and the
       // 16-hex code this class could compose out of its 32-bit attr would name
       // a different fault — so the link goes where bambuddy's own does.
-      const e = HmsError(code: '0x8004', attr: 0x03008004, fullCode: '03008004');
+      const e = HmsError(
+        code: '0x8004',
+        attr: 0x03008004,
+        fullCode: '03008004',
+      );
       expect(hmsWikiUrl(e), 'https://wiki.bambulab.com/en/hms/home');
     });
 
     test('the index also covers a code too incomplete to link precisely', () {
-      expect(hmsWikiUrl(const HmsError(code: '0500_0100')),
-          'https://wiki.bambulab.com/en/hms/home');
+      expect(
+        hmsWikiUrl(const HmsError(code: '0500_0100')),
+        'https://wiki.bambulab.com/en/hms/home',
+      );
     });
   });
 }

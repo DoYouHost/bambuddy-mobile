@@ -43,13 +43,13 @@ class WidgetPublishKey {
 
   @override
   int get hashCode => Object.hash(
-        printerId,
-        statusKey,
-        progressPct,
-        etaMinutes,
-        layers,
-        coverUrl,
-      );
+    printerId,
+    statusKey,
+    progressPct,
+    etaMinutes,
+    layers,
+    coverUrl,
+  );
 }
 
 /// Publishes the state of one selected printer to the native home screen widget
@@ -161,12 +161,19 @@ class HomeWidgetPublisher {
       // (even one reusing the same `cover_url` the server exposed before)
       // re-fetches instead of short-circuiting to this stale bitmap.
       resetCover?.call();
-      await HomeWidget.saveWidgetData<String>('status_key', WidgetStatus.offline);
       await HomeWidget.saveWidgetData<String>(
-          'printer_name', l10n.widgetNoPrinter);
+        'status_key',
+        WidgetStatus.offline,
+      );
+      await HomeWidget.saveWidgetData<String>(
+        'printer_name',
+        l10n.widgetNoPrinter,
+      );
       await HomeWidget.saveWidgetData<String>('print_name', '');
       await HomeWidget.saveWidgetData<String>(
-          'status_label', l10n.statusUnavailable);
+        'status_label',
+        l10n.statusUnavailable,
+      );
       await HomeWidget.saveWidgetData<String>('error_text', '');
       await HomeWidget.saveWidgetData<String>('eta', '');
       await HomeWidget.saveWidgetData<String>('layers', '');
@@ -181,29 +188,41 @@ class HomeWidgetPublisher {
       // but we still show progress/ETA if the printer is printing anyway.
       // Skip when offline — stale carried-forward errors must not mask OFFLINE.
       final hms = baseKey == WidgetStatus.offline
-        ? null
-        : _topHmsError(picked, describeHms);
+          ? null
+          : _topHmsError(picked, describeHms);
       final key = hms != null ? WidgetStatus.error : baseKey;
       // Chip is a short badge — the full HMS sentence goes to `error_text` (the
       // body, which wraps), NOT the chip, or it overflows the widget's edge.
-      final statusLabel =
-          hms != null ? l10n.widgetStatusError : WidgetStatus.label(l10n, key);
+      final statusLabel = hms != null
+          ? l10n.widgetStatusError
+          : WidgetStatus.label(l10n, key);
       final errorText = hms != null
           ? hmsHumanText(hms, description: describeHms?.call(hms))
           : '';
 
       await HomeWidget.saveWidgetData<String>('status_key', key);
       await HomeWidget.saveWidgetData<String>(
-          'printer_name', picked.name ?? l10n.widgetNoPrinter);
+        'printer_name',
+        picked.name ?? l10n.widgetNoPrinter,
+      );
       await HomeWidget.saveWidgetData<String>(
-          'print_name', _printName(picked, l10n, baseKey));
+        'print_name',
+        _printName(picked, l10n, baseKey),
+      );
       await HomeWidget.saveWidgetData<String>('status_label', statusLabel);
       await HomeWidget.saveWidgetData<String>('error_text', errorText);
       await HomeWidget.saveWidgetData<String>(
-          'eta', _eta(picked, l10n, baseKey));
-      await HomeWidget.saveWidgetData<String>('layers', _layers(picked, baseKey));
+        'eta',
+        _eta(picked, l10n, baseKey),
+      );
+      await HomeWidget.saveWidgetData<String>(
+        'layers',
+        _layers(picked, baseKey),
+      );
       await HomeWidget.saveWidgetData<int>(
-          'progress', WidgetStatus.progressPct(picked));
+        'progress',
+        WidgetStatus.progressPct(picked),
+      );
       await HomeWidget.saveWidgetData<bool>('printing', printing);
 
       // Fetch cover only during printing and only if server provides `cover_url`.
@@ -234,8 +253,7 @@ class HomeWidgetPublisher {
   static HmsError? _topHmsError(
     PrinterStatus s,
     String? Function(HmsError)? describeHms,
-  ) =>
-      firstDisplayableHmsError(s, describe: describeHms);
+  ) => firstDisplayableHmsError(s, describe: describeHms);
 
   /// Layers as "X/Y" during printing, if server provides both fields. Otherwise empty.
   static String _layers(PrinterStatus s, String key) {
@@ -250,7 +268,8 @@ class HomeWidgetPublisher {
   /// otherwise the first by ascending `id`. null if no printers.
   static PrinterStatus? _select(Map<int, PrinterStatus> statuses) {
     if (statuses.isEmpty) return null;
-    final sorted = statuses.values.toList()..sort((a, b) => a.id.compareTo(b.id));
+    final sorted = statuses.values.toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
     for (final s in sorted) {
       if ((s.connected ?? false) && s.isPrinting) return s;
     }
@@ -259,11 +278,7 @@ class HomeWidgetPublisher {
 
   /// Print name to show: when printing — current file (or stage if progress not yet available);
   /// when not printing — empty (UI hides the row).
-  static String _printName(
-    PrinterStatus s,
-    AppLocalizations l10n,
-    String key,
-  ) {
+  static String _printName(PrinterStatus s, AppLocalizations l10n, String key) {
     if (key != WidgetStatus.printing && key != WidgetStatus.paused) return '';
     final name = s.currentPrint ?? s.gcodeFile;
     if (name != null && name.trim().isNotEmpty) return name.trim();
@@ -281,5 +296,4 @@ class HomeWidgetPublisher {
     final at = DateTime.now().add(Duration(minutes: mins));
     return '$dur · ${DateTimeFormats.system().time(at)}';
   }
-
 }

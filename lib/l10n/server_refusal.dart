@@ -48,8 +48,7 @@ String? outcomeRefusal(
   AppLocalizations l10n,
   ActionOutcome outcome,
   List<RefusalRule> rules,
-) =>
-    switch (outcome) {
-      ActionOk() => null,
-      ActionFailed(:final error) => serverRefusal(l10n, error, rules),
-    };
+) => switch (outcome) {
+  ActionOk() => null,
+  ActionFailed(:final error) => serverRefusal(l10n, error, rules),
+};

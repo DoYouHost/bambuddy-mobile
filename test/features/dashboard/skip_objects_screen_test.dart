@@ -24,7 +24,9 @@ class _FixedLayerStatuses extends PrinterStatusesNotifier {
   final int layerNum;
 
   @override
-  Map<int, PrinterStatus> build() => {1: PrinterStatus(id: 1, layerNum: layerNum)};
+  Map<int, PrinterStatus> build() => {
+    1: PrinterStatus(id: 1, layerNum: layerNum),
+  };
 }
 
 /// No-network repository: hands back a fixed object list and records every
@@ -38,8 +40,10 @@ class _StubRepo extends SkipObjectsRepository {
   Object? error;
 
   @override
-  Future<PrintableObjects> fetchObjects(int printerId, {bool reload = false}) async =>
-      _objects;
+  Future<PrintableObjects> fetchObjects(
+    int printerId, {
+    bool reload = false,
+  }) async => _objects;
 
   @override
   Future<void> skip(int printerId, List<int> objectIds) async {
@@ -49,7 +53,13 @@ class _StubRepo extends SkipObjectsRepository {
       objects: [
         for (final o in _objects.objects)
           if (objectIds.contains(o.id))
-            PrintableObject(id: o.id, name: o.name, x: o.x, y: o.y, skipped: true)
+            PrintableObject(
+              id: o.id,
+              name: o.name,
+              x: o.x,
+              y: o.y,
+              skipped: true,
+            )
           else
             o,
       ],
@@ -111,15 +121,21 @@ void main() {
     addTearDown(tester.view.reset);
 
     final repo = _StubRepo(objects);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        skipObjectsRepositoryProvider.overrideWithValue(repo),
-        printerStatusesProvider.overrideWith(() => _FixedLayerStatuses(layerNum)),
-        objectPickMaskProvider(1).overrideWith((ref) async => mask),
-      ],
-      child: plApp(const SkipObjectsScreen(printerId: 1, printerName: 'X1 Carbon')),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          skipObjectsRepositoryProvider.overrideWithValue(repo),
+          printerStatusesProvider.overrideWith(
+            () => _FixedLayerStatuses(layerNum),
+          ),
+          objectPickMaskProvider(1).overrideWith((ref) async => mask),
+        ],
+        child: plApp(
+          const SkipObjectsScreen(printerId: 1, printerName: 'X1 Carbon'),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     return repo;
   }
@@ -131,47 +147,51 @@ void main() {
   }
 
   testWidgets(
-      'zaznaczenie dwóch obiektów z listy i potwierdzenie wysyła jedno żądanie z obiema ID',
-      (tester) async {
-    final repo = await pumpScreen(tester);
+    'zaznaczenie dwóch obiektów z listy i potwierdzenie wysyła jedno żądanie z obiema ID',
+    (tester) async {
+      final repo = await pumpScreen(tester);
 
-    // Nothing selected yet, so no bottom confirmation bar.
-    expect(find.text('Pomiń'), findsNothing);
+      // Nothing selected yet, so no bottom confirmation bar.
+      expect(find.text('Pomiń'), findsNothing);
 
-    await tapRow(tester, 'Divider_left.stl');
-    await tapRow(tester, 'Divider_right.stl');
+      await tapRow(tester, 'Divider_left.stl');
+      await tapRow(tester, 'Divider_right.stl');
 
-    // Bottom bar: selected-count label + "Pomiń" button.
-    expect(find.text('Zaznaczono: 2'), findsOneWidget);
-    expect(find.text('Pomiń'), findsOneWidget);
+      // Bottom bar: selected-count label + "Pomiń" button.
+      expect(find.text('Zaznaczono: 2'), findsOneWidget);
+      expect(find.text('Pomiń'), findsOneWidget);
 
-    await tester.tap(find.text('Pomiń'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Pomiń'));
+      await tester.pumpAndSettle();
 
-    // The dialog asks about both names at once; 2-4 is the "obiekty" plural.
-    expect(find.text('Pominąć 2 obiekty?'), findsOneWidget);
-    expect(
-      find.textContaining('Divider_left.stl, Divider_right.stl'),
-      findsOneWidget,
-    );
+      // The dialog asks about both names at once; 2-4 is the "obiekty" plural.
+      expect(find.text('Pominąć 2 obiekty?'), findsOneWidget);
+      expect(
+        find.textContaining('Divider_left.stl, Divider_right.stl'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Pomiń'),
-    ));
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Pomiń'),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // One request carrying both ids — not two separate calls.
-    expect(repo.skipCalls, [
-      [421, 512],
-    ]);
-    expect(find.text('Pominięto 2 obiekty'), findsOneWidget);
-    // Selection and the bottom bar clear after success.
-    expect(find.text('Pomiń'), findsNothing);
-  });
+      // One request carrying both ids — not two separate calls.
+      expect(repo.skipCalls, [
+        [421, 512],
+      ]);
+      expect(find.text('Pominięto 2 obiekty'), findsOneWidget);
+      // Selection and the bottom bar clear after success.
+      expect(find.text('Pomiń'), findsNothing);
+    },
+  );
 
-  testWidgets('ponowne dotknięcie tego samego wiersza odznacza obiekt',
-      (tester) async {
+  testWidgets('ponowne dotknięcie tego samego wiersza odznacza obiekt', (
+    tester,
+  ) async {
     final repo = await pumpScreen(tester);
 
     await tapRow(tester, 'Divider_left.stl');
@@ -183,8 +203,9 @@ void main() {
     expect(repo.skipCalls, isEmpty);
   });
 
-  testWidgets('bez maski płyta rysuje jeden dotykalny znacznik na obiekt',
-      (tester) async {
+  testWidgets('bez maski płyta rysuje jeden dotykalny znacznik na obiekt', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     final handle = tester.ensureSemantics();
 
@@ -196,8 +217,9 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('dotknięcie kształtu na płycie zaznacza obiekt spod palca',
-      (tester) async {
+  testWidgets('dotknięcie kształtu na płycie zaznacza obiekt spod palca', (
+    tester,
+  ) async {
     // Object 421 owns the plate's left half, 512 the right — so a tap resolved
     // through the mask has to name the half it landed in, which is the whole
     // point of drawing the real footprints instead of badges.
@@ -208,7 +230,9 @@ void main() {
     expect(find.bySemanticsIdentifier('skip_objects.marker'), findsOneWidget);
 
     final plate = tester.getRect(find.byType(InteractiveViewer));
-    await tester.tapAt(Offset(plate.center.dx + plate.width * 0.25, plate.center.dy));
+    await tester.tapAt(
+      Offset(plate.center.dx + plate.width * 0.25, plate.center.dy),
+    );
     // The plate's double-tap-to-reset recogniser holds the tap until its own
     // timeout passes without a second one.
     await tester.pump(const Duration(milliseconds: 400));
@@ -219,11 +243,17 @@ void main() {
     await tester.pumpAndSettle();
     final dialog = find.byType(AlertDialog);
     expect(
-      find.descendant(of: dialog, matching: find.textContaining('Divider_right.stl')),
+      find.descendant(
+        of: dialog,
+        matching: find.textContaining('Divider_right.stl'),
+      ),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: dialog, matching: find.textContaining('Divider_left.stl')),
+      find.descendant(
+        of: dialog,
+        matching: find.textContaining('Divider_left.stl'),
+      ),
       findsNothing,
     );
     handle.dispose();
@@ -238,126 +268,141 @@ void main() {
   });
 
   testWidgets(
-      '403 na batchu ustawia sticky forbidden i blokuje kolejne potwierdzenie',
-      (tester) async {
-    final repo = await pumpScreen(tester);
-    repo.error = const AuthException(AppErrorCode.forbidden);
+    '403 na batchu ustawia sticky forbidden i blokuje kolejne potwierdzenie',
+    (tester) async {
+      final repo = await pumpScreen(tester);
+      repo.error = const AuthException(AppErrorCode.forbidden);
 
-    await tapRow(tester, 'Divider_left.stl');
-    await tester.tap(find.text('Pomiń'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Pomiń'),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(repo.skipCalls, hasLength(1));
-    // Selection survives the failure, but the bar is now locked out.
-    final button =
-        tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Pomiń'));
-    expect(button.onPressed, isNull);
-  });
-
-  testWidgets(
-      'obiekt pominięty w tle po zaznaczeniu wypada z licznika, dialogu i żądania',
-      (tester) async {
-    final repo = await pumpScreen(tester);
-
-    await tapRow(tester, 'Divider_left.stl');
-    await tapRow(tester, 'Divider_right.stl');
-    expect(find.text('Zaznaczono: 2'), findsOneWidget);
-
-    // Someone else (another client, or the printer itself) skips 512 while it
-    // sits in the selection. Delivered through the screen's own
-    // pull-to-refresh, like the sibling test below.
-    repo._objects = const PrintableObjects(
-      objects: [
-        PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104),
-        PrintableObject(
-          id: 512,
-          name: 'Divider_right.stl',
-          x: 152,
-          y: 104,
-          skipped: true,
+      await tapRow(tester, 'Divider_left.stl');
+      await tester.tap(find.text('Pomiń'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Pomiń'),
         ),
-      ],
-      total: 2,
-      skippedCount: 1,
-      isPrinting: true,
-      bboxAll: [88, 88, 168, 168],
-    );
-    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
-    await tester.pump();
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // The bar counts what is still skippable, not the raw selection.
-    expect(find.text('Zaznaczono: 1'), findsOneWidget);
-
-    await tester.tap(find.text('Pomiń'));
-    await tester.pumpAndSettle();
-
-    final dialog = find.byType(AlertDialog);
-    expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
-    expect(
-      find.descendant(of: dialog, matching: find.textContaining('Divider_right.stl')),
-      findsNothing,
-    );
-
-    await tester.tap(find.descendant(of: dialog, matching: find.text('Pomiń')));
-    await tester.pumpAndSettle();
-
-    // No redundant re-skip of 512 riding along.
-    expect(repo.skipCalls, [
-      [421],
-    ]);
-  });
+      expect(repo.skipCalls, hasLength(1));
+      // Selection survives the failure, but the bar is now locked out.
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Pomiń'),
+      );
+      expect(button.onPressed, isNull);
+    },
+  );
 
   testWidgets(
-      'obiekt zniknięty z odświeżenia w tle po zaznaczeniu nie leci w żądaniu mimo braku w dialogu',
-      (tester) async {
-    tester.view.physicalSize = const Size(1080, 3600);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+    'obiekt pominięty w tle po zaznaczeniu wypada z licznika, dialogu i żądania',
+    (tester) async {
+      final repo = await pumpScreen(tester);
 
-    final repo = await pumpScreen(tester);
+      await tapRow(tester, 'Divider_left.stl');
+      await tapRow(tester, 'Divider_right.stl');
+      expect(find.text('Zaznaczono: 2'), findsOneWidget);
 
-    await tapRow(tester, 'Divider_left.stl');
-    await tapRow(tester, 'Divider_right.stl');
-    expect(find.text('Zaznaczono: 2'), findsOneWidget);
+      // Someone else (another client, or the printer itself) skips 512 while it
+      // sits in the selection. Delivered through the screen's own
+      // pull-to-refresh, like the sibling test below.
+      repo._objects = const PrintableObjects(
+        objects: [
+          PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104),
+          PrintableObject(
+            id: 512,
+            name: 'Divider_right.stl',
+            x: 152,
+            y: 104,
+            skipped: true,
+          ),
+        ],
+        total: 2,
+        skippedCount: 1,
+        isPrinting: true,
+        bboxAll: [88, 88, 168, 168],
+      );
+      await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+      await tester.pump();
+      await tester.pumpAndSettle();
 
-    // The background poll (or a pull-to-refresh) reloads the objects from the
-    // 3MF and 512 is no longer in it — while it's still in `_selected`. Drive
-    // it through the screen's own pull-to-refresh rather than a raw
-    // `ProviderContainer`, so the provider's periodic poll timer is torn down
-    // the same well-trodden way every other test in this file already is.
-    repo._objects = const PrintableObjects(
-      objects: [PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104)],
-      total: 1,
-      isPrinting: true,
-      bboxAll: [88, 88, 168, 168],
-    );
-    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
-    await tester.pump();
-    await tester.pumpAndSettle();
+      // The bar counts what is still skippable, not the raw selection.
+      expect(find.text('Zaznaczono: 1'), findsOneWidget);
 
-    await tester.tap(find.text('Pomiń'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Pomiń'));
+      await tester.pumpAndSettle();
 
-    // The dialog only shows the survivor — singular phrasing, no trace of 512.
-    expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
-    expect(find.textContaining('512'), findsNothing);
+      final dialog = find.byType(AlertDialog);
+      expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('Divider_right.stl'),
+        ),
+        findsNothing,
+      );
 
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Pomiń'),
-    ));
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: dialog, matching: find.text('Pomiń')),
+      );
+      await tester.pumpAndSettle();
 
-    // The request must match exactly what the dialog showed — no phantom 512
-    // riding along from the raw (now-stale) selection set.
-    expect(repo.skipCalls, [
-      [421],
-    ]);
-  });
+      // No redundant re-skip of 512 riding along.
+      expect(repo.skipCalls, [
+        [421],
+      ]);
+    },
+  );
+
+  testWidgets(
+    'obiekt zniknięty z odświeżenia w tle po zaznaczeniu nie leci w żądaniu mimo braku w dialogu',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 3600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      final repo = await pumpScreen(tester);
+
+      await tapRow(tester, 'Divider_left.stl');
+      await tapRow(tester, 'Divider_right.stl');
+      expect(find.text('Zaznaczono: 2'), findsOneWidget);
+
+      // The background poll (or a pull-to-refresh) reloads the objects from the
+      // 3MF and 512 is no longer in it — while it's still in `_selected`. Drive
+      // it through the screen's own pull-to-refresh rather than a raw
+      // `ProviderContainer`, so the provider's periodic poll timer is torn down
+      // the same well-trodden way every other test in this file already is.
+      repo._objects = const PrintableObjects(
+        objects: [
+          PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104),
+        ],
+        total: 1,
+        isPrinting: true,
+        bboxAll: [88, 88, 168, 168],
+      );
+      await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Pomiń'));
+      await tester.pumpAndSettle();
+
+      // The dialog only shows the survivor — singular phrasing, no trace of 512.
+      expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+      expect(find.textContaining('512'), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Pomiń'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The request must match exactly what the dialog showed — no phantom 512
+      // riding along from the raw (now-stale) selection set.
+      expect(repo.skipCalls, [
+        [421],
+      ]);
+    },
+  );
 }

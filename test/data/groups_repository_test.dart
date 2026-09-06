@@ -55,8 +55,7 @@ void main() {
     expect(groups.last.isSystem, isFalse);
   });
 
-  test('get() carries the member list the list view has no room for',
-      () async {
+  test('get() carries the member list the list view has no room for', () async {
     adapter.onGet(
       '/api/v1/groups/7',
       (s) => s.reply(200, {
@@ -81,23 +80,25 @@ void main() {
     expect(group.members.last.isActive, isFalse);
   });
 
-  test('a group from a server that sends no member list is simply empty',
-      () async {
-    adapter.onGet(
-      '/api/v1/groups/7',
-      (s) => s.reply(200, {
-        'id': 7,
-        'name': 'Domownicy',
-        'permissions': const <String>[],
-        'is_system': false,
-        'user_count': 0,
-        'created_at': '2026-02-01T10:00:00',
-        'updated_at': '2026-02-01T10:00:00',
-      }),
-    );
+  test(
+    'a group from a server that sends no member list is simply empty',
+    () async {
+      adapter.onGet(
+        '/api/v1/groups/7',
+        (s) => s.reply(200, {
+          'id': 7,
+          'name': 'Domownicy',
+          'permissions': const <String>[],
+          'is_system': false,
+          'user_count': 0,
+          'created_at': '2026-02-01T10:00:00',
+          'updated_at': '2026-02-01T10:00:00',
+        }),
+      );
 
-    expect((await repo.get(7)).members, isEmpty);
-  });
+      expect((await repo.get(7)).members, isEmpty);
+    },
+  );
 
   test('adding a member hits the membership route', () async {
     adapter.onPost('/api/v1/groups/7/users/2', (s) => s.reply(204, null));
@@ -125,8 +126,13 @@ void main() {
 
     await expectLater(
       repo.addMember(7, 2),
-      throwsA(isA<ApiException>().having(
-          (e) => e.detail, 'detail', 'User is already in this group')),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'User is already in this group',
+        ),
+      ),
     );
   });
 
@@ -198,15 +204,20 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'POST') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'POST') {
+            sent = options.data as Map<String, dynamic>;
+          }
+          handler.next(options);
+        },
+      ),
+    );
 
-    final created = await repo.create(const GroupCreateInput(
-      name: 'Domownicy',
-      permissions: ['queue:create'],
-    ));
+    final created = await repo.create(
+      const GroupCreateInput(name: 'Domownicy', permissions: ['queue:create']),
+    );
 
     expect(created.id, 9);
     expect(sent, {
@@ -231,10 +242,16 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'PATCH') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'PATCH') {
+            sent = options.data as Map<String, dynamic>;
+          }
+          handler.next(options);
+        },
+      ),
+    );
 
     await repo.update(9, const GroupUpdateInput(description: 'Drukują'));
 
@@ -250,8 +267,13 @@ void main() {
 
     await expectLater(
       repo.update(1, const GroupUpdateInput(name: 'Admini')),
-      throwsA(isA<ApiException>()
-          .having((e) => e.detail, 'detail', 'Cannot rename system groups')),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'Cannot rename system groups',
+        ),
+      ),
     );
   });
 

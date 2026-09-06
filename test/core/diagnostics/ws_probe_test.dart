@@ -26,26 +26,25 @@ WsMessage _status(
   List<AmsUnit>? ams,
   List<AmsTray>? vtTray,
   Map<int, String>? switchInlet,
-}) =>
-    WsPrinterStatus(
-      PrinterStatus(
-        id: id,
-        state: state,
-        progress: progress,
-        layerNum: layer,
-        temperatures: temperatures,
-        connected: connected,
-        hmsErrors: hms,
-        coolingFanSpeed: coolingFan,
-        chamberLight: light,
-        doorOpen: doorOpen,
-        trayNow: trayNow,
-        ams: ams,
-        vtTray: vtTray,
-        amsSwitchInlet: switchInlet,
-      ),
-      <String, dynamic>{'id': id},
-    );
+}) => WsPrinterStatus(
+  PrinterStatus(
+    id: id,
+    state: state,
+    progress: progress,
+    layerNum: layer,
+    temperatures: temperatures,
+    connected: connected,
+    hmsErrors: hms,
+    coolingFanSpeed: coolingFan,
+    chamberLight: light,
+    doorOpen: doorOpen,
+    trayNow: trayNow,
+    ams: ams,
+    vtTray: vtTray,
+    amsSwitchInlet: switchInlet,
+  ),
+  <String, dynamic>{'id': id},
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -162,22 +161,24 @@ void main() {
   group('ramki', () {
     test('każda ramka to rekord z tym, co przyszło', () async {
       await recorder.start();
-      probe.frame(_status(
-        1,
-        state: 'RUNNING',
-        progress: 12.4,
-        layer: 3,
-        // Cokolwiek serwer przysłał, także targety i drugą dyszę — X2D/H2D ma
-        // dwie, a target 0 w trakcie druku tłumaczy zgłoszenie sam z siebie.
-        temperatures: {
-          'nozzle': 218.3,
-          'nozzle_target': 220.0,
-          'nozzle_2': 140.0,
-          'bed': 60.0,
-          'bed_target': 0.0,
-          'chamber': 33.4,
-        },
-      ));
+      probe.frame(
+        _status(
+          1,
+          state: 'RUNNING',
+          progress: 12.4,
+          layer: 3,
+          // Cokolwiek serwer przysłał, także targety i drugą dyszę — X2D/H2D ma
+          // dwie, a target 0 w trakcie druku tłumaczy zgłoszenie sam z siebie.
+          temperatures: {
+            'nozzle': 218.3,
+            'nozzle_target': 220.0,
+            'nozzle_2': 140.0,
+            'bed': 60.0,
+            'bed_target': 0.0,
+            'chamber': 33.4,
+          },
+        ),
+      );
 
       final frame = (await wsRecords()).single;
       expect(frame['evt'], 'frame');
@@ -198,17 +199,19 @@ void main() {
       // To ta sama reguła co przy etykietach: log idzie do publicznego issue,
       // a `data` niesie nazwę modelu, nazwę pliku i serial drukarki.
       await recorder.start();
-      probe.frame(WsPrinterStatus(
-        PrinterStatus(
-          id: 1,
-          name: 'Drukarka Morgana',
-          gcodeFile: 'Rain Gauge - Plate 5.gcode.3mf',
-          currentPrint: 'Rain Gauge',
-          coverUrl: '/api/v1/printers/1/cover',
-          model: 'X1C',
+      probe.frame(
+        WsPrinterStatus(
+          PrinterStatus(
+            id: 1,
+            name: 'Drukarka Morgana',
+            gcodeFile: 'Rain Gauge - Plate 5.gcode.3mf',
+            currentPrint: 'Rain Gauge',
+            coverUrl: '/api/v1/printers/1/cover',
+            model: 'X1C',
+          ),
+          const {'id': 1},
         ),
-        const {'id': 1},
-      ));
+      );
 
       final frame = (await wsRecords()).single.toString();
       expect(frame, isNot(contains('Rain Gauge')));
@@ -220,14 +223,16 @@ void main() {
       // `status_key` serwera to m.in. wentylatory, światło i aktywny slot —
       // bez nich `repeated` znaczyłoby „zmieniło się coś, na co nie patrzymy".
       await recorder.start();
-      probe.frame(_status(
-        1,
-        state: 'RUNNING',
-        coolingFan: 100,
-        light: true,
-        doorOpen: true,
-        trayNow: 2,
-      ));
+      probe.frame(
+        _status(
+          1,
+          state: 'RUNNING',
+          coolingFan: 100,
+          light: true,
+          doorOpen: true,
+          trayNow: 2,
+        ),
+      );
 
       final frame = (await wsRecords()).single;
       expect(frame['cooling_fan'], 100);
@@ -236,52 +241,61 @@ void main() {
       expect(frame['tray_now'], 2);
     });
 
-    test('the switch inlet binding is recorded only when one is fitted',
-        () async {
-      // Without a Filament Track Switch the field is on every frame of every
-      // session and says nothing; with one it is the only thing that explains
-      // which nozzle a slot was configured against.
-      await recorder.start();
-      probe.frame(_status(1, state: 'RUNNING'));
-      probe.frame(_status(1,
-          state: 'IDLE', switchInlet: const {1: 'B', 0: 'A'}));
+    test(
+      'the switch inlet binding is recorded only when one is fitted',
+      () async {
+        // Without a Filament Track Switch the field is on every frame of every
+        // session and says nothing; with one it is the only thing that explains
+        // which nozzle a slot was configured against.
+        await recorder.start();
+        probe.frame(_status(1, state: 'RUNNING'));
+        probe.frame(
+          _status(1, state: 'IDLE', switchInlet: const {1: 'B', 0: 'A'}),
+        );
 
-      final frames = await wsRecords();
-      expect(frames.first.containsKey('fts_inlet'), isFalse);
-      expect(frames.last['fts_inlet'], '0:A,1:B');
-    });
+        final frames = await wsRecords();
+        expect(frames.first.containsKey('fts_inlet'), isFalse);
+        expect(frames.last['fts_inlet'], '0:A,1:B');
+      },
+    );
 
     test('AMS: materiał po zamkniętej liście, bez nazwy handlowej', () async {
       await recorder.start();
-      probe.frame(_status(
-        1,
-        ams: const [
-          AmsUnit(
-            id: 0,
-            humidity: 22,
-            dryStatus: 2,
-            dryTime: 45,
-            trays: [
-              AmsTray(
-                id: 0,
-                trayType: 'PETG',
-                traySubBrands: 'Professional Lab PETG Basic',
-                trayColor: 'F55A74FF',
-                remain: 83,
-              ),
-              AmsTray(id: 1, remain: -1), // pusty slot, bez znacznika RFID
-            ],
-          ),
-        ],
-        vtTray: const [AmsTray(id: 254, trayType: 'Support W', remain: 100)],
-      ));
+      probe.frame(
+        _status(
+          1,
+          ams: const [
+            AmsUnit(
+              id: 0,
+              humidity: 22,
+              dryStatus: 2,
+              dryTime: 45,
+              trays: [
+                AmsTray(
+                  id: 0,
+                  trayType: 'PETG',
+                  traySubBrands: 'Professional Lab PETG Basic',
+                  trayColor: 'F55A74FF',
+                  remain: 83,
+                ),
+                AmsTray(id: 1, remain: -1), // pusty slot, bez znacznika RFID
+              ],
+            ),
+          ],
+          vtTray: const [AmsTray(id: 254, trayType: 'Support W', remain: 100)],
+        ),
+      );
 
       final frame = (await wsRecords()).single;
       final unit = (frame['ams'] as List).single as Map<String, dynamic>;
       expect(unit['rh'], 22);
       expect(unit['dry'], 2);
       expect(unit['dry_min'], 45);
-      expect((unit['trays'] as List).first, {'id': 0, 'mat': 'PETG', 'remain': 83});
+      expect((unit['trays'] as List).first, {
+        'id': 0,
+        'mat': 'PETG',
+        'remain': 83,
+      });
       // Nieznany materiał ma polec, a puste pola nie mają zostawiać nulli.
       expect((unit['trays'] as List).last, {'id': 1});
       // Wariant „Support W" jest na liście w całości, nie przycinany do bazy.
@@ -294,13 +308,18 @@ void main() {
 
     test('nieznany materiał w slocie nie przechodzi', () async {
       await recorder.start();
-      probe.frame(_status(1, ams: const [
-        AmsUnit(id: 0, trays: [AmsTray(id: 0, trayType: 'PLA-WOOD')]),
-      ]));
+      probe.frame(
+        _status(
+          1,
+          ams: const [
+            AmsUnit(id: 0, trays: [AmsTray(id: 0, trayType: 'PLA-WOOD')]),
+          ],
+        ),
+      );
 
       final unit = ((await wsRecords()).single['ams'] as List).single;
       expect((unit as Map)['trays'], [
-        {'id': 0}
+        {'id': 0},
       ]);
     });
 
@@ -317,25 +336,38 @@ void main() {
 
     test('błędy HMS: ile stoi i które', () async {
       await recorder.start();
-      probe.frame(_status(1, hms: [
-        const HmsError(code: '0300_0100_0002_0001'),
-        const HmsError(code: '0300_0100_0002_0002', message: 'Cooling fan'),
-      ]));
+      probe.frame(
+        _status(
+          1,
+          hms: [
+            const HmsError(code: '0300_0100_0002_0001'),
+            const HmsError(code: '0300_0100_0002_0002', message: 'Cooling fan'),
+          ],
+        ),
+      );
 
       final frame = (await wsRecords()).single;
       expect(frame['hms'], 2);
       // Kod to szesnastkowy identyfikator z firmware'u, nie tekst użytkownika —
       // i redaktor nie może go wziąć za serial Bambu.
-      expect(frame['hms_codes'], ['0300_0100_0002_0001', '0300_0100_0002_0002']);
+      expect(frame['hms_codes'], [
+        '0300_0100_0002_0001',
+        '0300_0100_0002_0002',
+      ]);
       // Komunikat jest zlokalizowanym zdaniem serwera; do tego jest katalog.
       expect(frame.toString(), isNot(contains('Cooling fan')));
     });
 
     test('rozwścieczona drukarka nie zapcha linijki kodami', () async {
       await recorder.start();
-      probe.frame(_status(1, hms: [
-        for (var i = 0; i < 9; i++) HmsError(code: '0300_0100_0002_000$i'),
-      ]));
+      probe.frame(
+        _status(
+          1,
+          hms: [
+            for (var i = 0; i < 9; i++) HmsError(code: '0300_0100_0002_000$i'),
+          ],
+        ),
+      );
 
       final frame = (await wsRecords()).single;
       expect(frame['hms'], 9); // licznik mówi prawdę o skali
@@ -396,8 +428,13 @@ void main() {
       probe.disconnected(reason: WsDisconnectReason.remote, code: 1006);
 
       // Licznik należy do połączenia, które go wyprodukowało.
-      expect((await wsRecords()).map((r) => r['evt']).toList(),
-          ['connect', 'open', 'frame', 'repeated', 'disconnect']);
+      expect((await wsRecords()).map((r) => r['evt']).toList(), [
+        'connect',
+        'open',
+        'frame',
+        'repeated',
+        'disconnect',
+      ]);
     });
 
     test('typy inne niż status też są rekordami', () async {

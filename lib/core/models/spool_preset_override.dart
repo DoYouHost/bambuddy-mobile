@@ -53,11 +53,11 @@ class SpoolPresetOverride {
   /// `created_at` are read-only and the route rejects neither — they are simply
   /// not part of what it accepts.
   Map<String, dynamic> toJson() => {
-        'printer_model': printerModel,
-        'nozzle_diameter': nozzleDiameter,
-        'slicer_filament': slicerFilament,
-        'slicer_filament_name': slicerFilamentName,
-      };
+    'printer_model': printerModel,
+    'nozzle_diameter': nozzleDiameter,
+    'slicer_filament': slicerFilament,
+    'slicer_filament_name': slicerFilamentName,
+  };
 
   SpoolPresetOverride withPreset(String? filament, String? name) =>
       SpoolPresetOverride(

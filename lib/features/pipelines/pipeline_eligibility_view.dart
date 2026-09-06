@@ -56,8 +56,10 @@ class EligibilityView extends StatelessWidget {
             Icon(icon, size: 20, color: colour),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(headline,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: colour)),
+              child: Text(
+                headline,
+                style: theme.textTheme.bodyMedium?.copyWith(color: colour),
+              ),
             ),
           ],
         ),
@@ -67,8 +69,10 @@ class EligibilityView extends StatelessWidget {
         ],
         if (topAdvisory.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(l10n.pipelineEligibilityAdvisory,
-              style: theme.textTheme.labelSmall),
+          Text(
+            l10n.pipelineEligibilityAdvisory,
+            style: theme.textTheme.labelSmall,
+          ),
           for (final i in topAdvisory) _issueLine(theme, l10n, i, true),
         ],
         // Which candidate is which, and what is wrong with each — a class
@@ -77,8 +81,7 @@ class EligibilityView extends StatelessWidget {
         // five.
         if (report.printerReports.isNotEmpty) ...[
           const SizedBox(height: 12),
-          for (final p in report.printerReports)
-            _printerReport(theme, l10n, p),
+          for (final p in report.printerReports) _printerReport(theme, l10n, p),
         ],
       ],
     );
@@ -93,50 +96,53 @@ class EligibilityView extends StatelessWidget {
     ThemeData theme,
     AppLocalizations l10n,
     PerPrinterReport printer,
-  ) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MergeSemantics(
-              child: Row(
-                children: [
-                  Icon(
-                    printer.ok ? Icons.check : Icons.close,
-                    size: 16,
-                    color: printer.ok
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.error,
-                    semanticLabel: printer.ok
-                        ? l10n.pipelineEligible
-                        : l10n.pipelineIneligible,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(printer.printerName,
-                        style: theme.textTheme.bodySmall),
-                  ),
-                ],
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MergeSemantics(
+          child: Row(
+            children: [
+              Icon(
+                printer.ok ? Icons.check : Icons.close,
+                size: 16,
+                color: printer.ok
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.error,
+                semanticLabel: printer.ok
+                    ? l10n.pipelineEligible
+                    : l10n.pipelineIneligible,
               ),
-            ),
-            // Indented to the printer's name, so a reason belongs to the row
-            // above it rather than to the pipeline.
-            for (final issue in printer.issues)
-              Padding(
-                padding: const EdgeInsets.only(left: 24),
-                child: _issueLine(theme, l10n, issue, issue.isAdvisory),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  printer.printerName,
+                  style: theme.textTheme.bodySmall,
+                ),
               ),
-          ],
+            ],
+          ),
         ),
-      );
+        // Indented to the printer's name, so a reason belongs to the row
+        // above it rather than to the pipeline.
+        for (final issue in printer.issues)
+          Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: _issueLine(theme, l10n, issue, issue.isAdvisory),
+          ),
+      ],
+    ),
+  );
 
   String _okHeadline(AppLocalizations l10n) =>
       report.targetKind == PipelineTargetKind.printerClass &&
-              report.printerReports.isNotEmpty
-          ? l10n.pipelineEligibilityClassCount(
-              report.eligibleCount, report.printerReports.length)
-          : l10n.pipelineEligibilityOk;
+          report.printerReports.isNotEmpty
+      ? l10n.pipelineEligibilityClassCount(
+          report.eligibleCount,
+          report.printerReports.length,
+        )
+      : l10n.pipelineEligibilityOk;
 
   Widget _issueLine(
     ThemeData theme,
@@ -150,11 +156,13 @@ class EligibilityView extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(advisory ? Icons.info_outline : Icons.remove_circle_outline,
-              size: 16,
-              color: advisory
-                  ? theme.colorScheme.tertiary
-                  : theme.colorScheme.error),
+          Icon(
+            advisory ? Icons.info_outline : Icons.remove_circle_outline,
+            size: 16,
+            color: advisory
+                ? theme.colorScheme.tertiary
+                : theme.colorScheme.error,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -169,28 +177,26 @@ class EligibilityView extends StatelessWidget {
     );
   }
 
-  String _text(AppLocalizations l10n, EligibilityIssue issue) =>
-      switch (issue.kind) {
-        EligibilityIssueKind.printerNotSet => l10n.pipelineIssuePrinterNotSet,
-        EligibilityIssueKind.printerNotFound =>
-          l10n.pipelineIssuePrinterNotFound,
-        EligibilityIssueKind.printerDisabled =>
-          l10n.pipelineIssuePrinterDisabled,
-        EligibilityIssueKind.printerOffline => l10n.pipelineIssuePrinterOffline,
-        EligibilityIssueKind.filamentTypeMismatch =>
-          l10n.pipelineIssueFilamentType,
-        EligibilityIssueKind.filamentColorMismatch =>
-          l10n.pipelineIssueFilamentColor,
-        EligibilityIssueKind.amsSlotMissing => l10n.pipelineIssueAmsSlotMissing,
-        EligibilityIssueKind.filamentUnverified =>
-          l10n.pipelineIssueFilamentUnverified,
-        EligibilityIssueKind.noClassMatches =>
-          l10n.pipelineIssueNoClassMatches,
-        EligibilityIssueKind.classNotSet => l10n.pipelineIssueClassNotSet,
-        // A newer server's reason, shown raw rather than dropped — untranslated
-        // beats invisible when it is the thing blocking the run.
-        EligibilityIssueKind.unknown => issue.rawKind,
-      };
+  String _text(
+    AppLocalizations l10n,
+    EligibilityIssue issue,
+  ) => switch (issue.kind) {
+    EligibilityIssueKind.printerNotSet => l10n.pipelineIssuePrinterNotSet,
+    EligibilityIssueKind.printerNotFound => l10n.pipelineIssuePrinterNotFound,
+    EligibilityIssueKind.printerDisabled => l10n.pipelineIssuePrinterDisabled,
+    EligibilityIssueKind.printerOffline => l10n.pipelineIssuePrinterOffline,
+    EligibilityIssueKind.filamentTypeMismatch => l10n.pipelineIssueFilamentType,
+    EligibilityIssueKind.filamentColorMismatch =>
+      l10n.pipelineIssueFilamentColor,
+    EligibilityIssueKind.amsSlotMissing => l10n.pipelineIssueAmsSlotMissing,
+    EligibilityIssueKind.filamentUnverified =>
+      l10n.pipelineIssueFilamentUnverified,
+    EligibilityIssueKind.noClassMatches => l10n.pipelineIssueNoClassMatches,
+    EligibilityIssueKind.classNotSet => l10n.pipelineIssueClassNotSet,
+    // A newer server's reason, shown raw rather than dropped — untranslated
+    // beats invisible when it is the thing blocking the run.
+    EligibilityIssueKind.unknown => issue.rawKind,
+  };
 
   /// Slot and expected/actual, when the kind carries them.
   String? _detail(AppLocalizations l10n, EligibilityIssue issue) {

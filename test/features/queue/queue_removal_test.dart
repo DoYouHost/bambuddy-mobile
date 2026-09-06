@@ -15,10 +15,16 @@ void main() {
         QueueItemStatusKind.pending,
         QueueItemStatusKind.scheduled,
       ]) {
-        expect(queueRemovalFor(status, printerBusy: false), QueueRemoval.cancel,
-            reason: '$status has not started; /cancel is its route');
-        expect(queueRemovalFor(status, printerBusy: true), QueueRemoval.cancel,
-            reason: 'a busy printer says nothing about a row still waiting');
+        expect(
+          queueRemovalFor(status, printerBusy: false),
+          QueueRemoval.cancel,
+          reason: '$status has not started; /cancel is its route',
+        );
+        expect(
+          queueRemovalFor(status, printerBusy: true),
+          QueueRemoval.cancel,
+          reason: 'a busy printer says nothing about a row still waiting',
+        );
       }
     });
 
@@ -43,10 +49,14 @@ void main() {
       // The server has no `paused` status of its own — it keeps such a job
       // `printing` — so the model's tolerance for one must not fall through to
       // the branch that deletes.
-      expect(queueRemovalFor(QueueItemStatusKind.paused, printerBusy: true),
-          QueueRemoval.stopPrint);
-      expect(queueRemovalFor(QueueItemStatusKind.paused, printerBusy: false),
-          QueueRemoval.stopAbandoned);
+      expect(
+        queueRemovalFor(QueueItemStatusKind.paused, printerBusy: true),
+        QueueRemoval.stopPrint,
+      );
+      expect(
+        queueRemovalFor(QueueItemStatusKind.paused, printerBusy: false),
+        QueueRemoval.stopAbandoned,
+      );
     });
 
     test('every terminal and unrecognized status is deleted', () {
@@ -59,8 +69,11 @@ void main() {
         QueueItemStatusKind.failed,
         QueueItemStatusKind.unknown,
       ]) {
-        expect(queueRemovalFor(status, printerBusy: false), QueueRemoval.delete,
-            reason: '$status leaves the queue by DELETE');
+        expect(
+          queueRemovalFor(status, printerBusy: false),
+          QueueRemoval.delete,
+          reason: '$status leaves the queue by DELETE',
+        );
       }
     });
 
@@ -69,8 +82,10 @@ void main() {
       // working action at all.
       for (final status in QueueItemStatusKind.values) {
         for (final busy in [true, false]) {
-          expect(() => queueRemovalFor(status, printerBusy: busy),
-              returnsNormally);
+          expect(
+            () => queueRemovalFor(status, printerBusy: busy),
+            returnsNormally,
+          );
         }
       }
     });
@@ -99,8 +114,10 @@ void main() {
 
     test('the refusal is translated, not quoted in English', () {
       expect(
-        queueWriteMessage(AppLocalizationsPl(),
-            _refused("Cannot cancel item with status 'printing'", 400)),
+        queueWriteMessage(
+          AppLocalizationsPl(),
+          _refused("Cannot cancel item with status 'printing'", 400),
+        ),
         AppLocalizationsPl().queueRemovalStatusChanged,
       );
     });
@@ -126,11 +143,13 @@ void main() {
       // queue", which would send the user to retry something that cannot work.
       final message = queueWriteMessage(
         en,
-        ActionOutcome.failed(const ApiException(
-          AppErrorCode.forbidden,
-          statusCode: 403,
-          detail: 'You can only cancel your own queue items',
-        )),
+        ActionOutcome.failed(
+          const ApiException(
+            AppErrorCode.forbidden,
+            statusCode: 403,
+            detail: 'You can only cancel your own queue items',
+          ),
+        ),
       );
       expect(message, contains('your own queue items'));
       expect(message, isNot(en.queueRemovalStatusChanged));
@@ -138,9 +157,6 @@ void main() {
   });
 }
 
-ActionOutcome _refused(String? detail, int status) =>
-    ActionOutcome.failed(ApiException(
-      AppErrorCode.badResponse,
-      statusCode: status,
-      detail: detail,
-    ));
+ActionOutcome _refused(String? detail, int status) => ActionOutcome.failed(
+  ApiException(AppErrorCode.badResponse, statusCode: status, detail: detail),
+);

@@ -67,40 +67,40 @@ PrinterDownloadJob _job(
   String? token,
   String? message,
   String? filename,
-}) =>
-    PrinterDownloadJob(
-      jobId: 'j1',
-      printerId: 1,
-      state: switch (state) {
-        'queued' => PrinterDownloadJobState.queued,
-        'preparing' => PrinterDownloadJobState.preparing,
-        'ready' => PrinterDownloadJobState.ready,
-        'failed' => PrinterDownloadJobState.failed,
-        'cancelled' => PrinterDownloadJobState.cancelled,
-        _ => PrinterDownloadJobState.unknown,
-      },
-      requested: requested,
-      successful: successful,
-      failed: failed,
-      token: token,
-      message: message,
-      filename: filename,
-    );
+}) => PrinterDownloadJob(
+  jobId: 'j1',
+  printerId: 1,
+  state: switch (state) {
+    'queued' => PrinterDownloadJobState.queued,
+    'preparing' => PrinterDownloadJobState.preparing,
+    'ready' => PrinterDownloadJobState.ready,
+    'failed' => PrinterDownloadJobState.failed,
+    'cancelled' => PrinterDownloadJobState.cancelled,
+    _ => PrinterDownloadJobState.unknown,
+  },
+  requested: requested,
+  successful: successful,
+  failed: failed,
+  token: token,
+  message: message,
+  filename: filename,
+);
 
 Future<bool> _run(
   _ScriptedRepo repo, {
   void Function(PrinterDownloadJob job)? onJob,
   PrinterDownloadRun? using,
 }) =>
-    (using ?? PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero))
+    (using ??
+            PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero))
         .download(
-      paths: const ['/a.3mf', '/b.3mf'],
-      sizes: const {'/a.3mf': 10, '/b.3mf': 20},
-      filename: 'X1-files.zip',
-      asZip: true,
-      savePath: '/tmp/x.zip',
-      onJob: onJob,
-    );
+          paths: const ['/a.3mf', '/b.3mf'],
+          sizes: const {'/a.3mf': 10, '/b.3mf': 20},
+          filename: 'X1-files.zip',
+          asZip: true,
+          savePath: '/tmp/x.zip',
+          onJob: onJob,
+        );
 
 void main() {
   test('a server without the route downloads nothing and says so', () async {
@@ -129,14 +129,11 @@ void main() {
     // server sanitised and prepared under.
     expect(repo.downloadedFilename, 'ready.zip');
     // Every state reaches the UI, including the one it started in.
-    expect(
-      seen.map((j) => j.state),
-      [
-        PrinterDownloadJobState.queued,
-        PrinterDownloadJobState.preparing,
-        PrinterDownloadJobState.ready,
-      ],
-    );
+    expect(seen.map((j) => j.state), [
+      PrinterDownloadJobState.queued,
+      PrinterDownloadJobState.preparing,
+      PrinterDownloadJobState.ready,
+    ]);
   });
 
   test('a phase this app does not know keeps it polling', () async {
@@ -160,9 +157,11 @@ void main() {
 
     await expectLater(
       _run(repo),
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.failed)
-          .having((e) => e.detail, 'detail', contains('No room'))),
+      throwsA(
+        isA<PrinterDownloadFailure>()
+            .having((e) => e.reason, 'reason', PrinterDownloadStopped.failed)
+            .having((e) => e.detail, 'detail', contains('No room')),
+      ),
     );
     expect(repo.calls, isNot(contains('download')));
   });
@@ -174,18 +173,31 @@ void main() {
 
     await expectLater(
       _run(repo),
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.lost)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.lost,
+        ),
+      ),
     );
   });
 
   test('a job cancelled elsewhere ends as cancelled here too', () async {
-    final repo = _ScriptedRepo(start: _job('preparing'), polls: [_job('cancelled')]);
+    final repo = _ScriptedRepo(
+      start: _job('preparing'),
+      polls: [_job('cancelled')],
+    );
 
     await expectLater(
       _run(repo),
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.cancelled,
+        ),
+      ),
     );
   });
 
@@ -197,8 +209,13 @@ void main() {
 
     await expectLater(
       _run(repo),
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.lost)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.lost,
+        ),
+      ),
     );
     expect(repo.calls, isNot(contains('download')));
   });
@@ -212,19 +229,31 @@ void main() {
         _job('ready', successful: 2, token: 'tok'),
       ],
     );
-    final run =
-        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+    final run = PrinterDownloadRun(
+      repo,
+      printerId: 1,
+      pollInterval: Duration.zero,
+    );
 
-    final result = _run(repo, using: run, onJob: (job) {
-      // Cancel the moment the server reports it is working, which is when the
-      // button appears on screen.
-      if (job.state == PrinterDownloadJobState.preparing) run.cancel();
-    });
+    final result = _run(
+      repo,
+      using: run,
+      onJob: (job) {
+        // Cancel the moment the server reports it is working, which is when the
+        // button appears on screen.
+        if (job.state == PrinterDownloadJobState.preparing) run.cancel();
+      },
+    );
 
     await expectLater(
       result,
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.cancelled,
+        ),
+      ),
     );
     expect(repo.calls, contains('cancel'));
     expect(repo.calls, isNot(contains('download')));
@@ -236,15 +265,23 @@ void main() {
     // cancellation landing, and calling one of them a lost job would tell the
     // user their download broke when they are the one who stopped it.
     final repo = _ScriptedRepo(start: _job('preparing'), polls: [null]);
-    final run =
-        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+    final run = PrinterDownloadRun(
+      repo,
+      printerId: 1,
+      pollInterval: Duration.zero,
+    );
 
     final result = _run(repo, using: run, onJob: (_) => run.cancel());
 
     await expectLater(
       result,
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.cancelled,
+        ),
+      ),
     );
   });
 
@@ -257,17 +294,29 @@ void main() {
       start: _job('preparing'),
       polls: [_job('ready', successful: 2, token: 'tok')],
     );
-    final run =
-        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+    final run = PrinterDownloadRun(
+      repo,
+      printerId: 1,
+      pollInterval: Duration.zero,
+    );
 
-    final result = _run(repo, using: run, onJob: (job) {
-      if (job.state == PrinterDownloadJobState.ready) run.cancel();
-    });
+    final result = _run(
+      repo,
+      using: run,
+      onJob: (job) {
+        if (job.state == PrinterDownloadJobState.ready) run.cancel();
+      },
+    );
 
     await expectLater(
       result,
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.cancelled,
+        ),
+      ),
     );
     expect(repo.calls, isNot(contains('download')));
     // The staged bundle is the server's to delete, and it only knows to if it
@@ -297,8 +346,13 @@ void main() {
         asZip: false,
         savePath: '/tmp/x.zip',
       ),
-      throwsA(isA<PrinterDownloadFailure>()
-          .having((e) => e.reason, 'reason', PrinterDownloadStopped.lost)),
+      throwsA(
+        isA<PrinterDownloadFailure>().having(
+          (e) => e.reason,
+          'reason',
+          PrinterDownloadStopped.lost,
+        ),
+      ),
     );
     // Gave up on the first answer rather than draining the script.
     expect(repo.calls.where((c) => c == 'poll'), hasLength(1));
@@ -320,8 +374,11 @@ void main() {
       start: _job('ready', successful: 2, token: 'tok'),
       polls: [],
     );
-    final run =
-        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+    final run = PrinterDownloadRun(
+      repo,
+      printerId: 1,
+      pollInterval: Duration.zero,
+    );
 
     expect(await _run(repo, using: run), isTrue);
     await run.cancel();

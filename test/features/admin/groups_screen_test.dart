@@ -56,7 +56,10 @@ class _FakeGroups implements GroupsRepository {
   int? deleted;
 
   @override
-  Future<List<GroupSummary>> list() async => const [_administrators, _household];
+  Future<List<GroupSummary>> list() async => const [
+    _administrators,
+    _household,
+  ];
 
   @override
   Future<GroupDetail> get(int groupId) async => _household;
@@ -91,13 +94,17 @@ class _FakeGroups implements GroupsRepository {
 /// A catalog with one everyday category and one that belongs behind the fold.
 const _catalog = PermissionCatalog(
   categories: [
-    PermissionCategory(name: 'Queue', permissions: [
-      PermissionInfo(value: 'queue:read', label: 'View queue'),
-      PermissionInfo(value: 'queue:create', label: 'Add to queue'),
-    ]),
-    PermissionCategory(name: 'User Management', permissions: [
-      PermissionInfo(value: 'users:read', label: 'View users'),
-    ]),
+    PermissionCategory(
+      name: 'Queue',
+      permissions: [
+        PermissionInfo(value: 'queue:read', label: 'View queue'),
+        PermissionInfo(value: 'queue:create', label: 'Add to queue'),
+      ],
+    ),
+    PermissionCategory(
+      name: 'User Management',
+      permissions: [PermissionInfo(value: 'users:read', label: 'View users')],
+    ),
   ],
   all: ['queue:read', 'queue:create', 'users:read'],
 );
@@ -117,22 +124,25 @@ class _FakeCurrentUser extends CurrentUserNotifier {
 class _FakeUsersList extends UsersListNotifier {
   @override
   Future<List<CurrentUser>> build() async => const [
-        CurrentUser(id: 1, username: 'admin', isAdmin: true),
-        CurrentUser(id: 2, username: 'zosia', isAdmin: false),
-        CurrentUser(id: 9, username: 'nowy', isAdmin: false),
-      ];
+    CurrentUser(id: 1, username: 'admin', isAdmin: true),
+    CurrentUser(id: 2, username: 'zosia', isAdmin: false),
+    CurrentUser(id: 9, username: 'nowy', isAdmin: false),
+  ];
 }
 
-Widget _app(Widget child, {required _FakeGroups repo, CurrentUser? signedInAs}) =>
-    ProviderScope(
-      overrides: [
-        groupsRepositoryProvider.overrideWithValue(repo),
-        currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
-        fakeServerProfileOverride(authMode: AuthMode.jwt),
-        usersListProvider.overrideWith(_FakeUsersList.new),
-      ],
-      child: plApp(child),
-    );
+Widget _app(
+  Widget child, {
+  required _FakeGroups repo,
+  CurrentUser? signedInAs,
+}) => ProviderScope(
+  overrides: [
+    groupsRepositoryProvider.overrideWithValue(repo),
+    currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
+    fakeServerProfileOverride(authMode: AuthMode.jwt),
+    usersListProvider.overrideWith(_FakeUsersList.new),
+  ],
+  child: plApp(child),
+);
 
 void main() {
   late _FakeGroups repo;
@@ -140,8 +150,9 @@ void main() {
   setUp(() => repo = _FakeGroups());
 
   group('the list', () {
-    testWidgets('shows what each group is for and how much it holds',
-        (tester) async {
+    testWidgets('shows what each group is for and how much it holds', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const GroupsScreen(), repo: repo, signedInAs: _admin),
       );
@@ -157,11 +168,15 @@ void main() {
   });
 
   group('one group', () {
-    testWidgets('lists its members and marks the switched-off ones',
-        (tester) async {
+    testWidgets('lists its members and marks the switched-off ones', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 7),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupDetailScreen(groupId: 7),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -175,8 +190,11 @@ void main() {
       // `groups:read` opens the group; moving people in and out of it is
       // admin-only server-side.
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 7),
-            repo: repo, signedInAs: _member),
+        _app(
+          const GroupDetailScreen(groupId: 7),
+          repo: repo,
+          signedInAs: _member,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -186,8 +204,11 @@ void main() {
 
     testWidgets('adds an account that is not in the group yet', (tester) async {
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 7),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupDetailScreen(groupId: 7),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -206,18 +227,18 @@ void main() {
 
     testWidgets('asks before taking someone out of the group', (tester) async {
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 7),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupDetailScreen(groupId: 7),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('Usuń z grupy').first);
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Usunąć zosia z grupy Domownicy?'),
-        findsOneWidget,
-      );
+      expect(find.text('Usunąć zosia z grupy Domownicy?'), findsOneWidget);
 
       await tester.tap(find.text('Anuluj'));
       await tester.pumpAndSettle();
@@ -231,8 +252,9 @@ void main() {
       expect(repo.removed, (7, 2));
     });
 
-    testWidgets('says a built-in group only takes membership changes',
-        (tester) async {
+    testWidgets('says a built-in group only takes membership changes', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(
           const GroupDetailScreen(groupId: 1),
@@ -248,8 +270,9 @@ void main() {
   });
 
   group('the permission editor', () {
-    testWidgets('shows the everyday categories and folds the rest away',
-        (tester) async {
+    testWidgets('shows the everyday categories and folds the rest away', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const GroupFormScreen(), repo: repo, signedInAs: _admin),
       );
@@ -265,15 +288,18 @@ void main() {
       expect(find.text('User Management'), findsOneWidget);
     });
 
-    testWidgets('creates a group out of the ticked permissions',
-        (tester) async {
+    testWidgets('creates a group out of the ticked permissions', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const GroupFormScreen(), repo: repo, signedInAs: _admin),
       );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa'), 'Domownicy');
+        find.widgetWithText(TextFormField, 'Nazwa'),
+        'Domownicy',
+      );
       await tester.tap(find.text('Queue'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add to queue'));
@@ -294,8 +320,11 @@ void main() {
         permissions: ['queue:read', 'users:read'],
       );
       await tester.pumpWidget(
-        _app(const GroupFormScreen(existing: group),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupFormScreen(existing: group),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -306,20 +335,27 @@ void main() {
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
-      expect(repo.updated?.$2.permissions,
-          ['queue:create', 'queue:read', 'users:read']);
+      expect(repo.updated?.$2.permissions, [
+        'queue:create',
+        'queue:read',
+        'users:read',
+      ]);
     });
 
-    testWidgets('counts what is hidden so nobody edits a group blind',
-        (tester) async {
+    testWidgets('counts what is hidden so nobody edits a group blind', (
+      tester,
+    ) async {
       const group = GroupSummary(
         id: 7,
         name: 'Domownicy',
         permissions: ['users:read'],
       );
       await tester.pumpWidget(
-        _app(const GroupFormScreen(existing: group),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupFormScreen(existing: group),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -328,8 +364,9 @@ void main() {
       expect(find.widgetWithText(DashPill, '1'), findsOneWidget);
     });
 
-    testWidgets('opens a built-in group read-only apart from its description',
-        (tester) async {
+    testWidgets('opens a built-in group read-only apart from its description', (
+      tester,
+    ) async {
       const system = GroupSummary(
         id: 1,
         name: 'Administrators',
@@ -337,14 +374,18 @@ void main() {
         isSystem: true,
       );
       await tester.pumpWidget(
-        _app(const GroupFormScreen(existing: system),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupFormScreen(existing: system),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Grupa wbudowana'), findsOneWidget);
       final name = tester.widget<TextFormField>(
-          find.widgetWithText(TextFormField, 'Nazwa'));
+        find.widgetWithText(TextFormField, 'Nazwa'),
+      );
       expect(name.enabled, isFalse);
 
       final checkbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
@@ -360,13 +401,18 @@ void main() {
         isSystem: true,
       );
       await tester.pumpWidget(
-        _app(const GroupFormScreen(existing: system),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupFormScreen(existing: system),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Do czego służy'), 'Pełen dostęp');
+        find.widgetWithText(TextFormField, 'Do czego służy'),
+        'Pełen dostęp',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -381,8 +427,11 @@ void main() {
   group('deleting a group', () {
     testWidgets('is not offered for a built-in one', (tester) async {
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 1),
-            repo: _SystemGroup(), signedInAs: _admin),
+        _app(
+          const GroupDetailScreen(groupId: 1),
+          repo: _SystemGroup(),
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -395,8 +444,11 @@ void main() {
 
     testWidgets('says what happens to the accounts in it', (tester) async {
       await tester.pumpWidget(
-        _app(const GroupDetailScreen(groupId: 7),
-            repo: repo, signedInAs: _admin),
+        _app(
+          const GroupDetailScreen(groupId: 7),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -416,14 +468,18 @@ void main() {
   });
 
   group('the gate', () {
-    ProviderContainer containerFor(CurrentUser? user,
-        {AuthMode mode = AuthMode.jwt}) {
-      final container = ProviderContainer(overrides: [
-        currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
-        fakeServerProfileOverride(authMode: AuthMode.jwt),
-        if (mode == AuthMode.apiKey)
-          fakeServerProfileOverride(authMode: AuthMode.apiKey),
-      ]);
+    ProviderContainer containerFor(
+      CurrentUser? user, {
+      AuthMode mode = AuthMode.jwt,
+    }) {
+      final container = ProviderContainer(
+        overrides: [
+          currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
+          fakeServerProfileOverride(authMode: AuthMode.jwt),
+          if (mode == AuthMode.apiKey)
+            fakeServerProfileOverride(authMode: AuthMode.apiKey),
+        ],
+      );
       addTearDown(container.dispose);
       return container;
     }
@@ -456,12 +512,11 @@ void main() {
 class _SystemGroup extends _FakeGroups {
   @override
   Future<GroupDetail> get(int groupId) async => const GroupDetail(
-        id: 1,
-        name: 'Administrators',
-        permissions: ['users:read'],
-        isSystem: true,
-        userCount: 1,
-        members: [GroupMember(id: 1, username: 'admin')],
-      );
+    id: 1,
+    name: 'Administrators',
+    permissions: ['users:read'],
+    isSystem: true,
+    userCount: 1,
+    members: [GroupMember(id: 1, username: 'admin')],
+  );
 }
-

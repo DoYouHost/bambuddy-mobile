@@ -62,7 +62,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     final t = DashTokens.of(context);
 
     // Badge count on "Queue" tab: only PENDING prints (pending/scheduled).
-    final queueCount = ref.watch(queueProvider).valueOrNull?.where((i) {
+    final queueCount =
+        ref.watch(queueProvider).valueOrNull?.where((i) {
           final k = i.statusKind;
           return k == QueueItemStatusKind.pending ||
               k == QueueItemStatusKind.scheduled;
@@ -70,7 +71,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         0;
 
     // Badge count on "Maintenance" tab: sum of overdue tasks from all printers.
-    final maintenanceCount = ref
+    final maintenanceCount =
+        ref
             .watch(maintenanceOverviewProvider)
             .valueOrNull
             ?.fold<int>(0, (sum, o) => sum + o.dueCount) ??
@@ -129,33 +131,37 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
 
     return DashBackground(
       child: Scaffold(
-      backgroundColor: Colors.transparent,
-      // Each branch has its own Scaffold with AppBar — shell body is the branch
-      // widget directly, no extra wrapper.
-      body: navigationShell,
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(
-          color: t.navBar,
-          border: Border(top: BorderSide(color: t.hairline)),
-        ),
-        // Reserve the system nav bar inset via viewPadding (constant, unlike
-        // padding, which the keyboard collapses to 0) so the tab bar never
-        // overlaps the system nav buttons while a field is focused. SafeArea
-        // still guards the left/right edges (landscape notch).
-        child: SafeArea(
-          top: false,
-          bottom: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                8, 12, 8, 10 + MediaQuery.of(context).viewPadding.bottom),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [for (final it in items) Expanded(child: it)],
+        backgroundColor: Colors.transparent,
+        // Each branch has its own Scaffold with AppBar — shell body is the branch
+        // widget directly, no extra wrapper.
+        body: navigationShell,
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            color: t.navBar,
+            border: Border(top: BorderSide(color: t.hairline)),
+          ),
+          // Reserve the system nav bar inset via viewPadding (constant, unlike
+          // padding, which the keyboard collapses to 0) so the tab bar never
+          // overlaps the system nav buttons while a field is focused. SafeArea
+          // still guards the left/right edges (landscape notch).
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                8,
+                12,
+                8,
+                10 + MediaQuery.of(context).viewPadding.bottom,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [for (final it in items) Expanded(child: it)],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -238,8 +244,10 @@ class _NavItem extends StatelessWidget {
                         right: -8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          constraints:
-                              const BoxConstraints(minWidth: 15, minHeight: 15),
+                          constraints: const BoxConstraints(
+                            minWidth: 15,
+                            minHeight: 15,
+                          ),
                           decoration: BoxDecoration(
                             color: tokens.danger,
                             borderRadius: BorderRadius.circular(8),

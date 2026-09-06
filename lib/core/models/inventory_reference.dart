@@ -49,7 +49,8 @@ class CoreWeightEntry {
     this.isDefault = false,
   });
 
-  factory CoreWeightEntry.fromJson(Map<String, dynamic> json) => CoreWeightEntry(
+  factory CoreWeightEntry.fromJson(Map<String, dynamic> json) =>
+      CoreWeightEntry(
         id: toIntOrNull(json['id']) ?? -1,
         name: toStringOrNull(json['name']) ?? '?',
         weight: toIntOrNull(json['weight']) ?? 0,
@@ -80,15 +81,15 @@ class ColorEntry {
   });
 
   factory ColorEntry.fromJson(Map<String, dynamic> json) => ColorEntry(
-        id: toIntOrNull(json['id']) ?? -1,
-        manufacturer: toStringOrNull(json['manufacturer']) ?? '',
-        colorName: toStringOrNull(json['color_name']) ?? '',
-        hexColor: toStringOrNull(json['hex_color']) ?? '',
-        material: toStringOrNull(json['material']),
-        isDefault: json['is_default'] == true,
-        extraColors: toStringOrNull(json['extra_colors']),
-        effectType: toStringOrNull(json['effect_type']),
-      );
+    id: toIntOrNull(json['id']) ?? -1,
+    manufacturer: toStringOrNull(json['manufacturer']) ?? '',
+    colorName: toStringOrNull(json['color_name']) ?? '',
+    hexColor: toStringOrNull(json['hex_color']) ?? '',
+    material: toStringOrNull(json['material']),
+    isDefault: json['is_default'] == true,
+    extraColors: toStringOrNull(json['extra_colors']),
+    effectType: toStringOrNull(json['effect_type']),
+  );
 
   final int id;
   final String manufacturer;
@@ -118,16 +119,16 @@ class FilamentPreset {
   });
 
   factory FilamentPreset.fromJson(Map<String, dynamic> json) => FilamentPreset(
-        id: toIntOrNull(json['id']) ?? -1,
-        name: toStringOrNull(json['name']) ?? '',
-        type: toStringOrNull(json['type']) ?? '',
-        brand: toStringOrNull(json['brand']),
-        colorHex: toStringOrNull(json['color_hex']),
-        costPerKg: toDoubleOrNull(json['cost_per_kg']),
-        spoolWeightG: toDoubleOrNull(json['spool_weight_g']),
-        printTempMin: toIntOrNull(json['print_temp_min']),
-        printTempMax: toIntOrNull(json['print_temp_max']),
-      );
+    id: toIntOrNull(json['id']) ?? -1,
+    name: toStringOrNull(json['name']) ?? '',
+    type: toStringOrNull(json['type']) ?? '',
+    brand: toStringOrNull(json['brand']),
+    colorHex: toStringOrNull(json['color_hex']),
+    costPerKg: toDoubleOrNull(json['cost_per_kg']),
+    spoolWeightG: toDoubleOrNull(json['spool_weight_g']),
+    printTempMin: toIntOrNull(json['print_temp_min']),
+    printTempMax: toIntOrNull(json['print_temp_max']),
+  );
 
   final int id;
   final String name;
@@ -141,4 +142,3 @@ class FilamentPreset {
   final int? printTempMin;
   final int? printTempMax;
 }
-

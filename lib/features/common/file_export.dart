@@ -79,10 +79,9 @@ Future<void> discardCacheCopy(File file) async {
 /// [mimeType] decides which apps the sheet offers, so a ZIP announced as a
 /// video reaches the wrong half of the phone. Null lets the platform guess from
 /// the extension.
-Future<void> shareDownloadedFile(File file, {String? mimeType}) =>
-    SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path, mimeType: mimeType)]),
-    );
+Future<void> shareDownloadedFile(File file, {String? mimeType}) => SharePlus
+    .instance
+    .share(ShareParams(files: [XFile(file.path, mimeType: mimeType)]));
 
 /// Asks the user where to keep [file] and copies it there.
 ///

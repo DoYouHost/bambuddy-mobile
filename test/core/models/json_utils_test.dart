@@ -17,10 +17,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     recorder = DiagnosticRecorder(
       settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async => const SessionFacts(
-        app: '0.11.5+1105',
-        flavor: 'mobile',
-      ),
+      loadFacts: () async =>
+          const SessionFacts(app: '0.11.5+1105', flavor: 'mobile'),
       resolveDirectory: () async => null,
     );
     addTearDown(recorder.discard);
@@ -41,8 +39,10 @@ void main() {
 
       expect(d.isUtc, isFalse, reason: 'konsument formatuje pola wprost');
       expect(d.toUtc().hour, 16);
-      expect(d.millisecondsSinceEpoch,
-          DateTime.utc(2026, 7, 30, 16).millisecondsSinceEpoch);
+      expect(
+        d.millisecondsSinceEpoch,
+        DateTime.utc(2026, 7, 30, 16).millisecondsSinceEpoch,
+      );
     });
 
     test('bez strefy znaczy UTC, nie czas lokalny', () {
@@ -52,17 +52,24 @@ void main() {
       final naive = dateTimeFromJson('2026-07-29T06:15:10.233878')!;
       final explicit = dateTimeFromJson('2026-07-29T06:15:10.233878Z')!;
 
-      expect(naive, explicit,
-          reason: 'oba zapisy to ta sama chwila — serwer jest niekonsekwentny '
-              'w formacie, nie w znaczeniu');
+      expect(
+        naive,
+        explicit,
+        reason:
+            'oba zapisy to ta sama chwila — serwer jest niekonsekwentny '
+            'w formacie, nie w znaczeniu',
+      );
       expect(naive.toUtc().hour, 6);
     });
 
     test('an offset and a Z at once — the malformed PATCH answer', () {
       // serialize_utc_datetime appends Z to a value that already carries +00:00.
       // DateTime.tryParse zwraca na to null, czyli po cichu gubi termin.
-      expect(DateTime.tryParse('2026-07-30T16:00:00+00:00Z'), isNull,
-          reason: 'if Dart swallowed this, the tolerance would be unnecessary');
+      expect(
+        DateTime.tryParse('2026-07-30T16:00:00+00:00Z'),
+        isNull,
+        reason: 'if Dart swallowed this, the tolerance would be unnecessary',
+      );
 
       final d = dateTimeFromJson('2026-07-30T16:00:00+00:00Z')!;
       expect(d, dateTimeFromJson('2026-07-30T16:00:00Z'));
@@ -113,51 +120,53 @@ void main() {
 
   group('parseJsonList', () {
     test('skips the broken element and parses the rest', () {
-      final items = parseJsonList(
-        [
-          {'id': 1, 'position': 1, 'status': 'pending'},
-          // `position` is required — the generated cast throws on a null.
-          {'id': 2, 'status': 'pending'},
-          {'id': 3, 'position': 2, 'status': 'pending'},
-        ],
-        QueueItem.fromJson,
-      );
+      final items = parseJsonList([
+        {'id': 1, 'position': 1, 'status': 'pending'},
+        // `position` is required — the generated cast throws on a null.
+        {'id': 2, 'status': 'pending'},
+        {'id': 3, 'position': 2, 'status': 'pending'},
+      ], QueueItem.fromJson);
 
       expect(items.map((i) => i.id), [1, 3]);
     });
 
-    test('records the dropped elements: how many, of how many, and why', () async {
-      await recorder.start();
+    test(
+      'records the dropped elements: how many, of how many, and why',
+      () async {
+        await recorder.start();
 
-      // The whole list dropped — exactly the case where the screen looks empty
-      // and the server answered 200 with data in it.
-      final items = parseJsonList(
-        [
+        // The whole list dropped — exactly the case where the screen looks empty
+        // and the server answered 200 with data in it.
+        final items = parseJsonList([
           {'id': 1, 'status': 'pending'},
           {'id': 2, 'status': 'pending'},
-        ],
-        QueueItem.fromJson,
-      );
+        ], QueueItem.fromJson);
 
-      expect(items, isEmpty);
-      final drop = (await stopAndParse())
-          .firstWhere((r) => r['evt'] == 'parse_drop');
-      expect(drop['src'], 'app');
-      expect(drop['lvl'], 'warn');
-      expect(drop['type'], 'QueueItem');
-      expect(drop['n'], 2);
-      expect(drop['of'], 2);
-      expect(drop['cause'], contains('Null'),
-          reason: 'the cause names the cast that failed');
-    });
+        expect(items, isEmpty);
+        final drop = (await stopAndParse()).firstWhere(
+          (r) => r['evt'] == 'parse_drop',
+        );
+        expect(drop['src'], 'app');
+        expect(drop['lvl'], 'warn');
+        expect(drop['type'], 'QueueItem');
+        expect(drop['n'], 2);
+        expect(drop['of'], 2);
+        expect(
+          drop['cause'],
+          contains('Null'),
+          reason: 'the cause names the cast that failed',
+        );
+      },
+    );
 
     test('an element that is not an object is reported too', () async {
       await recorder.start();
 
       parseJsonList(['not an object'], QueueItem.fromJson);
 
-      final drop = (await stopAndParse())
-          .firstWhere((r) => r['evt'] == 'parse_drop');
+      final drop = (await stopAndParse()).firstWhere(
+        (r) => r['evt'] == 'parse_drop',
+      );
       expect(drop['n'], 1);
       expect(drop['cause'], contains('not an object'));
     });
@@ -165,12 +174,9 @@ void main() {
     test('nothing dropped — no record at all', () async {
       await recorder.start();
 
-      parseJsonList(
-        [
-          {'id': 1, 'position': 1, 'status': 'pending'},
-        ],
-        QueueItem.fromJson,
-      );
+      parseJsonList([
+        {'id': 1, 'position': 1, 'status': 'pending'},
+      ], QueueItem.fromJson);
 
       expect(
         (await stopAndParse()).where((r) => r['evt'] == 'parse_drop'),
@@ -185,12 +191,9 @@ void main() {
       // untyped `Map.from` builds. The private list parsers this one replaced
       // accepted both; an exact `is Map<String, dynamic>` test would drop them
       // as "not an object" without a word.
-      final items = parseJsonList(
-        <dynamic>[
-          <Object?, Object?>{'id': 1, 'position': 1, 'status': 'pending'},
-        ],
-        QueueItem.fromJson,
-      );
+      final items = parseJsonList(<dynamic>[
+        <Object?, Object?>{'id': 1, 'position': 1, 'status': 'pending'},
+      ], QueueItem.fromJson);
 
       expect(items.single.id, 1);
     });
@@ -206,13 +209,10 @@ void main() {
     });
 
     test('drops one bad record rather than the list', () {
-      final items = parseJsonListOrNull(
-        [
-          {'id': 1, 'position': 1, 'status': 'pending'},
-          {'id': 2, 'status': 'pending'},
-        ],
-        QueueItem.fromJson,
-      );
+      final items = parseJsonListOrNull([
+        {'id': 1, 'position': 1, 'status': 'pending'},
+        {'id': 2, 'status': 'pending'},
+      ], QueueItem.fromJson);
 
       expect(items!.map((i) => i.id), [1]);
     });
@@ -220,36 +220,42 @@ void main() {
 
   group('parseJsonObjectOrNull', () {
     test('parses a nested record', () {
-      final item = parseJsonObjectOrNull(
-        {'id': 7, 'position': 1, 'status': 'pending'},
-        QueueItem.fromJson,
-      );
+      final item = parseJsonObjectOrNull({
+        'id': 7,
+        'position': 1,
+        'status': 'pending',
+      }, QueueItem.fromJson);
 
       expect(item!.id, 7);
     });
 
     test('answers null for anything that is not an object', () {
       for (final junk in [null, 'text', 3, <dynamic>[]]) {
-        expect(parseJsonObjectOrNull(junk, QueueItem.fromJson), isNull,
-            reason: 'input: $junk');
+        expect(
+          parseJsonObjectOrNull(junk, QueueItem.fromJson),
+          isNull,
+          reason: 'input: $junk',
+        );
       }
     });
 
-    test('a record the factory chokes on reads as absent, and is recorded',
-        () async {
-      // Not a throw: the field is one part of a frame, and losing the frame
-      // over it would take the whole card down with it.
-      await recorder.start();
+    test(
+      'a record the factory chokes on reads as absent, and is recorded',
+      () async {
+        // Not a throw: the field is one part of a frame, and losing the frame
+        // over it would take the whole card down with it.
+        await recorder.start();
 
-      final item =
-          parseJsonObjectOrNull({'id': 1}, QueueItem.fromJson);
+        final item = parseJsonObjectOrNull({'id': 1}, QueueItem.fromJson);
 
-      expect(item, isNull);
-      final drop =
-          (await stopAndParse()).firstWhere((r) => r['evt'] == 'parse_drop');
-      expect(drop['type'], 'QueueItem');
-      expect(drop['n'], 1);
-    });
+        expect(item, isNull);
+        final drop = (await stopAndParse()).firstWhere(
+          (r) => r['evt'] == 'parse_drop',
+        );
+        expect(drop['type'], 'QueueItem');
+        expect(drop['n'], 1);
+      },
+    );
   });
 
   group('parseJsonMapByIdOrNull', () {
@@ -268,10 +274,11 @@ void main() {
     test('drops an entry it cannot read either half of', () {
       // A key that is not a number would otherwise have to be guessed at, and a
       // guessed AMS id addresses the wrong unit.
-      final map = parseJsonMapByIdOrNull(
-        {'0': 1, 'left': 1, '2': 'not a number'},
-        toIntOrNull,
-      );
+      final map = parseJsonMapByIdOrNull({
+        '0': 1,
+        'left': 1,
+        '2': 'not a number',
+      }, toIntOrNull);
 
       expect(map, {0: 1});
     });

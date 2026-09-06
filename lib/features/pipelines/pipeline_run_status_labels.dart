@@ -29,12 +29,10 @@ Color runStatusColour(ColorScheme scheme, PipelineRunStatus status) =>
       PipelineRunStatus.slicing ||
       PipelineRunStatus.dispatching ||
       PipelineRunStatus.inProgress ||
-      PipelineRunStatus.completed =>
-        scheme.primary,
+      PipelineRunStatus.completed => scheme.primary,
       PipelineRunStatus.failed => scheme.error,
       PipelineRunStatus.partialFailure => scheme.tertiary,
       PipelineRunStatus.queued ||
       PipelineRunStatus.cancelled ||
-      PipelineRunStatus.unknown =>
-        scheme.onSurfaceVariant,
+      PipelineRunStatus.unknown => scheme.onSurfaceVariant,
     };

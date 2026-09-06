@@ -37,7 +37,7 @@ void main() {
   final missing = captures.existsSync() && captures.listSync().isNotEmpty
       ? null
       : 'brak test/fixtures/captured — zrób zrzut z własnego serwera: '
-          'tool/capture_fixtures.sh https://twój.serwer';
+            'tool/capture_fixtures.sh https://twój.serwer';
 
   if (missing != null) {
     // One named skip instead of eleven identical ones, and nothing below is
@@ -62,15 +62,18 @@ void main() {
     return payload is List ? payload.length : 1;
   }
 
-  test('printers list parses whole, with the fields the dashboard reads', () async {
-    final count = mock('/api/v1/printers/', 'printers_list.json');
+  test(
+    'printers list parses whole, with the fields the dashboard reads',
+    () async {
+      final count = mock('/api/v1/printers/', 'printers_list.json');
 
-    final printers = await PrintersRepository(dio).fetchPrinters();
+      final printers = await PrintersRepository(dio).fetchPrinters();
 
-    expect(printers, hasLength(count));
-    expect(printers.first.name, isNotEmpty);
-    expect(printers.first.model, 'X2D');
-  });
+      expect(printers, hasLength(count));
+      expect(printers.first.name, isNotEmpty);
+      expect(printers.first.model, 'X2D');
+    },
+  );
 
   test('printer status parses, including AMS, temperatures and HMS', () async {
     mock('/api/v1/printers/1/status', 'printer_status.json');
@@ -113,29 +116,36 @@ void main() {
   // contract, and the message says what to re-run.
   final printLogCapture = File('test/fixtures/captured/print_log.json');
 
-  test('print log page parses whole, with the fields a row shows', () async {
-    // The page is an object, not a list, so the record count comes from
-    // `items` rather than from `mock`'s return.
-    final payload =
-        readFixture('captured/print_log.json') as Map<String, dynamic>;
-    adapter.onGet(
-      '/api/v1/print-log/',
-      (server) => server.reply(200, payload),
-    );
+  test(
+    'print log page parses whole, with the fields a row shows',
+    () async {
+      // The page is an object, not a list, so the record count comes from
+      // `items` rather than from `mock`'s return.
+      final payload =
+          readFixture('captured/print_log.json') as Map<String, dynamic>;
+      adapter.onGet(
+        '/api/v1/print-log/',
+        (server) => server.reply(200, payload),
+      );
 
-    final page = await PrintLogRepository(dio).list();
+      final page = await PrintLogRepository(dio).list();
 
-    expect(page.items, hasLength((payload['items'] as List).length));
-    // An empty log would make every assertion below vacuous — and a capture
-    // that proves nothing should say so rather than pass.
-    expect(page.items, isNotEmpty, reason: 'the captured print log has no rows');
-    expect(page.total, greaterThanOrEqualTo(page.items.length));
-    expect(page.items.first.status, isNotEmpty);
-    expect(page.items.first.createdAt.year, greaterThan(2000));
-  },
-      skip: printLogCapture.existsSync()
-          ? null
-          : 'no captured/print_log.json — re-run tool/capture_fixtures.sh');
+      expect(page.items, hasLength((payload['items'] as List).length));
+      // An empty log would make every assertion below vacuous — and a capture
+      // that proves nothing should say so rather than pass.
+      expect(
+        page.items,
+        isNotEmpty,
+        reason: 'the captured print log has no rows',
+      );
+      expect(page.total, greaterThanOrEqualTo(page.items.length));
+      expect(page.items.first.status, isNotEmpty);
+      expect(page.items.first.createdAt.year, greaterThan(2000));
+    },
+    skip: printLogCapture.existsSync()
+        ? null
+        : 'no captured/print_log.json — re-run tool/capture_fixtures.sh',
+  );
 
   test('spools parse whole, with what the filament screen shows', () async {
     final count = mock('/api/v1/inventory/spools', 'inventory_spools.json');
@@ -157,7 +167,10 @@ void main() {
   });
 
   test('maintenance overview parses, items included', () async {
-    final count = mock('/api/v1/maintenance/overview', 'maintenance_overview.json');
+    final count = mock(
+      '/api/v1/maintenance/overview',
+      'maintenance_overview.json',
+    );
 
     final overview = await MaintenanceRepository(dio).fetchOverview();
 
@@ -219,8 +232,7 @@ void main() {
     }
   });
 
-  test('an endpoint with nothing in it parses to nothing, not to an error',
-      () async {
+  test('an endpoint with nothing in it parses to nothing, not to an error', () async {
     // An empty list is the shape the app spends most of its time rendering, so
     // it is worth pinning — but not against a captured fixture. This used to read
     // `queue_pending.json`, which was `[]` only because the queue happened to be

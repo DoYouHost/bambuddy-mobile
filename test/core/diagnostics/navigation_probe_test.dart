@@ -31,9 +31,9 @@ void main() {
   tearDown(() => recorder.discard());
 
   List<Map<String, dynamic>> parse(String jsonl) => [
-        for (final line in const LineSplitter().convert(jsonl))
-          jsonDecode(line) as Map<String, dynamic>,
-      ];
+    for (final line in const LineSplitter().convert(jsonl))
+      jsonDecode(line) as Map<String, dynamic>,
+  ];
 
   /// Context of the screen at `/`, for pushing dialogs and sheets over it the
   /// way the app does.
@@ -71,11 +71,11 @@ void main() {
   Iterable<Map<String, dynamic>> only(
     List<Map<String, dynamic>> records,
     String evt,
-  ) =>
-      records.where((r) => r['evt'] == evt);
+  ) => records.where((r) => r['evt'] == evt);
 
-  testWidgets('records a screen change from where the user was',
-      (tester) async {
+  testWidgets('records a screen change from where the user was', (
+    tester,
+  ) async {
     final router = await pumpRouter(tester);
     await recorder.start();
 
@@ -117,8 +117,9 @@ void main() {
     expect(route['to'], '/');
   });
 
-  testWidgets('opens the session with the screen it started on',
-      (tester) async {
+  testWidgets('opens the session with the screen it started on', (
+    tester,
+  ) async {
     await pumpRouter(tester, at: '/queue');
     await recorder.start();
 
@@ -187,8 +188,10 @@ void main() {
     router.push('/queue');
     await tester.pumpAndSettle();
 
-    final toQueue = only(await stopAndParse(), 'route')
-        .where((r) => r['to'] == '/queue');
+    final toQueue = only(
+      await stopAndParse(),
+      'route',
+    ).where((r) => r['to'] == '/queue');
     expect(toQueue, hasLength(1));
   });
 
@@ -222,8 +225,9 @@ void main() {
     expect(only(await stopAndParse(), 'open').single['kind'], 'sheet');
   });
 
-  testWidgets("leaves the router's own screens to the location hook",
-      (tester) async {
+  testWidgets("leaves the router's own screens to the location hook", (
+    tester,
+  ) async {
     final router = await pumpRouter(tester);
     await recorder.start();
 
@@ -282,10 +286,13 @@ void main() {
   });
 
   test('the app router reports every tab navigator to the probe', () async {
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider
-          .overrideWithValue(await SharedPreferences.getInstance()),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(
+          await SharedPreferences.getInstance(),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     final shell = container

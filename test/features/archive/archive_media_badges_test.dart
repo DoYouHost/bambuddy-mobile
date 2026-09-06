@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-
 /// The archive screen reads one stored flag (the no-3MF nudge's one-shot
 /// dismissal), so every test that builds it needs prefs in the scope.
 late SharedPreferences _prefs;
@@ -60,7 +59,11 @@ void main() {
   });
 
   testWidgets('photos → znacznik zdjęcia na karcie', (tester) async {
-    await tester.pumpWidget(_screen([_archive(photos: const ['finish.jpg'])]));
+    await tester.pumpWidget(
+      _screen([
+        _archive(photos: const ['finish.jpg']),
+      ]),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.photo_camera), findsOneWidget);

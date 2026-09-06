@@ -73,7 +73,10 @@ class PostedAlert {
 /// Only print-ended events are kept, one entry per printer, and only for as long
 /// as a photo could still arrive for them.
 class FinishAlertMemory {
-  const FinishAlertMemory(this._prefs, {this.window = const Duration(minutes: 20)});
+  const FinishAlertMemory(
+    this._prefs, {
+    this.window = const Duration(minutes: 20),
+  });
 
   final SharedPreferences _prefs;
 

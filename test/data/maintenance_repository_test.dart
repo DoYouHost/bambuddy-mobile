@@ -53,8 +53,13 @@ void main() {
 
     expect(
       () => repo.fetchPrinter(1),
-      throwsA(isA<AuthException>()
-          .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
+      throwsA(
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.unauthorized,
+        ),
+      ),
     );
   });
 
@@ -67,10 +72,14 @@ void main() {
     );
     // http_mock_adapter nie przechwytuje body bezpośrednio — sprawdzamy przez
     // interceptor, że żądanie poszło z oczekiwanym kształtem.
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
-      sentBody = o.data;
-      h.next(o);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (o, h) {
+          sentBody = o.data;
+          h.next(o);
+        },
+      ),
+    );
 
     await repo.perform(10, notes: 'wyczyszczone');
 
@@ -86,8 +95,13 @@ void main() {
 
     expect(
       () => repo.perform(10),
-      throwsA(isA<AuthException>()
-          .having((e) => e.code, 'code', AppErrorCode.forbidden)),
+      throwsA(
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.forbidden,
+        ),
+      ),
     );
   });
 }

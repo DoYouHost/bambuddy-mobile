@@ -43,8 +43,11 @@ void main() {
 
     final items = await repo.fetch();
 
-    expect(items, hasLength(payload.length),
-        reason: 'ani jeden rekord nie może wypaść przy parsowaniu');
+    expect(
+      items,
+      hasLength(payload.length),
+      reason: 'ani jeden rekord nie może wypaść przy parsowaniu',
+    );
     expect(items.map((i) => i.id), payload.map((r) => (r as Map)['id']));
   });
 
@@ -58,30 +61,41 @@ void main() {
     final items = await repo.fetch();
 
     expect(items, hasLength(payload.length));
-    expect(items.map((i) => i.bedLevelling),
-        [CalibrationOption.off, CalibrationOption.auto]);
-    expect(items.map((i) => i.nozzleOffsetCali),
-        [CalibrationOption.auto, CalibrationOption.off]);
-    expect(items.where((i) => i.isActive), hasLength(2),
-        reason: 'pending + printing — ekran kolejki ma co pokazać');
+    expect(items.map((i) => i.bedLevelling), [
+      CalibrationOption.off,
+      CalibrationOption.auto,
+    ]);
+    expect(items.map((i) => i.nozzleOffsetCali), [
+      CalibrationOption.auto,
+      CalibrationOption.off,
+    ]);
+    expect(
+      items.where((i) => i.isActive),
+      hasLength(2),
+      reason: 'pending + printing — ekran kolejki ma co pokazać',
+    );
   });
 
-  test('fetch: pozycje spoza AMS i dziwne nazwy przechodzą bez straty',
-      () async {
-    final payload = readFixture('queue_list.json') as List<dynamic>;
-    adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
+  test(
+    'fetch: pozycje spoza AMS i dziwne nazwy przechodzą bez straty',
+    () async {
+      final payload = readFixture('queue_list.json') as List<dynamic>;
+      adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
 
-    final items = await repo.fetch();
-    final fromLibrary = items.firstWhere((i) => i.libraryFileId != null);
-    final external = items.firstWhere((i) => i.amsMapping?.contains(254) ?? false);
-    final scheduled = items.firstWhere((i) => i.scheduledTime != null);
+      final items = await repo.fetch();
+      final fromLibrary = items.firstWhere((i) => i.libraryFileId != null);
+      final external = items.firstWhere(
+        (i) => i.amsMapping?.contains(254) ?? false,
+      );
+      final scheduled = items.firstWhere((i) => i.scheduledTime != null);
 
-    expect(fromLibrary.libraryFileName, endsWith('.gcode.3mf'));
-    expect(external.amsMapping, contains(254));
-    expect(scheduled.scheduledTime, isA<DateTime>());
-    // Serwer zwraca też nazwy z zepsutym kodowaniem — nie mogą nic wywalić.
-    expect(items.map((i) => i.displayName), isNot(contains(isNull)));
-  });
+      expect(fromLibrary.libraryFileName, endsWith('.gcode.3mf'));
+      expect(external.amsMapping, contains(254));
+      expect(scheduled.scheduledTime, isA<DateTime>());
+      // Serwer zwraca też nazwy z zepsutym kodowaniem — nie mogą nic wywalić.
+      expect(items.map((i) => i.displayName), isNot(contains(isNull)));
+    },
+  );
 
   test('fetch: historia nie trafia do aktywnej kolejki', () async {
     // Cała ta odpowiedź to pozycje zakończone (completed/cancelled/failed) —
@@ -108,16 +122,16 @@ void main() {
     /// Dwa filtrowane żądania zamiast jednego po całość — dopasowanie po
     /// `queryParameters` jest tu istotą testu, nie ozdobą.
     void mockStatus(String status, List<dynamic> reply) => adapter.onGet(
-          '/api/v1/queue/',
-          (server) => server.reply(200, reply),
-          queryParameters: {'status': status},
-        );
+      '/api/v1/queue/',
+      (server) => server.reply(200, reply),
+      queryParameters: {'status': status},
+    );
 
     Map<String, dynamic> item(int id, String status) => {
-          'id': id,
-          'position': 1,
-          'status': status,
-        };
+      'id': id,
+      'position': 1,
+      'status': status,
+    };
 
     test('pyta osobno o pending i printing, scala odpowiedzi', () async {
       mockStatus('pending', [item(2, 'pending'), item(3, 'pending')]);
@@ -126,22 +140,26 @@ void main() {
       final items = await repo.fetchActive();
 
       expect(items.map((i) => i.id).toSet(), {1, 2, 3});
-      expect(items.where((i) => i.statusKind == QueueItemStatusKind.printing),
-          hasLength(1));
+      expect(
+        items.where((i) => i.statusKind == QueueItemStatusKind.printing),
+        hasLength(1),
+      );
     });
 
-    test('pozycja, która ruszyła między odpowiedziami, jest raz i jako drukująca',
-        () async {
-      // Wyścig wbudowany w dwa żądania: scheduler wystartował 7 po tym, jak
-      // lista pending została zbudowana.
-      mockStatus('pending', [item(7, 'pending')]);
-      mockStatus('printing', [item(7, 'printing')]);
+    test(
+      'pozycja, która ruszyła między odpowiedziami, jest raz i jako drukująca',
+      () async {
+        // Wyścig wbudowany w dwa żądania: scheduler wystartował 7 po tym, jak
+        // lista pending została zbudowana.
+        mockStatus('pending', [item(7, 'pending')]);
+        mockStatus('printing', [item(7, 'printing')]);
 
-      final items = await repo.fetchActive();
+        final items = await repo.fetchActive();
 
-      expect(items, hasLength(1));
-      expect(items.single.statusKind, QueueItemStatusKind.printing);
-    });
+        expect(items, hasLength(1));
+        expect(items.single.statusKind, QueueItemStatusKind.printing);
+      },
+    );
 
     test('pusta kolejka to pusta lista, nie błąd', () async {
       mockStatus('pending', const []);
@@ -181,10 +199,7 @@ void main() {
   });
 
   test('delete: wysyła DELETE /queue/78 i kończy się bez wyjątku', () async {
-    adapter.onDelete(
-      '/api/v1/queue/78',
-      (server) => server.reply(200, null),
-    );
+    adapter.onDelete('/api/v1/queue/78', (server) => server.reply(200, null));
 
     await repo.delete(78);
   });
@@ -198,42 +213,48 @@ void main() {
     await repo.start(78);
   });
 
-  test('cancel: wysyła POST /queue/78/cancel i kończy się bez wyjątku',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/78/cancel',
-      (server) => server.reply(200, null),
-    );
+  test(
+    'cancel: wysyła POST /queue/78/cancel i kończy się bez wyjątku',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/78/cancel',
+        (server) => server.reply(200, null),
+      );
 
-    await repo.cancel(78);
-  });
+      await repo.cancel(78);
+    },
+  );
 
-  test('addFromArchive: wysyła POST /queue/ i kończy się bez wyjątku',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
-    );
+  test(
+    'addFromArchive: wysyła POST /queue/ i kończy się bez wyjątku',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
+      );
 
-    await repo.addFromArchive(77, printerId: 1);
-  });
+      await repo.addFromArchive(77, printerId: 1);
+    },
+  );
 
-  test('addFromArchive z insertAtTop: dokłada insert_at_top=true (reprint)',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {
-        'archive_id': 77,
-        'printer_id': 1,
-        'quantity': 1,
-        'insert_at_top': true,
-      },
-    );
+  test(
+    'addFromArchive z insertAtTop: dokłada insert_at_top=true (reprint)',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'printer_id': 1,
+          'quantity': 1,
+          'insert_at_top': true,
+        },
+      );
 
-    await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
-  });
+      await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
+    },
+  );
 
   test('addFromArchive z opcjami: cała konfiguracja idzie z POST-em', () async {
     // Sedno poprawki wyścigu: pozycja powstaje już skonfigurowana, więc
@@ -276,29 +297,31 @@ void main() {
     );
   });
 
-  test('addFromLibraryFile z harmonogramem: scheduled_time i cel modelowy',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {
-        'library_file_id': 12,
-        'quantity': 1,
-        'target_model': 'X2D',
-        'target_location': 'Garage',
-        'scheduled_time': '2026-07-28T20:00:00.000Z',
-      },
-    );
+  test(
+    'addFromLibraryFile z harmonogramem: scheduled_time i cel modelowy',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'library_file_id': 12,
+          'quantity': 1,
+          'target_model': 'X2D',
+          'target_location': 'Garage',
+          'scheduled_time': '2026-07-28T20:00:00.000Z',
+        },
+      );
 
-    await repo.addFromLibraryFile(
-      12,
-      options: const QueueCreateOptions(
-        targetModel: 'X2D',
-        targetLocation: 'Garage',
-        scheduledTime: '2026-07-28T20:00:00.000Z',
-      ),
-    );
-  });
+      await repo.addFromLibraryFile(
+        12,
+        options: const QueueCreateOptions(
+          targetModel: 'X2D',
+          targetLocation: 'Garage',
+          scheduledTime: '2026-07-28T20:00:00.000Z',
+        ),
+      );
+    },
+  );
 
   group('kalibracje na zapisie', () {
     /// Repozytorium pytające podstawiony serwer o wersję.
@@ -335,11 +358,7 @@ void main() {
       adapter.onPost(
         '/api/v1/queue/',
         (server) => server.reply(200, null),
-        data: {
-          'archive_id': 77,
-          'quantity': 1,
-          'bed_levelling': 'auto',
-        },
+        data: {'archive_id': 77, 'quantity': 1, 'bed_levelling': 'auto'},
       );
 
       await repoFor('1.2.5.1').addFromArchive(
@@ -348,32 +367,34 @@ void main() {
       );
     });
 
-    test('tworzenie: auto na starym serwerze idzie tak, jak pokazał formularz',
-        () async {
-      // `auto` trafia tu tylko jako wybór zapamiętany z nowszego serwera. Stary
-      // nie ma go gdzie zapisać, a formularz pokazuje wtedy przełącznik
-      // dwustanowy w pozycji ON — więc ON ma pojechać. Pominięcie klucza
-      // oddawało decyzję serwerowi, a jego domyślna dla `flow_cali` to `false`,
-      // czyli ekran mówił co innego, niż się zapisywało.
-      adapter.onPost(
-        '/api/v1/queue/',
-        (server) => server.reply(200, null),
-        data: {
-          'archive_id': 77,
-          'quantity': 1,
-          'bed_levelling': true,
-          'flow_cali': true,
-        },
-      );
+    test(
+      'tworzenie: auto na starym serwerze idzie tak, jak pokazał formularz',
+      () async {
+        // `auto` trafia tu tylko jako wybór zapamiętany z nowszego serwera. Stary
+        // nie ma go gdzie zapisać, a formularz pokazuje wtedy przełącznik
+        // dwustanowy w pozycji ON — więc ON ma pojechać. Pominięcie klucza
+        // oddawało decyzję serwerowi, a jego domyślna dla `flow_cali` to `false`,
+        // czyli ekran mówił co innego, niż się zapisywało.
+        adapter.onPost(
+          '/api/v1/queue/',
+          (server) => server.reply(200, null),
+          data: {
+            'archive_id': 77,
+            'quantity': 1,
+            'bed_levelling': true,
+            'flow_cali': true,
+          },
+        );
 
-      await repoFor('0.2.4.9').addFromArchive(
-        77,
-        options: const QueueCreateOptions(
-          bedLevelling: CalibrationOption.auto,
-          flowCali: CalibrationOption.auto,
-        ),
-      );
-    });
+        await repoFor('0.2.4.9').addFromArchive(
+          77,
+          options: const QueueCreateOptions(
+            bedLevelling: CalibrationOption.auto,
+            flowCali: CalibrationOption.auto,
+          ),
+        );
+      },
+    );
 
     test('edycja: auto na starym serwerze nadal wypada z body', () async {
       // Odwrotnie niż przy tworzeniu: tu JEST zapisana wartość do ochrony.
@@ -410,22 +431,29 @@ void main() {
       );
     });
 
-    test('nasz serwer 0.2.5b2: booleany potwierdzone zapytaniem na żywo',
-        () async {
-      // Sprawdzone 2026-07-30 curlem na własny serwer: `.[0].bed_levelling`
-      // zwraca `true`. Czyli 0.2.5b2 jest PRZED zmianą na trójstan — numer
-      // wersji dawał tę samą odpowiedź, ale przypadkiem, nie z dowodu.
-      final repo = repoFor('0.2.5b2');
-      adapter.onGet(
-        '/api/v1/queue/',
-        (server) => server.reply(200, [
-          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': true},
-        ]),
-      );
-      await repo.fetch();
+    test(
+      'nasz serwer 0.2.5b2: booleany potwierdzone zapytaniem na żywo',
+      () async {
+        // Sprawdzone 2026-07-30 curlem na własny serwer: `.[0].bed_levelling`
+        // zwraca `true`. Czyli 0.2.5b2 jest PRZED zmianą na trójstan — numer
+        // wersji dawał tę samą odpowiedź, ale przypadkiem, nie z dowodu.
+        final repo = repoFor('0.2.5b2');
+        adapter.onGet(
+          '/api/v1/queue/',
+          (server) => server.reply(200, [
+            {
+              'id': 1,
+              'position': 1,
+              'status': 'pending',
+              'bed_levelling': true,
+            },
+          ]),
+        );
+        await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isFalse);
-    });
+        expect(await repo.supportsTriStateCalibration(), isFalse);
+      },
+    );
 
     test('to, co serwer przysłał, bije numer wersji', () async {
       // Ten sam numer wersji, ale gdyby serwer wysyłał stringi — obserwacja ma
@@ -433,19 +461,30 @@ void main() {
       // 0.2.5b2 to beta tego samego cyklu, który wyszedł jako 1.2.5, a leży pod
       // nim w każdym porządku.
       final repo = repoFor('0.2.5b2');
-      expect(await repo.supportsTriStateCalibration(), isFalse,
-          reason: 'zanim cokolwiek zobaczy — ostrożnie');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isFalse,
+        reason: 'zanim cokolwiek zobaczy — ostrożnie',
+      );
 
       adapter.onGet(
         '/api/v1/queue/',
         (server) => server.reply(200, [
-          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': 'auto'},
+          {
+            'id': 1,
+            'position': 1,
+            'status': 'pending',
+            'bed_levelling': 'auto',
+          },
         ]),
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isTrue,
-          reason: 'stringi w odpowiedzi to dowód, nie poszlaka');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isTrue,
+        reason: 'stringi w odpowiedzi to dowód, nie poszlaka',
+      );
     });
 
     test('booleany w odpowiedzi trzymają nas przy starym kształcie', () async {
@@ -473,8 +512,11 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isTrue,
-          reason: 'brak obserwacji → decyduje wersja');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isTrue,
+        reason: 'brak obserwacji → decyduje wersja',
+      );
     });
 
     test('po obserwacji auto jedzie na serwer 0.2.5b2', () async {
@@ -501,20 +543,22 @@ void main() {
       await repo.updateItem(9, bedLevelling: CalibrationOption.auto);
     });
 
-    test('bez serwisu wersji też działa — czytające wywołania go nie mają',
-        () async {
-      adapter.onPatch(
-        '/api/v1/queue/9',
-        (server) => server.reply(200, null),
-        data: {'flow_cali': false},
-      );
+    test(
+      'bez serwisu wersji też działa — czytające wywołania go nie mają',
+      () async {
+        adapter.onPatch(
+          '/api/v1/queue/9',
+          (server) => server.reply(200, null),
+          data: {'flow_cali': false},
+        );
 
-      await QueueRepository(dio).updateItem(
-        9,
-        flowCali: CalibrationOption.off,
-        bedLevelling: CalibrationOption.auto,
-      );
-    });
+        await QueueRepository(dio).updateItem(
+          9,
+          flowCali: CalibrationOption.off,
+          bedLevelling: CalibrationOption.auto,
+        );
+      },
+    );
   });
 
   test('puste opcje nie dokładają nic do body', () async {
@@ -526,8 +570,11 @@ void main() {
       data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
     );
 
-    await repo.addFromArchive(77,
-        printerId: 1, options: const QueueCreateOptions());
+    await repo.addFromArchive(
+      77,
+      printerId: 1,
+      options: const QueueCreateOptions(),
+    );
   });
 
   group('addCrossModel (#671)', () {

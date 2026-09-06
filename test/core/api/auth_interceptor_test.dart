@@ -23,9 +23,10 @@ class _ScriptedAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    final step = script[requests.length <= script.length
-        ? requests.length - 1
-        : script.length - 1];
+    final step =
+        script[requests.length <= script.length
+            ? requests.length - 1
+            : script.length - 1];
     return step(options);
   }
 
@@ -34,12 +35,12 @@ class _ScriptedAdapter implements HttpClientAdapter {
 }
 
 ResponseBody _json(String body, int status) => ResponseBody.fromString(
-      body,
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
+  body,
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
 
 ApiClient _client({
   required AuthMode mode,
@@ -66,8 +67,7 @@ void main() {
       ..jwt = 'niespodziewany'
       ..apiKey = 'bb_niespodziewany';
     final adapter = _ScriptedAdapter([(_) => _json('[]', 200)]);
-    final client =
-        _client(mode: AuthMode.none, store: store, adapter: adapter);
+    final client = _client(mode: AuthMode.none, store: store, adapter: adapter);
 
     await client.dio.get<dynamic>('/api/v1/printers');
 
@@ -79,26 +79,32 @@ void main() {
   test('AuthMode.apiKey ustawia X-API-Key', () async {
     store.apiKey = 'bb_klucz';
     final adapter = _ScriptedAdapter([(_) => _json('[]', 200)]);
-    final client =
-        _client(mode: AuthMode.apiKey, store: store, adapter: adapter);
+    final client = _client(
+      mode: AuthMode.apiKey,
+      store: store,
+      adapter: adapter,
+    );
 
     await client.dio.get<dynamic>('/api/v1/printers');
 
     expect(adapter.requests.single.headers['X-API-Key'], 'bb_klucz');
     expect(
-        adapter.requests.single.headers.containsKey('Authorization'), isFalse);
+      adapter.requests.single.headers.containsKey('Authorization'),
+      isFalse,
+    );
   });
 
   test('AuthMode.jwt ustawia Bearer', () async {
     store.jwt = 'stary-token';
     final adapter = _ScriptedAdapter([(_) => _json('[]', 200)]);
-    final client =
-        _client(mode: AuthMode.jwt, store: store, adapter: adapter);
+    final client = _client(mode: AuthMode.jwt, store: store, adapter: adapter);
 
     await client.dio.get<dynamic>('/api/v1/printers');
 
-    expect(adapter.requests.single.headers['Authorization'],
-        'Bearer stary-token');
+    expect(
+      adapter.requests.single.headers['Authorization'],
+      'Bearer stary-token',
+    );
   });
 
   test('401 przy JWT → refresh → retry z nowym tokenem', () async {
@@ -129,8 +135,9 @@ void main() {
 
   test('401 przy JWT bez możliwości refreshu → błąd wypływa', () async {
     store.jwt = 'wygasly';
-    final adapter =
-        _ScriptedAdapter([(_) => _json('{"detail":"expired"}', 401)]);
+    final adapter = _ScriptedAdapter([
+      (_) => _json('{"detail":"expired"}', 401),
+    ]);
     final client = _client(
       mode: AuthMode.jwt,
       store: store,
@@ -140,18 +147,23 @@ void main() {
 
     await expectLater(
       client.dio.get<dynamic>('/api/v1/printers'),
-      throwsA(isA<DioException>()
-          .having((e) => e.response?.statusCode, 'status', 401)),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          401,
+        ),
+      ),
     );
     expect(adapter.requests, hasLength(1), reason: 'bez retry bez tokenu');
   });
 
-  test('retry po refreshu też dostaje 401 → bez pętli, błąd wypływa',
-      () async {
+  test('retry po refreshu też dostaje 401 → bez pętli, błąd wypływa', () async {
     store.jwt = 'wygasly';
     var refreshCalls = 0;
-    final adapter =
-        _ScriptedAdapter([(_) => _json('{"detail":"revoked"}', 401)]);
+    final adapter = _ScriptedAdapter([
+      (_) => _json('{"detail":"revoked"}', 401),
+    ]);
     final client = _client(
       mode: AuthMode.jwt,
       store: store,
@@ -164,8 +176,13 @@ void main() {
 
     await expectLater(
       client.dio.get<dynamic>('/api/v1/printers'),
-      throwsA(isA<DioException>()
-          .having((e) => e.response?.statusCode, 'status', 401)),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          401,
+        ),
+      ),
     );
     expect(refreshCalls, 1);
     expect(adapter.requests, hasLength(2));
@@ -173,10 +190,14 @@ void main() {
 
   test('401 przy kluczu API → bez refreshu, błąd wypływa', () async {
     store.apiKey = 'bb_uniewazniony';
-    final adapter =
-        _ScriptedAdapter([(_) => _json('{"detail":"revoked"}', 401)]);
-    final client =
-        _client(mode: AuthMode.apiKey, store: store, adapter: adapter);
+    final adapter = _ScriptedAdapter([
+      (_) => _json('{"detail":"revoked"}', 401),
+    ]);
+    final client = _client(
+      mode: AuthMode.apiKey,
+      store: store,
+      adapter: adapter,
+    );
 
     await expectLater(
       client.dio.get<dynamic>('/api/v1/printers'),

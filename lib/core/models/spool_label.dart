@@ -85,15 +85,15 @@ class SpoolLabelRequest {
   final int startingPosition;
 
   Map<String, dynamic> toJson() => {
-        'spool_ids': spoolIds,
-        'template': template.wire,
-        'monochrome': monochrome,
-        // Only when it deviates: 1 is the server's own default, and a server
-        // too old to know the field would drop it silently either way — sending
-        // it unasked would put a key on the wire that proves nothing about who
-        // honoured it.
-        if (startingPosition > 1) 'starting_position': startingPosition,
-      };
+    'spool_ids': spoolIds,
+    'template': template.wire,
+    'monochrome': monochrome,
+    // Only when it deviates: 1 is the server's own default, and a server
+    // too old to know the field would drop it silently either way — sending
+    // it unasked would put a key on the wire that proves nothing about who
+    // honoured it.
+    if (startingPosition > 1) 'starting_position': startingPosition,
+  };
 }
 
 /// Sort position for the label picker's "by colour" mode.

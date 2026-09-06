@@ -40,17 +40,17 @@ DryingStart dryingStart({
   return switch (mode) {
     DryStartMode.now => (startAfter: null, problem: null),
     DryStartMode.delay => (
-        startAfter: now.add(Duration(minutes: delayMinutes)),
-        problem: null,
-      ),
+      startAfter: now.add(Duration(minutes: delayMinutes)),
+      problem: null,
+    ),
     DryStartMode.atTime when at == null => (
-        startAfter: null,
-        problem: DryingStartProblem.noTimePicked,
-      ),
+      startAfter: null,
+      problem: DryingStartProblem.noTimePicked,
+    ),
     DryStartMode.atTime when !at!.isAfter(now) => (
-        startAfter: null,
-        problem: DryingStartProblem.timeInPast,
-      ),
+      startAfter: null,
+      problem: DryingStartProblem.timeInPast,
+    ),
     DryStartMode.atTime => (startAfter: at, problem: null),
   };
 }

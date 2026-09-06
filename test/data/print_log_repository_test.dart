@@ -24,19 +24,23 @@ void main() {
     dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
     adapter = DioAdapter(dio: dio);
     sent = [];
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      sent.add(options);
-      handler.next(options);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          sent.add(options);
+          handler.next(options);
+        },
+      ),
+    );
   });
 
   PrintLogRepository repo() =>
       PrintLogRepository(dio, ServerVersionService(dio));
 
   void replyVersion(String version) => adapter.onGet(
-        versionPath,
-        (s) => s.reply(200, {'version': version, 'repo': 'maziggy/bambuddy'}),
-      );
+    versionPath,
+    (s) => s.reply(200, {'version': version, 'repo': 'maziggy/bambuddy'}),
+  );
 
   /// A row as a 1.2.6 server sends it — every field populated, so a test that
   /// blanks one is saying something.
@@ -44,32 +48,33 @@ void main() {
     int id = 7,
     String status = 'failed',
     Object? failureReason = 'cloggedNozzle',
-  }) =>
-      <String, dynamic>{
-        'id': id,
-        'archive_id': 82,
-        'print_name': 'Y Splitter Connector',
-        'printer_name': 'P1S',
-        'printer_id': 1,
-        'status': status,
-        'started_at': '2026-08-01T10:00:00',
-        'completed_at': '2026-08-01T11:30:00',
-        'duration_seconds': 5400,
-        'filament_type': 'PLA',
-        'filament_color': '#00AE42',
-        'filament_used_grams': 42.5,
-        'cost': 1.23,
-        'energy_kwh': 0.42,
-        'energy_cost': 0.19,
-        'failure_reason': failureReason,
-        'thumbnail_path': 'data/thumbs/7.png',
-        'created_by_id': 2,
-        'created_by_username': 'zosia',
-        'created_at': '2026-08-01T09:59:00',
-      };
+  }) => <String, dynamic>{
+    'id': id,
+    'archive_id': 82,
+    'print_name': 'Y Splitter Connector',
+    'printer_name': 'P1S',
+    'printer_id': 1,
+    'status': status,
+    'started_at': '2026-08-01T10:00:00',
+    'completed_at': '2026-08-01T11:30:00',
+    'duration_seconds': 5400,
+    'filament_type': 'PLA',
+    'filament_color': '#00AE42',
+    'filament_used_grams': 42.5,
+    'cost': 1.23,
+    'energy_kwh': 0.42,
+    'energy_cost': 0.19,
+    'failure_reason': failureReason,
+    'thumbnail_path': 'data/thumbs/7.png',
+    'created_by_id': 2,
+    'created_by_username': 'zosia',
+    'created_at': '2026-08-01T09:59:00',
+  };
 
-  Map<String, dynamic> page(List<Object> items, {int? total}) =>
-      {'items': items, 'total': total ?? items.length};
+  Map<String, dynamic> page(List<Object> items, {int? total}) => {
+    'items': items,
+    'total': total ?? items.length,
+  };
 
   Map<String, dynamic> lastQuery() => sent.last.queryParameters;
 
@@ -97,15 +102,17 @@ void main() {
       });
     });
 
-    test('an empty search is left out rather than sent as an empty match',
-        () async {
-      replyVersion('1.2.5.2');
-      adapter.onGet(listPath, (s) => s.reply(200, page([])));
+    test(
+      'an empty search is left out rather than sent as an empty match',
+      () async {
+        replyVersion('1.2.5.2');
+        adapter.onGet(listPath, (s) => s.reply(200, page([])));
 
-      await repo().list(search: '');
+        await repo().list(search: '');
 
-      expect(lastQuery().containsKey('search'), isFalse);
-    });
+        expect(lastQuery().containsKey('search'), isFalse);
+      },
+    );
 
     test('a date range goes out as a naive UTC instant', () async {
       replyVersion('1.2.5.2');
@@ -124,21 +131,23 @@ void main() {
       expect(lastQuery()['date_to'], '2026-08-31T21:59:59');
     });
 
-    test('parses the page and keeps the server total, not the row count',
-        () async {
-      replyVersion('1.2.5.2');
-      adapter.onGet(
-        listPath,
-        (s) => s.reply(200, page([row(), row(id: 8)], total: 137)),
-      );
+    test(
+      'parses the page and keeps the server total, not the row count',
+      () async {
+        replyVersion('1.2.5.2');
+        adapter.onGet(
+          listPath,
+          (s) => s.reply(200, page([row(), row(id: 8)], total: 137)),
+        );
 
-      final result = await repo().list();
+        final result = await repo().list();
 
-      expect(result.items.map((e) => e.id), [7, 8]);
-      expect(result.total, 137, reason: 'load-more depends on it');
-      expect(result.items.first.printerName, 'P1S');
-      expect(result.items.first.energyKwh, 0.42);
-    });
+        expect(result.items.map((e) => e.id), [7, 8]);
+        expect(result.total, 137, reason: 'load-more depends on it');
+        expect(result.items.first.printerName, 'P1S');
+        expect(result.items.first.energyKwh, 0.42);
+      },
+    );
 
     test('a malformed row drops itself, not the page', () async {
       replyVersion('1.2.5.2');
@@ -152,24 +161,26 @@ void main() {
       expect(result.items.map((e) => e.id), [9]);
     });
 
-    test('a pre-1.2.6 row without cost/energy parses as null, not zero',
-        () async {
-      // The fields are absent, which is what that server sends for every row.
-      // Coercing them to 0 would print "0.00 kWh" against a run that drew
-      // power — a wrong number reads as a measurement, a blank reads as one.
-      replyVersion('1.2.5.2');
-      final legacy = row()
-        ..remove('cost')
-        ..remove('energy_kwh')
-        ..remove('energy_cost');
-      adapter.onGet(listPath, (s) => s.reply(200, page([legacy])));
+    test(
+      'a pre-1.2.6 row without cost/energy parses as null, not zero',
+      () async {
+        // The fields are absent, which is what that server sends for every row.
+        // Coercing them to 0 would print "0.00 kWh" against a run that drew
+        // power — a wrong number reads as a measurement, a blank reads as one.
+        replyVersion('1.2.5.2');
+        final legacy = row()
+          ..remove('cost')
+          ..remove('energy_kwh')
+          ..remove('energy_cost');
+        adapter.onGet(listPath, (s) => s.reply(200, page([legacy])));
 
-      final entry = (await repo().list()).items.single;
+        final entry = (await repo().list()).items.single;
 
-      expect(entry.cost, isNull);
-      expect(entry.energyKwh, isNull);
-      expect(entry.energyCost, isNull);
-    });
+        expect(entry.cost, isNull);
+        expect(entry.energyKwh, isNull);
+        expect(entry.energyCost, isNull);
+      },
+    );
 
     test('a legacy translated failure reason survives parsing', () async {
       // Older web builds saved the label instead of the key, and the
@@ -241,21 +252,23 @@ void main() {
       expect(updated.failureReason, 'layerShift');
     });
 
-    test('an untouched status is absent, so a legacy `aborted` row keeps it',
-        () async {
-      // The PATCH vocabulary has no `aborted`, and the server applies
-      // exclude_unset: not naming the field is the only way to leave it alone.
-      adapter.onPatch(
-        '/api/v1/print-log/7',
-        (s) => s.reply(200, row(status: 'aborted', failureReason: 'warping')),
-        data: {'failure_reason': 'warping'},
-      );
+    test(
+      'an untouched status is absent, so a legacy `aborted` row keeps it',
+      () async {
+        // The PATCH vocabulary has no `aborted`, and the server applies
+        // exclude_unset: not naming the field is the only way to leave it alone.
+        adapter.onPatch(
+          '/api/v1/print-log/7',
+          (s) => s.reply(200, row(status: 'aborted', failureReason: 'warping')),
+          data: {'failure_reason': 'warping'},
+        );
 
-      final updated = await repo().updateEntry(7, failureReason: 'warping');
+        final updated = await repo().updateEntry(7, failureReason: 'warping');
 
-      expect(sent.last.data.containsKey('status'), isFalse);
-      expect(updated.status, 'aborted');
-    });
+        expect(sent.last.data.containsKey('status'), isFalse);
+        expect(updated.status, 'aborted');
+      },
+    );
 
     test('clearing the classification sends an empty string', () async {
       // Not null: the server reads `''` as "unset it" and stores NULL, while an
@@ -295,11 +308,13 @@ void main() {
 
       await expectLater(
         repo().updateEntry(7, failureReason: 'oops'),
-        throwsA(isA<ApiException>().having(
-          (e) => e.detail,
-          'detail',
-          "Unknown failure_reason: 'oops'",
-        )),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            "Unknown failure_reason: 'oops'",
+          ),
+        ),
       );
     });
 
@@ -312,28 +327,37 @@ void main() {
 
       await expectLater(
         repo().updateEntry(7, status: 'completed'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 405)),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 405),
+        ),
       );
     });
 
-    test('a key without can_manage_archives is refused, and it says so',
-        () async {
-      adapter.onPatch(
-        '/api/v1/print-log/7',
-        (s) => s.reply(403, {
-          'detail': "API key does not have 'can_manage_archives' permission",
-        }),
-        data: {'status': 'completed'},
-      );
+    test(
+      'a key without can_manage_archives is refused, and it says so',
+      () async {
+        adapter.onPatch(
+          '/api/v1/print-log/7',
+          (s) => s.reply(403, {
+            'detail': "API key does not have 'can_manage_archives' permission",
+          }),
+          data: {'status': 'completed'},
+        );
 
-      await expectLater(
-        repo().updateEntry(7, status: 'completed'),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.forbidden)
-            .having((e) => e.detail, 'detail', contains('can_manage_archives'))),
-      );
-    });
+        await expectLater(
+          repo().updateEntry(7, status: 'completed'),
+          throwsA(
+            isA<AuthException>()
+                .having((e) => e.code, 'code', AppErrorCode.forbidden)
+                .having(
+                  (e) => e.detail,
+                  'detail',
+                  contains('can_manage_archives'),
+                ),
+          ),
+        );
+      },
+    );
   });
 
   group('delete', () {
@@ -352,8 +376,11 @@ void main() {
       adapter.onDelete(listPath, (s) => s.reply(200, {'deleted': 137}));
 
       expect(await repo().clearAll(), 137);
-      expect(sent.last.queryParameters, isEmpty,
-          reason: 'the route takes no filters — it wipes everything');
+      expect(
+        sent.last.queryParameters,
+        isEmpty,
+        reason: 'the route takes no filters — it wipes everything',
+      );
     });
   });
 }

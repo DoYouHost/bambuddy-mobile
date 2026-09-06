@@ -150,8 +150,16 @@ do not stay silent because it was not part of the task.
   values and carry no user data; the grammar and the traps are in
   [docs/logging-guide.md](docs/logging-guide.md). `/log-coverage` must stay at
   zero unnamed controls.
-- Do **not** run `dart format` across the repo — the existing code is not
-  formatted to its default and a bulk reformat would bury real diffs.
+- **`dart format` is the style, and CI enforces it** (`dart format
+  --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
+  test tool` before pushing and never hand-tune spacing to fight it. The whole
+  tree was formatted in one go once, so there is no longer a "bulk reformat
+  would bury the diff" cost to avoid — that commit is in
+  `.git-blame-ignore-revs`, so `git blame` skips it.
+  Note the one wart: the tall style splits an 80-column `if (…) stmt;` onto two
+  lines, which then trips `curly_braces_in_flow_control_structures`. Fix those
+  with `dart fix --apply --code=curly_braces_in_flow_control_structures`, not by
+  shortening the line.
 - Server timestamps are UTC even when the `Z` is missing; parse through the
   helpers in [lib/core/models/json_utils.dart](lib/core/models/json_utils.dart)
   (`dateTimeFromJson`, `calendarDateFromJson`), never `DateTime.parse`.

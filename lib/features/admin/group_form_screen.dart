@@ -105,8 +105,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   controller: _name,
                   style: fieldStyle,
                   enabled: !_locked,
-                  decoration:
-                      dashFieldDecoration(t, labelText: l10n.groupsFieldName),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.groupsFieldName,
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.usersFieldRequired
@@ -186,7 +188,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
               borderRadius: BorderRadius.circular(14),
               onTap: () => setState(() => _showAdvanced = !_showAdvanced),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -214,10 +219,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           ),
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              l10n.groupsAdvancedHint,
-              style: t.microSoft,
-            ),
+            child: Text(l10n.groupsAdvancedHint, style: t.microSoft),
           ),
           if (_showAdvanced)
             for (final category in advanced)
@@ -234,14 +236,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   }
 
   void _toggle(String permission, bool on) => setState(() {
-        on ? _permissions.add(permission) : _permissions.remove(permission);
-      });
+    on ? _permissions.add(permission) : _permissions.remove(permission);
+  });
 
   void _toggleCategory(PermissionCategory category, bool on) => setState(() {
-        for (final p in category.permissions) {
-          on ? _permissions.add(p.value) : _permissions.remove(p.value);
-        }
-      });
+    for (final p in category.permissions) {
+      on ? _permissions.add(p.value) : _permissions.remove(p.value);
+    }
+  });
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -258,17 +260,20 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
     final result = await runAction(() async {
       if (existing == null) {
-        await repo.create(GroupCreateInput(
-          name: name,
-          description: description.isEmpty ? null : description,
-          permissions: permissions,
-        ));
+        await repo.create(
+          GroupCreateInput(
+            name: name,
+            description: description.isEmpty ? null : description,
+            permissions: permissions,
+          ),
+        );
         return;
       }
       final body = GroupUpdateInput(
         name: _locked || name == existing.name ? null : name,
-        description:
-            description == (existing.description ?? '') ? null : description,
+        description: description == (existing.description ?? '')
+            ? null
+            : description,
         // Sending the set of a system group is refused outright, and it cannot
         // have changed anyway — the editor was disabled.
         permissions: _locked || _samePermissions(existing.permissions)
@@ -290,7 +295,9 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.snack(result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result));
+    messenger.snack(
+      result.isOk ? l10n.groupsSaved : userWriteMessage(l10n, result),
+    );
     if (result.isOk) navigator.pop();
   }
 
@@ -321,8 +328,9 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final count =
-        category.permissions.where((p) => selected.contains(p.value)).length;
+    final count = category.permissions
+        .where((p) => selected.contains(p.value))
+        .length;
     final all = count == category.permissions.length;
 
     return Padding(
@@ -335,7 +343,9 @@ class _CategoryTile extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: count > 0 ? t.accentGreen.withValues(alpha: 0.3) : t.subCardBorder,
+            color: count > 0
+                ? t.accentGreen.withValues(alpha: 0.3)
+                : t.subCardBorder,
           ),
         ),
         child: Theme(
@@ -346,15 +356,12 @@ class _CategoryTile extends StatelessWidget {
             childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             title: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    category.name,
-                    style: t.titleSm,
-                  ),
-                ),
+                Expanded(child: Text(category.name, style: t.titleSm)),
                 Text(
                   '$count/${category.permissions.length}',
-                  style: t.monoLabel.copyWith(color: count > 0 ? t.accentGreenInk : t.textTertiary),
+                  style: t.monoLabel.copyWith(
+                    color: count > 0 ? t.accentGreenInk : t.textTertiary,
+                  ),
                 ),
                 Checkbox(
                   value: all,
@@ -371,19 +378,14 @@ class _CategoryTile extends StatelessWidget {
               for (final p in category.permissions)
                 CheckboxListTile(
                   value: selected.contains(p.value),
-                  onChanged:
-                      enabled ? (v) => onToggle(p.value, v ?? false) : null,
+                  onChanged: enabled
+                      ? (v) => onToggle(p.value, v ?? false)
+                      : null,
                   controlAffinity: ListTileControlAffinity.leading,
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  title: Text(
-                    p.label,
-                    style: t.body,
-                  ),
-                  subtitle: Text(
-                    p.value,
-                    style: t.monoMicro,
-                  ),
+                  title: Text(p.label, style: t.body),
+                  subtitle: Text(p.value, style: t.monoMicro),
                 ).tagged('group_form.permission'),
             ],
           ).tagged('group_form.category'),
@@ -414,10 +416,7 @@ class _LockedNotice extends StatelessWidget {
           Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: t.label.copyWith(color: t.textPrimary),
-            ),
+            child: Text(text, style: t.label.copyWith(color: t.textPrimary)),
           ),
         ],
       ),
@@ -426,10 +425,9 @@ class _LockedNotice extends StatelessWidget {
 }
 
 /// Imperative entry: create a group.
-Future<void> openGroupCreate(BuildContext context) =>
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const GroupFormScreen()),
-    );
+Future<void> openGroupCreate(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute<void>(builder: (_) => const GroupFormScreen()));
 
 /// Imperative entry: edit [group].
 Future<void> openGroupEdit(BuildContext context, GroupSummary group) =>

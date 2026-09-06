@@ -60,9 +60,15 @@ void main() {
     test('failureRate liczony z sum, nie jako średnia procentów', () {
       // 0% na 90 wydrukach + 100% na 10 wydrukach = 10/100, czyli 10% (nie 50%).
       const a = FailureAnalysis(
-          totalPrints: 90, failedPrints: 0, failureRate: 0);
+        totalPrints: 90,
+        failedPrints: 0,
+        failureRate: 0,
+      );
       const b = FailureAnalysis(
-          totalPrints: 10, failedPrints: 10, failureRate: 100);
+        totalPrints: 10,
+        failedPrints: 10,
+        failureRate: 100,
+      );
       expect(a.merge(b).failureRate, 10);
     });
 

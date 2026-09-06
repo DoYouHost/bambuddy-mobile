@@ -55,11 +55,7 @@ class _FakeRepo extends PrinterFilesRepository {
 /// poll reports, so a test can hold the job in `preparing` for as long as it
 /// needs to look at the screen.
 class _JobRepo extends _FakeRepo {
-  _JobRepo(
-    super.listing, {
-    required this.started,
-    required this.poll,
-  });
+  _JobRepo(super.listing, {required this.started, required this.poll});
 
   final PrinterDownloadJob started;
   final PrinterDownloadJob Function() poll;
@@ -77,8 +73,7 @@ class _JobRepo extends _FakeRepo {
     required Map<String, int> sizes,
     required String filename,
     bool asZip = true,
-  }) async =>
-      started;
+  }) async => started;
 
   @override
   Future<PrinterDownloadJob?> downloadJob(int printerId, String jobId) async =>
@@ -109,16 +104,15 @@ PrinterDownloadJob _job(
   int successful = 0,
   int failed = 0,
   String? token,
-}) =>
-    PrinterDownloadJob(
-      jobId: 'j1',
-      printerId: 1,
-      state: state,
-      requested: requested,
-      successful: successful,
-      failed: failed,
-      token: token,
-    );
+}) => PrinterDownloadJob(
+  jobId: 'j1',
+  printerId: 1,
+  state: state,
+  requested: requested,
+  successful: successful,
+  failed: failed,
+  token: token,
+);
 
 void main() {
   Future<AppLocalizations> pumpWith(
@@ -126,16 +120,18 @@ void main() {
     PrinterFileListing listing, {
     PrinterFilesRepository? repo,
   }) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        printerFilesRepositoryProvider
-            .overrideWithValue(repo ?? _FakeRepo(listing)),
-      ],
-      child: plApp(const PrinterFileManagerScreen(
-        printerId: 1,
-        printerName: 'Ultron',
-      )),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          printerFilesRepositoryProvider.overrideWithValue(
+            repo ?? _FakeRepo(listing),
+          ),
+        ],
+        child: plApp(
+          const PrinterFileManagerScreen(printerId: 1, printerName: 'Ultron'),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     return AppLocalizations.of(
       tester.element(find.byType(PrinterFileManagerScreen)),
@@ -149,8 +145,9 @@ void main() {
     expect(find.text(l10n.pfmPrinterUnavailable), findsNothing);
   });
 
-  testWidgets('the unavailable warning says so, and offers a retry',
-      (tester) async {
+  testWidgets('the unavailable warning says so, and offers a retry', (
+    tester,
+  ) async {
     final l10n = await pumpWith(
       tester,
       const PrinterFileListing(printerUnavailable: true),
@@ -162,17 +159,20 @@ void main() {
   });
 
   group('what a screen reader is handed', () {
-    const listing = PrinterFileListing(files: [
-      PrinterFile(
-        name: 'Benchy.gcode.3mf',
-        path: '/Benchy.gcode.3mf',
-        isDirectory: false,
-        size: 2048,
-      ),
-    ]);
+    const listing = PrinterFileListing(
+      files: [
+        PrinterFile(
+          name: 'Benchy.gcode.3mf',
+          path: '/Benchy.gcode.3mf',
+          isDirectory: false,
+          size: 2048,
+        ),
+      ],
+    );
 
-    testWidgets('a file row is one item, and it says whether it is ticked',
-        (tester) async {
+    testWidgets('a file row is one item, and it says whether it is ticked', (
+      tester,
+    ) async {
       // The Checkbox left to itself is a second interactive node with no name:
       // "tick box, not ticked" arrives first, with nothing to say which file it
       // belongs to, and the name follows as its own swipe. Read through the
@@ -184,8 +184,11 @@ void main() {
       SemanticsData row() =>
           tester.getSemantics(find.text('Benchy.gcode.3mf')).getSemanticsData();
 
-      expect(row().flagsCollection.isChecked, CheckedState.isFalse,
-          reason: 'the row carries the tick state, so it has one to report');
+      expect(
+        row().flagsCollection.isChecked,
+        CheckedState.isFalse,
+        reason: 'the row carries the tick state, so it has one to report',
+      );
       expect(row().label, contains('Benchy.gcode.3mf'));
       expect(row().hasAction(SemanticsAction.tap), isTrue);
 
@@ -309,12 +312,16 @@ void main() {
       final l10n = await downloadTheFile(tester);
 
       expect(find.text(l10n.pfmDownloadSaved), findsOneWidget);
-      expect(cache.listSync(), isEmpty,
-          reason: 'the copy the dialog already took stayed in the cache');
+      expect(
+        cache.listSync(),
+        isEmpty,
+        reason: 'the copy the dialog already took stayed in the cache',
+      );
     });
 
-    testWidgets('backing out of the dialog leaves nothing behind either',
-        (tester) async {
+    testWidgets('backing out of the dialog leaves nothing behind either', (
+      tester,
+    ) async {
       // A cancel is where this leaked worst: nothing was saved, so nothing told
       // the user a full-size copy had been kept.
       savedTo = null;
@@ -324,11 +331,14 @@ void main() {
       expect(cache.listSync(), isEmpty);
     });
 
-    testWidgets('a dialog that throws leaves nothing behind either',
-        (tester) async {
+    testWidgets('a dialog that throws leaves nothing behind either', (
+      tester,
+    ) async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-              channel, (call) async => throw PlatformException(code: 'no_room'));
+            channel,
+            (call) async => throw PlatformException(code: 'no_room'),
+          );
 
       final l10n = await downloadTheFile(tester);
 
@@ -417,8 +427,9 @@ void main() {
       });
     }
 
-    testWidgets('a bundle that is ready at once is fetched by its token',
-        (tester) async {
+    testWidgets('a bundle that is ready at once is fetched by its token', (
+      tester,
+    ) async {
       final repo = _JobRepo(
         oneFile,
         started: _job(PrinterDownloadJobState.ready, token: 'tok'),
@@ -434,43 +445,47 @@ void main() {
       expect(cache.listSync(), isEmpty);
     });
 
-    testWidgets('the wait says the server is preparing, and can be called off',
-        (tester) async {
-      // Held in `preparing`: the legacy route would be a silent socket here,
-      // which is the whole reason this path exists.
-      final repo = _JobRepo(
-        oneFile,
-        started: _job(PrinterDownloadJobState.preparing, requested: 3),
-        poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
-      );
-      final l10n = await pumpWith(tester, oneFile, repo: repo);
+    testWidgets(
+      'the wait says the server is preparing, and can be called off',
+      (tester) async {
+        // Held in `preparing`: the legacy route would be a silent socket here,
+        // which is the whole reason this path exists.
+        final repo = _JobRepo(
+          oneFile,
+          started: _job(PrinterDownloadJobState.preparing, requested: 3),
+          poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
+        );
+        final l10n = await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n);
+        await startDownload(tester, l10n);
 
-      expect(find.text(l10n.pfmPreparingOnServer), findsOneWidget);
-      expect(find.text(l10n.pfmSelected(1)), findsNothing);
+        expect(find.text(l10n.pfmPreparingOnServer), findsOneWidget);
+        expect(find.text(l10n.pfmSelected(1)), findsNothing);
 
-      final cancel = find.byIcon(Icons.close);
-      expect(cancel, findsOneWidget);
-      await tester.runAsync(() async {
-        await tester.tap(cancel);
+        final cancel = find.byIcon(Icons.close);
+        expect(cancel, findsOneWidget);
+        await tester.runAsync(() async {
+          await tester.tap(cancel);
+          await tester.pump();
+          // Long enough for the poll the run is sleeping on to come round and
+          // notice the cancellation.
+          final deadline = DateTime.now().add(const Duration(seconds: 3));
+          while (DateTime.now().isBefore(deadline)) {
+            if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) {
+              break;
+            }
+            await tester.pump(const Duration(milliseconds: 50));
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+          }
+        });
         await tester.pump();
-        // Long enough for the poll the run is sleeping on to come round and
-        // notice the cancellation.
-        final deadline = DateTime.now().add(const Duration(seconds: 3));
-        while (DateTime.now().isBefore(deadline)) {
-          if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) break;
-          await tester.pump(const Duration(milliseconds: 50));
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-        }
-      });
-      await tester.pump();
 
-      expect(repo.cancelled, isTrue);
-      expect(repo.fetched, isFalse);
-      expect(find.text(l10n.pfmDownloadCancelled), findsOneWidget);
-      expect(cache.listSync(), isEmpty);
-    });
+        expect(repo.cancelled, isTrue);
+        expect(repo.fetched, isFalse);
+        expect(find.text(l10n.pfmDownloadCancelled), findsOneWidget);
+        expect(cache.listSync(), isEmpty);
+      },
+    );
 
     // Guards the touch target without asserting `meetsGuideline` over the whole
     // screen: the quick-navigation chips above the listing are 36 dp tall and
@@ -484,8 +499,11 @@ void main() {
       );
       final l10n = await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n,
-          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+      await startDownload(
+        tester,
+        l10n,
+        until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
+      );
 
       expect(
         tester.getSize(find.widgetWithIcon(IconButton, Icons.close)),
@@ -494,8 +512,9 @@ void main() {
       await abandonScreen(tester, repo);
     });
 
-    testWidgets('a bundle short of the selection says what was left out',
-        (tester) async {
+    testWidgets('a bundle short of the selection says what was left out', (
+      tester,
+    ) async {
       final repo = _JobRepo(
         oneFile,
         started: _job(
@@ -519,8 +538,9 @@ void main() {
       );
     });
 
-    testWidgets('a preparation the server gives up on says why',
-        (tester) async {
+    testWidgets('a preparation the server gives up on says why', (
+      tester,
+    ) async {
       final repo = _JobRepo(
         oneFile,
         started: _job(PrinterDownloadJobState.preparing),
@@ -546,8 +566,9 @@ void main() {
       expect(repo.fetched, isFalse);
     });
 
-    testWidgets('leaving the screen tells the server to stop preparing',
-        (tester) async {
+    testWidgets('leaving the screen tells the server to stop preparing', (
+      tester,
+    ) async {
       // Otherwise the server goes on pulling gigabytes off the printer for a
       // bundle nobody will save: the screen's own guards skip the save dialog
       // and bin the cache copy, but neither of them reaches the server.
@@ -558,8 +579,11 @@ void main() {
       );
       final l10n = await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n,
-          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+      await startDownload(
+        tester,
+        l10n,
+        until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
+      );
       expect(repo.cancelled, isFalse);
 
       // Replaces the route the way popping it does, and disposes the state.
@@ -569,8 +593,9 @@ void main() {
       expect(repo.fetched, isFalse);
     });
 
-    testWidgets('the Cancel button stays put while the cancellation lands',
-        (tester) async {
+    testWidgets('the Cancel button stays put while the cancellation lands', (
+      tester,
+    ) async {
       // Disabled, not removed: a control that vanishes under the finger takes
       // screen-reader focus with it, back to the top of the route.
       final repo = _JobRepo(
@@ -580,8 +605,11 @@ void main() {
       );
       final l10n = await pumpWith(tester, oneFile, repo: repo);
 
-      await startDownload(tester, l10n,
-          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+      await startDownload(
+        tester,
+        l10n,
+        until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
+      );
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
 
@@ -592,8 +620,9 @@ void main() {
       await abandonScreen(tester, repo);
     });
 
-    testWidgets('a cancelled preparation is recorded, without the file names',
-        (tester) async {
+    testWidgets('a cancelled preparation is recorded, without the file names', (
+      tester,
+    ) async {
       // The report this exists for says "I pressed Download and nothing came".
       // What settles it is the state and the counts — and what must never be in
       // there is what the user called their models.
@@ -657,8 +686,9 @@ void main() {
       expect(jsonl, isNot(contains('Mum birthday present')));
     });
 
-    testWidgets('a server without the route still downloads the file',
-        (tester) async {
+    testWidgets('a server without the route still downloads the file', (
+      tester,
+    ) async {
       // The legacy path, which every server generation serves: no phase to
       // report and no Cancel, but the same bytes on disk at the end.
       final l10n = await pumpWith(tester, oneFile);

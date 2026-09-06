@@ -127,22 +127,12 @@ class ApiException extends AppApiException {
 
 /// Bad credentials, an expired token or key, or missing permissions.
 class AuthException extends AppApiException {
-  const AuthException(
-    super.code, {
-    super.detail,
-    super.method,
-    super.path,
-  });
+  const AuthException(super.code, {super.detail, super.method, super.path});
 }
 
 /// Timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
-  const NetworkException(
-    super.code, {
-    super.detail,
-    super.method,
-    super.path,
-  });
+  const NetworkException(super.code, {super.detail, super.method, super.path});
 }
 
 /// The `on DioException catch (e) { throw mapDioException(e); }` every
@@ -272,13 +262,20 @@ AppApiException mapDioException(DioException e) {
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
-      return NetworkException(AppErrorCode.serverUnreachable,
-          detail: e.message, method: method, path: path);
+      return NetworkException(
+        AppErrorCode.serverUnreachable,
+        detail: e.message,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.badResponse:
       final code = e.response?.statusCode;
       if (code == 401) {
-        return AuthException(AppErrorCode.unauthorized,
-            method: method, path: path);
+        return AuthException(
+          AppErrorCode.unauthorized,
+          method: method,
+          path: path,
+        );
       }
       if (code == 403) {
         // The only party that knows *which* permission is missing is the
@@ -294,17 +291,32 @@ AppApiException mapDioException(DioException e) {
         );
       }
       if (code == 429) {
-        return ApiException(AppErrorCode.tooManyAttempts,
-            statusCode: 429, method: method, path: path);
+        return ApiException(
+          AppErrorCode.tooManyAttempts,
+          statusCode: 429,
+          method: method,
+          path: path,
+        );
       }
-      return ApiException(AppErrorCode.badResponse,
-          statusCode: code, method: method, path: path);
+      return ApiException(
+        AppErrorCode.badResponse,
+        statusCode: code,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.badCertificate:
-      return NetworkException(AppErrorCode.badCertificate,
-          method: method, path: path);
+      return NetworkException(
+        AppErrorCode.badCertificate,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.cancel:
     case DioExceptionType.unknown:
-      return NetworkException(AppErrorCode.connectionError,
-          detail: e.message, method: method, path: path);
+      return NetworkException(
+        AppErrorCode.connectionError,
+        detail: e.message,
+        method: method,
+        path: path,
+      );
   }
 }
