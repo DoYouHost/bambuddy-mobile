@@ -75,7 +75,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final advanced =
-        ref.watch(advancedAuthStatusProvider).valueOrNull ?? AdvancedAuthStatus.legacy;
+        ref.watch(advancedAuthStatusProvider).valueOrNull ??
+        AdvancedAuthStatus.legacy;
     final groups = ref.watch(groupOptionsProvider).valueOrNull ?? const [];
     final fieldStyle = t.bodyStrong;
     // With advanced authentication on, the server picks the password itself and
@@ -111,8 +112,10 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   style: fieldStyle,
                   autocorrect: false,
                   enableSuggestions: false,
-                  decoration:
-                      dashFieldDecoration(t, labelText: l10n.usersFieldUsername),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.usersFieldUsername,
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.usersFieldRequired
@@ -129,14 +132,15 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                     labelText: advanced.enabled
                         ? l10n.usersFieldEmailRequired
                         : l10n.usersFieldEmail,
-                    helperText:
-                        advanced.enabled ? l10n.usersEmailAdvancedHint : null,
+                    helperText: advanced.enabled
+                        ? l10n.usersEmailAdvancedHint
+                        : null,
                   ),
                   textInputAction: TextInputAction.next,
                   validator: (v) =>
                       advanced.enabled && (v == null || v.trim().isEmpty)
-                          ? l10n.usersFieldRequired
-                          : null,
+                      ? l10n.usersFieldRequired
+                      : null,
                 ).tagged('user_form.email'),
                 if (serverPicksPassword) ...[
                   const SizedBox(height: 12),
@@ -266,20 +270,22 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
 
     final result = await runAction(() async {
       if (existing == null) {
-        await repo.create(UserCreateInput(
-          username: username,
-          // With advanced authentication on the server generates it; sending
-          // one anyway would be ignored, so nothing is sent.
-          password: password.isEmpty ? null : password,
-          email: email.isEmpty ? null : email,
-          // The role is deliberately left at its default and never offered as a
-          // field: admin is granted by putting the account in the
-          // Administrators group, which is the one path bambuddy's own UI
-          // shows. `is_admin` is computed from either
-          // (`backend/app/models/user.py::get_permissions`), so the group is
-          // enough.
-          groupIds: groupIds,
-        ));
+        await repo.create(
+          UserCreateInput(
+            username: username,
+            // With advanced authentication on the server generates it; sending
+            // one anyway would be ignored, so nothing is sent.
+            password: password.isEmpty ? null : password,
+            email: email.isEmpty ? null : email,
+            // The role is deliberately left at its default and never offered as a
+            // field: admin is granted by putting the account in the
+            // Administrators group, which is the one path bambuddy's own UI
+            // shows. `is_admin` is computed from either
+            // (`backend/app/models/user.py::get_permissions`), so the group is
+            // enough.
+            groupIds: groupIds,
+          ),
+        );
         return;
       }
       final body = UserUpdateInput(
@@ -309,7 +315,9 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.snack(result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result));
+    messenger.snack(
+      result.isOk ? l10n.usersSaved : userWriteMessage(l10n, result),
+    );
     if (result.isOk) navigator.pop();
   }
 
@@ -350,10 +358,7 @@ class _GroupPicker extends StatelessWidget {
           style: t.label.copyWith(color: t.textSecondary),
         ),
         const SizedBox(height: 2),
-        Text(
-          l10n.usersGroupsAdminHint,
-          style: t.microSoft,
-        ),
+        Text(l10n.usersGroupsAdminHint, style: t.microSoft),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -390,11 +395,7 @@ class _GroupPicker extends StatelessWidget {
 /// Tinted note above a field — says what the server will do, in the place
 /// where the missing input would otherwise be.
 class _Notice extends StatelessWidget {
-  const _Notice({
-    required this.icon,
-    required this.text,
-    required this.accent,
-  });
+  const _Notice({required this.icon, required this.text, required this.accent});
 
   final IconData icon;
   final String text;
@@ -416,10 +417,7 @@ class _Notice extends StatelessWidget {
           Icon(icon, size: 18, color: accent),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: t.label.copyWith(color: t.textPrimary),
-            ),
+            child: Text(text, style: t.label.copyWith(color: t.textPrimary)),
           ),
         ],
       ),
@@ -428,9 +426,9 @@ class _Notice extends StatelessWidget {
 }
 
 /// Imperative entry: create a new account.
-Future<void> openUserCreate(BuildContext context) => Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const UserFormScreen()),
-    );
+Future<void> openUserCreate(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute<void>(builder: (_) => const UserFormScreen()));
 
 /// Imperative entry: edit [user].
 Future<void> openUserEdit(BuildContext context, CurrentUser user) =>

@@ -29,8 +29,10 @@ String gcodeViewerRoute({
   int? plate,
   String? title,
 }) {
-  assert(archiveId != null || libraryFileId != null,
-      'archiveId or libraryFileId required');
+  assert(
+    archiveId != null || libraryFileId != null,
+    'archiveId or libraryFileId required',
+  );
   final name = title?.trim();
   return Uri(
     path: gcodeViewerPath,

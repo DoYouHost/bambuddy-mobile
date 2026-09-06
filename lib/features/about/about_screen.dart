@@ -48,10 +48,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Bambuddy',
-                  style: t.display,
-                ),
+                Text('Bambuddy', style: t.display),
                 const SizedBox(height: 4),
                 const _VersionLabel(),
                 const SizedBox(height: 12),
@@ -108,14 +105,16 @@ class AboutScreen extends StatelessWidget {
   }
 
   Future<void> _open(
-      BuildContext context, String url, AppLocalizations l10n) async {
+    BuildContext context,
+    String url,
+    AppLocalizations l10n,
+  ) async {
     final ok = await launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
     );
     if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context)
-          .snack(l10n.aboutOpenLinkError);
+      ScaffoldMessenger.of(context).snack(l10n.aboutOpenLinkError);
     }
   }
 
@@ -154,10 +153,7 @@ class _VersionLabelState extends State<_VersionLabel> {
         final v = snap.hasData
             ? '${snap.data!.version}+${snap.data!.buildNumber}'
             : '…';
-        return Text(
-          l10n.aboutVersion(v),
-          style: t.monoLabel,
-        );
+        return Text(l10n.aboutVersion(v), style: t.monoLabel);
       },
     );
   }
@@ -189,14 +185,14 @@ class _AboutSection extends StatelessWidget {
           if (title != null)
             Text(
               title!,
-              style: t.bodyBold.copyWith(color: t.accentGreenInk, letterSpacing: 0.2),
+              style: t.bodyBold.copyWith(
+                color: t.accentGreenInk,
+                letterSpacing: 0.2,
+              ),
             ),
           if (body != null) ...[
             const SizedBox(height: 6),
-            Text(
-              body!,
-              style: t.bodySoft,
-            ),
+            Text(body!, style: t.bodySoft),
           ],
           if (title != null || body != null) const SizedBox(height: 12),
           for (var i = 0; i < rows.length; i++) ...[
@@ -263,16 +259,10 @@ class _AboutRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        title,
-                        style: t.titleSm,
-                      ),
+                      Text(title, style: t.titleSm),
                       if (subtitle != null) ...[
                         const SizedBox(height: 3),
-                        Text(
-                          subtitle!,
-                          style: t.label,
-                        ),
+                        Text(subtitle!, style: t.label),
                       ],
                     ],
                   ),

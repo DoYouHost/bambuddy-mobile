@@ -20,7 +20,7 @@ void main() {
   });
 
   group('token()', () {
-    test('mintuje i zwraca token z serwera', () async {
+    test('mints and returns a token from the server', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.reply(200, {'token': 'abc'}),
@@ -30,88 +30,105 @@ void main() {
       expect(result, 'abc');
     });
 
-    test('druga próba używa cache (ten sam token)', () async {
+    test('a second attempt uses the cache (the same token)', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.reply(200, {'token': 'abc'}),
       );
 
       final first = await service.token();
-      // Drugi call nie wykonuje żadnego żądania sieciowego — adapter nie ma
-      // kolejnego wpisu dla tej ścieżki, ale token powinien wrócić z cache.
+      // The second call makes no network request — the adapter has no
+      // second entry for this path, but the token should come back from cache.
       final second = await service.token();
       expect(second, first);
       expect(second, 'abc');
     });
 
-    test('a token past its lifetime is minted again, not served from cache',
-        () async {
-      // The cache keeps a token for 55 minutes. Nothing used to exercise the
-      // far side of that: the service read the wall clock, so the only way to
-      // reach the lapse was to wait for it.
-      // Answered from an interceptor rather than the mock adapter: the
-      // adapter's route handler runs once, when the route is declared, so it
-      // cannot hand out a different token to the second request.
-      var minted = 0;
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        minted++;
-        handler.resolve(Response(
-          requestOptions: options,
-          statusCode: 200,
-          data: {'token': 'abc$minted'},
-        ));
-      }));
+    test(
+      'a token past its lifetime is minted again, not served from cache',
+      () async {
+        // The cache keeps a token for 55 minutes. Nothing used to exercise the
+        // far side of that: the service read the wall clock, so the only way to
+        // reach the lapse was to wait for it.
+        // Answered from an interceptor rather than the mock adapter: the
+        // adapter's route handler runs once, when the route is declared, so it
+        // cannot hand out a different token to the second request.
+        var minted = 0;
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              minted++;
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {'token': 'abc$minted'},
+                ),
+              );
+            },
+          ),
+        );
 
-      final issued = DateTime(2026, 9, 3, 12);
-      expect(await withClock(Clock.fixed(issued), service.token), 'abc1');
-      expect(
-        await withClock(
-            Clock.fixed(issued.add(const Duration(minutes: 54))), service.token),
-        'abc1',
-        reason: 'still inside the lifetime',
-      );
-      expect(
-        await withClock(
-            Clock.fixed(issued.add(const Duration(minutes: 56))), service.token),
-        'abc2',
-      );
-    });
+        final issued = DateTime(2026, 9, 3, 12);
+        expect(await withClock(Clock.fixed(issued), service.token), 'abc1');
+        expect(
+          await withClock(
+            Clock.fixed(issued.add(const Duration(minutes: 54))),
+            service.token,
+          ),
+          'abc1',
+          reason: 'still inside the lifetime',
+        );
+        expect(
+          await withClock(
+            Clock.fixed(issued.add(const Duration(minutes: 56))),
+            service.token,
+          ),
+          'abc2',
+        );
+      },
+    );
 
-    test('malformed (brak pola token) → ApiException malformedResponse',
-        () async {
-      adapter.onPost(
-        _tokenPath,
-        (server) => server.reply(200, {}),
-      );
+    test(
+      'malformed (no token field) → ApiException malformedResponse',
+      () async {
+        adapter.onPost(_tokenPath, (server) => server.reply(200, {}));
 
-      await expectLater(
-        service.token(),
-        throwsA(isA<ApiException>().having(
-          (e) => e.code,
-          'code',
-          AppErrorCode.malformedResponse,
-        )),
-      );
-    });
+        await expectLater(
+          service.token(),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.malformedResponse,
+            ),
+          ),
+        );
+      },
+    );
 
-    test('malformed (token nie jest stringiem) → ApiException malformedResponse',
-        () async {
-      adapter.onPost(
-        _tokenPath,
-        (server) => server.reply(200, {'token': 123}),
-      );
+    test(
+      'malformed (token is not a string) → ApiException malformedResponse',
+      () async {
+        adapter.onPost(
+          _tokenPath,
+          (server) => server.reply(200, {'token': 123}),
+        );
 
-      await expectLater(
-        service.token(),
-        throwsA(isA<ApiException>().having(
-          (e) => e.code,
-          'code',
-          AppErrorCode.malformedResponse,
-        )),
-      );
-    });
+        await expectLater(
+          service.token(),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.malformedResponse,
+            ),
+          ),
+        );
+      },
+    );
 
-    test('błąd sieci → AppApiException', () async {
+    test('a network error → AppApiException', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.throws(
@@ -123,10 +140,7 @@ void main() {
         ),
       );
 
-      await expectLater(
-        service.token(),
-        throwsA(isA<AppApiException>()),
-      );
+      await expectLater(service.token(), throwsA(isA<AppApiException>()));
     });
   });
 }

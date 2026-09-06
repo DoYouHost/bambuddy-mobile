@@ -24,8 +24,9 @@ class _FakeSource implements SpoolInventorySource {
   final List<String> calls = [];
 
   @override
-  Future<List<Spool>> fetchSpools({bool includeArchived = false}) async =>
-      [const Spool(id: 1, material: 'PLA')];
+  Future<List<Spool>> fetchSpools({bool includeArchived = false}) async => [
+    const Spool(id: 1, material: 'PLA'),
+  ];
 
   @override
   Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) async =>
@@ -59,11 +60,13 @@ class _NativeBackend extends InventoryBackendNotifier {
 
 void main() {
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
-    final container = ProviderContainer(overrides: [
-      fakeServerProfileOverride(),
-      inventoryBackendProvider.overrideWith(_NativeBackend.new),
-      inventorySourceProvider.overrideWithValue(source),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        fakeServerProfileOverride(),
+        inventoryBackendProvider.overrideWith(_NativeBackend.new),
+        inventorySourceProvider.overrideWithValue(source),
+      ],
+    );
     addTearDown(container.dispose);
     container.listen(inventoryProvider, (_, _) {});
     await container.read(inventoryProvider.future);
@@ -71,7 +74,12 @@ void main() {
   }
 
   const from = SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 0);
-  const to = SpoolAssignmentDraft(spoolId: 1, printerId: 1, amsId: 0, trayId: 2);
+  const to = SpoolAssignmentDraft(
+    spoolId: 1,
+    printerId: 1,
+    amsId: 0,
+    trayId: 2,
+  );
 
   test('a move clears the target before giving up the source', () async {
     final (container, source) = await harness(_FakeSource());
@@ -84,22 +92,26 @@ void main() {
   });
 
   test('a refused target leaves the spool where it was', () async {
-    final (container, source) =
-        await harness(_FakeSource(refusesTarget: true));
+    final (container, source) = await harness(_FakeSource(refusesTarget: true));
 
     // The refusal reaches the screen, which is what puts the reason in front of
     // the user instead of a silent no-op.
     await expectLater(
       container.read(inventoryProvider.notifier).assignSpool(to, from: from),
-      throwsA(isA<ApiException>().having(
-        (e) => e.code,
-        'code',
-        AppErrorCode.slotTagUnreadable,
-      )),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.slotTagUnreadable,
+        ),
+      ),
     );
 
-    expect(source.calls, ['ensure'],
-        reason: 'the source slot must not be unpinned for a move that failed');
+    expect(
+      source.calls,
+      ['ensure'],
+      reason: 'the source slot must not be unpinned for a move that failed',
+    );
   });
 
   // Assigning into a free slot is one write, so there is nothing to lose and
@@ -112,20 +124,24 @@ void main() {
     expect(source.calls, ['assign']);
   });
 
-  test('re-pinning a spool to the slot it already sits in is a plain assign',
-      () async {
-    final (container, source) = await harness(_FakeSource());
+  test(
+    're-pinning a spool to the slot it already sits in is a plain assign',
+    () async {
+      final (container, source) = await harness(_FakeSource());
 
-    await container.read(inventoryProvider.notifier).assignSpool(
-          const SpoolAssignmentDraft(
-            spoolId: 1,
-            printerId: 1,
-            amsId: 0,
-            trayId: 0,
-          ),
-          from: from,
-        );
+      await container
+          .read(inventoryProvider.notifier)
+          .assignSpool(
+            const SpoolAssignmentDraft(
+              spoolId: 1,
+              printerId: 1,
+              amsId: 0,
+              trayId: 0,
+            ),
+            from: from,
+          );
 
-    expect(source.calls, ['assign']);
-  });
+      expect(source.calls, ['assign']);
+    },
+  );
 }

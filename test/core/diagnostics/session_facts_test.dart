@@ -28,38 +28,45 @@ void main() {
         readServerVersion: readServerVersion,
       );
 
-  test('wersja serwera trafia do faktów sesji', () async {
+  test('server version lands in session facts', () async {
     final f = await facts(readServerVersion: () async => '1.2.5.1');
 
     expect(f.server, '1.2.5.1');
     expect(f.app, '0.11.6+1106');
   });
 
-  test('nagłówek logu niesie ją dalej', () async {
+  test('the log header carries it along', () async {
     final f = await facts(readServerVersion: () async => '0.2.4.9');
     final header = f.toHeader(ts: DateTime(2026, 7, 30), session: 'abc');
 
     expect(header.server, '0.2.4.9');
   });
 
-  test('brak odczytu wersji: nagrywanie startuje bez niej', () async {
-    // Sonda jest opcjonalna — z ekranu ustawień nie ma jeszcze czego pytać.
+  test('no version read: recording starts without it', () async {
+    // The probe is optional — from the settings screen there is nothing yet to ask.
     final f = await facts();
 
     expect(f.server, isNull);
-    expect(f.app, isNotEmpty, reason: 'reszta faktów musi się zebrać');
+    expect(
+      f.app,
+      isNotEmpty,
+      reason: 'the rest of the facts must still be gathered',
+    );
   });
 
-  test('błąd sondy nie przewraca startu nagrywania', () async {
-    // Serwer niedostępny w chwili startu zgłoszenia to normalna sytuacja —
-    // często właśnie dlatego user je nagrywa.
+  test('a probe error does not crash the start of recording', () async {
+    // The server being unreachable at the moment a report starts is a normal
+    // situation — often exactly why the user is recording it.
     final f = await facts(
-      readServerVersion: () async => throw Exception('brak sieci'),
+      readServerVersion: () async => throw Exception('no network'),
     );
 
     expect(f.server, isNull);
     expect(f.app, '0.11.6+1106');
-    expect(f.serverUrl?.scheme, 'https',
-        reason: 'pozostałe fakty zebrane normalnie');
+    expect(
+      f.serverUrl?.scheme,
+      'https',
+      reason: 'the rest of the facts are gathered normally',
+    );
   });
 }

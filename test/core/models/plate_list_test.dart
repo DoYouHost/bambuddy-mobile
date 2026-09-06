@@ -3,16 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Map<String, dynamic> plate(int index, {Object? thumb = true}) => {
-        'index': index,
-        'name': 'Plate $index',
-        'objects': ['bracket', 'lid'],
-        'object_count': 2,
-        'has_thumbnail': thumb,
-        'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/$index',
-        'print_time_seconds': 1200,
-        'filament_used_grams': 12.5,
-        'bed_type': 'Textured PEI Plate',
-      };
+    'index': index,
+    'name': 'Plate $index',
+    'objects': ['bracket', 'lid'],
+    'object_count': 2,
+    'has_thumbnail': thumb,
+    'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/$index',
+    'print_time_seconds': 1200,
+    'filament_used_grams': 12.5,
+    'bed_type': 'Textured PEI Plate',
+  };
 
   group('PlateList.fromJson', () {
     test('reads the plate rows of a multi-plate response', () {
@@ -38,7 +38,10 @@ void main() {
     });
 
     test('a single-plate file is not offered as a choice', () {
-      final list = PlateList.fromJson({'plates': [plate(1)], 'has_gcode': true});
+      final list = PlateList.fromJson({
+        'plates': [plate(1)],
+        'has_gcode': true,
+      });
 
       expect(list.plates, hasLength(1));
       expect(list.isMultiPlate, isFalse);
@@ -98,27 +101,42 @@ void main() {
     test('a thumbnail_url pointing off this server is refused', () {
       final list = PlateList.fromJson({
         'plates': [
-          {'index': 1, 'has_thumbnail': true,
-            'thumbnail_url': 'https://evil.example/steal'},
-          {'index': 2, 'has_thumbnail': true, 'thumbnail_url': '//evil.example/steal'},
+          {
+            'index': 1,
+            'has_thumbnail': true,
+            'thumbnail_url': 'https://evil.example/steal',
+          },
+          {
+            'index': 2,
+            'has_thumbnail': true,
+            'thumbnail_url': '//evil.example/steal',
+          },
           {'index': 3, 'has_thumbnail': true, 'thumbnail_url': 'plate.png'},
-          {'index': 4, 'has_thumbnail': true,
-            'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/4'},
+          {
+            'index': 4,
+            'has_thumbnail': true,
+            'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/4',
+          },
         ],
       });
 
       expect(list.byIndex(1)?.thumbnailPath, isNull);
       expect(list.byIndex(2)?.thumbnailPath, isNull);
       expect(list.byIndex(3)?.thumbnailPath, isNull);
-      expect(list.byIndex(4)?.thumbnailPath,
-          '/api/v1/archives/82/plate-thumbnail/4');
+      expect(
+        list.byIndex(4)?.thumbnailPath,
+        '/api/v1/archives/82/plate-thumbnail/4',
+      );
     });
 
     test('malformed payload degrades instead of throwing', () {
       expect(PlateList.fromJson(const {}).plates, isEmpty);
       expect(PlateList.fromJson(const {'plates': 'nope'}).plates, isEmpty);
       expect(
-        PlateList.fromJson(const {'plates': [], 'unknown_future_key': 1}).plates,
+        PlateList.fromJson(const {
+          'plates': [],
+          'unknown_future_key': 1,
+        }).plates,
         isEmpty,
       );
     });
@@ -158,12 +176,17 @@ void main() {
 
       expect(list.plates, hasLength(2));
       expect(list.embedded.printer, 'Bambu Lab X2D 0.4 nozzle');
-      expect(list.embedded.isAvailable, isTrue,
-          reason: 'an empty override list is still a server that has the key');
+      expect(
+        list.embedded.isAvailable,
+        isTrue,
+        reason: 'an empty override list is still a server that has the key',
+      );
     });
 
     test('a payload without the design keys offers nothing to slice as', () {
-      final list = PlateList.fromJson({'plates': [plate(1)]});
+      final list = PlateList.fromJson({
+        'plates': [plate(1)],
+      });
 
       expect(list.embedded.isAvailable, isFalse);
       expect(PlateList.none.embedded.isAvailable, isFalse);
@@ -171,7 +194,9 @@ void main() {
   });
 
   group('PlateList.byIndex', () {
-    final list = PlateList.fromJson({'plates': [plate(1), plate(4)]});
+    final list = PlateList.fromJson({
+      'plates': [plate(1), plate(4)],
+    });
 
     test('finds the row for a plate the file has', () {
       expect(list.byIndex(4)?.name, 'Plate 4');

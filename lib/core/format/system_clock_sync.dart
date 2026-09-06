@@ -30,8 +30,7 @@ class SystemClockQuery {
   /// Who to ask. Injectable so a test can answer for either clock.
   final PlatformQuery platform;
 
-  Future<bool?> read() =>
-      platform.ask<bool?>('is24HourFormat', fallback: null);
+  Future<bool?> read() => platform.ask<bool?>('is24HourFormat', fallback: null);
 }
 
 /// Writes the clock down for the isolates that cannot read it, then tells a
@@ -136,10 +135,10 @@ class _SystemClockSyncState extends State<SystemClockSync>
 
   @override
   Widget build(BuildContext context) => MediaQuery(
-        // The whole data, not just the flag: this replaces the app's metrics for
-        // everything below, and dropping the rest would take the text scale and
-        // the insets with it.
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: _use24Hour),
-        child: widget.child,
-      );
+    // The whole data, not just the flag: this replaces the app's metrics for
+    // everything below, and dropping the rest would take the text scale and
+    // the insets with it.
+    data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: _use24Hour),
+    child: widget.child,
+  );
 }

@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Fake notifier — zwraca podaną listę bez dotykania repozytorium/sieci.
+/// Fake notifier — returns the given list without touching the repository/network.
 class _FakeQueueNotifier extends QueueNotifier {
   _FakeQueueNotifier(this._items);
 
@@ -28,36 +28,45 @@ class _FakeQueueNotifier extends QueueNotifier {
 }
 
 Widget _screen(List<QueueItem> items) => ProviderScope(
-      overrides: [
-        queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
-        noServerProfileOverride,
-      ],
-      child: plApp(const QueueScreen()),
-    );
+  overrides: [
+    queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
+    noServerProfileOverride,
+  ],
+  child: plApp(const QueueScreen()),
+);
 
 void main() {
-  testWidgets('renderuje kartę kolejki: nazwa, status i drukarka z fixture\'a',
-      (tester) async {
-    final item = QueueItem.fromJson(
-        readFixture('queue_item.json') as Map<String, dynamic>);
+  testWidgets(
+    'renders the queue card: name, status and printer from the fixture',
+    (tester) async {
+      final item = QueueItem.fromJson(
+        readFixture('queue_item.json') as Map<String, dynamic>,
+      );
 
-    await tester.pumpWidget(_screen([item]));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_screen([item]));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Multi-material drawer fronts - Plate 4'), findsOneWidget);
-    expect(find.text('Drukuje'), findsOneWidget, reason: 'status printing → pl');
-    expect(find.textContaining('X2D-3DP'), findsOneWidget);
-  });
+      expect(
+        find.text('Multi-material drawer fronts - Plate 4'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Drukuje'),
+        findsOneWidget,
+        reason: 'status printing → pl',
+      );
+      expect(find.textContaining('X2D-3DP'), findsOneWidget);
+    },
+  );
 
-  testWidgets('pusta kolejka pokazuje komunikat', (tester) async {
+  testWidgets('an empty queue shows a message', (tester) async {
     await tester.pumpWidget(_screen(const []));
     await tester.pumpAndSettle();
 
     expect(find.text('Kolejka jest pusta'), findsOneWidget);
   });
 
-  testWidgets('brak FAB gdy w kolejce są tylko wydruki drukowane',
-      (tester) async {
+  testWidgets('no FAB when the queue only has printing items', (tester) async {
     final json = readFixture('queue_item.json') as Map<String, dynamic>;
     final printing = QueueItem.fromJson({...json, 'status': 'printing'});
 
@@ -67,8 +76,9 @@ void main() {
     expect(find.text('Uruchom następny'), findsNothing);
   });
 
-  testWidgets('FAB „Uruchom następny" widoczny gdy są oczekujące wydruki',
-      (tester) async {
+  testWidgets('the "Start next" FAB is visible when there are pending prints', (
+    tester,
+  ) async {
     final json = readFixture('queue_item.json') as Map<String, dynamic>;
     final pending = QueueItem.fromJson({...json, 'status': 'pending'});
 
@@ -78,10 +88,11 @@ void main() {
     expect(find.text('Uruchom następny'), findsOneWidget);
   });
 
-  testWidgets('swipe na elemencie oczekującym ujawnia potwierdzenie usunięcia',
-      (tester) async {
-    // Element drukujący jest przypięty (bez Dismissible) — do swipe potrzebny
-    // element reorderowalny, więc nadpisujemy status na „pending".
+  testWidgets('swiping a pending item reveals the delete confirmation', (
+    tester,
+  ) async {
+    // A printing item is pinned (no Dismissible) — swiping needs a
+    // reorderable item, so we overwrite the status to "pending".
     final json = readFixture('queue_item.json') as Map<String, dynamic>;
     final item = QueueItem.fromJson({...json, 'status': 'pending'});
 
@@ -122,8 +133,9 @@ void main() {
           requirePlateClearProvider.overrideWith((ref) async => true),
           printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
           // The mapping sheet with nothing to map: one confirm button.
-          filamentRequirementsProvider
-              .overrideWith((ref, key) async => const []),
+          filamentRequirementsProvider.overrideWith(
+            (ref, key) async => const [],
+          ),
           printerTraysProvider.overrideWith((ref, printerId) async => const []),
         ],
         child: plApp(const QueueScreen()),
@@ -149,8 +161,9 @@ void main() {
       expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
     }
 
-    testWidgets('the print still starts when the row goes mid-request',
-        (tester) async {
+    testWidgets('the print still starts when the row goes mid-request', (
+      tester,
+    ) async {
       await startUntilRequestInFlight(tester);
 
       // The queue refreshes and this item is gone — the card is disposed while
@@ -163,21 +176,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(queue.started, [(item: 78, printer: 1)],
-          reason: 'the start the user asked for is not dropped');
+      expect(queue.started, [
+        (item: 78, printer: 1),
+      ], reason: 'the start the user asked for is not dropped');
     });
 
-    testWidgets('a refusal after the row is gone is still explained',
-        (tester) async {
+    testWidgets('a refusal after the row is gone is still explained', (
+      tester,
+    ) async {
       await startUntilRequestInFlight(tester);
 
       queue.replace(const []);
       await tester.pump();
-      commands.release(const ApiException(
-        AppErrorCode.badResponse,
-        statusCode: 400,
-        detail: 'Printer not connected',
-      ));
+      commands.release(
+        const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 400,
+          detail: 'Printer not connected',
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -218,8 +235,8 @@ class _MutableQueueNotifier extends QueueNotifier {
 class _DirtyPlateStatuses extends PrinterStatusesNotifier {
   @override
   Map<int, PrinterStatus> build() => const {
-        1: PrinterStatus(id: 1, connected: false, awaitingPlateClear: true),
-      };
+    1: PrinterStatus(id: 1, connected: false, awaitingPlateClear: true),
+  };
 }
 
 /// Holds the plate-clear acknowledgement open until a test answers it.

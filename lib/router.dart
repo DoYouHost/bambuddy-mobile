@@ -43,17 +43,22 @@ import 'providers.dart';
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
 /// Navigator keys for each shell branch.
-final _dashboardNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
-final _queueNavigatorKey       = GlobalKey<NavigatorState>(debugLabel: 'queue');
-final _archiveNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'archive');
-final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'maintenance');
-final _inventoryNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'inventory');
+final _dashboardNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'dashboard',
+);
+final _queueNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'queue');
+final _archiveNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'archive');
+final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'maintenance',
+);
+final _inventoryNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'inventory',
+);
 
 /// App router with bottom navigation bar shell (Material 3).
 /// /setup route stays outside shell — shown without NavigationBar.
 final routerProvider = Provider<GoRouter>((ref) {
-  final hasProfile =
-      ref.watch(serverProfileProvider.select((p) => p != null));
+  final hasProfile = ref.watch(serverProfileProvider.select((p) => p != null));
   // Diagnostic log: the probe follows the location, and a `ModalObserver` per
   // navigator catches what is pushed over a screen (a sheet opened inside a tab
   // goes on that tab's navigator). Both must exist before the router —
@@ -99,32 +104,20 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Bug report — full screen outside shell (pushed from drawer, and from
       // the recording bar when a session is finished elsewhere).
-      GoRoute(
-        path: bugReportRoute,
-        builder: (_, _) => const BugReportScreen(),
-      ),
+      GoRoute(path: bugReportRoute, builder: (_, _) => const BugReportScreen()),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
-      GoRoute(
-        path: '/stats',
-        builder: (_, _) => const StatisticsScreen(),
-      ),
+      GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),
 
       // Slicer pipelines — full screen outside shell (pushed from drawer).
       // The runs dashboard is pushed from it rather than routed: it is only
       // ever reached through a pipeline, and a deep link to it on a server
       // without the routes would land on an error.
-      GoRoute(
-        path: '/pipelines',
-        builder: (_, _) => const PipelinesScreen(),
-      ),
+      GoRoute(path: '/pipelines', builder: (_, _) => const PipelinesScreen()),
 
       // Print log — per-run history, full screen outside shell (opened from the
       // archive's menu and from the Stats failure card).
-      GoRoute(
-        path: '/print-log',
-        builder: (_, _) => const PrintLogScreen(),
-      ),
+      GoRoute(path: '/print-log', builder: (_, _) => const PrintLogScreen()),
 
       // File manager (library) — full screen outside shell (pushed from drawer).
       // Trash as subroute.
@@ -132,18 +125,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/files',
         builder: (_, _) => const FileManagerScreen(),
         routes: [
-          GoRoute(
-            path: 'trash',
-            builder: (_, _) => const TrashScreen(),
-          ),
+          GoRoute(path: 'trash', builder: (_, _) => const TrashScreen()),
         ],
       ),
 
       // MakerWorld — model import; full screen outside shell (pushed from drawer).
-      GoRoute(
-        path: '/makerworld',
-        builder: (_, _) => const MakerWorldScreen(),
-      ),
+      GoRoute(path: '/makerworld', builder: (_, _) => const MakerWorldScreen()),
 
       // Projects — group prints toward a goal; full screen outside shell
       // (pushed from drawer). Detail as subroute by id.
@@ -165,10 +152,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Filament swatch codes — full screen outside shell (pushed from drawer).
-      GoRoute(
-        path: '/swatches',
-        builder: (_, _) => const SwatchesScreen(),
-      ),
+      GoRoute(path: '/swatches', builder: (_, _) => const SwatchesScreen()),
 
       // Bambu Cloud account (login for MakerWorld downloads) — in settings;
       // full screen outside shell (pushed from drawer or import).
@@ -181,16 +165,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // drawer, shown there only to an identity holding one of the three read
       // permissions). Each screen below is reachable on its own, so a deep
       // link still works; the hub is what the drawer offers.
-      GoRoute(
-        path: '/admin',
-        builder: (_, _) => const AdminScreen(),
-      ),
+      GoRoute(path: '/admin', builder: (_, _) => const AdminScreen()),
 
       // Accounts on the server, gated on `users:read`.
-      GoRoute(
-        path: '/admin/users',
-        builder: (_, _) => const UsersScreen(),
-      ),
+      GoRoute(path: '/admin/users', builder: (_, _) => const UsersScreen()),
 
       // API keys — credentials for everything that is not this app.
       GoRoute(
@@ -217,10 +195,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // About + licenses — full screen outside shell (pushed from drawer).
-      GoRoute(
-        path: '/about',
-        builder: (_, _) => const AboutScreen(),
-      ),
+      GoRoute(path: '/about', builder: (_, _) => const AboutScreen()),
 
       // G-code viewer (WebView) — full screen outside shell. Source in query:
       // `archive` or `library_file` (+ optionally `plate`); `name` sets title.

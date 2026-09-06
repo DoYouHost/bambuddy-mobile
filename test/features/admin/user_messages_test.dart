@@ -20,25 +20,34 @@ void main() {
   });
 
   ActionOutcome refused(String? detail) => ActionOutcome.failed(
-        ApiException(AppErrorCode.badResponse, statusCode: 400, detail: detail),
-      );
+    ApiException(AppErrorCode.badResponse, statusCode: 400, detail: detail),
+  );
 
   test('the three last-admin rules are told apart', () {
     // All three details contain "last admin", so the table's order is what
     // keeps them from collapsing into the generic one.
-    expect(userWriteMessage(en, refused('Cannot delete the last admin user')),
-        en.usersErrLastAdminDelete);
     expect(
-        userWriteMessage(en, refused('Cannot deactivate the last admin user')),
-        en.usersErrLastAdminDeactivate);
+      userWriteMessage(en, refused('Cannot delete the last admin user')),
+      en.usersErrLastAdminDelete,
+    );
     expect(
-        userWriteMessage(en, refused('Cannot change role of the last admin user')),
-        en.usersErrLastAdminRole);
+      userWriteMessage(en, refused('Cannot deactivate the last admin user')),
+      en.usersErrLastAdminDeactivate,
+    );
+    expect(
+      userWriteMessage(
+        en,
+        refused('Cannot change role of the last admin user'),
+      ),
+      en.usersErrLastAdminRole,
+    );
   });
 
   test('a last-admin refusal worded some other way still lands', () {
-    expect(userWriteMessage(en, refused('This is the last admin account')),
-        en.usersErrLastAdmin);
+    expect(
+      userWriteMessage(en, refused('This is the last admin account')),
+      en.usersErrLastAdmin,
+    );
   });
 
   test('each remaining rule maps to its own sentence', () {
@@ -48,7 +57,8 @@ void main() {
       'Email already exists': en.usersErrEmailTaken,
       'Cannot set password for LDAP users': en.usersErrLdapPassword,
       'Cannot change password for LDAP users — passwords are managed by the '
-          'LDAP server': en.usersErrLdapPassword,
+              'LDAP server':
+          en.usersErrLdapPassword,
       'Email is required when advanced authentication is enabled':
           en.usersErrEmailRequired,
       'Password is required when advanced authentication is disabled':
@@ -61,15 +71,19 @@ void main() {
   });
 
   test('the sentence is the user\'s language, not the server\'s', () {
-    expect(userWriteMessage(pl, refused('Username already exists')),
-        pl.usersErrUsernameTaken);
+    expect(
+      userWriteMessage(pl, refused('Username already exists')),
+      pl.usersErrUsernameTaken,
+    );
   });
 
   test('a rule we do not know is quoted rather than swallowed', () {
     // A server phrasing the app has not met is still the most informative
     // thing available.
-    expect(userWriteMessage(en, refused('Cannot rename system groups')),
-        'Cannot rename system groups');
+    expect(
+      userWriteMessage(en, refused('Cannot rename system groups')),
+      'Cannot rename system groups',
+    );
   });
 
   test('a refusal the server did not explain falls back to the code', () {

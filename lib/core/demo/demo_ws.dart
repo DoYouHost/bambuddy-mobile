@@ -30,11 +30,13 @@ class DemoWsConnection implements WsConnection {
   void _emitAll() {
     if (_controller.isClosed) return;
     for (final id in _printerIds) {
-      _controller.add(jsonEncode({
-        'type': 'printer_status',
-        'printer_id': id,
-        'data': DemoBackend.instance.statusData(id),
-      }));
+      _controller.add(
+        jsonEncode({
+          'type': 'printer_status',
+          'printer_id': id,
+          'data': DemoBackend.instance.statusData(id),
+        }),
+      );
     }
   }
 

@@ -62,13 +62,13 @@ class _CameraViewState extends ConsumerState<CameraView> {
         child: profile?.isDemo == true
             ? _DemoUnavailable(text: l10n.cameraDemoUnavailable)
             : baseUrl == null
-                ? _Message(text: l10n.cameraError, onRetry: _retry)
-                : tokenAsync.when(
-                    loading: () => _Loading(text: l10n.cameraConnecting),
-                    error: (_, _) =>
-                        _Message(text: l10n.cameraError, onRetry: _retry),
-                    data: (token) => _stream(baseUrl, token, l10n),
-                  ),
+            ? _Message(text: l10n.cameraError, onRetry: _retry)
+            : tokenAsync.when(
+                loading: () => _Loading(text: l10n.cameraConnecting),
+                error: (_, _) =>
+                    _Message(text: l10n.cameraError, onRetry: _retry),
+                data: (token) => _stream(baseUrl, token, l10n),
+              ),
       ),
     );
   }

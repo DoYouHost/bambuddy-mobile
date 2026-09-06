@@ -53,10 +53,8 @@ class AuthProbe {
 
   /// The challenge ran out its five minutes with no code submitted. Distinct
   /// from [TwoFactorFailure.challenge] — nothing went out to the server here.
-  static void twoFactorLapsed() => DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'two_factor_lapsed',
-      );
+  static void twoFactorLapsed() =>
+      DiagnosticRecorder.active?.add(LogSource.app, 'two_factor_lapsed');
 
   /// An e-mail code was requested. The challenge stays usable even when [ok] is
   /// false — the token is only consumed on a successful send.
@@ -73,36 +71,34 @@ class AuthProbe {
     TwoFactorMethod method, {
     TwoFactorFailure? failure,
     int? status,
-  }) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'two_factor_verify',
-        lvl: failure == null ? LogLevel.info : LogLevel.warn,
-        fields: {
-          'method': method.name,
-          'ok': failure == null,
-          'reason': failure?.name,
-          'status': status,
-        },
-      );
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.app,
+    'two_factor_verify',
+    lvl: failure == null ? LogLevel.info : LogLevel.warn,
+    fields: {
+      'method': method.name,
+      'ok': failure == null,
+      'reason': failure?.name,
+      'status': status,
+    },
+  );
 
   /// Silent re-login reached a server that now wants a second factor. Nothing
   /// on screen explains the 401s that follow until the next launch warns.
   static void twoFactorBlockedSilentLogin() => DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'two_factor_silent_blocked',
-        lvl: LogLevel.warn,
-      );
+    LogSource.app,
+    'two_factor_silent_blocked',
+    lvl: LogLevel.warn,
+  );
 
   /// A step of the proactive refresh threw instead of answering — the keystore
   /// read is the one that does this on some OEMs. Worth a line of its own: the
   /// schedule survives it now, but every request keeps working off a token
   /// nothing renewed, so the failures that follow look like a server problem.
-  static void refreshStepFailed(Object error) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'token_refresh_step_failed',
-        lvl: LogLevel.warn,
-        fields: {'cause': error.runtimeType.toString()},
-      );
+  static void refreshStepFailed(Object error) => DiagnosticRecorder.active?.add(
+    LogSource.app,
+    'token_refresh_step_failed',
+    lvl: LogLevel.warn,
+    fields: {'cause': error.runtimeType.toString()},
+  );
 }

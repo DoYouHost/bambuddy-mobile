@@ -22,11 +22,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../common/device_files.dart';
 
-typedef LogFileSaver = Future<DeviceFileOutcome> Function({
-  required String fileName,
-  required String log,
-  String? dialogTitle,
-});
+typedef LogFileSaver =
+    Future<DeviceFileOutcome> Function({
+      required String fileName,
+      required String log,
+      String? dialogTitle,
+    });
 
 /// The system "save as" dialog, behind a provider so tests can answer for it —
 /// the picker is a platform channel with no test double.

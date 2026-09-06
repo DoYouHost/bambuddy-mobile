@@ -26,7 +26,9 @@ void showMaintenanceResult(
   AppLocalizations l10n,
   ActionOutcome result,
 ) {
-  ScaffoldMessenger.of(context).snack(result.messageFor(l10n) ?? l10n.maintenanceSaved);
+  ScaffoldMessenger.of(
+    context,
+  ).snack(result.messageFor(l10n) ?? l10n.maintenanceSaved);
 }
 
 /// Maintenance settings screen (pushed from the Status screen's gear action).
@@ -137,8 +139,9 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
       confirmLabel: l10n.maintenanceRestoreDefaults,
     );
     if (!ok || !context.mounted) return;
-    final result =
-        await ref.read(maintenanceTypesProvider.notifier).restoreDefaults();
+    final result = await ref
+        .read(maintenanceTypesProvider.notifier)
+        .restoreDefaults();
     if (!context.mounted) return;
     showMaintenanceResult(context, l10n, result);
   }
@@ -163,10 +166,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         SectionHeading(title, style: t.titleMd),
         const SizedBox(height: 3),
-        Text(
-          subtitle,
-          style: t.label,
-        ),
+        Text(subtitle, style: t.label),
         if (trailing != null) ...[const SizedBox(height: 10), trailing!],
       ],
     );
@@ -222,12 +222,13 @@ class _TypeTile extends ConsumerWidget {
           color: t.accentGreen.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(maintenanceIcon(type.icon), size: 18, color: t.accentGreenInk),
+        child: Icon(
+          maintenanceIcon(type.icon),
+          size: 18,
+          color: t.accentGreenInk,
+        ),
       ),
-      title: Text(
-        type.name,
-        style: t.titleSm,
-      ),
+      title: Text(type.name, style: t.titleSm),
       subtitle: Text(
         [
           type.isDays
@@ -263,8 +264,9 @@ class _TypeTile extends ConsumerWidget {
       destructive: true,
     );
     if (!ok || !context.mounted) return;
-    final result =
-        await ref.read(maintenanceTypesProvider.notifier).delete(type.id);
+    final result = await ref
+        .read(maintenanceTypesProvider.notifier)
+        .delete(type.id);
     if (!context.mounted) return;
     showMaintenanceResult(context, l10n, result);
   }
@@ -287,16 +289,12 @@ class _OverrideTile extends ConsumerWidget {
       opacity: item.enabled ? 1 : 0.5,
       child: ListTile(
         dense: true,
-        leading: Icon(maintenanceIcon(item.maintenanceTypeIcon),
-            color: t.textSecondary),
-        title: Text(
-          item.maintenanceTypeName,
-          style: t.titleSm,
+        leading: Icon(
+          maintenanceIcon(item.maintenanceTypeIcon),
+          color: t.textSecondary,
         ),
-        subtitle: Text(
-          unit,
-          style: t.monoLabel,
-        ),
+        title: Text(item.maintenanceTypeName, style: t.titleSm),
+        subtitle: Text(unit, style: t.monoLabel),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -307,7 +305,9 @@ class _OverrideTile extends ConsumerWidget {
                     : Icons.notifications_off_outlined,
                 color: t.textSecondary,
               ),
-              tooltip: item.enabled ? l10n.maintenanceMute : l10n.maintenanceUnmute,
+              tooltip: item.enabled
+                  ? l10n.maintenanceMute
+                  : l10n.maintenanceUnmute,
               onPressed: () => _toggleMute(context, ref, l10n),
             ).tagged('maintenance_settings.mute'),
             IconButton(
@@ -331,8 +331,10 @@ class _OverrideTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .setEnabled(item.id, !item.enabled);
     if (!context.mounted) return;
-    messenger.snack(result.messageFor(l10n) ??
-            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted));
+    messenger.snack(
+      result.messageFor(l10n) ??
+          (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted),
+    );
   }
 
   Future<void> _editInterval(
@@ -355,10 +357,7 @@ class _OverrideTile extends ConsumerWidget {
 
 /// Opens the create/edit type sheet. [existing] != null → edit mode.
 void openTypeForm(BuildContext context, {MaintenanceType? existing}) {
-  dashSheet<void>(
-    context,
-    builder: (_) => _TypeFormSheet(existing: existing),
-  );
+  dashSheet<void>(context, builder: (_) => _TypeFormSheet(existing: existing));
 }
 
 class _TypeFormSheet extends ConsumerStatefulWidget {
@@ -472,9 +471,8 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 border: const OutlineInputBorder(),
                 isDense: true,
               ),
-              validator: (v) => (v ?? '').trim().isEmpty
-                  ? l10n.inventoryFieldRequired
-                  : null,
+              validator: (v) =>
+                  (v ?? '').trim().isEmpty ? l10n.inventoryFieldRequired : null,
             ).tagged('maintenance_type_form.name'),
             const SizedBox(height: 12),
             Row(
@@ -492,14 +490,16 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                       DropdownMenuItem(
                         value: 'hours',
                         child: logTag(
-                            'maintenance_type_form.interval_type.hours',
-                            Text(l10n.maintenanceIntervalHours)),
+                          'maintenance_type_form.interval_type.hours',
+                          Text(l10n.maintenanceIntervalHours),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'days',
                         child: logTag(
-                            'maintenance_type_form.interval_type.days',
-                            Text(l10n.maintenanceIntervalDays)),
+                          'maintenance_type_form.interval_type.days',
+                          Text(l10n.maintenanceIntervalDays),
+                        ),
                       ),
                     ],
                     onChanged: (v) =>

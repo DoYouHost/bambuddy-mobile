@@ -30,10 +30,12 @@ class PipelineEditScreen extends ConsumerStatefulWidget {
 }
 
 class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
-  late final TextEditingController _name =
-      TextEditingController(text: widget.pipeline.name);
-  late final TextEditingController _description =
-      TextEditingController(text: widget.pipeline.description ?? '');
+  late final TextEditingController _name = TextEditingController(
+    text: widget.pipeline.name,
+  );
+  late final TextEditingController _description = TextEditingController(
+    text: widget.pipeline.description ?? '',
+  );
 
   late PipelineTargetKind _targetKind = widget.pipeline.targetKind;
   late int? _printerId = widget.pipeline.targetPrinterId;
@@ -74,8 +76,9 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
             maxLength: 1000,
             maxLines: 3,
             minLines: 1,
-            decoration:
-                InputDecoration(labelText: l10n.pipelineDescriptionHint),
+            decoration: InputDecoration(
+              labelText: l10n.pipelineDescriptionHint,
+            ),
           ).tagged('pipeline_edit.description'),
           const SizedBox(height: 16),
           Text(l10n.pipelineTargetType, style: theme.textTheme.labelLarge),
@@ -120,7 +123,8 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : Text(l10n.pipelineSaveConfirm),
           ).tagged('pipeline_edit.save'),
         ],
@@ -158,10 +162,10 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
 
   Widget _fanoutDropdown(AppLocalizations l10n) {
     String label(FanoutStrategy s) => switch (s) {
-          FanoutStrategy.maxParallel => l10n.pipelineFanoutMaxParallel,
-          FanoutStrategy.roundRobin => l10n.pipelineFanoutRoundRobin,
-          FanoutStrategy.fillOneFirst => l10n.pipelineFanoutFillOneFirst,
-        };
+      FanoutStrategy.maxParallel => l10n.pipelineFanoutMaxParallel,
+      FanoutStrategy.roundRobin => l10n.pipelineFanoutRoundRobin,
+      FanoutStrategy.fillOneFirst => l10n.pipelineFanoutFillOneFirst,
+    };
     // Not a [dashAnyOrOne]: a strategy has no "none" — the server defaults an
     // unset one to `max_parallel`, so an empty row would be a lie about it.
     return dashCombo<FanoutStrategy>(
@@ -201,7 +205,9 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
 
     setState(() => _saving = true);
     try {
-      await ref.read(pipelinesRepositoryProvider).update(
+      await ref
+          .read(pipelinesRepositoryProvider)
+          .update(
             widget.pipeline.id,
             name: _name.text.trim(),
             description: _description.text.trim(),
@@ -216,8 +222,12 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
       navigator.pop();
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'pipeline_edit.save');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'pipeline_edit.save',
+      );
     }
   }
 }

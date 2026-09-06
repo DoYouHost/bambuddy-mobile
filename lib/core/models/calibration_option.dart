@@ -28,10 +28,10 @@ enum CalibrationOption {
   /// user's `auto` as plain on-or-off for a field they may not have touched.
   /// See [toCreateWire] for why a create needs the opposite answer.
   Object? toWire({required bool triState}) => switch (this) {
-        CalibrationOption.on => true,
-        CalibrationOption.off => false,
-        CalibrationOption.auto => triState ? 'auto' : null,
-      };
+    CalibrationOption.on => true,
+    CalibrationOption.off => false,
+    CalibrationOption.auto => triState ? 'auto' : null,
+  };
 
   /// Value for a **create** body. Never `null` — every field is decided here.
   ///
@@ -46,10 +46,10 @@ enum CalibrationOption {
   /// one ([PrintOptions] persists the last choice) and the app was then pointed
   /// at the older server.
   Object toCreateWire({required bool triState}) => switch (this) {
-        CalibrationOption.on => true,
-        CalibrationOption.off => false,
-        CalibrationOption.auto => triState ? 'auto' : asSwitch,
-      };
+    CalibrationOption.on => true,
+    CalibrationOption.off => false,
+    CalibrationOption.auto => triState ? 'auto' : asSwitch,
+  };
 
   /// How the option reads on a control that has no `auto` position (an older
   /// server). `auto` leans on: on every affected field it means the printer may
@@ -75,18 +75,18 @@ CalibrationOption calibrationFromJson(dynamic value) =>
 /// un-migrated database rows. Reading a shape the server is willing to write
 /// costs nothing here and is one less way to empty a screen.
 CalibrationOption? calibrationOrNull(dynamic value) => switch (value) {
-      bool b => b ? CalibrationOption.on : CalibrationOption.off,
-      int i => switch (i) {
-          0 => CalibrationOption.off,
-          1 => CalibrationOption.on,
-          2 => CalibrationOption.auto,
-          _ => null,
-        },
-      String s => switch (s.trim().toLowerCase()) {
-          'on' || 'true' || '1' => CalibrationOption.on,
-          'off' || 'false' || '0' => CalibrationOption.off,
-          'auto' || '2' => CalibrationOption.auto,
-          _ => null,
-        },
-      _ => null,
-    };
+  bool b => b ? CalibrationOption.on : CalibrationOption.off,
+  int i => switch (i) {
+    0 => CalibrationOption.off,
+    1 => CalibrationOption.on,
+    2 => CalibrationOption.auto,
+    _ => null,
+  },
+  String s => switch (s.trim().toLowerCase()) {
+    'on' || 'true' || '1' => CalibrationOption.on,
+    'off' || 'false' || '0' => CalibrationOption.off,
+    'auto' || '2' => CalibrationOption.auto,
+    _ => null,
+  },
+  _ => null,
+};

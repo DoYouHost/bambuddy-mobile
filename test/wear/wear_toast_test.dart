@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -20,19 +19,19 @@ import '../helpers.dart';
 class _TimeoutTransport implements WearTransport {
   @override
   Future<WearFleet> getFleet() async => const WearFleet(
-        printers: [
-          PrinterWithStatus(
-            printer: Printer(id: 7, name: 'X2D-3DP'),
-            status: PrinterStatus(
-              id: 7,
-              connected: true,
-              state: 'IDLE',
-              awaitingPlateClear: true,
-            ),
-          ),
-        ],
-        queuePending: 0,
-      );
+    printers: [
+      PrinterWithStatus(
+        printer: Printer(id: 7, name: 'X2D-3DP'),
+        status: PrinterStatus(
+          id: 7,
+          connected: true,
+          state: 'IDLE',
+          awaitingPlateClear: true,
+        ),
+      ),
+    ],
+    queuePending: 0,
+  );
 
   @override
   Future<void> clearPlate(int printerId) async => throw WearRelayTimeout();
@@ -50,15 +49,19 @@ class _TimeoutTransport implements WearTransport {
 class _PrintingTransport implements WearTransport {
   @override
   Future<WearFleet> getFleet() async => const WearFleet(
-        printers: [
-          PrinterWithStatus(
-            printer: Printer(id: 7, name: 'X1C'),
-            status: PrinterStatus(
-                id: 7, connected: true, state: 'RUNNING', progress: 40),
-          ),
-        ],
-        queuePending: 0,
-      );
+    printers: [
+      PrinterWithStatus(
+        printer: Printer(id: 7, name: 'X1C'),
+        status: PrinterStatus(
+          id: 7,
+          connected: true,
+          state: 'RUNNING',
+          progress: 40,
+        ),
+      ),
+    ],
+    queuePending: 0,
+  );
 
   int stops = 0;
 
@@ -73,11 +76,6 @@ class _PrintingTransport implements WearTransport {
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }
 
-class _NoProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 /// A bare frame with two buttons that raise a message, for the layer's own
 /// behaviour. The screen underneath does not matter here — where the message
 /// lands does.
@@ -90,38 +88,41 @@ Future<void> _pumpHost(
   double textScale = 1,
 }) async {
   useWatchFace(tester, shape, face);
-  await tester.pumpWidget(MaterialApp(
-    locale: const Locale('pl'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context)
-          .copyWith(textScaler: TextScaler.linear(textScale)),
-      child: wearShapeBuilder(context, child),
-    ),
-    home: WearScreen(
-      child: Builder(
-        builder: (context) {
-          hostContext = context;
-          return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () =>
-                  wearToast(context, first, tone: WearToastTone.failure),
-              child: const Text('fail'),
-            ),
-            TextButton(
-              onPressed: () =>
-                  wearToast(context, second, tone: WearToastTone.success),
-              child: const Text('ok'),
-            ),
-            ],
-          );
-        },
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('pl'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: wearShapeBuilder(context, child),
+      ),
+      home: WearScreen(
+        child: Builder(
+          builder: (context) {
+            hostContext = context;
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () =>
+                      wearToast(context, first, tone: WearToastTone.failure),
+                  child: const Text('fail'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      wearToast(context, second, tone: WearToastTone.success),
+                  child: const Text('ok'),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     ),
-  ));
+  );
   await tester.pumpAndSettle();
 }
 
@@ -133,8 +134,9 @@ late BuildContext hostContext;
 void main() {
   group('the message layer', () {
     for (final face in [wearFaceSmall, wearFaceLarge]) {
-      testWidgets('is readable on a ${face.width.toInt()} px round face',
-          (tester) async {
+      testWidgets('is readable on a ${face.width.toInt()} px round face', (
+        tester,
+      ) async {
         await _pumpHost(tester, face: face);
         await tester.tap(find.text('fail'));
         await tester.pumpAndSettle();
@@ -159,8 +161,9 @@ void main() {
       expect(find.byType(WearToast), findsNothing);
     });
 
-    testWidgets('a tap takes it away early, from anywhere on the face',
-        (tester) async {
+    testWidgets('a tap takes it away early, from anywhere on the face', (
+      tester,
+    ) async {
       await _pumpHost(tester);
       await tester.tap(find.text('fail'));
       await tester.pumpAndSettle();
@@ -183,8 +186,9 @@ void main() {
       expect(find.text('Płyta zwolniona'), findsNothing);
     });
 
-    testWidgets('a second message replaces the first and restarts the clock',
-        (tester) async {
+    testWidgets('a second message replaces the first and restarts the clock', (
+      tester,
+    ) async {
       await _pumpHost(tester);
       await tester.tap(find.text('fail'));
       await tester.pumpAndSettle();
@@ -204,33 +208,38 @@ void main() {
       expect(find.byType(WearToast), findsNothing);
     });
 
-    testWidgets('a message longer than the face ellipsizes instead of spilling',
-        (tester) async {
-      await _pumpHost(tester, first: 'Zwolnij płytę. ' * 20);
-      await tester.tap(find.text('fail'));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'a message longer than the face ellipsizes instead of spilling',
+      (tester) async {
+        await _pumpHost(tester, first: 'Zwolnij płytę. ' * 20);
+        await tester.tap(find.text('fail'));
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      // The black layer covers the whole square — it is the *content* that has
-      // to stay on the circle.
-      expectOnGlass(tester, find.text('Zwolnij płytę. ' * 20));
-    });
+        expect(tester.takeException(), isNull);
+        // The black layer covers the whole square — it is the *content* that has
+        // to stay on the circle.
+        expectOnGlass(tester, find.text('Zwolnij płytę. ' * 20));
+      },
+    );
   });
 
-  testWidgets('at a big system font it drops lines instead of overflowing',
-      (tester) async {
+  testWidgets('at a big system font it drops lines instead of overflowing', (
+    tester,
+  ) async {
     // The size someone who reaches for a watch to avoid squinting will have
     // set. The band the circle allows does not grow with the text, so the
     // message is what has to give.
-    await _pumpHost(tester,
-        first: 'Zwolnij płytę. ' * 20, textScale: 1.3);
+    await _pumpHost(tester, first: 'Zwolnij płytę. ' * 20, textScale: 1.3);
     await tester.tap(find.text('fail'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expectOnGlass(tester, find.text('Zwolnij płytę. ' * 20));
-    expectOnGlass(tester, find.text('OK'),
-        reason: 'the way out must not be pushed off the glass by the message');
+    expectOnGlass(
+      tester,
+      find.text('OK'),
+      reason: 'the way out must not be pushed off the glass by the message',
+    );
   });
 
   testWidgets('a stop that never reached the phone says so', (tester) async {
@@ -243,7 +252,7 @@ void main() {
       const WearPrinterControlScreen(printerId: 7),
       face: wearFaceLarge,
       overrides: [
-        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+        noServerProfileOverride,
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: transport),
         ),
@@ -272,14 +281,15 @@ void main() {
     expect(find.text('Telefon nie odpowiedział'), findsOneWidget);
   });
 
-  testWidgets('a failed printer command reaches the wrist readable',
-      (tester) async {
+  testWidgets('a failed printer command reaches the wrist readable', (
+    tester,
+  ) async {
     await pumpWear(
       tester,
       const WearPrinterControlScreen(printerId: 7),
       face: wearFaceLarge,
       overrides: [
-        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+        noServerProfileOverride,
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: _TimeoutTransport()),
         ),

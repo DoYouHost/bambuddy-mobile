@@ -103,27 +103,26 @@ class QueueCreateOptions {
   /// `toWire`: there is no stored value to protect here, so an `auto` the server
   /// cannot keep is sent as the state the form was showing rather than omitted.
   Map<String, dynamic> toJson({required bool triState}) => <String, dynamic>{
-        'target_model': ?targetModel,
-        'target_location': ?targetLocation,
-        'filament_overrides': ?filamentOverrides,
-        'ams_mapping': ?amsMapping,
-        'plate_id': ?plateId,
-        'scheduled_time': ?scheduledTime,
-        'require_previous_success': ?requirePreviousSuccess,
-        'auto_off_after': ?autoOffAfter,
-        'manual_start': ?manualStart,
-        'bed_levelling': ?bedLevelling?.toCreateWire(triState: triState),
-        'flow_cali': ?flowCali?.toCreateWire(triState: triState),
-        'vibration_cali': ?vibrationCali,
-        'layer_inspect': ?layerInspect,
-        'timelapse': ?timelapse,
-        'nozzle_offset_cali':
-            ?nozzleOffsetCali?.toCreateWire(triState: triState),
-        'gcode_injection': ?gcodeInjection,
-        'preheat_override': ?preheatOverride,
-        'preheat_chamber_target_override': ?preheatChamberTargetOverride,
-        'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
-      };
+    'target_model': ?targetModel,
+    'target_location': ?targetLocation,
+    'filament_overrides': ?filamentOverrides,
+    'ams_mapping': ?amsMapping,
+    'plate_id': ?plateId,
+    'scheduled_time': ?scheduledTime,
+    'require_previous_success': ?requirePreviousSuccess,
+    'auto_off_after': ?autoOffAfter,
+    'manual_start': ?manualStart,
+    'bed_levelling': ?bedLevelling?.toCreateWire(triState: triState),
+    'flow_cali': ?flowCali?.toCreateWire(triState: triState),
+    'vibration_cali': ?vibrationCali,
+    'layer_inspect': ?layerInspect,
+    'timelapse': ?timelapse,
+    'nozzle_offset_cali': ?nozzleOffsetCali?.toCreateWire(triState: triState),
+    'gcode_injection': ?gcodeInjection,
+    'preheat_override': ?preheatOverride,
+    'preheat_chamber_target_override': ?preheatChamberTargetOverride,
+    'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
+  };
 }
 
 /// REST data source for print queue (M5).
@@ -188,10 +187,8 @@ class QueueRepository {
   ///
   /// Optional query: `printer_id`, `status` (omitted if null).
   Future<List<QueueItem>> fetch({int? printerId, String? status}) async {
-    final query = <String, dynamic>{
-      'printer_id': printerId,
-      'status': status,
-    }..removeWhere((_, v) => v == null);
+    final query = <String, dynamic>{'printer_id': printerId, 'status': status}
+      ..removeWhere((_, v) => v == null);
     final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.queue,
@@ -249,21 +246,26 @@ class QueueRepository {
   /// and the status it names is the only thing that explains the refusal — see
   /// [stop].
   Future<void> delete(int itemId) => guardKeepingDetail(
-      () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)));
+    () => _dio.delete<dynamic>(Endpoints.queueItem(itemId)),
+  );
 
   /// PATCH /queue/{id} — assign printer to item (before start).
   /// Body: `{"printer_id": ..}`.
-  Future<void> assignPrinter(int itemId, int printerId) => guard(() => _dio.patch<dynamic>(
-        Endpoints.queueItem(itemId),
-        data: {'printer_id': printerId},
-      ));
+  Future<void> assignPrinter(int itemId, int printerId) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.queueItem(itemId),
+      data: {'printer_id': printerId},
+    ),
+  );
 
   /// PATCH /queue/{id} — set the AMS slot mapping (file filament slot → global
   /// AMS tray). Body: `{"ams_mapping": [..]}`.
-  Future<void> setAmsMapping(int itemId, List<int> mapping) => guard(() => _dio.patch<dynamic>(
-        Endpoints.queueItem(itemId),
-        data: {'ams_mapping': mapping},
-      ));
+  Future<void> setAmsMapping(int itemId, List<int> mapping) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.queueItem(itemId),
+      data: {'ams_mapping': mapping},
+    ),
+  );
 
   /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
   ///
@@ -305,8 +307,10 @@ class QueueRepository {
     final body = <String, dynamic>{
       if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
       if (targetModel != kQueueUpdateUnset) 'target_model': targetModel,
-      if (targetLocation != kQueueUpdateUnset) 'target_location': targetLocation,
-      if (filamentOverrides != kQueueUpdateUnset) 'filament_overrides': filamentOverrides,
+      if (targetLocation != kQueueUpdateUnset)
+        'target_location': targetLocation,
+      if (filamentOverrides != kQueueUpdateUnset)
+        'filament_overrides': filamentOverrides,
       if (amsMapping != kQueueUpdateUnset) 'ams_mapping': amsMapping,
       if (plateId != kQueueUpdateUnset) 'plate_id': plateId,
       if (scheduledTime != kQueueUpdateUnset) 'scheduled_time': scheduledTime,
@@ -331,7 +335,8 @@ class QueueRepository {
         'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
     };
     return guardKeepingDetail(
-        () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));
+      () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body),
+    );
   }
 
   /// POST /queue/{id}/start — manually start item.
@@ -347,13 +352,12 @@ class QueueRepository {
     final items = await fetch();
     // Queue positions frequently all default to 1 (see queue notes), so sort
     // by position then id for a stable "first" pick.
-    final pending = items
-        .where((q) => q.statusKind == QueueItemStatusKind.pending)
-        .toList()
-      ..sort((a, b) {
-        final byPos = a.position.compareTo(b.position);
-        return byPos != 0 ? byPos : a.id.compareTo(b.id);
-      });
+    final pending =
+        items.where((q) => q.statusKind == QueueItemStatusKind.pending).toList()
+          ..sort((a, b) {
+            final byPos = a.position.compareTo(b.position);
+            return byPos != 0 ? byPos : a.id.compareTo(b.id);
+          });
     if (pending.isEmpty) {
       throw StateError('empty-queue');
     }
@@ -367,7 +371,8 @@ class QueueRepository {
   /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
   /// item only; see [stop] for the rest and for why the detail is kept.
   Future<void> cancel(int itemId) => guardKeepingDetail(
-      () => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));
+    () => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)),
+  );
 
   /// POST /queue/{id}/stop — stop the print a `printing` item is running and
   /// drop the item out of the queue (the server writes it `cancelled`).
@@ -388,7 +393,8 @@ class QueueRepository {
   /// drops a 400's detail, which is how the reporter's screen could only say
   /// "server error 400".
   Future<void> stop(int itemId) => guardKeepingDetail(
-      () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)));
+    () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)),
+  );
 
   /// POST /queue/ — add new item from archive.
   ///
@@ -403,12 +409,13 @@ class QueueRepository {
     int quantity = 1,
     bool insertAtTop = false,
     QueueCreateOptions? options,
-  }) =>
-      _add({'archive_id': archiveId},
-          printerId: printerId,
-          quantity: quantity,
-          insertAtTop: insertAtTop,
-          options: options);
+  }) => _add(
+    {'archive_id': archiveId},
+    printerId: printerId,
+    quantity: quantity,
+    insertAtTop: insertAtTop,
+    options: options,
+  );
 
   /// POST /queue/ — add a library file (e.g. a sliced gcode) to the queue.
   ///
@@ -420,12 +427,13 @@ class QueueRepository {
     int quantity = 1,
     bool insertAtTop = false,
     QueueCreateOptions? options,
-  }) =>
-      _add({'library_file_id': fileId},
-          printerId: printerId,
-          quantity: quantity,
-          insertAtTop: insertAtTop,
-          options: options);
+  }) => _add(
+    {'library_file_id': fileId},
+    printerId: printerId,
+    quantity: quantity,
+    insertAtTop: insertAtTop,
+    options: options,
+  );
 
   /// POST /queue/ — one job offering several sliced files, whichever printer
   /// frees up first (server #671, **1.2.6+**).
@@ -448,18 +456,17 @@ class QueueRepository {
     int quantity = 1,
     bool insertAtTop = false,
     QueueCreateOptions? options,
-  }) =>
-      _add(
-        {
-          'variants': [
-            for (final id in fileIds) <String, dynamic>{'library_file_id': id},
-          ],
-        },
-        printerId: null,
-        quantity: quantity,
-        insertAtTop: insertAtTop,
-        options: options,
-      );
+  }) => _add(
+    {
+      'variants': [
+        for (final id in fileIds) <String, dynamic>{'library_file_id': id},
+      ],
+    },
+    printerId: null,
+    quantity: quantity,
+    insertAtTop: insertAtTop,
+    options: options,
+  );
 
   /// Shared POST for both sources — [source] is the one key that differs.
   Future<void> _add(

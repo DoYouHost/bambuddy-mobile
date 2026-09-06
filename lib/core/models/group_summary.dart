@@ -14,15 +14,15 @@ class GroupSummary {
   });
 
   factory GroupSummary.fromJson(Map<String, dynamic> json) => GroupSummary(
-        id: toInt(json['id']),
-        name: toStringOrNull(json['name']) ?? '',
-        description: toStringOrNull(json['description']),
-        permissions: toStringList(json['permissions']),
-        // `Administrators` and friends: the server refuses to rename them or
-        // to change what they grant.
-        isSystem: json['is_system'] == true,
-        userCount: toInt(json['user_count']),
-      );
+    id: toInt(json['id']),
+    name: toStringOrNull(json['name']) ?? '',
+    description: toStringOrNull(json['description']),
+    permissions: toStringList(json['permissions']),
+    // `Administrators` and friends: the server refuses to rename them or
+    // to change what they grant.
+    isSystem: json['is_system'] == true,
+    userCount: toInt(json['user_count']),
+  );
 
   final int id;
   final String name;
@@ -44,10 +44,10 @@ class GroupMember {
   });
 
   factory GroupMember.fromJson(Map<String, dynamic> json) => GroupMember(
-        id: toInt(json['id']),
-        username: toStringOrNull(json['username']) ?? '',
-        isActive: json['is_active'] != false,
-      );
+    id: toInt(json['id']),
+    username: toStringOrNull(json['username']) ?? '',
+    isActive: json['is_active'] != false,
+  );
 
   final int id;
   final String username;

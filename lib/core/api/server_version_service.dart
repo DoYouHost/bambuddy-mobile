@@ -36,8 +36,7 @@ class ServerVersionService {
     if (known != null) return known;
 
     final failedAt = _failedAt;
-    if (failedAt != null &&
-        clock.now().difference(failedAt) < _retryAfter) {
+    if (failedAt != null && clock.now().difference(failedAt) < _retryAfter) {
       return null;
     }
 
@@ -71,7 +70,9 @@ class ServerVersionService {
 
   Future<ServerVersion?> _read() async {
     try {
-      final res = await _dio.get<Map<String, dynamic>>(Endpoints.updatesVersion);
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.updatesVersion,
+      );
       final parsed = ServerVersion.tryParse(res.data?['version'] as String?);
       if (parsed == null) {
         // Reached the server but got a proxy's error page, or a numbering

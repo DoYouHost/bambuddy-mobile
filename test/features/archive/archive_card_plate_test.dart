@@ -19,28 +19,28 @@ import '../../helpers.dart';
 late SharedPreferences _prefs;
 
 Widget _screen(List<Archive> items) => ProviderScope(
-      overrides: [
-        archiveListOverride(items),
-        // The screen also carries the "archived without its 3MF" banner, which
-        // reads preferences to know whether it was waved off. Nothing to report
-        // here — this test is about the row, not the banner.
-        no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
-        sharedPreferencesProvider.overrideWithValue(_prefs),
-        // Null profile → the thumbnail draws its placeholder instead of hitting
-        // the network.
-        noServerProfileOverride,
-      ],
-      child: plApp(const ArchiveScreen()),
-    );
+  overrides: [
+    archiveListOverride(items),
+    // The screen also carries the "archived without its 3MF" banner, which
+    // reads preferences to know whether it was waved off. Nothing to report
+    // here — this test is about the row, not the banner.
+    no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
+    // Null profile → the thumbnail draws its placeholder instead of hitting
+    // the network.
+    noServerProfileOverride,
+  ],
+  child: plApp(const ArchiveScreen()),
+);
 
 Archive _archive({int? plateId}) => Archive(
-      id: 1,
-      filename: 'multi.gcode.3mf',
-      status: 'completed',
-      printName: 'Benchy',
-      filamentType: 'PETG',
-      plateId: plateId,
-    );
+  id: 1,
+  filename: 'multi.gcode.3mf',
+  status: 'completed',
+  printName: 'Benchy',
+  filamentType: 'PETG',
+  plateId: plateId,
+);
 
 void main() {
   setUp(() async {
@@ -58,8 +58,9 @@ void main() {
     expect(find.textContaining(l10n(tester).archivePlate(3)), findsOneWidget);
   });
 
-  testWidgets('a run with no plate recorded says nothing about plates',
-      (tester) async {
+  testWidgets('a run with no plate recorded says nothing about plates', (
+    tester,
+  ) async {
     await tester.pumpWidget(_screen([_archive()]));
     await tester.pumpAndSettle();
 
@@ -69,8 +70,9 @@ void main() {
     expect(find.textContaining('PETG'), findsOneWidget);
   });
 
-  testWidgets('a recorded plate of 0 is read as no plate, not as plate zero',
-      (tester) async {
+  testWidgets('a recorded plate of 0 is read as no plate, not as plate zero', (
+    tester,
+  ) async {
     // Plates are numbered from 1 and the column has no lower bound, so a 0 is
     // something that went wrong upstream rather than a plate anyone printed.
     // "Plate 0" on the card would pass that on to the reader as a fact.

@@ -119,8 +119,7 @@ class InteractionProbe {
 
   void _emitDrag(_Touch touch, Offset delta, Duration endedTime) {
     final key = touch.target?.dragKey ?? '';
-    if (_lastDragKey == key &&
-        endedTime - _lastDragAt < dragQuietPeriod) {
+    if (_lastDragKey == key && endedTime - _lastDragAt < dragQuietPeriod) {
       _foldedDrags++;
       _lastDragAt = endedTime;
       return;
@@ -257,7 +256,9 @@ class InteractionProbe {
         // The node that takes the press wins over inert cover, but the name
         // comes from the deepest identifier on the path, which may sit *below*
         // it — see [_menuItemId] for the shape that needs this.
-        return _isInteractive(node) ? _Hit(node, covering.id ?? idHere) : covering;
+        return _isInteractive(node)
+            ? _Hit(node, covering.id ?? idHere)
+            : covering;
       }
     }
     return _Hit(node, idHere);
@@ -312,11 +313,8 @@ class TouchTarget {
   factory TouchTarget.of(SemanticsNode node, {String? inheritedId}) {
     final data = node.getSemanticsData();
     final flags = data.flagsCollection;
-    final identifier =
-        data.identifier.isEmpty ? inheritedId : data.identifier;
-    final tag = identifier == null
-        ? null
-        : FilamentMaterial.split(identifier);
+    final identifier = data.identifier.isEmpty ? inheritedId : data.identifier;
+    final tag = identifier == null ? null : FilamentMaterial.split(identifier);
     return TouchTarget(
       id: tag?.id,
       material: tag?.material,
@@ -339,7 +337,11 @@ class TouchTarget {
   /// Nearest ancestor that scrolls. A drag is a scroll of *that*, whatever
   /// item happened to be under the finger when it started.
   static SemanticsNode? _scrollableAncestor(SemanticsNode node) {
-    for (var current = node; current.parent != null; current = current.parent!) {
+    for (
+      var current = node;
+      current.parent != null;
+      current = current.parent!
+    ) {
       final data = current.getSemanticsData();
       if (data.hasAction(SemanticsAction.scrollUp) ||
           data.hasAction(SemanticsAction.scrollDown) ||
@@ -382,12 +384,12 @@ class TouchTarget {
   /// `empty` is written only when true, or every line would carry a field
   /// saying "this one did hit something".
   Map<String, Object?> toFields({bool forDrag = false}) => {
-        'id': id,
-        'mat': forDrag ? null : material,
-        'role': role,
-        'was_checked': checked,
-        'empty': !forDrag && empty ? true : null,
-      };
+    'id': id,
+    'mat': forDrag ? null : material,
+    'role': role,
+    'was_checked': checked,
+    'empty': !forDrag && empty ? true : null,
+  };
 
   /// Declared roles that name a *control*. Anything else describes what a node
   /// shows, and a card whose deepest painted thing is a progress bar merges

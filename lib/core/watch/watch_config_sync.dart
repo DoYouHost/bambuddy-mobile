@@ -60,19 +60,18 @@ class WatchConfigCodec {
     String? apiKey,
     String? jwt,
     ({String username, String password})? login,
-  }) =>
-      <String, dynamic>{
-        _kVersion: version,
-        _kBaseUrl: profile.baseUrl,
-        _kAuthMode: profile.authMode.name,
-        if (profile.label != null) _kLabel: profile.label,
-        if (apiKey != null && apiKey.isNotEmpty) _kApiKey: apiKey,
-        if (jwt != null && jwt.isNotEmpty) _kJwt: jwt,
-        if (login != null) ...{
-          _kUsername: login.username,
-          _kPassword: login.password,
-        },
-      };
+  }) => <String, dynamic>{
+    _kVersion: version,
+    _kBaseUrl: profile.baseUrl,
+    _kAuthMode: profile.authMode.name,
+    if (profile.label != null) _kLabel: profile.label,
+    if (apiKey != null && apiKey.isNotEmpty) _kApiKey: apiKey,
+    if (jwt != null && jwt.isNotEmpty) _kJwt: jwt,
+    if (login != null) ...{
+      _kUsername: login.username,
+      _kPassword: login.password,
+    },
+  };
 
   /// Parse an incoming context. Returns null for empty/foreign/malformed maps
   /// (a bare `{}` is delivered before the phone has ever pushed) so the watch
@@ -106,9 +105,9 @@ class WatchConfigSync {
     required WatchConnectivity watch,
     required CredentialsStore credentials,
     SettingsRepository? settings,
-  })  : _watch = watch,
-        _credentials = credentials,
-        _settings = settings;
+  }) : _watch = watch,
+       _credentials = credentials,
+       _settings = settings;
 
   final WatchConnectivity _watch;
   final CredentialsStore _credentials;
@@ -147,7 +146,9 @@ class WatchConfigSync {
     if (config.jwt != null) await _credentials.writeJwt(config.jwt!);
     if (config.username != null && config.password != null) {
       await _credentials.writeRememberedLogin(
-          config.username!, config.password!);
+        config.username!,
+        config.password!,
+      );
     }
     await settings.saveProfile(config.profile);
   }
@@ -157,10 +158,7 @@ class WatchConfigSync {
   Future<List<WatchConfig>> pendingConfigs() async {
     try {
       final raw = await _watch.receivedApplicationContexts;
-      return raw
-          .map(WatchConfigCodec.decode)
-          .whereType<WatchConfig>()
-          .toList();
+      return raw.map(WatchConfigCodec.decode).whereType<WatchConfig>().toList();
     } catch (_) {
       return const [];
     }
@@ -177,6 +175,8 @@ class WatchConfigSync {
 
   /// WATCH side: live stream of incoming configs (phone pushes while the watch
   /// app is open).
-  Stream<WatchConfig> configStream() =>
-      _watch.contextStream.map(WatchConfigCodec.decode).where((c) => c != null).cast();
+  Stream<WatchConfig> configStream() => _watch.contextStream
+      .map(WatchConfigCodec.decode)
+      .where((c) => c != null)
+      .cast();
 }

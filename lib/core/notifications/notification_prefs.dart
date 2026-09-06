@@ -75,8 +75,9 @@ class NotificationPrefs {
     NotifEvent.maintenanceDue,
   };
 
-  static const NotificationPrefs defaults =
-      NotificationPrefs(enabled: _defaultEnabled);
+  static const NotificationPrefs defaults = NotificationPrefs(
+    enabled: _defaultEnabled,
+  );
 
   /// The events that existed before the saved payload started listing what the
   /// writing build knew.
@@ -109,15 +110,14 @@ class NotificationPrefs {
     int? bedCooledTemp,
     int? amsHumidityThreshold,
     int? lowFilamentThreshold,
-  }) =>
-      NotificationPrefs(
-        alertsEnabled: alertsEnabled ?? this.alertsEnabled,
-        finishPhoto: finishPhoto ?? this.finishPhoto,
-        enabled: enabled ?? this.enabled,
-        bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
-        amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
-        lowFilamentThreshold: lowFilamentThreshold ?? this.lowFilamentThreshold,
-      );
+  }) => NotificationPrefs(
+    alertsEnabled: alertsEnabled ?? this.alertsEnabled,
+    finishPhoto: finishPhoto ?? this.finishPhoto,
+    enabled: enabled ?? this.enabled,
+    bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
+    amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
+    lowFilamentThreshold: lowFilamentThreshold ?? this.lowFilamentThreshold,
+  );
 
   /// Toggles a single event and returns a new object.
   NotificationPrefs withEvent(NotifEvent e, bool on) {
@@ -131,16 +131,16 @@ class NotificationPrefs {
   }
 
   Map<String, dynamic> toJson() => {
-        'alertsEnabled': alertsEnabled,
-        'finishPhoto': finishPhoto,
-        'enabled': [for (final e in enabled) e.name],
-        // Which switches this build actually offered. `enabled` alone cannot say
-        // whether a missing event was declined or simply did not exist yet.
-        'known': [for (final e in NotifEvent.values) e.name],
-        'bedCooledTemp': bedCooledTemp,
-        'amsHumidityThreshold': amsHumidityThreshold,
-        'lowFilamentThreshold': lowFilamentThreshold,
-      };
+    'alertsEnabled': alertsEnabled,
+    'finishPhoto': finishPhoto,
+    'enabled': [for (final e in enabled) e.name],
+    // Which switches this build actually offered. `enabled` alone cannot say
+    // whether a missing event was declined or simply did not exist yet.
+    'known': [for (final e in NotifEvent.values) e.name],
+    'bedCooledTemp': bedCooledTemp,
+    'amsHumidityThreshold': amsHumidityThreshold,
+    'lowFilamentThreshold': lowFilamentThreshold,
+  };
 
   String encode() => jsonEncode(toJson());
 
@@ -164,21 +164,31 @@ class NotificationPrefs {
         // An event the writing build never offered keeps the choice this build
         // ships it with — off stays off, on stays on — instead of reading as a
         // switch the user deliberately cleared.
-        if (known.contains(e) ? names.contains(e.name) : _defaultEnabled.contains(e))
+        if (known.contains(e)
+            ? names.contains(e.name)
+            : _defaultEnabled.contains(e))
           e,
     };
     return NotificationPrefs(
       // Missing key (prefs saved before this flag existed) → alerts stay on.
-      alertsEnabled: json['alertsEnabled'] is bool ? json['alertsEnabled'] as bool : true,
+      alertsEnabled: json['alertsEnabled'] is bool
+          ? json['alertsEnabled'] as bool
+          : true,
       // Same rule for the finish photo: an install that predates it gets the
       // feature rather than a silently disabled one.
-      finishPhoto: json['finishPhoto'] is bool ? json['finishPhoto'] as bool : true,
+      finishPhoto: json['finishPhoto'] is bool
+          ? json['finishPhoto'] as bool
+          : true,
       enabled: enabled,
       bedCooledTemp: _asInt(json['bedCooledTemp'], defaultBedCooledTemp),
-      amsHumidityThreshold:
-          _asInt(json['amsHumidityThreshold'], defaultAmsHumidity),
-      lowFilamentThreshold:
-          _asInt(json['lowFilamentThreshold'], defaultLowFilament),
+      amsHumidityThreshold: _asInt(
+        json['amsHumidityThreshold'],
+        defaultAmsHumidity,
+      ),
+      lowFilamentThreshold: _asInt(
+        json['lowFilamentThreshold'],
+        defaultLowFilament,
+      ),
     );
   }
 
@@ -187,15 +197,16 @@ class NotificationPrefs {
     if (raw == null || raw.isEmpty) return defaults;
     try {
       return NotificationPrefs.fromJson(
-          jsonDecode(raw) as Map<String, dynamic>);
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
     } on Object {
       return defaults;
     }
   }
 
   static int _asInt(dynamic v, int fallback) => switch (v) {
-        num n => n.toInt(),
-        String s => int.tryParse(s) ?? fallback,
-        _ => fallback,
-      };
+    num n => n.toInt(),
+    String s => int.tryParse(s) ?? fallback,
+    _ => fallback,
+  };
 }

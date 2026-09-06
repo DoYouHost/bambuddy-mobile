@@ -247,11 +247,11 @@ class PrinterStatus {
   /// See [slotExtruder] for why this refuses to guess. [trayId] only changes the
   /// answer for the external holder (unit 255), where it names the side.
   int? extruderForSlot(int amsId, int trayId) => slotExtruder(
-        amsId: amsId,
-        trayId: trayId,
-        amsExtruderMap: amsExtruderMap,
-        amsSwitchInlet: amsSwitchInlet,
-      );
+    amsId: amsId,
+    trayId: trayId,
+    amsExtruderMap: amsExtruderMap,
+    amsSwitchInlet: amsSwitchInlet,
+  );
 
   /// Diameter of the nozzle one AMS slot feeds, as the string the server and the
   /// printer both use (`0.4`). Null when the printer has not reported its
@@ -286,46 +286,46 @@ class PrinterStatus {
   /// covers the collection fields, so a list or map here needs no wrapper of
   /// its own — the models inside them define their own `==`.
   List<Object?> get _fields => [
-        id,
-        name,
-        connected,
-        state,
-        currentPrint,
-        gcodeFile,
-        progress,
-        remainingTime,
-        layerNum,
-        totalLayers,
-        temperatures,
-        coverUrl,
-        stgCur,
-        stgCurName,
-        coolingFanSpeed,
-        bigFan1Speed,
-        bigFan2Speed,
-        leftAuxFanSpeed,
-        exhaustFanPresent,
-        heatbreakFanSpeed,
-        speedLevel,
-        chamberLight,
-        airductMode,
-        ams,
-        vtTray,
-        trayNow,
-        activeExtruder,
-        amsExtruderMap,
-        amsSwitchInlet,
-        model,
-        wifiSignal,
-        doorOpen,
-        awaitingPlateClear,
-        hmsErrors,
-        supportsDrying,
-        nozzles,
-        nozzleRack,
-        filaSwitch,
-        extruderSlots,
-      ];
+    id,
+    name,
+    connected,
+    state,
+    currentPrint,
+    gcodeFile,
+    progress,
+    remainingTime,
+    layerNum,
+    totalLayers,
+    temperatures,
+    coverUrl,
+    stgCur,
+    stgCurName,
+    coolingFanSpeed,
+    bigFan1Speed,
+    bigFan2Speed,
+    leftAuxFanSpeed,
+    exhaustFanPresent,
+    heatbreakFanSpeed,
+    speedLevel,
+    chamberLight,
+    airductMode,
+    ams,
+    vtTray,
+    trayNow,
+    activeExtruder,
+    amsExtruderMap,
+    amsSwitchInlet,
+    model,
+    wifiSignal,
+    doorOpen,
+    awaitingPlateClear,
+    hmsErrors,
+    supportsDrying,
+    nozzles,
+    nozzleRack,
+    filaSwitch,
+    extruderSlots,
+  ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
   /// status that's identical in content to the one already in state (REST
@@ -490,8 +490,12 @@ class PrinterStatus {
   /// here; every other enclosed model (X1/P1S/H2*) says "chamber". Mirrors the
   /// server's `uses_exhaust_fan_label`, including its normalization, so a model
   /// reported as an internal code (`N7`/`N6`) resolves the same way.
-  bool get usesExhaustFanLabel => const {'P2S', 'X2D', 'N7', 'N6'}
-      .contains(model?.trim().toUpperCase().replaceAll(RegExp(r'[ -]'), ''));
+  bool get usesExhaustFanLabel => const {
+    'P2S',
+    'X2D',
+    'N7',
+    'N6',
+  }.contains(model?.trim().toUpperCase().replaceAll(RegExp(r'[ -]'), ''));
 
   /// Whether to offer the enclosure fan (big fan 2) at all.
   ///
@@ -507,20 +511,20 @@ class PrinterStatus {
 
   /// true = heating, false = cooling, null = none/unknown mode.
   bool? get airductIsHeating => switch (airductMode) {
-        0 => false,
-        1 => true,
-        _ => null,
-      };
+    0 => false,
+    1 => true,
+    _ => null,
+  };
 
   /// Speed percent matching [speedLevel] (Bambu mapping);
   /// null if level unknown/unset.
   int? get speedPercent => switch (speedLevel) {
-        1 => 50,
-        2 => 100,
-        3 => 124,
-        4 => 166,
-        _ => null,
-      };
+    1 => 50,
+    2 => 100,
+    3 => 124,
+    4 => 166,
+    _ => null,
+  };
 
   /// Whether print job is running — including prep phases (heating, auto bed
   /// leveling, pause) where `progress`/`remainingTime` may be zero but server
@@ -576,9 +580,9 @@ class PrinterStatus {
   /// Print paused. Controls show "Resume" instead of "Pause". From server,
   /// so appears English in various forms.
   bool get isPaused => switch (state?.toUpperCase()) {
-        'PAUSE' || 'PAUSED' => true,
-        _ => false,
-      };
+    'PAUSE' || 'PAUSED' => true,
+    _ => false,
+  };
 
   /// External spools sorted by global id ascending (254 = Ext-L first).
   List<AmsTray> get externalSpools {
@@ -607,7 +611,9 @@ class PrinterStatus {
   int? extruderForExternal(int? trayId) {
     final spools = externalSpools;
     if (!spools.any((t) => t.id == trayId)) return null;
-    return spools.length == 1 ? 0 : extruderForExternalSide(externalSideOf(trayId));
+    return spools.length == 1
+        ? 0
+        : extruderForExternalSide(externalSideOf(trayId));
   }
 
   /// The tray a slot triple names, or null when this printer reports no such
@@ -651,10 +657,7 @@ class PrinterStatus {
         if (extruderForExternal(t.id) == ext) return t;
       }
       // Fallback: match by ID, else first spool.
-      return spools.firstWhere(
-        (t) => t.id == now,
-        orElse: () => spools.first,
-      );
+      return spools.firstWhere((t) => t.id == now, orElse: () => spools.first);
     }
 
     // Keyed on the unit's real hardware id, falling back to list position only
@@ -758,15 +761,15 @@ class AmsUnit {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        isAmsHt,
-        humidity,
-        temp,
-        dryTime,
-        dryStatus,
-        moduleType,
-        trays == null ? null : _deepEquality.hash(trays),
-      );
+    id,
+    isAmsHt,
+    humidity,
+    temp,
+    dryTime,
+    dryStatus,
+    moduleType,
+    trays == null ? null : _deepEquality.hash(trays),
+  );
 }
 
 /// Filament slot (AMS tray or external spool). Only fields needed for chips —
@@ -852,8 +855,17 @@ class AmsTray {
           other.trayUuid == trayUuid;
 
   @override
-  int get hashCode => Object.hash(id, trayColor, trayType, traySubBrands,
-      remain, trayInfoIdx, caliIdx, tagUid, trayUuid);
+  int get hashCode => Object.hash(
+    id,
+    trayColor,
+    trayType,
+    traySubBrands,
+    remain,
+    trayInfoIdx,
+    caliIdx,
+    tagUid,
+    trayUuid,
+  );
 }
 
 /// One fitted nozzle, from the status response's `nozzles` (index 0 =
@@ -1120,8 +1132,17 @@ class HmsError {
           other.description == description;
 
   @override
-  int get hashCode => Object.hash(code, message, severity, attr, module,
-      _deepEquality.hash(actions), jobId, fullCode, description);
+  int get hashCode => Object.hash(
+    code,
+    message,
+    severity,
+    attr,
+    module,
+    _deepEquality.hash(actions),
+    jobId,
+    fullCode,
+    description,
+  );
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.
@@ -1186,10 +1207,10 @@ class HmsError {
 /// HMS code arrives as string (`"0x20070"`, `"0500_0100"`) or number — convert
 /// to string for dedup in sets.
 String? _toCodeStringOrNull(dynamic value) => switch (value) {
-      String s when s.trim().isNotEmpty => s.trim(),
-      num n => n.toString(),
-      _ => null,
-    };
+  String s when s.trim().isNotEmpty => s.trim(),
+  num n => n.toString(),
+  _ => null,
+};
 
 /// Action keys — non-string elements dropped rather than crashing the frame.
 ///
@@ -1270,4 +1291,6 @@ FilaSwitch? _toFilaSwitchOrNull(dynamic value) =>
 /// Map `extruder id → slot` with string keys (`{"0": {...}}`) → `{0: ...}`.
 Map<int, ExtruderSlot>? _toExtruderSlotMapOrNull(dynamic value) =>
     parseJsonMapByIdOrNull(
-        value, (e) => parseJsonObjectOrNull(e, ExtruderSlot.fromJson));
+      value,
+      (e) => parseJsonObjectOrNull(e, ExtruderSlot.fromJson),
+    );

@@ -55,19 +55,21 @@ void main() {
       expect(cache.listSync(), isEmpty);
     });
 
-    test('a download that fails before writing anything still reports why',
-        () async {
-      await expectLater(
-        downloadToCacheFile(
-          scratchName: 'timelapse-7.download',
-          download: (_) async => throw const SocketException('refused'),
-          name: (_) => 'print.mp4',
-        ),
-        throwsA(isA<SocketException>()),
-      );
+    test(
+      'a download that fails before writing anything still reports why',
+      () async {
+        await expectLater(
+          downloadToCacheFile(
+            scratchName: 'timelapse-7.download',
+            download: (_) async => throw const SocketException('refused'),
+            name: (_) => 'print.mp4',
+          ),
+          throwsA(isA<SocketException>()),
+        );
 
-      expect(cache.listSync(), isEmpty);
-    });
+        expect(cache.listSync(), isEmpty);
+      },
+    );
 
     test('replaces an earlier file of the same name', () async {
       await File('${cache.path}/print.mp4').writeAsString('an older take');

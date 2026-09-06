@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -27,16 +26,15 @@ LibraryFile _file({
   String fileType = '3mf',
   bool isExternal = false,
   int variantCount = 0,
-}) =>
-    LibraryFile(
-      id: id,
-      filename: filename,
-      fileType: fileType,
-      fileSize: 1024,
-      printCount: 0,
-      isExternal: isExternal,
-      variantCount: variantCount,
-    );
+}) => LibraryFile(
+  id: id,
+  filename: filename,
+  fileType: fileType,
+  fileSize: 1024,
+  printCount: 0,
+  isExternal: isExternal,
+  variantCount: variantCount,
+);
 
 void main() {
   /// Pumps the screen with one file in the listing.
@@ -55,18 +53,20 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(ProviderScope(
+    await pumpPhone(
+      tester,
+      const FileManagerScreen(),
       overrides: [
         noServerProfileOverride,
-        fileManagerProvider
-            .overrideWith(() => _FakeNotifier(FileManagerState(files: [file]))),
+        fileManagerProvider.overrideWith(
+          () => _FakeNotifier(FileManagerState(files: [file])),
+        ),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
         slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
         canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
       ],
-      child: plApp(const FileManagerScreen()),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
@@ -77,20 +77,26 @@ void main() {
   }
 
   group('the run-with-pipeline action', () {
-    testWidgets('is offered on a sliceable file when the server has pipelines',
-        (tester) async {
-      final file = _file();
-      await pump(tester, file: file);
-      await openFileSheet(tester, file);
+    testWidgets(
+      'is offered on a sliceable file when the server has pipelines',
+      (tester) async {
+        final file = _file();
+        await pump(tester, file: file);
+        await openFileSheet(tester, file);
 
-      expect(tester.takeException(), isNull);
-      expect(find.byIcon(Icons.layers_outlined), findsOneWidget,
-          reason: 'the slice action proves the sheet thinks the file sliceable');
-      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
-    });
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byIcon(Icons.layers_outlined),
+          findsOneWidget,
+          reason: 'the slice action proves the sheet thinks the file sliceable',
+        );
+        expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      },
+    );
 
-    testWidgets('stays away on a server without the pipeline routes',
-        (tester) async {
+    testWidgets('stays away on a server without the pipeline routes', (
+      tester,
+    ) async {
       final file = _file();
       await pump(tester, file: file, canRunPipelines: false);
       await openFileSheet(tester, file);
@@ -98,31 +104,39 @@ void main() {
       expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
     });
 
-    testWidgets('appears once the gate settles after the sheet is already open',
-        (tester) async {
+    testWidgets('appears once the gate settles after the sheet is already open', (
+      tester,
+    ) async {
       // The sheet is built in its own route, so a gate read from the screen's
       // `ref` cannot rebuild it. This gate is a FutureProvider — it is
       // unresolved for the first frames — so reading it at build time hides the
       // action on a server that does have pipelines.
       final gate = Completer<bool>();
       final file = _file();
-      await tester.pumpWidget(ProviderScope(
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
         overrides: [
           noServerProfileOverride,
           fileManagerProvider.overrideWith(
-              () => _FakeNotifier(FileManagerState(files: [file]))),
-          libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
+            () => _FakeNotifier(FileManagerState(files: [file])),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
           libraryTagsProvider.overrideWith((ref) async => const []),
           slicerEnabledProvider.overrideWith((ref) async => true),
           canRunPipelinesProvider.overrideWith((ref) => gate.future),
         ],
-        child: plApp(const FileManagerScreen()),
-      ));
+      );
       await tester.pumpAndSettle();
       await openFileSheet(tester, file);
 
-      expect(find.byIcon(Icons.account_tree_outlined), findsNothing,
-          reason: 'nothing is claimed before the server has answered');
+      expect(
+        find.byIcon(Icons.account_tree_outlined),
+        findsNothing,
+        reason: 'nothing is claimed before the server has answered',
+      );
 
       gate.complete(true);
       await tester.pumpAndSettle();
@@ -148,8 +162,11 @@ void main() {
       await pump(tester, file: file);
       await openFileSheet(tester, file);
 
-      expect(tester.takeException(), isNull,
-          reason: 'the sheet must scroll rather than overflow');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the sheet must scroll rather than overflow',
+      );
     });
 
     testWidgets('the last action is reachable by scrolling', (tester) async {
@@ -161,7 +178,10 @@ void main() {
 
       final sheet = find.byType(BottomSheet);
       await tester.dragUntilVisible(
-          find.text('Usuń'), sheet, const Offset(0, -60));
+        find.text('Usuń'),
+        sheet,
+        const Offset(0, -60),
+      );
       expect(find.text('Usuń'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -176,8 +196,9 @@ void main() {
   });
 
   group('what the sheet offers', () {
-    testWidgets('a sliceable model offers slicing, not printing',
-        (tester) async {
+    testWidgets('a sliceable model offers slicing, not printing', (
+      tester,
+    ) async {
       // A 3MF that is not gcode cannot be printed as-is, and the slice gate is
       // on: `canSlice = slicerEnabled && !file.isPrintable`.
       final file = _file();
@@ -188,8 +209,9 @@ void main() {
       expect(find.text('Drukuj'), findsNothing);
     });
 
-    testWidgets('slicing is not offered when the server has it switched off',
-        (tester) async {
+    testWidgets('slicing is not offered when the server has it switched off', (
+      tester,
+    ) async {
       final file = _file();
       await pump(tester, file: file, slicerEnabled: false);
       await openFileSheet(tester, file);
@@ -206,8 +228,9 @@ void main() {
       expect(find.text('Potnij'), findsNothing);
     });
 
-    testWidgets('a server with no tag routes hides the tag action',
-        (tester) async {
+    testWidgets('a server with no tag routes hides the tag action', (
+      tester,
+    ) async {
       // A loaded null is the 404 gate — see libraryTagsSupported.
       final file = _file();
       await pump(tester, file: file, tags: null);

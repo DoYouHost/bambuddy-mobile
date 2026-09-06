@@ -29,23 +29,30 @@ AmsFilamentPreset _builtin(String id, String name) =>
     AmsFilamentPreset(source: AmsPresetSource.builtin, id: id, name: name);
 
 void main() {
-  test('orders imported presets first, then cloud, then the built-in table',
-      () {
-    final list = filamentPresetCatalog(
-      builtin: [_builtin('GFA00', 'Bambu ABS')],
-      cloud: [_cloud('GFSL05', 'Bambu PLA Basic')],
-      local: [_local('7', 'My PETG')],
-    );
+  test(
+    'orders imported presets first, then cloud, then the built-in table',
+    () {
+      final list = filamentPresetCatalog(
+        builtin: [_builtin('GFA00', 'Bambu ABS')],
+        cloud: [_cloud('GFSL05', 'Bambu PLA Basic')],
+        local: [_local('7', 'My PETG')],
+      );
 
-    expect(list.map((p) => p.pickerId),
-        ['local_7', 'GFSL05', 'builtin_GFA00']);
-  });
+      expect(list.map((p) => p.pickerId), [
+        'local_7',
+        'GFSL05',
+        'builtin_GFA00',
+      ]);
+    },
+  );
 
   test('sorts a user cloud preset above the ones Bambu ships', () {
-    final list = filamentPresetCatalog(cloud: [
-      _cloud('GFSL05', 'Bambu PLA Basic'),
-      _cloud('PFUS123', 'A custom PLA', isUser: true),
-    ]);
+    final list = filamentPresetCatalog(
+      cloud: [
+        _cloud('GFSL05', 'Bambu PLA Basic'),
+        _cloud('PFUS123', 'A custom PLA', isUser: true),
+      ],
+    );
 
     expect(list.first.name, 'A custom PLA');
   });
@@ -122,9 +129,12 @@ void main() {
   test('hides an imported preset whose own compatibility list excludes us', () {
     final list = filamentPresetCatalog(
       local: [
-        _local('1', 'H2D only',
-            compatible: const ['Bambu Lab H2D 0.4 nozzle']),
-        _local('2', 'For us', compatible: const ['Bambu Lab X1 Carbon 0.4 nozzle']),
+        _local('1', 'H2D only', compatible: const ['Bambu Lab H2D 0.4 nozzle']),
+        _local(
+          '2',
+          'For us',
+          compatible: const ['Bambu Lab X1 Carbon 0.4 nozzle'],
+        ),
       ],
       fullPrinterName: 'Bambu Lab X1 Carbon 0.4 nozzle',
     );

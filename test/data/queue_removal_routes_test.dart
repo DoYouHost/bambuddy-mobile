@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// The three routes that take an item out of the queue, and the one thing they
 /// have in common: each refuses a status it does not handle, and says which
 /// status it found only in the 400's `detail`.
@@ -17,22 +19,23 @@ void main() {
   late QueueRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = QueueRepository(dio);
   });
 
   test('stop: posts to the route a printing item accepts', () async {
-    var hit = false;
-    adapter.onPost('/api/v1/queue/224/stop', (server) {
-      hit = true;
-      server.reply(200, {'message': 'Print stopped'});
-    });
+    adapter.onPost(
+      '/api/v1/queue/224/stop',
+      (server) => server.reply(200, {'message': 'Print stopped'}),
+    );
+    final sent = captureRequests(dio);
 
     await repo.stop(224);
 
-    expect(hit, isTrue,
-        reason: '/stop is the only route that clears a printing row');
+    expect(sent.calls, [
+      'POST /api/v1/queue/224/stop',
+    ], reason: '/stop is the only route that clears a printing row');
   });
 
   test('stop: an offline printer still clears the row', () async {
@@ -41,8 +44,9 @@ void main() {
     // that the app treats it as success.
     adapter.onPost(
       '/api/v1/queue/224/stop',
-      (server) => server.reply(
-          200, {'message': 'Queue item cancelled (printer was offline)'}),
+      (server) => server.reply(200, {
+        'message': 'Queue item cancelled (printer was offline)',
+      }),
     );
 
     await expectLater(repo.stop(224), completes);
@@ -52,7 +56,8 @@ void main() {
     adapter.onPost(
       '/api/v1/queue/9/stop',
       (server) => server.reply(400, {
-        'detail': "Can only stop items that are printing, current status: "
+        'detail':
+            "Can only stop items that are printing, current status: "
             "'pending'",
       }),
     );
@@ -60,16 +65,20 @@ void main() {
     final error = await _failureOf(() => repo.stop(9));
 
     expect(error.statusCode, 400);
-    expect(error.detail, contains('pending'),
-        reason: 'the status is the whole explanation of the refusal');
+    expect(
+      error.detail,
+      contains('pending'),
+      reason: 'the status is the whole explanation of the refusal',
+    );
   });
 
   test('cancel: keeps the status the server named in a 400', () async {
     // Verbatim what the reporter's server answered, item 224 included.
     adapter.onPost(
       '/api/v1/queue/224/cancel',
-      (server) => server.reply(
-          400, {'detail': "Cannot cancel item with status 'printing'"}),
+      (server) => server.reply(400, {
+        'detail': "Cannot cancel item with status 'printing'",
+      }),
     );
 
     final error = await _failureOf(() => repo.cancel(224));
@@ -80,8 +89,9 @@ void main() {
   test('delete: keeps the reason a printing row cannot be deleted', () async {
     adapter.onDelete(
       '/api/v1/queue/224',
-      (server) => server.reply(
-          400, {'detail': 'Cannot delete item that is currently printing'}),
+      (server) => server.reply(400, {
+        'detail': 'Cannot delete item that is currently printing',
+      }),
     );
 
     final error = await _failureOf(() => repo.delete(224));
@@ -109,8 +119,9 @@ void main() {
     // already does, so ownership refusals must survive it unchanged.
     adapter.onDelete(
       '/api/v1/queue/5',
-      (server) => server
-          .reply(403, {'detail': 'You can only delete your own queue items'}),
+      (server) => server.reply(403, {
+        'detail': 'You can only delete your own queue items',
+      }),
     );
 
     final error = await _failureOf(() => repo.delete(5));

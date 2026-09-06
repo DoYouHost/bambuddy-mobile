@@ -28,8 +28,11 @@ void main() {
     await catalog.load();
     // The loader swallows a missing or corrupt asset and leaves everything
     // empty, so without this guard every expectation below would pass vacuously.
-    expect(catalog.isLoaded, isTrue,
-        reason: 'assets/slicer/*.json did not load — the rest is vacuous');
+    expect(
+      catalog.isLoaded,
+      isTrue,
+      reason: 'assets/slicer/*.json did not load — the rest is vacuous',
+    );
   });
 
   /// The schema file read straight off disk, to compare against what the loader
@@ -74,10 +77,16 @@ void main() {
           .toList();
       expect(enums, isNotEmpty);
       for (final option in enums) {
-        expect(option.enumValues, isNotEmpty,
-            reason: '${option.key} is coEnum with no values to pick from');
-        expect(option.enumLabels, hasLength(option.enumValues!.length),
-            reason: '${option.key} labels do not line up with its values');
+        expect(
+          option.enumValues,
+          isNotEmpty,
+          reason: '${option.key} is coEnum with no values to pick from',
+        );
+        expect(
+          option.enumLabels,
+          hasLength(option.enumValues!.length),
+          reason: '${option.key} labels do not line up with its values',
+        );
       }
     });
   });
@@ -93,15 +102,18 @@ void main() {
       return catalog;
     }
 
-    test('an unreadable asset leaves an empty catalog, not an exception',
-        () async {
-      final loaded =
-          await loadWith((key) => Future.error(Exception('no such asset')));
-      expect(loaded.isLoaded, isFalse);
-      expect(loaded.schema, isEmpty);
-      expect(loaded.tree, isEmpty);
-      expect(loaded.toggles.rules, isEmpty);
-    });
+    test(
+      'an unreadable asset leaves an empty catalog, not an exception',
+      () async {
+        final loaded = await loadWith(
+          (key) => Future.error(Exception('no such asset')),
+        );
+        expect(loaded.isLoaded, isFalse);
+        expect(loaded.schema, isEmpty);
+        expect(loaded.tree, isEmpty);
+        expect(loaded.toggles.rules, isEmpty);
+      },
+    );
 
     test('an asset that is not JSON leaves an empty catalog', () async {
       final loaded = await loadWith((key) async => 'not json at all');
@@ -115,31 +127,37 @@ void main() {
       expect(loaded.isLoaded, isFalse);
     });
 
-    test('a broken rule file still opens the screen, with nothing disabled',
-        () async {
-      // The documented fail-open decision, pinned: `isLoaded` deliberately
-      // ignores the toggles. Renamed keys in a re-vendor parse to no rules,
-      // which disables nothing — the same answer the evaluator gives for a
-      // condition it cannot decide, and no reason to withhold 348 options.
-      final loaded = await loadWith((key) async => switch (key) {
+    test(
+      'a broken rule file still opens the screen, with nothing disabled',
+      () async {
+        // The documented fail-open decision, pinned: `isLoaded` deliberately
+        // ignores the toggles. Renamed keys in a re-vendor parse to no rules,
+        // which disables nothing — the same answer the evaluator gives for a
+        // condition it cannot decide, and no reason to withhold 348 options.
+        final loaded = await loadWith(
+          (key) async => switch (key) {
             'assets/slicer/process-toggle-rules.json' => '{"lokals": {}}',
             _ => onDisk(key.split('/').last),
-          });
-      expect(loaded.isLoaded, isTrue);
-      expect(loaded.schema, isNotEmpty);
-      expect(loaded.toggles.rules, isEmpty);
-      expect(loaded.toggles.locals, isEmpty);
-    });
+          },
+        );
+        expect(loaded.isLoaded, isTrue);
+        expect(loaded.schema, isNotEmpty);
+        expect(loaded.toggles.rules, isEmpty);
+        expect(loaded.toggles.locals, isEmpty);
+      },
+    );
 
     test('a failed attempt is not retried', () async {
       // A corrupt bundled asset does not become valid on the second tap, so the
       // load is latched either way. Without this, every open of the screen would
       // re-read and re-decode 156 KB to reach the same answer.
       var reads = 0;
-      final catalog = ProcessSchemaCatalog(readAsset: (key) {
-        reads++;
-        return Future.error(Exception('boom'));
-      });
+      final catalog = ProcessSchemaCatalog(
+        readAsset: (key) {
+          reads++;
+          return Future.error(Exception('boom'));
+        },
+      );
       await catalog.load();
       await catalog.load();
       expect(reads, 3, reason: 'three assets, read once between them');
@@ -157,8 +175,11 @@ void main() {
           }
         }
       }
-      expect(missing, isEmpty,
-          reason: 'these would render as rows nothing can edit');
+      expect(
+        missing,
+        isEmpty,
+        reason: 'these would render as rows nothing can edit',
+      );
     });
 
     test('every schema key appears exactly once in the tree', () {
@@ -170,15 +191,25 @@ void main() {
           }
         }
       }
-      final unreachable =
-          catalog.schema.keys.where((k) => !counts.containsKey(k)).toList();
-      final duplicated =
-          counts.entries.where((e) => e.value > 1).map((e) => e.key).toList();
+      final unreachable = catalog.schema.keys
+          .where((k) => !counts.containsKey(k))
+          .toList();
+      final duplicated = counts.entries
+          .where((e) => e.value > 1)
+          .map((e) => e.key)
+          .toList();
 
-      expect(unreachable, isEmpty,
-          reason: 'in the schema but on no page — no way to reach these');
-      expect(duplicated, isEmpty,
-          reason: 'on two pages — edits in one place would look lost in the other');
+      expect(
+        unreachable,
+        isEmpty,
+        reason: 'in the schema but on no page — no way to reach these',
+      );
+      expect(
+        duplicated,
+        isEmpty,
+        reason:
+            'on two pages — edits in one place would look lost in the other',
+      );
     });
 
     test('pages and groups are all named and non-empty', () {
@@ -186,9 +217,16 @@ void main() {
         expect(page.page, isNotEmpty);
         expect(page.groups, isNotEmpty, reason: '${page.page} has no groups');
         for (final group in page.groups) {
-          expect(group.group, isNotEmpty, reason: 'unnamed group in ${page.page}');
-          expect(group.options, isNotEmpty,
-              reason: '${page.page}/${group.group} is empty');
+          expect(
+            group.group,
+            isNotEmpty,
+            reason: 'unnamed group in ${page.page}',
+          );
+          expect(
+            group.options,
+            isNotEmpty,
+            reason: '${page.page}/${group.group} is empty',
+          );
         }
       }
     });
@@ -197,11 +235,16 @@ void main() {
   group('nothing is dropped on the way in', () {
     test('every option in the file has a type this app can render', () {
       final raw = rawSchema();
-      final dropped =
-          raw.keys.where((k) => !catalog.schema.containsKey(k)).toList();
-      expect(dropped, isEmpty,
-          reason: 'unknown OptionType — needs a control and a wire form in the '
-              'codec before it can ship');
+      final dropped = raw.keys
+          .where((k) => !catalog.schema.containsKey(k))
+          .toList();
+      expect(
+        dropped,
+        isEmpty,
+        reason:
+            'unknown OptionType — needs a control and a wire form in the '
+            'codec before it can ship',
+      );
     });
 
     test('no option lands in a mode the app never shows', () {
@@ -214,19 +257,28 @@ void main() {
           .where((o) => o.mode == OptionMode.develop)
           .map((o) => o.key);
       for (final key in hidden) {
-        expect((raw[key] as Map<String, dynamic>)['mode'], 'develop',
-            reason: '$key is hidden because its mode was not recognised');
+        expect(
+          (raw[key] as Map<String, dynamic>)['mode'],
+          'develop',
+          reason: '$key is hidden because its mode was not recognised',
+        );
       }
     });
 
-    test('bounds are numbers or the unresolved C++ expressions, nothing else', () {
-      for (final option in catalog.schema.values) {
-        for (final bound in [option.min, option.max]) {
-          expect(bound, anyOf(isNull, isA<num>(), isA<String>()),
-              reason: '${option.key} has a bound the codec cannot coerce');
+    test(
+      'bounds are numbers or the unresolved C++ expressions, nothing else',
+      () {
+        for (final option in catalog.schema.values) {
+          for (final bound in [option.min, option.max]) {
+            expect(
+              bound,
+              anyOf(isNull, isA<num>(), isA<String>()),
+              reason: '${option.key} has a bound the codec cannot coerce',
+            );
+          }
         }
-      }
-    });
+      },
+    );
 
     test('every option has a default to fall back to', () {
       // The default is the last resort for what an untouched field shows, used
@@ -256,15 +308,20 @@ void main() {
       }
       // A rule for an option we do not render is harmless — but it means the
       // two files disagree, which is the signal that one of them is stale.
-      expect(unknown, isEmpty,
-          reason: 'toggle rules reference options the schema does not declare');
+      expect(
+        unknown,
+        isEmpty,
+        reason: 'toggle rules reference options the schema does not declare',
+      );
     });
   });
 
   group('OptionType', () {
     test('the vector types are exactly the per-extruder ones', () {
-      final vectors =
-          OptionType.values.where((t) => t.isVector).map((t) => t.name).toSet();
+      final vectors = OptionType.values
+          .where((t) => t.isVector)
+          .map((t) => t.name)
+          .toSet();
       expect(vectors, {'coBools', 'coFloats', 'coFloatsOrPercents'});
     });
 

@@ -20,7 +20,9 @@ import '../common/system_insets.dart';
 /// `autoDispose` so re-entering the screen asks again after a trip to the system
 /// settings. False whenever the platform does not answer: a banner that might be
 /// wrong is worse than none.
-final _notificationsBlockedProvider = FutureProvider.autoDispose<bool>((ref) async {
+final _notificationsBlockedProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
   final service = ref.watch(notificationServiceProvider);
   if (service is! LocalNotificationService) return false;
   if (await service.notificationsEnabled() == false) return true;
@@ -52,10 +54,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
           children: [
             if (ref.watch(_notificationsBlockedProvider).orFalse)
               _BlockedBanner(l10n.notificationsBlocked),
-            Text(
-              l10n.notifSettingsHint,
-              style: t.label,
-            ),
+            Text(l10n.notifSettingsHint, style: t.label),
             const SizedBox(height: 12),
             _DashSection(
               rows: [
@@ -108,8 +107,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
             _DashSection(
               rows: [
                 _ThresholdSlider(
-                  label:
-                      l10n.notifLowFilamentThreshold(prefs.lowFilamentThreshold),
+                  label: l10n.notifLowFilamentThreshold(
+                    prefs.lowFilamentThreshold,
+                  ),
                   value: prefs.lowFilamentThreshold,
                   min: 1,
                   max: 50,
@@ -117,7 +117,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   onChanged: notifier.setLowFilamentThreshold,
                 ),
                 _ThresholdSlider(
-                  label: l10n.notifHumidityThreshold(prefs.amsHumidityThreshold),
+                  label: l10n.notifHumidityThreshold(
+                    prefs.amsHumidityThreshold,
+                  ),
                   value: prefs.amsHumidityThreshold,
                   min: 20,
                   max: 90,
@@ -141,19 +143,55 @@ class NotificationSettingsScreen extends ConsumerWidget {
   }
 
   List<_EventRow> _eventRows(AppLocalizations l) => [
-        _EventRow(NotifEvent.printStarted, l.notifEvtStarted, l.notifEvtStartedDesc),
-        _EventRow(NotifEvent.printFinished, l.notifEvtFinished, l.notifEvtFinishedDesc),
-        _EventRow(NotifEvent.printFailed, l.notifEvtFailed, l.notifEvtFailedDesc),
-        _EventRow(NotifEvent.firstLayer, l.notifEvtFirstLayer, l.notifEvtFirstLayerDesc),
-        _EventRow(NotifEvent.milestones, l.notifEvtMilestones, l.notifEvtMilestonesDesc),
-        _EventRow(NotifEvent.plateNotEmpty, l.notifEvtPlate, l.notifEvtPlateDesc),
-        _EventRow(NotifEvent.printerOffline, l.notifEvtOffline, l.notifEvtOfflineDesc),
-        _EventRow(NotifEvent.printerError, l.notifEvtError, l.notifEvtErrorDesc),
-        _EventRow(NotifEvent.lowFilament, l.notifEvtLowFilament, l.notifEvtLowFilamentDesc),
-        _EventRow(NotifEvent.amsHumidity, l.notifEvtHumidity, l.notifEvtHumidityDesc),
-        _EventRow(NotifEvent.bedCooled, l.notifEvtBedCooled, l.notifEvtBedCooledDesc),
-        _EventRow(NotifEvent.maintenanceDue, l.notifEvtMaintenance, l.notifEvtMaintenanceDesc),
-      ];
+    _EventRow(
+      NotifEvent.printStarted,
+      l.notifEvtStarted,
+      l.notifEvtStartedDesc,
+    ),
+    _EventRow(
+      NotifEvent.printFinished,
+      l.notifEvtFinished,
+      l.notifEvtFinishedDesc,
+    ),
+    _EventRow(NotifEvent.printFailed, l.notifEvtFailed, l.notifEvtFailedDesc),
+    _EventRow(
+      NotifEvent.firstLayer,
+      l.notifEvtFirstLayer,
+      l.notifEvtFirstLayerDesc,
+    ),
+    _EventRow(
+      NotifEvent.milestones,
+      l.notifEvtMilestones,
+      l.notifEvtMilestonesDesc,
+    ),
+    _EventRow(NotifEvent.plateNotEmpty, l.notifEvtPlate, l.notifEvtPlateDesc),
+    _EventRow(
+      NotifEvent.printerOffline,
+      l.notifEvtOffline,
+      l.notifEvtOfflineDesc,
+    ),
+    _EventRow(NotifEvent.printerError, l.notifEvtError, l.notifEvtErrorDesc),
+    _EventRow(
+      NotifEvent.lowFilament,
+      l.notifEvtLowFilament,
+      l.notifEvtLowFilamentDesc,
+    ),
+    _EventRow(
+      NotifEvent.amsHumidity,
+      l.notifEvtHumidity,
+      l.notifEvtHumidityDesc,
+    ),
+    _EventRow(
+      NotifEvent.bedCooled,
+      l.notifEvtBedCooled,
+      l.notifEvtBedCooledDesc,
+    ),
+    _EventRow(
+      NotifEvent.maintenanceDue,
+      l.notifEvtMaintenance,
+      l.notifEvtMaintenanceDesc,
+    ),
+  ];
 }
 
 class _EventRow {
@@ -182,13 +220,18 @@ class _BlockedBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.notifications_off_outlined,
-              size: 18, color: scheme.onErrorContainer),
+          Icon(
+            Icons.notifications_off_outlined,
+            size: 18,
+            color: scheme.onErrorContainer,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: DashTokens.of(context).body.copyWith(color: scheme.onErrorContainer),
+              style: DashTokens.of(
+                context,
+              ).body.copyWith(color: scheme.onErrorContainer),
             ),
           ),
         ],
@@ -286,15 +329,9 @@ class _DashSwitchRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        title,
-                        style: t.titleSm,
-                      ),
+                      Text(title, style: t.titleSm),
                       const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: t.label,
-                      ),
+                      Text(subtitle, style: t.label),
                     ],
                   ),
                 ),
@@ -342,10 +379,7 @@ class _ThresholdSlider extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: t.body,
-            ),
+            Text(label, style: t.body),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: t.accentGreen,

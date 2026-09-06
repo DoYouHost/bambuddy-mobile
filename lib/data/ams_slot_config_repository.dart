@@ -40,7 +40,8 @@ class AmsSlotConfigRepository {
   Future<String?> cloudFilamentId(String settingId) async {
     try {
       final json = await _get<Map<String, dynamic>>(
-          Endpoints.cloudSettingDetail(settingId));
+        Endpoints.cloudSettingDetail(settingId),
+      );
       final id = json?['filament_id'];
       // `base_id` sits right next to it in the response and is deliberately not
       // read: it names the generic this preset inherits from, so falling back
@@ -65,7 +66,9 @@ class AmsSlotConfigRepository {
 
   /// `{"Bambu Lab X1 Carbon": "X1C", …}` — static reference data.
   Future<Map<String, String>> printerModels() async {
-    final json = await _get<Map<String, dynamic>>(Endpoints.slicerPrinterModels);
+    final json = await _get<Map<String, dynamic>>(
+      Endpoints.slicerPrinterModels,
+    );
     return {
       for (final entry in (json ?? const {}).entries)
         if (entry.value is String) entry.key: entry.value as String,
@@ -99,7 +102,8 @@ class AmsSlotConfigRepository {
     required int trayId,
   }) async {
     final json = await _get<Map<String, dynamic>>(
-        Endpoints.amsSlotPreset(printerId, amsId, trayId));
+      Endpoints.amsSlotPreset(printerId, amsId, trayId),
+    );
     // The route answers a bare `null` for an unmapped slot, which Dio hands
     // back as no data at all.
     return json == null ? null : SlotPreset.fromJson(json);
@@ -135,9 +139,10 @@ class AmsSlotConfigRepository {
     required int amsId,
     required int trayId,
     required SlotConfiguration configuration,
-  }) =>
-      _post(Endpoints.amsSlotConfigure(printerId, amsId, trayId),
-          query: configuration.toQuery());
+  }) => _post(
+    Endpoints.amsSlotConfigure(printerId, amsId, trayId),
+    query: configuration.toQuery(),
+  );
 
   /// Clear a slot's filament configuration. Also drops the saved mapping
   /// server-side, so [slotPreset] answers null afterwards.
@@ -145,8 +150,7 @@ class AmsSlotConfigRepository {
     int printerId, {
     required int amsId,
     required int trayId,
-  }) =>
-      _post(Endpoints.amsSlotReset(printerId, amsId, trayId));
+  }) => _post(Endpoints.amsSlotReset(printerId, amsId, trayId));
 
   Future<T?> _get<T>(String path, {Map<String, dynamic>? query}) async {
     try {

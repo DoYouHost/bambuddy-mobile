@@ -34,4 +34,3 @@ class ArchivePurgePreview {
 
   bool get isEmpty => count == 0;
 }
-

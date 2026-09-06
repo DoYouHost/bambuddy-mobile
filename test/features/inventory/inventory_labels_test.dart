@@ -11,7 +11,6 @@ import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -24,9 +23,9 @@ import '../../helpers.dart';
 /// longer there.
 class _CapturingInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => InventoryState(spools: const [
-        Spool(id: 1, material: 'PLA', brand: 'Bambu'),
-      ]);
+  Future<InventoryState> build() async => InventoryState(
+    spools: const [Spool(id: 1, material: 'PLA', brand: 'Bambu')],
+  );
 }
 
 /// Records the render request, then refuses — the refusal is what keeps the
@@ -70,16 +69,18 @@ void main() {
     required bool startingPositionSupported,
   }) async {
     final repo = _CapturingRepository();
-    await tester.pumpWidget(ProviderScope(
+    await pumpPhone(
+      tester,
+      const InventoryScreen(),
       overrides: [
         inventoryProvider.overrideWith(_CapturingInventory.new),
         serverProfileProvider.overrideWith(_NullProfile.new),
         inventoryRepositoryProvider.overrideWithValue(repo),
-        labelStartingPositionProvider
-            .overrideWith((ref) async => startingPositionSupported),
+        labelStartingPositionProvider.overrideWith(
+          (ref) async => startingPositionSupported,
+        ),
       ],
-      child: plApp(const InventoryScreen()),
-    ));
+    );
     await settle(tester);
 
     await tester.tap(find.byTooltip(l10n.inventoryLabelsPrintAll));
@@ -102,8 +103,10 @@ void main() {
   }
 
   testWidgets('an Avery sheet asks which slot to start at', (tester) async {
-    final repo =
-        await openTemplatePicker(tester, startingPositionSupported: true);
+    final repo = await openTemplatePicker(
+      tester,
+      startingPositionSupported: true,
+    );
     await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
 
     expect(find.text(l10n.inventoryLabelsStartTitle), findsOneWidget);
@@ -122,23 +125,30 @@ void main() {
     expect(repo.request!.startingPosition, 7);
   });
 
-  testWidgets('a roll template never asks — the server refuses any answer but 1',
-      (tester) async {
-    final repo =
-        await openTemplatePicker(tester, startingPositionSupported: true);
-    await pickTemplate(tester, l10n.inventoryLabelsBox40);
+  testWidgets(
+    'a roll template never asks — the server refuses any answer but 1',
+    (tester) async {
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+      );
+      await pickTemplate(tester, l10n.inventoryLabelsBox40);
 
-    expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
-    expect(repo.request!.template, SpoolLabelTemplate.box40x30);
-    expect(repo.request!.startingPosition, 1);
-  });
+      expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      expect(repo.request!.template, SpoolLabelTemplate.box40x30);
+      expect(repo.request!.startingPosition, 1);
+    },
+  );
 
-  testWidgets('a server that would ignore the answer is not asked either',
-      (tester) async {
+  testWidgets('a server that would ignore the answer is not asked either', (
+    tester,
+  ) async {
     // `LabelRequest` forbids no extra fields, so the sheet would print from 1
     // whatever was picked. Asking would cost a sheet of Avery stock to find out.
-    final repo =
-        await openTemplatePicker(tester, startingPositionSupported: false);
+    final repo = await openTemplatePicker(
+      tester,
+      startingPositionSupported: false,
+    );
     await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
 
     expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);

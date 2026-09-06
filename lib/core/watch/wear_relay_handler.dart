@@ -52,11 +52,11 @@ class WearRelayHandler {
     Map<String, dynamic>? Function(int printerId)? liveStatus,
     WearRelayClaim? claim,
     void Function(int printerId)? plateGateAcknowledged,
-  })  : _watch = watch,
-        _dio = dio,
-        _liveStatus = liveStatus,
-        _claim = claim,
-        _plateGateAcknowledged = plateGateAcknowledged;
+  }) : _watch = watch,
+       _dio = dio,
+       _liveStatus = liveStatus,
+       _claim = claim,
+       _plateGateAcknowledged = plateGateAcknowledged;
 
   final WatchConnectivity _watch;
   final Dio? Function() _dio;
@@ -79,21 +79,21 @@ class WearRelayHandler {
   /// listener. A claim that could not be written means no listener at all, for
   /// the same reason.
   Future<void> start() => _sequenced(() async {
-        if (_sub != null) return;
-        final claim = _claim;
-        if (claim != null && !await claim.take()) return;
-        _sub = _watch.messageStream.listen((map) {
-          final req = WearRpcRequest.decode(map);
-          if (req == null) return; // foreign message or our own response echo
-          unawaited(handle(req));
-        });
-      });
+    if (_sub != null) return;
+    final claim = _claim;
+    if (claim != null && !await claim.take()) return;
+    _sub = _watch.messageStream.listen((map) {
+      final req = WearRpcRequest.decode(map);
+      if (req == null) return; // foreign message or our own response echo
+      unawaited(handle(req));
+    });
+  });
 
   Future<void> stop() => _sequenced(() async {
-        await _sub?.cancel();
-        _sub = null;
-        await _claim?.release();
-      });
+    await _sub?.cancel();
+    _sub = null;
+    await _claim?.release();
+  });
 
   /// Runs start/stop one at a time.
   ///
@@ -173,8 +173,12 @@ class WearRelayHandler {
         if (printError == null || hmsAction == null) {
           return WearRpcResponse.failure(req.id, 'bad-request');
         }
-        await commands.executeHmsAction(printerId,
-            printError: printError, action: hmsAction, jobId: req.jobId);
+        await commands.executeHmsAction(
+          printerId,
+          printError: printError,
+          action: hmsAction,
+          jobId: req.jobId,
+        );
       case WearRpcAction.getFleet:
         throw StateError('unreachable'); // handled above
     }
@@ -189,21 +193,25 @@ class WearRelayHandler {
   /// printer list) instead of 1+N.
   Future<Map<String, dynamic>> _fleet(Dio dio) async {
     final res = await guard(() => dio.get<List<dynamic>>(Endpoints.printers));
-    final printers =
-        (res.data ?? const []).whereType<Map<String, dynamic>>().toList();
-    final statuses = await Future.wait(printers.map((p) async {
-      final id = toIntOrNull(p['id']);
-      if (id == null) return null;
-      final live = _liveStatus?.call(id);
-      if (live != null) return live;
-      try {
-        final s =
-            await dio.get<Map<String, dynamic>>(Endpoints.printerStatus(id));
-        return s.data;
-      } catch (_) {
-        return null;
-      }
-    }));
+    final printers = (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    final statuses = await Future.wait(
+      printers.map((p) async {
+        final id = toIntOrNull(p['id']);
+        if (id == null) return null;
+        final live = _liveStatus?.call(id);
+        if (live != null) return live;
+        try {
+          final s = await dio.get<Map<String, dynamic>>(
+            Endpoints.printerStatus(id),
+          );
+          return s.data;
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
     // Waiting-to-print count for the watch's "start next" button. A failed
     // queue fetch just omits the key (unknown on the watch), same tolerance
     // as a failed status.

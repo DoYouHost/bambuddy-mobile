@@ -150,9 +150,9 @@ class PrintLogRepository {
   /// Every user's rows, not the caller's, and every filter is ignored: the
   /// route takes no query at all. Archives and queue items are never touched.
   Future<int> clearAll() => guard(() async {
-        final res = await _dio.delete<Map<String, dynamic>>(Endpoints.printLog);
-        return toInt(res.data?['deleted']);
-      });
+    final res = await _dio.delete<Map<String, dynamic>>(Endpoints.printLog);
+    return toInt(res.data?['deleted']);
+  });
 
   /// A `datetime` query param the way the server can compare it.
   ///

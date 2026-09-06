@@ -21,8 +21,12 @@ class WearHome extends ConsumerWidget {
     return WearScreen(
       child: fleet.when(
         loading: () => const Center(
-            child: SizedBox(
-                width: 26, height: 26, child: CircularProgressIndicator())),
+          child: SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(),
+          ),
+        ),
         error: (e, _) => _CenterMessage(
           text: l10n.wearConnectionFailed,
           action: () => ref.invalidate(wearFleetProvider),
@@ -57,20 +61,21 @@ class _CenterMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => WearScrollView(
-        // Short enough to sit in the middle of the face, but it scrolls when the
-        // message wraps: on a 1.4" screen two lines of error plus two buttons is
-        // already taller than the round-safe band.
-        centerWhenShort: true,
-        children: [
-          Text(text, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          FilledButton(
-              onPressed: action,
-              child: Text(AppLocalizations.of(context).retry)),
-          // The reachable way out of a wrong server: a failed connection is
-          // exactly when someone wants to change it, and retrying forever is
-          // the only other thing this screen offers.
-          const WearSettingsEntry(),
-        ],
-      );
+    // Short enough to sit in the middle of the face, but it scrolls when the
+    // message wraps: on a 1.4" screen two lines of error plus two buttons is
+    // already taller than the round-safe band.
+    centerWhenShort: true,
+    children: [
+      Text(text, textAlign: TextAlign.center),
+      const SizedBox(height: 12),
+      FilledButton(
+        onPressed: action,
+        child: Text(AppLocalizations.of(context).retry),
+      ),
+      // The reachable way out of a wrong server: a failed connection is
+      // exactly when someone wants to change it, and retrying forever is
+      // the only other thing this screen offers.
+      const WearSettingsEntry(),
+    ],
+  );
 }

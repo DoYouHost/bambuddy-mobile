@@ -9,13 +9,12 @@ NozzleRackSlot _slot(
   String diameter = '0.4',
   String type = 'HS01',
   String color = '00000000',
-}) =>
-    NozzleRackSlot(
-      id: id,
-      nozzleDiameter: diameter,
-      nozzleType: type,
-      filamentColor: color,
-    );
+}) => NozzleRackSlot(
+  id: id,
+  nozzleDiameter: diameter,
+  nozzleType: type,
+  filamentColor: color,
+);
 
 void main() {
   group('rackByPosition', () {
@@ -52,20 +51,22 @@ void main() {
       expect(rack.keys.toList()..sort(), rackPositions);
     });
 
-    test('two gaps stay empty — which nozzle is mounted is then unknowable',
-        () {
-      final rack = rackByPosition([
-        _slot(16),
-        _slot(0, diameter: '0.8'),
-        _slot(19),
-        _slot(20),
-        _slot(21),
-      ]);
+    test(
+      'two gaps stay empty — which nozzle is mounted is then unknowable',
+      () {
+        final rack = rackByPosition([
+          _slot(16),
+          _slot(0, diameter: '0.8'),
+          _slot(19),
+          _slot(20),
+          _slot(21),
+        ]);
 
-      expect(rack.containsKey(2), isFalse);
-      expect(rack.containsKey(3), isFalse);
-      expect(rack.keys.toList()..sort(), [1, 4, 5, 6]);
-    });
+        expect(rack.containsKey(2), isFalse);
+        expect(rack.containsKey(3), isFalse);
+        expect(rack.keys.toList()..sort(), [1, 4, 5, 6]);
+      },
+    );
 
     test('an empty carriage fills nothing', () {
       final rack = rackByPosition([
@@ -96,37 +97,52 @@ void main() {
   group('rackSlotFits', () {
     test('the slicer pads the diameter and the printer does not', () {
       expect(
-        rackSlotFits(_slot(16, diameter: '0.4'),
-            diameter: '0.40', volumeType: ''),
+        rackSlotFits(
+          _slot(16, diameter: '0.4'),
+          diameter: '0.40',
+          volumeType: '',
+        ),
         isTrue,
       );
     });
 
     test('a different diameter is refused', () {
       expect(
-        rackSlotFits(_slot(16, diameter: '0.6'),
-            diameter: '0.40', volumeType: ''),
+        rackSlotFits(
+          _slot(16, diameter: '0.6'),
+          diameter: '0.40',
+          volumeType: '',
+        ),
         isFalse,
       );
     });
 
     test('an empty dock fits nothing', () {
       expect(
-        rackSlotFits(_slot(16, diameter: '', type: ''),
-            diameter: '0.4', volumeType: 'Standard'),
+        rackSlotFits(
+          _slot(16, diameter: '', type: ''),
+          diameter: '0.4',
+          volumeType: 'Standard',
+        ),
         isFalse,
       );
     });
 
     test('a diameter neither side can parse is refused, not guessed', () {
       expect(
-        rackSlotFits(_slot(16, diameter: 'wide'),
-            diameter: '0.4', volumeType: ''),
+        rackSlotFits(
+          _slot(16, diameter: 'wide'),
+          diameter: '0.4',
+          volumeType: '',
+        ),
         isFalse,
       );
       expect(
-        rackSlotFits(_slot(16, diameter: '0.4'),
-            diameter: '', volumeType: ''),
+        rackSlotFits(
+          _slot(16, diameter: '0.4'),
+          diameter: '',
+          volumeType: '',
+        ),
         isFalse,
       );
     });
@@ -135,14 +151,22 @@ void main() {
       final high = _slot(16, type: 'HH01');
       final standard = _slot(16, type: 'HS01');
 
-      expect(rackSlotFits(high, diameter: '0.4', volumeType: 'High Flow'),
-          isTrue);
-      expect(rackSlotFits(standard, diameter: '0.4', volumeType: 'Standard'),
-          isTrue);
-      expect(rackSlotFits(high, diameter: '0.4', volumeType: 'Standard'),
-          isFalse);
-      expect(rackSlotFits(standard, diameter: '0.4', volumeType: 'High Flow'),
-          isFalse);
+      expect(
+        rackSlotFits(high, diameter: '0.4', volumeType: 'High Flow'),
+        isTrue,
+      );
+      expect(
+        rackSlotFits(standard, diameter: '0.4', volumeType: 'Standard'),
+        isTrue,
+      );
+      expect(
+        rackSlotFits(high, diameter: '0.4', volumeType: 'Standard'),
+        isFalse,
+      );
+      expect(
+        rackSlotFits(standard, diameter: '0.4', volumeType: 'High Flow'),
+        isFalse,
+      );
     });
 
     test('a flow type only one side states does not rule the position out', () {
@@ -150,12 +174,19 @@ void main() {
       // Silence about flow is not a mismatch, and treating it as one would hide
       // every position from a printer that omits the code.
       expect(
-        rackSlotFits(_slot(16, type: ''),
-            diameter: '0.4', volumeType: 'High Flow'),
+        rackSlotFits(
+          _slot(16, type: ''),
+          diameter: '0.4',
+          volumeType: 'High Flow',
+        ),
         isTrue,
       );
       expect(
-        rackSlotFits(_slot(16, type: 'HH01'), diameter: '0.4', volumeType: ''),
+        rackSlotFits(
+          _slot(16, type: 'HH01'),
+          diameter: '0.4',
+          volumeType: '',
+        ),
         isTrue,
       );
     });

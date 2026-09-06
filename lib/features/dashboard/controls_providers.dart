@@ -130,44 +130,43 @@ class PendingControls {
     Map<String, int>? fanSpeeds,
     bool? airductHeating,
     Set<ControlAction>? inFlight,
-  }) =>
-      PendingControls(
-        light: light ?? this.light,
-        speedLevel: speedLevel ?? this.speedLevel,
-        tempTargets: tempTargets ?? this.tempTargets,
-        fanSpeeds: fanSpeeds ?? this.fanSpeeds,
-        airductHeating: airductHeating ?? this.airductHeating,
-        inFlight: inFlight ?? this.inFlight,
-      );
+  }) => PendingControls(
+    light: light ?? this.light,
+    speedLevel: speedLevel ?? this.speedLevel,
+    tempTargets: tempTargets ?? this.tempTargets,
+    fanSpeeds: fanSpeeds ?? this.fanSpeeds,
+    airductHeating: airductHeating ?? this.airductHeating,
+    inFlight: inFlight ?? this.inFlight,
+  );
 
   // Nullable fields can't use `_copyWith` to clear (a null arg means "keep"),
   // so each has an explicit setter that rebuilds preserving every other field.
   PendingControls setLight(bool? v) => PendingControls(
-        light: v,
-        speedLevel: speedLevel,
-        tempTargets: tempTargets,
-        fanSpeeds: fanSpeeds,
-        airductHeating: airductHeating,
-        inFlight: inFlight,
-      );
+    light: v,
+    speedLevel: speedLevel,
+    tempTargets: tempTargets,
+    fanSpeeds: fanSpeeds,
+    airductHeating: airductHeating,
+    inFlight: inFlight,
+  );
 
   PendingControls setSpeed(int? v) => PendingControls(
-        light: light,
-        speedLevel: v,
-        tempTargets: tempTargets,
-        fanSpeeds: fanSpeeds,
-        airductHeating: airductHeating,
-        inFlight: inFlight,
-      );
+    light: light,
+    speedLevel: v,
+    tempTargets: tempTargets,
+    fanSpeeds: fanSpeeds,
+    airductHeating: airductHeating,
+    inFlight: inFlight,
+  );
 
   PendingControls setAirduct(bool? v) => PendingControls(
-        light: light,
-        speedLevel: speedLevel,
-        tempTargets: tempTargets,
-        fanSpeeds: fanSpeeds,
-        airductHeating: v,
-        inFlight: inFlight,
-      );
+    light: light,
+    speedLevel: speedLevel,
+    tempTargets: tempTargets,
+    fanSpeeds: fanSpeeds,
+    airductHeating: v,
+    inFlight: inFlight,
+  );
 
   /// Set (or clear, when [value] is null) the optimistic target for one sensor.
   PendingControls withTempTarget(String key, int? value) =>
@@ -204,21 +203,20 @@ class ControlsState {
   /// Whether a command needing [permission] is known to be refused.
   bool isRefused(ControlPermission permission) => refused.contains(permission);
 
-  PendingControls pendingFor(int id) =>
-      pending[id] ?? const PendingControls();
+  PendingControls pendingFor(int id) => pending[id] ?? const PendingControls();
 
   ControlsState copyWith({
     Map<int, PendingControls>? pending,
     Set<ControlPermission>? refused,
-  }) =>
-      ControlsState(
-        pending: pending ?? this.pending,
-        refused: refused ?? this.refused,
-      );
+  }) => ControlsState(
+    pending: pending ?? this.pending,
+    refused: refused ?? this.refused,
+  );
 }
 
-final controlsProvider =
-    NotifierProvider<ControlsNotifier, ControlsState>(ControlsNotifier.new);
+final controlsProvider = NotifierProvider<ControlsNotifier, ControlsState>(
+  ControlsNotifier.new,
+);
 
 /// Whether commands needing [ControlPermission] are known to be refused.
 ///
@@ -278,31 +276,34 @@ class ControlsNotifier extends Notifier<ControlsState> {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _run(
-        id,
-        ControlAction.hms,
-        () => _repo.executeHmsAction(id,
-            printError: printError, action: action, jobId: jobId),
-      );
+  }) => _run(
+    id,
+    ControlAction.hms,
+    () => _repo.executeHmsAction(
+      id,
+      printError: printError,
+      action: action,
+      jobId: jobId,
+    ),
+  );
 
   Future<ActionOutcome> setLight(int id, {required bool on}) => _run(
-        id,
-        ControlAction.light,
-        () => _repo.setChamberLight(id, on: on),
-        apply: (p) => p.setLight(on),
-        rollback: (before, rolled) => rolled.setLight(before.light),
-        clearKey: 'light',
-      );
+    id,
+    ControlAction.light,
+    () => _repo.setChamberLight(id, on: on),
+    apply: (p) => p.setLight(on),
+    rollback: (before, rolled) => rolled.setLight(before.light),
+    clearKey: 'light',
+  );
 
   Future<ActionOutcome> setSpeed(int id, int mode) => _run(
-        id,
-        ControlAction.speed,
-        () => _repo.setPrintSpeed(id, mode),
-        apply: (p) => p.setSpeed(mode),
-        rollback: (before, rolled) => rolled.setSpeed(before.speedLevel),
-        clearKey: 'speed',
-      );
+    id,
+    ControlAction.speed,
+    () => _repo.setPrintSpeed(id, mode),
+    apply: (p) => p.setSpeed(mode),
+    rollback: (before, rolled) => rolled.setSpeed(before.speedLevel),
+    clearKey: 'speed',
+  );
 
   /// Nozzle target. [key] is the sensor's raw key ('nozzle'/'nozzle_2') so the
   /// optimistic setpoint overlays the right gauge; [nozzle] is the hardware
@@ -312,56 +313,55 @@ class ControlsNotifier extends Notifier<ControlsState> {
     String key,
     int target, {
     int nozzle = 0,
-  }) =>
-      _run(
-        id,
-        ControlAction.temp,
-        () => _repo.setNozzleTemperature(id, target, nozzle: nozzle),
-        apply: (p) => p.withTempTarget(key, target),
-        rollback: (before, rolled) =>
-            rolled.withTempTarget(key, before.tempTarget(key)),
-        clearKey: 'temp:$key',
-      );
+  }) => _run(
+    id,
+    ControlAction.temp,
+    () => _repo.setNozzleTemperature(id, target, nozzle: nozzle),
+    apply: (p) => p.withTempTarget(key, target),
+    rollback: (before, rolled) =>
+        rolled.withTempTarget(key, before.tempTarget(key)),
+    clearKey: 'temp:$key',
+  );
 
   Future<ActionOutcome> setBedTemp(int id, int target) => _run(
-        id,
-        ControlAction.temp,
-        () => _repo.setBedTemperature(id, target),
-        apply: (p) => p.withTempTarget('bed', target),
-        rollback: (before, rolled) =>
-            rolled.withTempTarget('bed', before.tempTarget('bed')),
-        clearKey: 'temp:bed',
-      );
+    id,
+    ControlAction.temp,
+    () => _repo.setBedTemperature(id, target),
+    apply: (p) => p.withTempTarget('bed', target),
+    rollback: (before, rolled) =>
+        rolled.withTempTarget('bed', before.tempTarget('bed')),
+    clearKey: 'temp:bed',
+  );
 
   Future<ActionOutcome> setChamberTemp(int id, int target) => _run(
-        id,
-        ControlAction.temp,
-        () => _repo.setChamberTemperature(id, target),
-        apply: (p) => p.withTempTarget('chamber', target),
-        rollback: (before, rolled) =>
-            rolled.withTempTarget('chamber', before.tempTarget('chamber')),
-        clearKey: 'temp:chamber',
-      );
+    id,
+    ControlAction.temp,
+    () => _repo.setChamberTemperature(id, target),
+    apply: (p) => p.withTempTarget('chamber', target),
+    rollback: (before, rolled) =>
+        rolled.withTempTarget('chamber', before.tempTarget('chamber')),
+    clearKey: 'temp:chamber',
+  );
 
   Future<ActionOutcome> setAirduct(int id, {required bool heating}) => _run(
-        id,
-        ControlAction.airduct,
-        () => _repo.setAirductMode(id, heating: heating),
-        apply: (p) => p.setAirduct(heating),
-        rollback: (before, rolled) => rolled.setAirduct(before.airductHeating),
-        clearKey: 'airduct',
-      );
+    id,
+    ControlAction.airduct,
+    () => _repo.setAirductMode(id, heating: heating),
+    apply: (p) => p.setAirduct(heating),
+    rollback: (before, rolled) => rolled.setAirduct(before.airductHeating),
+    clearKey: 'airduct',
+  );
 
   /// Fan speed (%). [fan] is 'part', 'aux', or 'chamber'.
   Future<ActionOutcome> setFanSpeed(int id, String fan, int speed) => _run(
-        id,
-        ControlAction.fan,
-        () => _repo.setFanSpeed(id, fan, speed),
-        apply: (p) => p.withFanSpeed(fan, speed),
-        rollback: (before, rolled) =>
-            rolled.withFanSpeed(fan, before.fanSpeed(fan)),
-        clearKey: 'fan:$fan',
-      );
+    id,
+    ControlAction.fan,
+    () => _repo.setFanSpeed(id, fan, speed),
+    apply: (p) => p.withFanSpeed(fan, speed),
+    rollback: (before, rolled) =>
+        rolled.withFanSpeed(fan, before.fanSpeed(fan)),
+    clearKey: 'fan:$fan',
+  );
 
   /// Start AMS drying. No optimistic overlay — the AMS `dry_time`/`dry_status`
   /// in status reflects it within a poll/WS frame.
@@ -371,19 +371,20 @@ class ControlsNotifier extends Notifier<ControlsState> {
     required int temp,
     required int duration,
     String filament = '',
-  }) =>
-      _run(
-        id,
-        ControlAction.dry,
-        () => _repo.startDrying(id,
-            amsId: amsId, temp: temp, duration: duration, filament: filament),
-      );
+  }) => _run(
+    id,
+    ControlAction.dry,
+    () => _repo.startDrying(
+      id,
+      amsId: amsId,
+      temp: temp,
+      duration: duration,
+      filament: filament,
+    ),
+  );
 
-  Future<ActionOutcome> stopDrying(int id, {required int amsId}) => _run(
-        id,
-        ControlAction.dry,
-        () => _repo.stopDrying(id, amsId: amsId),
-      );
+  Future<ActionOutcome> stopDrying(int id, {required int amsId}) =>
+      _run(id, ControlAction.dry, () => _repo.stopDrying(id, amsId: amsId));
 
   /// Load filament from one slot. [trayId] is the global tray number — build it
   /// with [amsLoadTrayId] rather than by hand. [extruderId] names the hotend to
@@ -394,18 +395,15 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// path, and two of them in the air at once is a jam, not a race the firmware
   /// sorts out.
   Future<ActionOutcome> amsLoad(int id, int trayId, {int? extruderId}) => _run(
-        id,
-        ControlAction.ams,
-        () => _repo.amsLoad(id, trayId, extruderId: extruderId),
-      );
+    id,
+    ControlAction.ams,
+    () => _repo.amsLoad(id, trayId, extruderId: extruderId),
+  );
 
   /// Unload filament. [trayId] names the slot, which on a dual-nozzle printer
   /// is the only way to say which of the two hotends to empty.
-  Future<ActionOutcome> amsUnload(int id, {int? trayId}) => _run(
-        id,
-        ControlAction.ams,
-        () => _repo.amsUnload(id, trayId: trayId),
-      );
+  Future<ActionOutcome> amsUnload(int id, {int? trayId}) =>
+      _run(id, ControlAction.ams, () => _repo.amsUnload(id, trayId: trayId));
 
   /// Re-read one slot's RFID tag. Ids are local to the unit.
   ///
@@ -416,13 +414,12 @@ class ControlsNotifier extends Notifier<ControlsState> {
     int id, {
     required int amsId,
     required int slotId,
-  }) =>
-      _run(
-        id,
-        ControlAction.ams,
-        () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
-        permission: ControlPermission.amsRfid,
-      );
+  }) => _run(
+    id,
+    ControlAction.ams,
+    () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
+    permission: ControlPermission.amsRfid,
+  );
 
   /// Write a filament configuration into one slot, and remember which preset it
   /// was — the printer keeps only a filament id, so without the mapping the slot
@@ -452,15 +449,21 @@ class ControlsNotifier extends Notifier<ControlsState> {
     var name = canName ? SlotNameOutcome.saved : SlotNameOutcome.unavailable;
 
     final outcome = await _run(id, ControlAction.ams, () async {
-      await _slotConfig.configureSlot(id,
-          amsId: amsId, trayId: trayId, configuration: configuration);
+      await _slotConfig.configureSlot(
+        id,
+        amsId: amsId,
+        trayId: trayId,
+        configuration: configuration,
+      );
       if (!canName) return;
       try {
-        await _slotConfig.saveSlotPreset(id,
-            amsId: amsId,
-            trayId: trayId,
-            preset: preset,
-            presetName: configuration.traySubBrands);
+        await _slotConfig.saveSlotPreset(
+          id,
+          amsId: amsId,
+          trayId: trayId,
+          preset: preset,
+          presetName: configuration.traySubBrands,
+        );
       } on AppApiException {
         name = SlotNameOutcome.refused;
       }
@@ -473,18 +476,20 @@ class ControlsNotifier extends Notifier<ControlsState> {
     int id, {
     required int amsId,
     required int trayId,
-  }) =>
-      _run(id, ControlAction.ams,
-          () => _slotConfig.resetSlot(id, amsId: amsId, trayId: trayId));
+  }) => _run(
+    id,
+    ControlAction.ams,
+    () => _slotConfig.resetSlot(id, amsId: amsId, trayId: trayId),
+  );
 
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
   /// No optimistic override — the caller keeps the switch locked until the live
   /// status reports the new active extruder (the physical switch takes time).
   Future<ActionOutcome> setExtruder(int id, int extruder) => _run(
-        id,
-        ControlAction.extruder,
-        () => _repo.selectExtruder(id, extruder),
-      );
+    id,
+    ControlAction.extruder,
+    () => _repo.selectExtruder(id, extruder),
+  );
 
   /// Manual movement jogs + homing. No optimistic overlay — these are momentary
   /// actions with no persistent status field to preview. All share
@@ -492,8 +497,11 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
   Future<ActionOutcome> bedJog(int id, double distance, {bool force = false}) =>
-      _run(id, ControlAction.move,
-          () => _repo.bedJog(id, distance, force: force));
+      _run(
+        id,
+        ControlAction.move,
+        () => _repo.bedJog(id, distance, force: force),
+      );
 
   /// Relative toolhead X/Y jog (mm).
   Future<ActionOutcome> xyJog(int id, {double x = 0, double y = 0}) =>
@@ -520,7 +528,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
     Future<void> Function() send, {
     PendingControls Function(PendingControls p)? apply,
     PendingControls Function(PendingControls before, PendingControls rolled)?
-        rollback,
+    rollback,
     String? clearKey,
     ControlPermission permission = ControlPermission.control,
   }) async {

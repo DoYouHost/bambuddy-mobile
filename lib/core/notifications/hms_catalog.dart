@@ -27,8 +27,9 @@ class HmsCatalog {
     final lang = locale.languageCode == 'pl' ? 'pl' : 'en';
     if (_loadedLang == lang) return;
     try {
-      final raw =
-          await rootBundle.loadString('assets/hms/print_errors_$lang.json');
+      final raw = await rootBundle.loadString(
+        'assets/hms/print_errors_$lang.json',
+      );
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       _map = {for (final e in decoded.entries) e.key: e.value.toString()};
     } on Object {
@@ -183,7 +184,8 @@ String? hmsWikiUrl(HmsError e) {
   if (full != null && full.length == 8) return _hmsWikiHome;
   final ec = e.ecode;
   if (ec == null || ec.length != 16) return _hmsWikiHome;
-  final dashed = '${ec.substring(0, 4)}_${ec.substring(4, 8)}'
+  final dashed =
+      '${ec.substring(0, 4)}_${ec.substring(4, 8)}'
       '_${ec.substring(8, 12)}_${ec.substring(12, 16)}';
   return 'https://wiki.bambulab.com/en/x1/troubleshooting/hmscode/$dashed';
 }

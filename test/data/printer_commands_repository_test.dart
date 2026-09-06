@@ -4,13 +4,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late PrinterCommandsRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = PrinterCommandsRepository(dio);
   });
@@ -53,8 +55,11 @@ void main() {
     await expectLater(
       repo.pause(1),
       throwsA(
-        isA<AuthException>().having((e) => e.code, 'code',
-            AppErrorCode.forbidden),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.forbidden,
+        ),
       ),
     );
   });
@@ -67,8 +72,11 @@ void main() {
     await expectLater(
       repo.stop(1),
       throwsA(
-        isA<AuthException>().having((e) => e.code, 'code',
-            AppErrorCode.unauthorized),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.unauthorized,
+        ),
       ),
     );
   });
@@ -82,24 +90,30 @@ void main() {
   });
 
   test('refresh-status posts to the printer', () async {
-    adapter.onPost('/api/v1/printers/4/refresh-status', (s) => s.reply(200, null));
+    adapter.onPost(
+      '/api/v1/printers/4/refresh-status',
+      (s) => s.reply(200, null),
+    );
     await repo.refreshStatus(4);
   });
 
   group('nudgeRepublish', () {
     test('nudges every printer it is given', () async {
-      var nudged = <int>[];
       for (final id in [4, 7]) {
-        adapter.onPost('/api/v1/printers/$id/refresh-status', (s) {
-          nudged.add(id);
-          return s.reply(200, null);
-        });
+        adapter.onPost(
+          '/api/v1/printers/$id/refresh-status',
+          (s) => s.reply(200, null),
+        );
       }
+      final sent = captureRequests(dio);
 
       repo.nudgeRepublish([4, 7]);
-      await Future<void>.delayed(Duration.zero);
+      await sent.untilCount(2);
 
-      expect(nudged, [4, 7]);
+      expect(sent.calls, [
+        'POST /api/v1/printers/4/refresh-status',
+        'POST /api/v1/printers/7/refresh-status',
+      ]);
     });
 
     test('swallows a refusal instead of raising it into the caller', () async {
@@ -107,16 +121,35 @@ void main() {
       // republish is a hint, and neither is a reason to fail the action the
       // user actually asked for.
       adapter
-        ..onPost('/api/v1/printers/4/refresh-status',
-            (s) => s.reply(400, {'detail': 'Printer not connected'}))
-        ..onPost('/api/v1/printers/7/refresh-status',
-            (s) => s.reply(403, {'detail': 'forbidden'}));
+        ..onPost(
+          '/api/v1/printers/4/refresh-status',
+          (s) => s.reply(400, {'detail': 'Printer not connected'}),
+        )
+        ..onPost(
+          '/api/v1/printers/7/refresh-status',
+          (s) => s.reply(403, {'detail': 'forbidden'}),
+        );
+
+      final sent = captureRequests(dio);
 
       repo.nudgeRepublish([4, 7]);
 
       // Nothing thrown here, and nothing left unhandled to fail the test at
       // the end of the microtask queue either.
-      await Future<void>.delayed(Duration.zero);
+      await sent.untilCount(2);
+
+      // Asserted explicitly because the swallow eats the adapter's own
+      // "no matching route" failure too: without this the test passed with
+      // both mocks pointing at paths the app never calls.
+      expect(sent.calls, [
+        'POST /api/v1/printers/4/refresh-status',
+        'POST /api/v1/printers/7/refresh-status',
+      ]);
+      // And the statuses, or the test only proves that *some* failure is
+      // swallowed — not that the refusals it named are. Unordered: the two
+      // requests are in flight together, so which answer lands first is not
+      // this test's business.
+      expect(sent.statuses, unorderedEquals(<int?>[400, 403]));
     });
   });
 

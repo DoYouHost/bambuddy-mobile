@@ -10,16 +10,24 @@ void writeBehindOurBack(Map<String, Object> values) =>
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('an open handle keeps serving the snapshot it was opened with', () async {
-    writeBehindOurBack({'clock_24h': false});
-    final settings = SettingsRepository(await SharedPreferences.getInstance());
+  test(
+    'an open handle keeps serving the snapshot it was opened with',
+    () async {
+      writeBehindOurBack({'clock_24h': false});
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
 
-    writeBehindOurBack({'clock_24h': true});
+      writeBehindOurBack({'clock_24h': true});
 
-    expect(settings.loadUse24HourClock(), isFalse,
-        reason: 'this is the trap every caller of reloaded() is avoiding');
-    expect((await settings.reloaded()).loadUse24HourClock(), isTrue);
-  });
+      expect(
+        settings.loadUse24HourClock(),
+        isFalse,
+        reason: 'this is the trap every caller of reloaded() is avoiding',
+      );
+      expect((await settings.reloaded()).loadUse24HourClock(), isTrue);
+    },
+  );
 
   test('opened() is that, for an isolate holding no handle yet', () async {
     // A notification action wakes its own isolate: nothing there has read

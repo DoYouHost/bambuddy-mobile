@@ -118,9 +118,7 @@ class FinishPhotoNotifier {
           await _recentArchives(alert.printerId),
           alert,
         );
-        final filename = archive == null
-            ? null
-            : finishPhotoIn(archive.photos);
+        final filename = archive == null ? null : finishPhotoIn(archive.photos);
         if (archive == null || filename == null) continue;
         await _attach(archive.id, filename, alert);
       } on Object catch (error) {
@@ -212,7 +210,11 @@ class FinishPhotoNotifier {
   }
 
   /// Re-posts [alert] with the photo, unless the notification is already gone.
-  Future<void> _attach(int archiveId, String filename, PostedAlert alert) async {
+  Future<void> _attach(
+    int archiveId,
+    String filename,
+    PostedAlert alert,
+  ) async {
     if (await _gone(archiveId, alert)) return;
     final picture = await _fetchPicture(archiveId, filename);
     if (picture == null) {

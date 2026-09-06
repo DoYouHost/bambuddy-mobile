@@ -99,15 +99,14 @@ class TwoFactorChallenge {
   final String? challengeCookie;
 
   Map<String, String> get cookieHeader => {
-        if (challengeCookie != null)
-          'Cookie': '$cookieName=$challengeCookie',
-      };
+    if (challengeCookie != null) 'Cookie': '$cookieName=$challengeCookie',
+  };
 
   /// `/2fa/email/send` answers with a fresh token and expects the same cookie
   /// to carry over.
   TwoFactorChallenge withToken(String token) => TwoFactorChallenge(
-        preAuthToken: token,
-        methods: methods,
-        challengeCookie: challengeCookie,
-      );
+    preAuthToken: token,
+    methods: methods,
+    challengeCookie: challengeCookie,
+  );
 }

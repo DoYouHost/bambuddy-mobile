@@ -37,10 +37,10 @@ DioException _badResponseWithDetail(int status, String detail) {
 }
 
 DioException _ofType(DioExceptionType type) => DioException(
-      requestOptions: RequestOptions(path: '/api/v1/printers/'),
-      type: type,
-      message: 'boom',
-    );
+  requestOptions: RequestOptions(path: '/api/v1/printers/'),
+  type: type,
+  message: 'boom',
+);
 
 void main() {
   group('mapDioException by status', () {
@@ -62,10 +62,12 @@ void main() {
       // The only party that knows which permission it was is the server, and
       // it says so in both auth modes. Without this the user is told "not
       // allowed" and left to guess which of a dozen permissions it was.
-      final mapped = mapDioException(_badResponseWithDetail(
-        403,
-        "API key does not have 'can_control_printer' permission",
-      ));
+      final mapped = mapDioException(
+        _badResponseWithDetail(
+          403,
+          "API key does not have 'can_control_printer' permission",
+        ),
+      );
 
       expect(mapped.code, AppErrorCode.forbidden);
       expect(mapped.detail, contains('can_control_printer'));
@@ -74,15 +76,17 @@ void main() {
     test('a 403 the server did not explain still maps, with no detail', () {
       // A reverse proxy refusing on its own answers HTML, not {"detail": ...}.
       final options = RequestOptions(path: '/api/v1/printers/');
-      final mapped = mapDioException(DioException(
-        requestOptions: options,
-        type: DioExceptionType.badResponse,
-        response: Response<dynamic>(
+      final mapped = mapDioException(
+        DioException(
           requestOptions: options,
-          statusCode: 403,
-          data: '<html>Forbidden</html>',
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: 403,
+            data: '<html>Forbidden</html>',
+          ),
         ),
-      ));
+      );
 
       expect(mapped.code, AppErrorCode.forbidden);
       expect(mapped.detail, isNull);
@@ -90,23 +94,32 @@ void main() {
   });
 
   group('isApiKeyOwnerDisabled', () {
-    test('the deactivated-owner refusal is told apart from a missing permission',
-        () {
-      // Different remedy: no scope or group change fixes it, the account has
-      // to come back. Server 1.2.6+, and it arrives on every route at once.
-      final gone = mapDioException(_badResponseWithDetail(
-        403,
-        'API key owner is deactivated or no longer exists',
-      ));
-      final missing = mapDioException(_badResponseWithDetail(
-        403,
-        "API key owner does not have 'printers:control' permission",
-      ));
+    test(
+      'the deactivated-owner refusal is told apart from a missing permission',
+      () {
+        // Different remedy: no scope or group change fixes it, the account has
+        // to come back. Server 1.2.6+, and it arrives on every route at once.
+        final gone = mapDioException(
+          _badResponseWithDetail(
+            403,
+            'API key owner is deactivated or no longer exists',
+          ),
+        );
+        final missing = mapDioException(
+          _badResponseWithDetail(
+            403,
+            "API key owner does not have 'printers:control' permission",
+          ),
+        );
 
-      expect(gone.isApiKeyOwnerDisabled, isTrue);
-      expect(missing.isApiKeyOwnerDisabled, isFalse,
-          reason: 'both start with "API key owner"');
-    });
+        expect(gone.isApiKeyOwnerDisabled, isTrue);
+        expect(
+          missing.isApiKeyOwnerDisabled,
+          isFalse,
+          reason: 'both start with "API key owner"',
+        );
+      },
+    );
 
     test('a refusal with no detail is not claimed to be anything', () {
       const bare = AuthException(AppErrorCode.forbidden);
@@ -156,8 +169,11 @@ void main() {
 
     test('cancel and unknown → connectionError', () {
       for (final type in [DioExceptionType.cancel, DioExceptionType.unknown]) {
-        expect(mapDioException(_ofType(type)).code, AppErrorCode.connectionError,
-            reason: '$type');
+        expect(
+          mapDioException(_ofType(type)).code,
+          AppErrorCode.connectionError,
+          reason: '$type',
+        );
       }
     });
   });
@@ -180,8 +196,11 @@ void main() {
     });
 
     test('toString carries the status and detail for the log', () {
-      const e = ApiException(AppErrorCode.badResponse,
-          statusCode: 502, detail: 'bad gateway');
+      const e = ApiException(
+        AppErrorCode.badResponse,
+        statusCode: 502,
+        detail: 'bad gateway',
+      );
       expect(e.toString(), contains('502'));
       expect(e.toString(), contains('bad gateway'));
     });
@@ -195,8 +214,13 @@ void main() {
     test('maps a DioException and leaves other errors alone', () async {
       await expectLater(
         guard<int>(() async => throw _badResponse(429)),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.tooManyAttempts,
+          ),
+        ),
       );
       await expectLater(
         guard<int>(() async => throw StateError('not a Dio error')),
@@ -215,42 +239,75 @@ void main() {
       // plain mapper drops a 400's detail, so a screen could say no more than
       // "server returned error 400" about a refusal that explained itself.
       await expectLater(
-        guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
-            400, "Cannot cancel item with status 'printing'")),
-        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
-            "Cannot cancel item with status 'printing'")),
+        guardKeepingDetail<int>(
+          () async => throw _badResponseWithDetail(
+            400,
+            "Cannot cancel item with status 'printing'",
+          ),
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            "Cannot cancel item with status 'printing'",
+          ),
+        ),
       );
       expect(
-        (await _thrownBy(() => guard<int>(() async =>
-            throw _badResponseWithDetail(400, 'the rule it broke')))).detail,
+        (await _thrownBy(
+          () => guard<int>(
+            () async => throw _badResponseWithDetail(400, 'the rule it broke'),
+          ),
+        )).detail,
         isNull,
         reason: 'plain guard is what drops it',
       );
     });
 
-    test('422 keeps its detail too, since validation says which field',
-        () async {
-      await expectLater(
-        guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
-            422, 'filament_used_grams must be between 0 and 100000')),
-        throwsA(isA<ApiException>()
-            .having((e) => e.detail, 'detail', contains('100000'))),
-      );
-    });
+    test(
+      '422 keeps its detail too, since validation says which field',
+      () async {
+        await expectLater(
+          guardKeepingDetail<int>(
+            () async => throw _badResponseWithDetail(
+              422,
+              'filament_used_grams must be between 0 and 100000',
+            ),
+          ),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('100000'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('every other status maps exactly as guard does', () async {
       // It only *adds* 400/422 to the plain mapper, so a permission refusal
       // must still arrive as an AuthException with its own detail.
-      final forbidden = await _thrownBy(() =>
-          guardKeepingDetail<int>(() async => throw _badResponseWithDetail(
-              403, "API key does not have 'can_queue' permission")));
+      final forbidden = await _thrownBy(
+        () => guardKeepingDetail<int>(
+          () async => throw _badResponseWithDetail(
+            403,
+            "API key does not have 'can_queue' permission",
+          ),
+        ),
+      );
       expect(forbidden, isA<AuthException>());
       expect(forbidden.detail, contains('can_queue'));
 
       await expectLater(
         guardKeepingDetail<int>(() async => throw _badResponse(429)),
-        throwsA(isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts)),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.tooManyAttempts,
+          ),
+        ),
       );
     });
 
@@ -273,24 +330,30 @@ void main() {
       }
     });
 
-    test('everything else degrades to null so one dead resource is survivable',
-        () async {
-      // The dashboard composes many single-entity fetches; a 500 on one printer
-      // must not empty the whole screen.
-      for (final status in [429, 500, 502, 503]) {
-        expect(await guardOrNull<int>(() async => throw _badResponse(status)),
-            isNull, reason: 'status $status');
-      }
-      expect(
-        await guardOrNull<int>(
-            () async => throw _ofType(DioExceptionType.connectionError)),
-        isNull,
-      );
-      expect(
-        await guardOrNull<int>(() async => throw StateError('parse blew up')),
-        isNull,
-      );
-    });
+    test(
+      'everything else degrades to null so one dead resource is survivable',
+      () async {
+        // The dashboard composes many single-entity fetches; a 500 on one printer
+        // must not empty the whole screen.
+        for (final status in [429, 500, 502, 503]) {
+          expect(
+            await guardOrNull<int>(() async => throw _badResponse(status)),
+            isNull,
+            reason: 'status $status',
+          );
+        }
+        expect(
+          await guardOrNull<int>(
+            () async => throw _ofType(DioExceptionType.connectionError),
+          ),
+          isNull,
+        );
+        expect(
+          await guardOrNull<int>(() async => throw StateError('parse blew up')),
+          isNull,
+        );
+      },
+    );
   });
 
   group('the call the failure came from', () {
@@ -320,14 +383,13 @@ void main() {
         baseUrl: 'http://192.168.1.50:8080',
         queryParameters: const {'token': 'secret'},
       );
-      final mapped = mapDioException(DioException(
-        requestOptions: options,
-        type: DioExceptionType.badResponse,
-        response: Response<dynamic>(
+      final mapped = mapDioException(
+        DioException(
           requestOptions: options,
-          statusCode: 500,
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(requestOptions: options, statusCode: 500),
         ),
-      ));
+      );
 
       expect(mapped.path, '/api/v1/printers/1/camera');
       expect(mapped.path, isNot(contains('192.168')));
@@ -336,15 +398,17 @@ void main() {
 
     test('keeping a 422 detail keeps the call with it', () {
       final options = RequestOptions(path: '/api/v1/inventory/spools');
-      final mapped = mapDioExceptionKeepingDetail(DioException(
-        requestOptions: options,
-        type: DioExceptionType.badResponse,
-        response: Response<dynamic>(
+      final mapped = mapDioExceptionKeepingDetail(
+        DioException(
           requestOptions: options,
-          statusCode: 422,
-          data: const {'detail': 'rgba must be RRGGBBAA'},
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: 422,
+            data: const {'detail': 'rgba must be RRGGBBAA'},
+          ),
         ),
-      ));
+      );
 
       expect(mapped.detail, 'rgba must be RRGGBBAA');
       expect(mapped.path, '/api/v1/inventory/spools');

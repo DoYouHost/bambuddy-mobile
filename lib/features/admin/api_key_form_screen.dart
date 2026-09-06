@@ -67,7 +67,8 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final printers = ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
+    final printers =
+        ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
     final fmt = DateTimeFormats.of(context);
 
     return DashBackground(
@@ -75,7 +76,9 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: widget.isEdit ? l10n.apiKeysEditTitle : l10n.apiKeysCreateTitle,
+          title: widget.isEdit
+              ? l10n.apiKeysEditTitle
+              : l10n.apiKeysCreateTitle,
           actions: [
             TextButton(
               style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
@@ -119,10 +122,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                 const SizedBox(height: 16),
                 _SectionLabel(text: l10n.apiKeysScopesHeader),
                 const SizedBox(height: 4),
-                Text(
-                  l10n.apiKeysScopesHint,
-                  style: t.microSoft,
-                ),
+                Text(l10n.apiKeysScopesHint, style: t.microSoft),
                 for (final scope in ApiKeyScope.values)
                   SwitchListTile(
                     value: _scopes.contains(scope),
@@ -143,9 +143,8 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                   const SizedBox(height: 4),
                   SwitchListTile(
                     value: _printerIds == null,
-                    onChanged: (all) => setState(
-                      () => _printerIds = all ? null : <int>{},
-                    ),
+                    onChanged: (all) =>
+                        setState(() => _printerIds = all ? null : <int>{}),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                     title: Text(l10n.apiKeysAllPrinters),
@@ -223,12 +222,14 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
 
     final result = await runAction(() async {
       if (existing == null) {
-        final answer = await repo.create(ApiKeyCreateInput(
-          name: name,
-          scopes: _scopes,
-          printerIds: printerIds,
-          expiresAt: _expiresAt,
-        ));
+        final answer = await repo.create(
+          ApiKeyCreateInput(
+            name: name,
+            scopes: _scopes,
+            printerIds: printerIds,
+            expiresAt: _expiresAt,
+          ),
+        );
         created = answer.key;
         return;
       }
@@ -277,22 +278,19 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Text(
-      text,
-      style: t.bodyBold.copyWith(letterSpacing: 0.3),
-    );
+    return Text(text, style: t.bodyBold.copyWith(letterSpacing: 0.3));
   }
 }
 
 /// Imperative entry: issue a key.
-Future<void> openApiKeyCreate(BuildContext context) =>
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const ApiKeyFormScreen()),
-    );
+Future<void> openApiKeyCreate(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute<void>(builder: (_) => const ApiKeyFormScreen()));
 
 /// Imperative entry: edit [apiKey].
 Future<void> openApiKeyEdit(BuildContext context, ApiKey apiKey) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-          builder: (_) => ApiKeyFormScreen(existing: apiKey)),
+        builder: (_) => ApiKeyFormScreen(existing: apiKey),
+      ),
     );

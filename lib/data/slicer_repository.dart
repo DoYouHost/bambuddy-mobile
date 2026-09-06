@@ -48,8 +48,7 @@ class SlicerRepository {
   /// they are request fields with no route of their own to probe, and an older
   /// server drops them silently.
   Future<bool> supportsLayoutOptions() async =>
-      await _serverVersion?.supports(ServerFeature.sliceLayoutOptions) ??
-          false;
+      await _serverVersion?.supports(ServerFeature.sliceLayoutOptions) ?? false;
 
   /// Raw server `AppSettings` map. Feature flags (e.g. `use_slicer_api`,
   /// `require_plate_clear`) derive from this. Best-effort: a read failure
@@ -66,12 +65,12 @@ class SlicerRepository {
 
   /// GET /slicer/presets — printer/process/filament options across all tiers.
   Future<UnifiedPresets> presets({bool refresh = false}) => guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
-          Endpoints.slicerPresets,
-          queryParameters: refresh ? {'refresh': true} : null,
-        );
-        return UnifiedPresets.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.slicerPresets,
+      queryParameters: refresh ? {'refresh': true} : null,
+    );
+    return UnifiedPresets.fromJson(res.data ?? const {});
+  });
 
   /// Filament slots a model needs, one per **project** slot.
   ///
@@ -168,7 +167,8 @@ class SlicerRepository {
   }
 
   /// GET /archives/{id}/capabilities — used to gate the archive slice button.
-  Future<ArchiveCapabilities> archiveCapabilities(int archiveId) => guard(() async {
+  Future<ArchiveCapabilities> archiveCapabilities(int archiveId) =>
+      guard(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.archiveCapabilities(archiveId),
         );
@@ -198,7 +198,7 @@ class SlicerRepository {
 
   /// GET /slice-jobs/{id} — poll a job's status/progress/result.
   Future<SliceJob> job(int jobId) => guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(Endpoints.sliceJob(jobId));
-        return SliceJob.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(Endpoints.sliceJob(jobId));
+    return SliceJob.fromJson(res.data ?? const {});
+  });
 }

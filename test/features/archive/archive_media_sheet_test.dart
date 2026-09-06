@@ -9,7 +9,6 @@ import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -28,7 +27,7 @@ void main() {
   late int photoTaps;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     timelapseTaps = 0;
     photoTaps = 0;
@@ -38,16 +37,11 @@ void main() {
     int? printerId = 2,
     String? timelapsePath,
     List<String> photos = const [],
-  }) =>
-      Archive(
-        id: 1,
-        filename: 'benchy.gcode.3mf',
-        status: 'completed',
-        printName: 'Benchy',
-        printerId: printerId,
-        timelapsePath: timelapsePath,
-        photos: photos,
-      );
+  }) => testArchive(
+    printerId: printerId,
+    timelapsePath: timelapsePath,
+    photos: photos,
+  );
 
   /// Opens the sheet over a bare screen and waits for the search to answer.
   Future<AppLocalizations> open(
@@ -57,24 +51,25 @@ void main() {
     TextScaler scaler = TextScaler.noScaling,
   }) async {
     late BuildContext sheetContext;
-    await tester.pumpWidget(ProviderScope(
+    await pumpPhone(
+      tester,
+      Builder(
+        builder: (context) {
+          sheetContext = context;
+          return const SizedBox.shrink();
+        },
+      ),
+      // Wraps the navigator, so the sheet's own route sees it too.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: scaler),
+        child: child!,
+      ),
       overrides: [
         noServerProfileOverride,
         archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
         archiveMediaSupportedProvider.overrideWith((ref) async => searchable),
       ],
-      child: plApp(
-        Builder(builder: (context) {
-          sheetContext = context;
-          return const SizedBox.shrink();
-        }),
-        // Wraps the navigator, so the sheet's own route sees it too.
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: scaler),
-          child: child!,
-        ),
-      ),
-    ));
+    );
     openArchiveMediaSheet(
       sheetContext,
       item,
@@ -88,8 +83,9 @@ void main() {
   void replyWith(Map<String, dynamic> body) =>
       adapter.onGet(_media, (s) => s.reply(200, body));
 
-  testWidgets('the two places are named, and each row does its own thing',
-      (tester) async {
+  testWidgets('the two places are named, and each row does its own thing', (
+    tester,
+  ) async {
     replyWith(const {
       'archive_id': 1,
       'printer_id': 2,
@@ -127,8 +123,9 @@ void main() {
     expect(find.text(l10n.archiveMediaDownloadSelected(1)), findsOneWidget);
   });
 
-  testWidgets('the timelapse row is named and sized before it is tapped',
-      (tester) async {
+  testWidgets('the timelapse row is named and sized before it is tapped', (
+    tester,
+  ) async {
     replyWith(const {
       'archive_id': 1,
       'printer_id': 2,
@@ -136,8 +133,10 @@ void main() {
       'remote_files': <Object>[],
     });
 
-    final l10n =
-        await open(tester, archive(timelapsePath: 'archive/1/benchy.mp4'));
+    final l10n = await open(
+      tester,
+      archive(timelapsePath: 'archive/1/benchy.mp4'),
+    );
 
     expect(find.text('benchy.mp4'), findsOneWidget);
     expect(
@@ -146,50 +145,59 @@ void main() {
     );
   });
 
-  testWidgets('a pickable row reads as one item that says whether it is ticked',
-      (tester) async {
-    replyWith(const {
-      'archive_id': 1,
-      'printer_id': 2,
-      'remote_files': [
-        {
-          'name': 'ipcam_1.mp4',
-          'path': '/ipcam/ipcam_1.mp4',
-          'size': 10,
-          'kind': 'ipcam',
-        },
-      ],
-    });
+  testWidgets(
+    'a pickable row reads as one item that says whether it is ticked',
+    (tester) async {
+      replyWith(const {
+        'archive_id': 1,
+        'printer_id': 2,
+        'remote_files': [
+          {
+            'name': 'ipcam_1.mp4',
+            'path': '/ipcam/ipcam_1.mp4',
+            'size': 10,
+            'kind': 'ipcam',
+          },
+        ],
+      });
 
-    await open(tester, archive());
-    final handle = tester.ensureSemantics();
+      await open(tester, archive());
+      final handle = tester.ensureSemantics();
 
-    // Read through the row's own text: after the merge it has no node of its
-    // own, so what comes back is the row — name, size and state together,
-    // rather than a bare tick to swipe past first.
-    SemanticsData row() =>
-        tester.getSemantics(find.text('ipcam_1.mp4')).getSemanticsData();
+      // Read through the row's own text: after the merge it has no node of its
+      // own, so what comes back is the row — name, size and state together,
+      // rather than a bare tick to swipe past first.
+      SemanticsData row() =>
+          tester.getSemantics(find.text('ipcam_1.mp4')).getSemanticsData();
 
-    // The lone candidate is ticked already, and the row is what reports it.
-    expect(row().flagsCollection.isChecked, CheckedState.isTrue);
-    expect(row().label, contains('ipcam_1.mp4'));
+      // The lone candidate is ticked already, and the row is what reports it.
+      expect(row().flagsCollection.isChecked, CheckedState.isTrue);
+      expect(row().label, contains('ipcam_1.mp4'));
 
-    handle.dispose();
-  });
+      handle.dispose();
+    },
+  );
 
   testWidgets('the sheet has headings to jump between', (tester) async {
     // A sheet has no app bar, so nothing marks its title as a heading unless it
     // says so — and the two section names are the whole point of the layout.
-    replyWith(const {'archive_id': 1, 'printer_id': 2, 'remote_files': <Object>[]});
+    replyWith(const {
+      'archive_id': 1,
+      'printer_id': 2,
+      'remote_files': <Object>[],
+    });
 
-    final l10n =
-        await open(tester, archive(timelapsePath: 'archive/1/benchy.mp4'));
+    final l10n = await open(
+      tester,
+      archive(timelapsePath: 'archive/1/benchy.mp4'),
+    );
     final handle = tester.ensureSemantics();
 
     bool isHeader(String text) => tester
         .getSemantics(find.text(text))
         .getSemanticsData()
-        .flagsCollection.isHeader;
+        .flagsCollection
+        .isHeader;
 
     expect(isHeader(l10n.archiveMediaAction), isTrue);
     expect(isHeader(l10n.archiveMediaOnServer), isTrue);
@@ -198,8 +206,9 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('two chunks stay tellable apart when their names cannot be',
-      (tester) async {
+  testWidgets('two chunks stay tellable apart when their names cannot be', (
+    tester,
+  ) async {
     // A printer's file name has no spaces, so the line breaker treats it as one
     // unbreakable token: it never wraps, at any maxLines, and on a narrow
     // screen at the system's larger text sizes both of these ellipsise to the
@@ -235,8 +244,7 @@ void main() {
     // The names do run out of room — that is the premise, not a failure.
     expect(
       tester
-          .renderObject<RenderParagraph>(
-              find.text('ipcam_20260903_085551.mp4'))
+          .renderObject<RenderParagraph>(find.text('ipcam_20260903_085551.mp4'))
           .didExceedMaxLines,
       isTrue,
     );
@@ -256,28 +264,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a listing with no timestamp says the rest without inventing one',
-      (tester) async {
-    replyWith(const {
-      'archive_id': 1,
-      'printer_id': 2,
-      'remote_files': [
-        {
-          'name': 'ipcam_1.mp4',
-          'path': '/ipcam/ipcam_1.mp4',
-          'size': 6291456,
-          'kind': 'ipcam',
-        },
-      ],
-    });
+  testWidgets(
+    'a listing with no timestamp says the rest without inventing one',
+    (tester) async {
+      replyWith(const {
+        'archive_id': 1,
+        'printer_id': 2,
+        'remote_files': [
+          {
+            'name': 'ipcam_1.mp4',
+            'path': '/ipcam/ipcam_1.mp4',
+            'size': 6291456,
+            'kind': 'ipcam',
+          },
+        ],
+      });
 
-    final l10n = await open(tester, archive());
+      final l10n = await open(tester, archive());
 
-    expect(
-      find.text('${l10n.archiveMediaKindIpcam} · 6.0 MB'),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.text('${l10n.archiveMediaKindIpcam} · 6.0 MB'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('several candidates start unticked', (tester) async {
     replyWith(const {
@@ -312,8 +322,9 @@ void main() {
     expect(find.text(l10n.archiveMediaDownloadSelected(2)), findsOneWidget);
   });
 
-  testWidgets('a refused file listing is explained, not swallowed',
-      (tester) async {
+  testWidgets('a refused file listing is explained, not swallowed', (
+    tester,
+  ) async {
     // The half the server could give still shows: an API key without printer-
     // file permission reads archives fine, and the attached copy is the
     // archive's own.
@@ -325,16 +336,19 @@ void main() {
       'warnings': ['printer_files_forbidden'],
     });
 
-    final l10n =
-        await open(tester, archive(timelapsePath: 'archive/1/benchy.mp4'));
+    final l10n = await open(
+      tester,
+      archive(timelapsePath: 'archive/1/benchy.mp4'),
+    );
 
     expect(find.text('benchy.mp4'), findsOneWidget);
     expect(find.text(l10n.archiveMediaNoFilePermission), findsOneWidget);
     expect(find.text(l10n.archiveMediaNothingOnPrinter), findsOneWidget);
   });
 
-  testWidgets('a search that broke is not a search that found nothing',
-      (tester) async {
+  testWidgets('a search that broke is not a search that found nothing', (
+    tester,
+  ) async {
     adapter.onGet(_media, (s) => s.reply(500, {'detail': 'boom'}));
 
     final l10n = await open(tester, archive());
@@ -342,8 +356,9 @@ void main() {
     expect(find.text(l10n.archiveMediaNothingOnPrinter), findsNothing);
   });
 
-  testWidgets('a search that broke can be tried again without leaving',
-      (tester) async {
+  testWidgets('a search that broke can be tried again without leaving', (
+    tester,
+  ) async {
     // Five FTP listings fail for reasons that pass. Dismissing the sheet and
     // finding the button again is not a retry the user should have to perform.
     adapter.onGet(_media, (s) => s.reply(500, {'detail': 'boom'}));
@@ -373,8 +388,9 @@ void main() {
     expect(find.text('ipcam_1.mp4'), findsOneWidget);
   });
 
-  testWidgets('an older server leaves the printer section out altogether',
-      (tester) async {
+  testWidgets('an older server leaves the printer section out altogether', (
+    tester,
+  ) async {
     // The route is not there, so nothing is asked for. The sheet is still the
     // way to the timelapse and the photos — it simply has nothing to look for.
     final l10n = await open(
@@ -388,8 +404,9 @@ void main() {
     expect(find.text(l10n.archiveMediaNothingOnPrinter), findsNothing);
   });
 
-  testWidgets('a print with no printer is never searched for one',
-      (tester) async {
+  testWidgets('a print with no printer is never searched for one', (
+    tester,
+  ) async {
     // No route to call, so nothing is asked: the printer section would have
     // nowhere to look even on a server that has the search.
     final l10n = await open(

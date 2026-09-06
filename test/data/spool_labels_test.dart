@@ -8,6 +8,8 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers.dart';
+
 /// Sorts colours the way the label sheet does, so a test can assert on the
 /// resulting order rather than on raw key tuples.
 List<Color?> _sortByColor(List<Color?> colors) {
@@ -68,9 +70,12 @@ void main() {
       expect(_sortByColor([null, red]), [red, null]);
     });
 
-    test('a dark navy stays chromatic instead of falling into the neutrals', () {
-      expect(spoolColorSortKey(const Color(0xFF001F3F)).bucket, 0);
-    });
+    test(
+      'a dark navy stays chromatic instead of falling into the neutrals',
+      () {
+        expect(spoolColorSortKey(const Color(0xFF001F3F)).bucket, 0);
+      },
+    );
   });
 
   group('renderLabels', () {
@@ -79,7 +84,7 @@ void main() {
 
     /// Wires a Dio whose adapter answers every request with [bytes].
     void serve(List<int> bytes, {int status = 200}) {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = _FakeAdapter(status: status, bytes: bytes);
       dio.httpClientAdapter = adapter;
     }
@@ -187,19 +192,22 @@ void main() {
       );
     });
 
-    test('every template carries the wire value the backend contract names', () {
-      expect(
-        SpoolLabelTemplate.values.map((t) => t.wire),
-        containsAll([
-          'ams_holder_74x33',
-          'ams_holder_75x55',
-          'box_40x30',
-          'box_62x29',
-          'avery_l7160',
-          'avery_5160',
-        ]),
-      );
-    });
+    test(
+      'every template carries the wire value the backend contract names',
+      () {
+        expect(
+          SpoolLabelTemplate.values.map((t) => t.wire),
+          containsAll([
+            'ams_holder_74x33',
+            'ams_holder_75x55',
+            'box_40x30',
+            'box_62x29',
+            'avery_l7160',
+            'avery_5160',
+          ]),
+        );
+      },
+    );
   });
 
   group('starting_position', () {
@@ -207,7 +215,7 @@ void main() {
     late _FakeAdapter adapter;
 
     setUp(() {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = _FakeAdapter(status: 200, bytes: _pdfBytes);
       dio.httpClientAdapter = adapter;
     });

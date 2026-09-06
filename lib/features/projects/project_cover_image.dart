@@ -52,15 +52,19 @@ class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
             borderRadius: radius,
             border: Border.all(color: t.subCardBorder),
           ),
-          child: Icon(icon,
-              color: t.textTertiary,
-              size: (width < height ? width : height) * 0.4),
+          child: Icon(
+            icon,
+            color: t.textTertiary,
+            size: (width < height ? width : height) * 0.4,
+          ),
         );
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (!widget.hasCover || baseUrl == null) return placeholder();
 
-    return ref.watch(cameraTokenProvider).when(
+    return ref
+        .watch(cameraTokenProvider)
+        .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
           data: (token) {
@@ -76,10 +80,10 @@ class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
                 height: height,
                 // Server serves a full-res cover — cap decode resolution for
                 // the tile (project lists/cards render many of these).
-                cacheWidth:
-                    (width * MediaQuery.devicePixelRatioOf(context)).round(),
-                cacheHeight:
-                    (height * MediaQuery.devicePixelRatioOf(context)).round(),
+                cacheWidth: (width * MediaQuery.devicePixelRatioOf(context))
+                    .round(),
+                cacheHeight: (height * MediaQuery.devicePixelRatioOf(context))
+                    .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {

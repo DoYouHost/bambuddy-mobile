@@ -89,23 +89,23 @@ class FileManagerState {
     FileSort? sort,
     Set<int>? selected,
     bool? selectionMode,
-  }) =>
-      FileManagerState(
-        allFolders: allFolders ?? this.allFolders,
-        currentFolderId:
-            clearCurrentFolder ? null : (currentFolderId ?? this.currentFolderId),
-        files: files ?? this.files,
-        allFiles: clearAllFiles ? null : (allFiles ?? this.allFiles),
-        searching: searching ?? this.searching,
-        fetchFailed: fetchFailed ?? this.fetchFailed,
-        query: query ?? this.query,
-        tagFilter: tagFilter ?? this.tagFilter,
-        tagFiles: clearTagFiles ? null : (tagFiles ?? this.tagFiles),
-        typeFilter: clearTypeFilter ? null : (typeFilter ?? this.typeFilter),
-        sort: sort ?? this.sort,
-        selected: selected ?? this.selected,
-        selectionMode: selectionMode ?? this.selectionMode,
-      );
+  }) => FileManagerState(
+    allFolders: allFolders ?? this.allFolders,
+    currentFolderId: clearCurrentFolder
+        ? null
+        : (currentFolderId ?? this.currentFolderId),
+    files: files ?? this.files,
+    allFiles: clearAllFiles ? null : (allFiles ?? this.allFiles),
+    searching: searching ?? this.searching,
+    fetchFailed: fetchFailed ?? this.fetchFailed,
+    query: query ?? this.query,
+    tagFilter: tagFilter ?? this.tagFilter,
+    tagFiles: clearTagFiles ? null : (tagFiles ?? this.tagFiles),
+    typeFilter: clearTypeFilter ? null : (typeFilter ?? this.typeFilter),
+    sort: sort ?? this.sort,
+    selected: selected ?? this.selected,
+    selectionMode: selectionMode ?? this.selectionMode,
+  );
 
   /// Current folder as object (null at root level).
   LibraryFolder? get currentFolder =>
@@ -131,9 +131,7 @@ class FileManagerState {
 
   /// Subfolders of current folder (sorted alphabetically).
   List<LibraryFolder> get subfolders {
-    final list = allFolders
-        .where((f) => f.parentId == currentFolderId)
-        .toList()
+    final list = allFolders.where((f) => f.parentId == currentFolderId).toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;
   }
@@ -153,8 +151,8 @@ class FileManagerState {
   List<LibraryFile> get _source => isTagFiltering
       ? (tagFiles ?? const [])
       : isSearching
-          ? (allFiles ?? files)
-          : files;
+      ? (allFiles ?? files)
+      : files;
 
   /// Available file types (for filter) — from current source.
   List<String> get availableTypes {
@@ -185,22 +183,24 @@ class FileManagerState {
       return da.compareTo(db);
     }
 
-    filtered.sort((a, b) => switch (sort) {
-          FileSort.nameAsc => byName(a, b),
-          FileSort.nameDesc => byName(b, a),
-          FileSort.sizeAsc => a.fileSize.compareTo(b.fileSize),
-          FileSort.sizeDesc => b.fileSize.compareTo(a.fileSize),
-          FileSort.dateAsc => byDate(a, b),
-          FileSort.dateDesc => byDate(b, a),
-        });
+    filtered.sort(
+      (a, b) => switch (sort) {
+        FileSort.nameAsc => byName(a, b),
+        FileSort.nameDesc => byName(b, a),
+        FileSort.sizeAsc => a.fileSize.compareTo(b.fileSize),
+        FileSort.sizeDesc => b.fileSize.compareTo(a.fileSize),
+        FileSort.dateAsc => byDate(a, b),
+        FileSort.dateDesc => byDate(b, a),
+      },
+    );
     return filtered;
   }
 }
 
 final fileManagerProvider =
     AutoDisposeAsyncNotifierProvider<FileManagerNotifier, FileManagerState>(
-  FileManagerNotifier.new,
-);
+      FileManagerNotifier.new,
+    );
 
 /// File manager: folder navigation, file list, filters, and actions.
 class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
@@ -210,10 +210,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     final repo = ref.read(libraryRepositoryProvider);
     final folders = await repo.listFolders();
     final files = await repo.listFiles(folderId: null);
-    return FileManagerState(
-      allFolders: _flatten(folders),
-      files: files,
-    );
+    return FileManagerState(allFolders: _flatten(folders), files: files);
   }
 
   /// Flattens nested folder tree to a single list.
@@ -236,7 +233,9 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   Future<void> openFolder(int? folderId) async {
     final current = state.valueOrNull;
     if (current == null) return;
-    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(state);
+    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(() async {
       final repo = ref.read(libraryRepositoryProvider);
       final files = await repo.listFiles(folderId: folderId);
@@ -265,15 +264,16 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     final current = state.valueOrNull;
     final folderId = current?.currentFolderId;
     final tagFilter = current?.tagFilter ?? const <int>{};
-    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(state);
+    state = const AsyncValue<FileManagerState>.loading().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(() async {
       final repo = ref.read(libraryRepositoryProvider);
       final folders = await repo.listFolders();
       final files = await repo.listFiles(folderId: folderId);
       final flat = _flatten(folders);
       // Folder may have disappeared (deleted) — back to root.
-      final stillExists =
-          folderId == null || flat.any((f) => f.id == folderId);
+      final stillExists = folderId == null || flat.any((f) => f.id == folderId);
       return FileManagerState(
         allFolders: flat,
         currentFolderId: stillExists ? folderId : null,
@@ -334,20 +334,24 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     final current = state.valueOrNull;
     if (current == null) return;
     if (tagIds.isEmpty) {
-      state = AsyncValue.data(current.copyWith(
-        tagFilter: const {},
-        clearTagFiles: true,
-        searching: false,
-        fetchFailed: false,
-      ));
+      state = AsyncValue.data(
+        current.copyWith(
+          tagFilter: const {},
+          clearTagFiles: true,
+          searching: false,
+          fetchFailed: false,
+        ),
+      );
       return;
     }
-    state = AsyncValue.data(current.copyWith(
-      tagFilter: tagIds,
-      clearTagFiles: true,
-      searching: true,
-      fetchFailed: false,
-    ));
+    state = AsyncValue.data(
+      current.copyWith(
+        tagFilter: tagIds,
+        clearTagFiles: true,
+        searching: true,
+        fetchFailed: false,
+      ),
+    );
     try {
       final files = await ref
           .read(libraryRepositoryProvider)
@@ -373,16 +377,16 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
       a.length == b.length && a.containsAll(b);
 
   void setType(String? type) => _update(
-        (s) => s.copyWith(typeFilter: type, clearTypeFilter: type == null),
-      );
+    (s) => s.copyWith(typeFilter: type, clearTypeFilter: type == null),
+  );
 
   void setSort(FileSort sort) => _update((s) => s.copyWith(sort: sort));
 
   void toggleSelect(int fileId) => _update((s) {
-        final next = {...s.selected};
-        next.contains(fileId) ? next.remove(fileId) : next.add(fileId);
-        return s.copyWith(selected: next, selectionMode: next.isNotEmpty);
-      });
+    final next = {...s.selected};
+    next.contains(fileId) ? next.remove(fileId) : next.add(fileId);
+    return s.copyWith(selected: next, selectionMode: next.isNotEmpty);
+  });
 
   void clearSelection() =>
       _update((s) => s.copyWith(selected: const {}, selectionMode: false));

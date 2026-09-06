@@ -37,16 +37,15 @@ Future<String?> streamDownload(
   /// where finishing it would spend the user's data on a file about to be
   /// discarded.
   CancelToken? cancelToken,
-}) =>
-    guard(() async {
-      final res = await dio.download(
-        path,
-        savePath,
-        data: data,
-        queryParameters: queryParameters,
-        options: Options(method: method, receiveTimeout: receiveTimeout),
-        onReceiveProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-      return res.headers.value(Headers.contentTypeHeader);
-    });
+}) => guard(() async {
+  final res = await dio.download(
+    path,
+    savePath,
+    data: data,
+    queryParameters: queryParameters,
+    options: Options(method: method, receiveTimeout: receiveTimeout),
+    onReceiveProgress: onProgress,
+    cancelToken: cancelToken,
+  );
+  return res.headers.value(Headers.contentTypeHeader);
+});

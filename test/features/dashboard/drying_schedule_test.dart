@@ -9,19 +9,13 @@ void main() {
     DryStartMode mode, {
     int delayMinutes = 60,
     DateTime? pickedAt,
-  }) =>
-      withClock(
-        Clock.fixed(at),
-        () => dryingStart(
-          mode: mode,
-          delayMinutes: delayMinutes,
-          at: pickedAt,
-        ),
-      );
+  }) => withClock(
+    Clock.fixed(at),
+    () => dryingStart(mode: mode, delayMinutes: delayMinutes, at: pickedAt),
+  );
 
   test('Now schedules nothing — the printer is told directly', () {
-    expect(start(DryStartMode.now),
-        (startAfter: null, problem: null));
+    expect(start(DryStartMode.now), (startAfter: null, problem: null));
   });
 
   test('a delay is counted from now, not from when the chip was tapped', () {
@@ -41,8 +35,10 @@ void main() {
 
   test('the longest preset is a full day ahead', () {
     expect(
-      start(DryStartMode.delay, delayMinutes: dryingDelayPresets.last)
-          .startAfter,
+      start(
+        DryStartMode.delay,
+        delayMinutes: dryingDelayPresets.last,
+      ).startAfter,
       DateTime(2026, 9, 4, 20),
     );
   });
@@ -50,27 +46,29 @@ void main() {
   test('a picked instant is sent as picked', () {
     final picked = DateTime(2026, 9, 4, 6, 30);
 
-    expect(
-      start(DryStartMode.atTime, pickedAt: picked),
-      (startAfter: picked, problem: null),
-    );
+    expect(start(DryStartMode.atTime, pickedAt: picked), (
+      startAfter: picked,
+      problem: null,
+    ));
   });
 
   /// The trap this guard exists for: falling through to `startAfter == null`
   /// would read as "start now" and heat an AMS the user only meant to schedule.
-  test('"at time" with nothing picked asks for a time, it does not start now',
-      () {
-    expect(
-      start(DryStartMode.atTime),
-      (startAfter: null, problem: DryingStartProblem.noTimePicked),
-    );
-  });
+  test(
+    '"at time" with nothing picked asks for a time, it does not start now',
+    () {
+      expect(start(DryStartMode.atTime), (
+        startAfter: null,
+        problem: DryingStartProblem.noTimePicked,
+      ));
+    },
+  );
 
   test('an instant already gone is refused here, not by the server', () {
-    expect(
-      start(DryStartMode.atTime, pickedAt: DateTime(2026, 9, 3, 19, 59)),
-      (startAfter: null, problem: DryingStartProblem.timeInPast),
-    );
+    expect(start(DryStartMode.atTime, pickedAt: DateTime(2026, 9, 3, 19, 59)), (
+      startAfter: null,
+      problem: DryingStartProblem.timeInPast,
+    ));
   });
 
   /// The server's check is `start_after <= now`, so the boundary is a refusal

@@ -5,13 +5,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late GroupsRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = GroupsRepository(dio);
   });
@@ -53,8 +55,7 @@ void main() {
     expect(groups.last.isSystem, isFalse);
   });
 
-  test('get() carries the member list the list view has no room for',
-      () async {
+  test('get() carries the member list the list view has no room for', () async {
     adapter.onGet(
       '/api/v1/groups/7',
       (s) => s.reply(200, {
@@ -79,44 +80,42 @@ void main() {
     expect(group.members.last.isActive, isFalse);
   });
 
-  test('a group from a server that sends no member list is simply empty',
-      () async {
-    adapter.onGet(
-      '/api/v1/groups/7',
-      (s) => s.reply(200, {
-        'id': 7,
-        'name': 'Domownicy',
-        'permissions': const <String>[],
-        'is_system': false,
-        'user_count': 0,
-        'created_at': '2026-02-01T10:00:00',
-        'updated_at': '2026-02-01T10:00:00',
-      }),
-    );
+  test(
+    'a group from a server that sends no member list is simply empty',
+    () async {
+      adapter.onGet(
+        '/api/v1/groups/7',
+        (s) => s.reply(200, {
+          'id': 7,
+          'name': 'Domownicy',
+          'permissions': const <String>[],
+          'is_system': false,
+          'user_count': 0,
+          'created_at': '2026-02-01T10:00:00',
+          'updated_at': '2026-02-01T10:00:00',
+        }),
+      );
 
-    expect((await repo.get(7)).members, isEmpty);
-  });
+      expect((await repo.get(7)).members, isEmpty);
+    },
+  );
 
   test('adding a member hits the membership route', () async {
-    var called = false;
-    adapter.onPost('/api/v1/groups/7/users/2', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onPost('/api/v1/groups/7/users/2', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.addMember(7, 2);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['POST /api/v1/groups/7/users/2']);
   });
 
   test('removing a member hits the same route with DELETE', () async {
-    var called = false;
-    adapter.onDelete('/api/v1/groups/7/users/2', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onDelete('/api/v1/groups/7/users/2', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.removeMember(7, 2);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['DELETE /api/v1/groups/7/users/2']);
   });
 
   test('a refused membership change keeps the reason', () async {
@@ -127,8 +126,13 @@ void main() {
 
     await expectLater(
       repo.addMember(7, 2),
-      throwsA(isA<ApiException>().having(
-          (e) => e.detail, 'detail', 'User is already in this group')),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'User is already in this group',
+        ),
+      ),
     );
   });
 
@@ -185,7 +189,7 @@ void main() {
   });
 
   test('create sends the whole permission set', () async {
-    Map<String, dynamic>? sent;
+    final sent = captureRequests(dio);
     adapter.onPost(
       '/api/v1/groups/',
       (s) => s.reply(201, {
@@ -200,25 +204,20 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'POST') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
 
-    final created = await repo.create(const GroupCreateInput(
-      name: 'Domownicy',
-      permissions: ['queue:create'],
-    ));
+    final created = await repo.create(
+      const GroupCreateInput(name: 'Domownicy', permissions: ['queue:create']),
+    );
 
     expect(created.id, 9);
-    expect(sent, {
+    expect(sent.last.data, {
       'name': 'Domownicy',
       'permissions': ['queue:create'],
     });
   });
 
   test('update sends only the fields it was given', () async {
-    Map<String, dynamic>? sent;
+    final sent = captureRequests(dio);
     adapter.onPatch(
       '/api/v1/groups/9',
       (s) => s.reply(200, {
@@ -233,14 +232,10 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'PATCH') sent = options.data as Map<String, dynamic>;
-      handler.next(options);
-    }));
 
     await repo.update(9, const GroupUpdateInput(description: 'Drukują'));
 
-    expect(sent, {'description': 'Drukują'});
+    expect(sent.last.data, {'description': 'Drukują'});
   });
 
   test('a system group refused by name keeps the reason', () async {
@@ -252,20 +247,23 @@ void main() {
 
     await expectLater(
       repo.update(1, const GroupUpdateInput(name: 'Admini')),
-      throwsA(isA<ApiException>()
-          .having((e) => e.detail, 'detail', 'Cannot rename system groups')),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.detail,
+          'detail',
+          'Cannot rename system groups',
+        ),
+      ),
     );
   });
 
   test('deleting a group hits its own path', () async {
-    var called = false;
-    adapter.onDelete('/api/v1/groups/9', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onDelete('/api/v1/groups/9', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.delete(9);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['DELETE /api/v1/groups/9']);
   });
 
   test('an identity without groups:read gets a mapped 403', () async {

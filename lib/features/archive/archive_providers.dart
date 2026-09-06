@@ -297,8 +297,9 @@ final no3mfWarningProvider = FutureProvider<No3mfWarning>((ref) async {
 
 /// Whether the no-3MF nudge has been waved off. One-way: there is no un-dismiss,
 /// on the web either.
-final no3mfDismissedProvider =
-    NotifierProvider<No3mfDismissedNotifier, bool>(No3mfDismissedNotifier.new);
+final no3mfDismissedProvider = NotifierProvider<No3mfDismissedNotifier, bool>(
+  No3mfDismissedNotifier.new,
+);
 
 class No3mfDismissedNotifier extends Notifier<bool> {
   @override

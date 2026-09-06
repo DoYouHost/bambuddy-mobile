@@ -98,11 +98,17 @@ List<KProfile> _matching({
   // that only disqualifies the *name* heuristic. An agreeing filament id is
   // hard evidence and does not care what the preset is called.
   final byName = material.length >= 2;
-  final matched = profiles.where((p) =>
-      _matchesFilamentId(p, presetFilamentId) ||
-      (byName &&
-          _matchesName(p,
-              brand: brand, material: material, fullName: fullName)));
+  final matched = profiles.where(
+    (p) =>
+        _matchesFilamentId(p, presetFilamentId) ||
+        (byName &&
+            _matchesName(
+              p,
+              brand: brand,
+              material: material,
+              fullName: fullName,
+            )),
+  );
 
   final result = _dedupe(matched, extruderId);
 
@@ -154,8 +160,9 @@ bool _matchesName(
   }
 
   if (name.contains(fullName) || name.contains(material)) return true;
-  return (_materialAliases[material] ?? const [])
-      .any((alias) => name.contains(alias));
+  return (_materialAliases[material] ?? const []).any(
+    (alias) => name.contains(alias),
+  );
 }
 
 /// Fold the duplicate rows a multi-nozzle printer reports for one calibration,
@@ -164,7 +171,8 @@ List<KProfile> _dedupe(Iterable<KProfile> profiles, int? extruderId) {
   final byOption = <String, KProfile>{};
   for (final profile in profiles) {
     final existing = byOption[profile.optionId];
-    final betterNozzle = existing != null &&
+    final betterNozzle =
+        existing != null &&
         extruderId != null &&
         profile.extruderId == extruderId &&
         existing.extruderId != extruderId;

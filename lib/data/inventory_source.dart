@@ -271,14 +271,17 @@ Future<BulkOutcome> _postBulkIds(
   List<int> ids, {
   required String okKey,
   String? skippedKey,
-}) => _postChunked(ids, (chunk) => guard(() async {
-      final res = await dio.post<dynamic>(path, data: {'ids': chunk});
-      return BulkOutcome.fromJson(
-        _objectOf(res.data),
-        okKey: okKey,
-        skippedKey: skippedKey,
-      );
-    }));
+}) => _postChunked(
+  ids,
+  (chunk) => guard(() async {
+    final res = await dio.post<dynamic>(path, data: {'ids': chunk});
+    return BulkOutcome.fromJson(
+      _objectOf(res.data),
+      okKey: okKey,
+      skippedKey: skippedKey,
+    );
+  }),
+);
 
 /// `bulk-update`. [update] is the backend's own serialization of the patch, so
 /// an edit that only touches native-only columns arrives here empty on
@@ -291,22 +294,28 @@ Future<BulkOutcome> _postBulkUpdate(
   Map<String, dynamic> update,
 ) async {
   if (update.isEmpty) return BulkOutcome.empty;
-  return _postChunked(ids, (chunk) => guard(() async {
-        final res = await dio.post<dynamic>(
-          path,
-          data: {'ids': chunk, 'update': update},
-        );
-        return BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
-      }));
+  return _postChunked(
+    ids,
+    (chunk) => guard(() async {
+      final res = await dio.post<dynamic>(
+        path,
+        data: {'ids': chunk, 'update': update},
+      );
+      return BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
+    }),
+  );
 }
 
 /// `reset-consumed-counter-bulk` — the one route keyed on `spool_ids` rather
 /// than `ids`, and the one that reports only a count.
 Future<BulkOutcome> _postBulkReset(Dio dio, String path, List<int> ids) =>
-    _postChunked(ids, (chunk) => guard(() async {
-          final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
-          return BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
-        }));
+    _postChunked(
+      ids,
+      (chunk) => guard(() async {
+        final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
+        return BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
+      }),
+    );
 
 /// POSTs [path], and on 404 posts [legacyPath] instead.
 ///
@@ -315,18 +324,15 @@ Future<BulkOutcome> _postBulkReset(Dio dio, String path, List<int> ids) =>
 /// a missing spool. Written for `reset-consumed-counter`, which replaced
 /// `reset-usage` (server issue #1644) — the app has to keep working on both
 /// sides of that rename.
-Future<void> _postWithLegacyFallback(
-  Dio dio,
-  String path,
-  String legacyPath,
-) => guard(() async {
-  try {
-    await dio.post<dynamic>(path);
-  } on DioException catch (e) {
-    if (e.response?.statusCode != 404) rethrow;
-    await dio.post<dynamic>(legacyPath);
-  }
-});
+Future<void> _postWithLegacyFallback(Dio dio, String path, String legacyPath) =>
+    guard(() async {
+      try {
+        await dio.post<dynamic>(path);
+      } on DioException catch (e) {
+        if (e.response?.statusCode != 404) rethrow;
+        await dio.post<dynamic>(legacyPath);
+      }
+    });
 
 /// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
 /// errors mapped to typed [AppApiException].
@@ -364,41 +370,39 @@ class NativeInventorySource implements SpoolInventorySource {
   Future<void> ensureAssignable(SpoolAssignmentDraft draft) async {}
 
   @override
-  Future<void> assignSpool(SpoolAssignmentDraft draft) => guard(() => _dio.post<dynamic>(
-        Endpoints.inventoryAssignments,
-        data: draft.toNativeJson(),
-      ));
+  Future<void> assignSpool(SpoolAssignmentDraft draft) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.inventoryAssignments,
+      data: draft.toNativeJson(),
+    ),
+  );
 
   @override
   Future<void> unassignSpool(int printerId, int amsId, int trayId) => guard(
-        () => _dio.delete<dynamic>(
-          Endpoints.inventoryAssignment(printerId, amsId, trayId),
-        ),
-      );
+    () => _dio.delete<dynamic>(
+      Endpoints.inventoryAssignment(printerId, amsId, trayId),
+    ),
+  );
 
   @override
   Future<int?> createSpoolFromSlot({
     required int printerId,
     required int amsId,
     required int trayId,
-  }) =>
-      _guardKeeping404Detail(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.inventorySpoolFromSlot,
-          data: {
-            'printer_id': printerId,
-            'ams_id': amsId,
-            'tray_id': trayId,
-          },
-        );
-        return toIntOrNull(res.data?['id']);
-      });
+  }) => _guardKeeping404Detail(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.inventorySpoolFromSlot,
+      data: {'printer_id': printerId, 'ams_id': amsId, 'tray_id': trayId},
+    );
+    return toIntOrNull(res.data?['id']);
+  });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
     final body = await guard(() async {
-      final res =
-          await _dio.get<List<dynamic>>(Endpoints.inventorySpoolUsage(spoolId));
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.inventorySpoolUsage(spoolId),
+      );
       return res.data ?? const [];
     });
     return parseJsonList(body, SpoolUsageEntry.fromNative);
@@ -406,12 +410,12 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<Spool> createSpool(SpoolDraft draft) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.inventorySpools,
-          data: draft.toNativeJson(),
-        );
-        return Spool.fromNative(res.data ?? const {});
-      });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.inventorySpools,
+      data: draft.toNativeJson(),
+    );
+    return Spool.fromNative(res.data ?? const {});
+  });
 
   @override
   Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) =>
@@ -426,12 +430,12 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<Spool> updateSpool(int spoolId, SpoolDraft draft) => guard(() async {
-        final res = await _dio.patch<Map<String, dynamic>>(
-          Endpoints.inventorySpool(spoolId),
-          data: draft.toNativeJson(),
-        );
-        return Spool.fromNative(res.data ?? const {});
-      });
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.inventorySpool(spoolId),
+      data: draft.toNativeJson(),
+    );
+    return Spool.fromNative(res.data ?? const {});
+  });
 
   @override
   Future<void> deleteSpool(int spoolId) =>
@@ -447,10 +451,10 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
-        _dio,
-        Endpoints.inventorySpoolResetConsumedCounter(spoolId),
-        Endpoints.inventorySpoolResetUsage(spoolId),
-      );
+    _dio,
+    Endpoints.inventorySpoolResetConsumedCounter(spoolId),
+    Endpoints.inventorySpoolResetUsage(spoolId),
+  );
 
   @override
   Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
@@ -463,36 +467,36 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.inventorySpoolsBulkArchive,
-        spoolIds,
-        okKey: 'archived',
-        skippedKey: 'already_archived',
-      );
+    _dio,
+    Endpoints.inventorySpoolsBulkArchive,
+    spoolIds,
+    okKey: 'archived',
+    skippedKey: 'already_archived',
+  );
 
   @override
   Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.inventorySpoolsBulkRestore,
-        spoolIds,
-        okKey: 'restored',
-        skippedKey: 'already_active',
-      );
+    _dio,
+    Endpoints.inventorySpoolsBulkRestore,
+    spoolIds,
+    okKey: 'restored',
+    skippedKey: 'already_active',
+  );
 
   @override
   Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.inventorySpoolsBulkDelete,
-        spoolIds,
-        okKey: 'deleted',
-      );
+    _dio,
+    Endpoints.inventorySpoolsBulkDelete,
+    spoolIds,
+    okKey: 'deleted',
+  );
 
   @override
   Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
-        _dio,
-        Endpoints.inventorySpoolsResetConsumedCounterBulk,
-        spoolIds,
-      );
+    _dio,
+    Endpoints.inventorySpoolsResetConsumedCounterBulk,
+    spoolIds,
+  );
 
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async {
@@ -523,13 +527,12 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<StorageLocation>> fetchLocations() => guard(() async {
-        final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
-        return [
-          for (final loc
-              in parseJsonList(res.data, StorageLocation.fromJson))
-            if (loc.name.isNotEmpty) loc,
-        ];
-      });
+    final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
+    return [
+      for (final loc in parseJsonList(res.data, StorageLocation.fromJson))
+        if (loc.name.isNotEmpty) loc,
+    ];
+  });
 
   @override
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
@@ -546,12 +549,11 @@ class NativeInventorySource implements SpoolInventorySource {
   Future<void> savePresetOverrides(
     int spoolId,
     List<SpoolPresetOverride> overrides,
-  ) =>
-      _putPresetOverrides(
-        _dio,
-        Endpoints.inventorySpoolFilamentPresets(spoolId),
-        overrides,
-      );
+  ) => _putPresetOverrides(
+    _dio,
+    Endpoints.inventorySpoolFilamentPresets(spoolId),
+    overrides,
+  );
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -597,15 +599,17 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   @override
   Future<void> assignSpool(SpoolAssignmentDraft draft) async {
     final tag = await _requireSlotTag(draft);
-    await guard(() => _dio.post<dynamic>(
-          Endpoints.spoolmanSpoolLink(draft.spoolId),
-          data: {
-            ...tag,
-            'printer_id': draft.printerId,
-            'ams_id': draft.amsId,
-            'tray_id': draft.trayId,
-          },
-        ));
+    await guard(
+      () => _dio.post<dynamic>(
+        Endpoints.spoolmanSpoolLink(draft.spoolId),
+        data: {
+          ...tag,
+          'printer_id': draft.printerId,
+          'ams_id': draft.amsId,
+          'tray_id': draft.trayId,
+        },
+      ),
+    );
   }
 
   /// Unlink is keyed on the spool, so the slot resolves to one first. An empty
@@ -618,16 +622,18 @@ class SpoolmanInventorySource implements SpoolInventorySource {
         // An unparsed spool id reads as -1 — that would unlink `/spools/-1`.
         .where((id) => id > 0);
     if (held.isEmpty) return;
-    await guard(() => _dio.post<dynamic>(
-          Endpoints.spoolmanSpoolUnlink(held.first),
-        ));
+    await guard(
+      () => _dio.post<dynamic>(Endpoints.spoolmanSpoolUnlink(held.first)),
+    );
   }
 
   /// The slot's RFID identity as the `link` body wants it. `tray_uuid` wins for
   /// the reason the server prefers it too: only the UUID survives a re-spool.
   /// Throws rather than returning null, so the precheck and the write refuse
   /// identically.
-  Future<Map<String, String>> _requireSlotTag(SpoolAssignmentDraft draft) async {
+  Future<Map<String, String>> _requireSlotTag(
+    SpoolAssignmentDraft draft,
+  ) async {
     final status = await guard(() async {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.printerStatus(draft.printerId),
@@ -654,30 +660,25 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     required int printerId,
     required int amsId,
     required int trayId,
-  }) =>
-      _guardKeeping404Detail(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.spoolmanSpoolFromSlot,
-          data: {
-            'printer_id': printerId,
-            'ams_id': amsId,
-            'tray_id': trayId,
-          },
-        );
-        return toIntOrNull(res.data?['spool_id']);
-      });
+  }) => _guardKeeping404Detail(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.spoolmanSpoolFromSlot,
+      data: {'printer_id': printerId, 'ams_id': amsId, 'tray_id': trayId},
+    );
+    return toIntOrNull(res.data?['spool_id']);
+  });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];
 
   @override
   Future<Spool> createSpool(SpoolDraft draft) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.spoolmanSpools,
-          data: draft.toSpoolmanJson(),
-        );
-        return Spool.fromSpoolman(res.data ?? const {});
-      });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.spoolmanSpools,
+      data: draft.toSpoolmanJson(),
+    );
+    return Spool.fromSpoolman(res.data ?? const {});
+  });
 
   @override
   Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) =>
@@ -698,12 +699,12 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   @override
   Future<Spool> updateSpool(int spoolId, SpoolDraft draft) => guard(() async {
-        final res = await _dio.patch<Map<String, dynamic>>(
-          Endpoints.spoolmanSpool(spoolId),
-          data: draft.toSpoolmanJson(),
-        );
-        return Spool.fromSpoolman(res.data ?? const {});
-      });
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.spoolmanSpool(spoolId),
+      data: draft.toSpoolmanJson(),
+    );
+    return Spool.fromSpoolman(res.data ?? const {});
+  });
 
   @override
   Future<void> deleteSpool(int spoolId) =>
@@ -719,10 +720,10 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   @override
   Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
-        _dio,
-        Endpoints.spoolmanSpoolResetConsumedCounter(spoolId),
-        Endpoints.spoolmanSpoolResetUsage(spoolId),
-      );
+    _dio,
+    Endpoints.spoolmanSpoolResetConsumedCounter(spoolId),
+    Endpoints.spoolmanSpoolResetUsage(spoolId),
+  );
 
   /// Spoolman's `update` is the narrower one: `category` and
   /// `low_stock_threshold_pct` have no column there, so an edit that touches
@@ -741,34 +742,34 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   // there is no already-in-state list to read.
   @override
   Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.spoolmanSpoolsBulkArchive,
-        spoolIds,
-        okKey: 'archived',
-      );
+    _dio,
+    Endpoints.spoolmanSpoolsBulkArchive,
+    spoolIds,
+    okKey: 'archived',
+  );
 
   @override
   Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.spoolmanSpoolsBulkRestore,
-        spoolIds,
-        okKey: 'restored',
-      );
+    _dio,
+    Endpoints.spoolmanSpoolsBulkRestore,
+    spoolIds,
+    okKey: 'restored',
+  );
 
   @override
   Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
-        _dio,
-        Endpoints.spoolmanSpoolsBulkDelete,
-        spoolIds,
-        okKey: 'deleted',
-      );
+    _dio,
+    Endpoints.spoolmanSpoolsBulkDelete,
+    spoolIds,
+    okKey: 'deleted',
+  );
 
   @override
   Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
-        _dio,
-        Endpoints.spoolmanSpoolsResetConsumedCounterBulk,
-        spoolIds,
-      );
+    _dio,
+    Endpoints.spoolmanSpoolsResetConsumedCounterBulk,
+    spoolIds,
+  );
 
   // Reference data comes from native backend catalogs — on Spoolman, form uses
   // manual entry (empty lists).
@@ -801,10 +802,9 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   Future<void> savePresetOverrides(
     int spoolId,
     List<SpoolPresetOverride> overrides,
-  ) =>
-      _putPresetOverrides(
-        _dio,
-        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
-        overrides,
-      );
+  ) => _putPresetOverrides(
+    _dio,
+    Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+    overrides,
+  );
 }

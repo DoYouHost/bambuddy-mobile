@@ -24,7 +24,10 @@ const wearBusyVeil = Positioned.fill(
     color: wearScrim,
     child: Center(
       child: SizedBox(
-          width: 30, height: 30, child: CircularProgressIndicator()),
+        width: 30,
+        height: 30,
+        child: CircularProgressIndicator(),
+      ),
     ),
   ),
 );

@@ -40,21 +40,20 @@ class ScheduledDryingRepository {
   /// An older server (404) or a key without the permission (403) answers with
   /// an empty list rather than throwing: every caller is a card that has
   /// nothing to say about either.
-  Future<List<ScheduledDrying>> list({int? printerId}) =>
-      _scheduling.watching(
-        () async {
-          final res = await _dio.get<List<dynamic>>(
-            Endpoints.scheduledDryings,
-            queryParameters: {'printer_id': ?printerId},
-          );
-          return parseJsonList(res.data, ScheduledDrying.fromJson);
-        },
-        absent: () => const [],
-        // The one call on this latch that may settle absence: the collection
-        // raises no 404, while `create` and `cancel` both do — for a missing
-        // printer and a missing job — and those are rows, not the route.
-        observing: treat404AsAbsent,
+  Future<List<ScheduledDrying>> list({int? printerId}) => _scheduling.watching(
+    () async {
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.scheduledDryings,
+        queryParameters: {'printer_id': ?printerId},
       );
+      return parseJsonList(res.data, ScheduledDrying.fromJson);
+    },
+    absent: () => const [],
+    // The one call on this latch that may settle absence: the collection
+    // raises no 404, while `create` and `cancel` both do — for a missing
+    // printer and a missing job — and those are rows, not the route.
+    observing: treat404AsAbsent,
+  );
 
   /// Schedule a run. [startAfter] null means "as soon as the printer is idle";
   /// the server refuses an instant that is not in the future.
@@ -94,6 +93,6 @@ class ScheduledDryingRepository {
 
   /// Cancel a pending or running run, or dismiss a failed one.
   Future<void> cancel(int id) => _scheduling.watching(
-        () => _dio.delete<Map<String, dynamic>>(Endpoints.scheduledDrying(id)),
-      );
+    () => _dio.delete<Map<String, dynamic>>(Endpoints.scheduledDrying(id)),
+  );
 }

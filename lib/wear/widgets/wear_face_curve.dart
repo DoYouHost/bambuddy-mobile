@@ -46,10 +46,11 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-          BuildContext context, RenderWearFaceCurve renderObject) =>
-      renderObject
-        ..face = face
-        ..cornerRadius = cornerRadius;
+    BuildContext context,
+    RenderWearFaceCurve renderObject,
+  ) => renderObject
+    ..face = face
+    ..cornerRadius = cornerRadius;
 }
 
 /// The paint-time half of [WearFaceCurve].
@@ -65,8 +66,8 @@ class RenderWearFaceCurve extends RenderProxyBox {
   // `wear_transport.dart` waives this lint.
   // ignore_for_file: prefer_initializing_formals
   RenderWearFaceCurve({required Size face, required double cornerRadius})
-      : _face = face,
-        _cornerRadius = cornerRadius;
+    : _face = face,
+      _cornerRadius = cornerRadius;
 
   /// Whether the curve can do anything for this item.
   ///

@@ -5,13 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   String header(String ts, {String stream = 'ui'}) => jsonEncode({
-        'v': 1,
-        'ts': ts,
-        'session': 's1',
-        'stream': stream,
-        'app': '0.11.2+1102',
-        'flavor': 'mobile',
-      });
+    'v': 1,
+    'ts': ts,
+    'session': 's1',
+    'stream': stream,
+    'app': '0.11.2+1102',
+    'flavor': 'mobile',
+  });
 
   String record(int t, String evt, {String src = 'ui'}) =>
       jsonEncode({'t': t, 'src': src, 'evt': evt});
@@ -19,9 +19,9 @@ void main() {
   String jsonl(List<String> lines) => '${lines.join('\n')}\n';
 
   List<Map<String, dynamic>> parse(String out) => [
-        for (final line in const LineSplitter().convert(out))
-          jsonDecode(line) as Map<String, dynamic>,
-      ];
+    for (final line in const LineSplitter().convert(out))
+      jsonDecode(line) as Map<String, dynamic>,
+  ];
 
   test('interleaves both streams on absolute time, not on raw offsets', () {
     // The isolate started 5 s after the UI, so its t=0 is the UI's t=5000.
@@ -64,7 +64,10 @@ void main() {
   });
 
   test('records sharing a millisecond keep primary before secondary', () {
-    final ui = jsonl([header('2026-07-25T12:00:00.000Z'), record(500, 'from_ui')]);
+    final ui = jsonl([
+      header('2026-07-25T12:00:00.000Z'),
+      record(500, 'from_ui'),
+    ]);
     final fgs = jsonl([
       header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
       record(500, 'from_fgs', src: 'fgs'),
@@ -94,7 +97,10 @@ void main() {
 
     test('empty', () => expect(mergeSessions(ui, ''), ui));
     test('header only', () {
-      expect(mergeSessions(ui, jsonl([header('2026-07-25T12:00:00.000Z')])), ui);
+      expect(
+        mergeSessions(ui, jsonl([header('2026-07-25T12:00:00.000Z')])),
+        ui,
+      );
     });
     test('not json', () => expect(mergeSessions(ui, 'garbage\nmore\n'), ui));
     test('header without a timestamp', () {
@@ -138,10 +144,7 @@ void main() {
     });
 
     test('a third stream folds in with its own name', () {
-      final ui = jsonl([
-        header('2026-07-25T12:00:00.000Z'),
-        record(0, 'tap'),
-      ]);
+      final ui = jsonl([header('2026-07-25T12:00:00.000Z'), record(0, 'tap')]);
       final fgs = jsonl([
         header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
         record(10, 'cycle', src: 'fgs'),
@@ -153,16 +156,16 @@ void main() {
 
       final merged = parse(mergeSessions(mergeSessions(ui, fgs), action));
 
-      expect([for (final r in merged.skip(1)) r['iso']], [null, 'fgs', 'action']);
+      expect(
+        [for (final r in merged.skip(1)) r['iso']],
+        [null, 'fgs', 'action'],
+      );
       // The stamp from the first pass survives the second.
       expect([for (final r in merged.skip(1)) r['t']], [0, 10, 20]);
     });
 
     test('a stream calling itself ui is not stamped', () {
-      final ui = jsonl([
-        header('2026-07-25T12:00:00.000Z'),
-        record(0, 'tap'),
-      ]);
+      final ui = jsonl([header('2026-07-25T12:00:00.000Z'), record(0, 'tap')]);
       final other = jsonl([
         header('2026-07-25T12:00:01.000Z'),
         record(0, 'tap'),
@@ -175,37 +178,38 @@ void main() {
   });
 
   group('a background file the system killed mid-write', () {
-    test('a second header inside the stream is skipped, not read as a record',
-        () {
-      // A restarted foreground service can append to the file it already wrote.
-      // Taken for a record, the stray header lands at t=0 — in front of
-      // everything, with no source and no event name.
-      final ui = jsonl([
-        header('2026-07-25T12:00:00.000Z'),
-        record(500, 'tap'),
-      ]);
-      final fgs = jsonl([
-        header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
-        record(100, 'cycle', src: 'fgs'),
-        header('2026-07-25T12:00:00.000Z', stream: 'fgs'), // second onStart
-        record(200, 'cycle', src: 'fgs'),
-      ]);
+    test(
+      'a second header inside the stream is skipped, not read as a record',
+      () {
+        // A restarted foreground service can append to the file it already wrote.
+        // Taken for a record, the stray header lands at t=0 — in front of
+        // everything, with no source and no event name.
+        final ui = jsonl([
+          header('2026-07-25T12:00:00.000Z'),
+          record(500, 'tap'),
+        ]);
+        final fgs = jsonl([
+          header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
+          record(100, 'cycle', src: 'fgs'),
+          header('2026-07-25T12:00:00.000Z', stream: 'fgs'), // second onStart
+          record(200, 'cycle', src: 'fgs'),
+        ]);
 
-      final merged = parse(mergeSessions(ui, fgs));
+        final merged = parse(mergeSessions(ui, fgs));
 
-      expect(merged, hasLength(4)); // header + 3 records, not 5
-      expect(merged.every((r) => !r.containsKey('session') || r == merged.first),
-          isTrue);
-      expect([for (final r in merged.skip(1)) r['t']], [100, 200, 500]);
-    });
+        expect(merged, hasLength(4)); // header + 3 records, not 5
+        expect(
+          merged.every((r) => !r.containsKey('session') || r == merged.first),
+          isTrue,
+        );
+        expect([for (final r in merged.skip(1)) r['t']], [100, 200, 500]);
+      },
+    );
 
     test('a record whose t is not a number costs itself and nothing else', () {
       // Without this the cast threw out of `mergeSessions`, out of `stop()`, and
       // the user got no log at all after five minutes of recording.
-      final ui = jsonl([
-        header('2026-07-25T12:00:00.000Z'),
-        record(0, 'tap'),
-      ]);
+      final ui = jsonl([header('2026-07-25T12:00:00.000Z'), record(0, 'tap')]);
       final fgs = jsonl([
         header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
         jsonEncode({'t': 'soon', 'src': 'fgs', 'evt': 'cycle'}),
@@ -254,10 +258,8 @@ void main() {
 
     test('a torn last line costs itself and nothing else', () {
       // What a killed process leaves behind: half a record with no `t`.
-      final file = '${jsonl([
-            header('2026-07-25T12:00:00.000Z'),
-            record(10, 'tap'),
-          ])}{"t":20,"src":"ui","ev';
+      final file =
+          '${jsonl([header('2026-07-25T12:00:00.000Z'), record(10, 'tap')])}{"t":20,"src":"ui","ev';
 
       final ordered = parse(orderSession(file));
 

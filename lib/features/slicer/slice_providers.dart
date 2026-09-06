@@ -17,9 +17,9 @@ typedef OwnedFilament = ({String name, String material, String? color});
 /// Whether server-side slicing is enabled (`use_slicer_api`). Gates every slice
 /// button in the app. Cached for the session — the setting rarely changes.
 final slicerEnabledProvider = FutureProvider<bool>(
-  (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))
-          .settingBool('use_slicer_api'),
+  (ref) async => (await ref.watch(
+    serverSettingsProvider.future,
+  )).settingBool('use_slicer_api'),
 );
 
 /// Preset options for the slice modal. Kept alive while a sheet is open; the
@@ -30,11 +30,11 @@ final slicerPresetsProvider = FutureProvider.autoDispose<UnifiedPresets>(
 
 /// Slice capabilities for a single archive — gates the archive slice button
 /// (hidden for plain gcode.3mf prints that can't be re-sliced).
-final archiveCapabilitiesProvider =
-    FutureProvider.autoDispose.family<ArchiveCapabilities, int>(
-  (ref, archiveId) =>
-      ref.watch(slicerRepositoryProvider).archiveCapabilities(archiveId),
-);
+final archiveCapabilitiesProvider = FutureProvider.autoDispose
+    .family<ArchiveCapabilities, int>(
+      (ref, archiveId) =>
+          ref.watch(slicerRepositoryProvider).archiveCapabilities(archiveId),
+    );
 
 /// Printer model codes the user actually owns (e.g. {"X2D"}), used to narrow
 /// the printer/process/filament lists to fitting presets.
@@ -42,16 +42,16 @@ final archiveCapabilitiesProvider =
 /// Upper-cased because it is only ever compared against preset names, never
 /// sent — the spool form's `printerModelsProvider` reads the same fleet and
 /// must keep the server's own spelling, and says there why.
-final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>(
-  (ref) async {
-    final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
-    return {
-      for (final p in printers)
-        if (p.model != null && p.model!.trim().isNotEmpty)
-          p.model!.trim().toUpperCase(),
-    };
-  },
-);
+final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>((
+  ref,
+) async {
+  final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
+  return {
+    for (final p in printers)
+      if (p.model != null && p.model!.trim().isNotEmpty)
+        p.model!.trim().toUpperCase(),
+  };
+});
 
 /// Filaments the user owns (from inventory spools) that carry a slicer-preset
 /// mapping, used to limit the filament list to owned filaments, to auto-pick
@@ -65,19 +65,19 @@ final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>(
 /// the colours — the auto-pick to find the closest to the plate, the request to
 /// record what is really being printed — and neither can ask for a colour that
 /// was dropped here.
-final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>(
-  (ref) async {
-    final spools = await ref.watch(inventoryRepositoryProvider).fetchSpools();
-    final out = <OwnedFilament>[];
-    final seen = <(String, String?)>{};
-    for (final s in spools) {
-      final name = s.slicerFilamentName?.trim();
-      if (name == null || name.isEmpty || !seen.add((name, s.rgba))) continue;
-      out.add((name: name, material: s.material, color: s.rgba));
-    }
-    return out;
-  },
-);
+final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
+  ref,
+) async {
+  final spools = await ref.watch(inventoryRepositoryProvider).fetchSpools();
+  final out = <OwnedFilament>[];
+  final seen = <(String, String?)>{};
+  for (final s in spools) {
+    final name = s.slicerFilamentName?.trim();
+    if (name == null || name.isEmpty || !seen.add((name, s.rgba))) continue;
+    out.add((name: name, material: s.material, color: s.rgba));
+  }
+  return out;
+});
 
 /// A 3MF the app asks about, and which plate of it the answer should describe:
 /// `isArchive` picks the route (`/archives/…` vs `/library/files/…`), `id` the
@@ -96,12 +96,14 @@ typedef PlateSource = ({bool isArchive, int id, int plate});
 /// pickers (see `SlicerRepository.filamentRequirements`).
 final filamentRequirementsProvider = FutureProvider.autoDispose
     .family<List<FilamentRequirement>, PlateSource>(
-  (ref, key) => ref.watch(slicerRepositoryProvider).filamentRequirements(
-        id: key.id,
-        isArchive: key.isArchive,
-        plateId: key.plate,
-      ),
-);
+      (ref, key) => ref
+          .watch(slicerRepositoryProvider)
+          .filamentRequirements(
+            id: key.id,
+            isArchive: key.isArchive,
+            plateId: key.plate,
+          ),
+    );
 
 /// The plates of one 3MF, keyed by `(isArchive, id)` — no plate in the key,
 /// since this is the read that says which plates there are.
@@ -110,15 +112,13 @@ final filamentRequirementsProvider = FutureProvider.autoDispose
 /// a 3MF and a missing permission all answer [PlateList.none], which callers
 /// read as "no plate to choose" and render exactly as they did before plates
 /// existed.
-final plateListProvider =
-    FutureProvider.autoDispose.family<PlateList, (bool, int)>(
-  (ref, key) {
-    final (isArchive, id) = key;
-    return isArchive
-        ? ref.watch(archiveRepositoryProvider).plates(id)
-        : ref.watch(libraryRepositoryProvider).plates(id);
-  },
-);
+final plateListProvider = FutureProvider.autoDispose
+    .family<PlateList, (bool, int)>((ref, key) {
+      final (isArchive, id) = key;
+      return isArchive
+          ? ref.watch(archiveRepositoryProvider).plates(id)
+          : ref.watch(libraryRepositoryProvider).plates(id);
+    });
 
 /// What the source 3MF was prepared with — the "slice as designed" switch.
 ///
@@ -126,10 +126,11 @@ final plateListProvider =
 /// come out of the same `…/plates` payload, and reading it twice meant two
 /// round trips and two zip parses for one question. Riverpod caches the
 /// underlying read, so a screen watching both gets one.
-final embeddedSettingsProvider =
-    FutureProvider.autoDispose.family<EmbeddedSettings, (bool, int)>(
-  (ref, key) async => (await ref.watch(plateListProvider(key).future)).embedded,
-);
+final embeddedSettingsProvider = FutureProvider.autoDispose
+    .family<EmbeddedSettings, (bool, int)>(
+      (ref, key) async =>
+          (await ref.watch(plateListProvider(key).future)).embedded,
+    );
 
 /// A process preset reduced to what `/slicer/preset-values` takes. A record
 /// rather than a [SlicerPreset] because it is a provider family key and has to
@@ -143,13 +144,13 @@ typedef ProcessPresetRef = (String source, String id);
 /// server problem — callers keep the settings screen out of reach rather than
 /// open an empty one. Not `autoDispose`: the catalog is cached per isolate
 /// regardless, so disposing the provider would only drop the handle to it.
-final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>(
-  (ref) async {
-    final catalog = ProcessSchemaCatalog.instance;
-    await catalog.load();
-    return catalog.isLoaded ? catalog : null;
-  },
-);
+final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>((
+  ref,
+) async {
+  final catalog = ProcessSchemaCatalog.instance;
+  await catalog.load();
+  return catalog.isLoaded ? catalog : null;
+});
 
 /// The picked process preset's effective values, with its `inherits:` chain
 /// flattened by the server's slicer sidecar.
@@ -160,13 +161,15 @@ final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>(
 ///
 /// `autoDispose` and keyed by preset, so changing the process preset in the
 /// sheet re-reads the baseline the fields are edited against.
-final presetValuesProvider =
-    FutureProvider.autoDispose.family<PresetValues?, ProcessPresetRef>(
-  (ref, preset) => ref.watch(slicerRepositoryProvider).presetValues(
-        // Only source and id reach the wire.
-        SlicerPreset(source: preset.$1, id: preset.$2, name: ''),
-      ),
-);
+final presetValuesProvider = FutureProvider.autoDispose
+    .family<PresetValues?, ProcessPresetRef>(
+      (ref, preset) => ref
+          .watch(slicerRepositoryProvider)
+          .presetValues(
+            // Only source and id reach the wire.
+            SlicerPreset(source: preset.$1, id: preset.$2, name: ''),
+          ),
+    );
 
 /// Whether the process-settings screen can be offered: the server accepts
 /// `process_overrides` **and** the vendored metadata actually loaded.
@@ -174,9 +177,9 @@ final presetValuesProvider =
 /// Both halves have to hold, and they fail for unrelated reasons — an older
 /// server, or a broken asset in our own build. One gate keeps the slice sheet
 /// from having to know that.
-final processSettingsAvailableProvider = FutureProvider.autoDispose<bool>(
-  (ref) async {
-    if (!await ref.watch(processOverridesProvider.future)) return false;
-    return await ref.watch(processSchemaProvider.future) != null;
-  },
-);
+final processSettingsAvailableProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  if (!await ref.watch(processOverridesProvider.future)) return false;
+  return await ref.watch(processSchemaProvider.future) != null;
+});

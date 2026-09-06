@@ -16,11 +16,7 @@ const pollInterval = Duration(seconds: 5);
 const slowPollInterval = Duration(seconds: 60);
 
 class DashboardState {
-  const DashboardState({
-    this.printers,
-    this.error,
-    this.authExpired = false,
-  });
+  const DashboardState({this.printers, this.error, this.authExpired = false});
 
   /// Last successfully fetched data — stays visible if next poll fails
   /// (banner instead of blank screen).
@@ -38,8 +34,8 @@ class DashboardState {
 
 final dashboardProvider =
     AutoDisposeNotifierProvider<DashboardNotifier, DashboardState>(
-  DashboardNotifier.new,
-);
+      DashboardNotifier.new,
+    );
 
 /// REST polling every 5s. This pattern remains from M2 as backfill after
 /// app resume and fallback when WebSocket fails.
@@ -65,8 +61,9 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     // otherwise each WS flap would rebuild notifier and reset list to spinner.
     // State stays, only timer interval changes.
     ref.listen(
-      wsConnectionStateProvider
-          .select((s) => s.valueOrNull == WsConnectionState.connected),
+      wsConnectionStateProvider.select(
+        (s) => s.valueOrNull == WsConnectionState.connected,
+      ),
       (_, connected) => _retune(connected: connected, generation: generation),
     );
 
@@ -119,7 +116,9 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
   /// Ask the printers to republish their state — one when [printerId] is given,
   /// otherwise every printer on the roster.
   void nudgeRepublish([int? printerId]) {
-    ref.read(printerCommandsRepositoryProvider).nudgeRepublish(
+    ref
+        .read(printerCommandsRepositoryProvider)
+        .nudgeRepublish(
           printerId != null
               ? [printerId]
               : [for (final p in state.printers ?? const []) p.printer.id],

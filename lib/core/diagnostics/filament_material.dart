@@ -12,26 +12,62 @@ class FilamentMaterial {
   /// Composites are listed in full rather than derived, so an unknown variant
   /// fails closed instead of being trimmed down to a base it may not be.
   static const known = {
-    'PLA', 'PLA-CF', 'PLA-GF', 'PLA-AERO', 'PLA-S',
-    'PETG', 'PETG-CF', 'PETG-GF', 'PET', 'PET-CF',
-    'ABS', 'ABS-CF', 'ABS-GF',
-    'ASA', 'ASA-CF', 'ASA-GF', 'ASA-AERO',
-    'TPU', 'TPU-AMS',
-    'PA', 'PA-CF', 'PA-GF', 'PA6-CF', 'PA6-GF', 'PAHT-CF',
-    'PPA-CF', 'PPA-GF', 'PPS', 'PPS-CF',
-    'PC', 'PC-CF', 'PC-FR',
-    'PP', 'PP-CF', 'PP-GF',
-    'PE', 'PE-CF',
-    'PVA', 'PVB', 'HIPS', 'BVOH', 'EVA', 'PHA',
-    'SUPPORT', 'SUPPORT-W', 'SUPPORT-G',
+    'PLA',
+    'PLA-CF',
+    'PLA-GF',
+    'PLA-AERO',
+    'PLA-S',
+    'PETG',
+    'PETG-CF',
+    'PETG-GF',
+    'PET',
+    'PET-CF',
+    'ABS',
+    'ABS-CF',
+    'ABS-GF',
+    'ASA',
+    'ASA-CF',
+    'ASA-GF',
+    'ASA-AERO',
+    'TPU',
+    'TPU-AMS',
+    'PA',
+    'PA-CF',
+    'PA-GF',
+    'PA6-CF',
+    'PA6-GF',
+    'PAHT-CF',
+    'PPA-CF',
+    'PPA-GF',
+    'PPS',
+    'PPS-CF',
+    'PC',
+    'PC-CF',
+    'PC-FR',
+    'PP',
+    'PP-CF',
+    'PP-GF',
+    'PE',
+    'PE-CF',
+    'PVA',
+    'PVB',
+    'HIPS',
+    'BVOH',
+    'EVA',
+    'PHA',
+    'SUPPORT',
+    'SUPPORT-W',
+    'SUPPORT-G',
   };
 
   /// Null when [raw] is unknown. Case and spacing vary by source — the printer
   /// reports `Support W` — so both are normalised first.
   static String? canonical(String? raw) {
     if (raw == null) return null;
-    final normalised =
-        raw.trim().toUpperCase().replaceAll(RegExp(r'[\s_]+'), '-');
+    final normalised = raw.trim().toUpperCase().replaceAll(
+      RegExp(r'[\s_]+'),
+      '-',
+    );
     return known.contains(normalised) ? normalised : null;
   }
 

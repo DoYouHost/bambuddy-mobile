@@ -30,10 +30,10 @@ class DateTimeFormats {
   /// rebuild rather than at once. Everything here is rebuilt by ordinary
   /// navigation, so no observer earns its keep.
   factory DateTimeFormats.of(BuildContext context) => DateTimeFormats._resolve(
-        View.of(context).platformDispatcher.locale,
-        Localizations.localeOf(context),
-        MediaQuery.alwaysUse24HourFormatOf(context),
-      );
+    View.of(context).platformDispatcher.locale,
+    Localizations.localeOf(context),
+    MediaQuery.alwaysUse24HourFormatOf(context),
+  );
 
   /// No app locale is knowable outside the tree, so an untranslated system
   /// language falls back to `en` — the same fallback `lib/app.dart` declares.
@@ -79,8 +79,7 @@ class DateTimeFormats {
   static bool? isolateClock({
     required bool? remembered,
     required bool dispatcherSays,
-  }) =>
-      remembered ?? (dispatcherSays ? true : null);
+  }) => remembered ?? (dispatcherSays ? true : null);
 
   /// What the platform's 12/24-hour switch says, for the isolates that cannot
   /// ask it themselves. Null means nobody has said — [use24Hour] then falls back
@@ -172,8 +171,10 @@ class DateTimeFormats {
 
   /// `dateSymbols` orders weekdays Sunday first, which no grid here draws.
   List<String> get shortWeekdaysMondayFirst {
-    final sundayFirst =
-        _cachedWords('E', DateFormat.E).dateSymbols.STANDALONESHORTWEEKDAYS;
+    final sundayFirst = _cachedWords(
+      'E',
+      DateFormat.E,
+    ).dateSymbols.STANDALONESHORTWEEKDAYS;
     return [...sundayFirst.skip(1), sundayFirst.first];
   }
 
@@ -193,7 +194,9 @@ class DateTimeFormats {
     if (use24Hour) return _cached('Hm', DateFormat.Hm);
     final locale = _clockLocale(_wordLocale);
     return _formatCache.putIfAbsent(
-        'h:mm a/$locale', () => DateFormat('h:mm a', locale));
+      'h:mm a/$locale',
+      () => DateFormat('h:mm a', locale),
+    );
   }
 
   static final Map<String, bool> _localeClockCache = {};
@@ -203,8 +206,10 @@ class DateTimeFormats {
   /// runs are dropped first — a letter inside one is literal text, not a field.
   static bool _localeUses24Hour(String locale) =>
       _localeClockCache.putIfAbsent(locale, () {
-        final pattern = (DateFormat.jm(locale).pattern ?? '')
-            .replaceAll(RegExp(r"'[^']*'"), '');
+        final pattern = (DateFormat.jm(locale).pattern ?? '').replaceAll(
+          RegExp(r"'[^']*'"),
+          '',
+        );
         return pattern.contains('H') || pattern.contains('k');
       });
 
@@ -231,7 +236,9 @@ class DateTimeFormats {
 
   DateFormat _cachedWords(String skeleton, DateFormat Function(String) build) =>
       _formatCache.putIfAbsent(
-          '$skeleton/$_wordLocale', () => build(_wordLocale));
+        '$skeleton/$_wordLocale',
+        () => build(_wordLocale),
+      );
 
   /// `Locale.toString` already joins with `_`, but a script subtag would make a
   /// name `intl` has no data for, and the language alone always resolves.

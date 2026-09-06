@@ -46,8 +46,7 @@ class PipelinesRepository {
 
   /// Whether a run may be dispatched, cancelled or retried. Presence first:
   /// each latch answers its own permission only, so absence belongs to [_read].
-  Future<bool> get canRun async =>
-      await isSupported && await _run.supported;
+  Future<bool> get canRun async => await isSupported && await _run.supported;
 
   /// Whether a pipeline may be created, edited or deleted.
   Future<bool> get canWrite async =>
@@ -108,46 +107,43 @@ class PipelinesRepository {
     int? targetPrinterId,
     String? targetModelClass,
     FanoutStrategy? fanoutStrategy,
-  }) =>
-      _write.watching(() async {
-        final body = <String, dynamic>{
-          'name': ?name,
-          'description': ?description,
-          'printer_preset': ?printerPreset?.toJson(),
-          'process_preset': ?processPreset?.toJson(),
-          if (filamentPresets != null)
-            'filament_presets': [for (final f in filamentPresets) f.toJson()],
-          'bed_type': ?bedType,
-          'target_kind': ?targetKind?.wire,
-          'target_printer_id': ?targetPrinterId,
-          'target_model_class': ?targetModelClass,
-          'fanout_strategy': ?fanoutStrategy?.wire,
-        };
-        final res = await _dio.put<Map<String, dynamic>>(
-          Endpoints.slicerPipeline(pipelineId),
-          data: body,
-        );
-        return SlicerPipeline.fromJson(res.data ?? const {});
-      });
+  }) => _write.watching(() async {
+    final body = <String, dynamic>{
+      'name': ?name,
+      'description': ?description,
+      'printer_preset': ?printerPreset?.toJson(),
+      'process_preset': ?processPreset?.toJson(),
+      if (filamentPresets != null)
+        'filament_presets': [for (final f in filamentPresets) f.toJson()],
+      'bed_type': ?bedType,
+      'target_kind': ?targetKind?.wire,
+      'target_printer_id': ?targetPrinterId,
+      'target_model_class': ?targetModelClass,
+      'fanout_strategy': ?fanoutStrategy?.wire,
+    };
+    final res = await _dio.put<Map<String, dynamic>>(
+      Endpoints.slicerPipeline(pipelineId),
+      data: body,
+    );
+    return SlicerPipeline.fromJson(res.data ?? const {});
+  });
 
   /// DELETE /slicer-pipelines/{id} — soft, so past runs keep their name.
-  Future<void> delete(int pipelineId) =>
-      _write.watching(() async {
-        await _dio.delete<void>(Endpoints.slicerPipeline(pipelineId));
-      });
+  Future<void> delete(int pipelineId) => _write.watching(() async {
+    await _dio.delete<void>(Endpoints.slicerPipeline(pipelineId));
+  });
 
   /// POST /slicer-pipelines/{id}/check-eligibility — the pre-flight.
   Future<EligibilityReport> checkEligibility(
     int pipelineId, {
     required PipelineSource source,
-  }) =>
-      _read.watching(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.slicerPipelineCheckEligibility(pipelineId),
-          data: source.toJson(),
-        );
-        return EligibilityReport.fromJson(res.data ?? const {});
-      });
+  }) => _read.watching(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.slicerPipelineCheckEligibility(pipelineId),
+      data: source.toJson(),
+    );
+    return EligibilityReport.fromJson(res.data ?? const {});
+  });
 
   /// POST /slicer-pipelines/{id}/run — slice once, dispatch [copies] prints.
   /// Throws [PipelineNotEligible] on the 409, whose body is the report.
@@ -156,24 +152,19 @@ class PipelinesRepository {
     required PipelineSource source,
     int copies = 1,
     bool force = false,
-  }) =>
-      _run.watching(() async {
-        try {
-          final res = await _dio.post<Map<String, dynamic>>(
-            Endpoints.slicerPipelineRun(pipelineId),
-            data: {
-              ...source.toJson(),
-              'copies': copies,
-              if (force) 'force': true,
-            },
-          );
-          return PipelineRun.fromJson(res.data ?? const {});
-        } on DioException catch (e) {
-          final report = _eligibilityFrom(e);
-          if (report != null) throw PipelineNotEligible(report);
-          rethrow;
-        }
-      });
+  }) => _run.watching(() async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        Endpoints.slicerPipelineRun(pipelineId),
+        data: {...source.toJson(), 'copies': copies, if (force) 'force': true},
+      );
+      return PipelineRun.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      final report = _eligibilityFrom(e);
+      if (report != null) throw PipelineNotEligible(report);
+      rethrow;
+    }
+  });
 
   /// The report inside a 409's `detail`, or null for any other conflict —
   /// recognised by its `ok` flag, so a plain-string 409 stays an error.
@@ -183,9 +174,7 @@ class PipelinesRepository {
     if (data is! Map) return null;
     final detail = data['detail'];
     if (detail is! Map || !detail.containsKey('ok')) return null;
-    return EligibilityReport.fromJson(
-      Map<String, dynamic>.from(detail),
-    );
+    return EligibilityReport.fromJson(Map<String, dynamic>.from(detail));
   }
 
   /// GET /pipeline-runs — newest first, with `total` for the paginator.
@@ -199,18 +188,17 @@ class PipelinesRepository {
     int limit = pageSize,
     int offset = 0,
     PipelineRunFilter filter = const PipelineRunFilter(),
-  }) =>
-      _read.watching(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
-          Endpoints.pipelineRuns,
-          queryParameters: {
-            'limit': limit,
-            'offset': offset,
-            ...filter.queryParameters,
-          },
-        );
-        return PipelineRunPage.fromJson(res.data ?? const {});
-      });
+  }) => _read.watching(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.pipelineRuns,
+      queryParameters: {
+        'limit': limit,
+        'offset': offset,
+        ...filter.queryParameters,
+      },
+    );
+    return PipelineRunPage.fromJson(res.data ?? const {});
+  });
 
   /// One page of runs — the route's own default.
   static const pageSize = 25;
@@ -219,42 +207,38 @@ class PipelinesRepository {
   static const maxPageSize = 100;
 
   /// GET /pipeline-runs/{id}.
-  Future<PipelineRun> runById(int runId) =>
-      _read.watching(() async {
-        final res = await _dio.get<Map<String, dynamic>>(
-          Endpoints.pipelineRun(runId),
-        );
-        return PipelineRun.fromJson(res.data ?? const {});
-      });
+  Future<PipelineRun> runById(int runId) => _read.watching(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.pipelineRun(runId),
+    );
+    return PipelineRun.fromJson(res.data ?? const {});
+  });
 
   /// POST /pipeline-runs/{id}/cancel — idempotent; a terminal run comes back
   /// unchanged rather than refused.
-  Future<PipelineRun> cancel(int runId) =>
-      _run.watching(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.pipelineRunCancel(runId),
-        );
-        return PipelineRun.fromJson(res.data ?? const {});
-      });
+  Future<PipelineRun> cancel(int runId) => _run.watching(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.pipelineRunCancel(runId),
+    );
+    return PipelineRun.fromJson(res.data ?? const {});
+  });
 
   /// POST /pipeline-runs/{id}/retry-failed — a **new** run of the parent's
   /// failed + cancelled copies, forced past the pre-flight.
-  Future<PipelineRun> retryFailed(int runId) =>
-      _run.watching(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.pipelineRunRetryFailed(runId),
-        );
-        return PipelineRun.fromJson(res.data ?? const {});
-      });
+  Future<PipelineRun> retryFailed(int runId) => _run.watching(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.pipelineRunRetryFailed(runId),
+    );
+    return PipelineRun.fromJson(res.data ?? const {});
+  });
 
   /// POST /pipeline-runs/clear — drop every terminal run. Returns how many.
-  Future<int> clearTerminalRuns() =>
-      _write.watching(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.pipelineRunsClear,
-        );
-        return toIntOrNull(res.data?['deleted']) ?? 0;
-      });
+  Future<int> clearTerminalRuns() => _write.watching(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.pipelineRunsClear,
+    );
+    return toIntOrNull(res.data?['deleted']) ?? 0;
+  });
 }
 
 /// The file a run slices: exactly one of the two ids, which the server enforces
@@ -267,6 +251,6 @@ class PipelineSource {
   final bool isArchive;
 
   Map<String, dynamic> toJson() => {
-        if (isArchive) 'source_archive_id': id else 'source_library_file_id': id,
-      };
+    if (isArchive) 'source_archive_id': id else 'source_library_file_id': id,
+  };
 }

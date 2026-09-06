@@ -26,8 +26,9 @@ class WearRelayClaim {
   /// [processId] and [nonce] are for tests; the defaults are this process and
   /// a value no other responder will pick.
   WearRelayClaim(this._settings, {int? processId, String? nonce})
-      : _token = '${processId ?? pid}:'
-            '${nonce ?? Random().nextInt(1 << 32).toRadixString(36)}';
+    : _token =
+          '${processId ?? pid}:'
+          '${nonce ?? Random().nextInt(1 << 32).toRadixString(36)}';
 
   final SettingsRepository _settings;
   final String _token;

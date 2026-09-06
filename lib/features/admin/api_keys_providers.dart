@@ -9,8 +9,8 @@ import '../../providers.dart';
 /// The keys issued on this server.
 final apiKeysListProvider =
     AutoDisposeAsyncNotifierProvider<ApiKeysListNotifier, List<ApiKey>>(
-  ApiKeysListNotifier.new,
-);
+      ApiKeysListNotifier.new,
+    );
 
 class ApiKeysListNotifier extends AutoDisposeAsyncNotifier<List<ApiKey>> {
   @override
@@ -30,8 +30,9 @@ class ApiKeysListNotifier extends AutoDisposeAsyncNotifier<List<ApiKey>> {
 /// Printers a key can be confined to. Failure degrades to an empty list: the
 /// restriction picker disappears and the key is simply issued for all
 /// printers, which is the server's own default.
-final apiKeyPrinterOptionsProvider =
-    FutureProvider.autoDispose<List<Printer>>((ref) async {
+final apiKeyPrinterOptionsProvider = FutureProvider.autoDispose<List<Printer>>((
+  ref,
+) async {
   ref.watch(serverProfileProvider);
   try {
     return await ref.read(printersRepositoryProvider).fetchPrinters();

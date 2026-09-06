@@ -11,8 +11,10 @@ void main() {
   test('the wire keys are the ones that shipped', () {
     // The port carries a bare map, so these strings are the entire contract
     // between the app and the service — renaming the enum must not rename them.
-    expect(BackgroundSync.parse(const {'diagnostics': 'sync'}),
-        BackgroundSync.diagnostics);
+    expect(
+      BackgroundSync.parse(const {'diagnostics': 'sync'}),
+      BackgroundSync.diagnostics,
+    );
     expect(BackgroundSync.parse(const {'clock': 'sync'}), BackgroundSync.clock);
   });
 

@@ -14,17 +14,18 @@ class FilamentRequirement {
     this.group,
   });
 
-  factory FilamentRequirement.fromJson(Map<String, dynamic> json) =>
-      FilamentRequirement(
-        slotId: toIntOrNull(json['slot_id']) ?? 0,
-        type: json['type'] as String?,
-        color: json['color'] as String?,
-        // Absent means we cannot tell, and "used" is the safe reading: it leaves
-        // the slot offered rather than implying the plate ignores it.
-        usedInPlate: json['used_in_plate'] as bool? ?? true,
-        groupId: toIntOrNull(json['group_id']),
-        group: parseJsonObjectOrNull(json['group'], RackGroup.fromJson),
-      );
+  factory FilamentRequirement.fromJson(
+    Map<String, dynamic> json,
+  ) => FilamentRequirement(
+    slotId: toIntOrNull(json['slot_id']) ?? 0,
+    type: json['type'] as String?,
+    color: json['color'] as String?,
+    // Absent means we cannot tell, and "used" is the safe reading: it leaves
+    // the slot offered rather than implying the plate ignores it.
+    usedInPlate: json['used_in_plate'] as bool? ?? true,
+    groupId: toIntOrNull(json['group_id']),
+    group: parseJsonObjectOrNull(json['group'], RackGroup.fromJson),
+  );
 
   /// Parse the `filaments` list, skipping unused/unparseable slots.
   static List<FilamentRequirement> parseList(Map<String, dynamic> json) {
@@ -79,11 +80,11 @@ class RackGroup {
   });
 
   factory RackGroup.fromJson(Map<String, dynamic> json) => RackGroup(
-        onRack: json['on_rack'] == true,
-        nozzleDiameter: (json['nozzle_diameter'] as String?)?.trim() ?? '',
-        volumeType: (json['volume_type'] as String?)?.trim() ?? '',
-        filamentColor: (json['filament_color'] as String?)?.trim() ?? '',
-      );
+    onRack: json['on_rack'] == true,
+    nozzleDiameter: (json['nozzle_diameter'] as String?)?.trim() ?? '',
+    volumeType: (json['volume_type'] as String?)?.trim() ?? '',
+    filamentColor: (json['filament_color'] as String?)?.trim() ?? '',
+  );
 
   /// Whether this group prints from the rack. A group on the fixed hotend needs
   /// no position and must not be offered one.

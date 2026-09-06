@@ -23,9 +23,9 @@ void main() {
   });
 
   List<Map<String, dynamic>> records() => [
-        for (final line in const LineSplitter().convert(store.export()).skip(1))
-          jsonDecode(line) as Map<String, dynamic>,
-      ];
+    for (final line in const LineSplitter().convert(store.export()).skip(1))
+      jsonDecode(line) as Map<String, dynamic>,
+  ];
 
   /// The order Android really sends: leaving is resumed → inactive → hidden →
   /// paused, coming back is the same run backwards.
@@ -51,13 +51,10 @@ void main() {
 
     // Two records, not six: the states in between are a notification shade or
     // a permission dialog, not the user leaving.
-    expect(
-      records().map((r) => [r['src'], r['evt'], r['state']]),
-      [
-        ['app', 'lifecycle', 'paused'],
-        ['app', 'lifecycle', 'resumed'],
-      ],
-    );
+    expect(records().map((r) => [r['src'], r['evt'], r['state']]), [
+      ['app', 'lifecycle', 'paused'],
+      ['app', 'lifecycle', 'resumed'],
+    ]);
   });
 
   testWidgets('says nothing once the recording is over', (tester) async {

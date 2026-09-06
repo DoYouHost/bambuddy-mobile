@@ -199,9 +199,8 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// notably for non-RFID slots and A1 mini externals. Without a nudge the card
   /// keeps showing the old filament until something else makes the printer
   /// speak.
-  void _nudgeRepublish(int printerId) => ref
-      .read(printerCommandsRepositoryProvider)
-      .nudgeRepublish([printerId]);
+  void _nudgeRepublish(int printerId) =>
+      ref.read(printerCommandsRepositoryProvider).nudgeRepublish([printerId]);
 
   /// Runs a multi-select operation as one bulk call, and reloads ONCE at the
   /// end — a 20-spool archive would otherwise refetch the whole inventory 20
@@ -269,28 +268,28 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }
 
   Future<BulkOutcome> archiveSpools(Iterable<int> ids) => _bulk(
-        ids,
-        (repo, ids) => repo.bulkArchive(ids),
-        (repo, id) => repo.archiveSpool(id),
-      );
+    ids,
+    (repo, ids) => repo.bulkArchive(ids),
+    (repo, id) => repo.archiveSpool(id),
+  );
 
   Future<BulkOutcome> restoreSpools(Iterable<int> ids) => _bulk(
-        ids,
-        (repo, ids) => repo.bulkRestore(ids),
-        (repo, id) => repo.restoreSpool(id),
-      );
+    ids,
+    (repo, ids) => repo.bulkRestore(ids),
+    (repo, id) => repo.restoreSpool(id),
+  );
 
   Future<BulkOutcome> deleteSpools(Iterable<int> ids) => _bulk(
-        ids,
-        (repo, ids) => repo.bulkDelete(ids),
-        (repo, id) => repo.deleteSpool(id),
-      );
+    ids,
+    (repo, ids) => repo.bulkDelete(ids),
+    (repo, id) => repo.deleteSpool(id),
+  );
 
   Future<BulkOutcome> resetUsageMany(Iterable<int> ids) => _bulk(
-        ids,
-        (repo, ids) => repo.bulkResetUsage(ids),
-        (repo, id) => repo.resetUsage(id),
-      );
+    ids,
+    (repo, ids) => repo.bulkResetUsage(ids),
+    (repo, id) => repo.resetUsage(id),
+  );
 }
 
 /// Resolves which spool from inventory sits in a given slot of a specific printer —
@@ -479,8 +478,7 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   final models = <String>{
     for (final p in printers)
       if ((p.model?.trim() ?? '').isNotEmpty) p.model!.trim(),
-  }.toList()
-    ..sort();
+  }.toList()..sort();
   return models;
 });
 
@@ -500,22 +498,27 @@ final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
 /// error state and keeps its section read-only when it is set.
 final spoolPresetOverridesProvider = FutureProvider.autoDispose
     .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
-  if (!await ref.watch(presetOverridesSupportedProvider.future)) return const [];
-  return ref.watch(inventoryRepositoryProvider).fetchPresetOverrides(spoolId);
-});
+      if (!await ref.watch(presetOverridesSupportedProvider.future)) {
+        return const [];
+      }
+      return ref
+          .watch(inventoryRepositoryProvider)
+          .fetchPresetOverrides(spoolId);
+    });
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.
-final locationCatalogProvider =
-    FutureProvider.autoDispose<List<StorageLocation>>((ref) async {
-  // No keepAlive: re-fetch on reopen so a location just created (as a side
-  // effect of saving a spool with a new storage_location) shows up next time.
-  try {
-    return await ref.watch(inventoryRepositoryProvider).fetchLocations();
-  } on Object {
-    return const [];
-  }
-});
+final locationCatalogProvider = FutureProvider.autoDispose<List<StorageLocation>>(
+  (ref) async {
+    // No keepAlive: re-fetch on reopen so a location just created (as a side
+    // effect of saving a spool with a new storage_location) shows up next time.
+    try {
+      return await ref.watch(inventoryRepositoryProvider).fetchLocations();
+    } on Object {
+      return const [];
+    }
+  },
+);
 
 /// One storage location and what the Home Assistant sensors bound to it read
 /// right now.
@@ -543,31 +546,31 @@ class LocationClimate {
 /// short rather than failing the screen — every surface reading it is additive.
 final locationClimateProvider =
     FutureProvider.autoDispose<Map<String, LocationClimate>>((ref) async {
-  final repo = ref.watch(locationSensorsRepositoryProvider);
-  if (!await repo.supportsLocationSensors()) return const {};
+      final repo = ref.watch(locationSensorsRepositoryProvider);
+      if (!await repo.supportsLocationSensors()) return const {};
 
-  final bindings = await repo.listBindings();
-  final wanted = <int>{
-    for (final b in bindings)
-      if (b.showOnCard) b.locationId,
-  };
-  if (wanted.isEmpty) return const {};
+      final bindings = await repo.listBindings();
+      final wanted = <int>{
+        for (final b in bindings)
+          if (b.showOnCard) b.locationId,
+      };
+      if (wanted.isEmpty) return const {};
 
-  final catalog = await ref.watch(locationCatalogProvider.future);
-  final locations = [
-    for (final loc in catalog)
-      if (wanted.contains(loc.id) && loc.name.isNotEmpty) loc,
-  ];
-  final readings = await Future.wait(
-    locations.map((loc) => repo.readings(loc.id)),
-  );
+      final catalog = await ref.watch(locationCatalogProvider.future);
+      final locations = [
+        for (final loc in catalog)
+          if (wanted.contains(loc.id) && loc.name.isNotEmpty) loc,
+      ];
+      final readings = await Future.wait(
+        locations.map((loc) => repo.readings(loc.id)),
+      );
 
-  return {
-    for (final (i, loc) in locations.indexed)
-      if (readings[i].isNotEmpty)
-        loc.matchKey: LocationClimate(location: loc, readings: readings[i]),
-  };
-});
+      return {
+        for (final (i, loc) in locations.indexed)
+          if (readings[i].isNotEmpty)
+            loc.matchKey: LocationClimate(location: loc, readings: readings[i]),
+      };
+    });
 
 /// The climate of the location a spool is put away in, or null when the spool
 /// has no location, the location has no sensor, or the server has none of this.

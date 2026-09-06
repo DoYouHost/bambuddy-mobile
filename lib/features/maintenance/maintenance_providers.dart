@@ -5,10 +5,11 @@ import '../../core/api/action_outcome.dart';
 import '../../data/maintenance_repository.dart';
 import '../../providers.dart';
 
-final maintenanceOverviewProvider = AutoDisposeAsyncNotifierProvider<
-    MaintenanceOverviewNotifier, List<PrinterMaintenanceOverview>>(
-  MaintenanceOverviewNotifier.new,
-);
+final maintenanceOverviewProvider =
+    AutoDisposeAsyncNotifierProvider<
+      MaintenanceOverviewNotifier,
+      List<PrinterMaintenanceOverview>
+    >(MaintenanceOverviewNotifier.new);
 
 /// Maintenance overview for all printers (M7). List grouped by printer
 /// comes straight from server; "perform" (mark done) resets counter server-side,
@@ -39,28 +40,25 @@ class MaintenanceOverviewNotifier
 
   /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
   Future<ActionOutcome> perform(int itemId, {String? notes}) =>
-      _run(
-        'maintenance.perform',
-        (repo) => repo.perform(itemId, notes: notes),
-      );
+      _run('maintenance.perform', (repo) => repo.perform(itemId, notes: notes));
 
   /// Mutes/unmutes a task (server `enabled`). Disabled tasks stop counting and
   /// alerting. Refreshes on success.
   Future<ActionOutcome> setEnabled(int itemId, bool enabled) => _run(
-        'maintenance.mute',
-        (repo) => repo.updateItem(itemId, enabled: enabled),
-      );
+    'maintenance.mute',
+    (repo) => repo.updateItem(itemId, enabled: enabled),
+  );
 
   /// Sets a per-printer interval override (hours), or clears it (back to the
   /// type default) when [hours] is null.
   Future<ActionOutcome> setInterval(int itemId, double? hours) => _run(
-        'maintenance.interval',
-        (repo) => repo.updateItem(
-          itemId,
-          customIntervalHours: hours,
-          clearInterval: hours == null,
-        ),
-      );
+    'maintenance.interval',
+    (repo) => repo.updateItem(
+      itemId,
+      customIntervalHours: hours,
+      clearInterval: hours == null,
+    ),
+  );
 
   /// Runs a mutation, maps permission errors, and refreshes on success.
   /// [action] is the control the user touched, in the `logTag` vocabulary —
@@ -69,18 +67,18 @@ class MaintenanceOverviewNotifier
   Future<ActionOutcome> _run(
     String action,
     Future<void> Function(MaintenanceRepository) mutate,
-  ) =>
-      runAction(
-        () => mutate(ref.read(maintenanceRepositoryProvider)),
-        logId: action,
-        onSuccess: refresh,
-      );
+  ) => runAction(
+    () => mutate(ref.read(maintenanceRepositoryProvider)),
+    logId: action,
+    onSuccess: refresh,
+  );
 }
 
-final maintenanceTypesProvider = AutoDisposeAsyncNotifierProvider<
-    MaintenanceTypesNotifier, List<MaintenanceType>>(
-  MaintenanceTypesNotifier.new,
-);
+final maintenanceTypesProvider =
+    AutoDisposeAsyncNotifierProvider<
+      MaintenanceTypesNotifier,
+      List<MaintenanceType>
+    >(MaintenanceTypesNotifier.new);
 
 /// Maintenance types catalog (Settings tab): system defaults + custom tasks.
 /// CRUD mutates server-side and refreshes; type changes affect per-printer
@@ -96,8 +94,9 @@ class MaintenanceTypesNotifier
 
   Future<void> refresh() async {
     if (ref.read(serverProfileProvider) == null) return;
-    state = const AsyncValue<List<MaintenanceType>>.loading()
-        .copyWithPrevious(state);
+    state = const AsyncValue<List<MaintenanceType>>.loading().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(
       () => ref.read(maintenanceRepositoryProvider).fetchTypes(),
     );
@@ -108,66 +107,64 @@ class MaintenanceTypesNotifier
   Future<ActionOutcome> create(
     MaintenanceTypeDraft draft,
     List<int> printerIds,
-  ) =>
-      _run('maintenance.type_create', (repo) async {
-        final type = await repo.createType(draft);
-        for (final pid in printerIds) {
-          await repo.assignType(pid, type.id);
-        }
-      }, invalidateOverview: true);
+  ) => _run('maintenance.type_create', (repo) async {
+    final type = await repo.createType(draft);
+    for (final pid in printerIds) {
+      await repo.assignType(pid, type.id);
+    }
+  }, invalidateOverview: true);
 
-  Future<ActionOutcome> editType(
-    int typeId,
-    MaintenanceTypeDraft draft,
-  ) =>
-      _run('maintenance.type_edit', (repo) => repo.updateType(typeId, draft),
-          invalidateOverview: true);
+  Future<ActionOutcome> editType(int typeId, MaintenanceTypeDraft draft) =>
+      _run(
+        'maintenance.type_edit',
+        (repo) => repo.updateType(typeId, draft),
+        invalidateOverview: true,
+      );
 
   Future<ActionOutcome> delete(int typeId) => _run(
-        'maintenance.type_delete',
-        (repo) => repo.deleteType(typeId),
-        invalidateOverview: true,
-      );
+    'maintenance.type_delete',
+    (repo) => repo.deleteType(typeId),
+    invalidateOverview: true,
+  );
 
   Future<ActionOutcome> restoreDefaults() => _run(
-        'maintenance.restore_defaults',
-        (repo) => repo.restoreDefaults(),
-        invalidateOverview: true,
-      );
+    'maintenance.restore_defaults',
+    (repo) => repo.restoreDefaults(),
+    invalidateOverview: true,
+  );
 
   /// See [MaintenanceOverviewNotifier._run] for why [action] is per-mutation.
   Future<ActionOutcome> _run(
     String action,
     Future<void> Function(MaintenanceRepository) mutate, {
     bool invalidateOverview = false,
-  }) =>
-      runAction(
-        () => mutate(ref.read(maintenanceRepositoryProvider)),
-        logId: action,
-        onSuccess: () async {
-          await refresh();
-          if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
-        },
-      );
+  }) => runAction(
+    () => mutate(ref.read(maintenanceRepositoryProvider)),
+    logId: action,
+    onSuccess: () async {
+      await refresh();
+      if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
+    },
+  );
 }
 
 /// Total print time (hours) of printer from maintenance overview. Data is historical
 /// (server counts independent of WS), so available even when printer OFFLINE — allows
 /// dashboard card to show after collapse. Null = no data/not loaded yet (UI hides row).
-final printerTotalPrintHoursProvider =
-    Provider.autoDispose.family<double?, int>((ref, printerId) {
-  final overview = ref.watch(maintenanceOverviewProvider).valueOrNull;
-  if (overview == null) return null;
-  for (final p in overview) {
-    if (p.printerId == printerId) return p.totalPrintHours;
-  }
-  return null;
-});
+final printerTotalPrintHoursProvider = Provider.autoDispose
+    .family<double?, int>((ref, printerId) {
+      final overview = ref.watch(maintenanceOverviewProvider).valueOrNull;
+      if (overview == null) return null;
+      for (final p in overview) {
+        if (p.printerId == printerId) return p.totalPrintHours;
+      }
+      return null;
+    });
 
 /// Task completion history — loaded on demand (bottom-sheet). Autodispose + family
 /// by `itemId` since we load it point-wise for selected item.
 final maintenanceHistoryProvider = FutureProvider.autoDispose
     .family<List<MaintenanceHistoryEntry>, int>(
-  (ref, itemId) =>
-      ref.watch(maintenanceRepositoryProvider).fetchHistory(itemId),
-);
+      (ref, itemId) =>
+          ref.watch(maintenanceRepositoryProvider).fetchHistory(itemId),
+    );

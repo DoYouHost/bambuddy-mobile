@@ -35,17 +35,15 @@ enum QueueRemoval {
 QueueRemoval queueRemovalFor(
   QueueItemStatusKind status, {
   required bool printerBusy,
-}) =>
-    switch (status) {
-      QueueItemStatusKind.pending ||
-      QueueItemStatusKind.scheduled =>
-        QueueRemoval.cancel,
-      // The server has no `paused` status — it keeps such a job `printing` —
-      // so the model's tolerance for one must not fall through to `delete`.
-      QueueItemStatusKind.printing || QueueItemStatusKind.paused =>
-        printerBusy ? QueueRemoval.stopPrint : QueueRemoval.stopAbandoned,
-      _ => QueueRemoval.delete,
-    };
+}) => switch (status) {
+  QueueItemStatusKind.pending ||
+  QueueItemStatusKind.scheduled => QueueRemoval.cancel,
+  // The server has no `paused` status — it keeps such a job `printing` —
+  // so the model's tolerance for one must not fall through to `delete`.
+  QueueItemStatusKind.printing || QueueItemStatusKind.paused =>
+    printerBusy ? QueueRemoval.stopPrint : QueueRemoval.stopAbandoned,
+  _ => QueueRemoval.delete,
+};
 
 /// The queue screen's one way from an [ActionOutcome] to a sentence.
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>

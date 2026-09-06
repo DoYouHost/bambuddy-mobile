@@ -12,10 +12,10 @@ class UserItemsCount {
   });
 
   factory UserItemsCount.fromJson(Map<String, dynamic> json) => UserItemsCount(
-        archives: toInt(json['archives']),
-        queueItems: toInt(json['queue_items']),
-        libraryFiles: toInt(json['library_files']),
-      );
+    archives: toInt(json['archives']),
+    queueItems: toInt(json['queue_items']),
+    libraryFiles: toInt(json['library_files']),
+  );
 
   final int archives;
   final int queueItems;

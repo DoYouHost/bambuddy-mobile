@@ -112,6 +112,7 @@ class SettingsRepository {
 
   Future<void> saveUse24HourClock(bool use24Hour) =>
       _prefs.setBool(_clock24hKey, use24Hour);
+
   /// Whether the user has waved off the "archived without its 3MF" nudge.
   ///
   /// One-shot and permanent, like the web's own `localStorage` flag: fixing the
@@ -121,8 +122,7 @@ class SettingsRepository {
   /// something to say.
   bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
 
-  Future<void> saveNo3mfDismissed() =>
-      _prefs.setBool(_no3mfDismissedKey, true);
+  Future<void> saveNo3mfDismissed() => _prefs.setBool(_no3mfDismissedKey, true);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.
@@ -143,18 +143,17 @@ class SettingsRepository {
     return {for (final s in raw) int.tryParse(s) ?? -1}..remove(-1);
   }
 
-  Future<void> saveNotifiedMaintenanceDueIds(Set<int> ids) => _prefs.setStringList(
-        _maintNotifiedKey,
-        [for (final id in ids) id.toString()],
-      );
+  Future<void> saveNotifiedMaintenanceDueIds(Set<int> ids) => _prefs
+      .setStringList(_maintNotifiedKey, [for (final id in ids) id.toString()]);
 
   /// Whether maintenance state changed outside the UI (action "Mark Done" from notification,
   /// handled in background isolate) and needs screen refresh. Signal between callback isolate
   /// and UI — UI must call `reload()` on prefs before reading, as the write came from another isolate.
   bool maintenanceDirty() => _prefs.getBool(_maintDirtyKey) ?? false;
 
-  Future<void> setMaintenanceDirty(bool dirty) =>
-      dirty ? _prefs.setBool(_maintDirtyKey, true) : _prefs.remove(_maintDirtyKey);
+  Future<void> setMaintenanceDirty(bool dirty) => dirty
+      ? _prefs.setBool(_maintDirtyKey, true)
+      : _prefs.remove(_maintDirtyKey);
 
   /// Filament inventory backend: `native` (default) or `spoolman`. Stored as enum name;
   /// unknown/corrupted → native.
@@ -198,9 +197,9 @@ class SettingsRepository {
   }
 
   Future<void> saveSwatchCodes(List<SwatchCode> codes) => _prefs.setString(
-        _swatchCodesKey,
-        jsonEncode([for (final c in codes) c.toJson()]),
-      );
+    _swatchCodesKey,
+    jsonEncode([for (final c in codes) c.toJson()]),
+  );
 
   /// Session id of a bug-report recording in progress, or null when none is.
   /// The id doubles as the on/off flag — the background isolate reads it to

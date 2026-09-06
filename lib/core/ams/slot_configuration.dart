@@ -76,8 +76,7 @@ class SlotConfiguration {
       // Only a cloud preset has a setting id the slicer can look up. Sending a
       // local row id or a bare filament id here would name a preset that does
       // not exist on the printer's side.
-      settingId:
-          preset.source == AmsPresetSource.cloud ? preset.id : '',
+      settingId: preset.source == AmsPresetSource.cloud ? preset.id : '',
       // Slot 0 is the printer's default rather than a stored profile, so a row
       // reporting it selects nothing — its `k_value` still travels, and the
       // server applies that directly when no profile is selected.
@@ -131,19 +130,19 @@ class SlotConfiguration {
   final double kValue;
 
   Map<String, dynamic> toQuery() => <String, dynamic>{
-        'tray_info_idx': trayInfoIdx,
-        'tray_type': trayType,
-        'tray_sub_brands': traySubBrands,
-        'tray_color': trayColour,
-        'nozzle_temp_min': nozzleTempMin,
-        'nozzle_temp_max': nozzleTempMax,
-        'cali_idx': caliIdx,
-        'nozzle_diameter': nozzleDiameter,
-        'setting_id': settingId,
-        'kprofile_filament_id': kProfileFilamentId,
-        'kprofile_setting_id': kProfileSettingId,
-        'k_value': kValue,
-      };
+    'tray_info_idx': trayInfoIdx,
+    'tray_type': trayType,
+    'tray_sub_brands': traySubBrands,
+    'tray_color': trayColour,
+    'nozzle_temp_min': nozzleTempMin,
+    'nozzle_temp_max': nozzleTempMax,
+    'cali_idx': caliIdx,
+    'nozzle_diameter': nozzleDiameter,
+    'setting_id': settingId,
+    'kprofile_filament_id': kProfileFilamentId,
+    'kprofile_setting_id': kProfileSettingId,
+    'k_value': kValue,
+  };
 }
 
 /// The printer wants an alpha channel and every slot we configure is opaque —

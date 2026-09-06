@@ -73,12 +73,12 @@ class SmartPlug {
 
   /// Whether plug is fit to show on printer card: enabled and marked for display
   /// (both fields default to “yes” if server omits).
-  bool get visibleOnCard =>
-      (enabled ?? true) && (showOnPrinterCard ?? true);
+  bool get visibleOnCard => (enabled ?? true) && (showOnPrinterCard ?? true);
 
   /// A Home Assistant script: it can be run, not switched.
   bool get isHaScript =>
-      plugType == 'homeassistant' && (haEntityId?.startsWith('script.') ?? false);
+      plugType == 'homeassistant' &&
+      (haEntityId?.startsWith('script.') ?? false);
 
   /// An MQTT plug: bambuddy subscribes to it and never publishes, so
   /// `POST /smart-plugs/{id}/control` rejects it with 400
@@ -95,13 +95,13 @@ class SmartPlug {
   /// Approximate in both directions, which is why it only breaks a tie between
   /// otherwise equal plugs (`routes/smart_plugs.py::_reports_power`).
   bool get reportsPower => switch (plugType) {
-        'homeassistant' => (haPowerEntity ?? '').isNotEmpty,
-        'mqtt' => (mqttPowerTopic ?? '').isNotEmpty || (mqttTopic ?? '').isNotEmpty,
-        'rest' => (restPowerPath ?? '').isNotEmpty,
-        // Tasmota, whose firmware reports power when the hardware has it — and
-        // the server's own default for a plug with no type.
-        _ => true,
-      };
+    'homeassistant' => (haPowerEntity ?? '').isNotEmpty,
+    'mqtt' => (mqttPowerTopic ?? '').isNotEmpty || (mqttTopic ?? '').isNotEmpty,
+    'rest' => (restPowerPath ?? '').isNotEmpty,
+    // Tasmota, whose firmware reports power when the hardware has it — and
+    // the server's own default for a plug with no type.
+    _ => true,
+  };
 
   /// Demerits as the printer's main power plug, most significant first — the
   /// port of the server's `routes/smart_plugs.py::_main_plug_rank`. The
@@ -110,12 +110,12 @@ class SmartPlug {
   /// not disabled, then not hidden, then reports watts. `true` means “worse”,
   /// like the server's tuple of `not …`.
   List<bool> get _mainPlugDemerits => [
-        !canBeSwitched,
-        !(controlsPrinterPower ?? true),
-        !(enabled ?? true),
-        !(showOnPrinterCard ?? true),
-        !reportsPower,
-      ];
+    !canBeSwitched,
+    !(controlsPrinterPower ?? true),
+    !(enabled ?? true),
+    !(showOnPrinterCard ?? true),
+    !reportsPower,
+  ];
 
   /// Comparator over [_mainPlugDemerits]: negative when [a] is the better main
   /// plug. Ties fall back to the lowest id, so the answer never depends on the
@@ -212,7 +212,7 @@ class SmartPlugEnergy {
 /// Anything else — including an unreachable plug's `null` — is “unknown”, which
 /// the UI shows as off but never sends as a command.
 bool? _onOffOrNull(String? value) => switch (value?.toUpperCase()) {
-      'ON' || 'TRUE' || '1' => true,
-      'OFF' || 'FALSE' || '0' => false,
-      _ => null,
-    };
+  'ON' || 'TRUE' || '1' => true,
+  'OFF' || 'FALSE' || '0' => false,
+  _ => null,
+};

@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('wearShortText', () {
     test('leaves a message that fits exactly as it is', () {
-      expect(wearShortText('Printer not connected', max: 60),
-          'Printer not connected');
+      expect(
+        wearShortText('Printer not connected', max: 60),
+        'Printer not connected',
+      );
     });
 
     test('leaves a message of exactly the budget alone', () {

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('FailureAnalysisCache.signature', () {
-    test('różni się dla różnych createdById — brak kolizji między userami', () {
+    test('differs for different createdById — no collision between users', () {
       const allUsers = StatsFilter();
       const noUser = StatsFilter(createdById: -1);
       const user5 = StatsFilter(createdById: 5);
@@ -16,14 +16,16 @@ void main() {
         FailureAnalysisCache.signature(user5),
         FailureAnalysisCache.signature(user9),
       };
-      expect(sigs, hasLength(4)); // wszystkie unikalne — żadnej kolizji.
+      expect(sigs, hasLength(4)); // all unique — no collision.
     });
 
-    test('ten sam zakres i createdById → ten sam podpis', () {
+    test('same range and createdById → same signature', () {
       const a = StatsFilter(range: StatsRange.last30Days, createdById: 5);
       const b = StatsFilter(range: StatsRange.last30Days, createdById: 5);
-      expect(FailureAnalysisCache.signature(a),
-          FailureAnalysisCache.signature(b));
+      expect(
+        FailureAnalysisCache.signature(a),
+        FailureAnalysisCache.signature(b),
+      );
     });
   });
 }

@@ -20,15 +20,15 @@ class SlicerPreset {
   });
 
   factory SlicerPreset.fromJson(Map<String, dynamic> json) => SlicerPreset(
-        source: json['source'] as String? ?? 'standard',
-        id: json['id']?.toString() ?? '',
-        name: json['name'] as String? ?? '',
-        filamentType: json['filament_type'] as String?,
-        filamentColour: json['filament_colour'] as String?,
-        compatiblePrinters: (json['compatible_printers'] as List?)
-            ?.whereType<String>()
-            .toList(),
-      );
+    source: json['source'] as String? ?? 'standard',
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? '',
+    filamentType: json['filament_type'] as String?,
+    filamentColour: json['filament_colour'] as String?,
+    compatiblePrinters: (json['compatible_printers'] as List?)
+        ?.whereType<String>()
+        .toList(),
+  );
 
   /// One of `local`, `orca_cloud`, `cloud`, `standard`.
   final String source;
@@ -111,10 +111,10 @@ class PresetValues {
   });
 
   factory PresetValues.fromJson(Map<String, dynamic> json) => PresetValues(
-        resolved: json['resolved'] == true,
-        values: (json['values'] as Map?)?.cast<String, dynamic>() ?? const {},
-        reason: json['reason'] as String? ?? '',
-      );
+    resolved: json['resolved'] == true,
+    values: (json['values'] as Map?)?.cast<String, dynamic>() ?? const {},
+    reason: json['reason'] as String? ?? '',
+  );
 
   /// Nothing known — the panel falls back to the schema's own defaults.
   static const unresolved = PresetValues(resolved: false);
@@ -132,13 +132,13 @@ class PresetValues {
   /// deliberately keeps apart (`services/slicer_api.py::ResolvedProfile`)
   /// so the panel can say something actionable instead of one generic failure.
   PresetValuesCause get cause => switch (reason) {
-        'ok' => PresetValuesCause.ok,
-        'sidecar_outdated' => PresetValuesCause.sidecarOutdated,
-        'sidecar_unavailable' => PresetValuesCause.sidecarUnavailable,
-        'not_configured' => PresetValuesCause.notConfigured,
-        'preset_unresolved' => PresetValuesCause.presetUnresolved,
-        _ => PresetValuesCause.unknown,
-      };
+    'ok' => PresetValuesCause.ok,
+    'sidecar_outdated' => PresetValuesCause.sidecarOutdated,
+    'sidecar_unavailable' => PresetValuesCause.sidecarUnavailable,
+    'not_configured' => PresetValuesCause.notConfigured,
+    'preset_unresolved' => PresetValuesCause.presetUnresolved,
+    _ => PresetValuesCause.unknown,
+  };
 }
 
 /// Classified [PresetValues.reason]. Unknown values keep the panel working with

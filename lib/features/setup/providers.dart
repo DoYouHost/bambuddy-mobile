@@ -62,26 +62,26 @@ class SetupState {
     TwoFactorChallenge? twoFactor,
     bool? emailCodeSent,
     bool clearTwoFactor = false,
-  }) =>
-      SetupState(
-        busy: busy ?? this.busy,
-        error: error,
-        probe: probe ?? this.probe,
-        baseUrl: baseUrl ?? this.baseUrl,
-        twoFactor: clearTwoFactor ? null : twoFactor ?? this.twoFactor,
-        emailCodeSent: clearTwoFactor ? false : emailCodeSent ?? this.emailCodeSent,
-      );
+  }) => SetupState(
+    busy: busy ?? this.busy,
+    error: error,
+    probe: probe ?? this.probe,
+    baseUrl: baseUrl ?? this.baseUrl,
+    twoFactor: clearTwoFactor ? null : twoFactor ?? this.twoFactor,
+    emailCodeSent: clearTwoFactor ? false : emailCodeSent ?? this.emailCodeSent,
+  );
 }
 
 final setupControllerProvider =
     AutoDisposeNotifierProvider<SetupController, SetupState>(
-  SetupController.new,
-);
+      SetupController.new,
+    );
 
 /// How long the controller leaves the code step up before declaring the
 /// challenge stale. Overridden in tests to keep them off the clock.
-final twoFactorLifetimeProvider =
-    Provider<Duration>((ref) => TwoFactorChallenge.lifetime);
+final twoFactorLifetimeProvider = Provider<Duration>(
+  (ref) => TwoFactorChallenge.lifetime,
+);
 
 class SetupController extends AutoDisposeNotifier<SetupState> {
   /// Counts down the pre-auth token so an untouched code step gives way to the
@@ -137,8 +137,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     }
     state = const SetupState(busy: true);
     try {
-      final probe =
-          await ref.read(authServiceProvider).probeAuthStatus(url);
+      final probe = await ref.read(authServiceProvider).probeAuthStatus(url);
       // Only a server that has neither finished setup NOR got auth turned on is
       // genuinely unusable — that's also the sole case the web UI redirects to
       // /setup for. `requires_setup` alone stays true forever on installs whose
@@ -184,10 +183,9 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       return;
     }
     try {
-      await ref.read(authServiceProvider).verifyAndStoreApiKey(
-            baseUrl: url,
-            apiKey: apiKey.trim(),
-          );
+      await ref
+          .read(authServiceProvider)
+          .verifyAndStoreApiKey(baseUrl: url, apiKey: apiKey.trim());
       await _saveProfile(url, AuthMode.apiKey);
     } on AppApiException catch (e) {
       state = state.copyWith(busy: false, error: e);
@@ -218,7 +216,9 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       return;
     }
     try {
-      final result = await ref.read(authServiceProvider).login(
+      final result = await ref
+          .read(authServiceProvider)
+          .login(
             baseUrl: url,
             username: username,
             password: password,
@@ -253,10 +253,9 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     if (url == null || challenge == null) return;
     state = state.copyWith(busy: true, error: null);
     try {
-      final refreshed = await ref.read(authServiceProvider).sendEmailOtp(
-            baseUrl: url,
-            challenge: challenge,
-          );
+      final refreshed = await ref
+          .read(authServiceProvider)
+          .sendEmailOtp(baseUrl: url, challenge: challenge);
       state = state.copyWith(
         busy: false,
         twoFactor: refreshed,
@@ -286,7 +285,9 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     }
     state = state.copyWith(busy: true, error: null);
     try {
-      final completed = await ref.read(authServiceProvider).verifyTwoFactor(
+      final completed = await ref
+          .read(authServiceProvider)
+          .verifyTwoFactor(
             baseUrl: url,
             challenge: challenge,
             method: method,
@@ -319,10 +320,9 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   }
 
   /// Profile save switches router to dashboard (see routerProvider).
-  Future<void> _saveProfile(String url, AuthMode mode) =>
-      ref.read(serverProfileProvider.notifier).save(
-            ServerProfile(baseUrl: url, authMode: mode),
-          );
+  Future<void> _saveProfile(String url, AuthMode mode) => ref
+      .read(serverProfileProvider.notifier)
+      .save(ServerProfile(baseUrl: url, authMode: mode));
 
   /// Demo profile uses [AuthMode.none]: the fake backend needs no credentials,
   /// and this keeps token refresh / silent re-login machinery fully off.
@@ -346,12 +346,13 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     );
   }
 
-  Future<void> _saveDemoProfile() =>
-      ref.read(serverProfileProvider.notifier).save(
-            const ServerProfile(
-              baseUrl: DemoConfig.baseUrl,
-              authMode: AuthMode.none,
-              label: 'Demo',
-            ),
-          );
+  Future<void> _saveDemoProfile() => ref
+      .read(serverProfileProvider.notifier)
+      .save(
+        const ServerProfile(
+          baseUrl: DemoConfig.baseUrl,
+          authMode: AuthMode.none,
+          label: 'Demo',
+        ),
+      );
 }

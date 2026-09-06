@@ -57,22 +57,24 @@ class _FakeRepo implements AmsSlotConfigRepository {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not part of this test');
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+    '${invocation.memberName} is not part of this test',
+  );
 }
 
 ProviderContainer _container(_FakeRepo repo) {
-  final c = ProviderContainer(overrides: [
-    amsSlotConfigRepositoryProvider.overrideWithValue(repo),
-  ]);
+  final c = ProviderContainer(
+    overrides: [amsSlotConfigRepositoryProvider.overrideWithValue(repo)],
+  );
   addTearDown(c.dispose);
   return c;
 }
 
 void main() {
   test('collects all four sources', () async {
-    final sources =
-        await _container(_FakeRepo()).read(slotPresetSourcesProvider.future);
+    final sources = await _container(
+      _FakeRepo(),
+    ).read(slotPresetSourcesProvider.future);
 
     expect(sources.cloud, hasLength(1));
     expect(sources.local, hasLength(1));
@@ -82,37 +84,48 @@ void main() {
     expect(sources.isEmpty, isFalse);
   });
 
-  test('a missing Bambu Cloud login costs one tier and asks for a login', () async {
-    // The most common state by far: the app works fine without a cloud
-    // account, and the picker still has the imported and built-in tiers.
-    final repo = _FakeRepo()
-      ..cloudError = const AuthException(AppErrorCode.unauthorized);
+  test(
+    'a missing Bambu Cloud login costs one tier and asks for a login',
+    () async {
+      // The most common state by far: the app works fine without a cloud
+      // account, and the picker still has the imported and built-in tiers.
+      final repo = _FakeRepo()
+        ..cloudError = const AuthException(AppErrorCode.unauthorized);
 
-    final sources = await _container(repo).read(slotPresetSourcesProvider.future);
+      final sources = await _container(
+        repo,
+      ).read(slotPresetSourcesProvider.future);
 
-    expect(sources.cloud, isEmpty);
-    expect(sources.cloudNeedsLogin, isTrue);
-    expect(sources.local, hasLength(1));
-    expect(sources.builtin, hasLength(1));
-  });
+      expect(sources.cloud, isEmpty);
+      expect(sources.cloudNeedsLogin, isTrue);
+      expect(sources.local, hasLength(1));
+      expect(sources.builtin, hasLength(1));
+    },
+  );
 
-  test('a cloud failure that is not a login problem does not ask for a login',
-      () async {
-    // Nagging a logged-in user to log in is worse than saying nothing.
-    final repo = _FakeRepo()
-      ..cloudError = const ApiException(AppErrorCode.serverUnreachable);
+  test(
+    'a cloud failure that is not a login problem does not ask for a login',
+    () async {
+      // Nagging a logged-in user to log in is worse than saying nothing.
+      final repo = _FakeRepo()
+        ..cloudError = const ApiException(AppErrorCode.serverUnreachable);
 
-    final sources = await _container(repo).read(slotPresetSourcesProvider.future);
+      final sources = await _container(
+        repo,
+      ).read(slotPresetSourcesProvider.future);
 
-    expect(sources.cloud, isEmpty);
-    expect(sources.cloudNeedsLogin, isFalse);
-  });
+      expect(sources.cloud, isEmpty);
+      expect(sources.cloudNeedsLogin, isFalse);
+    },
+  );
 
   test('a key without settings:read still gets the other tiers', () async {
     final repo = _FakeRepo()
       ..localError = const AuthException(AppErrorCode.forbidden);
 
-    final sources = await _container(repo).read(slotPresetSourcesProvider.future);
+    final sources = await _container(
+      repo,
+    ).read(slotPresetSourcesProvider.future);
 
     expect(sources.local, isEmpty);
     expect(sources.cloud, hasLength(1));
@@ -125,7 +138,9 @@ void main() {
     final repo = _FakeRepo()
       ..modelsError = const ApiException(AppErrorCode.badResponse);
 
-    final sources = await _container(repo).read(slotPresetSourcesProvider.future);
+    final sources = await _container(
+      repo,
+    ).read(slotPresetSourcesProvider.future);
 
     expect(sources.printerModels, isEmpty);
     expect(sources.isEmpty, isFalse);
@@ -139,7 +154,9 @@ void main() {
       ..builtinError = const ApiException(AppErrorCode.serverUnreachable)
       ..modelsError = const ApiException(AppErrorCode.serverUnreachable);
 
-    final sources = await _container(repo).read(slotPresetSourcesProvider.future);
+    final sources = await _container(
+      repo,
+    ).read(slotPresetSourcesProvider.future);
 
     expect(sources.isEmpty, isTrue);
   });

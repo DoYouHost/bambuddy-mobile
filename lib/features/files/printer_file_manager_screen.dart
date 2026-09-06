@@ -132,8 +132,9 @@ class _PrinterFileManagerScreenState
   }
 
   Future<void> _loadStorage() async {
-    final storage =
-        await ref.read(printerFilesRepositoryProvider).fetchStorage(widget.printerId);
+    final storage = await ref
+        .read(printerFilesRepositoryProvider)
+        .fetchStorage(widget.printerId);
     if (!mounted) return;
     setState(() => _storage = storage);
   }
@@ -153,7 +154,8 @@ class _PrinterFileManagerScreenState
 
   void _navigateUp() {
     if (_path == '/') return;
-    final parts = _path.split('/').where((p) => p.isNotEmpty).toList()..removeLast();
+    final parts = _path.split('/').where((p) => p.isNotEmpty).toList()
+      ..removeLast();
     _navigateTo(parts.isEmpty ? '/' : '/${parts.join('/')}');
   }
 
@@ -168,10 +170,12 @@ class _PrinterFileManagerScreenState
     filtered.sort((a, b) {
       if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;
       return switch (_sort) {
-        PrinterFileSort.nameAsc =>
-          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        PrinterFileSort.nameDesc =>
-          b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        PrinterFileSort.nameAsc => a.name.toLowerCase().compareTo(
+          b.name.toLowerCase(),
+        ),
+        PrinterFileSort.nameDesc => b.name.toLowerCase().compareTo(
+          a.name.toLowerCase(),
+        ),
         PrinterFileSort.sizeAsc => a.size.compareTo(b.size),
         PrinterFileSort.sizeDesc => b.size.compareTo(a.size),
         PrinterFileSort.dateAsc => _compareDate(a, b),
@@ -193,8 +197,8 @@ class _PrinterFileManagerScreenState
       _visible.where((f) => !f.isDirectory).toList();
 
   void _toggleSelection(String path) => setState(() {
-        _selected.contains(path) ? _selected.remove(path) : _selected.add(path);
-      });
+    _selected.contains(path) ? _selected.remove(path) : _selected.add(path);
+  });
 
   void _toggleSelectAll() {
     final all = _selectableFiles.map((f) => f.path).toSet();
@@ -266,9 +270,11 @@ class _PrinterFileManagerScreenState
           // ZIP they would have to count themselves.
           final skipped = _job?.failed ?? 0;
           if (skipped > 0) _recordPreparedDownload('partial');
-          _snack(skipped > 0
-              ? '${l10n.pfmDownloadSaved} · ${l10n.pfmDownloadPartial(skipped)}'
-              : l10n.pfmDownloadSaved);
+          _snack(
+            skipped > 0
+                ? '${l10n.pfmDownloadSaved} · ${l10n.pfmDownloadPartial(skipped)}'
+                : l10n.pfmDownloadSaved,
+          );
       }
     } on PrinterDownloadFailure catch (e) {
       _recordPreparedDownload(e.reason.name);
@@ -326,9 +332,7 @@ class _PrinterFileManagerScreenState
     final byPath = {
       for (final f in _files ?? const <PrinterFile>[]) f.path: f.size,
     };
-    return [
-      for (final path in paths) (path: path, size: byPath[path] ?? 0),
-    ];
+    return [for (final path in paths) (path: path, size: byPath[path] ?? 0)];
   }
 
   /// Every state the preparation reports, for the phase label and the bar.
@@ -388,16 +392,15 @@ class _PrinterFileManagerScreenState
   String _prepareFailureText(
     PrinterDownloadFailure failure,
     AppLocalizations l10n,
-  ) =>
-      switch (failure.reason) {
-        PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
-        // The server's own sentence names the limit or the file it stopped on,
-        // which is worth more than the generic line — see
-        // [PrinterDownloadFailure.detail] on why it is not localized.
-        PrinterDownloadStopped.failed =>
-          failure.detail ?? l10n.pfmDownloadPrepareFailed,
-        PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
-      };
+  ) => switch (failure.reason) {
+    PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
+    // The server's own sentence names the limit or the file it stopped on,
+    // which is worth more than the generic line — see
+    // [PrinterDownloadFailure.detail] on why it is not localized.
+    PrinterDownloadStopped.failed =>
+      failure.detail ?? l10n.pfmDownloadPrepareFailed,
+    PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
+  };
 
   /// The three refusals the download routes explain in a way the user can act
   /// on: the bundle exceeds what the server will build, the server has no disk
@@ -452,14 +455,17 @@ class _PrinterFileManagerScreenState
     }
     if (!mounted) return;
     setState(() => _busy = false);
-    _snack(failures.isEmpty
-        ? l10n.pfmDeleted(deleted)
-        : failures.last.localized(l10n));
+    _snack(
+      failures.isEmpty
+          ? l10n.pfmDeleted(deleted)
+          : failures.last.localized(l10n),
+    );
     await _load();
     await _loadStorage();
   }
 
-  void _snack(String message) => ScaffoldMessenger.of(context).snack(message, replaceCurrent: true);
+  void _snack(String message) =>
+      ScaffoldMessenger.of(context).snack(message, replaceCurrent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -467,7 +473,8 @@ class _PrinterFileManagerScreenState
     final t = DashTokens.of(context);
     final selectable = _selectableFiles;
     final allSelected =
-        selectable.isNotEmpty && _selected.containsAll(selectable.map((f) => f.path));
+        selectable.isNotEmpty &&
+        _selected.containsAll(selectable.map((f) => f.path));
 
     return DashBackground(
       child: Scaffold(
@@ -479,10 +486,7 @@ class _PrinterFileManagerScreenState
             preferredSize: const Size.fromHeight(18),
             child: Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                widget.printerName,
-                style: t.label,
-              ),
+              child: Text(widget.printerName, style: t.label),
             ),
           ),
           actions: [
@@ -534,8 +538,7 @@ class _PrinterFileManagerScreenState
             ),
           ],
         ),
-        bottomNavigationBar:
-            _selected.isEmpty ? null : _actionBar(l10n, t),
+        bottomNavigationBar: _selected.isEmpty ? null : _actionBar(l10n, t),
       ),
     );
   }
@@ -548,67 +551,69 @@ class _PrinterFileManagerScreenState
       );
 
   Widget _quickNav(DashTokens t, AppLocalizations l10n) => SizedBox(
-        height: 48,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          children: [
-            for (final (path, tab) in _quickDirs)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(_quickLabel(tab, l10n)),
-                  selected: _path == path,
-                  onSelected: (_) => _navigateTo(path),
-                  showCheckmark: false,
-                  backgroundColor: t.subCard,
-                  side: BorderSide(color: t.subCardBorder),
-                  selectedColor: t.accentGreen.withValues(alpha: 0.18),
-                  labelStyle: t.label.copyWith(color: _path == path ? t.accentGreenInk : t.textSecondary),
-                ).tagged('printer_files.quick_dir'),
+    height: 48,
+    child: ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      children: [
+        for (final (path, tab) in _quickDirs)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(_quickLabel(tab, l10n)),
+              selected: _path == path,
+              onSelected: (_) => _navigateTo(path),
+              showCheckmark: false,
+              backgroundColor: t.subCard,
+              side: BorderSide(color: t.subCardBorder),
+              selectedColor: t.accentGreen.withValues(alpha: 0.18),
+              labelStyle: t.label.copyWith(
+                color: _path == path ? t.accentGreenInk : t.textSecondary,
               ),
-          ],
-        ),
-      );
+            ).tagged('printer_files.quick_dir'),
+          ),
+      ],
+    ),
+  );
 
   String _quickLabel(_QuickTab tab, AppLocalizations l10n) => switch (tab) {
-        _QuickTab.root => l10n.pfmTabRoot,
-        _QuickTab.cache => l10n.pfmTabCache,
-        _QuickTab.models => l10n.pfmTabModels,
-        _QuickTab.timelapse => l10n.pfmTabTimelapse,
-      };
+    _QuickTab.root => l10n.pfmTabRoot,
+    _QuickTab.cache => l10n.pfmTabCache,
+    _QuickTab.models => l10n.pfmTabModels,
+    _QuickTab.timelapse => l10n.pfmTabTimelapse,
+  };
 
   Widget _breadcrumb(DashTokens t, AppLocalizations l10n) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: t.hairline)),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: t.hairline)),
+    ),
+    child: Row(
+      children: [
+        logTag(
+          'printer_files.up',
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: t.textSecondary),
+            // Named, because an icon alone reads as "unlabelled button" —
+            // and named for what it does here: it climbs a directory, it
+            // does not go back through the app.
+            tooltip: l10n.pfmUp,
+            // Default density on purpose. `VisualDensity.compact` took the
+            // tap target under the 48x48 dp a control has to offer, on the
+            // one button in this bar.
+            onPressed: _path == '/' ? null : _navigateUp,
+          ),
         ),
-        child: Row(
-          children: [
-            logTag(
-              'printer_files.up',
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: t.textSecondary),
-                // Named, because an icon alone reads as "unlabelled button" —
-                // and named for what it does here: it climbs a directory, it
-                // does not go back through the app.
-                tooltip: l10n.pfmUp,
-                // Default density on purpose. `VisualDensity.compact` took the
-                // tap target under the 48x48 dp a control has to offer, on the
-                // one button in this bar.
-                onPressed: _path == '/' ? null : _navigateUp,
-              ),
-            ),
-            Expanded(
-              child: Text(
-                _path,
-                overflow: TextOverflow.ellipsis,
-                style: t.monoValue,
-              ),
-            ),
-          ],
+        Expanded(
+          child: Text(
+            _path,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoValue,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   // Outer padding is supplied by the enclosing [DashSliverSearchBar].
   Widget _searchAndSelectAll(
@@ -616,29 +621,26 @@ class _PrinterFileManagerScreenState
     AppLocalizations l10n,
     bool hasSelectable,
     bool allSelected,
-  ) =>
-      Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              id: 'printer_files.search',
-              hintText: l10n.pfmSearchHint,
-              onChanged: (v) => setState(() => _query = v),
-            ),
+  ) => Row(
+    children: [
+      Expanded(
+        child: DashSearchField(
+          id: 'printer_files.search',
+          hintText: l10n.pfmSearchHint,
+          onChanged: (v) => setState(() => _query = v),
+        ),
+      ),
+      if (hasSelectable)
+        logTag(
+          'printer_files.select_all',
+          TextButton(
+            onPressed: _toggleSelectAll,
+            style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+            child: Text(allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll),
           ),
-          if (hasSelectable)
-            logTag(
-              'printer_files.select_all',
-              TextButton(
-                onPressed: _toggleSelectAll,
-                style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-                child: Text(
-                  allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
-                ),
-              ),
-            ),
-        ],
-      );
+        ),
+    ],
+  );
 
   Widget _content(
     AppLocalizations l10n,
@@ -699,7 +701,11 @@ class _PrinterFileManagerScreenState
               sliver: SliverList.separated(
                 itemCount: items.length,
                 separatorBuilder: (_, _) => Divider(
-                    height: 1, indent: 16, endIndent: 16, color: t.hairline),
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: t.hairline,
+                ),
                 itemBuilder: (_, i) => _row(items[i], t),
               ),
             ),
@@ -721,7 +727,7 @@ class _PrinterFileManagerScreenState
           ),
           trailing: Icon(Icons.chevron_right, color: t.textTertiary),
           onTap: () => _navigateTo(file.path),
-        )
+        ),
       );
     }
     final selected = _selected.contains(file.path);
@@ -750,10 +756,7 @@ class _PrinterFileManagerScreenState
               overflow: TextOverflow.ellipsis,
               style: t.titleSm,
             ),
-            subtitle: Text(
-              _subtitle(file),
-              style: t.monoLabel,
-            ),
+            subtitle: Text(_subtitle(file), style: t.monoLabel),
             trailing: Icon(_iconFor(file.name), color: t.textSecondary),
             onTap: () => _toggleSelection(file.path),
           ),
@@ -803,128 +806,121 @@ class _PrinterFileManagerScreenState
   }
 
   Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: t.navBar,
-          border: Border(top: BorderSide(color: t.hairline)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  // A live region so a screen reader says the phase changed:
-                  // the row is the only place that distinguishes waiting for
-                  // the server from waiting for the transfer, and a change of
-                  // text alone is announced to nobody.
-                  child: Semantics(
-                    liveRegion: _busy,
-                    child: Text(
-                      _phaseLabel(l10n) ?? l10n.pfmSelected(_selected.length),
-                      style: t.body.copyWith(color: t.textSecondary),
-                      // Two lines because the phase wording is a sentence, not
-                      // a count: "Przygotowywanie na serwerze…" is cut to
-                      // "Przygotowywa…" on one line at the larger system text
-                      // sizes, and the bar can afford the height.
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+    decoration: BoxDecoration(
+      color: t.navBar,
+      border: Border(top: BorderSide(color: t.hairline)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              // A live region so a screen reader says the phase changed:
+              // the row is the only place that distinguishes waiting for
+              // the server from waiting for the transfer, and a change of
+              // text alone is announced to nobody.
+              child: Semantics(
+                liveRegion: _busy,
+                child: Text(
+                  _phaseLabel(l10n) ?? l10n.pfmSelected(_selected.length),
+                  style: t.body.copyWith(color: t.textSecondary),
+                  // Two lines because the phase wording is a sentence, not
+                  // a count: "Przygotowywanie na serwerze…" is cut to
+                  // "Przygotowywa…" on one line at the larger system text
+                  // sizes, and the bar can afford the height.
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (_busy)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: 8,
-                      right: _preparing ? 0 : 16,
-                    ),
-                    child: Row(
-                      children: [
-                        if (_progressLabel() case final label?)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Text(label, style: t.monoLabel),
-                          ),
-                        DashSpinner(size: 20, value: _downloadProgress),
-                        // Only while the server is still pulling files. Once
-                        // the transfer starts there is nothing worth stopping:
-                        // the bytes are coming off the server's own disk, and
-                        // the token is already spent.
-                        //
-                        // Disabled rather than removed once pressed. It has to
-                        // stop looking pressable straight away — the DELETE and
-                        // the poll it interrupts both take a moment — but a
-                        // control that vanishes under the finger takes screen-
-                        // reader focus with it, back to the top of the route.
-                        if (_preparing)
-                          logTag(
-                            'printer_files.download_cancel',
-                            IconButton(
-                              onPressed:
-                                  _cancelRequested ? null : _cancelPreparation,
-                              tooltip: l10n.cancel,
-                              icon: const Icon(Icons.close),
-                              color: t.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  )
-                else ...[
-                  logTag(
-                    'printer_files.download',
-                    TextButton.icon(
-                      onPressed: _download,
-                      style:
-                          TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-                      icon: const Icon(Icons.download),
-                      label: Text(l10n.pfmDownload),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  logTag(
-                    'printer_files.delete',
-                    TextButton.icon(
-                      onPressed: _delete,
-                      style: TextButton.styleFrom(foregroundColor: t.danger),
-                      icon: const Icon(Icons.delete_outline),
-                      label: Text(l10n.pfmDelete),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
+            if (_busy)
+              Padding(
+                padding: EdgeInsets.only(left: 8, right: _preparing ? 0 : 16),
+                child: Row(
+                  children: [
+                    if (_progressLabel() case final label?)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(label, style: t.monoLabel),
+                      ),
+                    DashSpinner(size: 20, value: _downloadProgress),
+                    // Only while the server is still pulling files. Once
+                    // the transfer starts there is nothing worth stopping:
+                    // the bytes are coming off the server's own disk, and
+                    // the token is already spent.
+                    //
+                    // Disabled rather than removed once pressed. It has to
+                    // stop looking pressable straight away — the DELETE and
+                    // the poll it interrupts both take a moment — but a
+                    // control that vanishes under the finger takes screen-
+                    // reader focus with it, back to the top of the route.
+                    if (_preparing)
+                      logTag(
+                        'printer_files.download_cancel',
+                        IconButton(
+                          onPressed: _cancelRequested
+                              ? null
+                              : _cancelPreparation,
+                          tooltip: l10n.cancel,
+                          icon: const Icon(Icons.close),
+                          color: t.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            else ...[
+              logTag(
+                'printer_files.download',
+                TextButton.icon(
+                  onPressed: _download,
+                  style: TextButton.styleFrom(
+                    foregroundColor: t.accentGreenInk,
+                  ),
+                  icon: const Icon(Icons.download),
+                  label: Text(l10n.pfmDownload),
+                ),
+              ),
+              const SizedBox(width: 4),
+              logTag(
+                'printer_files.delete',
+                TextButton.icon(
+                  onPressed: _delete,
+                  style: TextButton.styleFrom(foregroundColor: t.danger),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.pfmDelete),
+                ),
+              ),
+            ],
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _centered({
     required IconData icon,
     required String message,
     required DashTokens tokens,
     Widget? action,
-  }) =>
-      Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 48, color: tokens.textTertiary),
-              const SizedBox(height: 12),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: tokens.bodySoft,
-              ),
-              if (action != null) ...[const SizedBox(height: 16), action],
-            ],
-          ),
-        ),
-      );
+  }) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: tokens.textTertiary),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center, style: tokens.bodySoft),
+          if (action != null) ...[const SizedBox(height: 16), action],
+        ],
+      ),
+    ),
+  );
 }
 
 enum _QuickTab { root, cache, models, timelapse }
-
 
 /// Rough icon by extension — matches the file types printers store.
 IconData _iconFor(String name) {

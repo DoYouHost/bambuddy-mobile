@@ -77,10 +77,14 @@ void main() {
 
   group('ServerFingerprint', () {
     test('tells a bare IP apart from a name', () {
-      expect(ServerFingerprint.tryParse('http://192.168.1.9:8080')!.hostKind,
-          HostKind.ip);
-      expect(ServerFingerprint.tryParse('https://bambuddy.example.com')!
-          .hostKind, HostKind.name);
+      expect(
+        ServerFingerprint.tryParse('http://192.168.1.9:8080')!.hostKind,
+        HostKind.ip,
+      );
+      expect(
+        ServerFingerprint.tryParse('https://bambuddy.example.com')!.hostKind,
+        HostKind.name,
+      );
     });
 
     test('fills in the default port when the url omits it', () {
@@ -119,8 +123,10 @@ void main() {
     test('omits the level when it is the default info', () {
       final event = LogEvent(t: 0, src: LogSource.ui, evt: 'route');
 
-      expect((jsonDecode(event.toJsonLine()) as Map).containsKey('lvl'),
-          isFalse);
+      expect(
+        (jsonDecode(event.toJsonLine()) as Map).containsKey('lvl'),
+        isFalse,
+      );
     });
 
     test('drops null fields so call sites can pass optionals blindly', () {
@@ -134,20 +140,22 @@ void main() {
       expect(event.fields, {'code': 1006});
     });
 
-    test('drops reserved keys instead of letting them overwrite the record',
-        () {
-      final event = LogEvent(
-        t: 5,
-        src: LogSource.app,
-        evt: 'real',
-        fields: const {'evt': 'spoofed', 't': 999, 'ok': true},
-      );
+    test(
+      'drops reserved keys instead of letting them overwrite the record',
+      () {
+        final event = LogEvent(
+          t: 5,
+          src: LogSource.app,
+          evt: 'real',
+          fields: const {'evt': 'spoofed', 't': 999, 'ok': true},
+        );
 
-      final json = jsonDecode(event.toJsonLine()) as Map<String, dynamic>;
-      expect(json['evt'], 'real');
-      expect(json['t'], 5);
-      expect(json['ok'], isTrue);
-    });
+        final json = jsonDecode(event.toJsonLine()) as Map<String, dynamic>;
+        expect(json['evt'], 'real');
+        expect(json['t'], 5);
+        expect(json['ok'], isTrue);
+      },
+    );
 
     test('every record encodes to a single line', () {
       final event = LogEvent(

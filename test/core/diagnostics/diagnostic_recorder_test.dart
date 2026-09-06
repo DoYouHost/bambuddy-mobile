@@ -44,9 +44,9 @@ void main() {
   });
 
   List<Map<String, dynamic>> parse(String jsonl) => [
-        for (final line in const LineSplitter().convert(jsonl))
-          jsonDecode(line) as Map<String, dynamic>,
-      ];
+    for (final line in const LineSplitter().convert(jsonl))
+      jsonDecode(line) as Map<String, dynamic>,
+  ];
 
   test('a session opens with a header built from the facts', () async {
     await recorder.start();
@@ -92,8 +92,10 @@ void main() {
     );
 
     final records = parse(await recorder.stop());
-    expect(records.any((r) => r['evt'] == 'response' && r['status'] == 502),
-        isTrue);
+    expect(
+      records.any((r) => r['evt'] == 'response' && r['status'] == 502),
+      isTrue,
+    );
   });
 
   test('the session redactor is seeded from the facts', () async {
@@ -120,18 +122,20 @@ void main() {
     expect(settings.loadDiagnosticsSession(), isNull);
   });
 
-  test('mirrors the stream to disk so a crash mid-recording survives',
-      () async {
-    await recorder.start();
-    DiagnosticRecorder.active?.add(LogSource.app, 'something_happened');
-    final session = settings.loadDiagnosticsSession()!;
-    await recorder.stop();
+  test(
+    'mirrors the stream to disk so a crash mid-recording survives',
+    () async {
+      await recorder.start();
+      DiagnosticRecorder.active?.add(LogSource.app, 'something_happened');
+      final session = settings.loadDiagnosticsSession()!;
+      await recorder.stop();
 
-    final onDisk =
-        await LogFileSink(LogFileSink.fileFor(dir, session, LogStream.ui))
-            .read();
-    expect(onDisk, contains('something_happened'));
-  });
+      final onDisk = await LogFileSink(
+        LogFileSink.fileFor(dir, session, LogStream.ui),
+      ).read();
+      expect(onDisk, contains('something_happened'));
+    },
+  );
 
   test('merges the background stream found on disk', () async {
     await recorder.start();
@@ -140,13 +144,15 @@ void main() {
     // Stands in for the FGS isolate, which writes its own file with its own
     // header while the UI session runs.
     final fgs = LogFileSink(LogFileSink.fileFor(dir, session, LogStream.fgs));
-    await fgs.writeHeader(LogHeader(
-      ts: DateTime.now().toUtc(),
-      session: session,
-      app: '0.11.2+1102',
-      flavor: 'mobile',
-      stream: LogStream.fgs,
-    ));
+    await fgs.writeHeader(
+      LogHeader(
+        ts: DateTime.now().toUtc(),
+        session: session,
+        app: '0.11.2+1102',
+        flavor: 'mobile',
+        stream: LogStream.fgs,
+      ),
+    );
     fgs.writeLine('{"t":10,"src":"fgs","evt":"cycle"}');
     await fgs.close();
 
@@ -177,8 +183,10 @@ void main() {
 
     expect(settings.loadDiagnosticsSession(), isNull);
     expect(DiagnosticRecorder.active, isNull);
-    expect(LogFileSink.fileFor(dir, session, LogStream.ui).existsSync(),
-        isFalse);
+    expect(
+      LogFileSink.fileFor(dir, session, LogStream.ui).existsSync(),
+      isFalse,
+    );
   });
 
   test('discarding after the review deletes the files too', () async {
@@ -264,8 +272,11 @@ void main() {
     final session = settings.loadDiagnosticsSession()!;
     // Stopped first so the sink is closed and cannot append behind the test.
     await recorder.stop();
-    LogFileSink.fileFor(dir, session, LogStream.ui)
-        .writeAsStringSync('{"v":1,"session":"$session"}\n');
+    LogFileSink.fileFor(
+      dir,
+      session,
+      LogStream.ui,
+    ).writeAsStringSync('{"v":1,"session":"$session"}\n');
 
     expect(await recorder.recover(session), isEmpty);
   });
@@ -280,7 +291,10 @@ void main() {
     // stopped or by surviving a crash.
     await recorder.discard();
 
-    expect(LogFileSink.fileFor(dir, session, LogStream.ui).existsSync(), isFalse);
+    expect(
+      LogFileSink.fileFor(dir, session, LogStream.ui).existsSync(),
+      isFalse,
+    );
   });
 
   /// A recorder whose ring fills in a few records — the real one takes four
@@ -313,10 +327,16 @@ void main() {
     for (var i = 0; i < 8; i++) {
       expect(log, contains('step_$i'));
     }
-    expect(log, contains('recording_started'),
-        reason: 'the start of the session is what eviction used to eat');
-    expect(log, isNot(contains('truncated')),
-        reason: 'nothing is missing, so nothing should claim a gap');
+    expect(
+      log,
+      contains('recording_started'),
+      reason: 'the start of the session is what eviction used to eat',
+    );
+    expect(
+      log,
+      isNot(contains('truncated')),
+      reason: 'nothing is missing, so nothing should claim a gap',
+    );
   });
 
   test('a memory-only session still reports what the ring dropped', () async {
@@ -334,24 +354,26 @@ void main() {
     expect(log, contains('step_7'));
   });
 
-  test('the session read back from disk is in the order things happened',
-      () async {
-    await recorder.start();
-    // A tap is stamped with the moment the finger went down, so it can be
-    // written after an event that happened later — which is the whole reason
-    // the ring's export sorted, and the file does not.
-    DiagnosticRecorder.active?.add(LogSource.ui, 'late_write', at: 900);
-    DiagnosticRecorder.active?.add(LogSource.ui, 'early_touch', at: 100);
+  test(
+    'the session read back from disk is in the order things happened',
+    () async {
+      await recorder.start();
+      // A tap is stamped with the moment the finger went down, so it can be
+      // written after an event that happened later — which is the whole reason
+      // the ring's export sorted, and the file does not.
+      DiagnosticRecorder.active?.add(LogSource.ui, 'late_write', at: 900);
+      DiagnosticRecorder.active?.add(LogSource.ui, 'early_touch', at: 100);
 
-    final records = parse(await recorder.stop()).skip(1).toList();
-    final offsets = [for (final r in records) r['t'] as int];
+      final records = parse(await recorder.stop()).skip(1).toList();
+      final offsets = [for (final r in records) r['t'] as int];
 
-    expect(offsets, orderedEquals([...offsets]..sort()));
-    expect(
-      records.indexWhere((r) => r['evt'] == 'early_touch'),
-      lessThan(records.indexWhere((r) => r['evt'] == 'late_write')),
-    );
-  });
+      expect(offsets, orderedEquals([...offsets]..sort()));
+      expect(
+        records.indexWhere((r) => r['evt'] == 'early_touch'),
+        lessThan(records.indexWhere((r) => r['evt'] == 'late_write')),
+      );
+    },
+  );
 
   test('an unwritable directory degrades to a memory-only session', () async {
     final memoryOnly = DiagnosticRecorder(
@@ -368,23 +390,25 @@ void main() {
     expect(dir.listSync(), isEmpty);
   });
 
-  test('an uncaught exception lands in the session, and only while it runs',
-      () async {
-    final beforeAnyRecording = FlutterError.onError;
-    void crash(String message) => FlutterError.reportError(
-          FlutterErrorDetails(exception: StateError(message)),
-        );
+  test(
+    'an uncaught exception lands in the session, and only while it runs',
+    () async {
+      final beforeAnyRecording = FlutterError.onError;
+      void crash(String message) => FlutterError.reportError(
+        FlutterErrorDetails(exception: StateError(message)),
+      );
 
-    crash('before');
-    await recorder.start();
-    crash('during');
-    final log = await recorder.stop();
-    crash('after');
+      crash('before');
+      await recorder.start();
+      crash('during');
+      final log = await recorder.stop();
+      crash('after');
 
-    expect(log, contains('"evt":"uncaught"'));
-    expect(log, contains('Bad state: during'));
-    expect(log, isNot(contains('before')));
-    // The session put Flutter's own handling back exactly as it found it.
-    expect(FlutterError.onError, same(beforeAnyRecording));
-  });
+      expect(log, contains('"evt":"uncaught"'));
+      expect(log, contains('Bad state: during'));
+      expect(log, isNot(contains('before')));
+      // The session put Flutter's own handling back exactly as it found it.
+      expect(FlutterError.onError, same(beforeAnyRecording));
+    },
+  );
 }

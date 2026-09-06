@@ -17,9 +17,9 @@ void main() {
   void answer(Object? Function() reply) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(wearShapeChannel, (call) async {
-      calls.add(call);
-      return reply();
-    });
+          calls.add(call);
+          return reply();
+        });
   }
 
   setUp(() => calls = []);
@@ -63,17 +63,22 @@ void main() {
   });
 
   group('WearShapeScope', () {
-    testWidgets('hands the platform answer to everything below it',
-        (tester) async {
+    testWidgets('hands the platform answer to everything below it', (
+      tester,
+    ) async {
       answer(() => false);
       late WearShape seen;
 
-      await tester.pumpWidget(WearShapeScope(
-        child: Builder(builder: (context) {
-          seen = wearShapeOf(context);
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        WearShapeScope(
+          child: Builder(
+            builder: (context) {
+              seen = wearShapeOf(context);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(seen, WearShape.square);
@@ -82,10 +87,14 @@ void main() {
     testWidgets('a widget with no scope above it reads round', (tester) async {
       late WearShape seen;
 
-      await tester.pumpWidget(Builder(builder: (context) {
-        seen = wearShapeOf(context);
-        return const SizedBox();
-      }));
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            seen = wearShapeOf(context);
+            return const SizedBox();
+          },
+        ),
+      );
 
       expect(seen, WearShape.round);
     });

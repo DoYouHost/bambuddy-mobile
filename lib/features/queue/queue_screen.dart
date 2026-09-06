@@ -185,8 +185,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     WidgetRef ref,
     QueueItem item,
     AppLocalizations l10n,
-  ) =>
-      _startQueueItem(context, ref, item, l10n);
+  ) => _startQueueItem(context, ref, item, l10n);
 }
 
 /// Printer entry in "start next" picker: name, status (online/offline), and plug
@@ -470,9 +469,15 @@ class _StatusChip extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final (label, accent) = switch (item.statusKind) {
-      QueueItemStatusKind.printing => (l10n.queueStatusPrinting, t.accentGreenInk),
+      QueueItemStatusKind.printing => (
+        l10n.queueStatusPrinting,
+        t.accentGreenInk,
+      ),
       QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrangeInk),
-      QueueItemStatusKind.scheduled => (l10n.queueStatusScheduled, t.accentBlue),
+      QueueItemStatusKind.scheduled => (
+        l10n.queueStatusScheduled,
+        t.accentBlue,
+      ),
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
     };
@@ -506,7 +511,8 @@ class _QueueActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     // Printing item doesn't make sense to "start"; any active item can cancel.
-    final canStart = item.statusKind == QueueItemStatusKind.pending ||
+    final canStart =
+        item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
@@ -515,9 +521,11 @@ class _QueueActions extends ConsumerWidget {
     final printerId = item.printerId;
     final removal = queueRemovalFor(
       item.statusKind,
-      printerBusy: printerId != null &&
-          ref.watch(printerStatusesProvider
-                  .select((m) => m[printerId]?.isPrinting)) ==
+      printerBusy:
+          printerId != null &&
+          ref.watch(
+                printerStatusesProvider.select((m) => m[printerId]?.isPrinting),
+              ) ==
               true,
     );
     final canPreview = item.archiveId != null || item.libraryFileId != null;
@@ -547,8 +555,12 @@ class _QueueActions extends ConsumerWidget {
 
           // Standalone mapping (save without starting) — needs a known printer.
           if (value == 'ams' && printerId != null) {
-            final mapping = await showQueueMappingSheet(context,
-                item: item, printerId: printerId, confirmLabel: l10n.fmSave);
+            final mapping = await showQueueMappingSheet(
+              context,
+              item: item,
+              printerId: printerId,
+              confirmLabel: l10n.fmSave,
+            );
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
             messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
@@ -618,18 +630,15 @@ class _QueueActions extends ConsumerWidget {
               ListTile(
                 leading: Icon(switch (removal) {
                   QueueRemoval.cancel ||
-                  QueueRemoval.stopPrint =>
-                    Icons.stop_circle_outlined,
+                  QueueRemoval.stopPrint => Icons.stop_circle_outlined,
                   QueueRemoval.stopAbandoned ||
-                  QueueRemoval.delete =>
-                    Icons.delete_outline,
+                  QueueRemoval.delete => Icons.delete_outline,
                 }),
                 title: Text(switch (removal) {
                   QueueRemoval.cancel => l10n.queueCancel,
                   QueueRemoval.stopPrint => l10n.queueStop,
                   QueueRemoval.stopAbandoned ||
-                  QueueRemoval.delete =>
-                    l10n.queueRemove,
+                  QueueRemoval.delete => l10n.queueRemove,
                 }),
                 contentPadding: EdgeInsets.zero,
               ),
@@ -660,8 +669,9 @@ class _QueueActions extends ConsumerWidget {
         id: 'queue.remove_confirm',
         title: stopping ? l10n.queueStopTitle : l10n.queueRemoveStoppedTitle,
         message: stopping ? l10n.queueStopBody : l10n.queueRemoveStoppedBody,
-        confirmLabel:
-            stopping ? l10n.queueStopConfirm : l10n.queueDeleteConfirm,
+        confirmLabel: stopping
+            ? l10n.queueStopConfirm
+            : l10n.queueDeleteConfirm,
         destructive: true,
       );
       if (!confirmed) return;
@@ -669,10 +679,11 @@ class _QueueActions extends ConsumerWidget {
     final result = switch (removal) {
       QueueRemoval.cancel => await notifier.cancel(item.id),
       QueueRemoval.stopPrint ||
-      QueueRemoval.stopAbandoned =>
-        await notifier.stop(item.id),
-      QueueRemoval.delete =>
-        await notifier.delete(item.id, logId: 'queue.action.cancel'),
+      QueueRemoval.stopAbandoned => await notifier.stop(item.id),
+      QueueRemoval.delete => await notifier.delete(
+        item.id,
+        logId: 'queue.action.cancel',
+      ),
     };
     final failure = queueWriteMessage(l10n, result);
     if (failure != null) {
@@ -694,15 +705,16 @@ class _QueueActions extends ConsumerWidget {
   /// The item's plate goes with it, so a multi-plate job previews the plate it
   /// will actually print.
   void _previewGcode(BuildContext context) {
-    context.push(gcodeViewerRoute(
-      archiveId: item.archiveId,
-      libraryFileId: item.libraryFileId,
-      plate: item.plateId,
-      title: item.archiveName ?? item.libraryFileName,
-    ));
+    context.push(
+      gcodeViewerRoute(
+        archiveId: item.archiveId,
+        libraryFileId: item.libraryFileId,
+        plate: item.plateId,
+        title: item.archiveName ?? item.libraryFileName,
+      ),
+    );
   }
 }
-
 
 /// Shared start flow for a queue item, used by the FAB and the ⋮ Start action:
 /// assign a printer if the item has none, then the filament-mapping screen
@@ -747,14 +759,16 @@ Future<void> _startQueueItem(
     );
     if (!confirmed) return;
     try {
-      await providers.read(printerCommandsRepositoryProvider)
+      await providers
+          .read(printerCommandsRepositoryProvider)
           .clearPlate(printerId);
       // The cached status has to hear about it here as much as on the card. The
       // server pushes no frame for a printer with no MQTT client, so on the
       // printer this gate exists for the next start inside the poll window would
       // read the stale `true`, ack a gate that is already down, and take the
       // route's 400 as a reason not to start the print at all.
-      providers.read(printerStatusesProvider.notifier)
+      providers
+          .read(printerStatusesProvider.notifier)
           .plateGateAcknowledged(printerId);
     } on AppApiException catch (e) {
       showApiFailure(
@@ -762,8 +776,11 @@ Future<void> _startQueueItem(
         e,
         l10n,
         action: 'queue.plate_clear',
-        message: recordPlateClearRefusal(
-                providers.read(offlinePlateClearProvider.notifier), e.detail)
+        message:
+            recordPlateClearRefusal(
+              providers.read(offlinePlateClearProvider.notifier),
+              e.detail,
+            )
             ? l10n.plateClearNeedsOnline
             : null,
       );
@@ -796,7 +813,9 @@ Future<void> _startQueueItem(
 /// the mapping sheet, by which time the row that opened it may be disposed —
 /// see [_startQueueItem].
 Future<bool> _awaitingPlateClear(
-    ProviderContainer providers, int printerId) async {
+  ProviderContainer providers,
+  int printerId,
+) async {
   final gateEnabled = await providers.read(requirePlateClearProvider.future);
   if (!gateEnabled) return false;
   final cached = providers.read(printerStatusesProvider)[printerId];
@@ -804,8 +823,9 @@ Future<bool> _awaitingPlateClear(
     return plateClearPending(cached, gateEnabled: () => gateEnabled);
   }
   try {
-    final st =
-        await providers.read(printersRepositoryProvider).fetchStatus(printerId);
+    final st = await providers
+        .read(printersRepositoryProvider)
+        .fetchStatus(printerId);
     return plateClearPending(st, gateEnabled: () => gateEnabled);
   } on AppApiException {
     return false;
@@ -841,8 +861,10 @@ Future<Printer?> _pickQueuePrinter(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(l10n.pickPrinterTitle,
-                style: Theme.of(ctx).textTheme.titleMedium),
+            child: Text(
+              l10n.pickPrinterTitle,
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
           ),
           for (final c in candidates)
             _PrinterCandidateTile(
@@ -854,7 +876,6 @@ Future<Printer?> _pickQueuePrinter(
     ),
   );
 }
-
 
 /// Says nothing on success: the change is already visible in the list.
 /// Says nothing when [result] succeeded — the row leaving the list is the

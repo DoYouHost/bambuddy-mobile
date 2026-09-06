@@ -85,7 +85,9 @@ String orderSession(String jsonl) {
     if (t is! num) continue;
     records.add(_Timed(t.toInt(), records.length, line));
   }
-  records.sort((a, b) => a.t != b.t ? a.t.compareTo(b.t) : a.seq.compareTo(b.seq));
+  records.sort(
+    (a, b) => a.t != b.t ? a.t.compareTo(b.t) : a.seq.compareTo(b.seq),
+  );
 
   final buf = StringBuffer()..writeln(lines.first);
   for (final record in records) {
@@ -94,8 +96,10 @@ String orderSession(String jsonl) {
   return buf.toString();
 }
 
-List<String> _lines(String jsonl) =>
-    const LineSplitter().convert(jsonl).where((l) => l.trim().isNotEmpty).toList();
+List<String> _lines(String jsonl) => const LineSplitter()
+    .convert(jsonl)
+    .where((l) => l.trim().isNotEmpty)
+    .toList();
 
 Map<String, Object?>? _decode(String line) {
   try {

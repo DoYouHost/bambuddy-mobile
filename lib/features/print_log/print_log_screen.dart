@@ -66,14 +66,14 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
   }
 
   void _openFilters() => dashSurfaceSheet<void>(
-        context,
-        builder: (_) => const _PrintLogFilterSheet(),
-      );
+    context,
+    builder: (_) => const _PrintLogFilterSheet(),
+  );
 
   void _openEntry(PrintLogEntry entry) => dashSheet<void>(
-        context,
-        builder: (_) => PrintLogClassifySheet(entry: entry),
-      );
+    context,
+    builder: (_) => PrintLogClassifySheet(entry: entry),
+  );
 
   /// Clearing wipes every user's rows and drops their contribution from the
   /// statistics, so the count goes in the question rather than in a toast
@@ -102,8 +102,9 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
     );
     if (!confirmed) return;
 
-    final (deleted, error) =
-        await ref.read(printLogProvider.notifier).clearAll();
+    final (deleted, error) = await ref
+        .read(printLogProvider.notifier)
+        .clearAll();
     if (!mounted) return;
     if (error != null) {
       showApiFailure(
@@ -199,12 +200,12 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: EmptyStateView(
-                        message: filters.activeCount > 0 ||
-                                filters.query.isNotEmpty
+                        message:
+                            filters.activeCount > 0 || filters.query.isNotEmpty
                             ? l10n.printLogNoMatches
                             : l10n.printLogEmpty,
-                        icon: filters.activeCount > 0 ||
-                                filters.query.isNotEmpty
+                        icon:
+                            filters.activeCount > 0 || filters.query.isNotEmpty
                             ? Icons.search_off
                             : Icons.receipt_long_outlined,
                       ),
@@ -249,10 +250,10 @@ class _SortMenu extends ConsumerWidget {
     /// A caption above a group of rows. `enabled: false` because it is a label,
     /// not a choice — tapping it must not close the menu.
     PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
-          enabled: false,
-          height: 32,
-          child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
-        );
+      enabled: false,
+      height: 32,
+      child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
+    );
 
     return logTag(
       'print_log.sort',
@@ -372,8 +373,7 @@ class _PrintLogCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final showMoney =
-        ref.watch(printLogCostEnergyProvider).orFalse;
+    final showMoney = ref.watch(printLogCostEnergyProvider).orFalse;
 
     final currency = ref.watch(currencySymbolProvider);
 
@@ -446,13 +446,13 @@ class _PrintLogCard extends ConsumerWidget {
                               accent: entry.countsAsFailure
                                   ? t.danger
                                   : (entry.status == 'completed'
-                                      ? t.accentGreen
-                                      : t.textTertiary),
+                                        ? t.accentGreen
+                                        : t.textTertiary),
                               accentInk: entry.countsAsFailure
                                   ? t.danger
                                   : (entry.status == 'completed'
-                                      ? t.accentGreenInk
-                                      : t.textTertiary),
+                                        ? t.accentGreenInk
+                                        : t.textTertiary),
                             ),
                           ],
                         ),
@@ -472,9 +472,7 @@ class _PrintLogCard extends ConsumerWidget {
                             numbers.join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: t.monoValue.copyWith(
-                              color: t.textSecondary,
-                            ),
+                            style: t.monoValue.copyWith(color: t.textSecondary),
                           ),
                         ],
                         if (entry.failureReason != null || entry.isOrphan) ...[
@@ -487,7 +485,9 @@ class _PrintLogCard extends ConsumerWidget {
                                 DashPill(
                                   dense: true,
                                   label: failureReasonLabel(
-                                      l10n, entry.failureReason),
+                                    l10n,
+                                    entry.failureReason,
+                                  ),
                                   accent: t.accentOrange,
                                   accentInk: t.accentOrangeInk,
                                 ),
@@ -546,8 +546,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
               height: 48,
               child: Row(
                 children: [
-                  Text(l10n.printLogFilters,
-                      style: theme.textTheme.titleLarge),
+                  Text(l10n.printLogFilters, style: theme.textTheme.titleLarge),
                   const Spacer(),
                   Visibility(
                     visible: filters.activeCount > 0,
@@ -637,8 +636,8 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                   filters.from == null && filters.to == null
                       ? l10n.printLogFilterDates
                       : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
-                          ' – '
-                          '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
+                            ' – '
+                            '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
                 ),
                 onPressed: () async {
                   final now = DateTime.now();
@@ -646,26 +645,27 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                     context: context,
                     firstDate: DateTime(now.year - 5),
                     lastDate: now,
-                    initialDateRange: filters.from != null &&
-                            filters.to != null
+                    initialDateRange: filters.from != null && filters.to != null
                         ? DateTimeRange(start: filters.from!, end: filters.to!)
                         : null,
                   );
                   if (picked == null) return;
-                  notifier.set(filters.copyWith(
-                    from: picked.start,
-                    // The picker hands back midnight; the range is meant to
-                    // include everything printed on that day, and the server
-                    // compares against an instant.
-                    to: DateTime(
-                      picked.end.year,
-                      picked.end.month,
-                      picked.end.day,
-                      23,
-                      59,
-                      59,
+                  notifier.set(
+                    filters.copyWith(
+                      from: picked.start,
+                      // The picker hands back midnight; the range is meant to
+                      // include everything printed on that day, and the server
+                      // compares against an instant.
+                      to: DateTime(
+                        picked.end.year,
+                        picked.end.month,
+                        picked.end.day,
+                        23,
+                        59,
+                        59,
+                      ),
                     ),
-                  ));
+                  );
                 },
               ),
             ),

@@ -24,7 +24,9 @@ class SliceJob {
       jobId: (json['job_id'] as num?)?.toInt() ?? -1,
       status: json['status'] as String? ?? 'pending',
       sourceName: json['source_name'] as String?,
-      progress: prog is Map<String, dynamic> ? SliceProgress.fromJson(prog) : null,
+      progress: prog is Map<String, dynamic>
+          ? SliceProgress.fromJson(prog)
+          : null,
       result: res is Map<String, dynamic> ? SliceResult.fromJson(res) : null,
       errorStatus: (json['error_status'] as num?)?.toInt(),
       errorDetail: json['error_detail'] as String?,
@@ -50,9 +52,9 @@ class SliceProgress {
   const SliceProgress({this.stage, this.totalPercent});
 
   factory SliceProgress.fromJson(Map<String, dynamic> json) => SliceProgress(
-        stage: json['stage'] as String?,
-        totalPercent: (json['total_percent'] as num?)?.toInt(),
-      );
+    stage: json['stage'] as String?,
+    totalPercent: (json['total_percent'] as num?)?.toInt(),
+  );
 
   final String? stage;
   final int? totalPercent;
@@ -72,12 +74,12 @@ class SliceResult {
   });
 
   factory SliceResult.fromJson(Map<String, dynamic> json) => SliceResult(
-        libraryFileId: (json['library_file_id'] as num?)?.toInt(),
-        name: json['name'] as String?,
-        printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
-        filamentUsedG: (json['filament_used_g'] as num?)?.toDouble(),
-        externalWriteFallback: toStringOrNull(json['external_write_fallback']),
-      );
+    libraryFileId: (json['library_file_id'] as num?)?.toInt(),
+    name: json['name'] as String?,
+    printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
+    filamentUsedG: (json['filament_used_g'] as num?)?.toDouble(),
+    externalWriteFallback: toStringOrNull(json['external_write_fallback']),
+  );
 
   final int? libraryFileId;
   final String? name;

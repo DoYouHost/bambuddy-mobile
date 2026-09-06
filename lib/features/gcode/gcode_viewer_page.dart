@@ -77,24 +77,22 @@ class GcodeViewerConfig {
   final ({double x, double y, double z})? volume;
 
   Map<String, Object?> toJson() => {
-        'gcodeUrl': gcodeUrl,
-        'headers': headers,
-        'dark': dark,
-        'insetRight': insetRight,
-        'filamentColors': filamentColors,
-        'labels': {
-          ...labels,
-          // The legend indexes by number, and JSON keys are strings.
-          'features': {
-            for (final e in featureLabels.entries) '${e.key}': e.value,
-          },
-          'filaments': {
-            for (final e in filamentLabels.entries) '${e.key}': e.value,
-          },
-        },
-        if (volume != null)
-          'volume': {'x': volume!.x, 'y': volume!.y, 'z': volume!.z},
-      };
+    'gcodeUrl': gcodeUrl,
+    'headers': headers,
+    'dark': dark,
+    'insetRight': insetRight,
+    'filamentColors': filamentColors,
+    'labels': {
+      ...labels,
+      // The legend indexes by number, and JSON keys are strings.
+      'features': {for (final e in featureLabels.entries) '${e.key}': e.value},
+      'filaments': {
+        for (final e in filamentLabels.entries) '${e.key}': e.value,
+      },
+    },
+    if (volume != null)
+      'volume': {'x': volume!.x, 'y': volume!.y, 'z': volume!.z},
+  };
 }
 
 /// Builds the single self-contained document the WebView loads.
@@ -139,20 +137,20 @@ class GcodeViewerReport {
   /// enough along that the app's spinner would only stack on top of the
   /// page's.
   const GcodeViewerReport.alive()
-      : ready = false,
-        alive = true,
-        error = null,
-        status = null;
+    : ready = false,
+      alive = true,
+      error = null,
+      status = null;
 
   const GcodeViewerReport.ready()
-      : ready = true,
-        alive = true,
-        error = null,
-        status = null;
+    : ready = true,
+      alive = true,
+      error = null,
+      status = null;
 
   const GcodeViewerReport.failed(this.error, {this.status})
-      : ready = false,
-        alive = true;
+    : ready = false,
+      alive = true;
 
   final bool ready;
 
@@ -178,9 +176,9 @@ class GcodeViewerReport {
 
   @override
   String toString() => switch (error) {
-        null => ready ? 'ready' : 'loading',
-        final e => 'failed($e, $status)',
-      };
+    null => ready ? 'ready' : 'loading',
+    final e => 'failed($e, $status)',
+  };
 }
 
 /// Reads a channel message; `null` for anything not in the protocol.
@@ -201,19 +199,22 @@ GcodeViewerReport? parseGcodeViewerReport(String message) {
   if (parts.first != 'error' || parts.length < 2) return null;
 
   return switch (parts[1]) {
-    'network' when parts.length == 2 =>
-      const GcodeViewerReport.failed(GcodeViewerError.network),
-    'empty' when parts.length == 2 =>
-      const GcodeViewerReport.failed(GcodeViewerError.empty),
-    'script' when parts.length == 2 =>
-      const GcodeViewerReport.failed(GcodeViewerError.script),
+    'network' when parts.length == 2 => const GcodeViewerReport.failed(
+      GcodeViewerError.network,
+    ),
+    'empty' when parts.length == 2 => const GcodeViewerReport.failed(
+      GcodeViewerError.empty,
+    ),
+    'script' when parts.length == 2 => const GcodeViewerReport.failed(
+      GcodeViewerError.script,
+    ),
     // `error:http:404` — the status is worth carrying: 401 and 404 send the
     // user to completely different places, and a bug report that says which
     // one it was saves a round trip.
     'http' when parts.length == 3 => GcodeViewerReport.failed(
-        GcodeViewerError.http,
-        status: int.tryParse(parts[2]),
-      ),
+      GcodeViewerError.http,
+      status: int.tryParse(parts[2]),
+    ),
     _ => null,
   };
 }

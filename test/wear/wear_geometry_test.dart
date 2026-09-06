@@ -24,35 +24,50 @@ void main() {
       expect(roundHalfChord(450, -90), roundHalfChord(450, 90));
     });
 
-    test('answers 0 rather than NaN past the glass, or with no glass at all',
-        () {
-      expect(roundHalfChord(450, 500), 0);
-      expect(roundHalfChord(0, 0), 0);
-      expect(roundHalfChord(-450, 10), 0);
-    });
+    test(
+      'answers 0 rather than NaN past the glass, or with no glass at all',
+      () {
+        expect(roundHalfChord(450, 500), 0);
+        expect(roundHalfChord(0, 0), 0);
+        expect(roundHalfChord(-450, 10), 0);
+      },
+    );
   });
 
   group('roundSideInsetFraction', () {
-    test('leaves a full-width row inside the circle at the top of the content',
-        () {
-      const diameter = 450.0;
-      final padding = wearFaceInsets(WearShape.round, const Size(diameter, diameter));
-      final rowWidth = diameter - padding.horizontal;
-      // The row's outermost corner: as far from the middle as the content area
-      // reaches.
-      final dy = diameter / 2 - padding.top;
+    test(
+      'leaves a full-width row inside the circle at the top of the content',
+      () {
+        const diameter = 450.0;
+        final padding = wearFaceInsets(
+          WearShape.round,
+          const Size(diameter, diameter),
+        );
+        final rowWidth = diameter - padding.horizontal;
+        // The row's outermost corner: as far from the middle as the content area
+        // reaches.
+        final dy = diameter / 2 - padding.top;
 
-      expect(
-        rowFitsRoundFace(diameter: diameter, rowWidth: rowWidth, dyFromCenter: dy),
-        isTrue,
-      );
-    });
+        expect(
+          rowFitsRoundFace(
+            diameter: diameter,
+            rowWidth: rowWidth,
+            dyFromCenter: dy,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('keeps real slack, not a tangent', () {
       const diameter = 450.0;
-      final padding = wearFaceInsets(WearShape.round, const Size(diameter, diameter));
+      final padding = wearFaceInsets(
+        WearShape.round,
+        const Size(diameter, diameter),
+      );
       final dy = diameter / 2 - padding.top;
-      final spare = roundHalfChord(diameter, dy) - (diameter - padding.horizontal) / 2;
+      final spare =
+          roundHalfChord(diameter, dy) - (diameter - padding.horizontal) / 2;
 
       // Worth about 6 px a side on a 450 px face: the bezel eats a little more
       // than the display metrics admit, and rounded corners cross first.
@@ -60,8 +75,10 @@ void main() {
     });
 
     test('a taller margin buys a wider row', () {
-      expect(roundSideInsetFraction(edgeFraction: 0.25),
-          lessThan(roundSideInsetFraction(edgeFraction: 0.10)));
+      expect(
+        roundSideInsetFraction(edgeFraction: 0.25),
+        lessThan(roundSideInsetFraction(edgeFraction: 0.10)),
+      );
     });
 
     test('is the geometry, not a constant', () {
@@ -69,21 +86,25 @@ void main() {
       const edge = 0.18;
       final expected =
           0.5 - math.sqrt(0.25 - math.pow(0.5 - edge, 2)) + roundSideSlack;
-      expect(roundSideInsetFraction(edgeFraction: edge), closeTo(expected, 1e-9));
+      expect(
+        roundSideInsetFraction(edgeFraction: edge),
+        closeTo(expected, 1e-9),
+      );
     });
   });
 
   group('wearFaceInsets', () {
-    test('round: sides derived from the circle, top and bottom from the tunable',
-        () {
-      final padding =
-          wearFaceInsets(WearShape.round, const Size(450, 450));
+    test(
+      'round: sides derived from the circle, top and bottom from the tunable',
+      () {
+        final padding = wearFaceInsets(WearShape.round, const Size(450, 450));
 
-      expect(padding.top, closeTo(450 * roundEdgeFraction, 0.001));
-      expect(padding.top, padding.bottom);
-      expect(padding.left, closeTo(450 * roundSideInsetFraction(), 0.001));
-      expect(padding.left, padding.right);
-    });
+        expect(padding.top, closeTo(450 * roundEdgeFraction, 0.001));
+        expect(padding.top, padding.bottom);
+        expect(padding.left, closeTo(450 * roundSideInsetFraction(), 0.001));
+        expect(padding.left, padding.right);
+      },
+    );
 
     test('square: plain chrome, and less of it than a round face needs', () {
       final square = wearFaceInsets(WearShape.square, const Size(450, 450));
@@ -125,30 +146,45 @@ void main() {
 
     test('trades the width it does not use for height', () {
       final full = wearFaceInsets(WearShape.round, face);
-      final narrow = wearFaceInsets(WearShape.round, face,
-          widthFraction: wearNarrowWidthFraction);
+      final narrow = wearFaceInsets(
+        WearShape.round,
+        face,
+        widthFraction: wearNarrowWidthFraction,
+      );
 
       expect(narrow.left, greaterThan(full.left));
-      expect(narrow.top, lessThan(full.top),
-          reason: 'the whole point: a taller band for the confirm buttons');
+      expect(
+        narrow.top,
+        lessThan(full.top),
+        reason: 'the whole point: a taller band for the confirm buttons',
+      );
     });
 
-    test('leaves the content exactly as wide as it asked for, less the slack',
-        () {
-      const fraction = wearNarrowWidthFraction;
-      final padding =
-          wearFaceInsets(WearShape.round, face, widthFraction: fraction);
+    test(
+      'leaves the content exactly as wide as it asked for, less the slack',
+      () {
+        const fraction = wearNarrowWidthFraction;
+        final padding = wearFaceInsets(
+          WearShape.round,
+          face,
+          widthFraction: fraction,
+        );
 
-      expect(face.width - padding.horizontal,
-          closeTo(face.width * (fraction - 2 * roundSideSlack), 0.001));
-    });
+        expect(
+          face.width - padding.horizontal,
+          closeTo(face.width * (fraction - 2 * roundSideSlack), 0.001),
+        );
+      },
+    );
 
     test('and keeps that rectangle inside the glass on the smallest face', () {
       // 192 dp: the face the fixed-width button row overflowed by 11 px.
       const diameter = 384.0;
       final padding = wearFaceInsets(
-          WearShape.round, const Size(diameter, diameter),
-          widthFraction: wearNarrowWidthFraction);
+        WearShape.round,
+        const Size(diameter, diameter),
+        widthFraction: wearNarrowWidthFraction,
+      );
 
       expect(
         rowFitsRoundFace(
@@ -162,8 +198,11 @@ void main() {
 
     test('and the height it gets back is the chord at that width', () {
       const fraction = 0.6;
-      final padding =
-          wearFaceInsets(WearShape.round, face, widthFraction: fraction);
+      final padding = wearFaceInsets(
+        WearShape.round,
+        face,
+        widthFraction: fraction,
+      );
 
       // The circle does not care which axis it is asked about: the half-chord
       // at a horizontal offset of 0.3 is the half-height the rectangle may
@@ -171,23 +210,31 @@ void main() {
       expect(
         face.height - padding.vertical,
         closeTo(
-          face.height * (2 * roundHalfChord(1, fraction / 2) - 2 * roundSideSlack),
+          face.height *
+              (2 * roundHalfChord(1, fraction / 2) - 2 * roundSideSlack),
           0.001,
         ),
       );
     });
 
     test('a fraction outside 0..1 is clamped, not extrapolated into a NaN', () {
-      expect(wearFaceInsets(WearShape.round, face, widthFraction: 1.5),
-          wearFaceInsets(WearShape.round, face, widthFraction: 1));
-      expect(wearFaceInsets(WearShape.round, face, widthFraction: -1),
-          wearFaceInsets(WearShape.round, face, widthFraction: 0));
+      expect(
+        wearFaceInsets(WearShape.round, face, widthFraction: 1.5),
+        wearFaceInsets(WearShape.round, face, widthFraction: 1),
+      );
+      expect(
+        wearFaceInsets(WearShape.round, face, widthFraction: -1),
+        wearFaceInsets(WearShape.round, face, widthFraction: 0),
+      );
     });
 
     test('a square face ignores it — there is no circle to trade against', () {
       expect(
-        wearFaceInsets(WearShape.square, face,
-            widthFraction: wearNarrowWidthFraction),
+        wearFaceInsets(
+          WearShape.square,
+          face,
+          widthFraction: wearNarrowWidthFraction,
+        ),
         wearFaceInsets(WearShape.square, face),
       );
     });
@@ -200,11 +247,11 @@ void main() {
     final radius = diameter * (0.5 - roundSideSlack);
 
     double scaleAt(double top) => roundScaleFor(
-          diameter: diameter,
-          itemWidth: width,
-          top: top,
-          bottom: top + height,
-        );
+      diameter: diameter,
+      itemWidth: width,
+      top: top,
+      bottom: top + height,
+    );
 
     /// The corner furthest from the middle once [top] has been scaled.
     double farCorner(double top) {
@@ -235,8 +282,10 @@ void main() {
         expect(
           halfWidth,
           lessThanOrEqualTo(
-              math.sqrt(math.max(0, radius * radius - corner * corner)) + 0.001),
-          reason: 'an item scaled to $scale at $top still has a corner off the '
+            math.sqrt(math.max(0, radius * radius - corner * corner)) + 0.001,
+          ),
+          reason:
+              'an item scaled to $scale at $top still has a corner off the '
               'glass',
         );
       }
@@ -248,16 +297,22 @@ void main() {
       // the display, so a list of four showed two and a black gap. Anything
       // whose near edge is on the face has to be worth something.
       for (var top = 0.0; top < radius - 1; top += 1) {
-        expect(scaleAt(top), greaterThan(0),
-            reason: 'an item starting at $top is still partly on the glass');
+        expect(
+          scaleAt(top),
+          greaterThan(0),
+          reason: 'an item starting at $top is still partly on the glass',
+        );
       }
     });
 
     test('shrinks the further out it is asked about', () {
       final scales = [for (var top = 0.0; top < 100; top += 20) scaleAt(top)];
 
-      expect(scales, orderedEquals(scales.toList()..sort((a, b) => b.compareTo(a))),
-          reason: 'a list that grew items on its way out would read as a fault');
+      expect(
+        scales,
+        orderedEquals(scales.toList()..sort((a, b) => b.compareTo(a))),
+        reason: 'a list that grew items on its way out would read as a fault',
+      );
       // And it has to be a real curve, not a formula that answers 1 everywhere
       // and satisfies the fit check by never shrinking anything.
       expect(scales.first, 1);
@@ -279,22 +334,24 @@ void main() {
       expect(scaleAt(40), closeTo(scaleAt(-40 - height), 0.000001));
     });
 
-    test('does not shrink a rounded item to protect a corner it never paints',
-        () {
-      double at(double corner) => roundScaleFor(
-            diameter: diameter,
-            itemWidth: width,
-            top: 20,
-            bottom: 20 + height,
-            cornerRadius: corner,
-          );
+    test(
+      'does not shrink a rounded item to protect a corner it never paints',
+      () {
+        double at(double corner) => roundScaleFor(
+          diameter: diameter,
+          itemWidth: width,
+          top: 20,
+          bottom: 20 + height,
+          cornerRadius: corner,
+        );
 
-      // The measured cost of ignoring this: a 20 dp round row was scaled to
-      // 0.85 to keep a square corner on the glass. Scaled text is re-rasterised
-      // — the same advances land on different pixels — so a row that shrinks
-      // for nothing reads as a row with different letter spacing.
-      expect(at(20), greaterThan(at(0)));
-    });
+        // The measured cost of ignoring this: a 20 dp round row was scaled to
+        // 0.85 to keep a square corner on the glass. Scaled text is re-rasterised
+        // — the same advances land on different pixels — so a row that shrinks
+        // for nothing reads as a row with different letter spacing.
+        expect(at(20), greaterThan(at(0)));
+      },
+    );
 
     test('and the rounded shape it allows still fits the glass', () {
       const corner = 20.0;
@@ -311,15 +368,18 @@ void main() {
 
         final anchor = roundCurveAnchor(top, bottom);
         final reach = math.max((top - anchor).abs(), (bottom - anchor).abs());
-        final round =
-            math.min(corner, math.min(width / 2, reach)) * scale;
+        final round = math.min(corner, math.min(width / 2, reach)) * scale;
         final far = (anchor + (bottom - anchor) * scale).abs();
         // What has to be inside the circle is the corner arc: its centre, one
         // radius in from each edge, plus that radius.
         final centre = Offset(width * scale / 2 - round, far - round);
-        expect(centre.distance + round, lessThanOrEqualTo(radius + 0.001),
-            reason: 'a $corner dp round item scaled to $scale at $top puts its '
-                'corner arc off the glass');
+        expect(
+          centre.distance + round,
+          lessThanOrEqualTo(radius + 0.001),
+          reason:
+              'a $corner dp round item scaled to $scale at $top puts its '
+              'corner arc off the glass',
+        );
       }
     });
 

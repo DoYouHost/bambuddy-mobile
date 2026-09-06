@@ -12,40 +12,50 @@ import '../helpers.dart';
 
 /// Every corner of [rect] inside the glass of a round face [logical] dp across.
 Matcher insideFace(double logical) => predicate<Rect>((rect) {
-      final radius = logical / 2;
-      final centre = Offset(radius, radius);
-      return [rect.topLeft, rect.topRight, rect.bottomLeft, rect.bottomRight]
-          .every((corner) => (corner - centre).distance <= radius);
-    }, 'inside a ${logical.round()} dp round face');
+  final radius = logical / 2;
+  final centre = Offset(radius, radius);
+  return [
+    rect.topLeft,
+    rect.topRight,
+    rect.bottomLeft,
+    rect.bottomRight,
+  ].every((corner) => (corner - centre).distance <= radius);
+}, 'inside a ${logical.round()} dp round face');
 
 /// Pumps [child] on a watch face, without the localizations and provider scope
 /// [pumpWear] carries — this widget needs neither, and the tests below pump the
 /// same tree twice with two different shapes.
-Future<void> _pumpFace(WidgetTester tester, Widget child,
-    {WearShape shape = WearShape.round, Size face = wearFaceLarge}) async {
+Future<void> _pumpFace(
+  WidgetTester tester,
+  Widget child, {
+  WearShape shape = WearShape.round,
+  Size face = wearFaceLarge,
+}) async {
   useWatchFace(tester, shape, face);
-  await tester.pumpWidget(MaterialApp(
-    // Keyed by shape: pumping a second face into the same tree would otherwise
-    // update the existing scope instead of rebuilding it, and the shape is read
-    // once, in initState.
-    builder: (context, inner) =>
-        WearShapeScope(key: ValueKey(shape), child: inner!),
-    home: Scaffold(body: child),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      // Keyed by shape: pumping a second face into the same tree would otherwise
+      // update the existing scope instead of rebuilding it, and the shape is read
+      // once, in initState.
+      builder: (context, inner) =>
+          WearShapeScope(key: ValueKey(shape), child: inner!),
+      home: Scaffold(body: child),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
 /// A full-width row, the shape that was landing under the bezel.
 Widget _row(int index) => SizedBox(
-      key: ValueKey('row-$index'),
-      height: 44,
-      child: ColoredBox(color: Colors.green.shade900, child: Text('row $index')),
-    );
+  key: ValueKey('row-$index'),
+  height: 44,
+  child: ColoredBox(color: Colors.green.shade900, child: Text('row $index')),
+);
 
 Finder get _indicator => find.descendant(
-      of: find.byType(WearScrollIndicator),
-      matching: find.byType(CustomPaint),
-    );
+  of: find.byType(WearScrollIndicator),
+  matching: find.byType(CustomPaint),
+);
 
 void main() {
   for (final (face, logical) in [
@@ -55,7 +65,9 @@ void main() {
     group('round-safe insets on a ${logical.round()} dp face', () {
       final inside = insideFace(logical);
 
-      testWidgets('the viewport itself never reaches the bezel', (tester) async {
+      testWidgets('the viewport itself never reaches the bezel', (
+        tester,
+      ) async {
         await _pumpFace(
           tester,
           WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
@@ -72,43 +84,50 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.getRect(find.byType(Scrollable)), inside);
-    });
+      });
 
-    testWidgets('the first row is inside the glass at the top of the scroll',
+      testWidgets(
+        'the first row is inside the glass at the top of the scroll',
         (tester) async {
-      await _pumpFace(
-        tester,
-        WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
-        face: face,
+          await _pumpFace(
+            tester,
+            WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+            face: face,
+          );
+
+          expect(tester.getRect(find.byKey(const ValueKey('row-0'))), inside);
+        },
       );
 
-      expect(tester.getRect(find.byKey(const ValueKey('row-0'))), inside);
-    });
+      testWidgets('and the last one is, at the bottom of it', (tester) async {
+        await _pumpFace(
+          tester,
+          WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+          face: face,
+        );
 
-    testWidgets('and the last one is, at the bottom of it', (tester) async {
-      await _pumpFace(
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('row-11')),
+          60,
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.byKey(const ValueKey('row-11'))), inside);
+      });
+
+      testWidgets('short content sits in the middle when asked to', (
         tester,
-        WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
-        face: face,
-      );
+      ) async {
+        await _pumpFace(
+          tester,
+          WearScrollView(centerWhenShort: true, children: [_row(0)]),
+          face: face,
+        );
 
-      await tester.scrollUntilVisible(find.byKey(const ValueKey('row-11')), 60);
-      await tester.pumpAndSettle();
-
-      expect(tester.getRect(find.byKey(const ValueKey('row-11'))), inside);
-    });
-
-    testWidgets('short content sits in the middle when asked to', (tester) async {
-      await _pumpFace(
-        tester,
-        WearScrollView(centerWhenShort: true, children: [_row(0)]),
-        face: face,
-      );
-
-      final row = tester.getRect(find.byKey(const ValueKey('row-0')));
-      expect(row.center.dy, closeTo(logical / 2, 1));
-      expect(row, inside);
-    });
+        final row = tester.getRect(find.byKey(const ValueKey('row-0')));
+        expect(row.center.dy, closeTo(logical / 2, 1));
+        expect(row, inside);
+      });
     });
   }
 
@@ -130,8 +149,9 @@ void main() {
       expect(_indicator, findsOneWidget);
     });
 
-    testWidgets('comes back on a scroll and leaves again when it stops',
-        (tester) async {
+    testWidgets('comes back on a scroll and leaves again when it stops', (
+      tester,
+    ) async {
       await _pumpFace(
         tester,
         WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
@@ -151,8 +171,11 @@ void main() {
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
-      expect(_indicator, findsNothing,
-          reason: 'permanent chrome on a 1.4" face is a waste of it');
+      expect(
+        _indicator,
+        findsNothing,
+        reason: 'permanent chrome on a 1.4" face is a waste of it',
+      );
     });
   });
 
@@ -174,8 +197,9 @@ void main() {
       expect(find.byType(ShaderMask), findsOneWidget);
     });
 
-    testWidgets('and arrives when a list grows into one that scrolls',
-        (tester) async {
+    testWidgets('and arrives when a list grows into one that scrolls', (
+      tester,
+    ) async {
       // The fleet landing turns a one-row screen into a list, without anyone
       // touching the glass: the fade has to follow the content, not the pump.
       Widget listOf(int rows) =>
@@ -220,18 +244,26 @@ void main() {
             // leaves. Only what is actually drawn can be off the glass.
             if (rect.isEmpty) continue;
             checked++;
-            expect(rect, insideFace(logical), reason: 'row $i after $step drags');
+            expect(
+              rect,
+              insideFace(logical),
+              reason: 'row $i after $step drags',
+            );
           }
           await tester.drag(find.byType(WearScrollView), const Offset(0, -30));
           await tester.pumpAndSettle();
         }
-        expect(checked, greaterThan(30),
-            reason: 'a sweep that checked nothing proves nothing');
+        expect(
+          checked,
+          greaterThan(30),
+          reason: 'a sweep that checked nothing proves nothing',
+        );
       });
     }
 
-    testWidgets('shows every row that still has glass under it',
-        (tester) async {
+    testWidgets('shows every row that still has glass under it', (
+      tester,
+    ) async {
       await _pumpFace(
         tester,
         WearScrollView(curved: true, children: rows(6)),
@@ -245,23 +277,32 @@ void main() {
       var shown = 0;
       for (var i = 0; i < 6; i++) {
         final row = find.byKey(ValueKey('row-$i'));
-        final curve =
-            find.ancestor(of: row, matching: find.byType(WearFaceCurve));
+        final curve = find.ancestor(
+          of: row,
+          matching: find.byType(WearFaceCurve),
+        );
         if (curve.evaluate().isEmpty) continue;
         // The wrapper reports where the row would be unscaled, which is what
         // decides whether the face has anything left under it.
         final box = tester.getRect(curve.first);
         if (box.top >= 192 || box.bottom <= 0) continue;
-        expect(tester.getRect(row).isEmpty, isFalse,
-            reason: 'row $i has glass under it and paints nothing');
+        expect(
+          tester.getRect(row).isEmpty,
+          isFalse,
+          reason: 'row $i has glass under it and paints nothing',
+        );
         shown++;
       }
-      expect(shown, greaterThanOrEqualTo(4),
-          reason: 'a 192 dp face has room for more than the two it used to show');
+      expect(
+        shown,
+        greaterThanOrEqualTo(4),
+        reason: 'a 192 dp face has room for more than the two it used to show',
+      );
     });
 
-    testWidgets('shrinks a row on its way out instead of cutting it',
-        (tester) async {
+    testWidgets('shrinks a row on its way out instead of cutting it', (
+      tester,
+    ) async {
       await _pumpFace(tester, WearScrollView(curved: true, children: rows(12)));
 
       final widths = [
@@ -275,8 +316,9 @@ void main() {
       expect(widths.first, lessThan(widths.reduce((a, b) => a > b ? a : b)));
     });
 
-    testWidgets('puts content where the rectangle kept a margin',
-        (tester) async {
+    testWidgets('puts content where the rectangle kept a margin', (
+      tester,
+    ) async {
       await _pumpFace(tester, WearScrollView(children: rows(12)));
       final rectangle = tester.getRect(find.byKey(const ValueKey('row-0'))).top;
 
@@ -294,25 +336,32 @@ void main() {
       // vanish. The guard is what keeps a misuse from blanking a screen.
       await _pumpFace(
         tester,
-        WearScrollView(curved: true, children: [
-          SizedBox(
-            key: const ValueKey('tall'),
-            height: 140,
-            child: ColoredBox(color: Colors.green.shade900),
-          ),
-          ...rows(6),
-        ]),
+        WearScrollView(
+          curved: true,
+          children: [
+            SizedBox(
+              key: const ValueKey('tall'),
+              height: 140,
+              child: ColoredBox(color: Colors.green.shade900),
+            ),
+            ...rows(6),
+          ],
+        ),
       );
 
       final tall = tester.getRect(find.byKey(const ValueKey('tall')));
-      expect(tall.width, closeTo(166.1, 1),
-          reason: 'the full content width, unscaled');
+      expect(
+        tall.width,
+        closeTo(166.1, 1),
+        reason: 'the full content width, unscaled',
+      );
 
       // Unscaled is not the same as unguarded: it is clipped to the band the
       // rectangle viewport used to give it, for paint and for taps alike.
       final curve = find.ancestor(
-          of: find.byKey(const ValueKey('tall')),
-          matching: find.byType(WearFaceCurve));
+        of: find.byKey(const ValueKey('tall')),
+        matching: find.byType(WearFaceCurve),
+      );
       expect(
         tester.renderObject<RenderWearFaceCurve>(curve.first).clipsToFace,
         isTrue,

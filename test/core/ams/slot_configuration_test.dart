@@ -43,26 +43,28 @@ void main() {
     expect(config.traySubBrands, 'Devil Design PETG');
   });
 
-  test('a built-in entry is already the filament id, and carries no setting',
-      () {
-    // Sending a setting id the printer cannot look up leaves the slot half
-    // configured.
-    final config = SlotConfiguration.forPreset(
-      preset: AmsFilamentPreset(
-        source: AmsPresetSource.builtin,
-        id: 'GFG99',
-        name: 'Generic PETG',
-      ),
-      colourHex: '112233',
-      nozzleDiameter: '0.6',
-    );
+  test(
+    'a built-in entry is already the filament id, and carries no setting',
+    () {
+      // Sending a setting id the printer cannot look up leaves the slot half
+      // configured.
+      final config = SlotConfiguration.forPreset(
+        preset: AmsFilamentPreset(
+          source: AmsPresetSource.builtin,
+          id: 'GFG99',
+          name: 'Generic PETG',
+        ),
+        colourHex: '112233',
+        nozzleDiameter: '0.6',
+      );
 
-    expect(config.trayInfoIdx, 'GFG99');
-    expect(config.settingId, '');
-    expect(config.trayType, 'PETG');
-    expect(config.nozzleTempMin, 220);
-    expect(config.nozzleTempMax, 260);
-  });
+      expect(config.trayInfoIdx, 'GFG99');
+      expect(config.settingId, '');
+      expect(config.trayType, 'PETG');
+      expect(config.nozzleTempMin, 220);
+      expect(config.nozzleTempMax, 260);
+    },
+  );
 
   test('an imported preset falls back to the closest Bambu generic', () {
     final config = SlotConfiguration.forPreset(
@@ -99,23 +101,25 @@ void main() {
     expect(config.nozzleTempMax, 225);
   });
 
-  test('a half-recorded range fills its gap from the material, not from PLA',
-      () {
-    final config = SlotConfiguration.forPreset(
-      preset: AmsFilamentPreset(
-        source: AmsPresetSource.local,
-        id: '7',
-        name: 'eSUN PETG',
-        filamentType: 'PETG',
-        nozzleTempMin: 235,
-      ),
-      colourHex: 'FFFFFF',
-      nozzleDiameter: '0.4',
-    );
+  test(
+    'a half-recorded range fills its gap from the material, not from PLA',
+    () {
+      final config = SlotConfiguration.forPreset(
+        preset: AmsFilamentPreset(
+          source: AmsPresetSource.local,
+          id: '7',
+          name: 'eSUN PETG',
+          filamentType: 'PETG',
+          nozzleTempMin: 235,
+        ),
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+      );
 
-    expect(config.nozzleTempMin, 235);
-    expect(config.nozzleTempMax, 260);
-  });
+      expect(config.nozzleTempMin, 235);
+      expect(config.nozzleTempMax, 260);
+    },
+  );
 
   test('reads the material from the name, over the type the bundle stored', () {
     // Older importers record "PLA Support for PETG" as PLA; the printer would
@@ -163,20 +167,23 @@ void main() {
       nozzleDiameter: '0.4',
     ).toQuery();
 
-    expect(query.keys, containsAll(<String>[
-      'tray_info_idx',
-      'tray_type',
-      'tray_sub_brands',
-      'tray_color',
-      'nozzle_temp_min',
-      'nozzle_temp_max',
-      'cali_idx',
-      'nozzle_diameter',
-      'setting_id',
-      'kprofile_filament_id',
-      'kprofile_setting_id',
-      'k_value',
-    ]));
+    expect(
+      query.keys,
+      containsAll(<String>[
+        'tray_info_idx',
+        'tray_type',
+        'tray_sub_brands',
+        'tray_color',
+        'nozzle_temp_min',
+        'nozzle_temp_max',
+        'cali_idx',
+        'nozzle_diameter',
+        'setting_id',
+        'kprofile_filament_id',
+        'kprofile_setting_id',
+        'k_value',
+      ]),
+    );
     // No K profile picked yet — the printer keeps its default K = 0.020.
     expect(query['cali_idx'], -1);
     expect(query['k_value'], 0);

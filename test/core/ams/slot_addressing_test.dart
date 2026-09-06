@@ -16,13 +16,15 @@ void main() {
       expect(externalSideOf(null), isNull);
     });
 
-    test('feeds the nozzle on its own side, which is numbered the other way',
-        () {
-      // Verified on a live X2D: the 254 spool sits physically left, and the
-      // printer calls the left nozzle extruder 1.
-      expect(extruderForExternalSide(0), 1);
-      expect(extruderForExternalSide(1), 0);
-    });
+    test(
+      'feeds the nozzle on its own side, which is numbered the other way',
+      () {
+        // Verified on a live X2D: the 254 spool sits physically left, and the
+        // printer calls the left nozzle extruder 1.
+        expect(extruderForExternalSide(0), 1);
+        expect(extruderForExternalSide(1), 0);
+      },
+    );
 
     test('says it does not know rather than answering 0', () {
       expect(extruderForExternalSide(null), isNull);

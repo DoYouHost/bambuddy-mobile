@@ -8,13 +8,14 @@ import '../helpers/fake_watch_connectivity.dart';
 import '../helpers.dart';
 
 void main() {
-  test(
-      'wearTransportProvider survives being only read '
+  test('wearTransportProvider survives being only read '
       '(autoDispose killed the reply listener mid-request)', () async {
-    final container = ProviderContainer(overrides: [
-      watchConnectivityProvider.overrideWithValue(FakeWatchConnectivity()),
-      noServerProfileOverride,
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        watchConnectivityProvider.overrideWithValue(FakeWatchConnectivity()),
+        noServerProfileOverride,
+      ],
+    );
     addTearDown(container.dispose);
 
     final first = container.read(wearTransportProvider);

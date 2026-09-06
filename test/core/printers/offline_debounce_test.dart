@@ -1,52 +1,31 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/printers/offline_debounce.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A timer the test fires by hand, so the window costs no wall time.
-class _FakeTimer implements Timer {
-  _FakeTimer(this.duration, this._callback);
-
-  final Duration duration;
-  final void Function() _callback;
-  bool cancelled = false;
-
-  void fire() {
-    if (cancelled) return;
-    _callback();
-  }
-
-  @override
-  void cancel() => cancelled = true;
-
-  @override
-  bool get isActive => !cancelled;
-
-  @override
-  int get tick => 0;
-}
+import '../../helpers.dart';
 
 void main() {
-  late List<_FakeTimer> timers;
+  late List<FakeTimer> timers;
   late List<String> events;
   late OfflineDebounce debounce;
 
   setUp(() {
     timers = [];
     events = [];
-    debounce = OfflineDebounce(timerFactory: (d, cb) {
-      final t = _FakeTimer(d, cb);
-      timers.add(t);
-      return t;
-    });
+    debounce = OfflineDebounce(
+      timerFactory: (d, cb) {
+        final t = FakeTimer(d, cb);
+        timers.add(t);
+        return t;
+      },
+    );
   });
 
   void observe(bool? connected, {bool debounceIt = true}) => debounce.observe(
-        connected,
-        debounce: debounceIt,
-        onSustained: () => events.add('sustained'),
-        onFlicker: () => events.add('flicker'),
-      );
+    connected,
+    debounce: debounceIt,
+    onSustained: () => events.add('sustained'),
+    onFlicker: () => events.add('flicker'),
+  );
 
   test('a disconnect is believed only after the window', () {
     observe(true);
@@ -124,11 +103,13 @@ void main() {
 
     // Seeding also drops a wait in progress — the caller is declaring the
     // state, not observing a change.
-    final fresh = OfflineDebounce(timerFactory: (d, cb) {
-      final t = _FakeTimer(d, cb);
-      timers.add(t);
-      return t;
-    });
+    final fresh = OfflineDebounce(
+      timerFactory: (d, cb) {
+        final t = FakeTimer(d, cb);
+        timers.add(t);
+        return t;
+      },
+    );
     fresh.observe(false, onSustained: () => events.add('sustained'));
     fresh.seed(true);
     expect(timers.last.cancelled, isTrue);

@@ -49,20 +49,19 @@ class SessionFacts {
     required DateTime ts,
     required String session,
     LogStream stream = LogStream.ui,
-  }) =>
-      LogHeader(
-        ts: ts,
-        session: session,
-        app: app,
-        flavor: flavor,
-        stream: stream,
-        os: os,
-        device: device,
-        locale: locale,
-        server: server,
-        serverUrl: serverUrl,
-        auth: auth,
-      );
+  }) => LogHeader(
+    ts: ts,
+    session: session,
+    app: app,
+    flavor: flavor,
+    stream: stream,
+    os: os,
+    device: device,
+    locale: locale,
+    server: server,
+    serverUrl: serverUrl,
+    auth: auth,
+  );
 }
 
 /// The exact values a session's redactor must never let through.
@@ -108,16 +107,19 @@ Future<SessionFacts> loadSessionFacts({
   Future<String?> Function()? readServerVersion,
 }) async {
   final info = await PackageInfo.fromPlatform();
-  final secrets =
-      await sessionSecrets(profile: profile, credentials: credentials);
+  final secrets = await sessionSecrets(
+    profile: profile,
+    credentials: credentials,
+  );
 
   return SessionFacts(
     app: '${info.version}+${info.buildNumber}',
     flavor: appFlavor ?? 'mobile',
     os: Platform.operatingSystemVersion,
     locale: PlatformDispatcher.instance.locale.toLanguageTag(),
-    server:
-        readServerVersion == null ? null : await _quietly(readServerVersion),
+    server: readServerVersion == null
+        ? null
+        : await _quietly(readServerVersion),
     serverUrl: ServerFingerprint.tryParse(profile?.baseUrl),
     auth: profile?.authMode.name,
     secrets: secrets,

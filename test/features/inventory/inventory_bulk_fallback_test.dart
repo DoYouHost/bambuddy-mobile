@@ -71,11 +71,13 @@ class _NativeBackend extends InventoryBackendNotifier {
 
 void main() {
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
-    final container = ProviderContainer(overrides: [
-      fakeServerProfileOverride(),
-      inventoryBackendProvider.overrideWith(_NativeBackend.new),
-      inventorySourceProvider.overrideWithValue(source),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        fakeServerProfileOverride(),
+        inventoryBackendProvider.overrideWith(_NativeBackend.new),
+        inventorySourceProvider.overrideWithValue(source),
+      ],
+    );
     addTearDown(container.dispose);
     // Keeps the autoDispose notifier alive for the whole test, and settles the
     // first load so the reload after a mutation is the second one.
@@ -84,28 +86,36 @@ void main() {
     return (container, source);
   }
 
-  test('a server with the routes takes one call for the whole selection',
-      () async {
-    final (container, source) = await harness(_FakeSource());
+  test(
+    'a server with the routes takes one call for the whole selection',
+    () async {
+      final (container, source) = await harness(_FakeSource());
 
-    final outcome =
-        await container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]);
+      final outcome = await container
+          .read(inventoryProvider.notifier)
+          .archiveSpools([1, 2, 3]);
 
-    expect(source.bulkCalls, [[1, 2, 3]]);
-    expect(source.perSpoolCalls, isEmpty);
-    expect(outcome.ok, 3);
-  });
+      expect(source.bulkCalls, [
+        [1, 2, 3],
+      ]);
+      expect(source.perSpoolCalls, isEmpty);
+      expect(outcome.ok, 3);
+    },
+  );
 
   test('a server without the routes gets one call per spool', () async {
-    final (container, source) = await harness(_FakeSource(
-      bulkFailure: const ApiException(
-        AppErrorCode.badResponse,
-        statusCode: 404,
+    final (container, source) = await harness(
+      _FakeSource(
+        bulkFailure: const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 404,
+        ),
       ),
-    ));
+    );
 
-    final outcome =
-        await container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]);
+    final outcome = await container
+        .read(inventoryProvider.notifier)
+        .archiveSpools([1, 2, 3]);
 
     expect(source.bulkCalls, hasLength(1));
     expect(source.perSpoolCalls, [1, 2, 3]);
@@ -113,16 +123,19 @@ void main() {
   });
 
   test('one spool failing in the fallback does not abort the rest', () async {
-    final (container, source) = await harness(_FakeSource(
-      bulkFailure: const ApiException(
-        AppErrorCode.badResponse,
-        statusCode: 404,
+    final (container, source) = await harness(
+      _FakeSource(
+        bulkFailure: const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 404,
+        ),
+        failingSpoolIds: {2},
       ),
-      failingSpoolIds: {2},
-    ));
+    );
 
-    final outcome =
-        await container.read(inventoryProvider.notifier).archiveSpools([1, 2, 3]);
+    final outcome = await container
+        .read(inventoryProvider.notifier)
+        .archiveSpools([1, 2, 3]);
 
     expect(source.perSpoolCalls, [1, 2, 3]);
     expect((outcome.ok, outcome.failed), (2, 1));
@@ -132,9 +145,9 @@ void main() {
     // 403 from a key without `filaments:update`: one request now stands for the
     // whole selection, so retrying it per spool would only ask 20 times to be
     // told no. The UI words it instead.
-    final (container, source) = await harness(_FakeSource(
-      bulkFailure: const AuthException(AppErrorCode.forbidden),
-    ));
+    final (container, source) = await harness(
+      _FakeSource(bulkFailure: const AuthException(AppErrorCode.forbidden)),
+    );
 
     await expectLater(
       container.read(inventoryProvider.notifier).archiveSpools([1, 2]),
@@ -144,9 +157,9 @@ void main() {
   });
 
   test('the shelf reloads once afterwards, refusal or not', () async {
-    final (container, source) = await harness(_FakeSource(
-      bulkFailure: const AuthException(AppErrorCode.forbidden),
-    ));
+    final (container, source) = await harness(
+      _FakeSource(bulkFailure: const AuthException(AppErrorCode.forbidden)),
+    );
     expect(source.loads, 1);
 
     await container

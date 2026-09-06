@@ -13,10 +13,9 @@ class DiscoveryRepository {
   final Dio _dio;
 
   Future<DiscoveryInfo> info() => guard(() async {
-        final res =
-            await _dio.get<Map<String, dynamic>>(Endpoints.discoveryInfo);
-        return DiscoveryInfo.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(Endpoints.discoveryInfo);
+    return DiscoveryInfo.fromJson(res.data ?? const {});
+  });
 
   /// Start a background subnet scan; poll [scanStatus] until `running` is false.
   Future<ScanStatus> startScan(String subnet, {double timeout = 1.0}) =>
@@ -29,31 +28,30 @@ class DiscoveryRepository {
       });
 
   Future<ScanStatus> scanStatus() => guard(() async {
-        final res =
-            await _dio.get<Map<String, dynamic>>(Endpoints.discoveryScanStatus);
-        return ScanStatus.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.discoveryScanStatus,
+    );
+    return ScanStatus.fromJson(res.data ?? const {});
+  });
 
   /// Start SSDP multicast discovery (native installs). Poll [discoveredPrinters]
   /// and call [stopSsdp] when done.
   Future<void> startSsdp({double duration = 10.0}) => guard(() async {
-        await _dio.post<Map<String, dynamic>>(
-          Endpoints.discoveryStart,
-          queryParameters: {'duration': duration},
-        );
-      });
+    await _dio.post<Map<String, dynamic>>(
+      Endpoints.discoveryStart,
+      queryParameters: {'duration': duration},
+    );
+  });
 
   Future<void> stopSsdp() => guard(() async {
-        await _dio.post<Map<String, dynamic>>(Endpoints.discoveryStop);
-      });
+    await _dio.post<Map<String, dynamic>>(Endpoints.discoveryStop);
+  });
 
   Future<List<DiscoveredPrinter>> discoveredPrinters() => guard(() async {
-        final res =
-            await _dio.get<List<dynamic>>(Endpoints.discoveryPrinters);
-        return [
-          for (final e in res.data ?? const [])
-            if (e is Map)
-              DiscoveredPrinter.fromJson(Map<String, dynamic>.from(e)),
-        ];
-      });
+    final res = await _dio.get<List<dynamic>>(Endpoints.discoveryPrinters);
+    return [
+      for (final e in res.data ?? const [])
+        if (e is Map) DiscoveredPrinter.fromJson(Map<String, dynamic>.from(e)),
+    ];
+  });
 }

@@ -15,12 +15,12 @@ void main() {
   late QueueRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = QueueRepository(dio);
   });
 
-  test('fetch: parsuje listę, id i statusKind są poprawne', () async {
+  test('fetch: parses list, id and statusKind are correct', () async {
     adapter.onGet(
       '/api/v1/queue/',
       (server) => server.reply(200, [readFixture('queue_item.json')]),
@@ -33,60 +33,71 @@ void main() {
     expect(items.first.statusKind, QueueItemStatusKind.printing);
   });
 
-  test('fetch: prawdziwa odpowiedź serwera parsuje się w całości', () async {
-    // Fixture przechwycony z żywego bambuddy (patrz test/fixtures/README.md).
-    // To jest tripwire na kontrakt: gdy serwer zmieni typ pola, na które
-    // generowany `fromJson` rzuca twardo, `parseJsonList` wyrzuci rekordy po
-    // cichu i ekran kolejki zrobi się pusty bez żadnego błędu.
+  test('fetch: real server response parses in full', () async {
+    // Fixture captured from a live bambuddy (see test/fixtures/README.md).
+    // This is a tripwire on the contract: when the server changes the type of
+    // a field the generated `fromJson` throws hard on, `parseJsonList` will
+    // silently drop records and the queue screen will go empty with no error.
     final payload = readFixture('queue_list.json') as List<dynamic>;
     adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
 
     final items = await repo.fetch();
 
-    expect(items, hasLength(payload.length),
-        reason: 'ani jeden rekord nie może wypaść przy parsowaniu');
+    expect(
+      items,
+      hasLength(payload.length),
+      reason: 'not a single record may drop during parsing',
+    );
     expect(items.map((i) => i.id), payload.map((r) => (r as Map)['id']));
   });
 
-  test('fetch: odpowiedź serwera 1.2.5 nie gubi ani jednego rekordu', () async {
-    // To jest ten pusty ekran ze zgłoszenia: trzy pola kalibracji przyszły jako
-    // stringi, generowany rzut na bool rzucał na KAŻDYM rekordzie i lista
-    // wychodziła pusta przy statusie 200.
+  test('fetch: 1.2.5 server response does not drop a single record', () async {
+    // This is the empty screen from the report: three calibration fields came
+    // in as strings, the generated cast to bool threw on EVERY record and the
+    // list came out empty with a 200 status.
     final payload = readFixture('queue_list_tristate.json') as List<dynamic>;
     adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
 
     final items = await repo.fetch();
 
     expect(items, hasLength(payload.length));
-    expect(items.map((i) => i.bedLevelling),
-        [CalibrationOption.off, CalibrationOption.auto]);
-    expect(items.map((i) => i.nozzleOffsetCali),
-        [CalibrationOption.auto, CalibrationOption.off]);
-    expect(items.where((i) => i.isActive), hasLength(2),
-        reason: 'pending + printing — ekran kolejki ma co pokazać');
+    expect(items.map((i) => i.bedLevelling), [
+      CalibrationOption.off,
+      CalibrationOption.auto,
+    ]);
+    expect(items.map((i) => i.nozzleOffsetCali), [
+      CalibrationOption.auto,
+      CalibrationOption.off,
+    ]);
+    expect(
+      items.where((i) => i.isActive),
+      hasLength(2),
+      reason: 'pending + printing — the queue screen has something to show',
+    );
   });
 
-  test('fetch: pozycje spoza AMS i dziwne nazwy przechodzą bez straty',
-      () async {
+  test('fetch: non-AMS items and odd names pass through without loss', () async {
     final payload = readFixture('queue_list.json') as List<dynamic>;
     adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
 
     final items = await repo.fetch();
     final fromLibrary = items.firstWhere((i) => i.libraryFileId != null);
-    final external = items.firstWhere((i) => i.amsMapping?.contains(254) ?? false);
+    final external = items.firstWhere(
+      (i) => i.amsMapping?.contains(254) ?? false,
+    );
     final scheduled = items.firstWhere((i) => i.scheduledTime != null);
 
     expect(fromLibrary.libraryFileName, endsWith('.gcode.3mf'));
     expect(external.amsMapping, contains(254));
     expect(scheduled.scheduledTime, isA<DateTime>());
-    // Serwer zwraca też nazwy z zepsutym kodowaniem — nie mogą nic wywalić.
+    // The server also returns names with broken encoding — must not crash anything.
     expect(items.map((i) => i.displayName), isNot(contains(isNull)));
   });
 
-  test('fetch: historia nie trafia do aktywnej kolejki', () async {
-    // Cała ta odpowiedź to pozycje zakończone (completed/cancelled/failed) —
-    // dokładnie taki serwer wygląda jak „kolejka pusta" na ekranie i jest to
-    // poprawne: aktywne są tylko pending/scheduled/printing/paused.
+  test('fetch: history does not land in the active queue', () async {
+    // This whole response is finished items (completed/cancelled/failed) —
+    // exactly what looks like an "empty queue" on screen, and that's
+    // correct: only pending/scheduled/printing/paused are active.
     final payload = readFixture('queue_list.json') as List<dynamic>;
     adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
 
@@ -100,59 +111,66 @@ void main() {
         QueueItemStatusKind.cancelled,
         QueueItemStatusKind.failed,
       },
-      reason: 'żaden status z tej odpowiedzi nie może trafić do unknown',
+      reason: 'no status from this response may land in unknown',
     );
   });
 
   group('fetchActive', () {
-    /// Dwa filtrowane żądania zamiast jednego po całość — dopasowanie po
-    /// `queryParameters` jest tu istotą testu, nie ozdobą.
+    /// Two filtered requests instead of one for everything — matching on
+    /// `queryParameters` is the point of the test here, not decoration.
     void mockStatus(String status, List<dynamic> reply) => adapter.onGet(
-          '/api/v1/queue/',
-          (server) => server.reply(200, reply),
-          queryParameters: {'status': status},
-        );
+      '/api/v1/queue/',
+      (server) => server.reply(200, reply),
+      queryParameters: {'status': status},
+    );
 
     Map<String, dynamic> item(int id, String status) => {
-          'id': id,
-          'position': 1,
-          'status': status,
-        };
+      'id': id,
+      'position': 1,
+      'status': status,
+    };
 
-    test('pyta osobno o pending i printing, scala odpowiedzi', () async {
-      mockStatus('pending', [item(2, 'pending'), item(3, 'pending')]);
-      mockStatus('printing', [item(1, 'printing')]);
+    test(
+      'asks separately for pending and printing, merges responses',
+      () async {
+        mockStatus('pending', [item(2, 'pending'), item(3, 'pending')]);
+        mockStatus('printing', [item(1, 'printing')]);
 
-      final items = await repo.fetchActive();
+        final items = await repo.fetchActive();
 
-      expect(items.map((i) => i.id).toSet(), {1, 2, 3});
-      expect(items.where((i) => i.statusKind == QueueItemStatusKind.printing),
-          hasLength(1));
-    });
+        expect(items.map((i) => i.id).toSet(), {1, 2, 3});
+        expect(
+          items.where((i) => i.statusKind == QueueItemStatusKind.printing),
+          hasLength(1),
+        );
+      },
+    );
 
-    test('pozycja, która ruszyła między odpowiedziami, jest raz i jako drukująca',
-        () async {
-      // Wyścig wbudowany w dwa żądania: scheduler wystartował 7 po tym, jak
-      // lista pending została zbudowana.
-      mockStatus('pending', [item(7, 'pending')]);
-      mockStatus('printing', [item(7, 'printing')]);
+    test(
+      'an item that moved between responses appears once, as printing',
+      () async {
+        // Race built into two requests: the scheduler started 7 after the
+        // pending list had been built.
+        mockStatus('pending', [item(7, 'pending')]);
+        mockStatus('printing', [item(7, 'printing')]);
 
-      final items = await repo.fetchActive();
+        final items = await repo.fetchActive();
 
-      expect(items, hasLength(1));
-      expect(items.single.statusKind, QueueItemStatusKind.printing);
-    });
+        expect(items, hasLength(1));
+        expect(items.single.statusKind, QueueItemStatusKind.printing);
+      },
+    );
 
-    test('pusta kolejka to pusta lista, nie błąd', () async {
+    test('an empty queue is an empty list, not an error', () async {
       mockStatus('pending', const []);
       mockStatus('printing', const []);
 
       expect(await repo.fetchActive(), isEmpty);
     });
 
-    test('błąd któregokolwiek żądania nie ginie', () async {
-      // Ekran ma pokazać błąd, nie „kolejka pusta" — to jest różnica między
-      // „serwer nie odpowiedział" i „nie ma nic do druku".
+    test('an error from either request does not get lost', () async {
+      // The screen must show an error, not "empty queue" — that's the
+      // difference between "server did not answer" and "nothing to print".
       mockStatus('pending', const []);
       adapter.onGet(
         '/api/v1/queue/',
@@ -164,7 +182,7 @@ void main() {
     });
   });
 
-  test('reorder: wysyła POST i kończy się bez wyjątku', () async {
+  test('reorder: sends POST and completes without exception', () async {
     adapter.onPost(
       '/api/v1/queue/reorder',
       (server) => server.reply(200, null),
@@ -177,67 +195,76 @@ void main() {
     );
 
     await repo.reorder([(id: 78, position: 1), (id: 79, position: 2)]);
-    // Brak wyjątku = sukces.
+    // No exception = success.
   });
 
-  test('delete: wysyła DELETE /queue/78 i kończy się bez wyjątku', () async {
-    adapter.onDelete(
-      '/api/v1/queue/78',
-      (server) => server.reply(200, null),
-    );
+  test(
+    'delete: sends DELETE /queue/78 and completes without exception',
+    () async {
+      adapter.onDelete('/api/v1/queue/78', (server) => server.reply(200, null));
 
-    await repo.delete(78);
-  });
+      await repo.delete(78);
+    },
+  );
 
-  test('start: wysyła POST /queue/78/start i kończy się bez wyjątku', () async {
-    adapter.onPost(
-      '/api/v1/queue/78/start',
-      (server) => server.reply(200, null),
-    );
+  test(
+    'start: sends POST /queue/78/start and completes without exception',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/78/start',
+        (server) => server.reply(200, null),
+      );
 
-    await repo.start(78);
-  });
+      await repo.start(78);
+    },
+  );
 
-  test('cancel: wysyła POST /queue/78/cancel i kończy się bez wyjątku',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/78/cancel',
-      (server) => server.reply(200, null),
-    );
+  test(
+    'cancel: sends POST /queue/78/cancel and completes without exception',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/78/cancel',
+        (server) => server.reply(200, null),
+      );
 
-    await repo.cancel(78);
-  });
+      await repo.cancel(78);
+    },
+  );
 
-  test('addFromArchive: wysyła POST /queue/ i kończy się bez wyjątku',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
-    );
+  test(
+    'addFromArchive: sends POST /queue/ and completes without exception',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
+      );
 
-    await repo.addFromArchive(77, printerId: 1);
-  });
+      await repo.addFromArchive(77, printerId: 1);
+    },
+  );
 
-  test('addFromArchive z insertAtTop: dokłada insert_at_top=true (reprint)',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {
-        'archive_id': 77,
-        'printer_id': 1,
-        'quantity': 1,
-        'insert_at_top': true,
-      },
-    );
+  test(
+    'addFromArchive with insertAtTop: adds insert_at_top=true (reprint)',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'printer_id': 1,
+          'quantity': 1,
+          'insert_at_top': true,
+        },
+      );
 
-    await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
-  });
+      await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
+    },
+  );
 
-  test('addFromArchive z opcjami: cała konfiguracja idzie z POST-em', () async {
-    // Sedno poprawki wyścigu: pozycja powstaje już skonfigurowana, więc
-    // scheduler nie ma jak zabrać jej w trakcie ustawiania.
+  test('addFromArchive with options: full config goes with the POST', () async {
+    // The heart of the race fix: the item is created already configured, so
+    // the scheduler has no way to grab it mid-setup.
     adapter.onPost(
       '/api/v1/queue/',
       (server) => server.reply(200, null),
@@ -276,32 +303,34 @@ void main() {
     );
   });
 
-  test('addFromLibraryFile z harmonogramem: scheduled_time i cel modelowy',
-      () async {
-    adapter.onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: {
-        'library_file_id': 12,
-        'quantity': 1,
-        'target_model': 'X2D',
-        'target_location': 'Garage',
-        'scheduled_time': '2026-07-28T20:00:00.000Z',
-      },
-    );
+  test(
+    'addFromLibraryFile with schedule: scheduled_time and target model',
+    () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'library_file_id': 12,
+          'quantity': 1,
+          'target_model': 'X2D',
+          'target_location': 'Garage',
+          'scheduled_time': '2026-07-28T20:00:00.000Z',
+        },
+      );
 
-    await repo.addFromLibraryFile(
-      12,
-      options: const QueueCreateOptions(
-        targetModel: 'X2D',
-        targetLocation: 'Garage',
-        scheduledTime: '2026-07-28T20:00:00.000Z',
-      ),
-    );
-  });
+      await repo.addFromLibraryFile(
+        12,
+        options: const QueueCreateOptions(
+          targetModel: 'X2D',
+          targetLocation: 'Garage',
+          scheduledTime: '2026-07-28T20:00:00.000Z',
+        ),
+      );
+    },
+  );
 
-  group('kalibracje na zapisie', () {
-    /// Repozytorium pytające podstawiony serwer o wersję.
+  group('calibrations on save', () {
+    /// Repository asking the stubbed server for its version.
     QueueRepository repoFor(String version) {
       adapter.onGet(
         '/api/v1/updates/version',
@@ -310,7 +339,7 @@ void main() {
       return QueueRepository(dio, ServerVersionService(dio));
     }
 
-    test('on/off zawsze booleanem — również na serwerze 1.2.5', () async {
+    test('on/off always as boolean — even on server 1.2.5', () async {
       adapter.onPost(
         '/api/v1/queue/',
         (server) => server.reply(200, null),
@@ -331,15 +360,11 @@ void main() {
       );
     });
 
-    test('auto leci jako string na serwer, który to umie', () async {
+    test('auto goes as a string to a server that can handle it', () async {
       adapter.onPost(
         '/api/v1/queue/',
         (server) => server.reply(200, null),
-        data: {
-          'archive_id': 77,
-          'quantity': 1,
-          'bed_levelling': 'auto',
-        },
+        data: {'archive_id': 77, 'quantity': 1, 'bed_levelling': 'auto'},
       );
 
       await repoFor('1.2.5.1').addFromArchive(
@@ -348,37 +373,39 @@ void main() {
       );
     });
 
-    test('tworzenie: auto na starym serwerze idzie tak, jak pokazał formularz',
-        () async {
-      // `auto` trafia tu tylko jako wybór zapamiętany z nowszego serwera. Stary
-      // nie ma go gdzie zapisać, a formularz pokazuje wtedy przełącznik
-      // dwustanowy w pozycji ON — więc ON ma pojechać. Pominięcie klucza
-      // oddawało decyzję serwerowi, a jego domyślna dla `flow_cali` to `false`,
-      // czyli ekran mówił co innego, niż się zapisywało.
-      adapter.onPost(
-        '/api/v1/queue/',
-        (server) => server.reply(200, null),
-        data: {
-          'archive_id': 77,
-          'quantity': 1,
-          'bed_levelling': true,
-          'flow_cali': true,
-        },
-      );
+    test(
+      'creating: auto on an old server goes the way the form showed it',
+      () async {
+        // `auto` only lands here as a choice remembered from a newer server. The
+        // old one has nowhere to store it, and the form then shows a two-state
+        // toggle in the ON position — so ON must go out. Omitting the key would
+        // hand the decision to the server, whose default for `flow_cali` is
+        // `false`, so the screen would say one thing while saving another.
+        adapter.onPost(
+          '/api/v1/queue/',
+          (server) => server.reply(200, null),
+          data: {
+            'archive_id': 77,
+            'quantity': 1,
+            'bed_levelling': true,
+            'flow_cali': true,
+          },
+        );
 
-      await repoFor('0.2.4.9').addFromArchive(
-        77,
-        options: const QueueCreateOptions(
-          bedLevelling: CalibrationOption.auto,
-          flowCali: CalibrationOption.auto,
-        ),
-      );
-    });
+        await repoFor('0.2.4.9').addFromArchive(
+          77,
+          options: const QueueCreateOptions(
+            bedLevelling: CalibrationOption.auto,
+            flowCali: CalibrationOption.auto,
+          ),
+        );
+      },
+    );
 
-    test('edycja: auto na starym serwerze nadal wypada z body', () async {
-      // Odwrotnie niż przy tworzeniu: tu JEST zapisana wartość do ochrony.
-      // Wysłanie booleana przepisałoby userowi auto na on/off w polu, którego
-      // mógł nie tknąć.
+    test('editing: auto on an old server still drops from the body', () async {
+      // Opposite of creating: here there IS a stored value to protect.
+      // Sending a boolean would overwrite the user's auto with on/off on a
+      // field they may not have touched.
       adapter.onPatch(
         '/api/v1/queue/9',
         (server) => server.reply(200, null),
@@ -392,7 +419,7 @@ void main() {
       );
     });
 
-    test('nieznana wersja zachowuje się jak starsza', () async {
+    test('unknown version behaves like an older one', () async {
       adapter.onGet(
         '/api/v1/updates/version',
         (server) => server.reply(500, null),
@@ -410,11 +437,10 @@ void main() {
       );
     });
 
-    test('nasz serwer 0.2.5b2: booleany potwierdzone zapytaniem na żywo',
-        () async {
-      // Sprawdzone 2026-07-30 curlem na własny serwer: `.[0].bed_levelling`
-      // zwraca `true`. Czyli 0.2.5b2 jest PRZED zmianą na trójstan — numer
-      // wersji dawał tę samą odpowiedź, ale przypadkiem, nie z dowodu.
+    test('our server 0.2.5b2: booleans confirmed by a live query', () async {
+      // Verified 2026-07-30 by curling our own server: `.[0].bed_levelling`
+      // returns `true`. So 0.2.5b2 is BEFORE the tri-state change — the
+      // version number gave the same answer, but by coincidence, not proof.
       final repo = repoFor('0.2.5b2');
       adapter.onGet(
         '/api/v1/queue/',
@@ -427,30 +453,41 @@ void main() {
       expect(await repo.supportsTriStateCalibration(), isFalse);
     });
 
-    test('to, co serwer przysłał, bije numer wersji', () async {
-      // Ten sam numer wersji, ale gdyby serwer wysyłał stringi — obserwacja ma
-      // wygrać. Bramkowanie po numerze jest tu formalnie nierozstrzygalne:
-      // 0.2.5b2 to beta tego samego cyklu, który wyszedł jako 1.2.5, a leży pod
-      // nim w każdym porządku.
+    test('what the server actually sent beats the version number', () async {
+      // Same version number, but if the server were sending strings —
+      // observation should win. Gating by number is formally undecidable here:
+      // 0.2.5b2 is a beta of the same cycle that shipped as 1.2.5, and sorts
+      // below it in every ordering.
       final repo = repoFor('0.2.5b2');
-      expect(await repo.supportsTriStateCalibration(), isFalse,
-          reason: 'zanim cokolwiek zobaczy — ostrożnie');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isFalse,
+        reason: 'before seeing anything — be cautious',
+      );
 
       adapter.onGet(
         '/api/v1/queue/',
         (server) => server.reply(200, [
-          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': 'auto'},
+          {
+            'id': 1,
+            'position': 1,
+            'status': 'pending',
+            'bed_levelling': 'auto',
+          },
         ]),
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isTrue,
-          reason: 'stringi w odpowiedzi to dowód, nie poszlaka');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isTrue,
+        reason: 'strings in the response are proof, not a hint',
+      );
     });
 
-    test('booleany w odpowiedzi trzymają nas przy starym kształcie', () async {
-      // Odwrotny kierunek: serwer nazywa się 1.2.5, ale gdyby wysyłał booleany,
-      // obserwacja też ma wygrać — nie wyślemy mu stringa.
+    test('booleans in the response keep us on the old shape', () async {
+      // Opposite direction: the server calls itself 1.2.5, but if it were
+      // sending booleans, observation should win too — we won't send it a string.
       final repo = repoFor('1.2.5.1');
       adapter.onGet(
         '/api/v1/queue/',
@@ -463,7 +500,7 @@ void main() {
       expect(await repo.supportsTriStateCalibration(), isFalse);
     });
 
-    test('odpowiedź bez pól kalibracji nic nie ustala', () async {
+    test('a response without calibration fields settles nothing', () async {
       final repo = repoFor('1.2.5.1');
       adapter.onGet(
         '/api/v1/queue/',
@@ -473,11 +510,14 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isTrue,
-          reason: 'brak obserwacji → decyduje wersja');
+      expect(
+        await repo.supportsTriStateCalibration(),
+        isTrue,
+        reason: 'no observation → version decides',
+      );
     });
 
-    test('po obserwacji auto jedzie na serwer 0.2.5b2', () async {
+    test('after observation, auto goes out to server 0.2.5b2', () async {
       final repo = repoFor('0.2.5b2');
       adapter
         ..onGet(
@@ -501,33 +541,39 @@ void main() {
       await repo.updateItem(9, bedLevelling: CalibrationOption.auto);
     });
 
-    test('bez serwisu wersji też działa — czytające wywołania go nie mają',
-        () async {
-      adapter.onPatch(
-        '/api/v1/queue/9',
-        (server) => server.reply(200, null),
-        data: {'flow_cali': false},
-      );
+    test(
+      'also works without a version service — reading calls have none',
+      () async {
+        adapter.onPatch(
+          '/api/v1/queue/9',
+          (server) => server.reply(200, null),
+          data: {'flow_cali': false},
+        );
 
-      await QueueRepository(dio).updateItem(
-        9,
-        flowCali: CalibrationOption.off,
-        bedLevelling: CalibrationOption.auto,
-      );
-    });
+        await QueueRepository(dio).updateItem(
+          9,
+          flowCali: CalibrationOption.off,
+          bedLevelling: CalibrationOption.auto,
+        );
+      },
+    );
   });
 
-  test('puste opcje nie dokładają nic do body', () async {
-    // Null w [QueueCreateOptions] znaczy „nieustawione" — klucz ma NIE polecieć,
-    // bo na tworzeniu nie ma czego czyścić, a serwer ma własne domyślne.
+  test('empty options add nothing to the body', () async {
+    // Null in [QueueCreateOptions] means "unset" — the key must NOT go out,
+    // because there is nothing to clear on creation, and the server has its
+    // own defaults.
     adapter.onPost(
       '/api/v1/queue/',
       (server) => server.reply(200, null),
       data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
     );
 
-    await repo.addFromArchive(77,
-        printerId: 1, options: const QueueCreateOptions());
+    await repo.addFromArchive(
+      77,
+      printerId: 1,
+      options: const QueueCreateOptions(),
+    );
   });
 
   group('addCrossModel (#671)', () {

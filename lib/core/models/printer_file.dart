@@ -23,13 +23,13 @@ class PrinterFile {
   final DateTime? modifiedAt;
 
   factory PrinterFile.fromJson(Map<String, dynamic> json) => PrinterFile(
-        name: toStringOrNull(json['name']) ?? '',
-        path: toStringOrNull(json['path']) ?? '',
-        // Server key is `is_directory`; treat only an explicit true as a dir.
-        isDirectory: json['is_directory'] == true,
-        size: toInt(json['size']),
-        modifiedAt: dateTimeFromJson(json['mtime']),
-      );
+    name: toStringOrNull(json['name']) ?? '',
+    path: toStringOrNull(json['path']) ?? '',
+    // Server key is `is_directory`; treat only an explicit true as a dir.
+    isDirectory: json['is_directory'] == true,
+    size: toInt(json['size']),
+    modifiedAt: dateTimeFromJson(json['mtime']),
+  );
 }
 
 /// One directory listing from `GET /printers/{id}/files`, plus whether the
@@ -57,8 +57,9 @@ class PrinterFileListing {
   factory PrinterFileListing.fromJson(Map<String, dynamic> json) =>
       PrinterFileListing(
         files: parseJsonList(json['files'], PrinterFile.fromJson),
-        printerUnavailable:
-            toStringList(json['warnings']).contains(_unavailableWarning),
+        printerUnavailable: toStringList(
+          json['warnings'],
+        ).contains(_unavailableWarning),
       );
 }
 
@@ -73,7 +74,7 @@ class PrinterStorage {
   bool get hasData => usedBytes != null || freeBytes != null;
 
   factory PrinterStorage.fromJson(Map<String, dynamic> json) => PrinterStorage(
-        usedBytes: toIntOrNull(json['used_bytes']),
-        freeBytes: toIntOrNull(json['free_bytes']),
-      );
+    usedBytes: toIntOrNull(json['used_bytes']),
+    freeBytes: toIntOrNull(json['free_bytes']),
+  );
 }

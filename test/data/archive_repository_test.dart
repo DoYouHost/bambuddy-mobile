@@ -13,12 +13,12 @@ void main() {
   late ArchiveRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = ArchiveRepository(dio);
   });
 
-  test('list: parsuje listę, id i displayName są poprawne', () async {
+  test('list: parses the list, id and displayName are correct', () async {
     adapter.onGet(
       '/api/v1/archives/',
       (server) => server.reply(200, [readFixture('archive.json')]),
@@ -31,7 +31,7 @@ void main() {
     expect(archives.first.displayName, 'The Smoothy - Y Splitter Connector');
   });
 
-  test('byId: GET /archives/82 zwraca pojedynczy wpis ze zdjęciami', () async {
+  test('byId: GET /archives/82 returns a single entry with photos', () async {
     final withPhoto = {
       ...readFixture('archive.json') as Map<String, dynamic>,
       'photos': ['finish_20260815_120000_ab12cd34.jpg'],
@@ -48,7 +48,7 @@ void main() {
     expect(archive.hasPhotos, isTrue);
   });
 
-  test('search: parsuje listę wyników wyszukiwania', () async {
+  test('search: parses the list of search results', () async {
     adapter.onGet(
       '/api/v1/archives/search',
       (server) => server.reply(200, [readFixture('archive.json')]),
@@ -59,35 +59,39 @@ void main() {
     expect(archives, hasLength(1));
   });
 
-  test('toggleFavorite: POST /archives/82/favorite zwraca zaktualizowany wpis',
-      () async {
-    final favorited = {
-      ...readFixture('archive.json') as Map<String, dynamic>,
-      'is_favorite': true,
-    };
-    adapter.onPost(
-      '/api/v1/archives/82/favorite',
-      (server) => server.reply(200, favorited),
-    );
+  test(
+    'toggleFavorite: POST /archives/82/favorite returns the updated entry',
+    () async {
+      final favorited = {
+        ...readFixture('archive.json') as Map<String, dynamic>,
+        'is_favorite': true,
+      };
+      adapter.onPost(
+        '/api/v1/archives/82/favorite',
+        (server) => server.reply(200, favorited),
+      );
 
-    final archive = await repo.toggleFavorite(82);
+      final archive = await repo.toggleFavorite(82);
 
-    expect(archive.id, 82);
-    expect(archive.isFavorite, isTrue);
-  });
+      expect(archive.id, 82);
+      expect(archive.isFavorite, isTrue);
+    },
+  );
 
-  test('delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
-      () async {
-    adapter.onDelete(
-      '/api/v1/archives/82',
-      (server) => server.reply(200, null),
-      queryParameters: {'purge_stats': false},
-    );
+  test(
+    'delete: sends DELETE /archives/82 with purge_stats=false by default',
+    () async {
+      adapter.onDelete(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, null),
+        queryParameters: {'purge_stats': false},
+      );
 
-    await repo.delete(82);
-  });
+      await repo.delete(82);
+    },
+  );
 
-  test('delete: purgeStats=true ustawia purge_stats=true w query', () async {
+  test('delete: purgeStats=true sets purge_stats=true in the query', () async {
     adapter.onDelete(
       '/api/v1/archives/82',
       (server) => server.reply(200, null),
@@ -97,25 +101,28 @@ void main() {
     await repo.delete(82, purgeStats: true);
   });
 
-  test('purgePreview: parsuje count/total_bytes i przekazuje próg', () async {
-    adapter.onGet(
-      '/api/v1/archives/purge/preview',
-      (server) => server.reply(200, {
-        'count': 12,
-        'total_bytes': 2048,
-        'sample_filenames': ['a.3mf', 'b.3mf'],
-        'older_than_days': 90,
-      }),
-      queryParameters: {'older_than_days': 90, 'purge_stats': false},
-    );
+  test(
+    'purgePreview: parses count/total_bytes and passes the threshold',
+    () async {
+      adapter.onGet(
+        '/api/v1/archives/purge/preview',
+        (server) => server.reply(200, {
+          'count': 12,
+          'total_bytes': 2048,
+          'sample_filenames': ['a.3mf', 'b.3mf'],
+          'older_than_days': 90,
+        }),
+        queryParameters: {'older_than_days': 90, 'purge_stats': false},
+      );
 
-    final preview = await repo.purgePreview(olderThanDays: 90);
+      final preview = await repo.purgePreview(olderThanDays: 90);
 
-    expect(preview.count, 12);
-    expect(preview.totalBytes, 2048);
-    expect(preview.sampleFilenames, ['a.3mf', 'b.3mf']);
-    expect(preview.olderThanDays, 90);
-  });
+      expect(preview.count, 12);
+      expect(preview.totalBytes, 2048);
+      expect(preview.sampleFilenames, ['a.3mf', 'b.3mf']);
+      expect(preview.olderThanDays, 90);
+    },
+  );
 
   test('purge: POST z older_than_days/purge_stats zwraca deleted', () async {
     adapter.onPost(
@@ -158,15 +165,19 @@ void main() {
 
       expect(archive.runCount, 0);
       expect(archive.totalFilamentActualGrams, isNull);
-      expect(archive.filamentUsedGrams, 17.1, reason: 'its own figure is not the aggregate');
+      expect(
+        archive.filamentUsedGrams,
+        17.1,
+        reason: 'its own figure is not the aggregate',
+      );
     });
   });
 
   group('setFilamentGrams', () {
     Map<String, dynamic> archiveWith(Object? grams) => {
-          ...readFixture('archive.json') as Map<String, dynamic>,
-          'filament_used_grams': grams,
-        };
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      'filament_used_grams': grams,
+    };
 
     test('sends the weight and reads back the stored one', () async {
       adapter.onPatch(
@@ -185,20 +196,25 @@ void main() {
     // still has the route and still answers 200 — its request model just drops
     // the key it cannot name — so the archive comes back with the weight it had
     // and the status code says nothing at all.
-    test('a server that drops the key answers 200 and changes nothing',
-        () async {
-      adapter.onPatch(
-        '/api/v1/archives/82',
-        (server) => server.reply(200, archiveWith(17.1)),
-        data: {'filament_used_grams': 42.0},
-      );
+    test(
+      'a server that drops the key answers 200 and changes nothing',
+      () async {
+        adapter.onPatch(
+          '/api/v1/archives/82',
+          (server) => server.reply(200, archiveWith(17.1)),
+          data: {'filament_used_grams': 42.0},
+        );
 
-      final result = await repo.setFilamentGrams(82, 42.0);
+        final result = await repo.setFilamentGrams(82, 42.0);
 
-      expect(result.applied, isFalse);
-      expect(result.archive.filamentUsedGrams, 17.1,
-          reason: 'the row the user is looking at, not the one they asked for');
-    });
+        expect(result.applied, isFalse);
+        expect(
+          result.archive.filamentUsedGrams,
+          17.1,
+          reason: 'the row the user is looking at, not the one they asked for',
+        );
+      },
+    );
 
     // A present null, never an omitted key: the server applies `exclude_unset`,
     // so leaving it out means "do not touch this column" and would clear
@@ -255,8 +271,13 @@ void main() {
 
       await expectLater(
         repo.setFilamentGrams(82, 200000.0),
-        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
-            contains('less than or equal to 100000'))),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            contains('less than or equal to 100000'),
+          ),
+        ),
       );
     });
   });
@@ -269,8 +290,12 @@ void main() {
           'archive_id': 82,
           'filename': 'multi.gcode.3mf',
           'plates': [
-            {'index': 1, 'name': 'Left', 'has_thumbnail': true,
-              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1'},
+            {
+              'index': 1,
+              'name': 'Left',
+              'has_thumbnail': true,
+              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1',
+            },
             {'index': 2, 'name': 'Right', 'has_thumbnail': false},
           ],
           'is_multi_plate': true,
@@ -282,8 +307,10 @@ void main() {
 
       expect(plates.isMultiPlate, isTrue);
       expect(plates.plates.map((p) => p.index), [1, 2]);
-      expect(plates.byIndex(1)?.thumbnailPath,
-          '/api/v1/archives/82/plate-thumbnail/1');
+      expect(
+        plates.byIndex(1)?.thumbnailPath,
+        '/api/v1/archives/82/plate-thumbnail/1',
+      );
     });
 
     // One request, both answers: the slice screen's "as designed" gate used to
@@ -327,8 +354,10 @@ void main() {
     test('reads the flag and the reason', () async {
       adapter.onGet(
         '/api/v1/archives/no-3mf-warning',
-        (server) =>
-            server.reply(200, {'has_fallback': true, 'reason': 'internal_storage'}),
+        (server) => server.reply(200, {
+          'has_fallback': true,
+          'reason': 'internal_storage',
+        }),
       );
 
       final warning = await repo.no3mfWarning();

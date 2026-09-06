@@ -55,16 +55,16 @@ extension DashTextStyles on DashTokens {
   TextStyle get monoMicro => _mono(11, FontWeight.w400, textTertiary);
 
   TextStyle _ui(double size, FontWeight weight, Color color) => TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-      );
+    fontFamily: DashTokens.fontUi,
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+  );
 
   TextStyle _mono(double size, FontWeight weight, Color color) => TextStyle(
-        fontFamily: DashTokens.fontMono,
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-      );
+    fontFamily: DashTokens.fontMono,
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+  );
 }

@@ -47,9 +47,9 @@ class ProjectsRepository {
 
   /// GET /projects/{id} — full detail.
   Future<ProjectResponse> get(int id) => guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(Endpoints.project(id));
-        return ProjectResponse.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(Endpoints.project(id));
+    return ProjectResponse.fromJson(res.data ?? const {});
+  });
 
   /// GET /projects/{id}/file-progress — finished runs per library file.
   ///
@@ -60,8 +60,9 @@ class ProjectsRepository {
   Future<List<ProjectFileProgress>?> fileProgress(int id) async {
     try {
       final body = await guard(() async {
-        final res =
-            await _dio.get<List<dynamic>>(Endpoints.projectFileProgress(id));
+        final res = await _dio.get<List<dynamic>>(
+          Endpoints.projectFileProgress(id),
+        );
         return res.data ?? const [];
       });
       return parseJsonList(body, ProjectFileProgress.fromJson);
@@ -73,29 +74,31 @@ class ProjectsRepository {
 
   /// POST /projects/ — create.
   Future<ProjectResponse> create(ProjectCreate body) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.projects,
-          data: body.toMap(),
-        );
-        return ProjectResponse.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.projects,
+      data: body.toMap(),
+    );
+    return ProjectResponse.fromJson(res.data ?? const {});
+  });
 
   /// PATCH /projects/{id} — partial update.
   Future<ProjectResponse> update(int id, ProjectUpdate body) => guard(() async {
-        final res = await _dio.patch<Map<String, dynamic>>(
-          Endpoints.project(id),
-          data: body.toMap(),
-        );
-        return ProjectResponse.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.project(id),
+      data: body.toMap(),
+    );
+    return ProjectResponse.fromJson(res.data ?? const {});
+  });
 
   /// DELETE /projects/{id}.
-  Future<void> delete(int id) => guard(() => _dio.delete<dynamic>(Endpoints.project(id)));
+  Future<void> delete(int id) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.project(id)));
 
   // --- Templates / import / export ---
 
   /// POST /projects/from-template/{id}?name= — instantiate a template.
-  Future<ProjectResponse> createFromTemplate(int templateId, String name) => guard(() async {
+  Future<ProjectResponse> createFromTemplate(int templateId, String name) =>
+      guard(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.projectFromTemplate(templateId),
           queryParameters: {'name': name},
@@ -112,37 +115,42 @@ class ProjectsRepository {
     required String filePath,
     required String filename,
     void Function(double? progress)? onProgress,
-  }) =>
-      guard(() async {
-        final form = FormData.fromMap(<String, dynamic>{
-          'file': await MultipartFile.fromFile(filePath, filename: filename),
-        });
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.projectsImportFile,
-          data: form,
-          options:
-              Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero),
-          onSendProgress: onProgress == null
-              ? null
-              : (sent, total) => onProgress(total > 0 ? sent / total : null),
-        );
-        return ProjectResponse.fromJson(res.data ?? const {});
-      });
+  }) => guard(() async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.projectsImportFile,
+      data: form,
+      options: Options(
+        sendTimeout: Duration.zero,
+        receiveTimeout: Duration.zero,
+      ),
+      onSendProgress: onProgress == null
+          ? null
+          : (sent, total) => onProgress(total > 0 ? sent / total : null),
+    );
+    return ProjectResponse.fromJson(res.data ?? const {});
+  });
 
   /// GET /projects/{id}/export?format=zip — export bytes for saving to disk.
   Future<Uint8List> export(int id, {String format = 'zip'}) => guard(() async {
-        final res = await _dio.get<List<int>>(
-          Endpoints.projectExport(id),
-          queryParameters: {'format': format},
-          options: Options(responseType: ResponseType.bytes),
-        );
-        return Uint8List.fromList(res.data ?? const []);
-      });
+    final res = await _dio.get<List<int>>(
+      Endpoints.projectExport(id),
+      queryParameters: {'format': format},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(res.data ?? const []);
+  });
 
   // --- Archives ---
 
   /// GET /projects/{id}/archives — preview list (reuses [ArchivePreview]).
-  Future<List<ArchivePreview>> archives(int id, {int limit = 50, int offset = 0}) async {
+  Future<List<ArchivePreview>> archives(
+    int id, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
     final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.projectArchives(id),
@@ -154,16 +162,20 @@ class ProjectsRepository {
   }
 
   /// POST /projects/{id}/add-archives — link archives.
-  Future<void> addArchives(int id, List<int> archiveIds) => guard(() => _dio.post<dynamic>(
-        Endpoints.projectAddArchives(id),
-        data: <String, dynamic>{'archive_ids': archiveIds},
-      ));
+  Future<void> addArchives(int id, List<int> archiveIds) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.projectAddArchives(id),
+      data: <String, dynamic>{'archive_ids': archiveIds},
+    ),
+  );
 
   /// POST /projects/{id}/remove-archives — unlink archives.
-  Future<void> removeArchives(int id, List<int> archiveIds) => guard(() => _dio.post<dynamic>(
-        Endpoints.projectRemoveArchives(id),
-        data: <String, dynamic>{'archive_ids': archiveIds},
-      ));
+  Future<void> removeArchives(int id, List<int> archiveIds) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.projectRemoveArchives(id),
+      data: <String, dynamic>{'archive_ids': archiveIds},
+    ),
+  );
 
   // --- Queue ---
 
@@ -177,10 +189,12 @@ class ProjectsRepository {
   }
 
   /// POST /projects/{id}/add-queue — link queue items.
-  Future<void> addQueue(int id, List<int> queueItemIds) => guard(() => _dio.post<dynamic>(
-        Endpoints.projectAddQueue(id),
-        data: <String, dynamic>{'queue_item_ids': queueItemIds},
-      ));
+  Future<void> addQueue(int id, List<int> queueItemIds) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.projectAddQueue(id),
+      data: <String, dynamic>{'queue_item_ids': queueItemIds},
+    ),
+  );
 
   // --- BOM ---
 
@@ -194,14 +208,17 @@ class ProjectsRepository {
   }
 
   /// POST /projects/{id}/bom — add a BOM item.
-  Future<void> addBomItem(int id, BomItemInput body) =>
-      guard(() => _dio.post<dynamic>(Endpoints.projectBom(id), data: body.toMap()));
+  Future<void> addBomItem(int id, BomItemInput body) => guard(
+    () => _dio.post<dynamic>(Endpoints.projectBom(id), data: body.toMap()),
+  );
 
   /// PATCH /projects/{id}/bom/{itemId} — edit a BOM item.
-  Future<void> updateBomItem(int id, int itemId, BomItemInput body) => guard(() => _dio.patch<dynamic>(
-        Endpoints.projectBomItem(id, itemId),
-        data: body.toMap(),
-      ));
+  Future<void> updateBomItem(int id, int itemId, BomItemInput body) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.projectBomItem(id, itemId),
+      data: body.toMap(),
+    ),
+  );
 
   /// DELETE /projects/{id}/bom/{itemId}.
   Future<void> deleteBomItem(int id, int itemId) =>
@@ -215,24 +232,26 @@ class ProjectsRepository {
     required String filePath,
     required String filename,
     void Function(double? progress)? onProgress,
-  }) =>
-      guard(() async {
-        final form = FormData.fromMap(<String, dynamic>{
-          'file': await MultipartFile.fromFile(filePath, filename: filename),
-        });
-        await _dio.post<dynamic>(
-          Endpoints.projectAttachments(id),
-          data: form,
-          options:
-              Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero),
-          onSendProgress: onProgress == null
-              ? null
-              : (sent, total) => onProgress(total > 0 ? sent / total : null),
-        );
-      });
+  }) => guard(() async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    await _dio.post<dynamic>(
+      Endpoints.projectAttachments(id),
+      data: form,
+      options: Options(
+        sendTimeout: Duration.zero,
+        receiveTimeout: Duration.zero,
+      ),
+      onSendProgress: onProgress == null
+          ? null
+          : (sent, total) => onProgress(total > 0 ? sent / total : null),
+    );
+  });
 
   /// GET /projects/{id}/attachments/{filename} — download bytes.
-  Future<Uint8List> downloadAttachment(int id, String filename) => guard(() async {
+  Future<Uint8List> downloadAttachment(int id, String filename) =>
+      guard(() async {
         final res = await _dio.get<List<int>>(
           Endpoints.projectAttachment(id, filename),
           options: Options(responseType: ResponseType.bytes),
@@ -241,8 +260,9 @@ class ProjectsRepository {
       });
 
   /// DELETE /projects/{id}/attachments/{filename}.
-  Future<void> deleteAttachment(int id, String filename) =>
-      guard(() => _dio.delete<dynamic>(Endpoints.projectAttachment(id, filename)));
+  Future<void> deleteAttachment(int id, String filename) => guard(
+    () => _dio.delete<dynamic>(Endpoints.projectAttachment(id, filename)),
+  );
 
   // --- Cover image ---
 
@@ -251,18 +271,19 @@ class ProjectsRepository {
     int id, {
     required String filePath,
     required String filename,
-  }) =>
-      guard(() async {
-        final form = FormData.fromMap(<String, dynamic>{
-          'file': await MultipartFile.fromFile(filePath, filename: filename),
-        });
-        await _dio.post<dynamic>(
-          Endpoints.projectCoverImage(id),
-          data: form,
-          options:
-              Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero),
-        );
-      });
+  }) => guard(() async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    await _dio.post<dynamic>(
+      Endpoints.projectCoverImage(id),
+      data: form,
+      options: Options(
+        sendTimeout: Duration.zero,
+        receiveTimeout: Duration.zero,
+      ),
+    );
+  });
 
   /// DELETE /projects/{id}/cover-image.
   Future<void> deleteCoverImage(int id) =>
@@ -273,7 +294,9 @@ class ProjectsRepository {
   /// GET /library/folders/by-project/{id} — folders linked to the project.
   Future<List<LibraryFolder>> linkedFolders(int id) async {
     final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.libraryFoldersByProject(id));
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.libraryFoldersByProject(id),
+      );
       return res.data ?? const [];
     });
     return parseJsonList(body, LibraryFolder.fromJson);
@@ -285,10 +308,12 @@ class ProjectsRepository {
   ///
   /// Server quirk: a JSON `null` is treated as "no change" (live-verified), so
   /// unlinking sends `0`, which the backend interprets as "clear the link".
-  Future<void> setFolderProject(int folderId, int? projectId) => guard(() => _dio.put<dynamic>(
-        Endpoints.libraryFolder(folderId),
-        data: <String, dynamic>{'project_id': projectId ?? 0},
-      ));
+  Future<void> setFolderProject(int folderId, int? projectId) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'project_id': projectId ?? 0},
+    ),
+  );
 
   /// GET /library/files?project_id={id} — library files in folders linked to
   /// the project. Used for the in-project print workflow.

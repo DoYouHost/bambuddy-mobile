@@ -84,7 +84,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
         body: dashAsync(
           context,
           async,
-          onRetry: () => ref.read(maintenanceOverviewProvider.notifier).refresh(),
+          onRetry: () =>
+              ref.read(maintenanceOverviewProvider.notifier).refresh(),
           data: (printers) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(maintenanceOverviewProvider.notifier).refresh(),
@@ -113,7 +114,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
 }
 
 class _PrinterSection extends StatefulWidget {
-  const _PrinterSection({required this.printer, required this.initiallyExpanded});
+  const _PrinterSection({
+    required this.printer,
+    required this.initiallyExpanded,
+  });
 
   final PrinterMaintenanceOverview printer;
   final bool initiallyExpanded;
@@ -176,7 +180,8 @@ class _PrinterSectionState extends State<_PrinterSection> {
                                   if (printer.printerModel != null)
                                     printer.printerModel!,
                                   l10n.maintenanceTotalHours(
-                                      printer.totalPrintHours.round()),
+                                    printer.totalPrintHours.round(),
+                                  ),
                                 ].join(' · '),
                                 style: t.monoLabel,
                               ),
@@ -195,7 +200,10 @@ class _PrinterSectionState extends State<_PrinterSection> {
                         AnimatedRotation(
                           turns: _expanded ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.expand_more, color: t.textSecondary),
+                          child: Icon(
+                            Icons.expand_more,
+                            color: t.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -294,7 +302,8 @@ class _MaintenanceRow extends ConsumerWidget {
                       Text(
                         dueText,
                         style: t.monoLabel.copyWith(
-                            color: due ? t.accentOrangeInk : t.textTertiary),
+                          color: due ? t.accentOrangeInk : t.textTertiary,
+                        ),
                       ),
                     ],
                   ),
@@ -451,8 +460,10 @@ class _HistorySheet extends ConsumerWidget {
             // intrinsic text width (unlike the archive sheet, whose Row/Expanded
             // already fills the width). Keeps the slide-up matching other sheets.
             const SizedBox(width: double.infinity),
-            Text('${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
-                style: theme.textTheme.titleMedium),
+            Text(
+              '${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             dashAsyncStrip(
               context,
@@ -471,12 +482,16 @@ class _HistorySheet extends ConsumerWidget {
                               dense: true,
                               leading: const Icon(Icons.check_circle_outline),
                               title: Text(
-                                  _formatDate(fmt, e.performedAtDate) ?? '—'),
+                                _formatDate(fmt, e.performedAtDate) ?? '—',
+                              ),
                               subtitle: e.notes == null || e.notes!.isEmpty
                                   ? null
                                   : Text(e.notes!),
-                              trailing: Text(l10n.maintenanceTotalHours(
-                                  e.hoursAtMaintenance.round())),
+                              trailing: Text(
+                                l10n.maintenanceTotalHours(
+                                  e.hoursAtMaintenance.round(),
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -491,4 +506,3 @@ class _HistorySheet extends ConsumerWidget {
 
 String? _formatDate(DateTimeFormats fmt, DateTime? dt) =>
     dt == null ? null : fmt.dateTime(dt);
-

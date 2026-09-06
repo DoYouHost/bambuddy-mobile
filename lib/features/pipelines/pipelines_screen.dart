@@ -46,8 +46,7 @@ class PipelinesScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.history_rounded),
               tooltip: l10n.pipelineRunsTitle,
-              onPressed: () =>
-                  Navigator.of(context).push(pipelineRunsRoute()),
+              onPressed: () => Navigator.of(context).push(pipelineRunsRoute()),
             ),
           ),
         ],
@@ -66,7 +65,8 @@ class PipelinesScreen extends ConsumerWidget {
           ),
           data: (list) => list.isEmpty
               ? EmptyStateView(
-                  message: '${l10n.pipelinesEmpty}\n\n${l10n.pipelinesEmptyHint}',
+                  message:
+                      '${l10n.pipelinesEmpty}\n\n${l10n.pipelinesEmptyHint}',
                   icon: Icons.account_tree_outlined,
                 )
               : ListView.builder(
@@ -109,17 +109,21 @@ class _PipelineCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(pipeline.name,
-                          style: theme.textTheme.titleSmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        pipeline.name,
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       if ((pipeline.description ?? '').isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
-                          child: Text(pipeline.description!,
-                              style: theme.textTheme.bodySmall,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            pipeline.description!,
+                            style: theme.textTheme.bodySmall,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                   ),
@@ -148,11 +152,11 @@ class _PipelineCard extends ConsumerWidget {
                       tooltip: l10n.pipelineCardActions,
                       onSelected: (action) => switch (action) {
                         _CardAction.edit => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PipelineEditScreen(pipeline: pipeline),
-                            ),
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                PipelineEditScreen(pipeline: pipeline),
                           ),
+                        ),
                         _CardAction.delete => _delete(context, ref, l10n),
                       },
                       // Rows carry their own ids: the menu opens in a route of
@@ -178,21 +182,33 @@ class _PipelineCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _row(theme, l10n.slicePrinter,
-                _name(catalog, pipeline.printerPreset, PresetSlot.printer, l10n)),
-            _row(theme, l10n.sliceProcess,
-                _name(catalog, pipeline.processPreset, PresetSlot.process, l10n)),
+            _row(
+              theme,
+              l10n.slicePrinter,
+              _name(catalog, pipeline.printerPreset, PresetSlot.printer, l10n),
+            ),
+            _row(
+              theme,
+              l10n.sliceProcess,
+              _name(catalog, pipeline.processPreset, PresetSlot.process, l10n),
+            ),
             if (pipeline.bedType != null)
               _row(theme, l10n.pipelineBed, pipeline.bedType!),
             const SizedBox(height: 6),
-            Text(l10n.pipelineFilamentsCount(pipeline.filamentPresets.length),
-                style: theme.textTheme.labelSmall),
+            Text(
+              l10n.pipelineFilamentsCount(pipeline.filamentPresets.length),
+              style: theme.textTheme.labelSmall,
+            ),
             for (var i = 0; i < pipeline.filamentPresets.length; i++)
               _row(
                 theme,
                 l10n.pipelineSlotNumbered(i + 1),
-                _name(catalog, pipeline.filamentPresets[i], PresetSlot.filament,
-                    l10n),
+                _name(
+                  catalog,
+                  pipeline.filamentPresets[i],
+                  PresetSlot.filament,
+                  l10n,
+                ),
               ),
             const SizedBox(height: 8),
             _targetLine(
@@ -216,27 +232,38 @@ class _PipelineCard extends ConsumerWidget {
     if (!pipeline.isRunnable) {
       return Row(
         children: [
-          Icon(Icons.warning_amber_rounded,
-              size: 18, color: theme.colorScheme.tertiary),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 18,
+            color: theme.colorScheme.tertiary,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(l10n.pipelineNeedsTarget,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.tertiary)),
+            child: Text(
+              l10n.pipelineNeedsTarget,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.tertiary,
+              ),
+            ),
           ),
         ],
       );
     }
     final label = switch (pipeline.targetKind) {
-      PipelineTargetKind.specificPrinter =>
-        l10n.pipelineRunOnPrinter(_printerName(printers, l10n)),
-      PipelineTargetKind.printerClass =>
-        l10n.pipelineRunOnClass(pipeline.targetModelClass ?? ''),
+      PipelineTargetKind.specificPrinter => l10n.pipelineRunOnPrinter(
+        _printerName(printers, l10n),
+      ),
+      PipelineTargetKind.printerClass => l10n.pipelineRunOnClass(
+        pipeline.targetModelClass ?? '',
+      ),
     };
     return Row(
       children: [
-        Icon(Icons.print_outlined,
-            size: 18, color: theme.colorScheme.onSurfaceVariant),
+        Icon(
+          Icons.print_outlined,
+          size: 18,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
       ],
@@ -259,22 +286,22 @@ class _PipelineCard extends ConsumerWidget {
   /// each filament slot — would ignore the system font size while the name above
   /// it grew.
   Widget _row(ThemeData theme, String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Text.rich(
+    padding: const EdgeInsets.only(bottom: 2),
+    child: Text.rich(
+      TextSpan(
+        style: theme.textTheme.bodySmall,
+        children: [
           TextSpan(
-            style: theme.textTheme.bodySmall,
-            children: [
-              TextSpan(
-                text: '$label: ',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              TextSpan(text: value),
-            ],
+            text: '$label: ',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      );
+          TextSpan(text: value),
+        ],
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
 
   String _name(
     UnifiedPresets? catalog,
