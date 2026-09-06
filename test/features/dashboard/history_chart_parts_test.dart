@@ -3,13 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('thinnedForChart', () {
-    test('krótka seria wraca nietknięta (ta sama lista)', () {
+    test('a short series comes back untouched (the same list)', () {
       final points = [1, 2, 3];
 
       expect(thinnedForChart(points, budget: 3), same(points));
     });
 
-    test('długa seria schodzi do budżetu i trzyma oba końce', () {
+    test('a long series comes down to budget and keeps both ends', () {
       final thinned = thinnedForChart([
         for (var i = 0; i < 1000; i++) i,
       ], budget: 100);
@@ -19,8 +19,8 @@ void main() {
       expect(thinned.last, 999);
     });
 
-    test('ostatni punkt zostaje, nawet gdy krok go przeskakuje', () {
-      // 11 punktów, budżet 5 → krok 3: 0, 3, 6, 9 i dopięty koniec.
+    test('the last point stays, even when the step skips over it', () {
+      // 11 points, budget 5 → step 3: 0, 3, 6, 9 and the end pinned on.
       expect(thinnedForChart([for (var i = 0; i < 11; i++) i], budget: 5), [
         0,
         3,
@@ -30,8 +30,8 @@ void main() {
       ]);
     });
 
-    test('krok trafiający w koniec nie dubluje ostatniego punktu', () {
-      // 10 punktów, budżet 4 → krok 3: ostatni indeks (9) wypada na kroku.
+    test('a step that lands on the end does not duplicate the last point', () {
+      // 10 points, budget 4 → step 3: the last index (9) falls right on the step.
       expect(thinnedForChart([for (var i = 0; i < 10; i++) i], budget: 4), [
         0,
         3,

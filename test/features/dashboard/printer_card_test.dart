@@ -304,8 +304,8 @@ class _FixedBackendNotifier extends InventoryBackendNotifier {
   InventoryBackend build() => _backend;
 }
 
-/// Gniazdka ze stałym stanem; rejestruje wywołania [control] (bez sieci/timera),
-/// by testy mogły sprawdzić blokadę „odciąć zasilanie w druku" i potwierdzenie.
+/// A plug with fixed state; records [control] calls (no network/timer),
+/// so tests can check the "cut power mid-print" block and confirmation.
 class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
   _StubSmartPlugsNotifier(this._fixed);
 
@@ -322,7 +322,7 @@ class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
   }
 }
 
-/// Drukarka 1 z przypisanym, załączonym gniazdkiem „Szafa" (42 W).
+/// Printer 1 with an assigned, powered-on "Szafa" plug (42W).
 SmartPlugsState _plugState() => SmartPlugsState(
   plugs: const [
     SmartPlug(
@@ -360,8 +360,9 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
       ),
     );
 
-/// Historia grzałek bez sieci: karta odpowiada tylko za otwarcie arkusza, co
-/// arkusz rysuje z danych sprawdza `heater_history_sheet_test.dart`.
+/// Heater history without a network: the card is only responsible for
+/// opening the sheet — what the sheet draws from the data is checked in
+/// `heater_history_sheet_test.dart`.
 class _EmptyHeaterHistory extends HeaterHistoryRepository {
   _EmptyHeaterHistory() : super(Dio());
 
@@ -373,9 +374,9 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
   }) async => const HeaterHistory(printerId: 3, series: []);
 }
 
-/// Owija drzewo w ProviderScope — karta zawiera teraz interaktywny pasek
-/// sterowania (`_ControlsActions`, ConsumerWidget), więc każdy render karty
-/// ze statusem potrzebuje scope'a. Profil = bez auth, token kamery zaślepiony.
+/// Wraps the tree in a ProviderScope — the card now contains an interactive
+/// controls bar (`_ControlsActions`, ConsumerWidget), so every render of a
+/// card with a status needs a scope. Profile = no auth, camera token stubbed.
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
@@ -408,8 +409,8 @@ Widget _cardWithProviders(
   extra: extra,
 );
 
-/// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
-/// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
+/// A stable scope with a swappable item (same card key → State reuse,
+/// i.e. didUpdateWidget) — for OFFLINE debounce tests.
 ///
 /// [inTouchSince] is what the dashboard passes from the statuses store: when
 /// the line to the server last came up. `null` means the caller tracks no
@@ -450,7 +451,7 @@ class _InertStatuses extends PrinterStatusesNotifier {
 }
 
 void main() {
-  testWidgets('karta renderuje nazwę, postęp i temperatury z fixture\'a', (
+  testWidgets('card renders name, progress and temperatures from fixture', (
     tester,
   ) async {
     final item = PrinterWithStatus(
@@ -476,7 +477,7 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('pasek kontrolek: wentylatory, prędkość i światło z fixture\'a', (
+  testWidgets('controls bar: fans, speed and light from fixture', (
     tester,
   ) async {
     final item = PrinterWithStatus(
@@ -488,26 +489,26 @@ void main() {
 
     await tester.pumpWidget(_cardWithProviders(item));
 
-    // Zawsze widoczne: światło (wiersz-przełącznik), pauza/stop.
+    // Always visible: light (toggle row), pause/stop.
     expect(find.text('Światło komory'), findsOneWidget);
-    // Nawiew komory (tryb 0 = chłodzenie) → ikona płatka śniegu przed wartością.
+    // Chamber fan (mode 0 = cooling) → snowflake icon before the value.
     expect(find.byIcon(Icons.ac_unit), findsOneWidget);
     expect(find.text('Pauza'), findsOneWidget);
     expect(find.text('Zatrzymaj'), findsOneWidget);
 
-    // Wentylatory i prędkość są teraz pod „Szczegóły" — rozwiń, żeby je zobaczyć.
+    // Fans and speed are now under "Details" — expand to see them.
     await tester.ensureVisible(find.text('Szczegóły'));
     await tester.tap(find.text('Szczegóły'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
-    expect(find.text('53%'), findsOneWidget); // wentylator części
-    expect(find.text('73%'), findsOneWidget); // pomocniczy
-    expect(find.text('60%'), findsOneWidget); // komory
-    expect(find.text('Standard'), findsOneWidget); // prędkość (poziom 2)
+    expect(find.text('53%'), findsOneWidget); // part fan
+    expect(find.text('73%'), findsOneWidget); // auxiliary
+    expect(find.text('60%'), findsOneWidget); // chamber
+    expect(find.text('Standard'), findsOneWidget); // speed (level 2)
   });
 
-  testWidgets('pasek kontrolek nie renderuje się bez danych sterowania', (
+  testWidgets('controls bar does not render without control data', (
     tester,
   ) async {
     final item = PrinterWithStatus(
@@ -517,12 +518,12 @@ void main() {
 
     await tester.pumpWidget(_cardWithProviders(item));
 
-    // Brak pól wentylatorów/prędkości/światła → żadnych chipów „%".
+    // No fan/speed/light fields → no "%" chips.
     expect(find.textContaining('%'), findsNothing);
   });
 
-  testWidgets('kafelki temperatur: parowanie aktualna/cel, cel 0 ukryty, '
-      'numerowana dysza, nieznany klucz', (tester) async {
+  testWidgets('temperature tiles: current/target pairing, target 0 hidden, '
+      'numbered nozzle, unknown key', (tester) async {
     final item = PrinterWithStatus(
       printer: const Printer(id: 3, name: 'X2D'),
       status: const PrinterStatus(
@@ -537,34 +538,32 @@ void main() {
           'nozzle_2': 47,
           'nozzle_2_target': 0,
           'chamber': 30,
-          'cośdziwnego': 12,
+          'unknownthing': 12,
         },
       ),
     );
 
     await tester.pumpWidget(_cardWithProviders(item));
 
-    // Wartość aktualna duża; cel wewnątrz pierścienia (myślnik gdy brak celu).
+    // Current value large; target inside the ring (dash when no target).
     expect(find.text('STÓŁ'), findsOneWidget);
-    // Stół: aktualna 70 i cel 70 → dwa teksty „70°" (wartość + środek gauge).
+    // Bed: current 70 and target 70 → two "70°" texts (value + gauge center).
     expect(find.text('70°'), findsNWidgets(2));
     expect(find.text('DYSZA'), findsOneWidget);
-    expect(find.text('244°'), findsOneWidget); // aktualna dyszy
-    expect(find.text('245°'), findsOneWidget); // cel dyszy w pierścieniu
-    // Cel = 0 → w pierścieniu myślnik, wartość aktualna widoczna.
+    expect(find.text('244°'), findsOneWidget); // nozzle current
+    expect(find.text('245°'), findsOneWidget); // nozzle target in ring
+    // Target = 0 → dash in ring, current value visible.
     expect(find.text('DYSZA 2'), findsOneWidget);
     expect(find.text('47°'), findsOneWidget);
-    // Bez celu.
+    // No target.
     expect(find.text('KOMORA'), findsOneWidget);
     expect(find.text('30°'), findsOneWidget);
-    // Nieznany klucz zostaje surowy (wielkimi literami jako etykieta).
-    expect(find.text('COŚDZIWNEGO'), findsOneWidget);
+    // Unknown key stays raw (uppercase as label).
+    expect(find.text('UNKNOWNTHING'), findsOneWidget);
     expect(find.text('12°'), findsOneWidget);
   });
 
-  testWidgets('ikona wykresu na kafelku otwiera historię temperatur', (
-    tester,
-  ) async {
+  testWidgets('chart icon on tile opens temperature history', (tester) async {
     await tester.pumpWidget(
       _cardWithProviders(
         const PrinterWithStatus(
@@ -596,14 +595,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Historia temperatur'), findsOneWidget);
-    // Arkusz przełącza się między czujnikami tej drukarki (etykiety kafelków).
+    // Sheet switches between this printer's sensors (tile labels).
     expect(find.text('Dysza'), findsOneWidget);
     expect(find.text('Stół'), findsOneWidget);
   });
 
-  /// Sama ikonka to celownik 22 px wewnątrz InkWella kafelka: chybienie
-  /// otwierało arkusz nastawy temperatury. Klikalny jest cały pasek etykiety.
-  testWidgets('etykieta czujnika otwiera historię, nie arkusz nastawy', (
+  /// The icon itself is a 22px target inside the tile's InkWell: a miss
+  /// opened the temperature-setting sheet. The whole label bar is clickable.
+  testWidgets('sensor label opens history, not the setting sheet', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -630,10 +629,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Historia temperatur'), findsOneWidget);
-    expect(find.text('Ustaw'), findsNothing); // arkusz nastawy się nie otwarł
+    expect(find.text('Ustaw'), findsNothing); // setting sheet did not open
   });
 
-  testWidgets('serwer bez historii grzałek: kafelki bez ikony wykresu', (
+  testWidgets('server without heater history: tiles without chart icon', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -655,10 +654,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.show_chart), findsNothing);
-    expect(find.text('DYSZA'), findsOneWidget); // sam kafelek zostaje
+    expect(find.text('DYSZA'), findsOneWidget); // the tile itself remains
   });
 
-  testWidgets('karta bez statusu zwija się do nagłówka z etykietą OFFLINE', (
+  testWidgets('card without status collapses to header with OFFLINE label', (
     tester,
   ) async {
     const item = PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini'));
@@ -672,10 +671,10 @@ void main() {
   });
 
   testWidgets(
-    'drukarka rozłączona (connected:false) zwija sekcję i pokazuje OFFLINE',
+    'printer disconnected (connected:false) collapses section and shows OFFLINE',
     (tester) async {
-      // Mimo nieaktualnych temperatur i stanu RUNNING z ostatniej znanej ramki
-      // (sticky merge), rozłączona drukarka nie pokazuje już kafelków ani sterowania.
+      // Despite stale temperatures and RUNNING state from the last known frame
+      // (sticky merge), a disconnected printer no longer shows tiles or controls.
       const item = PrinterWithStatus(
         printer: Printer(id: 3, name: 'X1C Hala'),
         status: PrinterStatus(
@@ -696,7 +695,7 @@ void main() {
     },
   );
 
-  group('rozwijane szczegóły (AMS)', () {
+  group('expandable details (AMS)', () {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
@@ -705,8 +704,8 @@ void main() {
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
       data['id'] = frame['printer_id'];
-      // Miniatura okładki (sieciowa) jest testowana osobno — usuwamy ją tu,
-      // by izolować sekcję AMS i nie czekać na request HTTP w teście.
+      // The cover thumbnail (network) is tested separately — we remove it here
+      // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
       if (tagged) {
         final units = List<dynamic>.from(data['ams'] as List);
@@ -726,9 +725,7 @@ void main() {
       );
     }
 
-    testWidgets('szczegóły domyślnie zwinięte, rozwijają się po tapnięciu', (
-      tester,
-    ) async {
+    testWidgets('details collapsed by default, expand on tap', (tester) async {
       await tester.pumpWidget(
         _scope(
           Scaffold(
@@ -737,32 +734,32 @@ void main() {
         ),
       );
 
-      // Zwinięte: jest przełącznik „Szczegóły", brak treści AMS.
+      // Collapsed: there's a "Details" toggle, no AMS content.
       expect(find.text('Szczegóły'), findsOneWidget);
       expect(find.text('AMS 1'), findsNothing);
 
-      // Karta jest wysoka — upewnij się, że przełącznik jest widoczny przed tapem.
+      // The card is tall — make sure the toggle is visible before tapping.
       await tester.ensureVisible(find.text('Szczegóły'));
       await tester.tap(find.text('Szczegóły'));
-      // Nie pumpAndSettle — faza przygotowania ma nieoznaczony pasek postępu,
-      // który animuje się bez końca. Przewijamy tylko czas rozwinięcia (200 ms).
+      // Not pumpAndSettle — the preparing phase has an indeterminate progress
+      // bar that animates forever. We only pump the expansion time (200ms).
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      // Rozwinięte: AMS, szpula zewnętrzna i metadane widoczne.
+      // Expanded: AMS, external spool and metadata visible.
       expect(find.text('Ukryj szczegóły'), findsOneWidget);
       expect(find.text('AMS 1'), findsOneWidget);
       expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
-      // Wiersz filamentu: materiał i pozostała ilość jako osobne teksty.
+      // Filament row: material and remaining amount as separate texts.
       expect(find.text('PLA Basic'), findsWidgets);
       expect(find.text('66%'), findsOneWidget);
-      // Metadane łączności.
+      // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
     });
 
     testWidgets(
-      'brak danych AMS, ale bezczynna drukarka → przełącznik szczegółów z ruchem',
+      'no AMS data, but idle printer → details toggle with movement',
       (tester) async {
         final item = PrinterWithStatus(
           printer: const Printer(id: 9, name: 'A1'),
@@ -771,8 +768,8 @@ void main() {
 
         await tester.pumpWidget(_cardWithProviders(item));
 
-        // Bezczynna drukarka udostępnia ruch osi, więc przełącznik „Szczegóły"
-        // pojawia się nawet bez danych AMS/wentylatorów.
+        // An idle printer offers axis movement, so the "Details" toggle
+        // appears even without AMS/fan data.
         expect(find.text('Szczegóły'), findsOneWidget);
 
         await tester.ensureVisible(find.text('Szczegóły'));
@@ -780,50 +777,51 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
 
-        // Rozwinięte: kafelek ruchu osi.
+        // Expanded: axis movement tile.
         expect(find.text('Ruch'), findsOneWidget);
       },
     );
 
-    testWidgets('bez dostępu do historii AMS odczyty przestają być klikalne', (
-      tester,
-    ) async {
-      /// Wilgotność i temperatura AMS to normalne odczyty — gdy serwer nie da
-      /// historii (403 dla okrojonego klucza), zostają na ekranie, tracą tylko
-      /// tapnięcie, które mogłoby skończyć się wyłącznie błędem.
-      Future<Iterable<InkWell>> metaTaps(WidgetTester tester) async {
-        await tester.ensureVisible(find.text('Szczegóły'));
-        await tester.tap(find.text('Szczegóły'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 250));
-        return tester.widgetList<InkWell>(
-          find.descendant(
-            of: find.byWidgetPredicate(
-              (w) =>
-                  w is Semantics &&
-                  w.properties.identifier == 'printer.ams_meta',
+    testWidgets(
+      'without access to AMS history, readings stop being clickable',
+      (tester) async {
+        /// AMS humidity and temperature are normal readings — when the server
+        /// refuses history (403 for a narrow key), they stay on screen, losing
+        /// only the tap, which could only end in an error.
+        Future<Iterable<InkWell>> metaTaps(WidgetTester tester) async {
+          await tester.ensureVisible(find.text('Szczegóły'));
+          await tester.tap(find.text('Szczegóły'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 250));
+          return tester.widgetList<InkWell>(
+            find.descendant(
+              of: find.byWidgetPredicate(
+                (w) =>
+                    w is Semantics &&
+                    w.properties.identifier == 'printer.ams_meta',
+              ),
+              matching: find.byType(InkWell),
             ),
-            matching: find.byType(InkWell),
+          );
+        }
+
+        await tester.pumpWidget(
+          _scope(
+            Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+            ),
+            extra: [
+              amsHistorySupportedProvider.overrideWith((ref) async => false),
+            ],
           ),
         );
-      }
 
-      await tester.pumpWidget(
-        _scope(
-          Scaffold(
-            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
-          ),
-          extra: [
-            amsHistorySupportedProvider.overrideWith((ref) async => false),
-          ],
-        ),
-      );
-
-      final taps = await metaTaps(tester);
-      expect(taps, isNotEmpty);
-      expect(taps.every((w) => w.onTap == null), isTrue);
-      expect(find.textContaining('%'), findsWidgets); // odczyty zostają
-    });
+        final taps = await metaTaps(tester);
+        expect(taps, isNotEmpty);
+        expect(taps.every((w) => w.onTap == null), isTrue);
+        expect(find.textContaining('%'), findsWidgets); // readings remain
+      },
+    );
 
     /// Taps the first filament row of AMS 1 and waits out the sheet's own
     /// transition. Separate from [openSlotSheet] so a test can reopen the sheet
@@ -1558,8 +1556,8 @@ void main() {
     });
   });
 
-  group('podgląd kamery', () {
-    testWidgets('połączona drukarka: przycisk kamery otwiera podgląd', (
+  group('camera preview', () {
+    testWidgets('connected printer: camera button opens preview', (
       tester,
     ) async {
       final item = PrinterWithStatus(
@@ -1573,15 +1571,15 @@ void main() {
       expect(camBtn, findsOneWidget);
 
       await tester.tap(camBtn);
-      // Przewijamy tylko przejście trasy (~300 ms) — nie settle'ujemy, bo
-      // strumień MJPEG robi request sieciowy i spinner kręci się bez końca.
+      // We only pump the route transition (~300ms) — not settle, because
+      // the MJPEG stream makes a network request and the spinner spins forever.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(CameraView), findsOneWidget);
     });
 
-    testWidgets('niepołączona drukarka: brak przycisku kamery', (tester) async {
+    testWidgets('disconnected printer: no camera button', (tester) async {
       const item = PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini'));
 
       await tester.pumpWidget(_cardWithProviders(item));
@@ -1590,29 +1588,28 @@ void main() {
     });
   });
 
-  group('smart gniazdko', () {
-    testWidgets(
-      'załączone gniazdko: ikona wtyczki, moc w tooltipie, bez nazwy',
-      (tester) async {
-        final item = PrinterWithStatus(
-          printer: const Printer(id: 1, name: 'X1C'),
-          status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
-        );
+  group('smart plug', () {
+    testWidgets('plug on: plug icon, power in tooltip, no name', (
+      tester,
+    ) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
 
-        await tester.pumpWidget(
-          _cardWithPlugs(item, _StubSmartPlugsNotifier(_plugState())),
-        );
+      await tester.pumpWidget(
+        _cardWithPlugs(item, _StubSmartPlugsNotifier(_plugState())),
+      );
 
-        // Sam symbol wtyczki; moc i nazwa nie zaśmiecają nagłówka.
-        expect(find.byIcon(Icons.power), findsOneWidget);
-        expect(find.byTooltip('42 W'), findsOneWidget); // moc w tooltipie
-        expect(find.text('42 W'), findsNothing); // nie jako widoczny tekst
-        expect(find.text('Szafa'), findsNothing);
-        expect(find.byType(Switch), findsNothing);
-      },
-    );
+      // Just the plug symbol; power and name don't clutter the header.
+      expect(find.byIcon(Icons.power), findsOneWidget);
+      expect(find.byTooltip('42 W'), findsOneWidget); // power in tooltip
+      expect(find.text('42 W'), findsNothing); // not as visible text
+      expect(find.text('Szafa'), findsNothing);
+      expect(find.byType(Switch), findsNothing);
+    });
 
-    testWidgets('w trakcie druku przycisk jest wyszarzony (brak akcji)', (
+    testWidgets('during print the button is grayed out (no action)', (
       tester,
     ) async {
       final stub = _StubSmartPlugsNotifier(_plugState());
@@ -1629,7 +1626,7 @@ void main() {
 
       await tester.pumpWidget(_cardWithPlugs(item, stub));
 
-      // Przycisk zasilania wyłączony (onPressed == null) — nie da się nim ruszyć.
+      // Power button disabled (onPressed == null) — cannot be tapped.
       final btn = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.power),
       );
@@ -1639,7 +1636,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.power), warnIfMissed: false);
       await tester.pump();
 
-      expect(stub.calls, isEmpty); // zasilanie NIE zmienione
+      expect(stub.calls, isEmpty); // power NOT changed
     });
 
     testWidgets('monitor-only MQTT plug: reading stays, button is dead', (
@@ -1689,7 +1686,7 @@ void main() {
     });
 
     testWidgets(
-      'poza drukiem wyłączenie wymaga potwierdzenia, potem wysyła off',
+      'outside a print, turning off requires confirmation, then sends off',
       (tester) async {
         final stub = _StubSmartPlugsNotifier(_plugState());
         final item = PrinterWithStatus(
@@ -1702,7 +1699,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.power));
         await tester.pumpAndSettle();
 
-        // Dialog potwierdzenia — bez niego nic nie wysyłamy.
+        // Confirmation dialog — without it nothing is sent.
         expect(find.text('Odciąć zasilanie?'), findsOneWidget);
         expect(stub.calls, isEmpty);
 
@@ -1715,11 +1712,11 @@ void main() {
       },
     );
 
-    testWidgets('gniazdko offline (rozłączona drukarka) pozostaje sterowalne', (
+    testWidgets('offline plug (disconnected printer) remains controllable', (
       tester,
     ) async {
-      // Karta zwija się do OFFLINE, ale chip gniazdka zostaje — to jedyny
-      // sposób, by ZAŁĄCZYĆ zasilanie i obudzić maszynę.
+      // The card collapses to OFFLINE, but the plug chip remains — it's the
+      // only way to turn ON power and wake the machine.
       final stub = _StubSmartPlugsNotifier(
         SmartPlugsState(
           plugs: const [
@@ -1736,7 +1733,7 @@ void main() {
       await tester.pumpWidget(_cardWithPlugs(item, stub));
 
       expect(find.text('OFFLINE'), findsOneWidget);
-      // Gniazdko wyłączone → przekreślona wtyczka, przycisk aktywny (sterowalny).
+      // Plug off → crossed-out plug icon, button active (controllable).
       final btn = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.power_off),
       );
@@ -1745,7 +1742,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.power_off));
       await tester.pumpAndSettle();
 
-      // Załączenie też wymaga potwierdzenia — bez niego nic nie wysyłamy.
+      // Turning on also requires confirmation — without it nothing is sent.
       expect(find.text('Załączyć zasilanie?'), findsOneWidget);
       expect(stub.calls, isEmpty);
 
@@ -1931,7 +1928,7 @@ void main() {
   });
 
   group('_CoverThumbnail', () {
-    testWidgets('drukarka z coverUrl: pokazuje Image gdy token dostępny', (
+    testWidgets('printer with coverUrl: shows Image when token available', (
       tester,
     ) async {
       final item = PrinterWithStatus(
@@ -1946,15 +1943,15 @@ void main() {
       );
 
       await tester.pumpWidget(_cardWithProviders(item));
-      // Czekamy aż FutureProvider się rozwiąże.
+      // Waiting for FutureProvider to resolve.
       await tester.pumpAndSettle();
 
-      // Próbujemy załadować okładkę (obraz sieciowy), a nie placeholder.
+      // We attempt to load the cover (network image), not the placeholder.
       expect(find.byKey(const ValueKey('cover_network')), findsOneWidget);
     });
 
     testWidgets(
-      'drukarka bez coverUrl: pokazuje placeholder, bez obrazu sieciowego',
+      'printer without coverUrl: shows placeholder, no network image',
       (tester) async {
         final item = PrinterWithStatus(
           printer: const Printer(id: 2, name: 'A1 mini'),
@@ -1963,7 +1960,7 @@ void main() {
             connected: true,
             progress: 60,
             remainingTime: 90,
-            // coverUrl pominięty → null
+            // coverUrl omitted → null
           ),
         );
 
@@ -1975,7 +1972,7 @@ void main() {
       },
     );
 
-    testWidgets('kalibracja: placeholder zamiast (przeterminowanej) okładki', (
+    testWidgets('calibration: placeholder instead of (stale) cover', (
       tester,
     ) async {
       final item = PrinterWithStatus(
@@ -1987,7 +1984,7 @@ void main() {
           progress: 14,
           remainingTime: 39,
           gcodeFile: 'auto_cali_for_user_param.gcode',
-          // okładka poprzedniego druku nie może się pokazać
+          // the previous print's cover must not show
           coverUrl: '/api/v1/printers/3/cover',
         ),
       );
@@ -2000,7 +1997,7 @@ void main() {
     });
   });
 
-  group('firmware pod nazwą drukarki', () {
+  group('firmware under printer name', () {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
       overrides: [
         fakeServerProfileOverride(),
@@ -2022,7 +2019,7 @@ void main() {
       ),
     );
 
-    testWidgets('dostępna aktualizacja: „bieżąca → najnowsza" + ikona update', (
+    testWidgets('update available: "current → latest" + update icon', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -2041,9 +2038,7 @@ void main() {
       expect(find.byIcon(Icons.system_update), findsOneWidget);
     });
 
-    testWidgets('aktualne: sama wersja, bez ikony aktualizacji', (
-      tester,
-    ) async {
+    testWidgets('up to date: version only, no update icon', (tester) async {
       await tester.pumpWidget(
         cardWithFirmware(
           const FirmwareUpdateInfo(
@@ -2057,11 +2052,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('01.02.03'), findsOneWidget);
-      // Aktualna wersja: sama linia mono, bez ikony aktualizacji.
+      // Up to date: mono line only, no update icon.
       expect(find.byIcon(Icons.system_update), findsNothing);
     });
 
-    testWidgets('brak danych firmware: brak linii (nie wywraca karty)', (
+    testWidgets('no firmware data: no line (does not crash the card)', (
       tester,
     ) async {
       await pumpPhone(
@@ -2078,7 +2073,7 @@ void main() {
           fakeServerProfileOverride(),
           cameraTokenProvider.overrideWith((ref) async => 'tok'),
           inertSmartPlugsOverride,
-          inertFirmwareOverride, // zwraca null
+          inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
@@ -2086,27 +2081,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('X2D'), findsOneWidget); // karta żyje
+      expect(find.text('X2D'), findsOneWidget); // card survives
       expect(find.byIcon(Icons.system_update), findsNothing);
       expect(find.byIcon(Icons.memory), findsNothing);
     });
   });
 
-  group('identyfikatory do logu zgłoszeń', () {
-    /// Wspólne widżety karty (kafelek czujnika, przyciski arkusza, presety)
-    /// tagowały się wcześniej **w środku**, więc każdy z nich schodził do logu
-    /// jako `temperature.*`: tapnięcie „Wyłącz" w arkuszu temperatury raportowało
-    /// się identycznie jak „Ustaw", a z trzech kafelków dyszy nie wynikało, który
-    /// user tknął. To ta sama klasa co przesunięte id dialogów potwierdzenia —
-    /// log twierdzi, że user zrobił coś innego, niż zrobił.
+  group('report log identifiers', () {
+    /// Shared card widgets (sensor tile, sheet buttons, presets) used to tag
+    /// themselves **internally**, so each of them went to the log as
+    /// `temperature.*`: tapping "Turn off" in the temperature sheet reported
+    /// identically to "Set", and from three nozzle tiles it wasn't clear which
+    /// the user touched. This is the same class as shifted confirmation-dialog
+    /// ids — the log claims the user did something other than what they did.
     Iterable<String> identifiersIn(WidgetTester tester) => tester
         .widgetList<Semantics>(find.byType(Semantics))
         .map((s) => s.properties.identifier)
         .whereType<String>();
 
-    testWidgets('każdy czujnik ma własny identyfikator kafelka', (
-      tester,
-    ) async {
+    testWidgets('every sensor has its own tile identifier', (tester) async {
       await tester.pumpWidget(
         _cardWithProviders(
           const PrinterWithStatus(
@@ -2132,7 +2125,7 @@ void main() {
       );
     });
 
-    testWidgets('skrót do historii ma własny identyfikator per czujnik', (
+    testWidgets('history shortcut has its own identifier per sensor', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -2142,7 +2135,7 @@ void main() {
             status: PrinterStatus(
               id: 1,
               connected: true,
-              temperatures: {'nozzle': 220, 'bed': 55, 'cośdziwnego': 12},
+              temperatures: {'nozzle': 220, 'bed': 55, 'unknownthing': 12},
             ),
           ),
         ),
@@ -2157,15 +2150,15 @@ void main() {
           'printer.temperature_history_bed',
         }),
       );
-      // Czujnik, którego serwer nie zapisuje, nie dostaje ikony wykresu —
-      // wykres byłby pusty.
+      // A sensor the server doesn't report gets no chart icon —
+      // the chart would be empty.
       expect(
         ids.where((i) => i.startsWith('printer.temperature_history')),
         hasLength(2),
       );
     });
 
-    testWidgets('„wyłącz" i „ustaw" w arkuszu to dwie różne nazwy', (
+    testWidgets('"turn off" and "set" in the sheet are two different names', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -2183,8 +2176,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tapnięcie w kafelek po jego własnym identyfikatorze — czyli po tym, co
-      // sonda zapisze do logu.
+      // Tap the tile by its own identifier — the same thing
+      // the probe will write to the log.
       await tester.tap(
         find.byWidgetPredicate(
           (w) =>

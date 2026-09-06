@@ -19,7 +19,7 @@ void main() {
   });
 
   group('fileProgress', () {
-    test('parsuje liczniki, tolerując brak completed_count', () async {
+    test('parses counters, tolerating a missing completed_count', () async {
       adapter.onGet(
         '/api/v1/projects/7/file-progress',
         (s) => s.reply(200, [
@@ -35,7 +35,7 @@ void main() {
       expect(rows.last.completedCount, 0);
     });
 
-    test('404 → null (serwer sprzed 1.2.5.2, nie błąd)', () async {
+    test('404 → null (server before 1.2.5.2, not an error)', () async {
       adapter.onGet(
         '/api/v1/projects/7/file-progress',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -44,7 +44,7 @@ void main() {
       expect(await repo.fileProgress(7), isNull);
     });
 
-    test('500 to błąd, nie brak funkcji', () async {
+    test('500 is an error, not a missing feature', () async {
       adapter.onGet(
         '/api/v1/projects/7/file-progress',
         (s) => s.reply(500, {'detail': 'boom'}),
@@ -55,7 +55,7 @@ void main() {
   });
 
   group('completeSetsFor', () {
-    test('komplet to najmniejsza liczba wydruków po plikach', () {
+    test('a complete set is the smallest print count across files', () {
       final done = completeSetsFor(
         const [1, 2, 3],
         const [
@@ -67,9 +67,9 @@ void main() {
       expect(done, 2);
     });
 
-    test('plik bez wpisu liczy się jako zero', () {
-      // Serwer zwraca tylko pliki, które cokolwiek ukończyły — brak wpisu nie
-      // może udawać, że część jest gotowa.
+    test('a file without an entry counts as zero', () {
+      // The server returns only files that completed something — a missing
+      // entry must not pretend a part is ready.
       final done = completeSetsFor(
         const [1, 2],
         const [ProjectFileProgress(fileId: 1, completedCount: 4)],
@@ -77,11 +77,11 @@ void main() {
       expect(done, 0);
     });
 
-    test('projekt bez plików nie ma kompletów', () {
+    test('a project without files has no complete sets', () {
       expect(completeSetsFor(const [], const []), 0);
     });
 
-    test('każdy plik wydrukowany po tyle samo → tyle kompletów', () {
+    test('every file printed the same number of times → that many sets', () {
       final done = completeSetsFor(
         const [1, 2],
         const [
@@ -93,15 +93,15 @@ void main() {
     });
   });
 
-  group('target_sets w body', () {
-    test('pominięte, gdy nieustawione (stary serwer nie dostaje pola)', () {
+  group('target_sets in the body', () {
+    test('omitted when unset (an old server does not get the field)', () {
       expect(
         const ProjectCreate(name: 'X').toMap().containsKey('target_sets'),
         isFalse,
       );
     });
 
-    test('wysyłane, gdy ustawione', () {
+    test('sent when set', () {
       expect(const ProjectUpdate(targetSets: 4).toMap()['target_sets'], 4);
     });
   });

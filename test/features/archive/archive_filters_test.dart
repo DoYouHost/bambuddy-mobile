@@ -36,7 +36,7 @@ List<int> _ids(List<Archive> l) => l.map((a) => a.id).toList();
 
 void main() {
   group('applyArchiveFilters', () {
-    test('brak filtrów zwraca wszystko posortowane wg daty malejąco', () {
+    test('no filters returns everything sorted by date descending', () {
       final list = [
         _a(1, createdAt: DateTime(2026, 1, 1)),
         _a(2, createdAt: DateTime(2026, 3, 1)),
@@ -46,7 +46,7 @@ void main() {
       expect(_ids(out), [2, 3, 1]);
     });
 
-    test('search dopasowuje displayName (case-insensitive)', () {
+    test('search matches displayName (case-insensitive)', () {
       final list = [_a(1, name: 'Benchy Boat'), _a(2, name: 'Gridfinity Bin')];
       final out = applyArchiveFilters(
         list,
@@ -55,7 +55,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('search dopasowuje filename gdy brak printName', () {
+    test('search matches filename when there is no printName', () {
       final list = [_a(1, name: null, filename: 'voron_mount.gcode')];
       final out = applyArchiveFilters(
         list,
@@ -64,7 +64,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('filtr drukarki', () {
+    test('printer filter', () {
       final list = [_a(1, printerId: 10), _a(2, printerId: 20)];
       final out = applyArchiveFilters(
         list,
@@ -73,7 +73,7 @@ void main() {
       expect(_ids(out), [2]);
     });
 
-    test('filtr materiału po jednym z wielu typów', () {
+    test('material filter on one of several types', () {
       final list = [
         _a(1, filamentType: 'PLA, PETG'),
         _a(2, filamentType: 'ABS'),
@@ -85,7 +85,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('filtr kolorów OR: dowolny pasujący', () {
+    test('color filter OR: any matching', () {
       final list = [
         _a(1, filamentColor: '#FF0000,#00FF00'),
         _a(2, filamentColor: '#0000FF'),
@@ -97,7 +97,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('filtr kolorów AND: musi mieć wszystkie', () {
+    test('color filter AND: must have all of them', () {
       final list = [
         _a(1, filamentColor: '#FF0000,#00FF00'),
         _a(2, filamentColor: '#FF0000'),
@@ -112,7 +112,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('tylko ulubione', () {
+    test('favorites only', () {
       final list = [_a(1, favorite: true), _a(2)];
       final out = applyArchiveFilters(
         list,
@@ -121,7 +121,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('ukryj nieudane (failed i aborted)', () {
+    test('hide failed (failed and aborted)', () {
       final list = [
         _a(1, status: 'completed'),
         _a(2, status: 'failed'),
@@ -134,7 +134,7 @@ void main() {
       expect(_ids(out), [1]);
     });
 
-    test('ukryj duplikaty zachowuje oryginał (sequence 0)', () {
+    test('hide duplicates keeps the original (sequence 0)', () {
       final list = [
         _a(1, duplicateCount: 1, duplicateSequence: 0),
         _a(2, duplicateCount: 1, duplicateSequence: 1),
@@ -147,7 +147,7 @@ void main() {
       expect(_ids(out)..sort(), [1, 3]);
     });
 
-    test('filtr typu pliku: sliced vs source', () {
+    test('file type filter: sliced vs source', () {
       final list = [
         _a(1, filename: 'a.gcode'),
         _a(2, filename: 'b.3mf'),
@@ -173,7 +173,7 @@ void main() {
       );
     });
 
-    test('sortowanie po nazwie i rozmiarze', () {
+    test('sorting by name and size', () {
       final list = [
         _a(1, name: 'Bravo', fileSize: 300),
         _a(2, name: 'alpha', fileSize: 100),
@@ -199,7 +199,7 @@ void main() {
       );
     });
 
-    test('filtry łączą się przez AND', () {
+    test('filters combine via AND', () {
       final list = [
         _a(1, name: 'Benchy', printerId: 10, favorite: true),
         _a(2, name: 'Benchy', printerId: 20, favorite: true),
@@ -218,7 +218,7 @@ void main() {
   });
 
   group('ArchiveFilters.activeCount', () {
-    test('domyślne = 0; search i sort się nie liczą', () {
+    test('default = 0; search and sort do not count', () {
       expect(const ArchiveFilters().activeCount, 0);
       expect(
         const ArchiveFilters(query: 'x', sort: ArchiveSort.nameAsc).activeCount,
@@ -226,7 +226,7 @@ void main() {
       );
     });
 
-    test('liczy aktywne filtry', () {
+    test('counts active filters', () {
       expect(
         const ArchiveFilters(
           printerId: 1,
@@ -239,11 +239,11 @@ void main() {
   });
 
   group('ArchiveFilters.copyWith', () {
-    test('clearPrinter / clearMaterial czyszczą pola nullable', () {
+    test('clearPrinter / clearMaterial clear nullable fields', () {
       const f = ArchiveFilters(printerId: 1, material: 'PLA');
       expect(f.copyWith(clearPrinter: true).printerId, isNull);
       expect(f.copyWith(clearMaterial: true).material, isNull);
-      // Bez flagi clear pole zostaje.
+      // Without the clear flag the field stays.
       expect(f.copyWith(favoritesOnly: true).printerId, 1);
     });
   });

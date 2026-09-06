@@ -17,7 +17,7 @@ Widget _chip(WsConnectionState? state) => ProviderScope(
 );
 
 void main() {
-  testWidgets('WS connected → etykieta „Na żywo"', (tester) async {
+  testWidgets('WS connected → "Live" label', (tester) async {
     await tester.pumpWidget(_chip(WsConnectionState.connected));
     await tester.pump();
 
@@ -27,9 +27,7 @@ void main() {
     expect(find.byIcon(Icons.sync), findsNothing);
   });
 
-  testWidgets('WS rozłączony → etykieta „Odświeżanie" (polling)', (
-    tester,
-  ) async {
+  testWidgets('WS disconnected → "Refreshing" label (polling)', (tester) async {
     await tester.pumpWidget(_chip(WsConnectionState.waitingRetry));
     await tester.pump();
 
@@ -37,7 +35,7 @@ void main() {
     expect(find.byIcon(Icons.sync), findsOneWidget);
   });
 
-  testWidgets('brak danych stanu → traktowany jako polling', (tester) async {
+  testWidgets('no state data → treated as polling', (tester) async {
     await tester.pumpWidget(_chip(null));
     await tester.pump();
 

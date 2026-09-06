@@ -47,7 +47,7 @@ void main() {
     (server) => server.reply(200, {'version': version, 'repo': 'x/y'}),
   );
 
-  test('czyta wersję i rozpoznaje trójstan', () async {
+  test('reads the version and recognizes tri-state', () async {
     replyVersion('1.2.5.1');
 
     expect((await service.current())?.raw, '1.2.5.1');
@@ -55,13 +55,13 @@ void main() {
     expect(await service.reportedVersion(), '1.2.5.1');
   });
 
-  test('starszy serwer: trójstanu nie ma', () async {
+  test('an older server: no tri-state', () async {
     replyVersion('0.2.4.9');
 
     expect(await service.supports(ServerFeature.triStateCalibration), isFalse);
   });
 
-  test('pyta raz, potem korzysta z zapamiętanej odpowiedzi', () async {
+  test('asks once, then uses the remembered response', () async {
     final calls = countingReplies(
       () => Response(
         requestOptions: RequestOptions(),
@@ -74,10 +74,14 @@ void main() {
     await service.current();
     await service.supports(ServerFeature.triStateCalibration);
 
-    expect(calls(), 1, reason: 'wersja nie zmienia się bez restartu serwera');
+    expect(
+      calls(),
+      1,
+      reason: 'the version does not change without a server restart',
+    );
   });
 
-  test('równoległe wywołania dzielą jedno żądanie', () async {
+  test('concurrent calls share a single request', () async {
     final calls = countingReplies(
       () => Response(
         requestOptions: RequestOptions(),
@@ -95,17 +99,17 @@ void main() {
     expect(calls(), 1);
   });
 
-  test('cached: bez sieci nie zgaduje', () async {
+  test('cached: without a network call it does not guess', () async {
     replyVersion('1.2.5');
-    expect(service.cached, isNull, reason: 'przed odczytem nic nie wiadomo');
+    expect(service.cached, isNull, reason: 'nothing is known before a read');
 
     await service.current();
 
     expect(service.cached?.raw, '1.2.5');
   });
 
-  group('serwer nie odpowiada tym, czego oczekujemy', () {
-    test('błąd HTTP → brak wersji, bez wyjątku', () async {
+  group('server does not answer with what we expect', () {
+    test('HTTP error → no version, no exception', () async {
       adapter.onGet(
         '/api/v1/updates/version',
         (server) => server.reply(500, null),
@@ -115,12 +119,12 @@ void main() {
       expect(
         await service.supports(ServerFeature.triStateCalibration),
         isFalse,
-        reason: 'nieznane traktujemy jak starsze',
+        reason: 'unknown is treated as older',
       );
       expect(await service.reportedVersion(), isNull);
     });
 
-    test('404 (route przeniesiony) też jest odpowiedzią, nie awarią', () async {
+    test('404 (route moved) is also an answer, not a failure', () async {
       adapter.onGet(
         '/api/v1/updates/version',
         (server) => server.reply(404, null),
@@ -129,13 +133,13 @@ void main() {
       expect(await service.current(), isNull);
     });
 
-    test('nie-wersja w polu version → brak wersji', () async {
-      replyVersion('nie-wersja');
+    test('a non-version in the version field → no version', () async {
+      replyVersion('not-a-version');
 
       expect(await service.current(), isNull);
     });
 
-    test('body bez pola version', () async {
+    test('body without a version field', () async {
       adapter.onGet(
         '/api/v1/updates/version',
         (server) => server.reply(200, {'repo': 'x/y'}),
@@ -144,9 +148,10 @@ void main() {
       expect(await service.current(), isNull);
     });
 
-    test('nieudany odczyt nie jest zapamiętywany na stałe', () async {
-      // Sonda, która trafiła w moment bez sieci, nie może wyłączyć auto na całą
-      // sesję — inaczej jedna chwila offline kosztuje funkcję do restartu apki.
+    test('a failed read is not remembered permanently', () async {
+      // A probe that hit a moment without a network must not disable a feature
+      // for the whole session — otherwise one offline moment costs the feature
+      // until the app restarts.
       final calls = countingReplies(
         () => Response(requestOptions: RequestOptions(), statusCode: 500),
       );
@@ -154,7 +159,11 @@ void main() {
       await service.current();
       await service.current();
 
-      expect(calls(), 1, reason: 'w oknie ponowienia nie dobija serwera');
+      expect(
+        calls(),
+        1,
+        reason: 'inside the retry window it does not hit the server again',
+      );
       expect(service.cached, isNull);
     });
 

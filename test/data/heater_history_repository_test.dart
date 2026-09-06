@@ -32,7 +32,7 @@ void main() {
           // Naive stamp — the server sends UTC without the `Z`.
           {'recorded_at': '2026-08-16T10:00:00', 'value': 219.8, 'target': 220},
           {'recorded_at': '2026-08-16T10:01:00', 'value': null, 'target': null},
-          'nie-punkt',
+          'not-a-point',
         ],
         'min_value': 24.0,
         'max_value': 220.4,
@@ -49,7 +49,7 @@ void main() {
   };
 
   test(
-    'fetch: parsuje serie, pomija niepoprawny punkt, czyta czas jako UTC',
+    'fetch: parses series, skips an invalid point, reads time as UTC',
     () async {
       adapter.onGet(
         '/api/v1/printer-sensor-history/3',
@@ -63,26 +63,26 @@ void main() {
       expect(history.series, hasLength(2));
 
       final nozzle = history.seriesFor('nozzle')!;
-      expect(nozzle.points, hasLength(2)); // wpis-string pominięty
+      expect(nozzle.points, hasLength(2)); // string entry skipped
       expect(nozzle.points.first.value, 219.8);
       expect(nozzle.points.first.target, 220);
       expect(
         nozzle.points.first.recordedAt.isUtc,
         isFalse,
-      ); // lokalny czas do wykresu
+      ); // local time for the chart
       expect(
         nozzle.points.first.recordedAt.toUtc(),
         DateTime.utc(2026, 8, 16, 10),
       );
-      expect(nozzle.points.last.value, isNull); // luka w zapisie, nie zero
+      expect(nozzle.points.last.value, isNull); // a gap in the record, not zero
       expect(nozzle.avgValue, 180.2);
 
       expect(history.seriesFor('bed')!.isEmpty, isTrue);
-      expect(history.seriesFor('chamber'), isNull); // nieproszony czujnik
+      expect(history.seriesFor('chamber'), isNull); // an unrequested sensor
     },
   );
 
-  test('fetch: bez kinds pyta o wszystkie czujniki', () async {
+  test('fetch: without kinds asks for all sensors', () async {
     adapter.onGet(
       '/api/v1/printer-sensor-history/3',
       (s) => s.reply(200, {'printer_id': 3, 'series': <Object>[]}),
@@ -95,7 +95,7 @@ void main() {
   });
 
   test(
-    'fetch: 404 (stary serwer bez tej trasy) wypływa jako AppApiException',
+    'fetch: 404 (an old server without this route) flows out as AppApiException',
     () async {
       adapter.onGet(
         '/api/v1/printer-sensor-history/3',
@@ -112,10 +112,10 @@ void main() {
     },
   );
 
-  group('czy w ogóle proponować wykres', () {
-    /// Trasa weszła w v0.2.4.8, czyli jeszcze w starym numerowaniu — próg musi
-    /// łapać oba schematy.
-    test('wersja serwera: 0.2.4.7 nie, 0.2.4.8 i 1.2.5 tak', () async {
+  group('whether to offer a chart at all', () {
+    /// The route landed in v0.2.4.8, still under the old numbering — the
+    /// threshold must catch both schemes.
+    test('server version: 0.2.4.7 no, 0.2.4.8 and 1.2.5 yes', () async {
       replyVersion('0.2.4.7');
       expect(await repo.supportsHistory(), isFalse);
 
@@ -134,7 +134,7 @@ void main() {
       expect(await current.supportsHistory(), isTrue);
     });
 
-    test('nieznana wersja to nie stary serwer — wykres zostaje', () async {
+    test('an unknown version is not an old server — the chart stays', () async {
       adapter.onGet(
         '/api/v1/updates/version',
         (s) => s.reply(500, {'detail': 'boom'}),
@@ -143,26 +143,29 @@ void main() {
       expect(await repo.supportsHistory(), isTrue);
     });
 
-    test('bez usługi wersji też zostaje', () async {
+    test('without a version service it also stays', () async {
       expect(await HeaterHistoryRepository(dio).supportsHistory(), isTrue);
     });
 
-    test('404 z trasy przebija wersję, która twierdziła inaczej', () async {
-      replyVersion('1.2.5.1');
-      adapter.onGet(
-        '/api/v1/printer-sensor-history/3',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
-        queryParameters: {'hours': 24},
-      );
-      expect(await repo.supportsHistory(), isTrue);
+    test(
+      'a 404 from the route overrides a version that claimed otherwise',
+      () async {
+        replyVersion('1.2.5.1');
+        adapter.onGet(
+          '/api/v1/printer-sensor-history/3',
+          (s) => s.reply(404, {'detail': 'Not Found'}),
+          queryParameters: {'hours': 24},
+        );
+        expect(await repo.supportsHistory(), isTrue);
 
-      await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
+        await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
 
-      expect(await repo.supportsHistory(), isFalse);
-    });
+        expect(await repo.supportsHistory(), isFalse);
+      },
+    );
 
     test(
-      '403 (klucz bez uprawnienia) chowa wykres mimo istniejącej trasy',
+      '403 (a key without permission) hides the chart despite the route existing',
       () async {
         replyVersion('1.2.5.1');
         adapter.onGet(
@@ -177,7 +180,7 @@ void main() {
       },
     );
 
-    test('udana odpowiedź kasuje wcześniejszą odmowę', () async {
+    test('a successful response clears an earlier refusal', () async {
       replyVersion('1.2.5.1');
       adapter
         ..onGet(

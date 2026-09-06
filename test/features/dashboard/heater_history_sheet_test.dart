@@ -8,15 +8,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Repozytorium bez sieci: oddaje przygotowaną historię albo rzuca.
+/// A network-free repository: hands back a prepared history or throws.
 class _StubRepo extends HeaterHistoryRepository {
   _StubRepo({this.history, this.error}) : super(Dio());
 
   final HeaterHistory? history;
   final Object? error;
 
-  /// Zapamiętane parametry ostatniego zapytania — sprawdzamy, że arkusz pyta
-  /// o wybrany zakres i tylko o czujnik, który jest na ekranie.
+  /// Remembered parameters of the last query — checks that the sheet asks
+  /// for the chosen range and only for the sensor that's on screen.
   int? lastHours;
   List<String>? lastKinds;
 
@@ -74,8 +74,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('rysuje odczyt i zadaną, statystyki z serwera, pyta tylko '
-      'o wybrany czujnik', (tester) async {
+  testWidgets('draws reading and target, stats from the server, asks only '
+      'for the chosen sensor', (tester) async {
     final repo = _StubRepo(history: _history());
 
     await pumpSheet(tester, repo);
@@ -83,20 +83,20 @@ void main() {
     expect(repo.lastHours, 24);
     expect(repo.lastKinds, ['nozzle']);
 
-    // Dwie linie: odczyt i (bo w danych są cele) zadana.
+    // Two lines: reading and (since the data has targets) target.
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     expect(chart.data.lineBarsData, hasLength(2));
     expect(find.text('Odczyt'), findsOneWidget);
     expect(find.text('Zadana'), findsOneWidget);
 
-    // Aktualna z ostatniego punktu, reszta prosto z serwera.
+    // Current from the last point, the rest straight from the server.
     expect(find.text('219.8°C'), findsOneWidget);
     expect(find.text('120.3°C'), findsOneWidget);
     expect(find.text('24.5°C'), findsOneWidget);
     expect(find.text('220.4°C'), findsOneWidget);
   });
 
-  testWidgets('zmiana czujnika i zakresu odpytuje na nowo', (tester) async {
+  testWidgets('changing sensor and range re-queries', (tester) async {
     final repo = _StubRepo(history: _history());
 
     await pumpSheet(tester, repo);
@@ -105,19 +105,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.lastHours, 6);
 
-    // Stół nie ma punktów — pusty stan zamiast wykresu.
+    // Bed has no points — empty state instead of a chart.
     await tester.tap(find.text('Stół'));
     await tester.pumpAndSettle();
-    expect(repo.lastKinds, ['bed']); // nowy czujnik = nowe zapytanie
+    expect(repo.lastKinds, ['bed']); // new sensor = new query
     expect(find.text('Brak danych w tym zakresie'), findsOneWidget);
     expect(find.byType(LineChart), findsNothing);
   });
 
-  testWidgets('długi zakres nie ładuje na wykres wszystkich próbek', (
+  testWidgets('a long range does not load all samples onto the chart', (
     tester,
   ) async {
-    // Tydzień zapisu co minutę: serwer oddaje ~10 tys. punktów, a wykres ma
-    // kilkaset pikseli szerokości.
+    // A week of per-minute logging: the server hands back ~10k points, and the
+    // chart is a few hundred pixels wide.
     final start = DateTime.now().subtract(const Duration(days: 7));
     final repo = _StubRepo(
       history: _history(
@@ -136,7 +136,7 @@ void main() {
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     final spots = chart.data.lineBarsData.single.spots;
     expect(spots.length, lessThanOrEqualTo(481));
-    // Ostatni punkt zostaje — z niego bierze się „Aktualna".
+    // The last point stays — that's where "Current" comes from.
     expect(spots.last.y, 200 + (10079 % 7));
     expect(
       find.text('${(200 + 10079 % 7).toStringAsFixed(1)}°C'),
@@ -144,7 +144,7 @@ void main() {
     );
   });
 
-  testWidgets('bez zadanych temperatur nie ma linii przerywanej ani legendy', (
+  testWidgets('without target temperatures there is no dashed line or legend', (
     tester,
   ) async {
     final repo = _StubRepo(
@@ -160,7 +160,7 @@ void main() {
     expect(find.text('Zadana'), findsNothing);
   });
 
-  testWidgets('błąd pobrania pokazuje komunikat zamiast pustego wykresu', (
+  testWidgets('a fetch error shows a message instead of an empty chart', (
     tester,
   ) async {
     final repo = _StubRepo(error: Exception('boom'));

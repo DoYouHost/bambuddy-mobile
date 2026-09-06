@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Spool.fromNative', () {
-    test('parsuje pola i ignoruje nieznane klucze', () {
+    test('parses fields and ignores unknown keys', () {
       final spool = Spool.fromNative({
         'id': 7,
         'material': 'PETG',
@@ -16,7 +16,7 @@ void main() {
         'cost_per_kg': 29.99,
         'storage_location': 'Szafa',
         'low_stock_threshold_pct': 10,
-        'nieznane_pole': 'ignoruj',
+        'unknown_field': 'ignore',
       });
 
       expect(spool.id, 7);
@@ -26,7 +26,7 @@ void main() {
       expect(spool.storageLocation, 'Szafa');
     });
 
-    test('liczby tolerują string i num; brak materiału → Unknown', () {
+    test('numbers tolerate string and num; missing material → Unknown', () {
       final spool = Spool.fromNative({
         'id': '12',
         'material': '   ',
@@ -90,22 +90,22 @@ void main() {
       lowStockThresholdPct: threshold,
     );
 
-    test('remainingWeight nie schodzi poniżej zera', () {
+    test('remainingWeight does not go below zero', () {
       expect(spool(label: 1000, used: 1200).remainingWeight, 0);
       expect(spool(label: 1000, used: 650).remainingWeight, 350);
     });
 
-    test('remainingFraction null gdy nie znamy wagi etykiety', () {
+    test('remainingFraction null when the label weight is unknown', () {
       expect(spool(label: 0).remainingFraction, isNull);
       expect(spool(label: 1000, used: 750).remainingFraction, 0.25);
     });
 
-    test('isLowStock wg progu serwera, domyślnie 10%', () {
-      // 70 g / 1000 g = 7% ≤ 10% (domyślny próg)
+    test('isLowStock per the server threshold, 10% by default', () {
+      // 70g / 1000g = 7% ≤ 10% (default threshold)
       expect(spool(label: 1000, used: 930).isLowStock, isTrue);
-      // 200 g / 1000 g = 20% > 10%
+      // 200g / 1000g = 20% > 10%
       expect(spool(label: 1000, used: 800).isLowStock, isFalse);
-      // próg serwera 25% → 20% poniżej
+      // server threshold 25% → 20% is below it
       expect(spool(label: 1000, used: 800, threshold: 25).isLowStock, isTrue);
     });
 
@@ -142,7 +142,7 @@ void main() {
       expect(spool(label: 1000, used: 240).consumedWeight, 240);
     });
 
-    test('isArchived po niepustym archived_at', () {
+    test('isArchived from a non-empty archived_at', () {
       expect(
         Spool.fromNative({
           'id': 1,
@@ -162,18 +162,18 @@ void main() {
     });
   });
 
-  group('SpoolAssignment — slot vs szpula zewnętrzna', () {
+  group('SpoolAssignment — slot vs external spool', () {
     SpoolAssignment assign(int amsId, {int trayId = 0}) =>
         SpoolAssignment(spoolId: 1, printerId: 1, amsId: amsId, trayId: trayId);
 
-    test('zwykły slot AMS: nie jest zewnętrzny, label AMS·tray+1', () {
+    test('a regular AMS slot: not external, label AMS·tray+1', () {
       final a = assign(0, trayId: 1);
       expect(a.isExternalSpool, isFalse);
       expect(a.extruder, isNull);
       expect(a.slotLabel, 'AMS0 · 2');
     });
 
-    test('ams_label z serwera ma pierwszeństwo', () {
+    test('ams_label from the server takes priority', () {
       const a = SpoolAssignment(
         spoolId: 1,
         printerId: 1,
@@ -184,10 +184,10 @@ void main() {
       expect(a.slotLabel, 'AMS A');
     });
 
-    test('szpula zewnętrzna: ams=255, rozróżnia tray_id (0→lewy, 1→prawy)', () {
-      // Zweryfikowane na żywo na X2D z surowych przypisań: OBIE szpule zewnętrzne
-      // mają ams_id=255, ekstruder rozróżnia tray_id. TPU tray=0 = lewy (1),
-      // PLA tray=1 = prawy (0). Konwencja jak printer_status: 1=lewy, 0=prawy.
+    test('external spool: ams=255, distinguishes tray_id (0→left, 1→right)', () {
+      // Verified live on an X2D from raw assignments: BOTH external spools
+      // have ams_id=255, tray_id distinguishes the extruder. TPU tray=0 = left (1),
+      // PLA tray=1 = right (0). Convention as in printer_status: 1=left, 0=right.
       expect(assign(255, trayId: 0).isExternalSpool, isTrue);
       expect(assign(255, trayId: 0).extruder, 1);
       expect(assign(255, trayId: 1).extruder, 0);

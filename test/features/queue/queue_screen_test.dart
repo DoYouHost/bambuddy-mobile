@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Fake notifier — zwraca podaną listę bez dotykania repozytorium/sieci.
+/// Fake notifier — returns the given list without touching the repository/network.
 class _FakeQueueNotifier extends QueueNotifier {
   _FakeQueueNotifier(this._items);
 
@@ -37,7 +37,7 @@ Widget _screen(List<QueueItem> items) => ProviderScope(
 
 void main() {
   testWidgets(
-    'renderuje kartę kolejki: nazwa, status i drukarka z fixture\'a',
+    'renders the queue card: name, status and printer from the fixture',
     (tester) async {
       final item = QueueItem.fromJson(
         readFixture('queue_item.json') as Map<String, dynamic>,
@@ -59,16 +59,14 @@ void main() {
     },
   );
 
-  testWidgets('pusta kolejka pokazuje komunikat', (tester) async {
+  testWidgets('an empty queue shows a message', (tester) async {
     await tester.pumpWidget(_screen(const []));
     await tester.pumpAndSettle();
 
     expect(find.text('Kolejka jest pusta'), findsOneWidget);
   });
 
-  testWidgets('brak FAB gdy w kolejce są tylko wydruki drukowane', (
-    tester,
-  ) async {
+  testWidgets('no FAB when the queue only has printing items', (tester) async {
     final json = readFixture('queue_item.json') as Map<String, dynamic>;
     final printing = QueueItem.fromJson({...json, 'status': 'printing'});
 
@@ -78,7 +76,7 @@ void main() {
     expect(find.text('Uruchom następny'), findsNothing);
   });
 
-  testWidgets('FAB „Uruchom następny" widoczny gdy są oczekujące wydruki', (
+  testWidgets('the "Start next" FAB is visible when there are pending prints', (
     tester,
   ) async {
     final json = readFixture('queue_item.json') as Map<String, dynamic>;
@@ -90,23 +88,22 @@ void main() {
     expect(find.text('Uruchom następny'), findsOneWidget);
   });
 
-  testWidgets(
-    'swipe na elemencie oczekującym ujawnia potwierdzenie usunięcia',
-    (tester) async {
-      // Element drukujący jest przypięty (bez Dismissible) — do swipe potrzebny
-      // element reorderowalny, więc nadpisujemy status na „pending".
-      final json = readFixture('queue_item.json') as Map<String, dynamic>;
-      final item = QueueItem.fromJson({...json, 'status': 'pending'});
+  testWidgets('swiping a pending item reveals the delete confirmation', (
+    tester,
+  ) async {
+    // A printing item is pinned (no Dismissible) — swiping needs a
+    // reorderable item, so we overwrite the status to "pending".
+    final json = readFixture('queue_item.json') as Map<String, dynamic>;
+    final item = QueueItem.fromJson({...json, 'status': 'pending'});
 
-      await tester.pumpWidget(_screen([item]));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_screen([item]));
+    await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
-      await tester.pumpAndSettle();
+    await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Usunąć z kolejki?'), findsOneWidget);
-    },
-  );
+    expect(find.text('Usunąć z kolejki?'), findsOneWidget);
+  });
 
   group('start flow outliving the row that began it', () {
     // The row is keyed by item id, so an item leaving the list disposes exactly

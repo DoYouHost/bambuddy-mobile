@@ -563,8 +563,8 @@ void main() {
       // being rewritten around an invented one.
       skip: File('test/fixtures/captured/smart_plugs.json').existsSync()
           ? null
-          : 'brak test/fixtures/captured — tool/capture_fixtures.sh '
-                'https://twój.serwer',
+          : 'missing test/fixtures/captured — tool/capture_fixtures.sh '
+                'https://your.server',
     );
 
     test('a real change is still a change, timestamps or not', () async {

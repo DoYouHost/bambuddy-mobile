@@ -82,11 +82,11 @@ void main() {
       expect(items.first.statusKind, QueueItemStatusKind.pending);
     });
 
-    test('kolejka mówi kontraktem 1.2.5, razem z auto', () async {
-      // Demo jest jedynym miejscem, w którym trójstanowe kalibracje da się
-      // przejść bez serwera 1.2.5 — nasz chodzi na 0.2.5b2 i wysyła booleany.
-      // Gdyby ten payload wrócił kiedyś do booleanów, demo przestałoby łapać
-      // regresję, dla której zostało zmienione (docs/plans/07), i to w ciszy.
+    test('the queue speaks the 1.2.5 contract, including auto', () async {
+      // The demo is the only place tri-state calibrations can be exercised
+      // without a 1.2.5 server — ours runs on 0.2.5b2 and sends booleans.
+      // If this payload ever reverted to booleans, the demo would stop
+      // catching the regression it was changed for (docs/plans/07), silently.
       final items = await QueueRepository(dio).fetch();
 
       expect(
@@ -98,13 +98,13 @@ void main() {
       expect(
         items.first.vibrationCali,
         isTrue,
-        reason: 'te trzy nie migrowały i zostają boolem',
+        reason: 'these three did not migrate and stay boolean',
       );
     });
 
-    test('demo raportuje wersję, która obsługuje trójstan', () async {
-      // Bez tego formularz druku pokazałby w demo dwa stany nad
-      // trójstanowymi danymi — payload i sonda muszą mówić to samo.
+    test('the demo reports a version that supports tri-state', () async {
+      // Without this the print form would show two states in the demo over
+      // tri-state data — the payload and the probe have to agree.
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);

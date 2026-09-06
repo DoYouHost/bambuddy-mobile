@@ -33,10 +33,10 @@ void main() {
 
   setUp(() => store = InMemoryCredentialsStore());
 
-  test('AuthMode.none nie dodaje ŻADNYCH nagłówków auth', () async {
+  test('AuthMode.none does not add ANY auth headers', () async {
     store
-      ..jwt = 'niespodziewany'
-      ..apiKey = 'bb_niespodziewany';
+      ..jwt = 'unexpected'
+      ..apiKey = 'bb_unexpected';
     final adapter = ScriptedAdapter.script([(_) => _json('[]', 200)]);
     final client = _client(mode: AuthMode.none, store: store, adapter: adapter);
 
@@ -47,7 +47,7 @@ void main() {
     expect(headers.containsKey('X-API-Key'), isFalse);
   });
 
-  test('AuthMode.apiKey ustawia X-API-Key', () async {
+  test('AuthMode.apiKey sets X-API-Key', () async {
     store.apiKey = 'bb_klucz';
     final adapter = ScriptedAdapter.script([(_) => _json('[]', 200)]);
     final client = _client(
@@ -65,7 +65,7 @@ void main() {
     );
   });
 
-  test('AuthMode.jwt ustawia Bearer', () async {
+  test('AuthMode.jwt sets Bearer', () async {
     store.jwt = 'stary-token';
     final adapter = ScriptedAdapter.script([(_) => _json('[]', 200)]);
     final client = _client(mode: AuthMode.jwt, store: store, adapter: adapter);
@@ -78,7 +78,7 @@ void main() {
     );
   });
 
-  test('401 przy JWT → refresh → retry z nowym tokenem', () async {
+  test('401 on JWT → refresh → retry with a new token', () async {
     store.jwt = 'wygasly';
     var refreshCalls = 0;
     final adapter = ScriptedAdapter.script([
@@ -104,8 +104,8 @@ void main() {
     expect(adapter.requests[1].headers['Authorization'], 'Bearer swiezy');
   });
 
-  test('401 przy JWT bez możliwości refreshu → błąd wypływa', () async {
-    store.jwt = 'wygasly';
+  test('401 on JWT with no way to refresh → error flows out', () async {
+    store.jwt = 'expired';
     final adapter = ScriptedAdapter.script([
       (_) => _json('{"detail":"expired"}', 401),
     ]);
@@ -126,41 +126,44 @@ void main() {
         ),
       ),
     );
-    expect(adapter.requests, hasLength(1), reason: 'bez retry bez tokenu');
+    expect(adapter.requests, hasLength(1), reason: 'no retry without a token');
   });
 
-  test('retry po refreshu też dostaje 401 → bez pętli, błąd wypływa', () async {
-    store.jwt = 'wygasly';
-    var refreshCalls = 0;
-    final adapter = ScriptedAdapter.script([
-      (_) => _json('{"detail":"revoked"}', 401),
-    ]);
-    final client = _client(
-      mode: AuthMode.jwt,
-      store: store,
-      adapter: adapter,
-      refreshAuth: () async {
-        refreshCalls++;
-        return 'swiezy';
-      },
-    );
+  test(
+    'a retry after refresh also gets 401 → no loop, error flows out',
+    () async {
+      store.jwt = 'expired';
+      var refreshCalls = 0;
+      final adapter = ScriptedAdapter.script([
+        (_) => _json('{"detail":"revoked"}', 401),
+      ]);
+      final client = _client(
+        mode: AuthMode.jwt,
+        store: store,
+        adapter: adapter,
+        refreshAuth: () async {
+          refreshCalls++;
+          return 'fresh';
+        },
+      );
 
-    await expectLater(
-      client.dio.get<dynamic>('/api/v1/printers'),
-      throwsA(
-        isA<DioException>().having(
-          (e) => e.response?.statusCode,
-          'status',
-          401,
+      await expectLater(
+        client.dio.get<dynamic>('/api/v1/printers'),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.statusCode,
+            'status',
+            401,
+          ),
         ),
-      ),
-    );
-    expect(refreshCalls, 1);
-    expect(adapter.requests, hasLength(2));
-  });
+      );
+      expect(refreshCalls, 1);
+      expect(adapter.requests, hasLength(2));
+    },
+  );
 
-  test('401 przy kluczu API → bez refreshu, błąd wypływa', () async {
-    store.apiKey = 'bb_uniewazniony';
+  test('401 on an API key → no refresh, error flows out', () async {
+    store.apiKey = 'bb_invalidated';
     final adapter = ScriptedAdapter.script([
       (_) => _json('{"detail":"revoked"}', 401),
     ]);

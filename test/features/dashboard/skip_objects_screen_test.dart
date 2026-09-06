@@ -143,7 +143,7 @@ void main() {
   }
 
   testWidgets(
-    'zaznaczenie dwóch obiektów z listy i potwierdzenie wysyła jedno żądanie z obiema ID',
+    'selecting two objects from the list and confirming sends one request with both IDs',
     (tester) async {
       final repo = await pumpScreen(tester);
 
@@ -153,7 +153,7 @@ void main() {
       await tapRow(tester, 'Divider_left.stl');
       await tapRow(tester, 'Divider_right.stl');
 
-      // Bottom bar: selected-count label + "Pomiń" button.
+      // Bottom bar: selected-count label + "Skip" button.
       expect(find.text('Zaznaczono: 2'), findsOneWidget);
       expect(find.text('Pomiń'), findsOneWidget);
 
@@ -185,7 +185,7 @@ void main() {
     },
   );
 
-  testWidgets('ponowne dotknięcie tego samego wiersza odznacza obiekt', (
+  testWidgets('tapping the same row again deselects the object', (
     tester,
   ) async {
     final repo = await pumpScreen(tester);
@@ -199,7 +199,7 @@ void main() {
     expect(repo.skipCalls, isEmpty);
   });
 
-  testWidgets('bez maski płyta rysuje jeden dotykalny znacznik na obiekt', (
+  testWidgets('without a mask the plate draws one tappable marker per object', (
     tester,
   ) async {
     await pumpScreen(tester);
@@ -213,49 +213,50 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('dotknięcie kształtu na płycie zaznacza obiekt spod palca', (
-    tester,
-  ) async {
-    // Object 421 owns the plate's left half, 512 the right — so a tap resolved
-    // through the mask has to name the half it landed in, which is the whole
-    // point of drawing the real footprints instead of badges.
-    await pumpScreen(tester, mask: _halvesMask());
-    final handle = tester.ensureSemantics();
+  testWidgets(
+    'tapping a shape on the plate selects the object under the finger',
+    (tester) async {
+      // Object 421 owns the plate's left half, 512 the right — so a tap resolved
+      // through the mask has to name the half it landed in, which is the whole
+      // point of drawing the real footprints instead of badges.
+      await pumpScreen(tester, mask: _halvesMask());
+      final handle = tester.ensureSemantics();
 
-    // One overlay for the whole plate now, not one widget per object.
-    expect(find.bySemanticsIdentifier('skip_objects.marker'), findsOneWidget);
+      // One overlay for the whole plate now, not one widget per object.
+      expect(find.bySemanticsIdentifier('skip_objects.marker'), findsOneWidget);
 
-    final plate = tester.getRect(find.byType(InteractiveViewer));
-    await tester.tapAt(
-      Offset(plate.center.dx + plate.width * 0.25, plate.center.dy),
-    );
-    // The plate's double-tap-to-reset recogniser holds the tap until its own
-    // timeout passes without a second one.
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump();
+      final plate = tester.getRect(find.byType(InteractiveViewer));
+      await tester.tapAt(
+        Offset(plate.center.dx + plate.width * 0.25, plate.center.dy),
+      );
+      // The plate's double-tap-to-reset recogniser holds the tap until its own
+      // timeout passes without a second one.
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
 
-    expect(find.text('Zaznaczono: 1'), findsOneWidget);
-    await tester.tap(find.text('Pomiń'));
-    await tester.pumpAndSettle();
-    final dialog = find.byType(AlertDialog);
-    expect(
-      find.descendant(
-        of: dialog,
-        matching: find.textContaining('Divider_right.stl'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: dialog,
-        matching: find.textContaining('Divider_left.stl'),
-      ),
-      findsNothing,
-    );
-    handle.dispose();
-  });
+      expect(find.text('Zaznaczono: 1'), findsOneWidget);
+      await tester.tap(find.text('Pomiń'));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('Divider_right.stl'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('Divider_left.stl'),
+        ),
+        findsNothing,
+      );
+      handle.dispose();
+    },
+  );
 
-  testWidgets('warstwa 1 blokuje zaznaczanie', (tester) async {
+  testWidgets('layer 1 blocks selection', (tester) async {
     await pumpScreen(tester, layerNum: 1);
 
     await tapRow(tester, 'Divider_left.stl');
@@ -264,7 +265,7 @@ void main() {
   });
 
   testWidgets(
-    '403 na batchu ustawia sticky forbidden i blokuje kolejne potwierdzenie',
+    '403 on the batch sets a sticky forbidden and blocks the next confirmation',
     (tester) async {
       final repo = await pumpScreen(tester);
       repo.error = const AuthException(AppErrorCode.forbidden);
@@ -290,7 +291,7 @@ void main() {
   );
 
   testWidgets(
-    'obiekt pominięty w tle po zaznaczeniu wypada z licznika, dialogu i żądania',
+    'an object skipped in the background after selection drops from the counter, dialog and request',
     (tester) async {
       final repo = await pumpScreen(tester);
 
@@ -350,7 +351,7 @@ void main() {
   );
 
   testWidgets(
-    'obiekt zniknięty z odświeżenia w tle po zaznaczeniu nie leci w żądaniu mimo braku w dialogu',
+    'an object gone from a background refresh after selection does not go in the request despite being absent from the dialog',
     (tester) async {
       tester.view.physicalSize = const Size(1080, 3600);
       tester.view.devicePixelRatio = 3.0;

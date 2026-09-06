@@ -20,7 +20,7 @@ void main() {
   });
 
   group('token()', () {
-    test('mintuje i zwraca token z serwera', () async {
+    test('mints and returns a token from the server', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.reply(200, {'token': 'abc'}),
@@ -30,15 +30,15 @@ void main() {
       expect(result, 'abc');
     });
 
-    test('druga próba używa cache (ten sam token)', () async {
+    test('a second attempt uses the cache (the same token)', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.reply(200, {'token': 'abc'}),
       );
 
       final first = await service.token();
-      // Drugi call nie wykonuje żadnego żądania sieciowego — adapter nie ma
-      // kolejnego wpisu dla tej ścieżki, ale token powinien wrócić z cache.
+      // The second call makes no network request — the adapter has no
+      // second entry for this path, but the token should come back from cache.
       final second = await service.token();
       expect(second, first);
       expect(second, 'abc');
@@ -90,7 +90,7 @@ void main() {
     );
 
     test(
-      'malformed (brak pola token) → ApiException malformedResponse',
+      'malformed (no token field) → ApiException malformedResponse',
       () async {
         adapter.onPost(_tokenPath, (server) => server.reply(200, {}));
 
@@ -108,7 +108,7 @@ void main() {
     );
 
     test(
-      'malformed (token nie jest stringiem) → ApiException malformedResponse',
+      'malformed (token is not a string) → ApiException malformedResponse',
       () async {
         adapter.onPost(
           _tokenPath,
@@ -128,7 +128,7 @@ void main() {
       },
     );
 
-    test('błąd sieci → AppApiException', () async {
+    test('a network error → AppApiException', () async {
       adapter.onPost(
         _tokenPath,
         (server) => server.throws(

@@ -10,8 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Atrapa repozytorium komend: zapisuje wywołania, opcjonalnie czeka na bramkę
-/// i/lub rzuca skonfigurowany wyjątek.
+/// A stub commands repository: records calls, optionally waits on a gate
+/// and/or throws a configured exception.
 class _FakeCommands implements PrinterCommandsRepository {
   final List<String> calls = [];
   Object? error;
@@ -120,17 +120,17 @@ ProviderContainer _container(_FakeCommands fake) {
 
 void main() {
   test(
-    'setLight: optymistycznie ustawia stan i „w locie", potem sukces',
+    'setLight: optimistically sets state and "in-flight", then success',
     () async {
       final fake = _FakeCommands()..gate = Completer<void>();
       final c = _container(fake);
       final notifier = c.read(controlsProvider.notifier);
 
       final future = notifier.setLight(1, on: true);
-      await Future<void>.delayed(Duration.zero); // wejdź w _run aż do bramki
+      await Future<void>.delayed(Duration.zero); // enter _run up to the gate
 
       final midFlight = c.read(controlsProvider).pendingFor(1);
-      expect(midFlight.light, true, reason: 'optymistyczne nadpisanie od razu');
+      expect(midFlight.light, true, reason: 'optimistic overwrite right away');
       expect(midFlight.isBusy(ControlAction.light), true);
 
       fake.gate!.complete();
@@ -141,14 +141,14 @@ void main() {
       expect(
         after.isBusy(ControlAction.light),
         false,
-        reason: 'zdjęte „w locie"',
+        reason: '"in-flight" cleared',
       );
-      expect(after.light, true, reason: 'nadpisanie zostaje (sticky) do czasu');
+      expect(after.light, true, reason: 'overwrite stays (sticky) for a while');
       expect(fake.calls, ['light:1:true']);
     },
   );
 
-  test('błąd → rollback: nadpisanie znika, brak blokady forbidden', () async {
+  test('error → rollback: overwrite disappears, no forbidden block', () async {
     final fake = _FakeCommands()
       ..error = const ApiException(AppErrorCode.badResponse);
     final c = _container(fake);
@@ -158,12 +158,12 @@ void main() {
     expect(result.isOk, isFalse);
     expect(result.isForbidden, isFalse);
     final st = c.read(controlsProvider);
-    expect(st.pendingFor(1).speedLevel, isNull, reason: 'rollback nadpisania');
+    expect(st.pendingFor(1).speedLevel, isNull, reason: 'overwrite rollback');
     expect(st.pendingFor(1).isBusy(ControlAction.speed), false);
     expect(st.isRefused(ControlPermission.control), false);
   });
 
-  test('403 → odmowa i lepka blokada sterowania', () async {
+  test('403 → refusal and a sticky control block', () async {
     final fake = _FakeCommands()
       ..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
@@ -172,7 +172,7 @@ void main() {
 
     expect(result.isForbidden, isTrue);
     expect(c.read(controlsProvider).isRefused(ControlPermission.control), true);
-    // Lifecycle nie ma nadpisania, ale „w locie" musi być zdjęte.
+    // Lifecycle has no overwrite, but "in-flight" must be cleared.
     expect(
       c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),
       false,
@@ -180,20 +180,20 @@ void main() {
   });
 
   test(
-    'rollback jest chirurgiczny: błąd jednej akcji nie kasuje drugiej',
+    'rollback is surgical: one action\'s error does not wipe out another',
     () async {
       final fake = _FakeCommands();
       final c = _container(fake);
       final notifier = c.read(controlsProvider.notifier);
 
-      // Najpierw udane światło (sticky), potem prędkość która padnie.
+      // First a successful light (sticky), then a speed that will fail.
       await notifier.setLight(1, on: true);
       fake.error = const ApiException(AppErrorCode.badResponse);
       await notifier.setSpeed(1, 4);
 
       final st = c.read(controlsProvider).pendingFor(1);
-      expect(st.light, true, reason: 'sticky światło przeżywa błąd prędkości');
-      expect(st.speedLevel, isNull, reason: 'prędkość wycofana');
+      expect(st.light, true, reason: 'sticky light survives the speed error');
+      expect(st.speedLevel, isNull, reason: 'speed rolled back');
     },
   );
 
@@ -245,25 +245,28 @@ void main() {
     expect(fake.calls, ['amsLoad:1:6:-']);
   });
 
-  test('po sukcesie optymistyczne nadpisanie znika po optimisticHold', () {
-    fakeAsync((async) {
-      final fake = _FakeCommands();
-      final c = _container(fake);
-      final notifier = c.read(controlsProvider.notifier);
+  test(
+    'after success the optimistic overwrite disappears after optimisticHold',
+    () {
+      fakeAsync((async) {
+        final fake = _FakeCommands();
+        final c = _container(fake);
+        final notifier = c.read(controlsProvider.notifier);
 
-      notifier.setLight(2, on: true);
-      async.flushMicrotasks(); // rozwiąż future repo + obsługę sukcesu
+        notifier.setLight(2, on: true);
+        async.flushMicrotasks(); // resolve the repo future + success handling
 
-      expect(c.read(controlsProvider).pendingFor(2).light, true);
+        expect(c.read(controlsProvider).pendingFor(2).light, true);
 
-      async.elapse(
-        ControlsNotifier.optimisticHold + const Duration(seconds: 1),
-      );
-      expect(
-        c.read(controlsProvider).pendingFor(2).light,
-        isNull,
-        reason: 'nadpisanie sprzątnięte po czasie',
-      );
-    });
-  });
+        async.elapse(
+          ControlsNotifier.optimisticHold + const Duration(seconds: 1),
+        );
+        expect(
+          c.read(controlsProvider).pendingFor(2).light,
+          isNull,
+          reason: 'overwrite swept away after the timer',
+        );
+      });
+    },
+  );
 }

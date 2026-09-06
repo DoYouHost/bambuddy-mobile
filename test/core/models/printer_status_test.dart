@@ -6,7 +6,7 @@ import '../../helpers.dart';
 
 void main() {
   group('PrinterStatus.fromJson', () {
-    test('parsuje status drukującej drukarki, ignorując nieznane pola', () {
+    test('parses status of a printing printer, ignoring unknown fields', () {
       final status = PrinterStatus.fromJson(
         readFixture('printer_status_printing.json') as Map<String, dynamic>,
       );
@@ -73,7 +73,7 @@ void main() {
       expect(parse('nonsense').stgCur, isNull);
     });
 
-    test('parsuje pola sterowania (wentylatory, prędkość, światło)', () {
+    test('parses control fields (fans, speed, light)', () {
       final status = PrinterStatus.fromJson(
         readFixture('printer_status_printing.json') as Map<String, dynamic>,
       );
@@ -83,13 +83,13 @@ void main() {
       expect(status.bigFan2Speed, 60);
       expect(status.heatbreakFanSpeed, 0);
       expect(status.speedLevel, 2);
-      expect(status.speedPercent, 100, reason: 'poziom 2 = Standard = 100%');
+      expect(status.speedPercent, 100, reason: 'level 2 = Standard = 100%');
       expect(status.chamberLight, isTrue);
       expect(status.airductMode, 0);
-      expect(status.airductIsHeating, isFalse, reason: '0 = chłodzenie');
+      expect(status.airductIsHeating, isFalse, reason: '0 = cooling');
     });
 
-    test('airductIsHeating: 0 chłodzi, 1 grzeje, reszta null', () {
+    test('airductIsHeating: 0 cools, 1 heats, the rest null', () {
       bool? heat(int? m) =>
           PrinterStatus(id: 1, airductMode: m).airductIsHeating;
 
@@ -99,7 +99,7 @@ void main() {
       expect(heat(null), isNull);
     });
 
-    test('speedPercent mapuje poziomy i zwraca null dla nieznanego', () {
+    test('speedPercent maps levels and returns null for unknown', () {
       int? pct(int? level) =>
           PrinterStatus(id: 1, speedLevel: level).speedPercent;
 
@@ -111,7 +111,7 @@ void main() {
       expect(pct(null), isNull);
     });
 
-    test('parsuje status bezczynnej drukarki', () {
+    test('parses status of an idle printer', () {
       final status = PrinterStatus.fromJson(
         readFixture('printer_status_idle.json') as Map<String, dynamic>,
       );
@@ -121,27 +121,24 @@ void main() {
       expect(status.isPrinting, isFalse);
     });
 
-    test(
-      'toleruje liczby jako stringi i nieparsowalne wartości temperatur',
-      () {
-        final status = PrinterStatus.fromJson(
-          readFixture('printer_status_error.json') as Map<String, dynamic>,
-        );
+    test('tolerates numbers as strings and unparseable temperature values', () {
+      final status = PrinterStatus.fromJson(
+        readFixture('printer_status_error.json') as Map<String, dynamic>,
+      );
 
-        expect(status.state, 'FAILED');
-        expect(status.progress, 61.0, reason: 'progress przyszedł jako string');
-        expect(status.remainingTime, 88);
-        expect(status.layerNum, isNull);
-        expect(
-          status.temperatures,
-          {'nozzle': 25.0},
-          reason: '"off" nie jest liczbą — wpis pominięty, nie crash',
-        );
-      },
-    );
+      expect(status.state, 'FAILED');
+      expect(status.progress, 61.0, reason: 'progress came in as a string');
+      expect(status.remainingTime, 88);
+      expect(status.layerNum, isNull);
+      expect(
+        status.temperatures,
+        {'nozzle': 25.0},
+        reason: '"off" is not a number — entry skipped, not crashed',
+      );
+    });
 
     test(
-      'metadane czasu (chamber_target_set_time) pomijane w temperaturach',
+      'time metadata (chamber_target_set_time) is skipped in temperatures',
       () {
         final status = PrinterStatus.fromJson(const {
           'id': 1,
@@ -155,12 +152,12 @@ void main() {
         expect(
           status.temperatures,
           {'nozzle': 210.0, 'chamber': 30.0},
-          reason: 'klucz *_time to znacznik czasu, nie czujnik — nie kafelek',
+          reason: 'a *_time key is a timestamp, not a sensor — not a tile',
         );
       },
     );
 
-    test('minimalny payload (samo id) nie wywala parsera', () {
+    test('a minimal payload (id only) does not crash the parser', () {
       final status = PrinterStatus.fromJson(const {'id': 7});
 
       expect(status.id, 7);
@@ -169,7 +166,7 @@ void main() {
       expect(status.isPrinting, isFalse);
     });
 
-    test('faza przygotowania (RUNNING, progress 0) liczy się jako wydruk', () {
+    test('preparing phase (RUNNING, progress 0) counts as printing', () {
       const status = PrinterStatus(
         id: 1,
         state: 'RUNNING',
@@ -181,12 +178,12 @@ void main() {
       expect(
         status.isPrinting,
         isTrue,
-        reason: 'nagrzewanie/leveling to etap wydruku',
+        reason: 'heating/leveling is a print stage',
       );
       expect(status.isPreparing, isTrue);
     });
 
-    test('FAILED nie jest wydrukiem mimo dodatniego progresu', () {
+    test('FAILED is not printing despite positive progress', () {
       const status = PrinterStatus(
         id: 1,
         state: 'FAILED',
@@ -198,7 +195,7 @@ void main() {
     });
   });
 
-  group('AMS / sloty filamentu', () {
+  group('AMS / filament slots', () {
     PrinterStatus realStatus() {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
@@ -207,21 +204,21 @@ void main() {
       return PrinterStatus.fromJson(data);
     }
 
-    test('parsuje jednostkę AMS z slotami i pomiarami', () {
+    test('parses an AMS unit with slots and readings', () {
       final status = realStatus();
 
       expect(status.ams, hasLength(1));
       final unit = status.ams!.first;
       expect(unit.id, 0);
       expect(unit.humidity, 28);
-      expect(unit.temp, 31.0, reason: 'temp przyszła jako string "31.0"');
+      expect(unit.temp, 31.0, reason: 'temp came in as string "31.0"');
       expect(unit.trays, hasLength(4));
 
       final tray0 = unit.trays![0];
       expect(tray0.id, 0);
       expect(tray0.trayType, 'PETG');
       expect(tray0.trayColor, 'FFFFFFFF');
-      expect(tray0.remain, -1, reason: 'brak tagu RFID → nieznana ilość');
+      expect(tray0.remain, -1, reason: 'no RFID tag → unknown amount');
 
       final tray3 = unit.trays![3];
       expect(tray3.trayType, 'PLA');
@@ -230,11 +227,11 @@ void main() {
       expect(
         tray3.materialLabel,
         'PLA Basic',
-        reason: 'wariant marki ma pierwszeństwo przed surowym typem',
+        reason: 'brand variant takes priority over raw type',
       );
     });
 
-    test('parsuje szpulę zewnętrzną (vt_tray) i tray_now/model', () {
+    test('parses external spool (vt_tray) and tray_now/model', () {
       final status = realStatus();
 
       expect(status.vtTray, hasLength(2));
@@ -247,7 +244,7 @@ void main() {
       expect(status.hasDetails, isTrue);
     });
 
-    test('AmsTray.isEmpty: brak materiału lub przezroczysty kolor', () {
+    test('AmsTray.isEmpty: missing material or transparent color', () {
       expect(
         const AmsTray(trayType: 'PLA', trayColor: '000000FF').isEmpty,
         isFalse,
@@ -255,18 +252,18 @@ void main() {
       expect(
         const AmsTray(trayType: '', trayColor: '000000FF').isEmpty,
         isTrue,
-        reason: 'pusty typ = pusty slot',
+        reason: 'empty type = empty slot',
       );
       expect(const AmsTray(trayType: null).isEmpty, isTrue);
       expect(
         const AmsTray(trayType: 'PLA', trayColor: '00000000').isEmpty,
         isTrue,
-        reason: 'alpha 00 = w pełni przezroczysty = pusty',
+        reason: 'alpha 00 = fully transparent = empty',
       );
     });
 
     test(
-      'odporność: nie-lista AMS i element nie-mapowy nie wywracają parsera',
+      'resilience: a non-list AMS and a non-map element do not crash the parser',
       () {
         final status = PrinterStatus.fromJson(const {
           'id': 1,
@@ -277,59 +274,55 @@ void main() {
           ],
         });
 
-        expect(status.ams, isNull, reason: 'AMS nie-lista → null, nie crash');
-        expect(
-          status.vtTray,
-          hasLength(1),
-          reason: 'element nie-mapowy pominięty',
-        );
+        expect(status.ams, isNull, reason: 'non-list AMS → null, not a crash');
+        expect(status.vtTray, hasLength(1), reason: 'non-map element skipped');
       },
     );
 
-    test('brak danych AMS → hasDetails false', () {
+    test('no AMS data → hasDetails false', () {
       expect(const PrinterStatus(id: 1).hasDetails, isFalse);
     });
 
-    test('parsuje active_extruder i ams_extruder_map (klucze-stringi)', () {
+    test('parses active_extruder and ams_extruder_map (string keys)', () {
       final status = realStatus();
       expect(status.activeExtruder, 1);
       expect(status.amsExtruderMap, {0: 1});
       expect(
         status.isDualExtruder,
         isTrue,
-        reason: 'dwie szpule zewnętrzne → maszyna dwudyszowa',
+        reason: 'two external spools → dual-extruder machine',
       );
     });
 
-    test('externalSpools sortuje po id rosnąco', () {
+    test('externalSpools sorts by ascending id', () {
       final status = realStatus();
       final spools = status.externalSpools;
       expect(spools.map((t) => t.id), [254, 255]);
       expect(spools.map((t) => t.trayType), ['TPU', 'PLA']);
     });
 
-    // Potwierdzone przy fizycznej drukarce: 254 (TPU) na lewym (ekstruder 1),
-    // 255 (PLA) na prawym (ekstruder 0) — odwrotnie do kolejności id.
-    test('extruderForExternal mapuje odwrotnie do id', () {
+    // Confirmed on a physical printer: 254 (TPU) on the left (extruder 1),
+    // 255 (PLA) on the right (extruder 0) — reverse of id order.
+    test('extruderForExternal maps in reverse of id', () {
       final status = realStatus();
-      expect(status.extruderForExternal(254), 1, reason: '254 → lewy (ext 1)');
-      expect(status.extruderForExternal(255), 0, reason: '255 → prawy (ext 0)');
+      expect(status.extruderForExternal(254), 1, reason: '254 → left (ext 1)');
+      expect(status.extruderForExternal(255), 0, reason: '255 → right (ext 0)');
       expect(status.extruderForExternal(999), isNull);
     });
 
-    test('activeTray: tray_now w AMS wskazuje slot tej jednostki', () {
+    test('activeTray: tray_now in AMS points to that unit\'s slot', () {
       final status = realStatus(); // tray_now=2 → AMS0 slot 2 (PETG)
       expect(status.activeTray?.trayType, 'PETG');
       expect(identical(status.activeTray, status.ams!.first.trays![2]), isTrue);
     });
 
-    // Sedno zgłoszonego błędu: na szpuli zewnętrznej liczy się materiał
-    // aktywnego ekstrudera, nie pierwszy z listy.
-    test('activeTray: szpula zewnętrzna → materiał AKTYWNEGO ekstrudera', () {
+    // The heart of the reported bug: on an external spool, the material of
+    // the ACTIVE extruder counts, not the first one on the list.
+    test('activeTray: external spool → material of the ACTIVE extruder', () {
       const tpu = AmsTray(id: 254, trayType: 'TPU', trayColor: '0ACC38FF');
       const pla = AmsTray(id: 255, trayType: 'PLA', trayColor: '91202BFF');
 
-      // active_extruder=1 (lewy) → TPU (254 mapuje się na lewy ekstruder).
+      // active_extruder=1 (left) → TPU (254 maps to the left extruder).
       const onExt1 = PrinterStatus(
         id: 1,
         trayNow: 254,
@@ -338,7 +331,7 @@ void main() {
       );
       expect(onExt1.activeTray?.trayType, 'TPU');
 
-      // active_extruder=0 (prawy) → PLA (255 mapuje się na prawy ekstruder).
+      // active_extruder=0 (right) → PLA (255 maps to the right extruder).
       const onExt0 = PrinterStatus(
         id: 1,
         trayNow: 254,
@@ -351,20 +344,20 @@ void main() {
 
   group('PrinterStatus.mergedWith', () {
     test(
-      'ramka WS (bez airduct) dziedziczy tryb komory z poprzedniego pollu',
+      'a WS frame (without airduct) inherits chamber mode from the last poll',
       () {
-        // Poll dał tryb komory (REST), ale następna ramka WS go nie niesie.
+        // The poll gave the chamber mode (REST), but the next WS frame doesn't carry it.
         const fromPoll = PrinterStatus(id: 1, state: 'RUNNING', airductMode: 1);
         const fromWs = PrinterStatus(id: 1, state: 'RUNNING', progress: 50);
 
         final merged = fromWs.mergedWith(fromPoll);
-        expect(merged.airductMode, 1); // przeniesione → chip nie miga
-        expect(merged.progress, 50); // żywe pole bierze świeżą wartość z WS
+        expect(merged.airductMode, 1); // carried over → chip doesn't flicker
+        expect(merged.progress, 50); // live field takes the fresh value from WS
       },
     );
 
     test(
-      'poll (bez pól WS) dziedziczy model/cover/szpulę z poprzedniej ramki WS',
+      'a poll (without WS fields) inherits model/cover/spool from the last WS frame',
       () {
         const fromWs = PrinterStatus(
           id: 1,
@@ -380,12 +373,12 @@ void main() {
         expect(merged.coverUrl, 'http://c/cover.png');
         expect(merged.doorOpen, isTrue);
         expect(merged.wifiSignal, -55);
-        expect(merged.airductMode, 0); // świeże z pollu zostaje
+        expect(merged.airductMode, 0); // fresh from the poll stays
       },
     );
 
     test(
-      'świeża wartość ma pierwszeństwo nad poprzednią (nie nadpisuje nullem)',
+      'a fresh value takes priority over the previous one (does not overwrite with null)',
       () {
         const prev = PrinterStatus(id: 1, airductMode: 1, model: 'X2D');
         const fresh = PrinterStatus(id: 1, airductMode: 0, model: 'P1S');
@@ -395,42 +388,39 @@ void main() {
       },
     );
 
-    test('previous == null → zwraca siebie', () {
+    test('previous == null → returns itself', () {
       const s = PrinterStatus(id: 1, state: 'IDLE');
       expect(identical(s.mergedWith(null), s), isTrue);
     });
 
-    test(
-      'częściowy poll (żywe pola null) dziedziczy ostatnią znaną wartość',
-      () {
-        // Bootująca się drukarka: poprzedni snapshot miał komplet, następny gubi
-        // postęp/temperatury/wentylator — nie wolno ich wygasić do `—`.
-        const prev = PrinterStatus(
-          id: 1,
-          state: 'RUNNING',
-          progress: 40,
-          remainingTime: 88,
-          coolingFanSpeed: 60,
-          temperatures: {'nozzle': 210.0},
-        );
-        const partial = PrinterStatus(id: 1, state: 'RUNNING');
+    test('a partial poll (live fields null) inherits the last known value', () {
+      // A booting printer: the previous snapshot had it all, the next one loses
+      // progress/temperatures/fan — they must not blank out to `—`.
+      const prev = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        progress: 40,
+        remainingTime: 88,
+        coolingFanSpeed: 60,
+        temperatures: {'nozzle': 210.0},
+      );
+      const partial = PrinterStatus(id: 1, state: 'RUNNING');
 
-        final merged = partial.mergedWith(prev);
-        expect(merged.progress, 40);
-        expect(merged.remainingTime, 88);
-        expect(merged.coolingFanSpeed, 60);
-        expect(merged.temperatures, {'nozzle': 210.0});
-      },
-    );
+      final merged = partial.mergedWith(prev);
+      expect(merged.progress, 40);
+      expect(merged.remainingTime, 88);
+      expect(merged.coolingFanSpeed, 60);
+      expect(merged.temperatures, {'nozzle': 210.0});
+    });
 
     test(
-      'temperatury scalają się per-klucz (brak czujnika nie gasi kafelka)',
+      'temperatures merge per-key (a missing sensor does not blank a tile)',
       () {
         const prev = PrinterStatus(
           id: 1,
           temperatures: {'nozzle': 200.0, 'bed': 60.0},
         );
-        // Następna ramka niesie tylko świeżą dyszę — stół musi zostać.
+        // The next frame carries only a fresh nozzle reading — the bed must remain.
         const fresh = PrinterStatus(id: 1, temperatures: {'nozzle': 205.0});
 
         final merged = fresh.mergedWith(prev);
@@ -438,15 +428,15 @@ void main() {
       },
     );
 
-    test('connected:false propaguje się mimo reguły dziedziczenia', () {
+    test('connected:false propagates despite the inheritance rule', () {
       const prev = PrinterStatus(id: 1, connected: true);
       const fresh = PrinterStatus(id: 1, connected: false);
       expect(fresh.mergedWith(prev).connected, isFalse);
     });
 
-    test('offline gasi żywą telemetrię (backend niesie stary cache)', () {
-      // Drukarka drukowała, potem padła: backend flipuje connected:false, ale
-      // NIE czyści stanu — ramka niesie stary RUNNING/postęp/temperatury.
+    test('offline blanks live telemetry (backend carries a stale cache)', () {
+      // The printer was printing, then dropped: the backend flips connected:false,
+      // but does NOT clear state — the frame carries the old RUNNING/progress/temps.
       const prev = PrinterStatus(
         id: 1,
         connected: true,
@@ -462,14 +452,15 @@ void main() {
       const offline = PrinterStatus(
         id: 1,
         connected: false,
-        state: 'RUNNING', // serwer trzyma ostatni stan mimo rozłączenia
+        state:
+            'RUNNING', // the server keeps the last state despite the disconnect
         progress: 60,
         temperatures: {'nozzle': 208.0},
       );
 
       final merged = offline.mergedWith(prev);
       expect(merged.connected, isFalse);
-      expect(merged.state, isNull); // brak żywego stanu → OFFLINE, nie RUNNING
+      expect(merged.state, isNull); // no live state → OFFLINE, not RUNNING
       expect(merged.isPrinting, isFalse);
       expect(merged.progress, isNull);
       expect(merged.remainingTime, isNull);
@@ -480,7 +471,7 @@ void main() {
       expect(merged.chamberLight, isNull);
     });
 
-    test('offline zachowuje tożsamość, sprzęt, magazyn AMS i hms_errors', () {
+    test('offline preserves identity, hardware, AMS storage and hms_errors', () {
       const prev = PrinterStatus(
         id: 1,
         connected: true,
@@ -497,7 +488,7 @@ void main() {
       expect(merged.model, 'X2D');
       expect(merged.supportsDrying, isTrue);
       expect(merged.ams, isNotNull);
-      // hms_errors przenoszone: PrintMonitor pauzuje na nich zegar clear-grace.
+      // hms_errors carried over: PrintMonitor pauses the clear-grace clock on them.
       expect(merged.hmsErrors, isNotNull);
     });
 
@@ -541,7 +532,7 @@ void main() {
       expect(cleared.mergedWith(prev).awaitingPlateClear, isFalse);
     });
 
-    test('powrót online repopuluje telemetrię ze świeżej ramki', () {
+    test('coming back online repopulates telemetry from the fresh frame', () {
       const offline = PrinterStatus(id: 1, connected: false, model: 'P1S');
       const online = PrinterStatus(
         id: 1,
@@ -556,43 +547,49 @@ void main() {
       expect(merged.state, 'RUNNING');
       expect(merged.progress, 5);
       expect(merged.temperatures, {'nozzle': 200.0});
-      expect(merged.model, 'P1S'); // sprzęt przetrwał przerwę
+      expect(merged.model, 'P1S'); // hardware survived the outage
     });
 
-    test('zmiana pliku (wejście w kalibrację) NIE dziedziczy starej okładki', () {
-      // Drukował model z okładką, teraz wchodzi w kalibrację bez własnej okładki
-      // — podgląd poprzedniego modelu nie może się przenieść.
-      const prev = PrinterStatus(
-        id: 1,
-        state: 'RUNNING',
-        gcodeFile: 'benchy.gcode',
-        coverUrl: 'http://c/cover.png',
-      );
-      const cali = PrinterStatus(
-        id: 1,
-        state: 'RUNNING',
-        gcodeFile: 'auto_cali_for_user_param.gcode',
-      );
-      expect(cali.mergedWith(prev).coverUrl, isNull);
-    });
+    test(
+      'a file change (entering calibration) does NOT inherit the old cover',
+      () {
+        // It was printing a model with a cover, now it enters calibration without
+        // its own cover — the previous model's preview must not carry over.
+        const prev = PrinterStatus(
+          id: 1,
+          state: 'RUNNING',
+          gcodeFile: 'benchy.gcode',
+          coverUrl: 'http://c/cover.png',
+        );
+        const cali = PrinterStatus(
+          id: 1,
+          state: 'RUNNING',
+          gcodeFile: 'auto_cali_for_user_param.gcode',
+        );
+        expect(cali.mergedWith(prev).coverUrl, isNull);
+      },
+    );
 
-    test('ten sam plik bez cover_url (poll REST) dalej dziedziczy okładkę', () {
-      const prev = PrinterStatus(
-        id: 1,
-        gcodeFile: 'benchy.gcode',
-        coverUrl: 'http://c/cover.png',
-      );
-      const poll = PrinterStatus(
-        id: 1,
-        gcodeFile: 'benchy.gcode',
-        progress: 30,
-      );
-      expect(poll.mergedWith(prev).coverUrl, 'http://c/cover.png');
-    });
+    test(
+      'the same file without cover_url (REST poll) still inherits the cover',
+      () {
+        const prev = PrinterStatus(
+          id: 1,
+          gcodeFile: 'benchy.gcode',
+          coverUrl: 'http://c/cover.png',
+        );
+        const poll = PrinterStatus(
+          id: 1,
+          gcodeFile: 'benchy.gcode',
+          progress: 30,
+        );
+        expect(poll.mergedWith(prev).coverUrl, 'http://c/cover.png');
+      },
+    );
   });
 
-  group('Wentylatory akcesoryjne P2S/X2D', () {
-    test('parsuje left_aux_fan_speed i exhaust_fan_present', () {
+  group('P2S/X2D accessory fans', () {
+    test('parses left_aux_fan_speed and exhaust_fan_present', () {
       final s = PrinterStatus.fromJson(const {
         'id': 1,
         'model': 'X2D',
@@ -603,14 +600,14 @@ void main() {
       expect(s.exhaustFanPresent, isTrue);
     });
 
-    test('serwer < 1.2.5.2 nie wysyła pól → null, nie false', () {
+    test('server < 1.2.5.2 sends no fields → null, not false', () {
       final s = PrinterStatus.fromJson(const {'id': 1, 'model': 'P2S'});
       expect(s.leftAuxFanSpeed, isNull);
-      // Musi zostać null: false znaczy "serwer sprawdził i nie ma".
+      // Must stay null: false means "the server checked and there isn't one".
       expect(s.exhaustFanPresent, isNull);
     });
 
-    test('etykieta wyciągu tylko dla P2S/X2D, też po kodzie wewnętrznym', () {
+    test('exhaust label only for P2S/X2D, also by internal code', () {
       for (final model in ['P2S', 'p2s', 'X2D', 'N7', 'N6', 'X2 D']) {
         expect(
           PrinterStatus(id: 1, model: model).usesExhaustFanLabel,
@@ -627,7 +624,7 @@ void main() {
       }
     });
 
-    test('P2S bez zestawu wyciągu — kafelek ukryty', () {
+    test('P2S without the exhaust kit — tile hidden', () {
       const s = PrinterStatus(
         id: 1,
         model: 'P2S',
@@ -637,7 +634,7 @@ void main() {
       expect(s.chamberFanAvailable, isFalse);
     });
 
-    test('P2S z zestawem — kafelek widoczny', () {
+    test('P2S with the kit — tile visible', () {
       const s = PrinterStatus(
         id: 1,
         model: 'P2S',
@@ -647,14 +644,14 @@ void main() {
       expect(s.chamberFanAvailable, isTrue);
     });
 
-    test('P2S na starym serwerze — zachowanie sprzed zmiany (pokazujemy)', () {
+    test('P2S on an old server — pre-change behavior (we show it)', () {
       const s = PrinterStatus(id: 1, model: 'P2S', bigFan2Speed: 0);
       expect(s.chamberFanAvailable, isTrue);
     });
 
-    test('X1C z exhaust_fan_present=false dalej ma wentylator komory', () {
-      // Regresja, o którą tu najłatwiej: X1C/P1S nie mają airductu, więc serwer
-      // raportuje im `false` przy wentylatorze, który fizycznie jest.
+    test('X1C with exhaust_fan_present=false still has a chamber fan', () {
+      // The easiest regression to hit here: X1C/P1S have no airduct, so the server
+      // reports `false` for a fan that physically exists.
       const s = PrinterStatus(
         id: 1,
         model: 'X1C',
@@ -664,12 +661,12 @@ void main() {
       expect(s.chamberFanAvailable, isTrue);
     });
 
-    test('brak big_fan2_speed → brak kafelka niezależnie od modelu', () {
+    test('no big_fan2_speed → no tile regardless of model', () {
       const s = PrinterStatus(id: 1, model: 'X2D', exhaustFanPresent: true);
       expect(s.chamberFanAvailable, isFalse);
     });
 
-    test('merge dziedziczy oba pola z poprzedniej ramki', () {
+    test('merge inherits both fields from the previous frame', () {
       const prev = PrinterStatus(
         id: 1,
         model: 'P2S',
@@ -682,7 +679,7 @@ void main() {
       expect(merged.exhaustFanPresent, isTrue);
     });
 
-    test('offline gasi prędkość, ale zachowuje informację o obecności', () {
+    test('offline blanks speed, but keeps the presence information', () {
       const prev = PrinterStatus(
         id: 1,
         model: 'P2S',
@@ -693,14 +690,14 @@ void main() {
       const off = PrinterStatus(id: 1, connected: false);
       final merged = off.mergedWith(prev);
       expect(merged.leftAuxFanSpeed, isNull);
-      // Zestaw nie znika po zaniku zasilania — inaczej po powrocie bazowy P2S
-      // mignąłby kafelkiem komory, czekając na pierwszą ramkę airduct.
+      // The kit doesn't disappear on power loss — otherwise a base P2S would
+      // flash the chamber tile on return, waiting for the first airduct frame.
       expect(merged.exhaustFanPresent, isFalse);
     });
   });
 
   group('PrinterStatus.isCalibration', () {
-    test('plik auto_cali_for_user_param liczy się jako kalibracja', () {
+    test('the auto_cali_for_user_param file counts as calibration', () {
       const s = PrinterStatus(
         id: 1,
         state: 'RUNNING',
@@ -709,7 +706,7 @@ void main() {
       expect(s.isCalibration, isTrue);
     });
 
-    test('zwykły wydruk nie jest kalibracją', () {
+    test('a regular print is not calibration', () {
       const s = PrinterStatus(
         id: 1,
         state: 'RUNNING',
@@ -718,7 +715,7 @@ void main() {
       expect(s.isCalibration, isFalse);
     });
 
-    test('brak nazwy pliku → nie kalibracja', () {
+    test('no filename → not calibration', () {
       const s = PrinterStatus(id: 1, state: 'IDLE');
       expect(s.isCalibration, isFalse);
     });
@@ -1182,7 +1179,7 @@ void main() {
   });
 
   group('Printer.fromJson', () {
-    test('parsuje listę drukarek, ignorując nieznane pola', () {
+    test('parses a list of printers, ignoring unknown fields', () {
       final raw = readFixture('printers_list.json') as List<dynamic>;
       final printers = raw
           .map((e) => Printer.fromJson(e as Map<String, dynamic>))

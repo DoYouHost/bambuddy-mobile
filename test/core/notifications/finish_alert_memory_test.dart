@@ -16,7 +16,7 @@ PostedAlert _alert({
   event: event,
   printerId: printerId,
   id: 1000 + printerId,
-  title: 'Wydruk zakończony',
+  title: 'Print finished',
   body: 'Benchy',
   payload: 'printer:$printerId',
   postedAt: postedAt ?? _now,
@@ -35,20 +35,23 @@ void main() {
   });
 
   group('FinishAlertMemory', () {
-    test('zapamiętuje alert i oddaje go z kompletem pól', () async {
-      await memory.remember(_alert());
+    test(
+      'remembers an alert and returns it with a full set of fields',
+      () async {
+        await memory.remember(_alert());
 
-      final recalled = await memory.recall(3, _now);
-      expect(recalled, isNotNull);
-      expect(recalled!.id, 1003);
-      expect(recalled.event, NotifEvent.printFinished);
-      expect(recalled.title, 'Wydruk zakończony');
-      expect(recalled.body, 'Benchy');
-      expect(recalled.payload, 'printer:3');
-      expect(recalled.postedAt, _now);
-    });
+        final recalled = await memory.recall(3, _now);
+        expect(recalled, isNotNull);
+        expect(recalled!.id, 1003);
+        expect(recalled.event, NotifEvent.printFinished);
+        expect(recalled.title, 'Print finished');
+        expect(recalled.body, 'Benchy');
+        expect(recalled.payload, 'printer:3');
+        expect(recalled.postedAt, _now);
+      },
+    );
 
-    test('trzyma osobny wpis na drukarkę', () async {
+    test('keeps a separate entry per printer', () async {
       await memory.remember(_alert(printerId: 1));
       await memory.remember(_alert(printerId: 2));
 
@@ -56,14 +59,14 @@ void main() {
       expect((await memory.recall(2, _now))!.id, 1002);
     });
 
-    test('zdarzenia inne niż koniec wydruku nie są zapamiętywane', () async {
+    test('events other than print end are not remembered', () async {
       await memory.remember(_alert(event: NotifEvent.printStarted));
       await memory.remember(_alert(event: NotifEvent.maintenanceDue));
 
       expect(await memory.recall(3, _now), isNull);
     });
 
-    test('wpis starszy niż okno nie jest oddawany', () async {
+    test('an entry older than the window is not returned', () async {
       await memory.remember(_alert());
 
       expect(
@@ -76,22 +79,25 @@ void main() {
       );
     });
 
-    test('nowy alert sprząta przeterminowane wpisy innych drukarek', () async {
-      await memory.remember(_alert(printerId: 1));
-      await memory.remember(
-        _alert(printerId: 2, postedAt: _now.add(const Duration(hours: 1))),
-      );
+    test(
+      'a new alert sweeps out expired entries from other printers',
+      () async {
+        await memory.remember(_alert(printerId: 1));
+        await memory.remember(
+          _alert(printerId: 2, postedAt: _now.add(const Duration(hours: 1))),
+        );
 
-      // Wpis drukarki 1 wypadł przy zapisie drugiego, więc nie odżyje nawet
-      // w oknie liczonym od własnego czasu.
-      expect(await memory.recall(1, _now), isNull);
-      expect(
-        await memory.recall(2, _now.add(const Duration(hours: 1))),
-        isNotNull,
-      );
-    });
+        // Printer 1's entry dropped out when the second one was saved, so it
+        // won't come back even in a window counted from its own time.
+        expect(await memory.recall(1, _now), isNull);
+        expect(
+          await memory.recall(2, _now.add(const Duration(hours: 1))),
+          isNotNull,
+        );
+      },
+    );
 
-    test('forget usuwa tylko wskazaną drukarkę', () async {
+    test('forget removes only the named printer', () async {
       await memory.remember(_alert(printerId: 1));
       await memory.remember(_alert(printerId: 2));
 
@@ -101,19 +107,19 @@ void main() {
       expect(await memory.recall(2, _now), isNotNull);
     });
 
-    test('uszkodzony wpis w prefs nie wywraca odczytu', () async {
+    test('a corrupted entry in prefs does not crash the read', () async {
       SharedPreferences.setMockInitialValues({
-        'finish_alert_last': 'to nie jest JSON',
+        'finish_alert_last': 'this is not JSON',
       });
       final broken = FinishAlertMemory(await SharedPreferences.getInstance());
 
       expect(await broken.recall(3, _now), isNull);
     });
 
-    test('wpis o nieznanym zdarzeniu jest pomijany, reszta zostaje', () async {
+    test('an entry with an unknown event is skipped, the rest stays', () async {
       SharedPreferences.setMockInitialValues({
         'finish_alert_last':
-            '{"1":{"event":"nowyTypZPrzyszlosci","printerId":1,"id":1,'
+            '{"1":{"event":"newTypeFromTheFuture","printerId":1,"id":1,'
             '"postedAt":1},'
             '"3":{"event":"printFinished","printerId":3,"id":1003,'
             '"title":"t","body":"b","postedAt":${_now.millisecondsSinceEpoch}}}',
@@ -126,7 +132,7 @@ void main() {
   });
 
   group('RememberingNotifications', () {
-    test('zapisuje alert końca wydruku i przepuszcza go dalej', () async {
+    test('saves the print-end alert and passes it through', () async {
       final inner = RecordingNotifications();
       final service = RememberingNotifications(inner, memory, () => _now);
 
@@ -134,7 +140,7 @@ void main() {
         event: NotifEvent.printFinished,
         printerId: 3,
         id: 1003,
-        title: 'Wydruk zakończony',
+        title: 'Print finished',
         body: 'Benchy',
         payload: 'printer:3',
       );
@@ -143,26 +149,29 @@ void main() {
       expect((await memory.recall(3, _now))!.id, 1003);
     });
 
-    test('alert innego typu przechodzi, ale nie jest zapamiętywany', () async {
-      final service = RememberingNotifications(
-        RecordingNotifications(),
-        memory,
-        () => _now,
-      );
+    test(
+      'an alert of another type passes through but is not remembered',
+      () async {
+        final service = RememberingNotifications(
+          RecordingNotifications(),
+          memory,
+          () => _now,
+        );
 
-      await service.showAlert(
-        event: NotifEvent.printStarted,
-        printerId: 3,
-        id: 7,
-        title: 't',
-        body: 'b',
-      );
+        await service.showAlert(
+          event: NotifEvent.printStarted,
+          printerId: 3,
+          id: 7,
+          title: 't',
+          body: 'b',
+        );
 
-      expect(await memory.recall(3, _now), isNull);
-    });
+        expect(await memory.recall(3, _now), isNull);
+      },
+    );
 
     test(
-      'post ze zdjęciem to już aktualizacja — nie uzbraja się ponownie',
+      'a post with a photo is already an update — does not re-arm',
       () async {
         final service = RememberingNotifications(
           RecordingNotifications(),

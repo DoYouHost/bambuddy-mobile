@@ -36,13 +36,13 @@ void main() {
   final captures = Directory('test/fixtures/captured');
   final missing = captures.existsSync() && captures.listSync().isNotEmpty
       ? null
-      : 'brak test/fixtures/captured — zrób zrzut z własnego serwera: '
-            'tool/capture_fixtures.sh https://twój.serwer';
+      : 'missing test/fixtures/captured — make a dump from your own server: '
+            'tool/capture_fixtures.sh https://your.server';
 
   if (missing != null) {
     // One named skip instead of eleven identical ones, and nothing below is
     // registered — a test that cannot reach its fixture has no assertion to make.
-    test('kontrakt na przechwyconych payloadach', () {}, skip: missing);
+    test('contract on captured payloads', () {}, skip: missing);
     return;
   }
 
@@ -209,12 +209,12 @@ void main() {
     expect(
       raw.map((r) => (r as Map)['bed_levelling']),
       everyElement(isA<String>()),
-      reason: 'fixture przechwycony ze serwera starszego niż 1.2.5?',
+      reason: 'fixture captured from a server older than 1.2.5?',
     );
     expect(
       raw.map((r) => (r as Map)['vibration_cali']),
       everyElement(isA<bool>()),
-      reason: 'to pole nie migrowało i ma zostać boolem',
+      reason: 'this field did not migrate and stays boolean',
     );
 
     mock('/api/v1/queue/', 'queue_all.json');

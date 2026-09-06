@@ -11,8 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Połączenie, które nigdy nie kończy handshake'u i nie nadaje ramek — WS
-/// zostaje „cichy", więc testujemy wyłącznie tor pollingu ([ingestPoll]).
+/// A connection that never finishes the handshake and never emits frames —
+/// the WS stays "silent", so only the polling lane ([ingestPoll]) is tested.
 class _HangConn implements WsConnection {
   @override
   Future<void> get ready => Completer<void>().future;
@@ -53,7 +53,7 @@ PrinterWithStatus _pws(int id, {String? state}) => PrinterWithStatus(
 );
 
 void main() {
-  test('ingestPoll: polling zasila tę samą mapę statusów co WS', () {
+  test('ingestPoll: polling feeds the same status map as WS', () {
     final c = _container();
     expect(c.read(printerStatusesProvider), isEmpty);
 
@@ -68,39 +68,45 @@ void main() {
     expect(map[2]!.isPrinting, isFalse);
   });
 
-  test('ingestPoll: wpis bez statusu (null) nie kasuje istniejącego', () {
-    final c = _container();
-    c.read(printerStatusesProvider.notifier).ingestPoll([
-      _pws(1, state: 'RUNNING'),
-    ]);
+  test(
+    'ingestPoll: an entry with no status (null) does not clear an existing one',
+    () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        _pws(1, state: 'RUNNING'),
+      ]);
 
-    // Kolejny poll: drukarka 1 ma teraz null (status endpoint padł) — zostaje
-    // poprzedni status, a nowa drukarka 2 dochodzi.
-    c.read(printerStatusesProvider.notifier).ingestPoll([
-      _pws(1),
-      _pws(2, state: 'IDLE'),
-    ]);
+      // Next poll: printer 1 now has null (status endpoint failed) — the
+      // previous status stays, and the new printer 2 is added.
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        _pws(1),
+        _pws(2, state: 'IDLE'),
+      ]);
 
-    final map = c.read(printerStatusesProvider);
-    expect(map[1]!.state, 'RUNNING');
-    expect(map[2]!.state, 'IDLE');
-  });
+      final map = c.read(printerStatusesProvider);
+      expect(map[1]!.state, 'RUNNING');
+      expect(map[2]!.state, 'IDLE');
+    },
+  );
 
-  test('ingestPoll: drukarka usunięta z rostera znika z mapy', () {
-    final c = _container();
-    c.read(printerStatusesProvider.notifier).ingestPoll([
-      _pws(1, state: 'RUNNING'),
-      _pws(2, state: 'IDLE'),
-    ]);
-    expect(c.read(printerStatusesProvider).keys, unorderedEquals([1, 2]));
+  test(
+    'ingestPoll: a printer removed from the roster disappears from the map',
+    () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        _pws(1, state: 'RUNNING'),
+        _pws(2, state: 'IDLE'),
+      ]);
+      expect(c.read(printerStatusesProvider).keys, unorderedEquals([1, 2]));
 
-    // Kolejny poll bez drukarki 2 (skasowana na serwerze) — znika z mapy,
-    // nie zostaje na zawsze.
-    c.read(printerStatusesProvider.notifier).ingestPoll([
-      _pws(1, state: 'RUNNING'),
-    ]);
-    expect(c.read(printerStatusesProvider).keys, [1]);
-  });
+      // Next poll without printer 2 (deleted on the server) — it disappears
+      // from the map, it doesn't stay forever.
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        _pws(1, state: 'RUNNING'),
+      ]);
+      expect(c.read(printerStatusesProvider).keys, [1]);
+    },
+  );
 
   group('contact with the server', () {
     // What the card asks before it believes a `connected:false` frame: had the

@@ -27,7 +27,9 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  testWidgets('wydruk bez nagrania i zdjęć nie ma znaczników', (tester) async {
+  testWidgets('a print with no recording and no photos has no badges', (
+    tester,
+  ) async {
     await tester.pumpWidget(_screen([testArchive()]));
     await tester.pumpAndSettle();
 
@@ -35,7 +37,7 @@ void main() {
     expect(find.byIcon(Icons.photo_camera), findsNothing);
   });
 
-  testWidgets('timelapse_path → znacznik nagrania na karcie', (tester) async {
+  testWidgets('timelapse_path → recording badge on the card', (tester) async {
     await tester.pumpWidget(
       _screen([testArchive(timelapsePath: 'archive/1/video.mp4')]),
     );
@@ -45,7 +47,7 @@ void main() {
     expect(find.byIcon(Icons.photo_camera), findsNothing);
   });
 
-  testWidgets('photos → znacznik zdjęcia na karcie', (tester) async {
+  testWidgets('photos → photo badge on the card', (tester) async {
     await tester.pumpWidget(
       _screen([
         testArchive(photos: const ['finish.jpg']),
@@ -57,12 +59,12 @@ void main() {
     expect(find.byIcon(Icons.movie), findsNothing);
   });
 
-  testWidgets('oba znaczniki jednocześnie', (tester) async {
+  testWidgets('both badges at once', (tester) async {
     await tester.pumpWidget(
       _screen([
         testArchive(
           timelapsePath: 'archive/1/video.mp4',
-          photos: const ['finish.jpg', 'reka.jpg'],
+          photos: const ['finish.jpg', 'hand.jpg'],
         ),
       ]),
     );

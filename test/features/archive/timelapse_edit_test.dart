@@ -35,96 +35,102 @@ const _jpeg =
 
 void main() {
   group('formatClock', () {
-    test('poniżej godziny bez wiodącego zera', () {
+    test('below an hour with no leading zero', () {
       expect(formatClock(0), '0:00');
       expect(formatClock(7), '0:07');
       expect(formatClock(54), '0:54');
       expect(formatClock(605), '10:05');
     });
 
-    test('powyżej godziny dokłada człon godzinowy', () {
+    test('above an hour adds the hour component', () {
       expect(formatClock(3661), '1:01:01');
     });
 
-    test('ułamki sekundy ucina — zegar nie wyprzedza materiału', () {
-      expect(formatClock(0.6), '0:00');
-      expect(formatClock(1.9), '0:01');
-    });
+    test(
+      'truncates fractional seconds — clock does not outrun the footage',
+      () {
+        expect(formatClock(0.6), '0:00');
+        expect(formatClock(1.9), '0:01');
+      },
+    );
   });
 
   group('formatSpeed', () {
-    test('obcina zbędne zera', () {
+    test('trims trailing zeros', () {
       expect(formatSpeed(1), '1x');
       expect(formatSpeed(0.25), '0.25x');
       expect(formatSpeed(1.5), '1.5x');
     });
   });
 
-  group('pętla podglądu', () {
-    test('w środku zakresu nie zawija', () {
+  group('preview loop', () {
+    test('in the middle of the range does not wrap', () {
       expect(timelapseReachedEnd(5, 30), isFalse);
     });
 
-    test('koniec zakresu łapie z zapasem na odstęp klatek', () {
+    test('end of range catches with margin for frame spacing', () {
       expect(timelapseReachedEnd(29.95, 30), isTrue);
       expect(timelapseReachedEnd(31, 30), isTrue);
     });
 
-    test('niedostrzelony seek pod początek zakresu NIE zawija w kółko', () {
-      // Regresja: reguła pilnująca też początku wyzwalała się na własnym
-      // niedostrzeleniu — seek, niedostrzelenie, seek. Dekoder tylko czyścił
-      // bufory, obraz nie ruszał.
+    test('an undershoot seek near range start does NOT wrap in a loop', () {
+      // Regression: the guard rule for the start also triggered on its own
+      // undershoot — seek, undershoot, seek. The decoder only flushed
+      // buffers, the image did not move.
       expect(
         timelapseReachedEnd(9.98, 30),
         isFalse,
-        reason: 'pozycja tuż pod startem 10 s to nie koniec zakresu',
+        reason: 'a position just below the 10s start is not the range end',
       );
     });
 
-    test('start odtwarzania cofa spoza zakresu i z jego końca', () {
+    test('start of playback rewinds from outside range and from its end', () {
       expect(timelapseNeedsRewind(9.98, 10, 30), isTrue);
       expect(timelapseNeedsRewind(29.99, 10, 30), isTrue);
       expect(timelapseNeedsRewind(15, 10, 30), isFalse);
     });
   });
 
-  group('kontener pliku', () {
-    test('rozszerzenie bierze z typu treści, nie z założenia', () {
+  group('file container', () {
+    test('extension comes from content type, not assumption', () {
       expect(timelapseExtension('video/mp4'), 'mp4');
       expect(timelapseExtension('video/x-msvideo'), 'avi');
       expect(timelapseExtension('video/x-matroska'), 'mkv');
     });
 
-    test('parametry i wielkość liter nie mylą rozpoznania', () {
+    test('parameters and letter case do not confuse recognition', () {
       expect(timelapseExtension('Video/X-MSVideo; charset=binary'), 'avi');
     });
 
-    test('brak lub nieznany typ to mp4, bo to serwuje serwer domyślnie', () {
-      expect(timelapseExtension(null), 'mp4');
-      expect(timelapseExtension('application/octet-stream'), 'mp4');
-    });
+    test(
+      'missing or unknown type is mp4, since that is the server default',
+      () {
+        expect(timelapseExtension(null), 'mp4');
+        expect(timelapseExtension('application/octet-stream'), 'mp4');
+      },
+    );
 
-    test('typ do udostępnienia wraca z rozszerzenia pliku', () {
+    test('type to share comes back from the file extension', () {
       expect(timelapseMimeType('/tmp/a_timelapse.avi'), 'video/x-msvideo');
       expect(timelapseMimeType('/tmp/a_timelapse.mp4'), 'video/mp4');
     });
   });
 
   group('exportFilename', () {
-    test('składa nazwę pliku z nazwy wydruku', () {
+    test('builds filename from print name', () {
       expect(exportFilename('Part Studio 1'), 'Part_Studio_1_timelapse.mp4');
     });
 
-    test('bierze kontener, którym serwer nazwał plik', () {
+    test('takes the container the server named the file with', () {
       expect(exportFilename('Part', 'avi'), 'Part_timelapse.avi');
     });
 
-    test('wycina znaki, które wywracają zapis albo udostępnianie', () {
+    test('strips characters that break saving or sharing', () {
       expect(exportFilename('a/b\\c:d*?'), 'abcd_timelapse.mp4');
       expect(exportFilename('  ../etc  '), 'etc_timelapse.mp4');
     });
 
-    test('pusta nazwa nie daje pliku zaczynającego się od podkreślenia', () {
+    test('empty name does not produce a file starting with underscore', () {
       expect(exportFilename('///'), 'timelapse_timelapse.mp4');
     });
 
@@ -140,7 +146,7 @@ void main() {
   });
 
   group('TimelapseFilmstrip.fromJson', () {
-    test('dekoduje klatki i znaczniki czasu', () {
+    test('decodes frames and timestamps', () {
       final strip = TimelapseFilmstrip.fromJson({
         'thumbnails': [_jpeg, _jpeg],
         'timestamps': [0, 3.5],
@@ -151,7 +157,7 @@ void main() {
       expect(strip.isEmpty, isFalse);
     });
 
-    test('niedekodowalna klatka nie zabiera całego paska', () {
+    test('an undecodable frame does not take down the whole strip', () {
       final strip = TimelapseFilmstrip.fromJson({
         'thumbnails': [_jpeg, 'nie-base64!!'],
         'timestamps': [0, 1],
@@ -160,7 +166,7 @@ void main() {
       expect(strip.frames, hasLength(1));
     });
 
-    test('brak pól to pusty pasek, nie wyjątek', () {
+    test('missing fields give an empty strip, not an exception', () {
       expect(TimelapseFilmstrip.fromJson(const {}).isEmpty, isTrue);
     });
   });
@@ -168,38 +174,35 @@ void main() {
   group('framesFitting', () {
     final all = List.generate(14, (i) => i);
 
-    test(
-      'na wąskim pasku żadna klatka nie schodzi poniżej czytelnej szerokości',
-      () {
-        const stripWidth = 517.0;
-        final shown = framesFitting(all, stripWidth);
+    test('on a narrow strip no frame drops below a readable width', () {
+      const stripWidth = 517.0;
+      final shown = framesFitting(all, stripWidth);
 
-        expect(stripWidth / shown.length, greaterThanOrEqualTo(56.0));
-        expect(
-          shown,
-          hasLength(lessThan(all.length)),
-          reason: 'przy tej szerokości komplet się nie mieści',
-        );
-      },
-    );
-
-    test('próbkuje z całego materiału, nie z jego początku', () {
-      final shown = framesFitting(all, 517);
-
-      expect(shown, orderedEquals(shown.toList()..sort()));
-      expect(shown.toSet(), hasLength(shown.length), reason: 'bez powtórek');
+      expect(stripWidth / shown.length, greaterThanOrEqualTo(56.0));
       expect(
-        shown.last,
-        greaterThan(all.length ~/ 2),
-        reason: 'ostatnia próbka z końcowej połowy, nie z pierwszej',
+        shown,
+        hasLength(lessThan(all.length)),
+        reason: 'at this width the full set does not fit',
       );
     });
 
-    test('każda klatka trafia pod moment, który pokazuje', () {
-      // 14 klatek na 6 kafelków. Kafelek i zajmuje [i/6, (i+1)/6] materiału,
-      // klatka j jest z chwili j/14 — więc do kafelka pasuje ta najbliższa
-      // jego środkowi. Przy próbkowaniu „od początku kafelka" ostatni kafelek
-      // (83–100%) dostawał klatkę z 78,6% i końcówki nie dało się przyciąć.
+    test('samples across the whole footage, not from its start', () {
+      final shown = framesFitting(all, 517);
+
+      expect(shown, orderedEquals(shown.toList()..sort()));
+      expect(shown.toSet(), hasLength(shown.length), reason: 'no repeats');
+      expect(
+        shown.last,
+        greaterThan(all.length ~/ 2),
+        reason: 'last sample from the second half, not the first',
+      );
+    });
+
+    test('every frame lands under the moment it shows', () {
+      // 14 frames over 6 tiles. Tile i occupies [i/6, (i+1)/6] of the footage,
+      // frame j is from moment j/14 — so the one closest to its center fits
+      // the tile. When sampling "from the tile's start" the last tile
+      // (83-100%) got a frame from 78.6% and the tail could not be trimmed.
       final shown = framesFitting(all, 360);
 
       expect(shown, hasLength(6));
@@ -210,37 +213,34 @@ void main() {
         expect(
           frameAt,
           greaterThanOrEqualTo(tileStart - 0.001),
-          reason: 'klatka $i sprzed swojego kafelka',
+          reason: 'frame $i is ahead of its tile',
         );
         expect(
           frameAt,
           lessThanOrEqualTo(tileEnd + 0.001),
-          reason: 'klatka $i zza swojego kafelka',
+          reason: 'frame $i is behind its tile',
         );
       }
     });
 
-    test(
-      'ostatni kafelek pokazuje ostatnią klatkę, jaką serwer wyrenderował',
-      () {
-        expect(framesFitting(all, 360).last, all.last);
-        expect(framesFitting(all, 517).last, all.last);
-      },
-    );
+    test('the last tile shows the last frame the server rendered', () {
+      expect(framesFitting(all, 360).last, all.last);
+      expect(framesFitting(all, 517).last, all.last);
+    });
 
-    test('gdy wszystkie się mieszczą, nie gubi żadnej', () {
+    test('when everything fits, none is dropped', () {
       expect(framesFitting(all, 2000), all);
     });
 
-    test('pusta lista i zerowa szerokość nie wywracają się', () {
+    test('empty list and zero width do not crash', () {
       expect(framesFitting(<int>[], 500), isEmpty);
       expect(framesFitting(all, 0), hasLength(1));
     });
   });
 
-  group('pasek przycinania', () {
-    // 300 px na 60 s materiału. Oś czasu jest wcięta o szerokość uchwytu z
-    // każdej strony, więc środek paska wypada na 30 s.
+  group('trim strip', () {
+    // 300px for 60s of footage. The timeline is inset by handle width on
+    // each side, so the strip's center falls at 30s.
     const width = 300.0;
     const duration = 60.0;
 
@@ -260,9 +260,9 @@ void main() {
           Center(
             child: SizedBox(
               width: width,
-              // Zakres wraca do paska tak, jak robi to edytor — bez tego
-              // sprzężenia widżet w teście widziałby wiecznie stary zakres i
-              // asercje mierzyłyby harness, nie produkt.
+              // The range feeds back to the strip the way the editor does — without
+              // this loop the widget in the test would see a forever-stale range and
+              // assertions would measure the harness, not the product.
               child: StatefulBuilder(
                 builder: (context, setState) => TimelapseTrimStrip(
                   frames: frames,
@@ -292,14 +292,14 @@ void main() {
     Rect playheadRect(WidgetTester tester) =>
         rectOf(tester, TimelapseTrimStrip.playheadKey);
 
-    testWidgets('przeciągnięcie lewego uchwytu przesuwa początek zakresu', (
+    testWidgets('dragging the left handle moves the range start', (
       tester,
     ) async {
       final r = await pumpStrip(tester);
       final strip = tester.getRect(find.byType(TimelapseTrimStrip));
 
-      // Chwyt na lewym uchwycie (start = 0 s siedzi na 12 px), przeciągnięcie
-      // do 58 px, czyli 46 px po torze = 10 s.
+      // Grab on the left handle (start = 0s sits at 12px), drag to
+      // 58px, i.e. 46px along the track = 10s.
       await tester.dragFrom(
         Offset(strip.left + 2, strip.center.dy),
         const Offset(56, 0),
@@ -308,20 +308,20 @@ void main() {
 
       expect(r.trims, isNotEmpty);
       expect(r.trims.last.start, closeTo(10, 0.5));
-      expect(r.trims.last.end, duration, reason: 'koniec nietknięty');
+      expect(r.trims.last.end, duration, reason: 'end untouched');
       expect(
         r.ends,
         hasLength(1),
-        reason: 'seek dla podglądu tylko raz, po puszczeniu',
+        reason: 'preview seek only once, on release',
       );
       expect(
         r.ends.single,
         closeTo(r.trims.last.start, 0.01),
-        reason: 'podgląd parkuje na przeciągniętym początku, nie na końcu',
+        reason: 'preview parks at the dragged start, not the end',
       );
     });
 
-    testWidgets('puszczenie prawego uchwytu parkuje podgląd na jego końcu', (
+    testWidgets('releasing the right handle parks the preview at its end', (
       tester,
     ) async {
       final r = await pumpStrip(tester);
@@ -336,16 +336,16 @@ void main() {
       expect(r.ends.single, closeTo(r.trims.last.end, 0.01));
     });
 
-    testWidgets('chwyt za uchwyt nie przewija podglądu', (tester) async {
-      // onTapDown odpalał się, zanim przeciąganie wygrało arenę gestów, więc
-      // samo złapanie uchwytu szarpało znacznikiem w miejsce dotknięcia.
+    testWidgets('grabbing a handle does not scrub the preview', (tester) async {
+      // onTapDown fired before dragging won the gesture arena, so
+      // just grabbing the handle jerked the playhead to the touch point.
       final r = await pumpStrip(tester, trim: const RangeValues(20, 40));
       final strip = tester.getRect(find.byType(TimelapseTrimStrip));
       final startHandle = rectOf(tester, TimelapseTrimStrip.startHandleKey);
 
-      // Palec najpierw chwilę stoi na uchwycie — tak się go łapie i dopiero
-      // wtedy rozpoznawanie tapnięcia zdąża minąć swój próg czasu. Natychmiast
-      // rozpoczęte przeciągnięcie nie odtworzyłoby tego błędu.
+      // The finger first rests on the handle for a moment — that's how it's
+      // grabbed, and only then does tap recognition have time to clear its
+      // time threshold. A drag started immediately would not reproduce this bug.
       final gesture = await tester.startGesture(
         Offset(startHandle.center.dx, strip.center.dy),
       );
@@ -355,67 +355,68 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      expect(r.trims, isNotEmpty, reason: 'uchwyt jednak ruszył');
-      expect(r.seeks, isEmpty, reason: 'żaden seek przy chwytaniu uchwytu');
+      expect(r.trims, isNotEmpty, reason: 'the handle did move');
+      expect(r.seeks, isEmpty, reason: 'no seek while grabbing the handle');
     });
 
-    testWidgets('nagranie krótsze niż minimalny fragment nie wywraca gestu', (
-      tester,
-    ) async {
-      // clamp(0, end - minClip) rzuca, gdy granice się mijają — a przy 0,5 s
-      // materiału mijają się zawsze.
-      await tester.pumpWidget(
-        plApp(
-          Center(
-            child: SizedBox(
-              width: width,
-              child: TimelapseTrimStrip(
-                frames: const [],
-                duration: 0.5,
-                trim: const RangeValues(0, 0.5),
-                minClip: 1,
-                onTrimChanged: (_) {},
-                onTrimCommitted: (_) {},
-                onSeek: (_) {},
+    testWidgets(
+      'footage shorter than the minimum clip does not crash the gesture',
+      (tester) async {
+        // clamp(0, end - minClip) throws when the bounds cross — and with 0.5s
+        // of footage they always cross.
+        await tester.pumpWidget(
+          plApp(
+            Center(
+              child: SizedBox(
+                width: width,
+                child: TimelapseTrimStrip(
+                  frames: const [],
+                  duration: 0.5,
+                  trim: const RangeValues(0, 0.5),
+                  minClip: 1,
+                  onTrimChanged: (_) {},
+                  onTrimCommitted: (_) {},
+                  onSeek: (_) {},
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+        );
+        await tester.pumpAndSettle();
+        final strip = tester.getRect(find.byType(TimelapseTrimStrip));
 
-      await tester.dragFrom(
-        Offset(strip.left + 2, strip.center.dy),
-        const Offset(56, 0),
-      );
-      await tester.pumpAndSettle();
+        await tester.dragFrom(
+          Offset(strip.left + 2, strip.center.dy),
+          const Offset(56, 0),
+        );
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-    });
+        expect(tester.takeException(), isNull);
+      },
+    );
 
-    testWidgets('przeciągnięcie w środku paska przewija, nie tnie', (
+    testWidgets('dragging the middle of the strip scrubs, not trims', (
       tester,
     ) async {
       final r = await pumpStrip(tester);
       final strip = tester.getRect(find.byType(TimelapseTrimStrip));
 
-      // Przeciągnięcie musi przekroczyć próg dotyku (18 px), inaczej system
-      // uzna je za tapnięcie — stąd 30 px, a nie kilkanaście.
+      // The drag must exceed the touch threshold (18px), otherwise the system
+      // reads it as a tap — hence 30px, not a dozen or so.
       await tester.dragFrom(strip.center, const Offset(30, 0));
       await tester.pumpAndSettle();
 
-      expect(r.trims, isEmpty, reason: 'zakres bez zmian');
+      expect(r.trims, isEmpty, reason: 'range unchanged');
       expect(
         r.seeks.last,
         closeTo(36.5, 0.5),
-        reason: '180 px to 168 px po torze, czyli 36,5 s',
+        reason: '180px is 168px along the track, i.e. 36.5s',
       );
     });
 
-    testWidgets('znacznik czasu nie wchodzi pod uchwyty', (tester) async {
-      // Na obu krańcach materiału znacznik nie może zachodzić na wyrenderowany
-      // uchwyt — sprawdzane na prostokątach, nie na stałej z widżetu.
+    testWidgets('the playhead does not go under the handles', (tester) async {
+      // At both ends of the footage the playhead must not overlap the rendered
+      // handle — checked on the rects, not a widget constant.
       for (final at in [0.0, duration]) {
         await pumpStrip(tester, position: at);
         final line = playheadRect(tester);
@@ -423,23 +424,23 @@ void main() {
         expect(
           line.overlaps(rectOf(tester, TimelapseTrimStrip.startHandleKey)),
           isFalse,
-          reason: 'znacznik na $at s wchodzi pod lewy uchwyt',
+          reason: 'playhead at ${at}s goes under the left handle',
         );
         expect(
           line.overlaps(rectOf(tester, TimelapseTrimStrip.endHandleKey)),
           isFalse,
-          reason: 'znacznik na $at s wchodzi pod prawy uchwyt',
+          reason: 'playhead at ${at}s goes under the right handle',
         );
       }
     });
 
     testWidgets(
-      'znacznik jedzie od pierwszej sekundy, bez postoju na starcie',
+      'playhead moves from the first second, no standstill at start',
       (tester) async {
-        // Regresja: znacznik był docinany do krawędzi wyliczanych z zakresu
-        // przycięcia, więc przez pierwsze ~2,5 s stał w miejscu, choć materiał
-        // już leciał. Test nie przelicza wzoru — sprawdza, że kolejne sekundy
-        // dają kolejne, rosnące położenia.
+        // Regression: the playhead was clamped to edges computed from the trim
+        // range, so for the first ~2.5s it stood still even though the footage
+        // was already playing. The test does not recompute the formula — it
+        // checks that successive seconds give successive, growing positions.
         final seen = <double>[];
         for (final second in [0.0, 1.0, 2.0, 3.0, 30.0, duration]) {
           await pumpStrip(tester, position: second);
@@ -450,15 +451,13 @@ void main() {
           expect(
             seen[i],
             greaterThan(seen[i - 1]),
-            reason: 'sekunda $i nie przesunęła znacznika',
+            reason: 'second $i did not move the playhead',
           );
         }
       },
     );
 
-    testWidgets('przycięcie nie przesuwa ani nie skaluje klatek', (
-      tester,
-    ) async {
+    testWidgets('trimming does not shift or scale the frames', (tester) async {
       await pumpStrip(tester);
       final full = rectOf(tester, TimelapseTrimStrip.framesKey);
 
@@ -468,14 +467,17 @@ void main() {
       expect(
         trimmed,
         full,
-        reason: 'klatki to oś czasu — zakres je przyciemnia, nie przelicza',
+        reason:
+            'frames are the timeline — the range dims them, does not recompute',
       );
     });
 
-    testWidgets('uchwyt nie zasłania materiału, który zostaje', (tester) async {
-      // Uchwyt może leżeć na przyciemnionej części — tę i tak wycinamy.
-      // Nie może wejść na kadr między przyciemnieniami, czyli na to, co
-      // zostanie po zapisie.
+    testWidgets('the handle does not cover the footage that remains', (
+      tester,
+    ) async {
+      // A handle may sit over the dimmed part — that's cut away anyway.
+      // It must not encroach on the frame between dimmed sections, i.e. what
+      // remains after saving.
       for (final trim in [
         const RangeValues(0, duration),
         const RangeValues(20, 40),
@@ -487,32 +489,30 @@ void main() {
         expect(
           rectOf(tester, TimelapseTrimStrip.startHandleKey).right,
           lessThanOrEqualTo(keptLeft + 0.01),
-          reason: 'lewy uchwyt wchodzi na zachowany kadr przy $trim',
+          reason: 'left handle encroaches on kept frame at $trim',
         );
         expect(
           rectOf(tester, TimelapseTrimStrip.endHandleKey).left,
           greaterThanOrEqualTo(keptRight - 0.01),
-          reason: 'prawy uchwyt wchodzi na zachowany kadr przy $trim',
+          reason: 'right handle encroaches on kept frame at $trim',
         );
       }
     });
 
-    testWidgets('przewijanie nie wychodzi poza przycięty zakres', (
-      tester,
-    ) async {
+    testWidgets('scrubbing does not leave the trimmed range', (tester) async {
       final r = await pumpStrip(tester, trim: const RangeValues(20, 40));
       final strip = tester.getRect(find.byType(TimelapseTrimStrip));
 
-      // Tap tuż przy prawej krawędzi paska, czyli poza zakresem (40 s).
+      // Tap right at the right edge of the strip, i.e. outside the range (40s).
       await tester.tapAt(Offset(strip.right - 4, strip.center.dy));
       await tester.pumpAndSettle();
 
-      expect(r.seeks.single, 40, reason: 'docięte do końca zakresu');
+      expect(r.seeks.single, 40, reason: 'clamped to range end');
     });
   });
 
-  group('ekran edycji', () {
-    testWidgets('pokazuje długość źródła i wyliczony wynik dla prędkości', (
+  group('editor screen', () {
+    testWidgets('shows source length and computed result for speed', (
       tester,
     ) async {
       await pumpPhone(
@@ -543,11 +543,11 @@ void main() {
       );
     });
 
-    testWidgets('bez podglądu wideo edytor dalej daje przyciąć i zapisać', (
+    testWidgets('without video preview the editor still allows trim and save', (
       tester,
     ) async {
-      // Podglądu nie ma: w teście nie istnieje natywna strona video_player,
-      // czyli dokładnie ta degradacja, którą ekran ma przetrwać.
+      // There is no preview: the native video_player side does not exist in
+      // the test, which is exactly the degradation the screen has to survive.
       await pumpPhone(
         tester,
         const TimelapseEditorScreen(archiveId: 7),
@@ -564,7 +564,7 @@ void main() {
       expect(find.text('Zapisz'), findsOneWidget);
     });
 
-    testWidgets('nieudane info zostawia ekran z ponowieniem, nie spinnerem', (
+    testWidgets('failed info leaves the screen with a retry, not a spinner', (
       tester,
     ) async {
       await pumpPhone(

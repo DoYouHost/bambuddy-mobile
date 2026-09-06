@@ -236,11 +236,11 @@ void main() {
         out.values,
         everyElement('[REDACTED]'),
         reason:
-            'żadne z tych pól nie diagnozuje nic, czego nie mówi stan gniazdka',
+            'none of these fields diagnose anything the plug state doesn\'t already say',
       );
     });
 
-    test('smart plug wiring: co ZOSTAJE, bo to jest diagnoza', () {
+    test('smart plug wiring: what STAYS, because it is diagnosis', () {
       final out = redactor.scrubFields(const {
         'plug_type': 'homeassistant',
         'mqtt_power_path': 'StatusSNS.ENERGY.Power',
@@ -254,7 +254,8 @@ void main() {
       expect(
         out['mqtt_power_path'],
         'StatusSNS.ENERGY.Power',
-        reason: 'wskaźnik na pole, nie adres — i to on tłumaczy zero watów',
+        reason:
+            'a pointer to a field, not an address — and it explains zero watts',
       );
       expect(out['rest_status_path'], 'state.power');
       expect(out['rest_method'], 'GET');
@@ -262,23 +263,24 @@ void main() {
       expect(out['off_delay_minutes'], 30);
     });
 
-    test('entity nie zjada identity, topic nie zjada niczego', () {
+    test('entity does not eat identity, topic does not eat anything', () {
       final out = redactor.scrubFields(const {
-        'identity': 'nie-sekret',
+        'identity': 'not-a-secret',
         'ha_entity_id': 'switch.x',
       });
 
       expect(
         out['identity'],
-        'nie-sekret',
-        reason: '„identity" zawiera „entity" — dlatego wzorzec jest ogrodzony',
+        'not-a-secret',
+        reason:
+            '"identity" contains "entity" — that\'s why the pattern is fenced',
       );
       expect(out['ha_entity_id'], '[REDACTED]');
     });
 
-    test('cover_url i kamera zewnętrzna zostają czytelne', () {
-      // Zawężenie do prefiksu `rest_` jest celowe: te dwa są diagnostyczne,
-      // a host i tak maskuje przebieg po autorytecie URL-a.
+    test('cover_url and external camera stay readable', () {
+      // Narrowing to the `rest_` prefix is deliberate: these two are diagnostic,
+      // and the host masking already covers the URL's authority part.
       final out = redactor.scrubFields(const {
         'cover_url': 'https://bambu.example/api/v1/printers/1/cover',
         'external_camera_url': 'rtsp://admin:pw@192.168.1.50/stream',
@@ -291,9 +293,9 @@ void main() {
       expect(out['rest_status_url'], '[REDACTED]');
     });
 
-    test('zagnieżdżony rekord `first` — tak to leci w produkcji', () {
-      // http_probe próbkuje pierwszy rekord odpowiedzi jako mapę pod `first`,
-      // więc realna ścieżka to rekurencja w [scrub], nie [scrubFields].
+    test('a nested `first` record — this is how it flows in production', () {
+      // http_probe samples the response's first record as a map under `first`,
+      // so the real path is recursion in [scrub], not [scrubFields].
       final out =
           redactor.scrub(const {
                 'first': {
@@ -314,22 +316,22 @@ void main() {
       expect(
         plug['rest_headers'],
         '[REDACTED]',
-        reason: 'cała mapa nagłówków idzie w całości, nie klucz po kluczu',
+        reason: 'the whole headers map goes as a unit, not key by key',
       );
       expect(plug['mqtt_topic'], isNull);
       expect(
         plug['name'],
         'Office Cabinet',
         reason:
-            'nazwa gniazdka zostaje — bez niej rekord przestaje być czytelny',
+            'the plug name stays — without it the record stops being readable',
       );
       expect(plug['plug_type'], 'homeassistant');
       expect(plug['enabled'], true);
     });
 
-    test('null zostaje nullem — „nieskonfigurowane" to też diagnoza', () {
-      // Bez tego gniazdko bez encji energii czyta się jak skonfigurowane
-      // i następny czytający szuka przyczyny zerowej energii gdzie indziej.
+    test('null stays null — "unconfigured" is also a diagnosis', () {
+      // Without this a plug with no energy entity reads as configured, and
+      // the next reader looks for the cause of zero energy somewhere else.
       final out = redactor.scrubFields(const {
         'ha_energy_today_entity': null,
         'ha_energy_total_entity': 'sensor.x_energy',

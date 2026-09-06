@@ -3,23 +3,23 @@ import 'package:bambuddy_mobile/core/settings/print_options.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('domyślne: wszystko włączone poza timelapse', () {
+  test('defaults: everything on except timelapse', () {
     const o = PrintOptions.initial;
     expect([o.vibrationCali, o.layerInspect], everyElement(isTrue));
     expect(
       [o.bedLevelling, o.flowCali, o.nozzleOffsetCali],
       everyElement(CalibrationOption.on),
-      reason: 'on, nie auto — starszy serwer nie ma gdzie zapisać auto',
+      reason: 'on, not auto — an older server has nowhere to store auto',
     );
-    expect(o.timelapse, isFalse, reason: 'nagranie tylko na żądanie');
+    expect(o.timelapse, isFalse, reason: 'recording only on request');
     expect(
       o.gcodeInjection,
       isFalse,
-      reason: 'wstrzykiwanie G-code tylko na wyraźne życzenie',
+      reason: 'G-code injection only on explicit request',
     );
   });
 
-  test('encode → decode wraca tym samym', () {
+  test('encode → decode returns the same thing', () {
     const o = PrintOptions(
       bedLevelling: CalibrationOption.off,
       flowCali: CalibrationOption.auto,
@@ -33,7 +33,7 @@ void main() {
   });
 
   test(
-    'zapis z poprzedniej wersji: booleany na kalibracjach nadal się czytają',
+    'a save from a previous version: booleans on calibrations still read',
     () {
       // Blob written before the tri-state migration. The user should get their
       // toggles back rather than fall back to the initial values.
@@ -49,31 +49,31 @@ void main() {
     },
   );
 
-  test('brak zapisu → domyślne', () {
+  test('no saved value → defaults', () {
     expect(PrintOptions.decode(null), PrintOptions.initial);
     expect(PrintOptions.decode(''), PrintOptions.initial);
   });
 
-  test('uszkodzony zapis → domyślne, nie wyjątek', () {
-    expect(PrintOptions.decode('{nie-json'), PrintOptions.initial);
+  test('a corrupted save → defaults, not an exception', () {
+    expect(PrintOptions.decode('{not-json'), PrintOptions.initial);
     expect(PrintOptions.decode('[1,2,3]'), PrintOptions.initial);
   });
 
-  test('niepełny zapis: brakujące pola biorą wartość domyślną', () {
+  test('an incomplete save: missing fields take the default value', () {
     // An older build wrote fewer keys — the user loses the memory of one
     // toggle, not the whole print screen.
-    final o = PrintOptions.decode('{"timelapse":true,"flow_cali":"tak"}');
+    final o = PrintOptions.decode('{"timelapse":true,"flow_cali":"yes"}');
     expect(o.timelapse, isTrue);
     expect(
       o.flowCali,
       PrintOptions.initial.flowCali,
-      reason: 'zła wartość typu = brak wartości',
+      reason: 'wrong value type = no value',
     );
     expect(o.bedLevelling, PrintOptions.initial.bedLevelling);
     expect(
       o.gcodeInjection,
       isFalse,
-      reason: 'zapis sprzed wstrzykiwania G-code = wyłączone',
+      reason: 'a save from before G-code injection = disabled',
     );
   });
 }

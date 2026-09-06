@@ -4,21 +4,21 @@ import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('odczyt', () {
-    test('boolean ze starszego serwera', () {
+  group('reading', () {
+    test('boolean from an older server', () {
       expect(calibrationFromJson(true), CalibrationOption.on);
       expect(calibrationFromJson(false), CalibrationOption.off);
     });
 
-    test('string z bambuddy 1.2.5+', () {
+    test('string from bambuddy 1.2.5+', () {
       expect(calibrationFromJson('on'), CalibrationOption.on);
       expect(calibrationFromJson('off'), CalibrationOption.off);
       expect(calibrationFromJson('auto'), CalibrationOption.auto);
     });
 
-    test('warianty, które serwer sam akceptuje przy migracji', () {
-      // _coerce_tristate przyjmuje 0/1/2 oraz "true"/"false" — czytanie kształtu,
-      // który serwer jest gotów zapisać, nic nie kosztuje.
+    test('variants the server itself accepts during migration', () {
+      // _coerce_tristate accepts 0/1/2 and "true"/"false" — reading a shape
+      // the server is willing to write costs nothing.
       expect(calibrationFromJson(0), CalibrationOption.off);
       expect(calibrationFromJson(1), CalibrationOption.on);
       expect(calibrationFromJson(2), CalibrationOption.auto);
@@ -26,30 +26,30 @@ void main() {
       expect(calibrationFromJson('false'), CalibrationOption.off);
     });
 
-    test('wielkość litery i spacje nie mają znaczenia', () {
+    test('letter case and spaces do not matter', () {
       expect(calibrationFromJson(' AUTO '), CalibrationOption.auto);
       expect(calibrationFromJson('On'), CalibrationOption.on);
     });
 
-    test('brak wartości i śmieci → auto, nigdy wyjątek', () {
-      for (final junk in [null, '', 'tak', 7, 3.5, <String>[], {}]) {
+    test('missing value and junk → auto, never an exception', () {
+      for (final junk in [null, '', 'yes', 7, 3.5, <String>[], {}]) {
         expect(
           calibrationFromJson(junk),
           CalibrationOption.auto,
-          reason: 'wejście: $junk',
+          reason: 'input: $junk',
         );
       }
     });
 
-    test('calibrationOrNull rozróżnia „brak" od wartości', () {
+    test('calibrationOrNull distinguishes "missing" from a value', () {
       expect(calibrationOrNull(null), isNull);
       expect(calibrationOrNull('nonsens'), isNull);
       expect(calibrationOrNull(false), CalibrationOption.off);
     });
   });
 
-  group('zapis', () {
-    test('on/off zawsze jako boolean — rozumie każda wersja serwera', () {
+  group('writing', () {
+    test('on/off always as boolean — every server version understands it', () {
       for (final triState in [true, false]) {
         expect(
           CalibrationOption.on.toWire(triState: triState),
@@ -64,20 +64,23 @@ void main() {
       }
     });
 
-    test('auto jako string tylko tam, gdzie serwer ma to gdzie zapisać', () {
-      expect(CalibrationOption.auto.toWire(triState: true), 'auto');
-      expect(
-        CalibrationOption.auto.toWire(triState: false),
-        isNull,
-        reason: 'null = klucz pominięty, nie zamiana auto na boolean',
-      );
-    });
+    test(
+      'auto as a string only where the server has somewhere to store it',
+      () {
+        expect(CalibrationOption.auto.toWire(triState: true), 'auto');
+        expect(
+          CalibrationOption.auto.toWire(triState: false),
+          isNull,
+          reason: 'null = key omitted, not auto converted to boolean',
+        );
+      },
+    );
   });
 
-  group('kontrakt kolejki', () {
-    // Regresja z produkcji: serwer 1.2.5 wysyła stringi, generowany rzut na
-    // bool wywalał KAŻDY rekord, parseJsonList je pomijał i lista wychodziła
-    // pusta przy poprawnym 200 (docs/plans/07-queue-cali-enum.md).
+  group('queue contract', () {
+    // Regression from production: server 1.2.5 sends strings, the generated
+    // cast to bool blew up on EVERY record, parseJsonList dropped them and
+    // the list came out empty on a valid 200 (docs/plans/07-queue-cali-enum.md).
     Map<String, dynamic> record(Object bed, Object flow, Object nozzle) => {
       'id': 240,
       'position': 1,
@@ -89,22 +92,23 @@ void main() {
       'preheat_override': 'inherit',
     };
 
-    test('rekord z serwera 1.2.5 parsuje się, lista nie jest pusta', () {
+    test('a record from server 1.2.5 parses, the list is not empty', () {
       final items = parseJsonList([
         record('off', 'off', 'auto'),
       ], QueueItem.fromJson);
-      expect(items, hasLength(1), reason: 'to jest ten pusty ekran');
+      expect(items, hasLength(1), reason: 'this is that empty screen');
       expect(items.single.bedLevelling, CalibrationOption.off);
       expect(items.single.flowCali, CalibrationOption.off);
       expect(items.single.nozzleOffsetCali, CalibrationOption.auto);
       expect(
         items.single.vibrationCali,
         isFalse,
-        reason: 'vibration_cali migracji nie przeszło, zostaje boolean',
+        reason:
+            'vibration_cali did not go through the migration, stays boolean',
       );
     });
 
-    test('rekord ze starszego serwera nadal parsuje się tak samo', () {
+    test('a record from an older server still parses the same way', () {
       final items = parseJsonList([
         record(true, false, true),
       ], QueueItem.fromJson);
@@ -114,8 +118,8 @@ void main() {
       expect(items.single.nozzleOffsetCali, CalibrationOption.on);
     });
 
-    test('obie postacie naraz nie wywalają całej listy', () {
-      // Serwer w trakcie migracji rekordów: część wierszy stara, część nowa.
+    test('both shapes at once do not blow up the whole list', () {
+      // Server mid-migration of records: some rows old, some new.
       final items = parseJsonList([
         record(true, false, true),
         record('auto', 'on', 'off'),
@@ -123,7 +127,7 @@ void main() {
       expect(items, hasLength(2));
     });
 
-    test('brak kluczy kalibracji → auto, rekord zostaje', () {
+    test('missing calibration keys → auto, the record stays', () {
       final items = parseJsonList([
         {'id': 1, 'position': 1, 'status': 'pending'},
       ], QueueItem.fromJson);

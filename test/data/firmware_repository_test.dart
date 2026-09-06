@@ -17,7 +17,7 @@ void main() {
     repo = FirmwareRepository(dio);
   });
 
-  test('fetchUpdates parsuje listę i flagę update_available', () async {
+  test('fetchUpdates parses list and update_available flag', () async {
     adapter.onGet(
       '/api/v1/firmware/updates',
       (s) => s.reply(200, {
@@ -52,7 +52,7 @@ void main() {
     expect(resp.updates[1].updateAvailable, isFalse);
   });
 
-  test('fetchUpdates pomija niesparsowalny wpis listy', () async {
+  test('fetchUpdates skips unparseable list entry', () async {
     adapter.onGet(
       '/api/v1/firmware/updates',
       (s) => s.reply(200, {
@@ -68,14 +68,14 @@ void main() {
     expect(resp.updates.single.printerId, 1);
   });
 
-  test('fetchUpdates: brak pól → puste/bezpieczne wartości domyślne', () async {
+  test('fetchUpdates: missing fields → empty/safe default values', () async {
     adapter.onGet('/api/v1/firmware/updates', (s) => s.reply(200, {}));
     final resp = await repo.fetchUpdates();
     expect(resp.updates, isEmpty);
     expect(resp.updatesAvailable, isNull);
   });
 
-  test('fetchForPrinter parsuje pojedynczą drukarkę', () async {
+  test('fetchForPrinter parses single printer', () async {
     adapter.onGet(
       '/api/v1/firmware/updates/7',
       (s) => s.reply(200, {
@@ -97,7 +97,7 @@ void main() {
     expect(info.availableVersions!.single.fileAvailable, isTrue);
   });
 
-  test('fetchForPrinter: błąd serwera degraduje się do null', () async {
+  test('fetchForPrinter: server error degrades to null', () async {
     adapter.onGet(
       '/api/v1/firmware/updates/9',
       (s) => s.reply(500, {'detail': 'boom'}),
@@ -105,7 +105,7 @@ void main() {
     expect(await repo.fetchForPrinter(9), isNull);
   });
 
-  test('fetchForPrinter: 401 wypływa jako AuthException', () async {
+  test('fetchForPrinter: 401 flows out as AuthException', () async {
     adapter.onGet(
       '/api/v1/firmware/updates/7',
       (s) => s.reply(401, {'detail': 'unauthorized'}),
@@ -113,7 +113,7 @@ void main() {
     await expectLater(repo.fetchForPrinter(7), throwsA(isA<AuthException>()));
   });
 
-  test('startUpload dokłada version w query i czyta started', () async {
+  test('startUpload appends version in query and reads started', () async {
     adapter.onPost(
       '/api/v1/firmware/updates/7/upload',
       (s) => s.reply(200, {'started': true, 'message': 'queued'}),

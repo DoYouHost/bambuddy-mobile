@@ -5,7 +5,7 @@ import '../../helpers.dart';
 
 void main() {
   group('Archive.fromJson', () {
-    test('parsuje wpis archiwum, ignorując nieznane pola', () {
+    test('parses an archive entry, ignoring unknown fields', () {
       final archive = Archive.fromJson(
         readFixture('archive.json') as Map<String, dynamic>,
       );
@@ -20,21 +20,21 @@ void main() {
       expect(archive.createdAt, isA<DateTime>());
     });
 
-    test('displayName: printName ma pierwszeństwo nad filename', () {
+    test('displayName: printName takes priority over filename', () {
       const withName = Archive(
         id: 1,
-        filename: 'plik.gcode.3mf',
+        filename: 'file.gcode.3mf',
         status: 'completed',
-        printName: 'Ładna nazwa',
+        printName: 'Nice name',
       );
       const withoutName = Archive(
         id: 2,
-        filename: 'plik.gcode.3mf',
+        filename: 'file.gcode.3mf',
         status: 'completed',
       );
 
-      expect(withName.displayName, 'Ładna nazwa');
-      expect(withoutName.displayName, 'plik.gcode.3mf');
+      expect(withName.displayName, 'Nice name');
+      expect(withoutName.displayName, 'file.gcode.3mf');
     });
 
     test('plate_id names the plate a multi-plate file printed', () {
@@ -60,7 +60,7 @@ void main() {
       expect(chosen.withFavorite(true).plateId, 3);
     });
 
-    test('nieznane klucze nie wywołują wyjątku', () {
+    test('unknown keys do not throw an exception', () {
       expect(
         () => Archive.fromJson(const {
           'id': 1,
@@ -72,28 +72,28 @@ void main() {
       );
     });
 
-    test('minimalny payload (id/filename/status) parsuje się bez błędu', () {
+    test('a minimal payload (id/filename/status) parses without error', () {
       final archive = Archive.fromJson(const {
         'id': 5,
-        'filename': 'minimalny.gcode',
+        'filename': 'minimal.gcode',
         'status': 'archived',
       });
 
       expect(archive.id, 5);
-      expect(archive.filename, 'minimalny.gcode');
+      expect(archive.filename, 'minimal.gcode');
       expect(
         archive.isFavorite,
         isFalse,
-        reason: 'domyślna wartość false gdy pole nieobecne',
+        reason: 'default value false when the field is absent',
       );
       expect(
         archive.displayName,
-        'minimalny.gcode',
-        reason: 'brak printName → fallback na filename',
+        'minimal.gcode',
+        reason: 'no printName → falls back to filename',
       );
     });
 
-    test('duplicate fields domyślnie 0 gdy nieobecne', () {
+    test('duplicate fields default to 0 when absent', () {
       final archive = Archive.fromJson(const {
         'id': 5,
         'filename': 'a.gcode',
@@ -127,17 +127,17 @@ void main() {
       ...extra,
     });
 
-    test('brak pola photos → pusta lista, hasPhotos false', () {
+    test('no photos field → empty list, hasPhotos false', () {
       final archive = parse(const {});
       expect(archive.photos, isEmpty);
       expect(archive.hasPhotos, isFalse);
     });
 
-    test('photos: null → pusta lista', () {
+    test('photos: null → empty list', () {
       expect(parse(const {'photos': null}).photos, isEmpty);
     });
 
-    test('parsuje nazwy plików, pomijając elementy niebędące stringiem', () {
+    test('parses filenames, skipping non-string elements', () {
       final archive = parse(const {
         'photos': ['finish_20260815_120000_ab12cd34.jpg', 42, 'ab12cd34.png'],
       });
@@ -148,7 +148,7 @@ void main() {
       expect(archive.hasPhotos, isTrue);
     });
 
-    test('hasTimelapse: puste/brak timelapse_path → false', () {
+    test('hasTimelapse: empty/missing timelapse_path → false', () {
       expect(parse(const {}).hasTimelapse, isFalse);
       expect(parse(const {'timelapse_path': ''}).hasTimelapse, isFalse);
       expect(
@@ -168,16 +168,16 @@ void main() {
           printTimeSeconds: printTime,
         );
 
-    test('.gcode i .gcode.3mf → sliced', () {
+    test('.gcode and .gcode.3mf → sliced', () {
       expect(withFile('a.gcode').isSliced, isTrue);
       expect(withFile('a.gcode.3mf').isSliced, isTrue);
     });
 
-    test('.3mf bez metadanych → source', () {
+    test('.3mf without metadata → source', () {
       expect(withFile('a.3mf').isSliced, isFalse);
     });
 
-    test('.3mf z metadanymi cięcia → sliced', () {
+    test('.3mf with slice metadata → sliced', () {
       expect(withFile('a.3mf', totalLayers: 100).isSliced, isTrue);
       expect(withFile('a.3mf', printTime: 3600).isSliced, isTrue);
     });
@@ -187,29 +187,29 @@ void main() {
     Archive withColor(String? color) =>
         Archive(id: 1, filename: 'a.gcode', status: 'x', filamentColor: color);
 
-    test('null → pusta lista', () {
+    test('null → empty list', () {
       expect(withColor(null).filamentColors, isEmpty);
     });
 
-    test('rozdziela po przecinku i przycina spacje', () {
+    test('splits on comma and trims spaces', () {
       expect(withColor('#FF0000, #00FF00').filamentColors, [
         '#FF0000',
         '#00FF00',
       ]);
     });
 
-    test('pomija puste tokeny', () {
+    test('skips empty tokens', () {
       expect(withColor('#FF0000,,').filamentColors, ['#FF0000']);
     });
   });
 
   group('Archive.withFavorite', () {
-    test('zmienia tylko isFavorite, resztę pól zachowuje', () {
+    test('changes only isFavorite, keeps the rest of the fields', () {
       const a = Archive(
         id: 7,
         filename: 'a.gcode',
         status: 'completed',
-        printName: 'Nazwa',
+        printName: 'Name',
         filamentType: 'PLA',
         fileSize: 999,
         duplicateCount: 2,
@@ -219,13 +219,13 @@ void main() {
       final fav = a.withFavorite(true);
       expect(fav.isFavorite, isTrue);
       expect(fav.id, 7);
-      expect(fav.printName, 'Nazwa');
+      expect(fav.printName, 'Name');
       expect(fav.filamentType, 'PLA');
       expect(fav.fileSize, 999);
       expect(fav.duplicateCount, 2);
       expect(fav.hasTimelapse, isTrue);
       expect(fav.photos, ['finish_1.jpg']);
-      // Oryginał nietknięty (niemutowalny).
+      // Original untouched (immutable).
       expect(a.isFavorite, isFalse);
     });
   });

@@ -20,8 +20,8 @@ import '../../helpers.dart';
 WebSocketException _rejected(int httpStatusCode) =>
     WebSocketException('not upgraded to websocket', httpStatusCode);
 
-/// Sterowalny fake połączenia: testy ręcznie domykają handshake, wpychają
-/// ramki i symulują zamknięcie przez serwer.
+/// A controllable fake connection: tests manually close the handshake, push
+/// frames and simulate the server closing it.
 class FakeConn implements WsConnection {
   final _ready = Completer<void>();
   final _frames = StreamController<dynamic>();
@@ -58,7 +58,7 @@ class FakeConn implements WsConnection {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// Buduje klienta + listę utworzonych połączeń (jedno per próba).
+  /// Builds the client + a list of created connections (one per attempt).
   ({WsClient client, List<FakeConn> conns}) build({
     WsBackoff? backoff,
     Future<bool> Function()? refreshAuth,
@@ -80,36 +80,39 @@ void main() {
     return (client: client, conns: conns);
   }
 
-  test('happy path: connecting → connected, ramka → status, ping po 25 s', () {
-    fakeAsync((async) {
-      final (:client, :conns) = build();
-      final statuses = [];
-      client.statuses.listen(statuses.add);
+  test(
+    'happy path: connecting → connected, frame → status, ping after 25s',
+    () {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        final statuses = [];
+        client.statuses.listen(statuses.add);
 
-      client.start();
-      async.flushMicrotasks();
-      expect(conns, hasLength(1));
-      expect(client.state, WsConnectionState.connecting);
+        client.start();
+        async.flushMicrotasks();
+        expect(conns, hasLength(1));
+        expect(client.state, WsConnectionState.connecting);
 
-      conns[0].connectOk();
-      async.flushMicrotasks();
-      expect(client.state, WsConnectionState.connected);
+        conns[0].connectOk();
+        async.flushMicrotasks();
+        expect(client.state, WsConnectionState.connected);
 
-      conns[0].push(readFixtureString('ws_printer_status.json'));
-      async.flushMicrotasks();
-      expect(statuses, hasLength(1));
-      expect(statuses.first.id, 1);
-      expect(statuses.first.name, 'X2D-3DP');
+        conns[0].push(readFixtureString('ws_printer_status.json'));
+        async.flushMicrotasks();
+        expect(statuses, hasLength(1));
+        expect(statuses.first.id, 1);
+        expect(statuses.first.name, 'X2D-3DP');
 
-      async.elapse(const Duration(seconds: 25));
-      expect(conns[0].sent, contains('{"type":"ping"}'));
+        async.elapse(const Duration(seconds: 25));
+        expect(conns[0].sent, contains('{"type":"ping"}'));
 
-      client.dispose();
-      async.flushMicrotasks();
-    });
-  });
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    },
+  );
 
-  test('zamknięcie przez serwer → waitingRetry → reconnect po backoffie', () {
+  test('closed by server → waitingRetry → reconnect after backoff', () {
     fakeAsync((async) {
       final (:client, :conns) = build();
       client.start();
@@ -121,9 +124,9 @@ void main() {
       conns[0].serverClose();
       async.flushMicrotasks();
       expect(client.state, WsConnectionState.waitingRetry);
-      expect(conns, hasLength(1)); // jeszcze nie wznowił
+      expect(conns, hasLength(1)); // hasn't resumed yet
 
-      // Połączenie żyło <30 s → backoff niewyzerowany; próba 0, rand=1 → 1 s.
+      // Connection was alive <30s → backoff not reset; attempt 0, rand=1 → 1s.
       async.elapse(const Duration(seconds: 1));
       async.flushMicrotasks();
       expect(conns, hasLength(2));
@@ -134,7 +137,7 @@ void main() {
     });
   });
 
-  test('cisza > idleTimeout: watchdog wymusza reconnect', () {
+  test('silence > idleTimeout: watchdog forces reconnect', () {
     fakeAsync((async) {
       final (:client, :conns) = build();
       client.start();
@@ -142,7 +145,7 @@ void main() {
       conns[0].connectOk();
       async.flushMicrotasks();
 
-      // Żadnej ramki przez 60 s → watchdog. Po drodze pingi (25 s, 50 s).
+      // No frame for 60s → watchdog. Pings along the way (25s, 50s).
       async.elapse(const Duration(seconds: 60));
       async.flushMicrotasks();
       expect(client.state, WsConnectionState.waitingRetry);
@@ -153,7 +156,7 @@ void main() {
     });
   });
 
-  test('nieudany handshake → waitingRetry → kolejna próba', () {
+  test('failed handshake → waitingRetry → next attempt', () {
     fakeAsync((async) {
       final (:client, :conns) = build();
       client.start();
@@ -171,7 +174,7 @@ void main() {
     });
   });
 
-  test('suspend zamyka socket bez reconnectu; resume wznawia', () {
+  test('suspend closes the socket without reconnect; resume resumes', () {
     fakeAsync((async) {
       final (:client, :conns) = build();
       client.start();
@@ -184,7 +187,7 @@ void main() {
       expect(client.state, WsConnectionState.suspended);
       expect(conns[0].closed, isTrue);
 
-      // Brak prób w tle, nawet po długim czasie.
+      // No attempts in the background, even after a long time.
       async.elapse(const Duration(minutes: 5));
       async.flushMicrotasks();
       expect(conns, hasLength(1));
@@ -202,8 +205,8 @@ void main() {
     });
   });
 
-  group('re-login JWT przy odrzuconym handshake\'u', () {
-    test('odrzucenie auth + udany re-login → natychmiastowy reconnect', () {
+  group('JWT re-login on a rejected handshake', () {
+    test('auth rejection + successful re-login → immediate reconnect', () {
       fakeAsync((async) {
         var refreshCalls = 0;
         final (:client, :conns) = build(
@@ -219,7 +222,7 @@ void main() {
         async.flushMicrotasks();
 
         expect(refreshCalls, 1);
-        // Po udanym re-loginie łączy OD RAZU, bez czekania na backoff.
+        // After a successful re-login it connects RIGHT AWAY, without waiting for backoff.
         expect(conns, hasLength(2));
         expect(client.state, WsConnectionState.connecting);
 
@@ -232,7 +235,7 @@ void main() {
       });
     });
 
-    test('odrzucenie auth + nieudany re-login → zwykły backoff', () {
+    test('auth rejection + failed re-login → regular backoff', () {
       fakeAsync((async) {
         var refreshCalls = 0;
         final (:client, :conns) = build(
@@ -249,7 +252,10 @@ void main() {
 
         expect(refreshCalls, 1);
         expect(client.state, WsConnectionState.waitingRetry);
-        expect(conns, hasLength(1)); // czeka na backoff, nie łączy od razu
+        expect(
+          conns,
+          hasLength(1),
+        ); // waits for backoff, doesn't connect right away
 
         async.elapse(const Duration(seconds: 1));
         async.flushMicrotasks();
@@ -260,7 +266,7 @@ void main() {
       });
     });
 
-    test('błąd nie-auth (brak łączności) nie wyzwala re-loginu', () {
+    test('a non-auth error (no connectivity) does not trigger re-login', () {
       fakeAsync((async) {
         var refreshCalls = 0;
         final (:client, :conns) = build(
@@ -284,11 +290,11 @@ void main() {
     });
 
     test(
-      'port zawierający „403" w błędzie łączności nie wyzwala re-loginu',
+      'a port containing "403" in a connectivity error does not trigger re-login',
       () {
-        // Regresja: serwer na porcie 8403 sprawia, że zwykły SocketException
-        // (adres w komunikacie) zawiera podciąg „403" — klasyfikator MUSI
-        // patrzeć na typ/kod, nie na goły substring `toString()`.
+        // Regression: a server on port 8403 makes a regular SocketException
+        // (the address in the message) contain the substring "403" — the
+        // classifier MUST look at the type/code, not a bare `toString()` substring.
         fakeAsync((async) {
           var refreshCalls = 0;
           final (:client, :conns) = build(
@@ -314,13 +320,13 @@ void main() {
       },
     );
 
-    test('re-login najwyżej raz na serię niepowodzeń', () {
+    test('re-login happens at most once per failure streak', () {
       fakeAsync((async) {
         var refreshCalls = 0;
         final (:client, :conns) = build(
           refreshAuth: () async {
             refreshCalls++;
-            return true; // „odświeżony", ale serwer i tak dalej odrzuca
+            return true; // "refreshed", but the server keeps rejecting anyway
           },
         );
         client.start();
@@ -331,7 +337,7 @@ void main() {
         expect(refreshCalls, 1);
         expect(conns, hasLength(2)); // re-login → reconnect
 
-        // Druga próba też odrzucona — re-login się NIE powtarza (guard).
+        // Second attempt also rejected — re-login does NOT repeat (guard).
         conns[1].connectFail(_rejected(401));
         async.flushMicrotasks();
         expect(refreshCalls, 1);
@@ -343,8 +349,8 @@ void main() {
     });
   });
 
-  group('token zapytania (?token=) na handshake', () {
-    test('dołącza zmielony token do URL połączenia', () {
+  group('query token (?token=) on handshake', () {
+    test('appends the minted token to the connection URL', () {
       fakeAsync((async) {
         final urls = <Uri>[];
         final client = WsClient(
@@ -367,7 +373,7 @@ void main() {
       });
     });
 
-    test('token null → URL bez parametru (fallback header-only)', () {
+    test('token null → URL without the parameter (header-only fallback)', () {
       fakeAsync((async) {
         final urls = <Uri>[];
         final client = WsClient(
@@ -389,12 +395,12 @@ void main() {
       });
     });
 
-    test('błąd mintu tokenu (rzucony, nie null) → backoff i retry, '
-        'NIE fallback header-only', () {
-      // WsTokenService.token() zwraca null TYLKO na 404 (stary serwer);
-      // rzucony wyjątek to przejściowa awaria mintu (5xx/sieć) — nie może
-      // być spłaszczony do połączenia header-only (na serwerze wymagającym
-      // ?token= takie połączenie i tak dostanie 401).
+    test('a token mint error (thrown, not null) → backoff and retry, '
+        'NOT header-only fallback', () {
+      // WsTokenService.token() returns null ONLY on 404 (old server);
+      // a thrown exception is a transient mint failure (5xx/network) — it must
+      // not be flattened to a header-only connection (on a server requiring
+      // ?token= such a connection would get 401 anyway).
       fakeAsync((async) {
         var mintCalls = 0;
         final urls = <Uri>[];
@@ -415,7 +421,7 @@ void main() {
         client.start();
         async.flushMicrotasks();
 
-        expect(urls, isEmpty); // brak próby połączenia header-only
+        expect(urls, isEmpty); // no header-only connection attempt
         expect(client.state, WsConnectionState.waitingRetry);
         expect(mintCalls, 1);
 
@@ -431,39 +437,42 @@ void main() {
       });
     });
 
-    test('odrzucony handshake (401) unieważnia token przed ponowieniem', () {
-      fakeAsync((async) {
-        var invalidated = 0;
-        final conns = <FakeConn>[];
-        final client = WsClient(
-          url: Uri.parse('wss://example/api/v1/ws'),
-          authHeaders: () async => const {},
-          queryToken: () async => 'tok',
-          invalidateQueryToken: () => invalidated++,
-          backoff: WsBackoff(random: () => 1.0),
-          connect: (_, _) {
-            final c = FakeConn();
-            conns.add(c);
-            return c;
-          },
-        );
-        client.start();
-        async.flushMicrotasks();
+    test(
+      'a rejected handshake (401) invalidates the token before retrying',
+      () {
+        fakeAsync((async) {
+          var invalidated = 0;
+          final conns = <FakeConn>[];
+          final client = WsClient(
+            url: Uri.parse('wss://example/api/v1/ws'),
+            authHeaders: () async => const {},
+            queryToken: () async => 'tok',
+            invalidateQueryToken: () => invalidated++,
+            backoff: WsBackoff(random: () => 1.0),
+            connect: (_, _) {
+              final c = FakeConn();
+              conns.add(c);
+              return c;
+            },
+          );
+          client.start();
+          async.flushMicrotasks();
 
-        conns[0].connectFail(_rejected(401));
-        async.flushMicrotasks();
-        expect(invalidated, 1);
+          conns[0].connectFail(_rejected(401));
+          async.flushMicrotasks();
+          expect(invalidated, 1);
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
-    });
+          client.dispose();
+          async.flushMicrotasks();
+        });
+      },
+    );
   });
 
-  /// Wpięcie [WsProbe] w klienta: co osobno przetestowane w
-  /// `ws_probe_test.dart`, tu sprawdzane jest tylko to, że klient naprawdę je
-  /// woła — i to ta część cicho gnije przy zmianach w kliencie.
-  group('log diagnostyczny', () {
+  /// Wiring [WsProbe] into the client: what it does is tested separately in
+  /// `ws_probe_test.dart`; here only that the client actually calls it is
+  /// checked — and that part quietly rots when the client changes.
+  group('diagnostic log', () {
     late DiagnosticRecorder recorder;
 
     setUp(() async {
@@ -474,8 +483,8 @@ void main() {
             const SessionFacts(app: '1.0+1', flavor: 'mobile'),
         resolveDirectory: () async => null,
       );
-      // Nagrywanie startuje POZA `fakeAsync`: `start()` czeka na prefsy przez
-      // kanał platformy, którego fałszywa pętla zdarzeń nie dokończy.
+      // Recording starts OUTSIDE `fakeAsync`: `start()` waits on prefs via
+      // a platform channel that the fake event loop won't finish.
       await recorder.start();
       addTearDown(recorder.discard);
     });
@@ -491,7 +500,7 @@ void main() {
     }
 
     test(
-      'życie połączenia: connect → open → ramka → disconnect → retry',
+      'connection lifetime: connect → open → frame → disconnect → retry',
       () async {
         fakeAsync((async) {
           final (:client, :conns) = build(queryToken: () async => 'tok');
@@ -521,7 +530,7 @@ void main() {
           ]),
         );
         expect(records.first['via'], 'token');
-        // Ramka przeszła przez parser klienta, więc rekord niesie jej treść.
+        // The frame went through the client's parser, so the record carries its content.
         final frame = records.firstWhere((r) => r['evt'] == 'frame');
         expect(frame['type'], 'printer_status');
         expect(frame['printer_id'], 1);
@@ -532,30 +541,33 @@ void main() {
       },
     );
 
-    test('klient melduje sondzie swój stan, więc migawka go zna', () async {
-      fakeAsync((async) {
-        final (:client, :conns) = build();
-        client.start();
-        async.flushMicrotasks();
-        conns[0].connectOk();
-        async.flushMicrotasks();
+    test(
+      'the client reports its state to the probe, so the snapshot knows it',
+      () async {
+        fakeAsync((async) {
+          final (:client, :conns) = build();
+          client.start();
+          async.flushMicrotasks();
+          conns[0].connectOk();
+          async.flushMicrotasks();
 
-        // Tak samo, jak zrobi to recorder przy starcie nagrania — tylko że tu
-        // nagranie już trwa, więc migawkę wołamy wprost.
-        WsProbe.openSession();
-        async.flushMicrotasks();
+          // Same as the recorder does when recording starts — except here
+          // recording is already running, so the snapshot is called directly.
+          WsProbe.openSession();
+          async.flushMicrotasks();
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
+          client.dispose();
+          async.flushMicrotasks();
+        });
 
-      final snapshot = (await wsRecords()).firstWhere(
-        (r) => r['evt'] == 'state',
-      );
-      expect(snapshot['state'], 'connected');
-    });
+        final snapshot = (await wsRecords()).firstWhere(
+          (r) => r['evt'] == 'state',
+        );
+        expect(snapshot['state'], 'connected');
+      },
+    );
 
-    test('odrzucony handshake schodzi ze statusem HTTP', () async {
+    test('a rejected handshake comes down with an HTTP status', () async {
       fakeAsync((async) {
         final (:client, :conns) = build();
         client.start();
@@ -575,52 +587,58 @@ void main() {
       expect(error['cause'], 'WebSocketException');
     });
 
-    test('cisza dłuższa niż watchdog to rozłączenie z powodem idle', () async {
-      fakeAsync((async) {
-        final (:client, :conns) = build();
-        client.start();
-        async.flushMicrotasks();
-        conns[0].connectOk();
-        async.flushMicrotasks();
+    test(
+      'silence longer than the watchdog is a disconnect with reason idle',
+      () async {
+        fakeAsync((async) {
+          final (:client, :conns) = build();
+          client.start();
+          async.flushMicrotasks();
+          conns[0].connectOk();
+          async.flushMicrotasks();
 
-        async.elapse(const Duration(seconds: 60));
-        async.flushMicrotasks();
+          async.elapse(const Duration(seconds: 60));
+          async.flushMicrotasks();
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
+          client.dispose();
+          async.flushMicrotasks();
+        });
 
-      expect(
-        (await wsRecords()).firstWhere(
-          (r) => r['evt'] == 'disconnect',
-        )['reason'],
-        'idle',
-      );
-    });
+        expect(
+          (await wsRecords()).firstWhere(
+            (r) => r['evt'] == 'disconnect',
+          )['reason'],
+          'idle',
+        );
+      },
+    );
 
-    test('wejście w tło mówi wprost, dlaczego socket zamilkł', () async {
-      fakeAsync((async) {
-        final (:client, :conns) = build();
-        client.start();
-        async.flushMicrotasks();
-        conns[0].connectOk();
-        async.flushMicrotasks();
+    test(
+      'going to the background says outright why the socket went quiet',
+      () async {
+        fakeAsync((async) {
+          final (:client, :conns) = build();
+          client.start();
+          async.flushMicrotasks();
+          conns[0].connectOk();
+          async.flushMicrotasks();
 
-        client.suspend();
-        async.flushMicrotasks();
+          client.suspend();
+          async.flushMicrotasks();
 
-        client.dispose();
-        async.flushMicrotasks();
-      });
+          client.dispose();
+          async.flushMicrotasks();
+        });
 
-      final records = await wsRecords();
-      expect(
-        records.firstWhere((r) => r['evt'] == 'disconnect')['reason'],
-        'suspend',
-      );
-      // Zawieszenie nie planuje ponowienia — inaczej log obiecywałby powrót,
-      // którego nie będzie do `resume()`.
-      expect(records.map((r) => r['evt']), isNot(contains('retry')));
-    });
+        final records = await wsRecords();
+        expect(
+          records.firstWhere((r) => r['evt'] == 'disconnect')['reason'],
+          'suspend',
+        );
+        // Suspending does not schedule a retry — otherwise the log would promise
+        // a comeback that won't happen until `resume()`.
+        expect(records.map((r) => r['evt']), isNot(contains('retry')));
+      },
+    );
   });
 }
