@@ -765,10 +765,7 @@ class ScriptedAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    final step =
-        _steps[requests.length <= _steps.length
-            ? requests.length - 1
-            : _steps.length - 1];
+    final step = _steps[(requests.length - 1).clamp(0, _steps.length - 1)];
     final answer = step(options);
     if (answer is DioException) throw answer;
     return answer as ResponseBody;
