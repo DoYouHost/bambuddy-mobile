@@ -15,6 +15,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -347,6 +348,81 @@ class InMemoryCredentialsStore implements CredentialsStore {
     username = null;
     password = null;
   }
+}
+
+/// Every request that really left the app, oldest first.
+///
+/// The only honest answer to "what did the app send". An `http_mock_adapter`
+/// handler runs **once, when the route is declared** — never when a request
+/// arrives — so a counter or a list written inside one records the
+/// registration and reports the same thing whether the app sent nothing, one
+/// request or ten. Six tests were asserting on such a flag, and two of them
+/// passed with the call under test deleted outright.
+///
+/// An interceptor runs per request, and it runs *before* the adapter looks for
+/// a route — so a request to a path no mock covers is logged here and still
+/// fails the test, which is what makes this safe to assert on alone.
+class RequestLog {
+  final List<RequestOptions> requests = [];
+
+  /// The status of each answer, in the order the answers came back — `null`
+  /// where the failure carried no response at all, which is what a request no
+  /// mocked route matches looks like. Requests fired concurrently can complete
+  /// out of order, so this lines up with [calls] only when they were awaited
+  /// one at a time; compare it as a set when they were not.
+  ///
+  /// Worth asserting whenever the code under test swallows what it gets: a
+  /// swallow hides the difference between the refusal the test registered and
+  /// the adapter failing to find a route, and both leave the caller looking
+  /// identical from outside.
+  final List<int?> statuses = [];
+
+  /// `METHOD /path`, which is what a test asking "did it hit the right route"
+  /// actually means. Assert the whole list, not a `contains`: a stray request
+  /// then shows up instead of passing unnoticed.
+  List<String> get calls =>
+      [for (final r in requests) '${r.method} ${r.path}'];
+
+  /// Waits until [count] requests have *finished*, for the fire-and-forget
+  /// calls a repository starts with `unawaited`.
+  ///
+  /// A single `Future.delayed(Duration.zero)` is not enough — the interceptor
+  /// chain and the adapter each take their own turn of the event loop, so the
+  /// log is still empty when the test asserts. Yielding a bounded number of
+  /// turns keeps that deterministic instead of racing a wall-clock delay.
+  ///
+  /// Counts [statuses], not [requests]: a request is logged on its way out and
+  /// its status only once the answer is back, so waiting on the former leaves
+  /// the latter empty. Returns on the deadline rather than throwing, so the
+  /// caller's own `expect` reports what actually arrived.
+  Future<void> untilCount(int count, {int turns = 100}) async {
+    for (var i = 0; i < turns && statuses.length < count; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+}
+
+/// Logs every request [dio] makes into the returned [RequestLog].
+///
+/// Add it before the act, assert on the log after — see [RequestLog] for why
+/// the mock's own handler cannot do this.
+RequestLog captureRequests(Dio dio) {
+  final log = RequestLog();
+  dio.interceptors.add(InterceptorsWrapper(
+    onRequest: (options, handler) {
+      log.requests.add(options);
+      handler.next(options);
+    },
+    onResponse: (response, handler) {
+      log.statuses.add(response.statusCode);
+      handler.next(response);
+    },
+    onError: (error, handler) {
+      log.statuses.add(error.response?.statusCode);
+      handler.next(error);
+    },
+  ));
+  return log;
 }
 
 /// The host every test that needs a server talks to. Shared so a Dio adapter

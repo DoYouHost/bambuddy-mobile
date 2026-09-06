@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
@@ -185,14 +187,13 @@ void main() {
   });
 
   test('revoking hits the key\'s own path', () async {
-    var called = false;
-    adapter.onDelete('/api/v1/api-keys/5', (s) {
-      called = true;
-      return s.reply(200, {'message': 'deleted'});
-    });
+    adapter.onDelete(
+        '/api/v1/api-keys/5', (s) => s.reply(200, {'message': 'deleted'}));
+    final sent = captureRequests(dio);
 
     await repo.delete(5);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['DELETE /api/v1/api-keys/5']);
   });
 
   test('an identity without api_keys:read gets a mapped 403', () async {

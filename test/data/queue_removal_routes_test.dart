@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// The three routes that take an item out of the queue, and the one thing they
 /// have in common: each refuses a status it does not handle, and says which
 /// status it found only in the 400's `detail`.
@@ -23,15 +25,13 @@ void main() {
   });
 
   test('stop: posts to the route a printing item accepts', () async {
-    var hit = false;
-    adapter.onPost('/api/v1/queue/224/stop', (server) {
-      hit = true;
-      server.reply(200, {'message': 'Print stopped'});
-    });
+    adapter.onPost('/api/v1/queue/224/stop',
+        (server) => server.reply(200, {'message': 'Print stopped'}));
+    final sent = captureRequests(dio);
 
     await repo.stop(224);
 
-    expect(hit, isTrue,
+    expect(sent.calls, ['POST /api/v1/queue/224/stop'],
         reason: '/stop is the only route that clears a printing row');
   });
 

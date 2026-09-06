@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
@@ -98,25 +100,21 @@ void main() {
   });
 
   test('adding a member hits the membership route', () async {
-    var called = false;
-    adapter.onPost('/api/v1/groups/7/users/2', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onPost('/api/v1/groups/7/users/2', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.addMember(7, 2);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['POST /api/v1/groups/7/users/2']);
   });
 
   test('removing a member hits the same route with DELETE', () async {
-    var called = false;
-    adapter.onDelete('/api/v1/groups/7/users/2', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onDelete('/api/v1/groups/7/users/2', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.removeMember(7, 2);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['DELETE /api/v1/groups/7/users/2']);
   });
 
   test('a refused membership change keeps the reason', () async {
@@ -258,14 +256,12 @@ void main() {
   });
 
   test('deleting a group hits its own path', () async {
-    var called = false;
-    adapter.onDelete('/api/v1/groups/9', (s) {
-      called = true;
-      return s.reply(204, null);
-    });
+    adapter.onDelete('/api/v1/groups/9', (s) => s.reply(204, null));
+    final sent = captureRequests(dio);
 
     await repo.delete(9);
-    expect(called, isTrue);
+
+    expect(sent.calls, ['DELETE /api/v1/groups/9']);
   });
 
   test('an identity without groups:read gets a mapped 403', () async {
