@@ -6,13 +6,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late ScheduledDryingRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = ScheduledDryingRepository(dio, ServerVersionService(dio));
   });
@@ -179,21 +181,11 @@ void main() {
     test(
       'sends the start instant as naive UTC, which is what the column is',
       () async {
-        Map<String, dynamic>? sent;
+        final sent = captureRequests(dio);
         adapter.onPost(
           '/api/v1/scheduled-dryings',
           (s) => s.reply(200, row()),
           data: Matchers.any,
-        );
-        dio.interceptors.add(
-          InterceptorsWrapper(
-            onRequest: (options, handler) {
-              if (options.method == 'POST') {
-                sent = options.data as Map<String, dynamic>;
-              }
-              handler.next(options);
-            },
-          ),
         );
 
         await repo.create(
@@ -205,37 +197,27 @@ void main() {
           startAfter: DateTime.utc(2026, 9, 4, 21).toLocal(),
         );
 
-        expect(sent!['start_after'], '2026-09-04T21:00:00');
-        expect(sent!['printer_id'], 3);
-        expect(sent!['ams_id'], 1);
-        expect(sent!['temp'], 65);
-        expect(sent!['duration_hours'], 8);
-        expect(sent!['filament'], 'PETG');
-        expect(sent!['rotate_tray'], isFalse);
+        expect((sent.last.data as Map)['start_after'], '2026-09-04T21:00:00');
+        expect((sent.last.data as Map)['printer_id'], 3);
+        expect((sent.last.data as Map)['ams_id'], 1);
+        expect((sent.last.data as Map)['temp'], 65);
+        expect((sent.last.data as Map)['duration_hours'], 8);
+        expect((sent.last.data as Map)['filament'], 'PETG');
+        expect((sent.last.data as Map)['rotate_tray'], isFalse);
       },
     );
 
     test('no instant means the key is left out, not sent as null', () async {
-      Map<String, dynamic>? sent;
+      final sent = captureRequests(dio);
       adapter.onPost(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(200, row(startAfter: null)),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (options, handler) {
-            if (options.method == 'POST') {
-              sent = options.data as Map<String, dynamic>;
-            }
-            handler.next(options);
-          },
-        ),
-      );
 
       await repo.create(printerId: 3, amsId: 0, temp: 45, durationHours: 4);
 
-      expect(sent!.containsKey('start_after'), isFalse);
+      expect((sent.last.data as Map).containsKey('start_after'), isFalse);
     });
 
     test('a refusal surfaces as the server worded it', () async {

@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
@@ -14,7 +16,7 @@ void main() {
   const preset = SlicerPreset(source: 'local', id: '12', name: '0.20 mm');
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = SlicerRepository(dio);
   });
@@ -133,7 +135,7 @@ void main() {
       // The distinction that matters: a 403 says nothing about whether the
       // server has the route, so it must not latch the observation that
       // outranks the version. A caller who gains the permission gets the panel.
-      final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      final dio = testDio();
       final repo = SlicerRepository(dio);
       const query = {'source': 'local', 'id': '12', 'slot': 'process'};
 

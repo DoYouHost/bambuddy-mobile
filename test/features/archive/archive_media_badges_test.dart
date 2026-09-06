@@ -21,19 +21,6 @@ Widget _screen(List<Archive> items) => ProviderScope(
   child: plApp(const ArchiveScreen()),
 );
 
-Archive _archive({
-  int id = 1,
-  String? timelapsePath,
-  List<String> photos = const [],
-}) => Archive(
-  id: id,
-  filename: 'benchy.gcode.3mf',
-  status: 'completed',
-  printName: 'Benchy',
-  timelapsePath: timelapsePath,
-  photos: photos,
-);
-
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -41,7 +28,7 @@ void main() {
   });
 
   testWidgets('wydruk bez nagrania i zdjęć nie ma znaczników', (tester) async {
-    await tester.pumpWidget(_screen([_archive()]));
+    await tester.pumpWidget(_screen([testArchive()]));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.movie), findsNothing);
@@ -50,7 +37,7 @@ void main() {
 
   testWidgets('timelapse_path → znacznik nagrania na karcie', (tester) async {
     await tester.pumpWidget(
-      _screen([_archive(timelapsePath: 'archive/1/video.mp4')]),
+      _screen([testArchive(timelapsePath: 'archive/1/video.mp4')]),
     );
     await tester.pumpAndSettle();
 
@@ -61,7 +48,7 @@ void main() {
   testWidgets('photos → znacznik zdjęcia na karcie', (tester) async {
     await tester.pumpWidget(
       _screen([
-        _archive(photos: const ['finish.jpg']),
+        testArchive(photos: const ['finish.jpg']),
       ]),
     );
     await tester.pumpAndSettle();
@@ -73,7 +60,7 @@ void main() {
   testWidgets('oba znaczniki jednocześnie', (tester) async {
     await tester.pumpWidget(
       _screen([
-        _archive(
+        testArchive(
           timelapsePath: 'archive/1/video.mp4',
           photos: const ['finish.jpg', 'reka.jpg'],
         ),

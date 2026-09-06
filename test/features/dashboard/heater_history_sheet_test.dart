@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -63,20 +62,14 @@ HeaterHistory _history({List<HeaterHistoryPoint>? nozzle}) => HeaterHistory(
 
 void main() {
   Future<void> pumpSheet(WidgetTester tester, _StubRepo repo) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [heaterHistoryRepositoryProvider.overrideWithValue(repo)],
-        child: plApp(
-          const HeaterHistorySheet(
-            printerId: 3,
-            kinds: [
-              (kind: 'nozzle', label: 'Dysza'),
-              (kind: 'bed', label: 'Stół'),
-            ],
-            initialKind: 'nozzle',
-          ),
-        ),
+    await pumpPhone(
+      tester,
+      const HeaterHistorySheet(
+        printerId: 3,
+        kinds: [(kind: 'nozzle', label: 'Dysza'), (kind: 'bed', label: 'Stół')],
+        initialKind: 'nozzle',
       ),
+      overrides: [heaterHistoryRepositoryProvider.overrideWithValue(repo)],
     );
     await tester.pumpAndSettle();
   }

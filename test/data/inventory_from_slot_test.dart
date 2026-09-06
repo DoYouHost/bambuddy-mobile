@@ -4,28 +4,23 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// `POST …/spools/from-slot` on both inventory backends. They differ in more
 /// than the path: the native route answers with the spool, Spoolman with
 /// `{success, spool_id}`, and only the caller's id survives either way.
 void main() {
   late Dio dio;
   late DioAdapter adapter;
+  late RequestLog sent;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
   });
 
-  Object? capturedBody;
   void captureBody() {
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (o, h) {
-          capturedBody = o.data;
-          h.next(o);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
   }
 
   group('native backend', () {
@@ -42,7 +37,7 @@ void main() {
       ).createSpoolFromSlot(printerId: 3, amsId: 1, trayId: 2);
 
       expect(id, 42);
-      expect(capturedBody, {'printer_id': 3, 'ams_id': 1, 'tray_id': 2});
+      expect(sent.last.data, {'printer_id': 3, 'ams_id': 1, 'tray_id': 2});
     });
 
     test('a slot without a readable tag surfaces as the server 400', () {
@@ -131,7 +126,7 @@ void main() {
       ).createSpoolFromSlot(printerId: 2, amsId: 255, trayId: 1);
 
       expect(id, 7);
-      expect(capturedBody, {'printer_id': 2, 'ams_id': 255, 'tray_id': 1});
+      expect(sent.last.data, {'printer_id': 2, 'ams_id': 255, 'tray_id': 1});
     });
 
     test('the API-key refusal arrives as forbidden, not as a bad response', () {

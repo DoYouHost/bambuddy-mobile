@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// One pipeline as `SlicerPipelineResponse` really serialises it.
 Map<String, dynamic> pipelineJson({
   int id = 7,
@@ -38,7 +40,7 @@ void main() {
   late PipelinesRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = PipelinesRepository(dio);
   });
@@ -136,20 +138,13 @@ void main() {
     test('sends the bundle without the target fields', () async {
       // The create schema does not declare them and Pydantic drops undeclared
       // keys silently, so sending them would look like it had worked.
-      late Map<String, dynamic> sent;
+      late RequestLog sent;
       adapter.onPost(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(201, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            sent = Map<String, dynamic>.from(o.data as Map);
-            h.next(o);
-          },
-        ),
-      );
+      sent = captureRequests(dio);
 
       await repo.create(
         const SlicerPipeline(
@@ -165,56 +160,45 @@ void main() {
         ),
       );
 
-      expect(sent['name'], 'Nightly PETG');
-      expect(sent['printer_preset'], {'source': 'local', 'id': '3'});
-      expect(sent['filament_presets'], [
+      expect((sent.last.data as Map)['name'], 'Nightly PETG');
+      expect((sent.last.data as Map)['printer_preset'], {
+        'source': 'local',
+        'id': '3',
+      });
+      expect((sent.last.data as Map)['filament_presets'], [
         {'source': 'local', 'id': '11'},
       ]);
-      expect(sent['bed_type'], 'Textured PEI Plate');
-      expect(sent.containsKey('target_kind'), isFalse);
-      expect(sent.containsKey('target_printer_id'), isFalse);
+      expect((sent.last.data as Map)['bed_type'], 'Textured PEI Plate');
+      expect((sent.last.data as Map).containsKey('target_kind'), isFalse);
+      expect((sent.last.data as Map).containsKey('target_printer_id'), isFalse);
     });
   });
 
   group('update', () {
     test('omits every field the caller left out', () async {
-      late Map<String, dynamic> sent;
+      late RequestLog sent;
       adapter.onPut(
         '/api/v1/slicer-pipelines/7',
         (s) => s.reply(200, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            sent = Map<String, dynamic>.from(o.data as Map);
-            h.next(o);
-          },
-        ),
-      );
+      sent = captureRequests(dio);
 
       await repo.update(7, name: 'Renamed');
 
-      expect(sent, {'name': 'Renamed'});
+      expect(sent.last.data, {'name': 'Renamed'});
     });
 
     test('carries the clear sentinels the API defines', () async {
       // `null` cannot clear anything — the route writes every field under an
       // `is not None` guard — so 0 and '' are the only way to un-target.
-      late Map<String, dynamic> sent;
+      late RequestLog sent;
       adapter.onPut(
         '/api/v1/slicer-pipelines/7',
         (s) => s.reply(200, pipelineJson()),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            sent = Map<String, dynamic>.from(o.data as Map);
-            h.next(o);
-          },
-        ),
-      );
+      sent = captureRequests(dio);
 
       await repo.update(
         7,
@@ -224,10 +208,10 @@ void main() {
         fanoutStrategy: FanoutStrategy.roundRobin,
       );
 
-      expect(sent['target_kind'], 'printer_class');
-      expect(sent['target_printer_id'], 0);
-      expect(sent['target_model_class'], 'X1C');
-      expect(sent['fanout_strategy'], 'round_robin');
+      expect((sent.last.data as Map)['target_kind'], 'printer_class');
+      expect((sent.last.data as Map)['target_printer_id'], 0);
+      expect((sent.last.data as Map)['target_model_class'], 'X1C');
+      expect((sent.last.data as Map)['fanout_strategy'], 'round_robin');
     });
   });
 
@@ -287,20 +271,13 @@ void main() {
     });
 
     test('sends exactly one source key plus copies and force', () async {
-      late Map<String, dynamic> sent;
+      late RequestLog sent;
       adapter.onPost(
         '/api/v1/slicer-pipelines/7/run',
         (s) => s.reply(202, {'id': 1, 'copies': 3, 'status': 'queued'}),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            sent = Map<String, dynamic>.from(o.data as Map);
-            h.next(o);
-          },
-        ),
-      );
+      sent = captureRequests(dio);
 
       await repo.run(
         7,
@@ -309,10 +286,13 @@ void main() {
         force: true,
       );
 
-      expect(sent['source_archive_id'], 31);
-      expect(sent.containsKey('source_library_file_id'), isFalse);
-      expect(sent['copies'], 3);
-      expect(sent['force'], isTrue);
+      expect((sent.last.data as Map)['source_archive_id'], 31);
+      expect(
+        (sent.last.data as Map).containsKey('source_library_file_id'),
+        isFalse,
+      );
+      expect((sent.last.data as Map)['copies'], 3);
+      expect((sent.last.data as Map)['force'], isTrue);
     });
   });
 
@@ -491,7 +471,7 @@ void main() {
       // Each tier answers its own permission only, so presence has to come
       // from the read tier — a server without the routes must not look like one
       // that merely refused the authoring call.
-      final bare = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      final bare = testDio();
       DioAdapter(dio: bare).onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -504,20 +484,15 @@ void main() {
     });
 
     test('the probe asks once, however many entry points gate on it', () async {
-      var calls = 0;
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            if (o.path == '/api/v1/slicer-pipelines/') calls++;
-            h.next(o);
-          },
-        ),
-      );
+      final sent = captureRequests(dio);
 
       await Future.wait([repo.probe(), repo.probe(), repo.probe()]);
       await repo.probe();
 
-      expect(calls, 1);
+      expect(
+        sent.paths.where((p) => p == '/api/v1/slicer-pipelines/').length,
+        1,
+      );
     });
   });
 
@@ -668,7 +643,7 @@ void main() {
     test(
       'the status filter reaches the query, and page 1 comes back',
       () async {
-        late Map<String, dynamic> query;
+        late RequestLog sent;
         adapter.onGet(
           '/api/v1/pipeline-runs',
           (s) => s.reply(200, {'runs': [], 'total': 0}),
@@ -681,14 +656,7 @@ void main() {
             'target_model_class': 'X1C',
           },
         );
-        dio.interceptors.add(
-          InterceptorsWrapper(
-            onRequest: (o, h) {
-              query = Map<String, dynamic>.from(o.queryParameters);
-              h.next(o);
-            },
-          ),
-        );
+        sent = captureRequests(dio);
 
         await repo.runs(
           offset: 50,
@@ -700,12 +668,15 @@ void main() {
           ),
         );
 
-        expect(query['limit'], PipelinesRepository.pageSize);
-        expect(query['offset'], 50);
-        expect(query['pipeline_id'], 7);
-        expect(query['status'], 'partial_failure');
-        expect(query['target_printer_id'], 4);
-        expect(query['target_model_class'], 'X1C');
+        expect(
+          sent.last.queryParameters['limit'],
+          PipelinesRepository.pageSize,
+        );
+        expect(sent.last.queryParameters['offset'], 50);
+        expect(sent.last.queryParameters['pipeline_id'], 7);
+        expect(sent.last.queryParameters['status'], 'partial_failure');
+        expect(sent.last.queryParameters['target_printer_id'], 4);
+        expect(sent.last.queryParameters['target_model_class'], 'X1C');
       },
     );
   });

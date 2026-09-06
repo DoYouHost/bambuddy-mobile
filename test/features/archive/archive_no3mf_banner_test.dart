@@ -124,15 +124,14 @@ void main() {
     SharedPreferences.setMockInitialValues({'archive_no3mf_dismissed': true});
     _prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          archiveListOverride(const [_archive]),
-          sharedPreferencesProvider.overrideWithValue(_prefs),
-          noServerProfileOverride,
-        ],
-        child: plApp(const ArchiveScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const ArchiveScreen(),
+      overrides: [
+        archiveListOverride(const [_archive]),
+        sharedPreferencesProvider.overrideWithValue(_prefs),
+        noServerProfileOverride,
+      ],
     );
     await tester.pumpAndSettle();
 

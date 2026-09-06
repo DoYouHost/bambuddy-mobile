@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../helpers.dart';
+
 /// One run as `PipelineRunResponse` serialises it, with only the fields the
 /// dashboard reads filled in.
 Map<String, dynamic> runJson(int id, {String status = 'completed'}) => {
@@ -51,7 +53,7 @@ void main() {
   );
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = PipelinesRepository(dio);
     container = ProviderContainer(
@@ -236,15 +238,7 @@ void main() {
         hasLength(150),
       );
 
-      var askedFor = 0;
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (o, h) {
-            askedFor = o.queryParameters['limit'] as int;
-            h.next(o);
-          },
-        ),
-      );
+      final sent = captureRequests(dio);
       page(
         offset: 0,
         ids: ids.take(PipelinesRepository.maxPageSize).toList(),
@@ -253,7 +247,10 @@ void main() {
       );
       await container.read(pipelineRunsProvider.notifier).refreshLoaded();
 
-      expect(askedFor, PipelinesRepository.maxPageSize);
+      expect(
+        sent.last.queryParameters['limit'],
+        PipelinesRepository.maxPageSize,
+      );
       // The window shrinks to what one request can carry, and `total` still
       // says there is more — so the footer keeps offering it.
       final view = container.read(pipelineRunsProvider).requireValue;

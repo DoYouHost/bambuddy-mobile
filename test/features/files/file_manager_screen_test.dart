@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -54,22 +53,19 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          noServerProfileOverride,
-          fileManagerProvider.overrideWith(
-            () => _FakeNotifier(FileManagerState(files: [file])),
-          ),
-          libraryStatsProvider.overrideWith(
-            (ref) async => const LibraryStats(),
-          ),
-          libraryTagsProvider.overrideWith((ref) async => tags),
-          slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
-          canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
-        ],
-        child: plApp(const FileManagerScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const FileManagerScreen(),
+      overrides: [
+        noServerProfileOverride,
+        fileManagerProvider.overrideWith(
+          () => _FakeNotifier(FileManagerState(files: [file])),
+        ),
+        libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
+        libraryTagsProvider.overrideWith((ref) async => tags),
+        slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
+        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
+      ],
     );
     await tester.pumpAndSettle();
   }
@@ -117,22 +113,21 @@ void main() {
       // action on a server that does have pipelines.
       final gate = Completer<bool>();
       final file = _file();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            noServerProfileOverride,
-            fileManagerProvider.overrideWith(
-              () => _FakeNotifier(FileManagerState(files: [file])),
-            ),
-            libraryStatsProvider.overrideWith(
-              (ref) async => const LibraryStats(),
-            ),
-            libraryTagsProvider.overrideWith((ref) async => const []),
-            slicerEnabledProvider.overrideWith((ref) async => true),
-            canRunPipelinesProvider.overrideWith((ref) => gate.future),
-          ],
-          child: plApp(const FileManagerScreen()),
-        ),
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(FileManagerState(files: [file])),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          slicerEnabledProvider.overrideWith((ref) async => true),
+          canRunPipelinesProvider.overrideWith((ref) => gate.future),
+        ],
       );
       await tester.pumpAndSettle();
       await openFileSheet(tester, file);

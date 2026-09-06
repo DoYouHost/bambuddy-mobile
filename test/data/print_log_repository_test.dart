@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// What the print log's wire contract has to keep doing.
 ///
 /// Two of these are about a server that answers 200 and does something else
@@ -15,23 +17,15 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 void main() {
   late Dio dio;
   late DioAdapter adapter;
-  late List<RequestOptions> sent;
+  late RequestLog sent;
 
   const listPath = '/api/v1/print-log/';
   const versionPath = '/api/v1/updates/version';
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
-    sent = [];
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          sent.add(options);
-          handler.next(options);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
   });
 
   PrintLogRepository repo() =>

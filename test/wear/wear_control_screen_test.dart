@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
@@ -49,11 +48,6 @@ class _PlateTransport implements WearTransport {
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }
 
-class _NoProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 /// An idle printer with a plate to free and nothing queued behind it: the one
 /// state that puts a real button and a placeholder in the same column.
 WearFleet _idle({String name = 'X2D-3DP'}) => WearFleet(
@@ -97,7 +91,7 @@ Future<void> _pump(
   const WearPrinterControlScreen(printerId: 7),
   face: face,
   overrides: [
-    serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+    noServerProfileOverride,
     wearTransportProvider.overrideWith(
       (ref) => HybridWearTransport(relay: transport ?? _FakeTransport(fleet)),
     ),

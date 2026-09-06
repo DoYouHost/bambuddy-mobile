@@ -5,13 +5,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late UsersRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = UsersRepository(dio);
   });
@@ -122,7 +124,7 @@ void main() {
 
   group('writes', () {
     test('create sends what the server asks for and nothing else', () async {
-      Map<String, dynamic>? sent;
+      final sent = captureRequests(dio);
       adapter.onPost(
         '/api/v1/users/',
         (s) => s.reply(201, {
@@ -137,16 +139,6 @@ void main() {
         }),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (options, handler) {
-            if (options.method == 'POST') {
-              sent = options.data as Map<String, dynamic>;
-            }
-            handler.next(options);
-          },
-        ),
-      );
 
       final created = await repo.create(
         const UserCreateInput(
@@ -158,7 +150,7 @@ void main() {
       );
 
       expect(created.id, 4);
-      expect(sent, {
+      expect(sent.last.data, {
         'username': 'zosia',
         'password': 'Sekret!23',
         'role': 'user',
@@ -166,11 +158,11 @@ void main() {
       });
       // No e-mail was typed, so none is sent — a null would be a value the
       // server stores, not an omission.
-      expect(sent!.containsKey('email'), isFalse);
+      expect((sent.last.data as Map).containsKey('email'), isFalse);
     });
 
     test('update sends only the fields it was given', () async {
-      Map<String, dynamic>? sent;
+      final sent = captureRequests(dio);
       adapter.onPatch(
         '/api/v1/users/2',
         (s) => s.reply(200, {
@@ -185,37 +177,19 @@ void main() {
         }),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (options, handler) {
-            if (options.method == 'PATCH') {
-              sent = options.data as Map<String, dynamic>;
-            }
-            handler.next(options);
-          },
-        ),
-      );
 
       await repo.update(2, const UserUpdateInput(isActive: false));
 
-      expect(sent, {'is_active': false});
+      expect(sent.last.data, {'is_active': false});
     });
 
     test('delete carries the choice about the account\'s items', () async {
-      Map<String, dynamic>? query;
+      final sent = captureRequests(dio);
       adapter.onDelete('/api/v1/users/2', (s) => s.reply(204, null));
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (options, handler) {
-            if (options.method == 'DELETE') query = options.queryParameters;
-            handler.next(options);
-          },
-        ),
-      );
 
       await repo.delete(2, deleteItems: true);
 
-      expect(query, {'delete_items': true});
+      expect(sent.last.queryParameters, {'delete_items': true});
     });
 
     test('a refused write keeps the rule the server named', () async {

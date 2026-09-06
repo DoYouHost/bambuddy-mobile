@@ -87,11 +87,10 @@ void main() {
   testWidgets(
     'the player with no server profile shows an error, not a spinner',
     (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [noServerProfileOverride],
-          child: plApp(const TimelapseScreen(archiveId: 42)),
-        ),
+      await pumpPhone(
+        tester,
+        const TimelapseScreen(archiveId: 42),
+        overrides: [noServerProfileOverride],
       );
       await tester.pumpAndSettle();
 

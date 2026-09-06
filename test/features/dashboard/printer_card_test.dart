@@ -304,13 +304,6 @@ class _FixedBackendNotifier extends InventoryBackendNotifier {
   InventoryBackend build() => _backend;
 }
 
-/// Inert gniazdka: testy karty nie sprawdzają smart gniazdek, więc nie pollujemy
-/// serwera ani nie zbrojnimy timera (analogicznie do inertnego WS w testach).
-class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
-  @override
-  SmartPlugsState build() => const SmartPlugsState();
-}
-
 /// Gniazdka ze stałym stanem; rejestruje wywołania [control] (bez sieci/timera),
 /// by testy mogły sprawdzić blokadę „odciąć zasilanie w druku" i potwierdzenie.
 class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
@@ -399,7 +392,7 @@ Widget _scope(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+    inertSmartPlugsOverride,
     ...extra,
   ],
   child: plApp(child),
@@ -432,7 +425,7 @@ Widget _cardSwap(
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
     ...inertHistorySupportOverrides,
-    smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+    inertSmartPlugsOverride,
   ],
   child: plApp(
     Scaffold(
@@ -1309,7 +1302,7 @@ void main() {
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
-          smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+          inertSmartPlugsOverride,
           inventoryBackendProvider.overrideWith(
             () => _FixedBackendNotifier(InventoryBackend.native),
           ),
@@ -2012,7 +2005,7 @@ void main() {
       overrides: [
         fakeServerProfileOverride(),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
-        smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+        inertSmartPlugsOverride,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
       child: plApp(
@@ -2071,28 +2064,25 @@ void main() {
     testWidgets('brak danych firmware: brak linii (nie wywraca karty)', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            fakeServerProfileOverride(),
-            cameraTokenProvider.overrideWith((ref) async => 'tok'),
-            smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
-            inertFirmwareOverride, // zwraca null
-            inertTotalPrintHoursOverride,
-            inertChamberMaxOverride,
-            ...inertHistorySupportOverrides,
-          ],
-          child: plApp(
-            const Scaffold(
-              body: PrinterCard(
-                item: PrinterWithStatus(
-                  printer: Printer(id: 1, name: 'X2D'),
-                  status: PrinterStatus(id: 1, connected: true),
-                ),
-              ),
+      await pumpPhone(
+        tester,
+        const Scaffold(
+          body: PrinterCard(
+            item: PrinterWithStatus(
+              printer: Printer(id: 1, name: 'X2D'),
+              status: PrinterStatus(id: 1, connected: true),
             ),
           ),
         ),
+        overrides: [
+          fakeServerProfileOverride(),
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          inertSmartPlugsOverride,
+          inertFirmwareOverride, // zwraca null
+          inertTotalPrintHoursOverride,
+          inertChamberMaxOverride,
+          ...inertHistorySupportOverrides,
+        ],
       );
       await tester.pumpAndSettle();
 

@@ -9,7 +9,6 @@ import 'package:bambuddy_mobile/features/admin/group_detail_screen.dart';
 import 'package:bambuddy_mobile/features/admin/group_form_screen.dart';
 import 'package:bambuddy_mobile/features/admin/groups_providers.dart';
 import 'package:bambuddy_mobile/features/admin/groups_screen.dart';
-import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,27 +108,6 @@ const _catalog = PermissionCatalog(
   all: ['queue:read', 'queue:create', 'users:read'],
 );
 
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-
-  @override
-  Future<void> refresh() async {}
-}
-
-class _FakeUsersList extends UsersListNotifier {
-  @override
-  Future<List<CurrentUser>> build() async => const [
-    CurrentUser(id: 1, username: 'admin', isAdmin: true),
-    CurrentUser(id: 2, username: 'zosia', isAdmin: false),
-    CurrentUser(id: 9, username: 'nowy', isAdmin: false),
-  ];
-}
-
 Widget _app(
   Widget child, {
   required _FakeGroups repo,
@@ -137,9 +115,13 @@ Widget _app(
 }) => ProviderScope(
   overrides: [
     groupsRepositoryProvider.overrideWithValue(repo),
-    currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
+    currentUserOverride(signedInAs),
     fakeServerProfileOverride(authMode: AuthMode.jwt),
-    usersListProvider.overrideWith(_FakeUsersList.new),
+    usersListOverride(const [
+      CurrentUser(id: 1, username: 'admin', isAdmin: true),
+      CurrentUser(id: 2, username: 'zosia', isAdmin: false),
+      CurrentUser(id: 9, username: 'nowy', isAdmin: false),
+    ]),
   ],
   child: plApp(child),
 );
@@ -474,7 +456,7 @@ void main() {
     }) {
       final container = ProviderContainer(
         overrides: [
-          currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
+          currentUserOverride(user),
           fakeServerProfileOverride(authMode: AuthMode.jwt),
           if (mode == AuthMode.apiKey)
             fakeServerProfileOverride(authMode: AuthMode.apiKey),

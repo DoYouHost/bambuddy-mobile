@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   group('ArchivePrinterMedia.fromJson', () {
     test('reads both halves of the answer', () {
@@ -125,7 +127,7 @@ void main() {
     late ArchiveRepository repo;
 
     setUp(() {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = DioAdapter(dio: dio);
       repo = ArchiveRepository(dio);
     });

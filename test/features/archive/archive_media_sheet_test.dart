@@ -9,7 +9,6 @@ import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -28,7 +27,7 @@ void main() {
   late int photoTaps;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     timelapseTaps = 0;
     photoTaps = 0;
@@ -38,11 +37,7 @@ void main() {
     int? printerId = 2,
     String? timelapsePath,
     List<String> photos = const [],
-  }) => Archive(
-    id: 1,
-    filename: 'benchy.gcode.3mf',
-    status: 'completed',
-    printName: 'Benchy',
+  }) => testArchive(
     printerId: printerId,
     timelapsePath: timelapsePath,
     photos: photos,
@@ -56,27 +51,24 @@ void main() {
     TextScaler scaler = TextScaler.noScaling,
   }) async {
     late BuildContext sheetContext;
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          noServerProfileOverride,
-          archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
-          archiveMediaSupportedProvider.overrideWith((ref) async => searchable),
-        ],
-        child: plApp(
-          Builder(
-            builder: (context) {
-              sheetContext = context;
-              return const SizedBox.shrink();
-            },
-          ),
-          // Wraps the navigator, so the sheet's own route sees it too.
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: scaler),
-            child: child!,
-          ),
-        ),
+    await pumpPhone(
+      tester,
+      Builder(
+        builder: (context) {
+          sheetContext = context;
+          return const SizedBox.shrink();
+        },
       ),
+      // Wraps the navigator, so the sheet's own route sees it too.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: scaler),
+        child: child!,
+      ),
+      overrides: [
+        noServerProfileOverride,
+        archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
+        archiveMediaSupportedProvider.overrideWith((ref) async => searchable),
+      ],
     );
     openArchiveMediaSheet(
       sheetContext,

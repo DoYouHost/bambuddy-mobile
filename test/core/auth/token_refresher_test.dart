@@ -1,31 +1,15 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/auth/token_refresher.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeTimer implements Timer {
-  _FakeTimer(this.duration, this.callback);
-  final Duration duration;
-  final void Function() callback;
-  bool cancelled = false;
-  @override
-  void cancel() => cancelled = true;
-  @override
-  bool get isActive => !cancelled;
-  @override
-  int get tick => 0;
-  void fire() {
-    if (!cancelled) callback();
-  }
-}
+import '../../helpers.dart';
 
 void main() {
   // Fixed "now"; every exp is measured against it.
   final t0 = DateTime.utc(2026, 1, 1, 12);
 
-  late List<_FakeTimer> timers;
+  late List<FakeTimer> timers;
   RefreshTimerFactory factory() => (d, cb) {
-    final t = _FakeTimer(d, cb);
+    final t = FakeTimer(d, cb);
     timers.add(t);
     return t;
   };

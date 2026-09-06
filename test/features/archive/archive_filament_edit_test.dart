@@ -486,17 +486,16 @@ void main() {
       filamentUsedGrams: 17.1,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          archiveListOverride([archive]),
-          no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          slicerEnabledProvider.overrideWith((ref) async => false),
-          noServerProfileOverride,
-        ],
-        child: plApp(const ArchiveScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const ArchiveScreen(),
+      overrides: [
+        archiveListOverride([archive]),
+        no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        slicerEnabledProvider.overrideWith((ref) async => false),
+        noServerProfileOverride,
+      ],
     );
     await tester.pumpAndSettle();
 

@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/features/slicer/process_settings_screen.dart';
 import 'package:bambuddy_mobile/features/common/dash_search_field.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -217,21 +216,18 @@ void main() {
     ),
     List<FilamentSlotChoice> filamentSlots = const [],
   }) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          processSchemaProvider.overrideWith((ref) async => catalog),
-          presetValuesProvider.overrideWith((ref, arg) async => presetValues),
-        ],
-        child: plApp(
-          ProcessSettingsScreen(
-            preset: const ('local', '12'),
-            initialValues: values,
-            onChanged: (next) => reported.add(next),
-            filamentSlots: filamentSlots,
-          ),
-        ),
+    await pumpPhone(
+      tester,
+      ProcessSettingsScreen(
+        preset: const ('local', '12'),
+        initialValues: values,
+        onChanged: (next) => reported.add(next),
+        filamentSlots: filamentSlots,
       ),
+      overrides: [
+        processSchemaProvider.overrideWith((ref) async => catalog),
+        presetValuesProvider.overrideWith((ref, arg) async => presetValues),
+      ],
     );
     await tester.pumpAndSettle();
   }

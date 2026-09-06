@@ -50,7 +50,7 @@ void main() {
   late DioAdapter adapter;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
   });
 

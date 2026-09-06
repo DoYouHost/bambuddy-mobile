@@ -10,7 +10,6 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -74,46 +73,43 @@ void main() {
     when(() => repo.savePresetOverrides(any(), any())).thenAnswer((_) async {
       if (writeFails != null) throw writeFails;
     });
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          inventoryProvider.overrideWith(() => inventory ?? _FakeInventory()),
-          inventoryRepositoryProvider.overrideWithValue(repo),
-          noServerProfileOverride,
-          presetOverridesSupportedProvider.overrideWith((_) async => supported),
-          printerModelsProvider.overrideWith((_) async => models),
-          slicerPresetsProvider.overrideWith(
-            (_) async => UnifiedPresets(
-              printers: const [],
-              processes: const [],
-              filaments: presets,
+    await pumpPhone(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => openSpoolForm(
+              context,
+              existing: newSpool
+                  ? null
+                  : const Spool(id: 7, material: 'PLA', brand: 'Bambu'),
             ),
-          ),
-          printerModelRegistryProvider.overrideWith(
-            (_) async => const {'Bambu Lab P1S': 'P1S'},
-          ),
-          spoolPresetOverridesProvider(7).overrideWith((_) {
-            if (pendingRead != null) return pendingRead;
-            if (readFails != null) throw readFails;
-            return stored;
-          }),
-        ],
-        child: plApp(
-          Builder(
-            builder: (context) => Scaffold(
-              body: TextButton(
-                onPressed: () => openSpoolForm(
-                  context,
-                  existing: newSpool
-                      ? null
-                      : const Spool(id: 7, material: 'PLA', brand: 'Bambu'),
-                ),
-                child: const Text('open'),
-              ),
-            ),
+            child: const Text('open'),
           ),
         ),
       ),
+      overrides: [
+        inventoryProvider.overrideWith(() => inventory ?? _FakeInventory()),
+        inventoryRepositoryProvider.overrideWithValue(repo),
+        noServerProfileOverride,
+        presetOverridesSupportedProvider.overrideWith((_) async => supported),
+        printerModelsProvider.overrideWith((_) async => models),
+        slicerPresetsProvider.overrideWith(
+          (_) async => UnifiedPresets(
+            printers: const [],
+            processes: const [],
+            filaments: presets,
+          ),
+        ),
+        printerModelRegistryProvider.overrideWith(
+          (_) async => const {'Bambu Lab P1S': 'P1S'},
+        ),
+        spoolPresetOverridesProvider(7).overrideWith((_) {
+          if (pendingRead != null) return pendingRead;
+          if (readFails != null) throw readFails;
+          return stored;
+        }),
+      ],
     );
     await tester.tap(find.text('open'));
     await settle(tester);

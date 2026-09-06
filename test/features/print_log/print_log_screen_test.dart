@@ -116,25 +116,22 @@ void main() {
     PrintLogFilters? filters,
   }) async {
     final fake = _FakePrintLog(entries ?? [_entry()], failure: failure);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          printLogProvider.overrideWith(() => fake),
-          if (filters != null)
-            printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
-          printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
-          // Money needs the server's currency, which otherwise means building an
-          // API client — and there is no profile here to build one from.
-          serverSettingsProvider.overrideWith(
-            (ref) async => {'currency': 'PLN'},
-          ),
-          printersForPickerProvider.overrideWith(
-            (ref) async => const [Printer(id: 3, name: 'P1S')],
-          ),
-          noServerProfileOverride,
-        ],
-        child: plApp(const PrintLogScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const PrintLogScreen(),
+      overrides: [
+        printLogProvider.overrideWith(() => fake),
+        if (filters != null)
+          printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
+        printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
+        // Money needs the server's currency, which otherwise means building an
+        // API client — and there is no profile here to build one from.
+        serverSettingsProvider.overrideWith((ref) async => {'currency': 'PLN'}),
+        printersForPickerProvider.overrideWith(
+          (ref) async => const [Printer(id: 3, name: 'P1S')],
+        ),
+        noServerProfileOverride,
+      ],
     );
     await settle(tester);
     return fake;

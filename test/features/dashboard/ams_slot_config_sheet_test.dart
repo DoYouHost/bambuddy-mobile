@@ -9,7 +9,6 @@ import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -168,28 +167,25 @@ void main() {
     List<ColorEntry>? colours,
   }) async {
     final fake = repo ?? _FakeRepo();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          fakeServerProfileOverride(),
-          amsSlotConfigRepositoryProvider.overrideWithValue(fake),
-          colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
-        ],
-        child: plApp(
-          Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => AmsSlotConfigSheet(target: slot ?? target),
-                ),
-                child: const Text('open'),
-              ),
+    await pumpPhone(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => AmsSlotConfigSheet(target: slot ?? target),
             ),
+            child: const Text('open'),
           ),
         ),
       ),
+      overrides: [
+        fakeServerProfileOverride(),
+        amsSlotConfigRepositoryProvider.overrideWithValue(fake),
+        colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -337,36 +333,33 @@ void main() {
         ),
       ];
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          fakeServerProfileOverride(),
-          amsSlotConfigRepositoryProvider.overrideWithValue(repo),
-        ],
-        child: plApp(
-          Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => const AmsSlotConfigSheet(
-                    target: AmsSlotTarget(
-                      printerId: 1,
-                      amsId: 0,
-                      trayId: 2,
-                      label: 'AMS 1 · 3',
-                      printerModel: 'X1C',
-                      currentFilamentId: 'GFB00',
-                    ),
-                  ),
+    await pumpPhone(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => const AmsSlotConfigSheet(
+                target: AmsSlotTarget(
+                  printerId: 1,
+                  amsId: 0,
+                  trayId: 2,
+                  label: 'AMS 1 · 3',
+                  printerModel: 'X1C',
+                  currentFilamentId: 'GFB00',
                 ),
-                child: const Text('open'),
               ),
             ),
+            child: const Text('open'),
           ),
         ),
       ),
+      overrides: [
+        fakeServerProfileOverride(),
+        amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -399,27 +392,24 @@ void main() {
     // PUT is a guaranteed 403 — and a warning after every single save that the
     // user cannot act on.
     final repo = _FakeRepo();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          fakeServerProfileOverride(authMode: AuthMode.apiKey),
-          amsSlotConfigRepositoryProvider.overrideWithValue(repo),
-        ],
-        child: plApp(
-          Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => const AmsSlotConfigSheet(target: target),
-                ),
-                child: const Text('open'),
-              ),
+    await pumpPhone(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => const AmsSlotConfigSheet(target: target),
             ),
+            child: const Text('open'),
           ),
         ),
       ),
+      overrides: [
+        fakeServerProfileOverride(authMode: AuthMode.apiKey),
+        amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -540,35 +530,32 @@ void main() {
           cloud('GFSB98', 'Bambu ASA @BBL A1'),
           cloud('GFSB97', 'Bambu ABS @BBL H2C 0.2 nozzle'),
         ];
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            fakeServerProfileOverride(),
-            amsSlotConfigRepositoryProvider.overrideWithValue(repo),
-          ],
-          child: plApp(
-            Scaffold(
-              body: Builder(
-                builder: (context) => TextButton(
-                  onPressed: () => showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => AmsSlotConfigSheet(
-                      target: AmsSlotTarget(
-                        printerId: 1,
-                        amsId: 0,
-                        trayId: 2,
-                        label: 'AMS 1 · 3',
-                        printerModel: printerModel,
-                      ),
-                    ),
+      await pumpPhone(
+        tester,
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => AmsSlotConfigSheet(
+                  target: AmsSlotTarget(
+                    printerId: 1,
+                    amsId: 0,
+                    trayId: 2,
+                    label: 'AMS 1 · 3',
+                    printerModel: printerModel,
                   ),
-                  child: const Text('open'),
                 ),
               ),
+              child: const Text('open'),
             ),
           ),
         ),
+        overrides: [
+          fakeServerProfileOverride(),
+          amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+        ],
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();

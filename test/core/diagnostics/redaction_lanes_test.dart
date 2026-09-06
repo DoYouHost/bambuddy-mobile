@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:bambuddy_mobile/core/api/action_failure.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
@@ -13,35 +11,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The redactor is thoroughly tested on its own in `log_redactor_test.dart`.
-/// What was never tested is whether it is actually *reached* — a probe that
-/// wrote to the sink directly, or a field name nothing on the denylist matches,
-/// would sail past a net that passes every unit test it has.
-///
-/// So these go through the real `DiagnosticRecorder`, seeded with the secrets a
-/// real session carries, and assert on the raw JSONL — the exact bytes that end
-/// up attached to a public, permanent GitHub issue.
-/// Answers every request with whatever the test hands it, so the interceptor
-/// chain runs for real without a socket.
-class _ScriptedAdapter implements HttpClientAdapter {
-  _ScriptedAdapter(this.reply);
-
-  final Object Function(RequestOptions options) reply;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    final answer = reply(options);
-    if (answer is DioException) throw answer;
-    return answer as ResponseBody;
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
+import '../../helpers.dart';
 
 ResponseBody _json(String body, [int status = 200]) => ResponseBody.fromString(
   body,
@@ -154,7 +124,7 @@ void main() {
     Dio dioAnswering(Object Function(RequestOptions options) reply) =>
         createBareDio()
           ..options.baseUrl = 'http://$host:8080'
-          ..httpClientAdapter = _ScriptedAdapter(reply);
+          ..httpClientAdapter = ScriptedAdapter(reply);
 
     test(
       'a rejected login keeps neither what it sent nor where it went',
@@ -240,7 +210,7 @@ void main() {
     const filename = 'faktura-jan-kowalski-2026.pdf';
     final dio = createBareDio()
       ..options.baseUrl = 'http://$host:8080'
-      ..httpClientAdapter = _ScriptedAdapter((_) => _json('{}', 403));
+      ..httpClientAdapter = ScriptedAdapter((_) => _json('{}', 403));
 
     await expectLater(
       dio.delete<dynamic>('/api/v1/projects/3/attachments/$filename'),

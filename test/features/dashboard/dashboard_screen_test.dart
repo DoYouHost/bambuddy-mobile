@@ -16,7 +16,6 @@ import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/notifications/finish_photo_providers.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
-import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -77,19 +76,6 @@ class _FakeDashboardNotifier extends DashboardNotifier {
   Future<void> refresh() async {}
 }
 
-/// Inert WS: dashboard tests check the render from polling, not a live socket.
-class _InertStatusesNotifier extends PrinterStatusesNotifier {
-  @override
-  Map<int, PrinterStatus> build() => const {};
-}
-
-/// Inert smart plugs: no server polling (the header sums power from this
-/// provider, but these tests do not check plugs).
-class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
-  @override
-  SmartPlugsState build() => const SmartPlugsState();
-}
-
 /// Background service with no Android underneath — the lifecycle tests check who
 /// the dashboard hands work to and takes it back from, not the service itself.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
@@ -145,8 +131,8 @@ class _SpyFinishPhoto extends FinishPhotoNotifier {
 List<Override> _overrides(DashboardState state) => [
   dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
   fakeServerProfileOverride(),
-  printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
-  smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+  inertStatusesOverride,
+  inertSmartPlugsOverride,
   inertFirmwareOverride,
   inertTotalPrintHoursOverride,
   sharedPreferencesProvider.overrideWithValue(_prefs),

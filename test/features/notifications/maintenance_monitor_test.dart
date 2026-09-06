@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
-import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
@@ -17,47 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Records alerts instead of touching the plugin.
-class _FakeNotifications implements NotificationService {
-  final alerts = <Map<String, Object?>>[];
-
-  @override
-  Future<void> showAlert({
-    required NotifEvent event,
-    required int printerId,
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-    List<NotificationAction>? actions,
-    AlertPicture? picture,
-  }) async {
-    alerts.add({
-      'event': event,
-      'printerId': printerId,
-      'id': id,
-      'body': body,
-      'payload': payload,
-      'actionIds': [for (final a in actions ?? const []) a.id],
-    });
-  }
-
-  @override
-  Future<bool> isAlertActive(int id) async => true;
-
-  @override
-  Future<void> clearOngoing() async {}
-  @override
-  Future<void> init() async {}
-  @override
-  Future<bool> requestPermission() async => true;
-  @override
-  Future<void> showOngoing({
-    required String title,
-    required String body,
-    required int progress,
-  }) async {}
-}
+import '../../helpers.dart';
 
 /// Repo driven from the test: returns the injected list / printer.
 class _FakeRepo extends MaintenanceRepository {
@@ -116,7 +75,7 @@ PrinterMaintenanceOverview _printer(List<MaintenanceStatus> items) =>
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _FakeNotifications notifications;
+  late RecordingNotifications notifications;
   late _FakeRepo repo;
   late Set<int> persisted;
 
@@ -135,7 +94,7 @@ void main() {
   );
 
   setUp(() {
-    notifications = _FakeNotifications();
+    notifications = RecordingNotifications();
     repo = _FakeRepo();
     persisted = {};
   });

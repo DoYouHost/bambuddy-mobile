@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// The five bulk routes on both inventory backends, plus the per-spool
 /// reset-counter rename. The backends share the request bodies and disagree
 /// about the answers: native lists the ids it could not act on, Spoolman
@@ -12,20 +14,12 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 void main() {
   late Dio dio;
   late DioAdapter adapter;
-  late List<({String path, Object? body})> sent;
+  late RequestLog sent;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
-    sent = [];
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (o, h) {
-          sent.add((path: o.path, body: o.data));
-          h.next(o);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
   });
 
   group('native backend', () {
@@ -45,7 +39,7 @@ void main() {
         9,
       ], const SpoolBulkPatch(brand: 'Bambu', category: 'spare'));
 
-      expect(sent.single.body, {
+      expect(sent.requests.single.data, {
         'ids': [1, 2, 9],
         'update': {'brand': 'Bambu', 'category': 'spare'},
       });
@@ -67,7 +61,7 @@ void main() {
 
       final outcome = await NativeInventorySource(dio).bulkArchive([1, 2]);
 
-      expect(sent.single.body, {
+      expect(sent.requests.single.data, {
         'ids': [1, 2],
       });
       expect((outcome.ok, outcome.skipped, outcome.failed), (1, 1, 0));
@@ -115,7 +109,7 @@ void main() {
         dio,
       ).bulkResetUsage([1, 2, 3]);
 
-      expect(sent.single.body, {
+      expect(sent.requests.single.data, {
         'spool_ids': [1, 2, 3],
       });
       // Three asked for, two reset: the route reports no failures of its own,
@@ -156,7 +150,7 @@ void main() {
           1,
         ], const SpoolBulkPatch(brand: 'Bambu', lowStockThresholdPct: 20));
 
-        expect(sent.single.body, {
+        expect(sent.requests.single.data, {
           'ids': [1],
           'update': {'brand': 'Bambu'},
         });
@@ -170,7 +164,7 @@ void main() {
         dio,
       ).bulkUpdate([1, 2], const SpoolBulkPatch(category: 'spare'));
 
-      expect(sent, isEmpty);
+      expect(sent.requests, isEmpty);
       expect(outcome.ok, 0);
       expect(outcome.isComplete, isTrue);
     });
@@ -191,9 +185,9 @@ void main() {
         final ids = [for (var i = 1; i <= 501; i++) i];
         final outcome = await NativeInventorySource(dio).bulkArchive(ids);
 
-        expect(sent.length, 2);
-        expect((sent[0].body as Map)['ids'], hasLength(500));
-        expect((sent[1].body as Map)['ids'], [501]);
+        expect(sent.requests.length, 2);
+        expect((sent.requests[0].data as Map)['ids'], hasLength(500));
+        expect((sent.requests[1].data as Map)['ids'], [501]);
         expect(outcome.ok, 2);
       },
     );
@@ -254,7 +248,7 @@ void main() {
     test('an empty selection sends nothing at all', () async {
       final outcome = await NativeInventorySource(dio).bulkDelete([]);
 
-      expect(sent, isEmpty);
+      expect(sent.requests, isEmpty);
       expect(outcome.ok, 0);
     });
   });
@@ -289,7 +283,7 @@ void main() {
 
       await NativeInventorySource(dio).resetUsage(5);
 
-      expect(sent.map((r) => r.path), [current]);
+      expect(sent.paths, [current]);
     });
 
     test('a server older than the rename gets the old path', () async {
@@ -303,7 +297,7 @@ void main() {
 
       await NativeInventorySource(dio).resetUsage(5);
 
-      expect(sent.map((r) => r.path), [current, legacy]);
+      expect(sent.paths, [current, legacy]);
     });
 
     test('any other refusal is passed on, not retried elsewhere', () async {
@@ -317,7 +311,7 @@ void main() {
         NativeInventorySource(dio).resetUsage(5),
         throwsA(isA<AppApiException>()),
       );
-      expect(sent.map((r) => r.path), [current]);
+      expect(sent.paths, [current]);
     });
 
     test('Spoolman follows the same order', () async {
@@ -334,7 +328,7 @@ void main() {
 
       await SpoolmanInventorySource(dio).resetUsage(5);
 
-      expect(sent.map((r) => r.path), [spoolmanCurrent, spoolmanLegacy]);
+      expect(sent.paths, [spoolmanCurrent, spoolmanLegacy]);
     });
   });
 }

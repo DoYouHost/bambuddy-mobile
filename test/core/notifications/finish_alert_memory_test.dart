@@ -4,36 +4,7 @@ import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakeNotifications implements NotificationService {
-  final posted = <int>[];
-
-  @override
-  Future<void> showAlert({
-    required NotifEvent event,
-    required int printerId,
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-    List<NotificationAction>? actions,
-    AlertPicture? picture,
-  }) async => posted.add(id);
-
-  @override
-  Future<bool> isAlertActive(int id) async => true;
-  @override
-  Future<void> init() async {}
-  @override
-  Future<bool> requestPermission() async => true;
-  @override
-  Future<void> showOngoing({
-    required String title,
-    required String body,
-    required int progress,
-  }) async {}
-  @override
-  Future<void> clearOngoing() async {}
-}
+import '../../helpers.dart';
 
 final _now = DateTime(2026, 8, 15, 12);
 
@@ -156,7 +127,7 @@ void main() {
 
   group('RememberingNotifications', () {
     test('zapisuje alert końca wydruku i przepuszcza go dalej', () async {
-      final inner = _FakeNotifications();
+      final inner = RecordingNotifications();
       final service = RememberingNotifications(inner, memory, () => _now);
 
       await service.showAlert(
@@ -168,13 +139,13 @@ void main() {
         payload: 'printer:3',
       );
 
-      expect(inner.posted, [1003]);
+      expect(inner.postedIds, [1003]);
       expect((await memory.recall(3, _now))!.id, 1003);
     });
 
     test('alert innego typu przechodzi, ale nie jest zapamiętywany', () async {
       final service = RememberingNotifications(
-        _FakeNotifications(),
+        RecordingNotifications(),
         memory,
         () => _now,
       );
@@ -194,7 +165,7 @@ void main() {
       'post ze zdjęciem to już aktualizacja — nie uzbraja się ponownie',
       () async {
         final service = RememberingNotifications(
-          _FakeNotifications(),
+          RecordingNotifications(),
           memory,
           () => _now,
         );

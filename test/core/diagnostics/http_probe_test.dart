@@ -12,29 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-/// Answers every request with whatever the test hands it: a [ResponseBody] to
-/// reply, a [DioException] to fail. Failing from the adapter is the only honest
-/// way to get a `connectionError` — the real one never reaches a status.
-class _ScriptedAdapter implements HttpClientAdapter {
-  _ScriptedAdapter(this.reply);
-
-  final Object Function(RequestOptions options) reply;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    final answer = reply(options);
-    if (answer is DioException) throw answer;
-    return answer as ResponseBody;
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
 ResponseBody _text(String body, int status) => ResponseBody.fromString(
   body,
   status,
@@ -75,7 +52,7 @@ void main() {
   Dio dioAnswering(Object Function(RequestOptions options) reply) =>
       createBareDio()
         ..options.baseUrl = baseUrl
-        ..httpClientAdapter = _ScriptedAdapter(reply);
+        ..httpClientAdapter = ScriptedAdapter(reply);
 
   Future<List<Map<String, dynamic>>> stopAndParse() async {
     final jsonl = await recorder.stop();

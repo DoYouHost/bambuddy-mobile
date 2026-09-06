@@ -12,7 +12,7 @@ void main() {
   late PrintersRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = PrintersRepository(dio);
   });

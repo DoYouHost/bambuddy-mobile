@@ -15,61 +15,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Records calls instead of touching the plugin — we check the transitions only.
-class _FakeNotifications implements NotificationService {
-  int ongoingCount = 0;
-  int clearCount = 0;
-  String? lastTitle;
-  String? lastBody;
-  int? lastProgress;
-  final List<Map<String, Object?>> alerts = [];
-
-  @override
-  Future<void> init() async {}
-
-  @override
-  Future<bool> requestPermission() async => true;
-
-  @override
-  Future<void> showOngoing({
-    required String title,
-    required String body,
-    required int progress,
-  }) async {
-    ongoingCount++;
-    lastTitle = title;
-    lastBody = body;
-    lastProgress = progress;
-  }
-
-  @override
-  Future<void> clearOngoing() async => clearCount++;
-
-  @override
-  Future<void> showAlert({
-    required NotifEvent event,
-    required int printerId,
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-    List<NotificationAction>? actions,
-    AlertPicture? picture,
-  }) async {
-    alerts.add({
-      'event': event,
-      'printerId': printerId,
-      'id': id,
-      'title': title,
-      'body': body,
-      'payload': payload,
-      'actions': actions,
-    });
-  }
-
-  @override
-  Future<bool> isAlertActive(int id) async => true;
-}
+import '../../helpers.dart';
 
 PrinterStatus _status({
   int id = 1,
@@ -108,26 +54,6 @@ PrinterStatus _status({
 AmsTray _tray({int id = 0, int? remain, String type = 'PLA'}) =>
     AmsTray(id: id, remain: remain, trayType: type, trayColor: 'FFFFFFFF');
 
-/// A timer the test drives — [fire] simulates the offline grace running out.
-class _FakeTimer implements Timer {
-  _FakeTimer(this._callback);
-  final void Function() _callback;
-  bool _cancelled = false;
-
-  @override
-  void cancel() => _cancelled = true;
-
-  @override
-  bool get isActive => !_cancelled;
-
-  @override
-  int get tick => 0;
-
-  void fire() {
-    if (!_cancelled) _callback();
-  }
-}
-
 /// Every event on — for testing individual detections.
 const _allOn = NotificationPrefs(
   enabled: {
@@ -151,7 +77,7 @@ void main() {
 
   // Fixed clock and a pinned 24-hour formatter → a deterministic ETA time in
   // the assertions, independent of the host's own clock preference.
-  PrintMonitor monitor(_FakeNotifications fake, {bool use24Hour = true}) =>
+  PrintMonitor monitor(RecordingNotifications fake, {bool use24Hour = true}) =>
       PrintMonitor(
         fake,
         l10n: () => lookupAppLocalizations(const Locale('en')),
@@ -163,7 +89,7 @@ void main() {
   test(
     'entering a print shows the ongoing notification once; a repeat throttles',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitor(fake);
 
       final frame = {
@@ -188,7 +114,7 @@ void main() {
   );
 
   test('the ongoing ETA follows the system clock preference', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     monitor(fake, use24Hour: false).update({
       1: _status(
         state: 'RUNNING',
@@ -209,7 +135,7 @@ void main() {
     DateTimeFormats.rememberSystemClock(true);
     addTearDown(() => DateTimeFormats.rememberSystemClock(null));
 
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     PrintMonitor(
       fake,
       l10n: () => lookupAppLocalizations(const Locale('en')),
@@ -227,7 +153,7 @@ void main() {
   });
 
   test('a progress change updates the notification', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({1: _status(state: 'RUNNING', progress: 42, remaining: 80)});
     m.update({1: _status(state: 'RUNNING', progress: 43, remaining: 79)});
@@ -236,7 +162,7 @@ void main() {
   });
 
   test('RUNNING → FINISH: one "finished" alert and a clean-up', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({
       1: _status(state: 'RUNNING', progress: 99, remaining: 1, job: 'x'),
@@ -258,7 +184,7 @@ void main() {
   });
 
   test('RUNNING → FAILED: a "failed" alert', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({
       1: _status(state: 'RUNNING', progress: 30, remaining: 50, job: 'y'),
@@ -273,7 +199,7 @@ void main() {
   test(
     'two printers: the ongoing one tracks the nearest ETA, with a +1 note',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
         1: _status(
@@ -298,7 +224,7 @@ void main() {
   );
 
   test('the end of every print clears the ongoing notification', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
     expect(fake.clearCount, 0);
@@ -309,7 +235,7 @@ void main() {
   // --- New events (all enabled) ---
 
   PrintMonitor monitorAll(
-    _FakeNotifications fake, {
+    RecordingNotifications fake, {
     TimerFactory? timer,
     DateTime Function()? clock,
     String? Function(HmsError)? hmsDescribe,
@@ -333,7 +259,7 @@ void main() {
 
   // The last alert with a given id (alerts of the same type share an id per
   // printer — on the device a new one replaces the old; here the fake keeps all).
-  Map<String, Object?>? alertById(_FakeNotifications fake, int id) {
+  Map<String, Object?>? alertById(RecordingNotifications fake, int id) {
     Map<String, Object?>? found;
     for (final a in fake.alerts) {
       if (a['id'] == id) found = a;
@@ -345,13 +271,13 @@ void main() {
   // up by title rather than by a fixed id. Each has its own id, so several
   // concurrent faults produce several separate notifications (different ids).
   final errorTitle = lookupAppLocalizations(const Locale('en')).notifErrorTitle;
-  List<Map<String, Object?>> errorAlerts(_FakeNotifications fake) => [
+  List<Map<String, Object?>> errorAlerts(RecordingNotifications fake) => [
     for (final a in fake.alerts)
       if (a['title'] == errorTitle) a,
   ];
 
   test('starting a print fires the "started" alert (when enabled)', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'IDLE')});
     expect(alertById(fake, bandId(3)), isNull);
@@ -360,7 +286,7 @@ void main() {
   });
 
   test('first layer DONE: alerts once, only when layer_num reaches 2', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 0)});
     expect(alertById(fake, bandId(4)), isNull);
@@ -407,7 +333,7 @@ void main() {
     }
 
     test("the finished job's layer does not announce a first layer", () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // A ends on layer 8 — inside the [2, 10] window, so the window alone
       // would not save this.
@@ -444,7 +370,7 @@ void main() {
     });
 
     test('a layer ticked by the pre-print sequence is not the first layer', () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       finishPrintA(m, layer: 8);
       fake.alerts.clear();
@@ -472,7 +398,7 @@ void main() {
     });
 
     test('a counter far past the first layer is not news', () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The same window bambuddy uses: [2, 10]. Above it the number belongs to
       // a print we joined halfway or to the one that just ended.
@@ -488,7 +414,7 @@ void main() {
     });
 
     test('a server that reports no stage still gets the alert', () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // `stg_cur` has been in every status the server sends since v0.1.6, older
       // than any version this app talks to — but a frame without it must keep
@@ -500,7 +426,7 @@ void main() {
     });
 
     test("the finished job's percentage does not fire milestones", () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The other half of the same stale frame: 100% from the print that just
       // came off the plate would cross all three thresholds at once.
@@ -532,7 +458,7 @@ void main() {
     test(
       "a monitor primed mid-dispatch still announces the new print's first layer",
       () {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final m = monitorAll(fake);
         // Layer 3 with the bed being scanned (stage 9), under A's name: the
         // pre-print sequence of B, described with what is left of A.
@@ -551,7 +477,7 @@ void main() {
     );
 
     test('a monitor primed mid-dispatch keeps the new thresholds', () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // A's 100% as a baseline would latch all three thresholds at once.
       m.update({
@@ -578,7 +504,7 @@ void main() {
     test(
       'a stage entered mid-print holds a threshold back, it does not drop it',
       () {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final m = monitorAll(fake);
         m.update({1: _status(state: 'IDLE')});
         m.update({
@@ -621,7 +547,7 @@ void main() {
   });
 
   test('milestones: 25/50/75 once each', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 10)});
     expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
@@ -635,7 +561,7 @@ void main() {
   });
 
   test('milestones: the prep-phase percentage does not fire the thresholds', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // Calibration reports its own percentage at layer_num == 0 — an observed jump
     // of 6 → 60 in 300 ms crossed 25 and 50 before the first layer.
@@ -661,7 +587,7 @@ void main() {
   test(
     'milestones: priming on a calibration frame does not eat the thresholds',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The first frame is calibration at 60% — used as the baseline it would latch
       // 25 and 50 as sent and mute them for the whole real print.
@@ -680,7 +606,7 @@ void main() {
   );
 
   test('milestones: priming mid-print still latches the thresholds', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({
       1: _status(state: 'RUNNING', job: 'x', progress: 60, layerNum: 40),
@@ -698,7 +624,7 @@ void main() {
   test(
     'plate not empty: alerts from the WS plate_not_empty frame, not the status',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The end of a print raises awaiting_plate_clear in the status — that must NOT
       // fire the alert (it is a queue gate, not object detection on the plate).
@@ -714,7 +640,7 @@ void main() {
   );
 
   test('plate not empty: respects the event being disabled in prefs', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitor(fake); // default prefs: plateNotEmpty on, but…
     final off = PrintMonitor(
       fake,
@@ -732,12 +658,12 @@ void main() {
   test(
     'offline: alerts only once the grace runs out; coming back online cancels it',
     () {
-      final fake = _FakeNotifications();
-      final timers = <_FakeTimer>[];
+      final fake = RecordingNotifications();
+      final timers = <FakeTimer>[];
       final m = monitorAll(
         fake,
         timer: (d, cb) {
-          final t = _FakeTimer(cb);
+          final t = FakeTimer(Duration.zero, cb);
           timers.add(t);
           return t;
         },
@@ -754,12 +680,12 @@ void main() {
       expect(alertById(fake, bandId(7))?['title'], 'Printer offline');
 
       // Second episode: offline, but back online before the grace runs out → no alert.
-      final fake2 = _FakeNotifications();
-      final timers2 = <_FakeTimer>[];
+      final fake2 = RecordingNotifications();
+      final timers2 = <FakeTimer>[];
       final m2 = monitorAll(
         fake2,
         timer: (d, cb) {
-          final t = _FakeTimer(cb);
+          final t = FakeTimer(Duration.zero, cb);
           timers2.add(t);
           return t;
         },
@@ -776,7 +702,7 @@ void main() {
     'HMS fault: a new code alerts, a repeat does not; after the grace it alerts '
     'again',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       var t = DateTime(2026, 6, 12, 20, 0);
       final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
       const err = HmsError(code: 'A', severity: 2);
@@ -813,7 +739,7 @@ void main() {
 
   test('HMS fault: silence in the feed does not clear the memory — a reconnect '
       'does not alert again', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
@@ -838,7 +764,7 @@ void main() {
 
   test('HMS fault: an offline printer does not alert; a code known from before the '
       'disconnect does not alert on return, a fresh one does', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
@@ -872,7 +798,7 @@ void main() {
   });
 
   test('an HMS fault first seen after the disconnect alerts on return', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
@@ -907,7 +833,7 @@ void main() {
   });
 
   test('an HMS alert carries the fault it is about, and its buttons', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(
       code: '0x8004',
@@ -939,7 +865,7 @@ void main() {
     // background, and an id derived from a per-run seed handed the same standing
     // fault a second notification each time instead of replacing the first. A
     // seeded id would not survive the constants below twice.
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(code: '0x8004', severity: 3, fullCode: '03008004');
     const other = HmsError(code: 'A', severity: 2);
@@ -953,7 +879,7 @@ void main() {
   });
 
   test('an HMS alert offers no buttons the app could not send', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     // No full_code (server pre-0.2.4.8): nothing identifies the fault to the
     // firmware, so the alert stays a plain message.
@@ -982,7 +908,7 @@ void main() {
   });
 
   test('an alert never grows more buttons than Android draws', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(
       code: '0x801a',
@@ -1008,7 +934,7 @@ void main() {
 
   test('HMS fault: several new codes in one frame → separate alerts (different '
       'ids)', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const a = HmsError(code: 'A', severity: 2);
     const b = HmsError(code: 'B', severity: 3);
@@ -1024,7 +950,7 @@ void main() {
   test(
     'HMS fault: a code with no known description is skipped (bambuddy parity)',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       // No description resolver → an undocumented code; same for X2D sev 6 noise.
       final m = monitorAll(fake);
       m.update({1: _status(state: 'RUNNING')});
@@ -1055,7 +981,7 @@ void main() {
   test(
     'HMS fault: a server-side description is enough even without the catalog',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake); // no catalog resolver
       m.update({1: _status(state: 'RUNNING')});
       m.update({
@@ -1071,7 +997,7 @@ void main() {
   );
 
   test('HMS fault: a cancel echo (0500_400E) does not alert', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     m.update({1: _status(state: 'RUNNING')});
     // ecode = attr(0x05000000) + code(0x400E) → short 0500_400E.
@@ -1092,7 +1018,7 @@ void main() {
   });
 
   test('low filament: hysteresis per tray', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     final unitFull = [
       AmsUnit(id: 0, trays: [_tray(remain: 50)]),
@@ -1113,7 +1039,7 @@ void main() {
   });
 
   test('high AMS humidity: the edge above the threshold', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({
       1: _status(state: 'IDLE', ams: [const AmsUnit(id: 0, humidity: 40)]),
@@ -1132,7 +1058,7 @@ void main() {
       // both units has to spend it on the wetter one — the other is latched too and
       // stays quiet for the whole cooldown, so an under-reported value is not
       // corrected later.
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitorAll(fake);
 
       m.update({
@@ -1163,7 +1089,7 @@ void main() {
     () {
       // The server looks every five minutes, we look at every frame — roughly once a
       // second. A reading sitting on the threshold crosses it endlessly.
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       var t = DateTime(2026, 6, 12, 20, 0);
       final m = monitorAll(fake, clock: () => t);
       AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
@@ -1188,7 +1114,7 @@ void main() {
   );
 
   test('AMS humidity: a real drop re-arms it, but no more than once an hour', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
@@ -1224,7 +1150,7 @@ void main() {
   });
 
   test('AMS humidity: a rise muted by the cooldown is deferred, not lost', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
@@ -1263,7 +1189,7 @@ void main() {
   test('AMS humidity: a steady high reading says it once, not every hour', () {
     // A deliberate difference from the server, which reminds every hour: here every
     // other event alerts on the edge, not off a clock.
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     var t = DateTime(2026, 6, 12, 20, 0);
     final m = monitorAll(fake, clock: () => t);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
@@ -1287,7 +1213,7 @@ void main() {
   });
 
   test('bed cooled: only after a finished print and below the threshold', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // A cold bed with no print before it → no alert.
     m.update({
@@ -1309,7 +1235,7 @@ void main() {
   });
 
   test('priming: the first frame mid-flight does NOT fire past events', () {
-    final fake = _FakeNotifications();
+    final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // A fresh monitor (as after the background isolate restarts) meets the printer
     // already 38% into a print, past the first layer, with a standing HMS fault and
@@ -1336,7 +1262,7 @@ void main() {
   test(
     'gating: default prefs let through neither "started" nor milestones',
     () {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = monitor(fake); // default prefs
       m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
       expect(alertById(fake, bandId(3)), isNull); // started OFF
@@ -1393,7 +1319,7 @@ void main() {
 
     /// A monitor that writes to the log: a decorator over the fake service.
     PrintMonitor logged(
-      _FakeNotifications fake, {
+      RecordingNotifications fake, {
       NotificationPrefs prefs = _allOn,
       TimerFactory? timer,
       String? Function(HmsError)? hmsDescribe,
@@ -1413,7 +1339,7 @@ void main() {
     test('first layer disabled: one record, not one per frame', () async {
       // The `_on` gate was evaluated per frame, so a record inside the condition
       // would give one entry per frame until the print ended.
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
         m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
@@ -1432,7 +1358,7 @@ void main() {
     });
 
     test('milestones disabled: one record per threshold', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
         m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
@@ -1449,7 +1375,7 @@ void main() {
     });
 
     test('prep phase: one record per print, not one per frame', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
         m.update({1: _status(state: 'IDLE')}); // priming
@@ -1472,7 +1398,7 @@ void main() {
     });
 
     test('nowy wydruk uzbraja zatrzaski ponownie', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
         m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
@@ -1490,7 +1416,7 @@ void main() {
     });
 
     test('nazwa pliku ani drukarki nie trafia do logu', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake, hmsDescribe: describeAll);
       final jsonl = await raw(() {
         m.update({
@@ -1526,7 +1452,7 @@ void main() {
     });
 
     test('a posted alert carries the type, the printer and our id', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake);
       final all = await rows(() {
         m.update({1: _status(state: 'IDLE')});
@@ -1544,7 +1470,7 @@ void main() {
     test(
       'an HMS alert carries the printer, even though its id is a hash',
       () async {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final m = logged(fake, hmsDescribe: describeAll);
         final all = await rows(() {
           m.update({7: _status(id: 7, connected: true)});
@@ -1595,7 +1521,7 @@ void main() {
     test(
       'progress notification: a record per content change, not per frame',
       () async {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final m = logged(fake);
         final all = await rows(() {
           m.update({1: _status(state: 'RUNNING', progress: 40, remaining: 30)});
@@ -1616,7 +1542,7 @@ void main() {
     test(
       'koniec druku w nieznanym stanie: rekord ostrzegawczy bez alertu',
       () async {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final ended = <int>[];
         final m = logged(fake, onPrintEnded: ended.add);
         final all = await rows(() {
@@ -1634,7 +1560,7 @@ void main() {
     );
 
     test('koniec druku w FINISH: rekord informacyjny obok alertu', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final ended = <int>[];
       final m = logged(fake, onPrintEnded: ended.add);
       final all = await rows(() {
@@ -1649,7 +1575,7 @@ void main() {
     });
 
     test('priming records a baseline that implies nothing', () async {
-      final fake = _FakeNotifications();
+      final fake = RecordingNotifications();
       final m = logged(fake);
       final all = await rows(() {
         m.update({
@@ -1670,7 +1596,7 @@ void main() {
     test(
       'HMS: the reasons are kept apart, and a known code stays silent',
       () async {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         // Bez opisu w katalogu i z severity 1 → kod niedokumentowany.
         final m = logged(fake, hmsDescribe: (_) => null);
         final all = await rows(() {
@@ -1695,7 +1621,7 @@ void main() {
     test(
       'HMS on a disconnected printer: reason offline, not typeOff',
       () async {
-        final fake = _FakeNotifications();
+        final fake = RecordingNotifications();
         final m = logged(fake, hmsDescribe: describeAll);
         final all = await rows(() {
           m.update({1: _status(connected: true)});
@@ -1718,12 +1644,12 @@ void main() {
     test(
       'a printer returning before the grace runs out leaves a trace',
       () async {
-        final fake = _FakeNotifications();
-        final timers = <_FakeTimer>[];
+        final fake = RecordingNotifications();
+        final timers = <FakeTimer>[];
         final m = logged(
           fake,
           timer: (d, cb) {
-            final t = _FakeTimer(cb);
+            final t = FakeTimer(Duration.zero, cb);
             timers.add(t);
             return t;
           },
@@ -1783,7 +1709,7 @@ void main() {
 }
 
 /// A fake where the platform rejects every alert.
-class _ThrowingNotifications extends _FakeNotifications {
+class _ThrowingNotifications extends RecordingNotifications {
   @override
   Future<void> showAlert({
     required NotifEvent event,

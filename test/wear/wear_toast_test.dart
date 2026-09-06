@@ -1,6 +1,5 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -75,11 +74,6 @@ class _PrintingTransport implements WearTransport {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}
-
-class _NoProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
 }
 
 /// A bare frame with two buttons that raise a message, for the layer's own
@@ -258,7 +252,7 @@ void main() {
       const WearPrinterControlScreen(printerId: 7),
       face: wearFaceLarge,
       overrides: [
-        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+        noServerProfileOverride,
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: transport),
         ),
@@ -295,7 +289,7 @@ void main() {
       const WearPrinterControlScreen(printerId: 7),
       face: wearFaceLarge,
       overrides: [
-        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+        noServerProfileOverride,
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: _TimeoutTransport()),
         ),

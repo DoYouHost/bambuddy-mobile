@@ -8,22 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-}
-
 ProviderContainer _containerFor(
   CurrentUser? user, {
   AuthMode authMode = AuthMode.jwt,
 }) {
   final container = ProviderContainer(
     overrides: [
-      currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
+      currentUserOverride(user),
       fakeServerProfileOverride(authMode: authMode),
     ],
   );

@@ -7,11 +7,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late PrinterFilesRepository repo;
-  late List<RequestOptions> sent;
+  late RequestLog sent;
   late Directory scratch;
 
   setUp(() {
@@ -24,15 +26,7 @@ void main() {
         sendTimeout: const Duration(seconds: 15),
       ),
     );
-    sent = [];
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          sent.add(options);
-          handler.next(options);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
     adapter = DioAdapter(dio: dio);
     repo = PrinterFilesRepository(dio);
   });
@@ -125,8 +119,8 @@ void main() {
         // The adapter serves the reply JSON-encoded, so the quotes are the
         // mock's, not the route's: what matters is that the body reached the file.
         expect(File(target).readAsStringSync(), contains('model bytes'));
-        expect(sent.single.receiveTimeout, Duration.zero);
-        expect(sent.single.responseType, ResponseType.stream);
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
+        expect(sent.requests.single.responseType, ResponseType.stream);
       },
     );
 
@@ -145,11 +139,11 @@ void main() {
         await repo.downloadZipTo(1, const ['/a.3mf', '/b.3mf'], target);
 
         expect(File(target).readAsStringSync(), contains('zip bytes'));
-        expect(sent.single.method, 'POST');
-        expect(sent.single.data, {
+        expect(sent.requests.single.method, 'POST');
+        expect(sent.requests.single.data, {
           'paths': ['/a.3mf', '/b.3mf'],
         });
-        expect(sent.single.receiveTimeout, Duration.zero);
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
       },
     );
 
@@ -220,7 +214,7 @@ void main() {
         );
 
         expect(job?.jobId, 'job-1');
-        expect(sent.single.data, {
+        expect(sent.requests.single.data, {
           'paths': ['/a.3mf', '/b.3mf'],
           'sizes': {'/a.3mf': 10, '/b.3mf': 20},
           'filename': 'X1-files.zip',
@@ -244,7 +238,7 @@ void main() {
         filename: 'X1-files.zip',
       );
 
-      expect(sent.single.data, isNot(contains('sizes')));
+      expect(sent.requests.single.data, isNot(contains('sizes')));
     });
 
     test(
@@ -269,7 +263,7 @@ void main() {
           filename: 'X1-files.zip',
         );
 
-        expect(sent.single.data, isNot(contains('sizes')));
+        expect(sent.requests.single.data, isNot(contains('sizes')));
       },
     );
 
@@ -396,9 +390,9 @@ void main() {
         expect(File(target).readAsStringSync(), contains('zip bytes'));
         // Both are user data in a URL path: a token with a slash in it must not
         // address a different route, and a space must not break the request.
-        expect(sent.single.path, contains('tok%2F1'));
-        expect(sent.single.path, contains('X1%20files.zip'));
-        expect(sent.single.receiveTimeout, Duration.zero);
+        expect(sent.requests.single.path, contains('tok%2F1'));
+        expect(sent.requests.single.path, contains('X1%20files.zip'));
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
       },
     );
 

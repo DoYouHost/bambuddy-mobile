@@ -4,10 +4,17 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/features/admin/users_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
@@ -98,6 +105,28 @@ Future<void> settle(WidgetTester tester) async {
     await tester.pump(const Duration(milliseconds: 350));
   }
 }
+
+/// Pumps a phone widget inside a `ProviderScope` and [plApp].
+///
+/// The counterpart to [pumpWear], which existed while the phone side wrote the
+/// same three lines out 27 times. [builder] goes to `MaterialApp.builder`, the
+/// only place an inherited widget reaches a pushed route or a dialog.
+///
+/// Almost every caller wants [noServerProfileOverride] in [overrides]: a widget
+/// that reads the profile builds its API client from it, and without one that
+/// throws `UnimplementedError` into an unbounded `ErrorWidget` whose overflow
+/// buries whatever the test was about.
+Future<void> pumpPhone(
+  WidgetTester tester,
+  Widget child, {
+  List<Override> overrides = const [],
+  TransitionBuilder? builder,
+}) => tester.pumpWidget(
+  ProviderScope(
+    overrides: overrides,
+    child: plApp(child, builder: builder),
+  ),
+);
 
 /// Pumps a wear widget with what every wear test needs anyway: mock preferences,
 /// an in-memory credentials store, and a handle on the container so a test can
@@ -393,6 +422,14 @@ class RequestLog {
   /// then shows up instead of passing unnoticed.
   List<String> get calls => [for (final r in requests) '${r.method} ${r.path}'];
 
+  /// The most recent request — its `data` is the body a write test asserts on,
+  /// its `queryParameters` the query a read test does.
+  RequestOptions get last => requests.last;
+
+  /// Just the paths, for a test about which endpoints were reached and in what
+  /// order rather than what they carried.
+  List<String> get paths => [for (final r in requests) r.path];
+
   /// Waits until [count] requests have *finished*, for the fire-and-forget
   /// calls a repository starts with `unawaited`.
   ///
@@ -440,6 +477,15 @@ RequestLog captureRequests(Dio dio) {
 /// The host every test that needs a server talks to. Shared so a Dio adapter
 /// and the profile a screen reads cannot drift apart.
 const fakeServerBaseUrl = 'http://s.local:8000';
+
+/// A Dio pointed at [fakeServerBaseUrl], which is what a repository test wants
+/// before it hangs a `DioAdapter` off it.
+///
+/// The URL was written out by hand in 45 files while the constant right above
+/// had exactly one caller; a screen reading the profile and an adapter mocking
+/// the wire have to agree on the host, and two spellings of it is how they stop
+/// agreeing.
+Dio testDio() => Dio(BaseOptions(baseUrl: fakeServerBaseUrl));
 
 /// `serverProfileProvider` answering with [profile], or with "nothing
 /// configured yet" when it is null.
@@ -572,3 +618,244 @@ class FakeWearTransport implements WearTransport {
     null,
   );
 }
+
+/// The notification plugin, faked: every alert recorded as a map, every
+/// ongoing update counted, and knobs for the two things a test steers.
+///
+/// One stub rather than one per test file — there were five, each implementing
+/// the same six-method interface and recording a different third of it, so a
+/// test that wanted the payload had to grow the stub next door before it could
+/// ask. [alerts] carries the **union** of what those five looked at, including
+/// both `actions` (the objects) and `actionIds` (their ids), because asserting
+/// on the ids is what most callers actually mean.
+class RecordingNotifications implements NotificationService {
+  /// Every [showAlert], in order. Read a field by key.
+  final List<Map<String, Object?>> alerts = [];
+
+  /// Just the notification ids, for the tests that only care which alert was
+  /// raised rather than what it said.
+  List<int> get postedIds => [for (final a in alerts) a['id']! as int];
+
+  int ongoingCount = 0;
+  int clearCount = 0;
+  String? lastTitle;
+  String? lastBody;
+  int? lastProgress;
+
+  /// Thrown by [showAlert] when set — the platform channel refusing.
+  Object? failWith;
+
+  /// What [isAlertActive] answers: whether the alert is still on screen, which
+  /// is what gates a silent re-post of the finish photo.
+  bool alertActive = true;
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<void> showOngoing({
+    required String title,
+    required String body,
+    required int progress,
+  }) async {
+    ongoingCount++;
+    lastTitle = title;
+    lastBody = body;
+    lastProgress = progress;
+  }
+
+  @override
+  Future<void> clearOngoing() async => clearCount++;
+
+  @override
+  Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+    List<NotificationAction>? actions,
+    AlertPicture? picture,
+  }) async {
+    alerts.add({
+      'event': event,
+      'printerId': printerId,
+      'id': id,
+      'title': title,
+      'body': body,
+      'payload': payload,
+      'actions': actions,
+      'actionIds': [for (final a in actions ?? const []) a.id],
+      'photo': picture?.photoPath,
+      'thumb': picture?.thumbnailPath,
+    });
+    final failure = failWith;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<bool> isAlertActive(int id) async => alertActive;
+}
+
+/// `currentUserProvider` answering with [user], or with "nobody signed in" when
+/// it is null.
+///
+/// One factory rather than a `_FakeCurrentUser` per test file — there were four
+/// across the admin screens, in two shapes that differed only in whether they
+/// also stubbed `refresh()`. Stubbing it here covers both: a screen that calls
+/// it after a write must not fall through to the network.
+Override currentUserOverride([CurrentUser? user]) =>
+    currentUserProvider.overrideWith(() => _FixedCurrentUser(user));
+
+class _FixedCurrentUser extends CurrentUserNotifier {
+  _FixedCurrentUser(this._user);
+
+  final CurrentUser? _user;
+
+  @override
+  Future<CurrentUser?> build() async => _user;
+
+  @override
+  Future<void> refresh() async {}
+}
+
+/// The user list a screen renders, with nothing behind it.
+Override usersListOverride(List<CurrentUser> users) =>
+    usersListProvider.overrideWith(() => _FixedUsersList(users));
+
+class _FixedUsersList extends UsersListNotifier {
+  _FixedUsersList(this._users);
+
+  final List<CurrentUser> _users;
+
+  @override
+  Future<List<CurrentUser>> build() async => _users;
+}
+
+/// A Dio adapter that answers from a script instead of a socket.
+///
+/// One class rather than three: two files carried byte-identical copies taking
+/// a single [reply], and a third took a list of steps and logged the requests.
+/// Both shapes live here — a step may return a `ResponseBody` or a
+/// `DioException`, and the exception is thrown rather than returned, which is
+/// how a transport failure reaches the code under test.
+class ScriptedAdapter implements HttpClientAdapter {
+  ScriptedAdapter(Object Function(RequestOptions options) reply)
+    : _steps = [reply];
+
+  /// One step per request, in order. The **last step stands for every request
+  /// past the end of the script**, so a retry that fires more often than the
+  /// test spelled out is answered rather than crashing on a range error.
+  ScriptedAdapter.script(this._steps) : assert(_steps.isNotEmpty);
+
+  final List<Object Function(RequestOptions options)> _steps;
+
+  /// Every request that reached the adapter, oldest first — the retry and
+  /// refresh tests are about how many there were and what they carried.
+  final requests = <RequestOptions>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    final step =
+        _steps[requests.length <= _steps.length
+            ? requests.length - 1
+            : _steps.length - 1];
+    final answer = step(options);
+    if (answer is DioException) throw answer;
+    return answer as ResponseBody;
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// A [Timer] the test fires by hand, for the code that schedules work instead
+/// of doing it.
+///
+/// One fake rather than three: they differed only in whether they kept the
+/// [duration] they were asked for, which is the one thing a test checking *when*
+/// something was scheduled needs.
+class FakeTimer implements Timer {
+  FakeTimer(this.duration, this._callback);
+
+  /// What the code under test asked to wait — assert on it rather than on the
+  /// wall clock.
+  final Duration duration;
+  final void Function() _callback;
+
+  bool cancelled = false;
+
+  /// Runs the callback, unless the code cancelled the timer first.
+  void fire() {
+    if (!cancelled) _callback();
+  }
+
+  @override
+  void cancel() => cancelled = true;
+
+  @override
+  bool get isActive => !cancelled;
+
+  @override
+  int get tick => 0;
+}
+
+/// Printer statuses that never arrive: the dashboard renders from the printer
+/// list alone and no WebSocket or poll is started.
+final inertStatusesOverride = printerStatusesProvider.overrideWith(
+  _InertStatuses.new,
+);
+
+class _InertStatuses extends PrinterStatusesNotifier {
+  @override
+  Map<int, PrinterStatus> build() => const {};
+}
+
+/// No smart plugs, so the card's power row stays out of the way and its 5 s
+/// poll never starts — a live one outlives the test and trips the pending-timer
+/// check.
+final inertSmartPlugsOverride = smartPlugsProvider.overrideWith(
+  _InertSmartPlugs.new,
+);
+
+class _InertSmartPlugs extends SmartPlugsNotifier {
+  @override
+  SmartPlugsState build() => const SmartPlugsState();
+}
+
+/// An [Archive] row for a test that needs one but does not care what it says.
+///
+/// One builder rather than four: three of them built a byte-identical Benchy
+/// and differed only in which field they let the test vary, so adding a case
+/// meant growing the copy next door first. Defaults describe a finished print
+/// with no media; name only what the test is about.
+Archive testArchive({
+  int id = 1,
+  String filename = 'benchy.gcode.3mf',
+  String status = 'completed',
+  String? printName = 'Benchy',
+  int? printerId,
+  String? timelapsePath,
+  List<String> photos = const [],
+  DateTime? completedAt,
+  DateTime? createdAt,
+}) => Archive(
+  id: id,
+  filename: filename,
+  status: status,
+  printName: printName,
+  printerId: printerId,
+  timelapsePath: timelapsePath,
+  photos: photos,
+  completedAt: completedAt,
+  createdAt: createdAt,
+);

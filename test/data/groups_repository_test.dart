@@ -13,7 +13,7 @@ void main() {
   late GroupsRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = GroupsRepository(dio);
   });
@@ -189,7 +189,7 @@ void main() {
   });
 
   test('create sends the whole permission set', () async {
-    Map<String, dynamic>? sent;
+    final sent = captureRequests(dio);
     adapter.onPost(
       '/api/v1/groups/',
       (s) => s.reply(201, {
@@ -204,30 +204,20 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (options.method == 'POST') {
-            sent = options.data as Map<String, dynamic>;
-          }
-          handler.next(options);
-        },
-      ),
-    );
 
     final created = await repo.create(
       const GroupCreateInput(name: 'Domownicy', permissions: ['queue:create']),
     );
 
     expect(created.id, 9);
-    expect(sent, {
+    expect(sent.last.data, {
       'name': 'Domownicy',
       'permissions': ['queue:create'],
     });
   });
 
   test('update sends only the fields it was given', () async {
-    Map<String, dynamic>? sent;
+    final sent = captureRequests(dio);
     adapter.onPatch(
       '/api/v1/groups/9',
       (s) => s.reply(200, {
@@ -242,20 +232,10 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (options.method == 'PATCH') {
-            sent = options.data as Map<String, dynamic>;
-          }
-          handler.next(options);
-        },
-      ),
-    );
 
     await repo.update(9, const GroupUpdateInput(description: 'Drukują'));
 
-    expect(sent, {'description': 'Drukują'});
+    expect(sent.last.data, {'description': 'Drukują'});
   });
 
   test('a system group refused by name keeps the reason', () async {

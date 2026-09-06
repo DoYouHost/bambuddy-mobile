@@ -5,13 +5,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late LibraryRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = LibraryRepository(dio);
   });
@@ -138,15 +140,7 @@ void main() {
   // `tag_ids=1,2`, serwer zobaczyłby zero tagów i cicho oddał całą bibliotekę —
   // filtr wyglądałby na zepsuty dopiero na ekranie.
   test('listFilesByTags: tag_ids lecą jako powtórzony klucz', () async {
-    String? query;
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          query = options.uri.query;
-          handler.next(options);
-        },
-      ),
-    );
+    final sent = captureRequests(dio);
     adapter.onGet(
       '/api/v1/library/files',
       (s) => s.reply(200, <dynamic>[]),
@@ -157,7 +151,7 @@ void main() {
 
     await repo.listFilesByTags([1, 2]);
 
-    expect(query, 'tag_ids=1&tag_ids=2');
+    expect(sent.last.uri.query, 'tag_ids=1&tag_ids=2');
   });
 
   test('listFiles: brak tagów w odpowiedzi → pusta lista, nie null', () async {

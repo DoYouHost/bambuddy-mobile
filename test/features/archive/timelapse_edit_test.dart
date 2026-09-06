@@ -9,7 +9,6 @@ import 'package:bambuddy_mobile/features/archive/timelapse_trim.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_trim_strip.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_editor_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -516,19 +515,18 @@ void main() {
     testWidgets('pokazuje długość źródła i wyliczony wynik dla prędkości', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            timelapseInfoProvider(7).overrideWith((ref) async => _info),
-            timelapseFilmstripProvider(7).overrideWith(
-              (ref) async => TimelapseFilmstrip(
-                frames: [base64Decode(_jpeg)],
-                timestamps: const [0],
-              ),
+      await pumpPhone(
+        tester,
+        const TimelapseEditorScreen(archiveId: 7),
+        overrides: [
+          timelapseInfoProvider(7).overrideWith((ref) async => _info),
+          timelapseFilmstripProvider(7).overrideWith(
+            (ref) async => TimelapseFilmstrip(
+              frames: [base64Decode(_jpeg)],
+              timestamps: const [0],
             ),
-          ],
-          child: plApp(const TimelapseEditorScreen(archiveId: 7)),
-        ),
+          ),
+        ],
       );
       await tester.pumpAndSettle();
 
@@ -550,17 +548,15 @@ void main() {
     ) async {
       // Podglądu nie ma: w teście nie istnieje natywna strona video_player,
       // czyli dokładnie ta degradacja, którą ekran ma przetrwać.
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            timelapseInfoProvider(7).overrideWith((ref) async => _info),
-            timelapseFilmstripProvider(7).overrideWith(
-              (ref) async =>
-                  const TimelapseFilmstrip(frames: [], timestamps: []),
-            ),
-          ],
-          child: plApp(const TimelapseEditorScreen(archiveId: 7)),
-        ),
+      await pumpPhone(
+        tester,
+        const TimelapseEditorScreen(archiveId: 7),
+        overrides: [
+          timelapseInfoProvider(7).overrideWith((ref) async => _info),
+          timelapseFilmstripProvider(7).overrideWith(
+            (ref) async => const TimelapseFilmstrip(frames: [], timestamps: []),
+          ),
+        ],
       );
       await tester.pumpAndSettle();
 
@@ -571,19 +567,17 @@ void main() {
     testWidgets('nieudane info zostawia ekran z ponowieniem, nie spinnerem', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            timelapseInfoProvider(
-              7,
-            ).overrideWith((ref) async => throw Exception('boom')),
-            timelapseFilmstripProvider(7).overrideWith(
-              (ref) async =>
-                  const TimelapseFilmstrip(frames: [], timestamps: []),
-            ),
-          ],
-          child: plApp(const TimelapseEditorScreen(archiveId: 7)),
-        ),
+      await pumpPhone(
+        tester,
+        const TimelapseEditorScreen(archiveId: 7),
+        overrides: [
+          timelapseInfoProvider(
+            7,
+          ).overrideWith((ref) async => throw Exception('boom')),
+          timelapseFilmstripProvider(7).overrideWith(
+            (ref) async => const TimelapseFilmstrip(frames: [], timestamps: []),
+          ),
+        ],
       );
       await tester.pumpAndSettle();
 

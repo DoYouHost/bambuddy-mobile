@@ -56,18 +56,6 @@ class _FakeKeys implements ApiKeysRepository {
   Future<void> delete(int keyId) async => deleted = keyId;
 }
 
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-
-  @override
-  Future<void> refresh() async {}
-}
-
 const _admin = CurrentUser(id: 1, username: 'admin', isAdmin: true);
 
 /// `api_keys:read` and nothing else — the list, no buttons.
@@ -82,7 +70,7 @@ Widget _app(Widget child, {required _FakeKeys repo, CurrentUser? signedInAs}) =>
     ProviderScope(
       overrides: [
         apiKeysRepositoryProvider.overrideWithValue(repo),
-        currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
+        currentUserOverride(signedInAs),
         fakeServerProfileOverride(authMode: AuthMode.jwt),
         apiKeyPrinterOptionsProvider.overrideWith(
           (ref) async => const [

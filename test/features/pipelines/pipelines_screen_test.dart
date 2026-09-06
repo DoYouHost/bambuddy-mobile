@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/pipelines/pipelines_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -59,26 +58,23 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          noServerProfileOverride,
-          pipelinesProvider.overrideWith((ref) async => pipelines),
-          canWritePipelinesProvider.overrideWith((ref) async => canWrite),
-          canRunPipelinesProvider.overrideWith((ref) async => true),
-          pipelinesSupportedProvider.overrideWith((ref) async => true),
-          pipelineTargetPrintersProvider.overrideWith((ref) async => printers),
-          pipelinePrinterClassesProvider.overrideWith((ref) async => ['X1C']),
-          slicerPresetsProvider.overrideWith((ref) async => _presets),
-        ],
-        child: plApp(
-          const PipelinesScreen(),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: scaler),
-            child: child!,
-          ),
-        ),
+    await pumpPhone(
+      tester,
+      const PipelinesScreen(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: scaler),
+        child: child!,
       ),
+      overrides: [
+        noServerProfileOverride,
+        pipelinesProvider.overrideWith((ref) async => pipelines),
+        canWritePipelinesProvider.overrideWith((ref) async => canWrite),
+        canRunPipelinesProvider.overrideWith((ref) async => true),
+        pipelinesSupportedProvider.overrideWith((ref) async => true),
+        pipelineTargetPrintersProvider.overrideWith((ref) async => printers),
+        pipelinePrinterClassesProvider.overrideWith((ref) async => ['X1C']),
+        slicerPresetsProvider.overrideWith((ref) async => _presets),
+      ],
     );
     await tester.pumpAndSettle();
   }

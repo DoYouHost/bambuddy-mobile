@@ -9,7 +9,6 @@ import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -121,20 +120,17 @@ void main() {
     addTearDown(tester.view.reset);
 
     final repo = _StubRepo(objects);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          skipObjectsRepositoryProvider.overrideWithValue(repo),
-          printerStatusesProvider.overrideWith(
-            () => _FixedLayerStatuses(layerNum),
-          ),
-          objectPickMaskProvider(1).overrideWith((ref) async => mask),
-        ],
-        child: plApp(
-          const SkipObjectsScreen(printerId: 1, printerName: 'X1 Carbon'),
+    await pumpPhone(
+      tester,
+      const SkipObjectsScreen(printerId: 1, printerName: 'X1 Carbon'),
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        skipObjectsRepositoryProvider.overrideWithValue(repo),
+        printerStatusesProvider.overrideWith(
+          () => _FixedLayerStatuses(layerNum),
         ),
-      ),
+        objectPickMaskProvider(1).overrideWith((ref) async => mask),
+      ],
     );
     await tester.pumpAndSettle();
     return repo;

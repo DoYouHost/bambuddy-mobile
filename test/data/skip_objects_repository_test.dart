@@ -5,6 +5,8 @@ import 'package:bambuddy_mobile/data/skip_objects_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers.dart';
+
 /// Records the outgoing [RequestOptions] instead of hitting the network —
 /// needed here because http_mock_adapter's matcher only looks at method/path/
 /// data, not headers, and the whole point of this fix is the header.
@@ -36,8 +38,7 @@ void main() {
 
   void setUpWithReply(ResponseBody Function(RequestOptions) reply) {
     adapter = _RecordingAdapter(reply);
-    final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'))
-      ..httpClientAdapter = adapter;
+    final dio = testDio()..httpClientAdapter = adapter;
     repo = SkipObjectsRepository(dio);
   }
 

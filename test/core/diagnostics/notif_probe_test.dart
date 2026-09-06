@@ -4,57 +4,11 @@ import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
-import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The notification lane, which had no tests at all.
-///
-/// Two things are being pinned. First, the promise in
-/// `docs/diagnostics-log.md` that a notification's `title` and `body` never
-/// enter a record: they are the job label and the printer's name, and a
-/// recording ends up on a public, permanent GitHub issue. Second, that the lane
-/// actually answers the question it exists for — "why did I not get an alert" —
-/// because a decision *not* to post leaves no trace on the device, so if it is
-/// not in the log the reporter has to be asked, which is the whole failure mode
-/// this log was built to avoid.
-class _FakeNotifications implements NotificationService {
-  Object? failWith;
-
-  @override
-  Future<void> init() async {}
-
-  @override
-  Future<bool> requestPermission() async => true;
-
-  @override
-  Future<void> showOngoing({
-    required String title,
-    required String body,
-    required int progress,
-  }) async {}
-
-  @override
-  Future<void> clearOngoing() async {}
-
-  @override
-  Future<void> showAlert({
-    required NotifEvent event,
-    required int printerId,
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-    List<NotificationAction>? actions,
-    AlertPicture? picture,
-  }) async {
-    if (failWith != null) throw failWith!;
-  }
-
-  @override
-  Future<bool> isAlertActive(int id) async => true;
-}
+import '../../helpers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -90,7 +44,7 @@ void main() {
     test('the alert is recorded, its title and body are not', () async {
       // Both strings are the user's world: the job they named and the printer
       // they named. `LoggingNotifications` sees both and may keep neither.
-      final service = LoggingNotifications(_FakeNotifications());
+      final service = LoggingNotifications(RecordingNotifications());
 
       await service.showAlert(
         event: NotifEvent.printFinished,
@@ -109,7 +63,7 @@ void main() {
     test('the record still says enough to place the alert', () async {
       // Dropping the text is only acceptable because what is left answers
       // "which alert, for which printer, when".
-      final service = LoggingNotifications(_FakeNotifications());
+      final service = LoggingNotifications(RecordingNotifications());
 
       await service.showAlert(
         event: NotifEvent.printFailed,
@@ -131,7 +85,7 @@ void main() {
       () async {
         // A platform exception's message quotes what it was handed, and what it
         // was handed is the title and the body.
-        final inner = _FakeNotifications()
+        final inner = RecordingNotifications()
           ..failWith = StateError('channel refused "cv-jan-kowalski-v3.3mf"');
         final service = LoggingNotifications(inner);
 

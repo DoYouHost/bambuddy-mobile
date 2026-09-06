@@ -12,7 +12,6 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +37,19 @@ final formL10n = lookupAppLocalizations(const Locale('pl'));
 ///
 /// Asserting on it beats matching in the adapter: a mismatch then reads as
 /// "these keys differ", not as an unexplained connection error.
-Map<String, dynamic>? capturedBody;
+RequestLog? _sent;
+
+/// The body of the last request that carried one.
+///
+/// Picked by "has a body" rather than by position: the repository probes
+/// `/updates/version` with a GET before every write, so the last request is
+/// never the one a form test is asking about.
+Map<String, dynamic>? get capturedBody {
+  final written = _sent?.requests.where((r) => r.data != null);
+  return written == null || written.isEmpty
+      ? null
+      : written.last.data as Map<String, dynamic>?;
+}
 
 /// Preferences the form reads its remembered print options from, and writes
 /// them back to. Valid from [setUpQueueForm] onwards.
@@ -47,7 +58,7 @@ late SharedPreferences queueFormPrefs;
 /// Call from `setUp`: forgets the previous body and hands out empty
 /// preferences, so a remembered option cannot leak from one test into the next.
 Future<void> setUpQueueForm() async {
-  capturedBody = null;
+  _sent = null;
   SharedPreferences.setMockInitialValues({});
   queueFormPrefs = await SharedPreferences.getInstance();
 }
@@ -70,18 +81,8 @@ const printerH2C = Printer(id: 1, name: 'H2C-1', model: 'H2C');
 /// production, so the form and the request body cannot disagree about what the
 /// server can store.
 QueueRepository queueFormRepo({required bool triState}) {
-  final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) {
-        // The version probe is a GET with no body; only the queue writes matter.
-        if (options.data != null) {
-          capturedBody = options.data as Map<String, dynamic>?;
-        }
-        handler.next(options);
-      },
-    ),
-  );
+  final dio = testDio();
+  _sent = captureRequests(dio);
   DioAdapter(dio: dio)
     ..onGet(
       '/api/v1/updates/version',

@@ -19,7 +19,7 @@ void main() {
   late QueueRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = QueueRepository(dio);
   });

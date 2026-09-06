@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 /// The "filter by user" picker is answered by whichever user listing the
 /// server has: `/users/slim` from 1.2.6, the full `/users/` before it. Both
 /// generations stay supported, so what these pin is the probe — which route is
@@ -12,21 +14,13 @@ void main() {
   late Dio dio;
   late DioAdapter adapter;
   late StatsRepository repo;
-  late List<String> requested;
+  late RequestLog sent;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = StatsRepository(dio);
-    requested = [];
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          requested.add(options.path);
-          handler.next(options);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
   });
 
   const slim = '/api/v1/users/slim';
@@ -79,7 +73,7 @@ void main() {
 
         expect(users.map((u) => u.username), ['admin', 'zosia']);
         expect(users.map((u) => u.id), [1, 2]);
-        expect(requested, [slim]);
+        expect(sent.paths, [slim]);
       },
     );
 
@@ -98,7 +92,7 @@ void main() {
         final users = await repo.fetchUsers();
 
         expect(users.map((u) => u.username), ['admin', 'zosia']);
-        expect(requested, [slim, full]);
+        expect(sent.paths, [slim, full]);
       },
     );
 
@@ -112,7 +106,7 @@ void main() {
         final users = await repo.fetchUsers();
 
         expect(users.map((u) => u.username), ['admin', 'zosia']);
-        expect(requested, [slim, full]);
+        expect(sent.paths, [slim, full]);
       },
     );
 
@@ -124,7 +118,7 @@ void main() {
       await repo.fetchUsers();
       await repo.fetchUsers();
 
-      expect(requested, [slim, full, full]);
+      expect(sent.paths, [slim, full, full]);
     });
 
     test('a server known to have the slim route is never re-probed', () async {
@@ -133,7 +127,7 @@ void main() {
       await repo.fetchUsers();
       await repo.fetchUsers();
 
-      expect(requested, [slim, slim]);
+      expect(sent.paths, [slim, slim]);
     });
 
     test('refused both listings → the exception the picker swallows', () async {
@@ -142,7 +136,7 @@ void main() {
         ..onGet(full, (s) => s.reply(403, {'detail': 'nope'}));
 
       await expectLater(repo.fetchUsers(), throwsA(isA<AuthException>()));
-      expect(requested, [slim, full]);
+      expect(sent.paths, [slim, full]);
     });
 
     test('a transport failure does not pin the fallback', () async {
@@ -161,7 +155,7 @@ void main() {
       );
 
       await expectLater(repo.fetchUsers(), throwsA(isA<NetworkException>()));
-      expect(requested, [slim], reason: 'the full listing must not be tried');
+      expect(sent.paths, [slim], reason: 'the full listing must not be tried');
     });
 
     test('a 401 is propagated rather than treated as a missing route', () async {
@@ -170,7 +164,7 @@ void main() {
       adapter.onGet(slim, (s) => s.reply(401, {'detail': 'Unauthorized'}));
 
       await expectLater(repo.fetchUsers(), throwsA(isA<AuthException>()));
-      expect(requested, [slim]);
+      expect(sent.paths, [slim]);
     });
 
     test('the full listing is sorted like the slim one', () async {

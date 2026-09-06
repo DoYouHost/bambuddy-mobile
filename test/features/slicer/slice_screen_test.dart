@@ -14,7 +14,6 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -137,50 +136,45 @@ void main() {
     bool pipelinesSupported = false,
     List<OwnedFilament> owned = const [],
   }) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          slicerRepositoryProvider.overrideWithValue(repo),
-          slicerPresetsProvider.overrideWith((ref) async => presets),
-          embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
-          sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
-          ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
-          ownedFilamentsProvider.overrideWith((ref) async => owned),
-          filamentRequirementsProvider.overrideWith(
-            (ref, arg) async => requirements,
-          ),
-          processSettingsAvailableProvider.overrideWith(
-            (ref) async => available,
-          ),
-          processSchemaProvider.overrideWith((ref) async => catalog),
-          presetValuesProvider.overrideWith((ref, arg) async => presetValues),
-          // Inert by default: without these the bar probes the pipeline routes
-          // over a real Dio and leaves a hanging timer, the same trap as
-          // [inertFirmwareOverride].
-          pipelinesSupportedProvider.overrideWith(
-            (ref) async => pipelinesSupported,
-          ),
-          pipelinesProvider.overrideWith((ref) async => pipelines),
-          // Reaches `currentUserProvider` and the repository's observed latch,
-          // neither of which these tests stand up.
-          canWritePipelinesProvider.overrideWith((ref) async => true),
-        ],
-        child: plApp(
-          Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: ElevatedButton(
-                  onPressed: () => showSliceScreen(
-                    context,
-                    const SliceTarget.archive(5, 'thing.3mf'),
-                  ),
-                  child: const Text('open'),
-                ),
+    await pumpPhone(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => showSliceScreen(
+                context,
+                const SliceTarget.archive(5, 'thing.3mf'),
               ),
+              child: const Text('open'),
             ),
           ),
         ),
       ),
+      overrides: [
+        slicerRepositoryProvider.overrideWithValue(repo),
+        slicerPresetsProvider.overrideWith((ref) async => presets),
+        embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
+        sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
+        ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
+        ownedFilamentsProvider.overrideWith((ref) async => owned),
+        filamentRequirementsProvider.overrideWith(
+          (ref, arg) async => requirements,
+        ),
+        processSettingsAvailableProvider.overrideWith((ref) async => available),
+        processSchemaProvider.overrideWith((ref) async => catalog),
+        presetValuesProvider.overrideWith((ref, arg) async => presetValues),
+        // Inert by default: without these the bar probes the pipeline routes
+        // over a real Dio and leaves a hanging timer, the same trap as
+        // [inertFirmwareOverride].
+        pipelinesSupportedProvider.overrideWith(
+          (ref) async => pipelinesSupported,
+        ),
+        pipelinesProvider.overrideWith((ref) async => pipelines),
+        // Reaches `currentUserProvider` and the repository's observed latch,
+        // neither of which these tests stand up.
+        canWritePipelinesProvider.overrideWith((ref) async => true),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();

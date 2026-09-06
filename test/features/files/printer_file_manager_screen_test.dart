@@ -16,7 +16,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -120,17 +119,14 @@ void main() {
     PrinterFileListing listing, {
     PrinterFilesRepository? repo,
   }) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          printerFilesRepositoryProvider.overrideWithValue(
-            repo ?? _FakeRepo(listing),
-          ),
-        ],
-        child: plApp(
-          const PrinterFileManagerScreen(printerId: 1, printerName: 'Ultron'),
+    await pumpPhone(
+      tester,
+      const PrinterFileManagerScreen(printerId: 1, printerName: 'Ultron'),
+      overrides: [
+        printerFilesRepositoryProvider.overrideWithValue(
+          repo ?? _FakeRepo(listing),
         ),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
     return AppLocalizations.of(

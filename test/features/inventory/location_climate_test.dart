@@ -132,15 +132,14 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          inventoryProvider.overrideWith(() => _Shelf(spools)),
-          locationClimateProvider.overrideWith((ref) async => climates),
-          noServerProfileOverride,
-        ],
-        child: plApp(const InventoryScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const InventoryScreen(),
+      overrides: [
+        inventoryProvider.overrideWith(() => _Shelf(spools)),
+        locationClimateProvider.overrideWith((ref) async => climates),
+        noServerProfileOverride,
+      ],
     );
     await settle(tester);
   }

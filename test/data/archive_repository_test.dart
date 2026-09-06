@@ -13,7 +13,7 @@ void main() {
   late ArchiveRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = ArchiveRepository(dio);
   });

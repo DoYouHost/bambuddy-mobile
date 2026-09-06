@@ -7,25 +7,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
-  late List<RequestOptions> sent;
-
-  /// Every request as it left, so a body can be asserted on. The mock
-  /// adapter's own handlers run once at declaration, not once per request.
-  InterceptorsWrapper recorder() => InterceptorsWrapper(
-    onRequest: (options, handler) {
-      sent.add(options);
-      handler.next(options);
-    },
-  );
+  late RequestLog sent;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
-    sent = [];
-    dio.interceptors.add(recorder());
+    sent = captureRequests(dio);
   });
 
   void replyVersion(String version) => adapter.onGet(
@@ -158,7 +150,8 @@ void main() {
           ),
         ]);
 
-        final body = sent.singleWhere((r) => r.method == 'PUT').data as List;
+        final body =
+            sent.requests.singleWhere((r) => r.method == 'PUT').data as List;
         expect(body, [
           {
             'printer_model': 'X1C',
@@ -180,7 +173,7 @@ void main() {
 
       await nativeRepo().savePresetOverrides(7, const []);
 
-      expect(sent.singleWhere((r) => r.method == 'PUT').data, isEmpty);
+      expect(sent.requests.singleWhere((r) => r.method == 'PUT').data, isEmpty);
     });
 
     test(

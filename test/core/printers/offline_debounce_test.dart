@@ -1,33 +1,10 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/printers/offline_debounce.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A timer the test fires by hand, so the window costs no wall time.
-class _FakeTimer implements Timer {
-  _FakeTimer(this.duration, this._callback);
-
-  final Duration duration;
-  final void Function() _callback;
-  bool cancelled = false;
-
-  void fire() {
-    if (cancelled) return;
-    _callback();
-  }
-
-  @override
-  void cancel() => cancelled = true;
-
-  @override
-  bool get isActive => !cancelled;
-
-  @override
-  int get tick => 0;
-}
+import '../../helpers.dart';
 
 void main() {
-  late List<_FakeTimer> timers;
+  late List<FakeTimer> timers;
   late List<String> events;
   late OfflineDebounce debounce;
 
@@ -36,7 +13,7 @@ void main() {
     events = [];
     debounce = OfflineDebounce(
       timerFactory: (d, cb) {
-        final t = _FakeTimer(d, cb);
+        final t = FakeTimer(d, cb);
         timers.add(t);
         return t;
       },
@@ -128,7 +105,7 @@ void main() {
     // state, not observing a change.
     final fresh = OfflineDebounce(
       timerFactory: (d, cb) {
-        final t = _FakeTimer(d, cb);
+        final t = FakeTimer(d, cb);
         timers.add(t);
         return t;
       },

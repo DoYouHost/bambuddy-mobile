@@ -9,10 +9,11 @@ import '../helpers.dart';
 void main() {
   late Dio dio;
   late DioAdapter adapter;
+  late RequestLog sent;
   late MaintenanceRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = MaintenanceRepository(dio);
   });
@@ -64,7 +65,6 @@ void main() {
   });
 
   test('perform: wysyła body {notes} i kończy bez wyjątku', () async {
-    Object? sentBody;
     adapter.onPost(
       '/api/v1/maintenance/items/10/perform',
       (s) => s.reply(200, {'id': 10}),
@@ -72,18 +72,11 @@ void main() {
     );
     // http_mock_adapter nie przechwytuje body bezpośrednio — sprawdzamy przez
     // interceptor, że żądanie poszło z oczekiwanym kształtem.
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (o, h) {
-          sentBody = o.data;
-          h.next(o);
-        },
-      ),
-    );
+    sent = captureRequests(dio);
 
     await repo.perform(10, notes: 'wyczyszczone');
 
-    expect(sentBody, {'notes': 'wyczyszczone'});
+    expect(sent.last.data, {'notes': 'wyczyszczone'});
   });
 
   test('perform: 403 → AuthException(forbidden)', () async {

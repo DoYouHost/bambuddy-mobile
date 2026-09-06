@@ -9,13 +9,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_watch_connectivity.dart';
 
+import '../../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late FakeWatchConnectivity watch;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     watch = FakeWatchConnectivity();
   });
@@ -277,22 +279,12 @@ void main() {
   });
 
   test('hmsAction relays the fault verbatim to the server', () async {
-    Map<String, dynamic>? body;
     adapter.onPost(
       '/api/v1/printers/3/hms/execute-action',
       (s) => s.reply(200, {'success': true}),
       data: Matchers.any,
     );
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (options.path.endsWith('hms/execute-action')) {
-            body = options.data as Map<String, dynamic>;
-          }
-          handler.next(options);
-        },
-      ),
-    );
+    final sent = captureRequests(dio);
     final handler = WearRelayHandler(watch: watch, dio: () => dio);
 
     final res = await roundTrip(
@@ -309,7 +301,8 @@ void main() {
     expect(res.ok, isTrue);
     // The firmware matches on this code; a phone that rewrote it would have the
     // printer drop the command without a word.
-    expect(body, {
+    expect(sent.calls, ['POST /api/v1/printers/3/hms/execute-action']);
+    expect(sent.last.data, {
       'print_error': '03008004',
       'action': 'RESUME_PRINTING',
       'job_id': '746795586',

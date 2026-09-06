@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_watch_connectivity.dart';
 
+import '../../helpers.dart';
+
 void main() {
   // The engine reaches for prefs (a diagnostics session, the server profile)
   // before it answers anything.
@@ -19,7 +21,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     watch = FakeWatchConnectivity();
     engine = WearRelayEngine(watch: watch, openDio: () async => dio);

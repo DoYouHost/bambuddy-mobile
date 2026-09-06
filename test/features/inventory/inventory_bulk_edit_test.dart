@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -71,15 +70,14 @@ void main() {
     InventoryBackend backend = InventoryBackend.native,
   }) async {
     final fake = _FakeInventory(failure: failure, outcome: outcome);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          inventoryProvider.overrideWith(() => fake),
-          noServerProfileOverride,
-          inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
-        ],
-        child: plApp(const InventoryScreen()),
-      ),
+    await pumpPhone(
+      tester,
+      const InventoryScreen(),
+      overrides: [
+        inventoryProvider.overrideWith(() => fake),
+        noServerProfileOverride,
+        inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
+      ],
     );
     await settle(tester);
 

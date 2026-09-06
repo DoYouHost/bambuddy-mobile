@@ -30,24 +30,6 @@ const _member = CurrentUser(
   permissions: {'queue:read'},
 );
 
-class _FakeUsersList extends UsersListNotifier {
-  _FakeUsersList(this._users);
-
-  final List<CurrentUser> _users;
-
-  @override
-  Future<List<CurrentUser>> build() async => _users;
-}
-
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-}
-
 Widget _app(
   List<CurrentUser> users, {
   CurrentUser? signedInAs,
@@ -58,8 +40,8 @@ Widget _app(
   ),
 }) => ProviderScope(
   overrides: [
-    usersListProvider.overrideWith(() => _FakeUsersList(users)),
-    currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
+    usersListOverride(users),
+    currentUserOverride(signedInAs),
     fakeServerProfileOverride(authMode: AuthMode.jwt),
     userItemsCountProvider.overrideWith((ref, id) async => counts),
   ],
@@ -190,7 +172,7 @@ void main() {
     }) {
       final container = ProviderContainer(
         overrides: [
-          currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
+          currentUserOverride(user),
           fakeServerProfileOverride(authMode: authMode),
         ],
       );

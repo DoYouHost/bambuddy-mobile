@@ -8,6 +8,8 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers.dart';
+
 /// Sorts colours the way the label sheet does, so a test can assert on the
 /// resulting order rather than on raw key tuples.
 List<Color?> _sortByColor(List<Color?> colors) {
@@ -82,7 +84,7 @@ void main() {
 
     /// Wires a Dio whose adapter answers every request with [bytes].
     void serve(List<int> bytes, {int status = 200}) {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = _FakeAdapter(status: status, bytes: bytes);
       dio.httpClientAdapter = adapter;
     }
@@ -213,7 +215,7 @@ void main() {
     late _FakeAdapter adapter;
 
     setUp(() {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = _FakeAdapter(status: 200, bytes: _pdfBytes);
       dio.httpClientAdapter = adapter;
     });

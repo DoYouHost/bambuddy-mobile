@@ -13,7 +13,7 @@ void main() {
   late ApiKeysRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = ApiKeysRepository(dio);
   });
@@ -95,7 +95,7 @@ void main() {
   });
 
   test('create sends every flag, not just the ticked ones', () async {
-    Map<String, dynamic>? sent;
+    final sent = captureRequests(dio);
     adapter.onPost(
       '/api/v1/api-keys/',
       (s) => s.reply(200, {
@@ -111,16 +111,6 @@ void main() {
       }),
       data: Matchers.any,
     );
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (options.method == 'POST') {
-            sent = options.data as Map<String, dynamic>;
-          }
-          handler.next(options);
-        },
-      ),
-    );
 
     final created = await repo.create(
       const ApiKeyCreateInput(
@@ -134,16 +124,16 @@ void main() {
     // The server's own defaults hand out queue, library, inventory,
     // maintenance, archives and projects — an omitted flag would grant more
     // than the form showed.
-    expect(sent!['can_read_status'], isTrue);
-    expect(sent!['can_queue'], isFalse);
-    expect(sent!['can_manage_library'], isFalse);
-    expect(sent!['can_manage_projects'], isFalse);
+    expect((sent.last.data as Map)['can_read_status'], isTrue);
+    expect((sent.last.data as Map)['can_queue'], isFalse);
+    expect((sent.last.data as Map)['can_manage_library'], isFalse);
+    expect((sent.last.data as Map)['can_manage_projects'], isFalse);
   });
 
   test(
     'update sends only what changed, and can lift a printer limit',
     () async {
-      Map<String, dynamic>? sent;
+      final sent = captureRequests(dio);
       adapter.onPatch(
         '/api/v1/api-keys/5',
         (s) => s.reply(200, {
@@ -158,24 +148,14 @@ void main() {
         }),
         data: Matchers.any,
       );
-      dio.interceptors.add(
-        InterceptorsWrapper(
-          onRequest: (options, handler) {
-            if (options.method == 'PATCH') {
-              sent = options.data as Map<String, dynamic>;
-            }
-            handler.next(options);
-          },
-        ),
-      );
 
       await repo.update(
         5,
         const ApiKeyUpdateInput(enabled: false, clearPrinterIds: true),
       );
 
-      expect(sent, {'printer_ids': null, 'enabled': false});
-      expect(sent!.containsKey('can_read_status'), isFalse);
+      expect(sent.last.data, {'printer_ids': null, 'enabled': false});
+      expect((sent.last.data as Map).containsKey('can_read_status'), isFalse);
     },
   );
 
