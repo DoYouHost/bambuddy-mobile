@@ -8,6 +8,15 @@ import 'media_auth.dart';
 /// (a restart, an early expiry) is indistinguishable from a broken resource
 /// until a fresh one is tried.
 ///
+/// **401 only, deliberately** — unlike `MediaAuthImageRecovery`, which also
+/// retries a 403. Every lapsed credential on these routes answers 401
+/// (`_user_from_media_token` raises it for an unknown, expired or principal-less
+/// token, and the pre-#3025 camera-token dependency has no other code either);
+/// a 403 is `Missing required permissions`, which a fresh mint cannot change.
+/// The widget mixin can afford the wider net because it latches per token and
+/// so fires at most once; here there is no latch, and retrying would double
+/// every genuinely refused request for as long as the background service runs.
+///
 /// Used by the two things the isolates fetch outside the API client: the home
 /// screen widget's cover and a finished print's photo.
 Future<List<int>?> mediaBytes(

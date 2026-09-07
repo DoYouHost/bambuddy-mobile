@@ -83,10 +83,6 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
 
   Timer? _watchdog;
 
-  /// Media credential the current URL was built with — the download and the
-  /// share need the same one, and re-minting it per action would be wasteful.
-  MediaAuth? _auth;
-
   /// Bumped after an edit so the reload cannot be served the old video.
   int _version = 0;
 
@@ -131,15 +127,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     }
     if (!mounted || _replaced(attempt)) return;
     if (source == null) return _fail(_Failure.open);
-    _auth = source.auth;
 
     final url = source.url;
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(url),
-      // Empty unless the credential is `X-API-Key`, which the query string
-      // cannot carry — see [MediaAuth].
-      httpHeaders: source.auth.headers,
-    );
+    final controller = timelapsePlayer(source);
     setState(() => _controller = controller);
     _watchdog = Timer(_bootTimeout, () => _stalled(attempt, url));
 
@@ -287,24 +277,26 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
 
   /// Downloads the video once and hands it to [action].
   ///
-  /// The credential is the one the player is already streaming with: if it were
-  /// stale the video would not be on screen for the button to be pressed.
+  /// Resolves the credential first: the button can be pressed long after the
+  /// video was loaded, so the one the player started with is not evidence that
+  /// a download will be let through now.
   Future<void> _export(
     Future<void> Function(TimelapseExport, MediaAuth auth, String name)
     action, {
     required bool announce,
   }) async {
-    final auth = _auth;
-    if (auth == null) return;
+    if (!_ready) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final export = TimelapseExport(ref.read(timelapseRepositoryProvider));
+    final media = ref.read(mediaAuthServiceProvider);
 
     setState(() {
       _exporting = true;
       _exportProgress = null;
     });
     try {
+      final auth = await media.auth();
       await action(export, auth, widget.title ?? l10n.timelapseTitle);
       if (!mounted) return;
       if (announce) {

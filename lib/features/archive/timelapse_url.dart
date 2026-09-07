@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/api/media_auth.dart';
@@ -36,3 +37,16 @@ Future<TimelapseSource?> timelapseSource(
     auth: auth,
   );
 }
+
+/// The player for a [TimelapseSource].
+///
+/// Both halves of the credential have to reach it: the token rides in the URL,
+/// but an `X-API-Key` session has no token and carries a header instead, so a
+/// player built from `source.url` alone loads nothing at all for those users.
+/// One constructor, so the next screen cannot take only the half it can see —
+/// the editor's preview did exactly that and failed silently.
+VideoPlayerController timelapsePlayer(TimelapseSource source) =>
+    VideoPlayerController.networkUrl(
+      Uri.parse(source.url),
+      httpHeaders: source.auth.headers,
+    );

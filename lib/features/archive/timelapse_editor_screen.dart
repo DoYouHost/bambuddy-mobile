@@ -85,7 +85,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     try {
       final source = await timelapseSource(ref, widget.archiveId);
       if (source == null || !mounted) return;
-      controller = VideoPlayerController.networkUrl(Uri.parse(source.url));
+      controller = timelapsePlayer(source);
       await controller.initialize().timeout(_previewTimeout);
     } catch (_) {
       // No preview, no editor failure: trim and speed are numbers the server
