@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/api/media_auth.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
@@ -21,10 +22,10 @@ import 'timelapse_url.dart';
 
 /// Full-screen player for a print's timelapse.
 ///
-/// The video is the one archive resource that behaves like the camera: the
-/// server gates `GET /archives/{id}/timelapse` on the camera stream token in
-/// `?token=`, not on the auth header, exactly as it does for thumbnails. So the
-/// URL is minted here rather than routed through the Dio client.
+/// The video is the one archive resource that behaves like a thumbnail: the
+/// server gates `GET /archives/{id}/timelapse` on the media credential, not on
+/// the Bearer header, exactly as it does for thumbnails. So the URL is built
+/// here rather than routed through the Dio client.
 ///
 /// A token that lapsed server-side (a restart, an early expiry) fails the same
 /// way a missing video does — the platform player only reports "could not
@@ -82,10 +83,6 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
 
   Timer? _watchdog;
 
-  /// Camera token the current URL was built with — the download and the share
-  /// need the same one, and re-minting it per action would be wasteful.
-  String? _token;
-
   /// Bumped after an edit so the reload cannot be served the old video.
   int _version = 0;
 
@@ -130,10 +127,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     }
     if (!mounted || _replaced(attempt)) return;
     if (source == null) return _fail(_Failure.open);
-    _token = source.token;
 
     final url = source.url;
-    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    final controller = timelapsePlayer(source);
     setState(() => _controller = controller);
     _watchdog = Timer(_bootTimeout, () => _stalled(attempt, url));
 
@@ -145,8 +141,8 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
       if (!freshToken) {
         // Most likely a stale token; the re-mint costs one POST and spares the
         // user a retry they would otherwise have to tap themselves.
-        ref.read(cameraTokenServiceProvider).invalidate();
-        ref.invalidate(cameraTokenProvider);
+        ref.read(mediaAuthServiceProvider).invalidate();
+        ref.invalidate(mediaAuthProvider);
         await _discard();
         if (!mounted) return;
         return _load(freshToken: true);
@@ -247,9 +243,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   }
 
   Future<void> _saveToGallery() => _export(
-    (export, token, name) => export.saveToGallery(
+    (export, auth, name) => export.saveToGallery(
       widget.archiveId,
-      token: token,
+      auth: auth,
       name: name,
       onProgress: _onExportProgress,
     ),
@@ -257,9 +253,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   );
 
   Future<void> _share() => _export(
-    (export, token, name) => export.share(
+    (export, auth, name) => export.share(
       widget.archiveId,
-      token: token,
+      auth: auth,
       name: name,
       onProgress: _onExportProgress,
     ),
@@ -281,24 +277,27 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
 
   /// Downloads the video once and hands it to [action].
   ///
-  /// The token is the one the player is already streaming with: if it were
-  /// stale the video would not be on screen for the button to be pressed.
+  /// Resolves the credential first: the button can be pressed long after the
+  /// video was loaded, so the one the player started with is not evidence that
+  /// a download will be let through now.
   Future<void> _export(
-    Future<void> Function(TimelapseExport, String token, String name) action, {
+    Future<void> Function(TimelapseExport, MediaAuth auth, String name)
+    action, {
     required bool announce,
   }) async {
-    final token = _token;
-    if (token == null) return;
+    if (!_ready) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final export = TimelapseExport(ref.read(timelapseRepositoryProvider));
+    final media = ref.read(mediaAuthServiceProvider);
 
     setState(() {
       _exporting = true;
       _exportProgress = null;
     });
     try {
-      await action(export, token, widget.title ?? l10n.timelapseTitle);
+      final auth = await media.auth();
+      await action(export, auth, widget.title ?? l10n.timelapseTitle);
       if (!mounted) return;
       if (announce) {
         messenger.snack(l10n.timelapseSaved);

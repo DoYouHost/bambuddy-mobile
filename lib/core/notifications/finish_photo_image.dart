@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../api/endpoints.dart';
+import '../api/media_auth.dart';
+import '../api/media_fetch.dart';
 import 'notification_service.dart';
 
 /// Pulls a print's finish photo down to files a notification can be built from.
@@ -29,15 +31,16 @@ class FinishPhotoImage {
     required int archiveId,
     required String filename,
     required Dio dio,
-    required Future<String> Function({bool forceRefresh}) token,
+    required Future<MediaAuth> Function({bool forceRefresh}) auth,
   }) async {
     try {
-      final bytes = await _download(
+      final raw = await mediaBytes(
         '$baseUrl${Endpoints.archivePhoto(archiveId, filename)}',
         dio,
-        token,
+        auth,
       );
-      if (bytes == null || bytes.isEmpty) return null;
+      if (raw == null || raw.isEmpty) return null;
+      final bytes = Uint8List.fromList(raw);
       final dir = await getApplicationSupportDirectory();
       final photo = await _write(
         bytes,
@@ -55,31 +58,6 @@ class FinishPhotoImage {
       );
     } on Object {
       return null;
-    }
-  }
-
-  /// GETs the image with `?token=` (camera token, not a header — same rule as
-  /// thumbnails); on 401 mints a fresh token and retries once.
-  static Future<Uint8List?> _download(
-    String url,
-    Dio dio,
-    Future<String> Function({bool forceRefresh}) token,
-  ) async {
-    Future<Response<List<int>>> get(String t) => dio.get<List<int>>(
-      url,
-      queryParameters: {'token': t},
-      options: Options(responseType: ResponseType.bytes),
-    );
-
-    try {
-      final res = await get(await token());
-      final data = res.data;
-      return data == null ? null : Uint8List.fromList(data);
-    } on DioException catch (e) {
-      if (e.response?.statusCode != 401) rethrow;
-      final res = await get(await token(forceRefresh: true));
-      final data = res.data;
-      return data == null ? null : Uint8List.fromList(data);
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
@@ -516,6 +517,12 @@ Override fakeServerProfileOverride({AuthMode authMode = AuthMode.none}) =>
     serverProfileOverride(
       ServerProfile(baseUrl: fakeServerBaseUrl, authMode: authMode),
     );
+
+/// The media credential every thumbnail, cover and photo URL is built with —
+/// stubbed so a widget test renders the `Image.network` instead of the
+/// placeholder it shows while the mint is in flight.
+Override mediaAuthOverride({String token = 'tok'}) =>
+    mediaAuthProvider.overrideWith((ref) async => MediaAuth(queryToken: token));
 
 class _FixedServerProfile extends ServerProfileNotifier {
   _FixedServerProfile(this._profile);

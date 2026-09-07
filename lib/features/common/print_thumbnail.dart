@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
-import 'camera_token_image_recovery.dart';
+import 'media_image.dart';
 
-/// Print thumbnail from archive (queue + archive). Auth via `?token=`
-/// (camera token) — auth header does NOT work for this resource, live-verified.
-/// Pattern identical to cover in printer_card. Placeholder instead of error —
-/// never crashes card.
+/// Print thumbnail from archive (queue + archive). Auth via the media
+/// credential — the Bearer header does NOT work for this resource,
+/// live-verified. Pattern identical to cover in printer_card. Placeholder
+/// instead of error — never crashes card.
 ///
 /// Rendered thumbnails have lots of empty margin around model, so we scale
 /// content ([zoom], default 140%) inside crop to "frame" the print and fill tile.
-class PrintThumbnail extends ConsumerStatefulWidget {
+class PrintThumbnail extends ConsumerWidget {
   const PrintThumbnail({
     super.key,
     required this.archiveId,
@@ -66,16 +66,8 @@ class PrintThumbnail extends ConsumerStatefulWidget {
   final double zoom;
 
   @override
-  ConsumerState<PrintThumbnail> createState() => _PrintThumbnailState();
-}
-
-class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
-    with CameraTokenImageRecovery {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final size = widget.size;
-    final zoom = widget.zoom;
     final radius = BorderRadius.circular(size < 64 ? 8 : 10);
 
     Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
@@ -88,53 +80,32 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
       child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
     );
 
-    final entryId = widget.printLogEntryId;
-    final path =
-        widget.path ??
+    final entryId = printLogEntryId;
+    final route =
+        path ??
         (entryId != null
             ? Endpoints.printLogThumbnail(entryId)
-            : (widget.archiveId == null
+            : (archiveId == null
                   ? null
-                  : Endpoints.archiveThumbnail(widget.archiveId!)));
+                  : Endpoints.archiveThumbnail(archiveId!)));
+    // Neither demo mode nor an unconfigured app has a render to serve, and
+    // neither is a broken thumbnail — say nothing rather than draw a fault.
     final profile = ref.watch(serverProfileProvider);
-    final baseUrl = profile?.baseUrl;
-    // Demo mode has no thumbnail renders — placeholder beats a broken image.
-    if (path == null || baseUrl == null || profile?.isDemo == true) {
+    if (route == null || profile == null || profile.isDemo) {
       return placeholder();
     }
 
-    return ref
-        .watch(cameraTokenProvider)
-        .when(
-          loading: placeholder,
-          error: (_, _) => placeholder(Icons.broken_image_outlined),
-          data: (token) => ClipRRect(
-            borderRadius: radius,
-            child: Transform.scale(
-              scale: zoom,
-              child: Image.network(
-                '$baseUrl$path?token=$token',
-                width: size,
-                height: size,
-                // Server serves full-res renders; without this the decoder
-                // allocates a full bitmap for a tile scrolled at ~50dp — memory
-                // and jank multiply across a paginated list of these.
-                // `* zoom` matches the crop scale above so the cached
-                // resolution still covers the cropped-in content.
-                cacheWidth:
-                    (size * zoom * MediaQuery.devicePixelRatioOf(context))
-                        .round(),
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-                errorBuilder: (_, error, _) {
-                  recoverCameraTokenOnError(error, token);
-                  return placeholder(Icons.broken_image_outlined);
-                },
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : placeholder(),
-              ),
-            ),
-          ),
-        );
+    return MediaImage(
+      path: route,
+      width: size,
+      height: size,
+      borderRadius: radius,
+      zoom: zoom,
+      placeholder: (status) => placeholder(
+        status == MediaImageStatus.loading
+            ? Icons.image_outlined
+            : Icons.broken_image_outlined,
+      ),
+    );
   }
 }

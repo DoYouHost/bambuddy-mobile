@@ -7,6 +7,8 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/media_auth.dart';
+import 'core/api/media_token.dart';
 import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
@@ -266,31 +268,40 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   return refresher;
 });
 
-/// Proactive camera-token refresh: re-mints the shared camera token
-/// (thumbnails, covers, camera stream) just before its client TTL lapses, so
-/// foreground image loads don't hit a 401 first. Reactive re-mint on 401 stays
-/// the safety net ([PrintThumbnail], [CameraView]). UI-only (background cover
-/// fetch in the FGS isolate re-mints reactively); kept alive +
+/// Proactive camera-token refresh: re-mints the camera stream token just before
+/// its client TTL lapses, so the live view doesn't hit a 401 first. Reactive
+/// re-mint on 401 stays the safety net ([CameraView]). Kept alive +
 /// lifecycle-controlled by the dashboard, like [tokenRefresherProvider]. Demo
 /// mode has no token to refresh.
 final cameraTokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
   final service = ref.watch(cameraTokenServiceProvider);
-  final refresher = ProactiveTokenRefresher(
+  final refresher = imageTokenRefresher(
     readExpiry: () async => service.expiresAt,
-    refresh: () async {
-      try {
-        await service.token(forceRefresh: true);
-      } catch (_) {
-        return null; // Fall back; reactive 401 recovery still covers it.
-      }
-      // Consumers read the token via cameraTokenProvider, so push the fresh one
-      // to them. gaplessPlayback keeps already-shown thumbnails from
-      // flickering.
-      ref.invalidate(cameraTokenProvider);
-      return service.expiresAt;
-    },
+    remint: () => service.token(forceRefresh: true),
+    // Consumers read the token via cameraTokenProvider, so push the fresh one
+    // to them.
+    onRefreshed: () => ref.invalidate(cameraTokenProvider),
+  );
+  ref.onDispose(refresher.stop);
+  return refresher;
+});
+
+/// The same for the media credential behind thumbnails, covers, photos and
+/// timelapses, so a scrolled list doesn't flash a page of broken tiles while
+/// the reactive recovery re-mints. UI-only — the FGS isolate's cover fetch
+/// re-mints reactively. No-op while the credential is a header, which does not
+/// expire: [MediaAuthService.expiresAt] is null there and the refresher then
+/// just ticks on its fallback delay.
+final mediaAuthRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
+  final profile = ref.watch(serverProfileProvider);
+  if (profile == null || profile.isDemo) return null;
+  final service = ref.watch(mediaAuthServiceProvider);
+  final refresher = imageTokenRefresher(
+    readExpiry: () async => service.expiresAt,
+    remint: () => service.auth(forceRefresh: true),
+    onRefreshed: () => ref.invalidate(mediaAuthProvider),
   );
   ref.onDispose(refresher.stop);
   return refresher;
@@ -840,15 +851,40 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
   ),
 );
 
-/// Service minting camera stream token (print cover; from M2 also camera
-/// preview). Rebuilt with client on profile change.
+/// Service minting the camera stream token (the live view; on servers older
+/// than #3025 also every other `?token=` image). Rebuilt with client on profile
+/// change.
 final cameraTokenServiceProvider = Provider<CameraTokenService>(
   (ref) => CameraTokenService(ref.watch(apiClientProvider).dio),
 );
 
-/// Camera token for widgets (cover). Service holds cache; this future provides
-/// current token for building image URL. Invalidate:
+/// Camera token for the live view. Service holds cache; this future provides
+/// current token for building the stream URL. Invalidate:
 /// `ref.invalidate(cameraTokenProvider)` after 401 from protected resource.
 final cameraTokenProvider = FutureProvider<String>(
   (ref) => ref.watch(cameraTokenServiceProvider).token(),
+);
+
+/// Service minting the media token (#3025). Rebuilt with client on profile
+/// change, like [cameraTokenServiceProvider].
+final mediaTokenServiceProvider = Provider<MediaTokenService>(
+  (ref) => MediaTokenService(ref.watch(apiClientProvider).dio),
+);
+
+/// Picks the credential this server accepts on the media routes — see
+/// [MediaAuthService] for the three answers.
+final mediaAuthServiceProvider = Provider<MediaAuthService>(
+  (ref) => MediaAuthService(
+    media: ref.watch(mediaTokenServiceProvider),
+    camera: ref.watch(cameraTokenServiceProvider),
+    authMode: ref.watch(serverProfileProvider)?.authMode ?? AuthMode.none,
+    credentials: ref.watch(credentialsStoreProvider),
+  ),
+);
+
+/// The credential every media URL is built with. Invalidate together with
+/// `ref.read(mediaAuthServiceProvider).invalidate()` after a 401 — see
+/// [MediaAuthImageRecovery].
+final mediaAuthProvider = FutureProvider<MediaAuth>(
+  (ref) => ref.watch(mediaAuthServiceProvider).auth(),
 );

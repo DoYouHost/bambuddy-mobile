@@ -104,6 +104,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
         ref.read(cameraTokenRefresherProvider)?.stop();
+        ref.read(mediaAuthRefresherProvider)?.stop();
         // The service isolate carries its own from here. Both would poll the
         // same archives and, worse, both write the shared alert memory — a
         // read-modify-write, so the loser's entry is dropped and its photo never
@@ -126,6 +127,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(smartPlugsProvider.notifier).resumePolling();
         ref.read(tokenRefresherProvider)?.start();
         ref.read(cameraTokenRefresherProvider)?.start();
+        ref.read(mediaAuthRefresherProvider)?.start();
         // The background isolate may have met the rejection while we were away.
         unawaited(_maybeWarnSignInRequired());
       },
@@ -358,10 +360,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
 
-    // Keep proactive JWT + camera-token refresh alive while dashboard is on
+    // Keep proactive JWT + image-credential refresh alive while dashboard is on
     // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
+    ref.watch(mediaAuthRefresherProvider)?.start();
 
     // Not read — watched so it exists while this screen (and with it the UI's
     // socket) does. It waits for the finish photo the server attaches after a

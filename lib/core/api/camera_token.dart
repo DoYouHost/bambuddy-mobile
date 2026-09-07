@@ -5,8 +5,12 @@ import 'cached_token_service.dart';
 import 'endpoints.dart';
 
 /// Mints and caches the camera stream token, shared per server and required as
-/// `?token=` on covers, the MJPEG stream and snapshots — none of which accept a
+/// `?token=` on the MJPEG stream and snapshots, neither of which accepts a
 /// header.
+///
+/// Minting it costs `camera:view`, which is why server 1.2.5.5 (#3025) took the
+/// thumbnails and covers off it and onto [MediaTokenService]. Older servers
+/// still want this one there, and [MediaAuthService] falls back to it for them.
 class CameraTokenService extends CachedTokenService {
   CameraTokenService(Dio dio) : super(dio, Endpoints.cameraStreamToken);
 

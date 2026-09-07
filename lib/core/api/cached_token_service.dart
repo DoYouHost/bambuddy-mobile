@@ -3,9 +3,9 @@ import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
 
-/// Cache, TTL and single-flight mint shared by `WsTokenService` and
-/// `CameraTokenService`. Without the single flight, concurrent callers meeting
-/// an expired cache each fire their own mint.
+/// Cache, TTL and single-flight mint shared by the three token services.
+/// Without the single flight, concurrent callers meeting an expired cache each
+/// fire their own mint.
 abstract class CachedTokenService {
   CachedTokenService(this._dio, this._endpoint);
 
@@ -17,15 +17,30 @@ abstract class CachedTokenService {
 
   String? _token;
   DateTime? _expiresAt;
+  bool _routeAbsent = false;
 
   /// Lets a proactive refresher schedule a re-mint ahead of the lapse.
   DateTime? get expiresAt => _expiresAt;
 
+  /// Whether the last mint found no such route on this server, so [cachedToken]
+  /// now answers `null` without asking again.
+  ///
+  /// Remembering the absence is the point: a token this old a server does not
+  /// have is asked for once per *use*, not once per session — a page of
+  /// thumbnails or a run of WebSocket reconnects would otherwise fire a 404
+  /// POST apiece, forever. Cleared by [invalidate] and by a forced refresh, so
+  /// a server that gains the route while the app runs is picked up.
+  bool get routeAbsent => _routeAbsent;
+
   Future<String?>? _pending;
 
-  /// `null` on a 404, which each subclass reads differently — an older server
-  /// for `WsTokenService`, an error for `CameraTokenService`.
+  /// `null` when the route is not on this server, which each subclass reads
+  /// differently — an older build for `WsTokenService` and `MediaTokenService`,
+  /// an error for `CameraTokenService`.
   Future<String?> cachedToken({bool forceRefresh = false}) async {
+    if (forceRefresh) _routeAbsent = false;
+    if (_routeAbsent) return null;
+
     final cached = _token;
     final expiry = _expiresAt;
     if (!forceRefresh &&
@@ -51,7 +66,10 @@ abstract class CachedTokenService {
     try {
       res = await _dio.post<Map<String, dynamic>>(_endpoint);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return null;
+      if (e.response?.statusCode == 404) {
+        _routeAbsent = true;
+        return null;
+      }
       throw mapDioException(e);
     }
 
@@ -64,9 +82,12 @@ abstract class CachedTokenService {
     return token;
   }
 
-  /// Forces a fresh mint on the next [cachedToken], e.g. after a 401.
+  /// Forces a fresh mint on the next [cachedToken], e.g. after a 401 — and
+  /// re-probes a route previously found absent, since a refusal is also how an
+  /// upgraded server first makes itself known.
   void invalidate() {
     _token = null;
     _expiresAt = null;
+    _routeAbsent = false;
   }
 }

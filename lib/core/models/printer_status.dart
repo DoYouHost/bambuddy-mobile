@@ -91,8 +91,8 @@ class PrinterStatus {
   @JsonKey(fromJson: _toTemperaturesOrNull)
   final Map<String, double>? temperatures;
 
-  /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Requires
-  /// camera stream token as `?token=` parameter on fetch.
+  /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Fetched
+  /// with the media credential, never the Bearer header — see `MediaAuth`.
   final String? coverUrl;
 
   /// Which stage the printer reports it is in: `0` is plain printing, `1`–`254`

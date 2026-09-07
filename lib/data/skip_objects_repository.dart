@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/media_auth.dart';
 import '../core/models/printable_object.dart';
 
 /// Skip-objects data source: read the current print's printable objects and
@@ -28,18 +29,21 @@ class SkipObjectsRepository {
 
   /// Raw PNG of the slicer's object-ID mask for the current print
   /// (`cover?view=pick`) — the outlines the plate overlay draws and hit-tests.
-  /// Auth is the camera stream token in the query, like every other cover view.
+  /// Auth is the media credential, like every other cover view.
   ///
   /// Null when the server has no mask to give: a 3MF without `pick_N.png`, or a
   /// server old enough not to know the view. Both are a fallback for the caller,
   /// not an error to show.
-  Future<Uint8List?> fetchPickMask(int printerId, String token) async {
+  Future<Uint8List?> fetchPickMask(int printerId, MediaAuth auth) async {
     try {
       return await guard(() async {
         final res = await _dio.get<List<int>>(
           Endpoints.printerCover(printerId),
-          queryParameters: {'view': 'pick', 'token': token},
-          options: Options(responseType: ResponseType.bytes),
+          queryParameters: {'view': 'pick', ...auth.query},
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: auth.headers,
+          ),
         );
         final bytes = res.data;
         return bytes == null || bytes.isEmpty

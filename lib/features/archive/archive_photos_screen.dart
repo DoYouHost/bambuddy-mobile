@@ -5,8 +5,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../providers.dart';
-import '../common/camera_token_image_recovery.dart';
+import '../common/media_image.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/state_views.dart';
@@ -16,8 +15,8 @@ import 'archive_providers.dart';
 /// server takes off the camera the moment the print finishes.
 ///
 /// Like thumbnails and the timelapse, `GET /archives/{id}/photos/{name}` is
-/// gated on the camera stream token in `?token=` rather than on the auth
-/// header, so the URL is built here instead of going through the Dio client.
+/// gated on the media credential rather than on the Bearer header, so the URL
+/// is built here instead of going through the Dio client.
 ///
 /// The photo list is re-read from the server rather than carried in from the
 /// archive list: the finish photo is attached in a background task seconds to
@@ -127,51 +126,30 @@ class _PhotoPagerState extends State<_PhotoPager> {
   }
 }
 
-/// One photo, pinch-zoomable. A lapsed camera token fails the same way a
-/// missing file does, so [CameraTokenImageRecovery] re-mints once and the new
-/// URL reloads the image.
-class _Photo extends ConsumerStatefulWidget {
+/// One photo, pinch-zoomable. A lapsed media token fails the same way a
+/// missing file does, so [MediaImage] re-mints once and the new URL reloads
+/// the picture.
+class _Photo extends StatelessWidget {
   const _Photo({required this.archiveId, required this.filename});
 
   final int archiveId;
   final String filename;
 
   @override
-  ConsumerState<_Photo> createState() => _PhotoState();
-}
-
-class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (baseUrl == null) {
-      return _message(l10n.archivePhotoFailed);
-    }
-
-    return ref
-        .watch(cameraTokenProvider)
-        .when(
-          loading: () => const DashLoading(),
-          error: (_, _) => _message(l10n.archivePhotoFailed),
-          data: (token) => InteractiveViewer(
-            maxScale: 5,
-            child: Image.network(
-              '$baseUrl${Endpoints.archivePhoto(widget.archiveId, widget.filename)}'
-              '?token=$token',
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-              gaplessPlayback: true,
-              errorBuilder: (_, error, _) {
-                recoverCameraTokenOnError(error, token);
-                return _message(l10n.archivePhotoFailed);
-              },
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : const DashLoading(),
-            ),
-          ),
-        );
+    return InteractiveViewer(
+      maxScale: 5,
+      child: MediaImage(
+        path: Endpoints.archivePhoto(archiveId, filename),
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: (status) => status == MediaImageStatus.loading
+            ? const DashLoading()
+            : _message(l10n.archivePhotoFailed),
+      ),
+    );
   }
 
   Widget _message(String text) => Center(
