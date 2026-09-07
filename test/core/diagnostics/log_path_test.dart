@@ -17,8 +17,10 @@ void main() {
   group('what must not survive', () {
     test('an attachment filename is masked, the route around it is not', () {
       expect(
-        reduce('http://s.lan:8080/api/v1/projects/3/attachments/'
-            'faktura-jan-kowalski-2026.pdf'),
+        reduce(
+          'http://s.lan:8080/api/v1/projects/3/attachments/'
+          'faktura-jan-kowalski-2026.pdf',
+        ),
         '/api/v1/projects/3/attachments/<seg>',
       );
     });
@@ -64,8 +66,10 @@ void main() {
     test('a segment starting with a digit is a route, not a name', () {
       // `/auth/2fa/verify` would be masked by a letters-only rule, and the 2FA
       // lane is one of the harder things to diagnose from a report.
-      expect(reduce('http://s.lan/api/v1/auth/2fa/verify'),
-          '/api/v1/auth/2fa/verify');
+      expect(
+        reduce('http://s.lan/api/v1/auth/2fa/verify'),
+        '/api/v1/auth/2fa/verify',
+      );
     });
 
     test('every route in Endpoints survives the rule', () {

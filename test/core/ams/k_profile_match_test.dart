@@ -8,14 +8,13 @@ KProfile profile(
   String k = '0.020000',
   String filamentId = '',
   int extruderId = 0,
-}) =>
-    KProfile(
-      slotId: slotId,
-      name: name,
-      kValue: k,
-      filamentId: filamentId,
-      extruderId: extruderId,
-    );
+}) => KProfile(
+  slotId: slotId,
+  name: name,
+  kValue: k,
+  filamentId: filamentId,
+  extruderId: extruderId,
+);
 
 void main() {
   group('matching', () {
@@ -53,8 +52,11 @@ void main() {
       );
 
       expect(choices.matching.map((p) => p.slotId), [1]);
-      expect(choices.other.map((p) => p.slotId), [2],
-          reason: 'the rest stays reachable, just not first');
+      expect(
+        choices.other.map((p) => p.slotId),
+        [2],
+        reason: 'the rest stays reachable, just not first',
+      );
     });
 
     test('"Generic PLA" is a preset name, not a manufacturer', () {
@@ -203,8 +205,11 @@ void main() {
         presetName: 'Generic PLA',
       );
 
-      expect(choices.other, isEmpty,
-          reason: 'the duplicate row is the same calibration, not another one');
+      expect(
+        choices.other,
+        isEmpty,
+        reason: 'the duplicate row is the same calibration, not another one',
+      );
     });
   });
 

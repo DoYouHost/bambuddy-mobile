@@ -22,9 +22,9 @@ class PrintMetaItem extends StatelessWidget {
   /// on a real card.
   static TextStyle resolveStyle(BuildContext context) {
     final t = DashTokens.of(context);
-    return DefaultTextStyle.of(context)
-        .style
-        .merge(t.monoLabel.copyWith(color: t.textSecondary));
+    return DefaultTextStyle.of(
+      context,
+    ).style.merge(t.monoLabel.copyWith(color: t.textSecondary));
   }
 
   /// How wide this item wants to be, at the font size the device is set to.
@@ -37,8 +37,8 @@ class PrintMetaItem extends StatelessWidget {
   /// row's arithmetic has to say the same thing the [Icon] will.
   static double _iconWidth(BuildContext context) =>
       (IconTheme.of(context).applyTextScaling ?? false)
-          ? MediaQuery.textScalerOf(context).scale(_iconSize)
-          : _iconSize;
+      ? MediaQuery.textScalerOf(context).scale(_iconSize)
+      : _iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -109,9 +109,11 @@ class PrintMetaRow extends StatelessWidget {
         final cell = grid ? columnWidth : constraints.maxWidth;
         final lines = <Widget>[
           for (var i = 0; i < items.length; i += perLine)
-            _line(items.skip(i).take(perLine).toList(),
-                List.filled(perLine, cell),
-                grid: true),
+            _line(
+              items.skip(i).take(perLine).toList(),
+              List.filled(perLine, cell),
+              grid: true,
+            ),
         ];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,20 +143,16 @@ class PrintMetaRow extends StatelessWidget {
     List<PrintMetaItem> line,
     List<double> share, {
     required bool grid,
-  }) =>
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < line.length; i++) ...[
-            if (i > 0) const SizedBox(width: _gap),
-            if (grid)
-              SizedBox(width: share[i], child: line[i])
-            else
-              Flexible(
-                flex: share[i].round().clamp(1, 1 << 20),
-                child: line[i],
-              ),
-          ],
-        ],
-      );
+  }) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (var i = 0; i < line.length; i++) ...[
+        if (i > 0) const SizedBox(width: _gap),
+        if (grid)
+          SizedBox(width: share[i], child: line[i])
+        else
+          Flexible(flex: share[i].round().clamp(1, 1 << 20), child: line[i]),
+      ],
+    ],
+  );
 }

@@ -14,13 +14,13 @@ const String relayBaseUrl = 'https://app-relay.morganmlg.com/bambuddy';
 const int reportLogSchema = LogHeader.formatVersion;
 
 LogRedactor bambuddyRedactor({int maxStringLength = 2000}) => LogRedactor(
-      maxStringLength: maxStringLength,
-      ourKeys: _ourKeys,
-      secretKeyPatterns: [_secretKey],
-      valuePatterns: [(_apiKey, '[APIKEY]'), (_serial, '[SERIAL]')],
-      freeTextKeys: _freeTextKeys,
-      schemaKeys: _schemaKeys,
-    );
+  maxStringLength: maxStringLength,
+  ourKeys: _ourKeys,
+  secretKeyPatterns: [_secretKey],
+  valuePatterns: [(_apiKey, '[APIKEY]'), (_serial, '[SERIAL]')],
+  freeTextKeys: _freeTextKeys,
+  schemaKeys: _schemaKeys,
+);
 
 /// The app's own vocabulary, exempt from the scrub: a server called `demo` or
 /// `pla` would otherwise eat every control id and every material.

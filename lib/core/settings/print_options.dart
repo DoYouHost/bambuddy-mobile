@@ -60,14 +60,14 @@ class PrintOptions {
   final bool gcodeInjection;
 
   String encode() => jsonEncode({
-        'bed_levelling': bedLevelling.name,
-        'flow_cali': flowCali.name,
-        'vibration_cali': vibrationCali,
-        'layer_inspect': layerInspect,
-        'timelapse': timelapse,
-        'nozzle_offset_cali': nozzleOffsetCali.name,
-        'gcode_injection': gcodeInjection,
-      });
+    'bed_levelling': bedLevelling.name,
+    'flow_cali': flowCali.name,
+    'vibration_cali': vibrationCali,
+    'layer_inspect': layerInspect,
+    'timelapse': timelapse,
+    'nozzle_offset_cali': nozzleOffsetCali.name,
+    'gcode_injection': gcodeInjection,
+  });
 
   /// Lenient: a missing or unreadable entry falls back to [initial] field by
   /// field, so a stored blob written by an older build (or a half-written one)
@@ -93,8 +93,10 @@ class PrintOptions {
       vibrationCali: read('vibration_cali', initial.vibrationCali),
       layerInspect: read('layer_inspect', initial.layerInspect),
       timelapse: read('timelapse', initial.timelapse),
-      nozzleOffsetCali:
-          readCali('nozzle_offset_cali', initial.nozzleOffsetCali),
+      nozzleOffsetCali: readCali(
+        'nozzle_offset_cali',
+        initial.nozzleOffsetCali,
+      ),
       gcodeInjection: read('gcode_injection', initial.gcodeInjection),
     );
   }
@@ -111,6 +113,13 @@ class PrintOptions {
       other.gcodeInjection == gcodeInjection;
 
   @override
-  int get hashCode => Object.hash(bedLevelling, flowCali, vibrationCali,
-      layerInspect, timelapse, nozzleOffsetCali, gcodeInjection);
+  int get hashCode => Object.hash(
+    bedLevelling,
+    flowCali,
+    vibrationCali,
+    layerInspect,
+    timelapse,
+    nozzleOffsetCali,
+    gcodeInjection,
+  );
 }

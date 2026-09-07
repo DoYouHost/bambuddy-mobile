@@ -27,16 +27,18 @@ void main() {
       expect(a.id, isNot(b.id));
     });
 
-    test('response map decodes to null (shared stream carries both kinds)',
-        () {
+    test('response map decodes to null (shared stream carries both kinds)', () {
       final res = const WearRpcResponse.ok('x', {'a': 1}).encode();
       expect(WearRpcRequest.decode(res), isNull);
     });
 
     test('unknown action → null (newer watch vs older phone)', () {
       expect(
-        WearRpcRequest.decode(
-            const {'kind': 'req', 'id': 'x', 'action': 'reboot'}),
+        WearRpcRequest.decode(const {
+          'kind': 'req',
+          'id': 'x',
+          'action': 'reboot',
+        }),
         isNull,
       );
     });
@@ -72,7 +74,8 @@ void main() {
 
     test('round-trips failure with error code', () {
       final decoded = WearRpcResponse.decode(
-          const WearRpcResponse.failure('id2', 'empty-queue').encode())!;
+        const WearRpcResponse.failure('id2', 'empty-queue').encode(),
+      )!;
       expect(decoded.ok, isFalse);
       expect(decoded.error, 'empty-queue');
       expect(decoded.data, isNull);
@@ -86,8 +89,7 @@ void main() {
       expect(decoded.data, isNull);
     });
 
-    test(
-        'decodes EventChannel-shaped maps: nested Map<Object?,Object?> '
+    test('decodes EventChannel-shaped maps: nested Map<Object?,Object?> '
         'become Map<String,dynamic>', () {
       // Simulate what the plugin delivers: only the top map is string-keyed.
       final wire = <Object?, Object?>{
@@ -249,18 +251,20 @@ void main() {
   });
 
   group('the retry policy', () {
-    test('every action is classified, and startNext is the destructive one',
-        () {
-      expect(WearRpcAction.getFleet.retry, WearRpcRetry.read);
-      expect(WearRpcAction.startNext.retry, WearRpcRetry.destructive);
-      for (final action in WearRpcAction.values) {
-        if (action == WearRpcAction.getFleet ||
-            action == WearRpcAction.startNext) {
-          continue;
+    test(
+      'every action is classified, and startNext is the destructive one',
+      () {
+        expect(WearRpcAction.getFleet.retry, WearRpcRetry.read);
+        expect(WearRpcAction.startNext.retry, WearRpcRetry.destructive);
+        for (final action in WearRpcAction.values) {
+          if (action == WearRpcAction.getFleet ||
+              action == WearRpcAction.startNext) {
+            continue;
+          }
+          expect(action.retry, WearRpcRetry.idempotent, reason: action.name);
         }
-        expect(action.retry, WearRpcRetry.idempotent, reason: action.name);
-      }
-    });
+      },
+    );
 
     test('the watch repeats only a read over REST', () {
       // Not even a pause: a timed-out command may have run on the phone, and
@@ -271,10 +275,16 @@ void main() {
     });
 
     test('the wake gate reads the sender version and the table together', () {
-      const pauseV1 =
-          WearRpcRequest(id: 'x', action: WearRpcAction.pause, version: 1);
-      const startV1 =
-          WearRpcRequest(id: 'x', action: WearRpcAction.startNext, version: 1);
+      const pauseV1 = WearRpcRequest(
+        id: 'x',
+        action: WearRpcAction.pause,
+        version: 1,
+      );
+      const startV1 = WearRpcRequest(
+        id: 'x',
+        action: WearRpcAction.startNext,
+        version: 1,
+      );
       const startNow = WearRpcRequest(
         id: 'x',
         action: WearRpcAction.startNext,
@@ -300,15 +310,17 @@ void main() {
 
   group('deepSanitize', () {
     test('strips nulls recursively and re-keys maps', () {
-      final out = deepSanitize({
-        'a': 1,
-        'b': null,
-        'nested': {'x': null, 'y': 'z'},
-        'list': [
-          {'k': null, 'v': 2},
-          3,
-        ],
-      }) as Map<String, dynamic>;
+      final out =
+          deepSanitize({
+                'a': 1,
+                'b': null,
+                'nested': {'x': null, 'y': 'z'},
+                'list': [
+                  {'k': null, 'v': 2},
+                  3,
+                ],
+              })
+              as Map<String, dynamic>;
       expect(out.containsKey('b'), isFalse);
       expect((out['nested'] as Map<String, dynamic>).containsKey('x'), isFalse);
       expect((out['nested'] as Map<String, dynamic>)['y'], 'z');

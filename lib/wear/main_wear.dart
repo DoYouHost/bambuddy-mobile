@@ -31,9 +31,7 @@ Future<void> main() async {
   await HmsCatalog.instance.load(PlatformDispatcher.instance.locale);
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const WearApp(),
     ),
   );

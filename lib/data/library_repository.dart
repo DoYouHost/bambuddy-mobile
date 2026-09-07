@@ -116,9 +116,9 @@ class LibraryRepository {
 
   /// GET /library/stats — library stats (best-effort; missing fields tolerated).
   Future<LibraryStats> stats() => guard(() async {
-        final res = await _dio.get<Map<String, dynamic>>(Endpoints.libraryStats);
-        return LibraryStats.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.get<Map<String, dynamic>>(Endpoints.libraryStats);
+    return LibraryStats.fromJson(res.data ?? const {});
+  });
 
   // --- Tags ---
 
@@ -146,18 +146,20 @@ class LibraryRepository {
   /// a duplicate answers 409, which reaches the caller as [ApiException] with
   /// `statusCode == 409`.
   Future<LibraryTag> createTag(String name) => guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.libraryTags,
-          data: <String, dynamic>{'name': name},
-        );
-        return LibraryTag.fromJson(res.data ?? const {});
-      });
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.libraryTags,
+      data: <String, dynamic>{'name': name},
+    );
+    return LibraryTag.fromJson(res.data ?? const {});
+  });
 
   /// PATCH /library/tags/{id} — rename a tag (409 on duplicate name).
-  Future<void> renameTag(int tagId, String name) => guard(() => _dio.patch<dynamic>(
-        Endpoints.libraryTag(tagId),
-        data: <String, dynamic>{'name': name},
-      ));
+  Future<void> renameTag(int tagId, String name) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.libraryTag(tagId),
+      data: <String, dynamic>{'name': name},
+    ),
+  );
 
   /// DELETE /library/tags/{id} — drop the tag; tagged files keep everything
   /// else, they just lose this label.
@@ -170,18 +172,17 @@ class LibraryRepository {
     required List<int> fileIds,
     required List<int> tagIds,
     required TagAssignAction action,
-  }) =>
-      guard(() async {
-        final res = await _dio.post<Map<String, dynamic>>(
-          Endpoints.libraryTagsBulkAssign,
-          data: <String, dynamic>{
-            'file_ids': fileIds,
-            'tag_ids': tagIds,
-            'action': action.wire,
-          },
-        );
-        return TagAssignResult.fromJson(res.data ?? const {});
-      });
+  }) => guard(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      Endpoints.libraryTagsBulkAssign,
+      data: <String, dynamic>{
+        'file_ids': fileIds,
+        'tag_ids': tagIds,
+        'action': action.wire,
+      },
+    );
+    return TagAssignResult.fromJson(res.data ?? const {});
+  });
 
   // --- Variant groups (server #671, 1.2.6+) ---
   //
@@ -230,16 +231,14 @@ class LibraryRepository {
   /// Two files minimum. The server answers 409 when one already belongs to
   /// another group and 400 when the same file is listed twice, both of which
   /// travel as an [AppApiException] for the caller to show.
-  Future<VariantGroup> createVariantGroup(
-    List<int> fileIds, {
-    String? name,
-  }) =>
+  Future<VariantGroup> createVariantGroup(List<int> fileIds, {String? name}) =>
       guard(() async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.libraryVariantGroups,
           data: <String, dynamic>{
             'members': [
-              for (final id in fileIds) <String, dynamic>{'library_file_id': id},
+              for (final id in fileIds)
+                <String, dynamic>{'library_file_id': id},
             ],
             'name': ?name,
           },
@@ -256,17 +255,13 @@ class LibraryRepository {
     int groupId, {
     String? name,
     List<int>? memberFileIds,
-  }) =>
-      guard(() async {
-        final res = await _dio.patch<Map<String, dynamic>>(
-          Endpoints.libraryVariantGroup(groupId),
-          data: <String, dynamic>{
-            'name': ?name,
-            'member_file_ids': ?memberFileIds,
-          },
-        );
-        return VariantGroup.fromJson(res.data ?? const {});
-      });
+  }) => guard(() async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.libraryVariantGroup(groupId),
+      data: <String, dynamic>{'name': ?name, 'member_file_ids': ?memberFileIds},
+    );
+    return VariantGroup.fromJson(res.data ?? const {});
+  });
 
   /// POST /library/variant-groups/{id}/members — add [fileId] at the end.
   Future<VariantGroup> addVariantGroupMember(int groupId, int fileId) =>
@@ -282,31 +277,33 @@ class LibraryRepository {
   ///
   /// Removing the second-to-last member dissolves the group entirely, so the
   /// caller must reload the listing rather than patching one row.
-  Future<void> removeVariantGroupMember(int groupId, int fileId) =>
-      guard(() => _dio.delete<dynamic>(
-            Endpoints.libraryVariantGroupMember(groupId, fileId),
-          ));
+  Future<void> removeVariantGroupMember(int groupId, int fileId) => guard(
+    () => _dio.delete<dynamic>(
+      Endpoints.libraryVariantGroupMember(groupId, fileId),
+    ),
+  );
 
   /// DELETE /library/variant-groups/{id} — ungroup; the files stay put.
-  Future<void> deleteVariantGroup(int groupId) => guard(
-      () => _dio.delete<dynamic>(Endpoints.libraryVariantGroup(groupId)));
+  Future<void> deleteVariantGroup(int groupId) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.libraryVariantGroup(groupId)));
 
   // --- Folders: CRUD ---
 
   /// POST /library/folders — create folder named [name] in [parentId] (null = root).
-  Future<void> createFolder(String name, {int? parentId}) => guard(() => _dio.post<dynamic>(
-        Endpoints.libraryFolders,
-        data: <String, dynamic>{
-          'name': name,
-          'parent_id': ?parentId,
-        },
-      ));
+  Future<void> createFolder(String name, {int? parentId}) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.libraryFolders,
+      data: <String, dynamic>{'name': name, 'parent_id': ?parentId},
+    ),
+  );
 
   /// PUT /library/folders/{id} — rename folder.
-  Future<void> renameFolder(int folderId, String name) => guard(() => _dio.put<dynamic>(
-        Endpoints.libraryFolder(folderId),
-        data: <String, dynamic>{'name': name},
-      ));
+  Future<void> renameFolder(int folderId, String name) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFolder(folderId),
+      data: <String, dynamic>{'name': name},
+    ),
+  );
 
   /// DELETE /library/folders/{id} — delete folder and contents.
   Future<void> deleteFolder(int folderId) =>
@@ -315,16 +312,20 @@ class LibraryRepository {
   // --- Files: edit / move / delete ---
 
   /// PUT /library/files/{id} — rename file.
-  Future<void> renameFile(int fileId, String filename) => guard(() => _dio.put<dynamic>(
-        Endpoints.libraryFile(fileId),
-        data: <String, dynamic>{'filename': filename},
-      ));
+  Future<void> renameFile(int fileId, String filename) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFile(fileId),
+      data: <String, dynamic>{'filename': filename},
+    ),
+  );
 
   /// POST /library/files/move — move files to folder [folderId] (null = root).
-  Future<void> moveFiles(List<int> fileIds, {int? folderId}) => guard(() => _dio.post<dynamic>(
-        Endpoints.libraryFilesMove,
-        data: <String, dynamic>{'file_ids': fileIds, 'folder_id': folderId},
-      ));
+  Future<void> moveFiles(List<int> fileIds, {int? folderId}) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.libraryFilesMove,
+      data: <String, dynamic>{'file_ids': fileIds, 'folder_id': folderId},
+    ),
+  );
 
   /// DELETE /library/files/{id} — move file to trash.
   Future<void> deleteFile(int fileId) =>
@@ -334,22 +335,22 @@ class LibraryRepository {
   Future<void> bulkDelete({
     List<int> fileIds = const [],
     List<int> folderIds = const [],
-  }) =>
-      guard(() => _dio.post<dynamic>(
-            Endpoints.libraryBulkDelete,
-            data: <String, dynamic>{
-              'file_ids': fileIds,
-              'folder_ids': folderIds,
-            },
-          ));
+  }) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.libraryBulkDelete,
+      data: <String, dynamic>{'file_ids': fileIds, 'folder_ids': folderIds},
+    ),
+  );
 
   // --- Print / queue ---
 
   /// POST /library/files/add-to-queue — add files to queue.
-  Future<void> addToQueue(List<int> fileIds) => guard(() => _dio.post<dynamic>(
-        Endpoints.libraryFilesAddToQueue,
-        data: <String, dynamic>{'file_ids': fileIds},
-      ));
+  Future<void> addToQueue(List<int> fileIds) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.libraryFilesAddToQueue,
+      data: <String, dynamic>{'file_ids': fileIds},
+    ),
+  );
 
   // --- Upload ---
 
@@ -374,11 +375,13 @@ class LibraryRepository {
         data: form,
         queryParameters: query,
         // Upload can be large — disable send/receive timeout for this request.
-        options: Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero),
+        options: Options(
+          sendTimeout: Duration.zero,
+          receiveTimeout: Duration.zero,
+        ),
         onSendProgress: onProgress == null
             ? null
-            : (sent, total) =>
-                onProgress(total > 0 ? sent / total : null),
+            : (sent, total) => onProgress(total > 0 ? sent / total : null),
       );
     });
   }
@@ -403,5 +406,6 @@ class LibraryRepository {
       guard(() => _dio.delete<dynamic>(Endpoints.libraryTrashItem(fileId)));
 
   /// DELETE /library/trash — empty trash (permanent).
-  Future<void> emptyTrash() => guard(() => _dio.delete<dynamic>(Endpoints.libraryTrash));
+  Future<void> emptyTrash() =>
+      guard(() => _dio.delete<dynamic>(Endpoints.libraryTrash));
 }

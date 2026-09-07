@@ -710,6 +710,39 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueCancel => 'Anuluj';
 
   @override
+  String get queueStop => 'Zatrzymaj wydruk';
+
+  @override
+  String get queueStopTitle => 'Zatrzymać ten wydruk?';
+
+  @override
+  String get queueStopBody =>
+      'Drukarka przerwie drukowanie, a element zniknie z kolejki. Tego, co już się wydrukowało, nie da się wznowić.';
+
+  @override
+  String get queueStopConfirm => 'Zatrzymaj';
+
+  @override
+  String get queueRemove => 'Usuń z kolejki';
+
+  @override
+  String get queueRemoveStoppedTitle => 'Usunąć z kolejki?';
+
+  @override
+  String get queueRemoveStoppedBody =>
+      'Drukarka nie pokazuje tego wydruku jako trwającego. Element zniknie z kolejki.';
+
+  @override
+  String get queueStopped => 'Wydruk zatrzymany';
+
+  @override
+  String get queueRemoved => 'Usunięto z kolejki';
+
+  @override
+  String get queueRemovalStatusChanged =>
+      'Ten element ma już inny status niż pokazany. Odśwież kolejkę i spróbuj ponownie.';
+
+  @override
   String get queueNoFreePrinters => 'Brak wolnych drukarek';
 
   @override
@@ -1895,6 +1928,14 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get errTooManyAttempts =>
       'Za dużo prób — serwer blokuje logowanie na kilka minut. Odczekaj i spróbuj ponownie albo użyj klucza API.';
+
+  @override
+  String get errSlotTagUnreadable =>
+      'Ten slot nie ma czytelnego tagu RFID — Spoolman wiąże szpule po tagu, więc tego nie przyjmie. Wbudowany magazyn przypisuje po slocie.';
+
+  @override
+  String get errPrinterOffline =>
+      'Drukarka jest offline, więc apka nie odczyta, co jest w slocie. Połącz ją ponownie i spróbuj jeszcze raz.';
 
   @override
   String notifOngoingBody(int percent, String eta) {

@@ -24,7 +24,8 @@ import '../../../l10n/error_messages.dart';
 import '../../common/dash_progress.dart';
 import '../../common/dash_snack.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
-import '../../inventory/inventory_screen.dart' show SpoolSwatch, parseSpoolColor;
+import '../../inventory/inventory_screen.dart'
+    show SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
 import '../controls_providers.dart';
 
@@ -79,8 +80,7 @@ class AmsSlotTarget {
   /// reports.
   final int? extruderId;
 
-  SlotKey get key =>
-      (printerId: printerId, amsId: amsId, trayId: trayId);
+  SlotKey get key => (printerId: printerId, amsId: amsId, trayId: trayId);
 
   String get effectiveNozzleDiameter {
     final reported = nozzleDiameter?.trim();
@@ -175,13 +175,14 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     // After `_view`, which is where the preset gets preselected: the profiles
     // on offer are the ones that fit whatever is picked.
     final table = ref
-        .watch(kProfilesProvider((
-          printerId: target.printerId,
-          nozzleDiameter: target.effectiveNozzleDiameter,
-        )))
+        .watch(
+          kProfilesProvider((
+            printerId: target.printerId,
+            nozzleDiameter: target.effectiveNozzleDiameter,
+          )),
+        )
         .valueOrNull;
-    final choices =
-        table == null ? null : _kProfileChoices(table.profiles);
+    final choices = table == null ? null : _kProfileChoices(table.profiles);
     // Three bands, and only the middle one scrolls: what the slot is and what
     // is being searched stay put, the catalogue moves under them, and the
     // actions stay reachable. One scroll region for a form, a filter and a
@@ -200,8 +201,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(l10n.amsSlotConfigTitle,
-                      style: theme.textTheme.titleLarge),
+                  Text(
+                    l10n.amsSlotConfigTitle,
+                    style: theme.textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     [?target.printerName, target.label].join(' · '),
@@ -223,8 +226,11 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                     decoration: dashDecoration(
                       t,
                       hintText: l10n.amsSlotConfigSearch,
-                      prefixIcon:
-                          Icon(Icons.search, size: 18, color: t.textTertiary),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        size: 18,
+                        color: t.textTertiary,
+                      ),
                     ),
                   ).tagged('ams_slot_config.search'),
                   if (view != null) ...[
@@ -236,8 +242,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             ),
             Expanded(
               child: switch (sources) {
-                AsyncLoading() =>
-                  const DashLoading(),
+                AsyncLoading() => const DashLoading(),
                 AsyncError() => _scrollableMessage(t, l10n.amsSlotConfigEmpty),
                 _ => _presetList(l10n, t, view!),
               },
@@ -309,11 +314,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     if (pinned == null) return presets;
     final at = presets.indexWhere((p) => p.pickerId == pinned);
     if (at <= 0) return presets;
-    return [
-      presets[at],
-      ...presets.sublist(0, at),
-      ...presets.sublist(at + 1),
-    ];
+    return [presets[at], ...presets.sublist(0, at), ...presets.sublist(at + 1)];
   }
 
   /// Whether [preset] names a different filament than the one the slot reports.
@@ -333,10 +334,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// The Bambu filament id behind a preset, or null when it has none — an
   /// imported preset carries no Bambu id at all.
   String? _filamentIdOf(AmsFilamentPreset preset) => switch (preset.source) {
-        AmsPresetSource.cloud => filamentIdFromSettingId(preset.id),
-        AmsPresetSource.builtin => preset.id,
-        AmsPresetSource.local => null,
-      };
+    AmsPresetSource.cloud => filamentIdFromSettingId(preset.id),
+    AmsPresetSource.builtin => preset.id,
+    AmsPresetSource.local => null,
+  };
 
   /// The same control as the spool form's colour field, from the same builder —
   /// swatch, mono hex, eyedropper.
@@ -344,17 +345,17 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// A slot always has a colour, white standing in for one the printer has not
   /// reported, so there is no unset state to show a placeholder for.
   Widget _colourField(AppLocalizations l10n, DashTokens t) => dashPickerField(
-        context,
-        id: 'ams_slot_config.colour',
-        label: l10n.amsSlotConfigColour,
-        placeholder: '',
-        value: (_colour ?? 'FFFFFF').toUpperCase(),
-        valueStyle: t.monoValue,
-        leading: SpoolSwatch(rgba: _colour, size: 24, radius: 6),
-        trailingIcon: Icons.colorize,
-        onTap: () => _pickColour(l10n),
-        padding: EdgeInsets.zero,
-      );
+    context,
+    id: 'ams_slot_config.colour',
+    label: l10n.amsSlotConfigColour,
+    placeholder: '',
+    value: (_colour ?? 'FFFFFF').toUpperCase(),
+    valueStyle: t.monoValue,
+    leading: SpoolSwatch(rgba: _colour, size: 24, radius: 6),
+    trailingIcon: Icons.colorize,
+    onTap: () => _pickColour(l10n),
+    padding: EdgeInsets.zero,
+  );
 
   /// The calibration profiles on offer for whatever preset is picked, and the
   /// selection kept in step with it.
@@ -418,17 +419,19 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     KProfileChoices? choices, {
     required bool? failed,
   }) {
-    DropdownMenuEntry<String> entry(String value, String label,
-            {bool enabled = true}) =>
-        DropdownMenuEntry(
-          value: value,
-          label: label,
-          enabled: enabled,
-          // The menu opens in a route of its own, so the field's own tag does
-          // not reach it. The label is a user-chosen profile name and stays out
-          // of the identifier.
-          labelWidget: logTag('ams_slot_config.k_profile.option', Text(label)),
-        );
+    DropdownMenuEntry<String> entry(
+      String value,
+      String label, {
+      bool enabled = true,
+    }) => DropdownMenuEntry(
+      value: value,
+      label: label,
+      enabled: enabled,
+      // The menu opens in a route of its own, so the field's own tag does
+      // not reach it. The label is a user-chosen profile name and stays out
+      // of the identifier.
+      labelWidget: logTag('ams_slot_config.k_profile.option', Text(label)),
+    );
 
     // Three decimals, the precision the slicer calibrates to, through the
     // locale's own separator — the default entry sits in the same list and
@@ -454,8 +457,8 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         // The guess drives a real query now — the calibration table is indexed
         // by nozzle size — so a printer that never said which nozzle it wears
         // may be answering about the wrong one. Also what the write sends.
-        _ when widget.target.nozzleDiameter == null => l10n
-            .amsSlotConfigNozzleGuess(widget.target.effectiveNozzleDiameter),
+        _ when widget.target.nozzleDiameter == null =>
+          l10n.amsSlotConfigNozzleGuess(widget.target.effectiveNozzleDiameter),
         (false, true) => l10n.amsSlotConfigKProfileNone,
         (false, false) => null,
       },
@@ -470,8 +473,11 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         for (final p in matching) entry(p.optionId, labelFor(p)),
         if (other.isNotEmpty) ...[
           // A disabled row is the menu's only grouping device.
-          entry(_otherProfilesHeading, l10n.amsSlotConfigKProfileOther,
-              enabled: false),
+          entry(
+            _otherProfilesHeading,
+            l10n.amsSlotConfigKProfileOther,
+            enabled: false,
+          ),
           for (final p in other) entry(p.optionId, labelFor(p)),
         ],
       ],
@@ -526,7 +532,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// The part of the header that depends on the catalogue: the cloud-login
   /// offer and the printer filter.
   List<Widget> _filterRow(
-      AppLocalizations l10n, DashTokens t, _CatalogueView view) {
+    AppLocalizations l10n,
+    DashTokens t,
+    _CatalogueView view,
+  ) {
     final model = view.model;
     return [
       if (view.cloudNeedsLogin) _cloudLoginHint(l10n, t),
@@ -561,9 +570,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// A message where the list would be. Scrollable so the sheet still gives on
   /// a drag, and so a long line has somewhere to go on a short screen.
   Widget _scrollableMessage(DashTokens t, String text) => ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [_message(t, text)],
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    children: [_message(t, text)],
+  );
 
   /// Toggle between "presets for this printer" and everything the account has.
   ///
@@ -575,28 +584,27 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     DashTokens t, {
     required String model,
     required int hidden,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: FilterChip(
-            selected: _onlyThisPrinter,
-            onSelected: (v) => setState(() => _onlyThisPrinter = v),
-            avatar: Icon(
-              _onlyThisPrinter ? Icons.filter_alt : Icons.filter_alt_off,
-              size: 18,
-              color: _onlyThisPrinter ? t.accentGreenInk : t.textTertiary,
-            ),
-            showCheckmark: false,
-            label: Text(
-              _onlyThisPrinter && hidden > 0
-                  ? l10n.amsSlotConfigOnlyPrinterHiding(model, hidden)
-                  : l10n.amsSlotConfigOnlyPrinter(model),
-            ),
-          ).tagged('ams_slot_config.only_this_printer'),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: FilterChip(
+        selected: _onlyThisPrinter,
+        onSelected: (v) => setState(() => _onlyThisPrinter = v),
+        avatar: Icon(
+          _onlyThisPrinter ? Icons.filter_alt : Icons.filter_alt_off,
+          size: 18,
+          color: _onlyThisPrinter ? t.accentGreenInk : t.textTertiary,
         ),
-      );
+        showCheckmark: false,
+        label: Text(
+          _onlyThisPrinter && hidden > 0
+              ? l10n.amsSlotConfigOnlyPrinterHiding(model, hidden)
+              : l10n.amsSlotConfigOnlyPrinter(model),
+        ),
+      ).tagged('ams_slot_config.only_this_printer'),
+    ),
+  );
 
   /// One preset row, in the card-list shape the rest of the dashboard uses:
   /// a filled [DashTokens.subCard] block that turns accent-bordered when picked,
@@ -649,11 +657,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                       // not read as the sort being broken.
                       preset.pickerId == _currentPresetId
                           ? '${l10n.amsSlotConfigCurrent} · '
-                              '${_tierLabel(l10n, preset.source)}'
+                                '${_tierLabel(l10n, preset.source)}'
                           : _tierLabel(l10n, preset.source),
-                      style: t.microSoft.copyWith(color: preset.pickerId == _currentPresetId
+                      style: t.microSoft.copyWith(
+                        color: preset.pickerId == _currentPresetId
                             ? t.accentGreenInk
-                            : t.textTertiary),
+                            : t.textTertiary,
+                      ),
                     ),
                   ],
                 ),
@@ -666,45 +676,45 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   }
 
   Widget _cloudLoginHint(AppLocalizations l10n, DashTokens t) => Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-        decoration: BoxDecoration(
-          color: t.accentBlue.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.amsSlotConfigCloudHint,
-                style: t.labelSoft.copyWith(color: t.textPrimary),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamed('/settings/cloud');
-              },
-              child: Text(l10n.amsSlotConfigCloudAction),
-            ).tagged('ams_slot_config.cloud_login'),
-          ],
-        ),
-      );
-
-  Widget _message(DashTokens t, String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            color: t.textTertiary,
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+    decoration: BoxDecoration(
+      color: t.accentBlue.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            l10n.amsSlotConfigCloudHint,
+            style: t.labelSoft.copyWith(color: t.textPrimary),
           ),
         ),
-      );
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pushNamed('/settings/cloud');
+          },
+          child: Text(l10n.amsSlotConfigCloudAction),
+        ).tagged('ams_slot_config.cloud_login'),
+      ],
+    ),
+  );
+
+  Widget _message(DashTokens t, String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        color: t.textTertiary,
+      ),
+    ),
+  );
 
   /// The pinned foot of the sheet: full-width primary action with the
   /// destructive one below it, rather than two halves of a row — "Zapisz w
@@ -715,8 +725,11 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// `filledButtonTheme`, so it matches every other confirming button without
   /// restating the style.
   Widget _actions(AppLocalizations l10n, DashTokens t) {
-    final busy = ref.watch(controlsProvider.select(
-        (s) => s.pendingFor(widget.target.printerId).isBusy(ControlAction.ams)));
+    final busy = ref.watch(
+      controlsProvider.select(
+        (s) => s.pendingFor(widget.target.printerId).isBusy(ControlAction.ams),
+      ),
+    );
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -731,9 +744,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           children: [
             FilledButton(
               onPressed: busy || _picked == null ? null : () => _apply(l10n),
-              child: busy
-                  ? const DashSpinner()
-                  : Text(l10n.amsSlotConfigApply),
+              child: busy ? const DashSpinner() : Text(l10n.amsSlotConfigApply),
             ).tagged('ams_slot_config.apply'),
             const SizedBox(height: 4),
             TextButton.icon(
@@ -772,7 +783,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     // one derived from the setting id would collapse the slot to the generic it
     // inherits from. Best effort — null just means we fall back to that.
     final cloudFilamentId = preset.source == AmsPresetSource.cloud
-        ? await ref.read(amsSlotConfigRepositoryProvider).cloudFilamentId(preset.id)
+        ? await ref
+              .read(amsSlotConfigRepositoryProvider)
+              .cloudFilamentId(preset.id)
         : null;
     if (!mounted) return;
 
@@ -792,7 +805,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     await _send(
       l10n,
       () async {
-        result = await ref.read(controlsProvider.notifier).configureSlot(
+        result = await ref
+            .read(controlsProvider.notifier)
+            .configureSlot(
               target.printerId,
               amsId: target.amsId,
               trayId: target.trayId,
@@ -824,7 +839,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     if (!confirmed || !mounted) return;
     await _send(
       l10n,
-      () => ref.read(controlsProvider.notifier).resetSlot(
+      () => ref
+          .read(controlsProvider.notifier)
+          .resetSlot(
             target.printerId,
             amsId: target.amsId,
             trayId: target.trayId,
@@ -923,7 +940,8 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
                     for (final entry in catalogue)
                       _CatalogueSwatch(
                         entry: entry,
-                        selected: _fromCatalogue != null &&
+                        selected:
+                            _fromCatalogue != null &&
                             sixHexDigits(entry.hexColor) == _fromCatalogue,
                         onTap: () => setState(() {
                           _fromCatalogue = sixHexDigits(entry.hexColor);
@@ -982,12 +1000,9 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
   }
 
   Widget _label(DashTokens t, String text) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Text(
-          text,
-          style: t.micro,
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    child: Text(text, style: t.micro),
+  );
 }
 
 /// One catalogue colour, in the same 36pt square the spool form's picker uses.

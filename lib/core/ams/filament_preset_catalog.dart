@@ -87,10 +87,10 @@ List<AmsFilamentPreset> filamentPresetCatalog({
 }
 
 int _tierOrder(AmsPresetSource source) => switch (source) {
-      AmsPresetSource.local => 0,
-      AmsPresetSource.cloud => 1,
-      AmsPresetSource.builtin => 2,
-    };
+  AmsPresetSource.local => 0,
+  AmsPresetSource.cloud => 1,
+  AmsPresetSource.builtin => 2,
+};
 
 /// Imported presets carry the slicer's own `compatible_printers` list, which is
 /// better evidence than the name — but only when both sides are known. A preset

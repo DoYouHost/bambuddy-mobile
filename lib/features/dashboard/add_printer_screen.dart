@@ -41,8 +41,10 @@ const _modelNone = '';
 
 /// All known model codes (flat) — used to decide whether a discovered/prefilled
 /// model matches an entry we can show in the dropdown.
-Set<String> get _modelCodes =>
-    {for (final (_, models) in _modelGroups) for (final (v, _) in models) v};
+Set<String> get _modelCodes => {
+  for (final (_, models) in _modelGroups)
+    for (final (v, _) in models) v,
+};
 
 /// Form to add a printer via `POST /printers/`. The server tests the connection
 /// before saving, so a failure comes back inline. Also offers subnet discovery
@@ -132,7 +134,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     final custom = _useCustomSubnet || (_discovery?.subnets.isEmpty ?? true);
     final cidr = custom ? _customSubnet.text.trim() : _subnet;
     if (_wantsSubnetScan && (cidr == null || cidr.isEmpty)) {
-      setState(() => _scanError = AppLocalizations.of(context).addPrinterRequiredField);
+      setState(
+        () => _scanError = AppLocalizations.of(context).addPrinterRequiredField,
+      );
       return;
     }
     final repo = ref.read(discoveryRepositoryProvider);
@@ -177,7 +181,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       }
     } on AppApiException {
       if (mounted) {
-        setState(() => _scanError = AppLocalizations.of(context).addPrinterScanError);
+        setState(
+          () => _scanError = AppLocalizations.of(context).addPrinterScanError,
+        );
       }
     } finally {
       if (mounted) {
@@ -212,16 +218,22 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       _diagnosticError = null;
     });
     try {
-      final result = await ref.read(printersRepositoryProvider).diagnose(
+      final result = await ref
+          .read(printersRepositoryProvider)
+          .diagnose(
             ipAddress: ip,
             serialNumber: _serial.text.trim(),
             accessCode: _accessCode.text,
           );
       if (mounted) setState(() => _diagnostic = result);
     } on AuthException {
-      if (mounted) setState(() => _diagnosticError = l10n.addPrinterErrForbidden);
+      if (mounted) {
+        setState(() => _diagnosticError = l10n.addPrinterErrForbidden);
+      }
     } on AppApiException {
-      if (mounted) setState(() => _diagnosticError = l10n.addPrinterDiagnosticError);
+      if (mounted) {
+        setState(() => _diagnosticError = l10n.addPrinterDiagnosticError);
+      }
     } finally {
       if (mounted) setState(() => _diagnosing = false);
     }
@@ -237,7 +249,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       _error = null;
     });
     try {
-      await ref.read(printersRepositoryProvider).createPrinter(
+      await ref
+          .read(printersRepositoryProvider)
+          .createPrinter(
             PrinterCreate(
               name: _name.text.trim(),
               serialNumber: _serial.text.trim(),
@@ -455,14 +469,15 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                 DropdownMenuEntry(
                   value: s,
                   label: s,
-                  labelWidget:
-                      logTag('add_printer.subnet_option', Text(s)),
+                  labelWidget: logTag('add_printer.subnet_option', Text(s)),
                 ),
               DropdownMenuEntry(
                 value: _customSubnetOption,
                 label: l10n.addPrinterSubnetCustomOption,
-                labelWidget: logTag('add_printer.subnet_custom_option',
-                    Text(l10n.addPrinterSubnetCustomOption)),
+                labelWidget: logTag(
+                  'add_printer.subnet_custom_option',
+                  Text(l10n.addPrinterSubnetCustomOption),
+                ),
               ),
             ],
           ),
@@ -557,7 +572,10 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         style: t.titleSm,
                       ),
                       Text(
-                        [p.ipAddress, if (p.model != null) p.model!].join(' · '),
+                        [
+                          p.ipAddress,
+                          if (p.model != null) p.model!,
+                        ].join(' · '),
                         style: t.monoMicro.copyWith(color: t.textSecondary),
                       ),
                     ],
@@ -639,30 +657,31 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     );
   }
 
-  String _overallText(AppLocalizations l10n, String overall) => switch (overall) {
+  String _overallText(AppLocalizations l10n, String overall) =>
+      switch (overall) {
         'ok' => l10n.diagOverallOk,
         'warnings' => l10n.diagOverallWarnings,
         _ => l10n.diagOverallProblems,
       };
 
   Color _overallColor(DashTokens t, String overall) => switch (overall) {
-        'ok' => t.accentGreenInk,
-        'warnings' => const Color(0xFFE0A800),
-        _ => t.danger,
-      };
+    'ok' => t.accentGreenInk,
+    'warnings' => const Color(0xFFE0A800),
+    _ => t.danger,
+  };
 
   /// Localized title for a diagnostic check id; falls back to the raw id when a
   /// new server check appears that we don't have a string for yet.
   String _checkTitle(AppLocalizations l10n, String id) => switch (id) {
-        'port_mqtt' => l10n.diagCheckPortMqtt,
-        'port_ftps' => l10n.diagCheckPortFtps,
-        'port_rtsps' => l10n.diagCheckPortRtsps,
-        'network_mode' => l10n.diagCheckNetworkMode,
-        'subnet' => l10n.diagCheckSubnet,
-        'mqtt_auth' => l10n.diagCheckMqttAuth,
-        'developer_mode' => l10n.diagCheckDeveloperMode,
-        _ => id,
-      };
+    'port_mqtt' => l10n.diagCheckPortMqtt,
+    'port_ftps' => l10n.diagCheckPortFtps,
+    'port_rtsps' => l10n.diagCheckPortRtsps,
+    'network_mode' => l10n.diagCheckNetworkMode,
+    'subnet' => l10n.diagCheckSubnet,
+    'mqtt_auth' => l10n.diagCheckMqttAuth,
+    'developer_mode' => l10n.diagCheckDeveloperMode,
+    _ => id,
+  };
 
   // --- Shared field helpers ----------------------------------------------
 
@@ -681,7 +700,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           value: _modelNone,
           label: l10n.addPrinterModelNone,
           labelWidget: logTag(
-              'add_printer.model_none', Text(l10n.addPrinterModelNone)),
+            'add_printer.model_none',
+            Text(l10n.addPrinterModelNone),
+          ),
         ),
         for (final (series, models) in _modelGroups) ...[
           DropdownMenuEntry(
@@ -697,8 +718,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             DropdownMenuEntry(
               value: value,
               label: label,
-              labelWidget:
-                  logTag('add_printer.model_option', Text(label)),
+              labelWidget: logTag('add_printer.model_option', Text(label)),
             ),
         ],
       ],
@@ -737,11 +757,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   TextStyle _fieldTextStyle(DashTokens t) => t.bodyStrong;
 
   Widget _sectionLabel(DashTokens t, String label) => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: t.bodyBold,
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: Text(label, style: t.bodyBold),
+  );
 }
-

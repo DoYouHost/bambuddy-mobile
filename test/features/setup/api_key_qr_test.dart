@@ -32,14 +32,16 @@ void main() {
 
     test('keys with base64 padding and slashes survive the encoding', () {
       final cfg = parseScannedApiKey(
-          referencePayload('https://h:8443', 'bb_ZZ/99+aa=='));
+        referencePayload('https://h:8443', 'bb_ZZ/99+aa=='),
+      );
       expect(cfg?.baseUrl, 'https://h:8443');
       expect(cfg?.apiKey, 'bb_ZZ/99+aa==');
     });
 
     test('a future version bump still parses', () {
       final cfg = parseScannedApiKey(
-          referencePayload('https://x', 'bb_future', version: 9));
+        referencePayload('https://x', 'bb_future', version: 9),
+      );
       expect(cfg?.baseUrl, 'https://x');
       expect(cfg?.apiKey, 'bb_future');
     });
@@ -50,21 +52,23 @@ void main() {
       // `/bambuddy` prefix a subpath reverse proxy needs. Whatever the payload
       // does carry is taken verbatim, so a hand-made code with the prefix works.
       expect(
-        parseScannedApiKey(referencePayload('https://example.com', 'bb_k'))
-            ?.baseUrl,
+        parseScannedApiKey(
+          referencePayload('https://example.com', 'bb_k'),
+        )?.baseUrl,
         'https://example.com',
       );
       expect(
         parseScannedApiKey(
-                referencePayload('https://example.com/bambuddy', 'bb_k'))
-            ?.baseUrl,
+          referencePayload('https://example.com/bambuddy', 'bb_k'),
+        )?.baseUrl,
         'https://example.com/bambuddy',
       );
     });
 
     test('unknown extra params are ignored', () {
       final cfg = parseScannedApiKey(
-          '${referencePayload('https://x', 'bb_k')}&issued=2026-07-29&name=phone');
+        '${referencePayload('https://x', 'bb_k')}&issued=2026-07-29&name=phone',
+      );
       expect(cfg?.baseUrl, 'https://x');
       expect(cfg?.apiKey, 'bb_k');
     });
@@ -72,14 +76,17 @@ void main() {
     test('a scheme in a different case is still recognized', () {
       // URI schemes are case-insensitive and some scanners hand back upper case.
       final cfg = parseScannedApiKey(
-          'BAMBUDDY://config?v=1&url=https%3A%2F%2Fx&key=bb_k');
+        'BAMBUDDY://config?v=1&url=https%3A%2F%2Fx&key=bb_k',
+      );
       expect(cfg?.apiKey, 'bb_k');
       expect(cfg?.baseUrl, 'https://x');
     });
 
     test('a payload with no key at all is refused, url or not', () {
-      expect(parseScannedApiKey('bambuddy://config?v=1&url=https%3A%2F%2Fx'),
-          isNull);
+      expect(
+        parseScannedApiKey('bambuddy://config?v=1&url=https%3A%2F%2Fx'),
+        isNull,
+      );
       expect(
         parseScannedApiKey('bambuddy://config?v=1&url=https%3A%2F%2Fx&key='),
         isNull,

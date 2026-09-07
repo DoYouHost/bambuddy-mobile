@@ -51,10 +51,13 @@ class MakerWorldDesign {
   factory MakerWorldDesign.fromJson(Map<String, dynamic> json) =>
       MakerWorldDesign(
         title: _pickString(json, ['title', 'name', 'designTitle']),
-        coverUrl: _pickString(
-          json,
-          ['cover', 'coverUrl', 'cover_url', 'coverImage', 'cover_image'],
-        ),
+        coverUrl: _pickString(json, [
+          'cover',
+          'coverUrl',
+          'cover_url',
+          'coverImage',
+          'cover_image',
+        ]),
       );
 
   final String? title;
@@ -64,24 +67,23 @@ class MakerWorldDesign {
 /// Model instance (plate/profile). `profileId` is what we send as `profile_id`
 /// on import.
 class MakerWorldInstance {
-  const MakerWorldInstance({
-    this.profileId,
-    required this.name,
-    this.coverUrl,
-  });
+  const MakerWorldInstance({this.profileId, required this.name, this.coverUrl});
 
   factory MakerWorldInstance.fromJson(Map<String, dynamic> json) {
-    final profileId =
-        _pickInt(json, ['profileId', 'profile_id', 'id']);
-    final name = _pickString(json, ['name', 'title', 'profileName']) ??
+    final profileId = _pickInt(json, ['profileId', 'profile_id', 'id']);
+    final name =
+        _pickString(json, ['name', 'title', 'profileName']) ??
         (profileId != null ? 'Plate $profileId' : 'Plate');
     return MakerWorldInstance(
       profileId: profileId,
       name: name,
-      coverUrl: _pickString(
-        json,
-        ['cover', 'coverUrl', 'cover_url', 'coverImage', 'cover_image'],
-      ),
+      coverUrl: _pickString(json, [
+        'cover',
+        'coverUrl',
+        'cover_url',
+        'coverImage',
+        'cover_image',
+      ]),
     );
   }
 
@@ -160,7 +162,8 @@ class MakerWorldImportResponse {
 
   factory MakerWorldImportResponse.fromJson(Map<String, dynamic> json) =>
       MakerWorldImportResponse(
-        libraryFileId: _pickInt(json, ['library_file_id', 'libraryFileId']) ?? 0,
+        libraryFileId:
+            _pickInt(json, ['library_file_id', 'libraryFileId']) ?? 0,
         filename: _pickString(json, ['filename', 'name']) ?? '',
         folderId: _pickInt(json, ['folder_id', 'folderId']),
         profileId: _pickInt(json, ['profile_id', 'profileId']),
@@ -189,7 +192,8 @@ class MakerWorldRecentImport {
 
   factory MakerWorldRecentImport.fromJson(Map<String, dynamic> json) =>
       MakerWorldRecentImport(
-        libraryFileId: _pickInt(json, ['library_file_id', 'libraryFileId']) ?? 0,
+        libraryFileId:
+            _pickInt(json, ['library_file_id', 'libraryFileId']) ?? 0,
         filename: _pickString(json, ['filename', 'name']) ?? '',
         folderId: _pickInt(json, ['folder_id', 'folderId']),
         thumbnailPath: _pickString(json, ['thumbnail_path', 'thumbnailPath']),

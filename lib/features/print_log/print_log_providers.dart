@@ -65,17 +65,16 @@ class PrintLogFilters {
     bool clearDates = false,
     PrintLogSort? sort,
     bool? descending,
-  }) =>
-      PrintLogFilters(
-        query: query ?? this.query,
-        printerId: clearPrinter ? null : (printerId ?? this.printerId),
-        status: clearStatus ? null : (status ?? this.status),
-        username: clearUsername ? null : (username ?? this.username),
-        from: clearDates ? null : (from ?? this.from),
-        to: clearDates ? null : (to ?? this.to),
-        sort: sort ?? this.sort,
-        descending: descending ?? this.descending,
-      );
+  }) => PrintLogFilters(
+    query: query ?? this.query,
+    printerId: clearPrinter ? null : (printerId ?? this.printerId),
+    status: clearStatus ? null : (status ?? this.status),
+    username: clearUsername ? null : (username ?? this.username),
+    from: clearDates ? null : (from ?? this.from),
+    to: clearDates ? null : (to ?? this.to),
+    sort: sort ?? this.sort,
+    descending: descending ?? this.descending,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -90,16 +89,24 @@ class PrintLogFilters {
       other.descending == descending;
 
   @override
-  int get hashCode =>
-      Object.hash(query, printerId, status, username, from, to, sort, descending);
+  int get hashCode => Object.hash(
+    query,
+    printerId,
+    status,
+    username,
+    from,
+    to,
+    sort,
+    descending,
+  );
 }
 
 /// Active filters. Kept apart from the list itself so changing one re-runs the
 /// query without the screen having to hold both.
 final printLogFiltersProvider =
     NotifierProvider.autoDispose<PrintLogFiltersNotifier, PrintLogFilters>(
-  PrintLogFiltersNotifier.new,
-);
+      PrintLogFiltersNotifier.new,
+    );
 
 class PrintLogFiltersNotifier extends AutoDisposeNotifier<PrintLogFilters> {
   @override
@@ -114,10 +121,10 @@ class PrintLogFiltersNotifier extends AutoDisposeNotifier<PrintLogFilters> {
   /// its text, so dropping `query` here left the two disagreeing: the field kept
   /// showing what the user typed while the list had stopped filtering by it.
   void clear() => state = PrintLogFilters(
-        query: state.query,
-        sort: state.sort,
-        descending: state.descending,
-      );
+    query: state.query,
+    sort: state.sort,
+    descending: state.descending,
+  );
 }
 
 /// What the screen renders: the rows loaded so far, how many the filter matches
@@ -146,18 +153,17 @@ class PrintLogState {
     List<PrintLogEntry>? items,
     int? total,
     bool? loadingMore,
-  }) =>
-      PrintLogState(
-        items: items ?? this.items,
-        total: total ?? this.total,
-        loadingMore: loadingMore ?? this.loadingMore,
-      );
+  }) => PrintLogState(
+    items: items ?? this.items,
+    total: total ?? this.total,
+    loadingMore: loadingMore ?? this.loadingMore,
+  );
 }
 
 final printLogProvider =
     AutoDisposeAsyncNotifierProvider<PrintLogNotifier, PrintLogState>(
-  PrintLogNotifier.new,
-);
+      PrintLogNotifier.new,
+    );
 
 /// The print log, one page at a time.
 ///
@@ -190,7 +196,9 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
     required int offset,
     List<PrintLogEntry> before = const [],
   }) async {
-    final page = await ref.read(printLogRepositoryProvider).list(
+    final page = await ref
+        .read(printLogRepositoryProvider)
+        .list(
           search: filters.query.trim(),
           printerId: filters.printerId,
           status: filters.status,
@@ -202,10 +210,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
           sort: filters.sort,
           descending: filters.descending,
         );
-    return PrintLogState(
-      items: [...before, ...page.items],
-      total: page.total,
-    );
+    return PrintLogState(items: [...before, ...page.items], total: page.total);
   }
 
   /// Pull-to-refresh: back to the first page, keeping the filters.
@@ -254,7 +259,9 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   }) async {
     final epoch = _epoch;
     try {
-      final updated = await ref.read(printLogRepositoryProvider).updateEntry(
+      final updated = await ref
+          .read(printLogRepositoryProvider)
+          .updateEntry(
             entryId,
             failureReason: failureReason,
             clearFailureReason: clearFailureReason,
@@ -290,15 +297,17 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
       await ref.read(printLogRepositoryProvider).deleteEntry(entryId);
       final current = state.valueOrNull;
       if (epoch == _epoch && current != null) {
-        state = AsyncValue.data(current.copyWith(
-          items: [
-            for (final row in current.items)
-              if (row.id != entryId) row,
-          ],
-          // The row left the server's count too, so the "load more" arithmetic
-          // stays right without a refetch.
-          total: current.total > 0 ? current.total - 1 : 0,
-        ));
+        state = AsyncValue.data(
+          current.copyWith(
+            items: [
+              for (final row in current.items)
+                if (row.id != entryId) row,
+            ],
+            // The row left the server's count too, so the "load more" arithmetic
+            // stays right without a refetch.
+            total: current.total > 0 ? current.total - 1 : 0,
+          ),
+        );
       }
       await _invalidateFailureViews();
       return null;
@@ -325,10 +334,14 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   void _replace(int entryId, PrintLogEntry Function(PrintLogEntry) update) {
     final current = state.valueOrNull;
     if (current == null) return;
-    state = AsyncValue.data(current.copyWith(items: [
-      for (final row in current.items)
-        if (row.id == entryId) update(row) else row,
-    ]));
+    state = AsyncValue.data(
+      current.copyWith(
+        items: [
+          for (final row in current.items)
+            if (row.id == entryId) update(row) else row,
+        ],
+      ),
+    );
   }
 
   /// Everything downstream that reads what was just changed.

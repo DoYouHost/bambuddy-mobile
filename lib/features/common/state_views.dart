@@ -41,8 +41,14 @@ class AsyncErrorView extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         tonal
-            ? FilledButton.tonal(onPressed: onRetry, child: Text(retryLabel)).tagged('error.retry')
-            : FilledButton(onPressed: onRetry, child: Text(retryLabel)).tagged('error.retry'),
+            ? FilledButton.tonal(
+                onPressed: onRetry,
+                child: Text(retryLabel),
+              ).tagged('error.retry')
+            : FilledButton(
+                onPressed: onRetry,
+                child: Text(retryLabel),
+              ).tagged('error.retry'),
       ],
     );
 

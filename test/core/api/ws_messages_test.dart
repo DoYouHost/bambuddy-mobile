@@ -36,20 +36,24 @@ void main() {
       expect(status.stgCurName, 'Waiting for heatbed temperature');
     });
 
-    test('temperatures: only the numeric entries, the *_heating bools dropped', () {
-      final msg = parseWsMessage(readFixtureString('ws_printer_status.json'))
-          as WsPrinterStatus;
-      final temps = msg.status.temperatures!;
+    test(
+      'temperatures: only the numeric entries, the *_heating bools dropped',
+      () {
+        final msg =
+            parseWsMessage(readFixtureString('ws_printer_status.json'))
+                as WsPrinterStatus;
+        final temps = msg.status.temperatures!;
 
-      expect(temps['nozzle'], 140.0);
-      expect(temps['bed'], 70.0);
-      expect(temps['chamber'], 33.0);
-      expect(temps['chamber_target'], 0.0);
-      // The heating flags are bools in the same map, and the parser rejects them.
-      expect(temps.containsKey('nozzle_heating'), isFalse);
-      expect(temps.containsKey('bed_heating'), isFalse);
-      expect(temps.values, everyElement(isA<double>()));
-    });
+        expect(temps['nozzle'], 140.0);
+        expect(temps['bed'], 70.0);
+        expect(temps['chamber'], 33.0);
+        expect(temps['chamber_target'], 0.0);
+        // The heating flags are bools in the same map, and the parser rejects them.
+        expect(temps.containsKey('nozzle_heating'), isFalse);
+        expect(temps.containsKey('bed_heating'), isFalse);
+        expect(temps.values, everyElement(isA<double>()));
+      },
+    );
 
     test('pong → WsPong', () {
       expect(parseWsMessage('{"type":"pong"}'), isA<WsPong>());
@@ -103,15 +107,18 @@ void main() {
       expect(archive.photoAdded, 'finish_20260815_120000_ab12.jpg');
     });
 
-    test('archive_updated with no photo — a timelapse — leaves photoAdded null', () {
-      final raw = jsonEncode({
-        'type': 'archive_updated',
-        'data': {'id': 82, 'timelapse_attached': true},
-      });
-      final msg = parseWsMessage(raw);
-      expect(msg, isA<WsArchiveUpdated>());
-      expect((msg! as WsArchiveUpdated).photoAdded, isNull);
-    });
+    test(
+      'archive_updated with no photo — a timelapse — leaves photoAdded null',
+      () {
+        final raw = jsonEncode({
+          'type': 'archive_updated',
+          'data': {'id': 82, 'timelapse_attached': true},
+        });
+        final msg = parseWsMessage(raw);
+        expect(msg, isA<WsArchiveUpdated>());
+        expect((msg! as WsArchiveUpdated).photoAdded, isNull);
+      },
+    );
 
     test('archive_updated with no id inside data is WsUnknown', () {
       final msg = parseWsMessage('{"type":"archive_updated","data":{"x":1}}');
@@ -162,20 +169,22 @@ void main() {
     test('pipeline_run_updated carries the whole run under `run`', () {
       // A third shape: the printer frames put the id at the top level and
       // archive_updated wraps its payload in `data`.
-      final msg = parseWsMessage(jsonEncode({
-        'type': 'pipeline_run_updated',
-        'run': {
-          'id': 12,
-          'pipeline_id': 3,
-          'pipeline_name': 'Gridfinity PETG',
-          'copies': 4,
-          'copies_completed': 2,
-          'status': 'in_progress',
-          'eligibility_overridden': false,
-          'created_at': '2026-08-10T09:00:00',
-          'jobs': [],
-        },
-      }));
+      final msg = parseWsMessage(
+        jsonEncode({
+          'type': 'pipeline_run_updated',
+          'run': {
+            'id': 12,
+            'pipeline_id': 3,
+            'pipeline_name': 'Gridfinity PETG',
+            'copies': 4,
+            'copies_completed': 2,
+            'status': 'in_progress',
+            'eligibility_overridden': false,
+            'created_at': '2026-08-10T09:00:00',
+            'jobs': [],
+          },
+        }),
+      );
 
       expect(msg, isA<WsPipelineRunUpdated>());
       expect((msg! as WsPipelineRunUpdated).run['id'], 12);
@@ -194,8 +203,11 @@ void main() {
           'run': {'status': 'completed'},
         },
       ]) {
-        expect(parseWsMessage(jsonEncode(frame)), isA<WsUnknown>(),
-            reason: 'frame: $frame');
+        expect(
+          parseWsMessage(jsonEncode(frame)),
+          isA<WsUnknown>(),
+          reason: 'frame: $frame',
+        );
       }
     });
 

@@ -18,8 +18,8 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.archiveId,
     this.size = 52,
     this.zoom = 1.4,
-  })  : printLogEntryId = null,
-        path = null;
+  }) : printLogEntryId = null,
+       path = null;
 
   /// The same tile for a print-log row, served by the entry's own route.
   ///
@@ -32,8 +32,8 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.printLogEntryId,
     this.size = 52,
     this.zoom = 1.4,
-  })  : archiveId = null,
-        path = null;
+  }) : archiveId = null,
+       path = null;
 
   /// A render the caller already holds the path of — one plate of a multi-plate
   /// 3MF, whose row carries its own `thumbnail_url` because the archive and
@@ -46,8 +46,8 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.path,
     this.size = 52,
     this.zoom = 1.4,
-  })  : archiveId = null,
-        printLogEntryId = null;
+  }) : archiveId = null,
+       printLogEntryId = null;
 
   /// Archive id; when null → placeholder (e.g. queue item without archive).
   final int? archiveId;
@@ -89,12 +89,13 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
     );
 
     final entryId = widget.printLogEntryId;
-    final path = widget.path ??
+    final path =
+        widget.path ??
         (entryId != null
             ? Endpoints.printLogThumbnail(entryId)
             : (widget.archiveId == null
-                ? null
-                : Endpoints.archiveThumbnail(widget.archiveId!)));
+                  ? null
+                  : Endpoints.archiveThumbnail(widget.archiveId!)));
     final profile = ref.watch(serverProfileProvider);
     final baseUrl = profile?.baseUrl;
     // Demo mode has no thumbnail renders — placeholder beats a broken image.
@@ -120,10 +121,9 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
                 // and jank multiply across a paginated list of these.
                 // `* zoom` matches the crop scale above so the cached
                 // resolution still covers the cropped-in content.
-                cacheWidth: (size *
-                        zoom *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .round(),
+                cacheWidth:
+                    (size * zoom * MediaQuery.devicePixelRatioOf(context))
+                        .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {

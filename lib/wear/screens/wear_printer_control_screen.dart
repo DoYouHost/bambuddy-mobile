@@ -59,9 +59,8 @@ class WearPrinterControlBody extends ConsumerStatefulWidget {
       _WearPrinterControlBodyState();
 }
 
-class _WearPrinterControlBodyState
-    extends ConsumerState<WearPrinterControlBody> with WearAction {
-
+class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
+    with WearAction {
   PrinterWithStatus? _find(List<PrinterWithStatus> printers) =>
       printers.firstWhereOrNull((p) => p.printer.id == widget.printerId);
 
@@ -76,8 +75,11 @@ class _WearPrinterControlBodyState
       // the only one that has to ask for the round-safe rectangle itself.
       return WearFace(
         child: Center(
-          child: Text(l10n.wearPrinterUnavailable,
-              textAlign: TextAlign.center, style: WearText.body),
+          child: Text(
+            l10n.wearPrinterUnavailable,
+            textAlign: TextAlign.center,
+            style: WearText.body,
+          ),
         ),
       );
     }
@@ -163,15 +165,14 @@ class _WearPrinterControlBodyState
   /// would sit under the OFFLINE chip looking current, each offering a button
   /// the server answers with "Printer not connected".
   List<HmsError> _displayableFaults(PrinterWithStatus item) =>
-      displayableHmsErrors(item.status,
-          describe: HmsCatalog.instance.describe);
+      displayableHmsErrors(item.status, describe: HmsCatalog.instance.describe);
 
   /// Every action the faults on screen are offering, so the generic lifecycle
   /// buttons can stand down where they would duplicate one.
   Set<String> _faultActions(PrinterWithStatus item) => {
-        for (final e in _displayableFaults(item))
-          if (e.fullCode != null) ...hmsRenderableActions(e.actions),
-      };
+    for (final e in _displayableFaults(item))
+      if (e.fullCode != null) ...hmsRenderableActions(e.actions),
+  };
 
   /// Active faults, each with the buttons its firmware offers.
   ///
@@ -197,10 +198,14 @@ class _WearPrinterControlBodyState
             busy: busy,
             onAction: (action) => action == hmsStopAction
                 ? _confirmHmsStop(actions, id, fault, item.printer.name)
-                : _run(() => actions.executeHmsAction(id,
-                    printError: fault.fullCode!,
-                    action: action,
-                    jobId: fault.jobId)),
+                : _run(
+                    () => actions.executeHmsAction(
+                      id,
+                      printError: fault.fullCode!,
+                      action: action,
+                      jobId: fault.jobId,
+                    ),
+                  ),
           ),
         ),
       Padding(
@@ -216,7 +221,11 @@ class _WearPrinterControlBodyState
   }
 
   Future<void> _confirmHmsStop(
-      WearActions actions, int id, HmsError fault, String name) async {
+    WearActions actions,
+    int id,
+    HmsError fault,
+    String name,
+  ) async {
     final ok = await wearConfirm(
       context,
       icon: Icons.stop_rounded,
@@ -224,14 +233,21 @@ class _WearPrinterControlBodyState
       subtitle: name,
     );
     if (!ok) return;
-    await _run(() => actions.executeHmsAction(id,
+    await _run(
+      () => actions.executeHmsAction(
+        id,
         printError: fault.fullCode!,
         action: hmsStopAction,
-        jobId: fault.jobId));
+        jobId: fault.jobId,
+      ),
+    );
   }
 
   List<Widget> _actions(
-      PrinterWithStatus item, WearState state, int? queuePending) {
+    PrinterWithStatus item,
+    WearState state,
+    int? queuePending,
+  ) {
     final l10n = AppLocalizations.of(context);
     final status = item.status;
     final id = widget.printerId;
@@ -251,7 +267,8 @@ class _WearPrinterControlBodyState
     } else if (state == WearState.paused &&
         offeredByFaults.intersection(hmsResumeActions).isEmpty) {
       buttons.add(
-          _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)));
+        _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)),
+      );
     }
 
     // Clear plate: when it is offered — an unreachable printer included, and
@@ -259,13 +276,18 @@ class _WearPrinterControlBodyState
     // failure it words itself is the pre-#2864 server refusing to release the
     // gate on a printer it cannot reach; that also withdraws this button.
     if (plateClearOffered(ref, status)) {
-      buttons.add(_btn(l10n.wearClearPlate, Icons.cleaning_services,
+      buttons.add(
+        _btn(
+          l10n.wearClearPlate,
+          Icons.cleaning_services,
           () => actions.clearPlate(id),
           okMsg: l10n.wearPlateCleared,
           errMsg: (error) =>
               recordPlateClearRefusal(plateGate, _serverSaid(error))
-                  ? l10n.wearPlateNeedsOnline
-                  : null));
+              ? l10n.wearPlateNeedsOnline
+              : null,
+        ),
+      );
     }
 
     // Start next from queue: offered when the printer isn't actively printing
@@ -273,9 +295,14 @@ class _WearPrinterControlBodyState
     // Items already printing don't count as pending.
     if (state != WearState.printing && state != WearState.paused) {
       if (queuePending == null || queuePending > 0) {
-        buttons.add(_btn(l10n.queueStartNext, Icons.playlist_play,
+        buttons.add(
+          _btn(
+            l10n.queueStartNext,
+            Icons.playlist_play,
             () => actions.startNext(id),
-            okMsg: l10n.wearStarted));
+            okMsg: l10n.wearStarted,
+          ),
+        );
       } else {
         buttons.add(_hint(Icons.playlist_remove, l10n.queueEmpty));
       }
@@ -285,9 +312,14 @@ class _WearPrinterControlBodyState
     // offers its own stop, for the same reason as resume above.
     if ((state == WearState.printing || state == WearState.paused) &&
         !offeredByFaults.contains(hmsStopAction)) {
-      buttons.add(_btn(l10n.ctrlStop, Icons.stop,
+      buttons.add(
+        _btn(
+          l10n.ctrlStop,
+          Icons.stop,
           () => _confirmStop(actions, id, item.printer.name),
-          color: wearDestructive));
+          color: wearDestructive,
+        ),
+      );
     }
 
     if (buttons.isEmpty) {
@@ -299,17 +331,21 @@ class _WearPrinterControlBodyState
     ];
   }
 
-  Widget _btn(String label, IconData icon, Future<void> Function() action,
-          {String? okMsg, Color? color, _WearFailureText? errMsg}) =>
-      FilledButton.icon(
-        onPressed:
-            busy ? null : () => _run(action, okMsg: okMsg, errMsg: errMsg),
-        icon: Icon(icon),
-        label: _label(label),
-        style: color != null
-            ? FilledButton.styleFrom(backgroundColor: color)
-            : null,
-      );
+  Widget _btn(
+    String label,
+    IconData icon,
+    Future<void> Function() action, {
+    String? okMsg,
+    Color? color,
+    _WearFailureText? errMsg,
+  }) => FilledButton.icon(
+    onPressed: busy ? null : () => _run(action, okMsg: okMsg, errMsg: errMsg),
+    icon: Icon(icon),
+    label: _label(label),
+    style: color != null
+        ? FilledButton.styleFrom(backgroundColor: color)
+        : null,
+  );
 
   /// Non-actionable placeholder (empty queue / no actions): a button that is
   /// not on offer, so an actually disabled one rather than a pill shaped to
@@ -322,14 +358,14 @@ class _WearPrinterControlBodyState
   /// and its type from the same place as the buttons it stands among, and a
   /// screen reader gets "dimmed button" instead of a shape it cannot name.
   Widget _hint(IconData icon, String label) => FilledButton.icon(
-        onPressed: null,
-        icon: Icon(icon),
-        label: _label(label),
-        style: FilledButton.styleFrom(
-          disabledBackgroundColor: wearSurfaceHigh,
-          disabledForegroundColor: wearInert,
-        ),
-      );
+    onPressed: null,
+    icon: Icon(icon),
+    label: _label(label),
+    style: FilledButton.styleFrom(
+      disabledBackgroundColor: wearSurfaceHigh,
+      disabledForegroundColor: wearInert,
+    ),
+  );
 
   /// Ellipsized rather than wrapped, for every button on this screen: a label
   /// that wraps takes the row's height with it, and the round-safe width is
@@ -360,25 +396,26 @@ class _WearPrinterControlBodyState
   /// a red line under one of eight buttons in a scrolling list is missed. The
   /// refresh is why this wrapper still exists on top of [run] — nothing else on
   /// the watch has a poll to pull.
-  Future<void> _run(Future<void> Function() action,
-          {String? okMsg, _WearFailureText? errMsg}) =>
-      run(
-        () async {
-          await action();
-          await ref.read(wearFleetProvider.notifier).refresh();
-        },
-        onDone: () {
-          if (okMsg != null) {
-            wearToast(context, okMsg, tone: WearToastTone.success);
-          }
-        },
-        onError: (error) => wearToast(
-          context,
-          errMsg?.call(error) ??
-              _shortError(AppLocalizations.of(context), error),
-          tone: WearToastTone.failure,
-        ),
-      );
+  Future<void> _run(
+    Future<void> Function() action, {
+    String? okMsg,
+    _WearFailureText? errMsg,
+  }) => run(
+    () async {
+      await action();
+      await ref.read(wearFleetProvider.notifier).refresh();
+    },
+    onDone: () {
+      if (okMsg != null) {
+        wearToast(context, okMsg, tone: WearToastTone.success);
+      }
+    },
+    onError: (error) => wearToast(
+      context,
+      errMsg?.call(error) ?? _shortError(AppLocalizations.of(context), error),
+      tone: WearToastTone.failure,
+    ),
+  );
 }
 
 /// A button's own wording for a failure, where the generic [_shortError] would
@@ -388,10 +425,10 @@ typedef _WearFailureText = String? Function(Object error);
 /// What the server wrote, out of whatever this screen's transport threw: the
 /// relay forwards the detail without its status code, direct REST keeps both.
 String? _serverSaid(Object error) => switch (error) {
-      WearRelayRemoteError e => e.reason,
-      AppApiException e => e.detail,
-      _ => null,
-    };
+  WearRelayRemoteError e => e.reason,
+  AppApiException e => e.detail,
+  _ => null,
+};
 
 /// One fault on the watch: what it is, then a full-width button per action.
 ///
@@ -435,14 +472,19 @@ class _WearFaultState extends State<_WearFault> {
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  size: 14, color: wearFaultText),
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 14,
+                color: wearFaultText,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: WearText.small
-                      .copyWith(color: wearFaultText, fontWeight: FontWeight.w600),
+                  style: WearText.small.copyWith(
+                    color: wearFaultText,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -466,17 +508,18 @@ class _WearFaultState extends State<_WearFault> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed:
-                    widget.busy ? null : () => widget.onAction(action),
+                onPressed: widget.busy ? null : () => widget.onAction(action),
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   // A step down from the theme's button text: these stack one
                   // per action inside an already-boxed fault.
-                  textStyle:
-                      WearText.body.copyWith(fontWeight: FontWeight.w600),
-                  backgroundColor:
-                      action == hmsStopAction ? wearDestructive : null,
+                  textStyle: WearText.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: action == hmsStopAction
+                      ? wearDestructive
+                      : null,
                 ),
                 child: Text(
                   hmsActionLabel(l10n, action),

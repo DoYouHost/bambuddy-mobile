@@ -26,22 +26,22 @@ class ArchiveStats {
   });
 
   factory ArchiveStats.fromJson(Map<String, dynamic> json) => ArchiveStats(
-        totalPrints: toInt(json['total_prints']),
-        successfulPrints: toInt(json['successful_prints']),
-        failedPrints: toInt(json['failed_prints']),
-        cancelledPrints: toInt(json['cancelled_prints']),
-        totalPrintTimeHours: toDouble(json['total_print_time_hours']),
-        totalFilamentGrams: toDouble(json['total_filament_grams']),
-        totalCost: toDouble(json['total_cost']),
-        printsByFilamentType: toIntMap(json['prints_by_filament_type']),
-        printsByPrinter: toIntMap(json['prints_by_printer']),
-        printerNames: toStringMap(json['printer_names']),
-        averageTimeAccuracy: toDouble(json['average_time_accuracy']),
-        timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
-        totalEnergyKwh: toDouble(json['total_energy_kwh']),
-        totalEnergyCost: toDouble(json['total_energy_cost']),
-        energyDataWarmingUp: json['energy_data_warming_up'] == true,
-      );
+    totalPrints: toInt(json['total_prints']),
+    successfulPrints: toInt(json['successful_prints']),
+    failedPrints: toInt(json['failed_prints']),
+    cancelledPrints: toInt(json['cancelled_prints']),
+    totalPrintTimeHours: toDouble(json['total_print_time_hours']),
+    totalFilamentGrams: toDouble(json['total_filament_grams']),
+    totalCost: toDouble(json['total_cost']),
+    printsByFilamentType: toIntMap(json['prints_by_filament_type']),
+    printsByPrinter: toIntMap(json['prints_by_printer']),
+    printerNames: toStringMap(json['printer_names']),
+    averageTimeAccuracy: toDouble(json['average_time_accuracy']),
+    timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
+    totalEnergyKwh: toDouble(json['total_energy_kwh']),
+    totalEnergyCost: toDouble(json['total_energy_cost']),
+    energyDataWarmingUp: json['energy_data_warming_up'] == true,
+  );
 
   /// Total print count in the period.
   final int totalPrints;
@@ -105,4 +105,3 @@ class ArchiveStats {
   /// Whether there is anything to display (empty period → empty cards).
   bool get isEmpty => totalPrints == 0;
 }
-

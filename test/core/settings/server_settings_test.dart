@@ -60,7 +60,12 @@ void main() {
     });
 
     test('takes an object as it stands', () {
-      expect(const {'b': {'a': 1}}.settingBlob('b'), {'a': 1});
+      expect(
+        const {
+          'b': {'a': 1},
+        }.settingBlob('b'),
+        {'a': 1},
+      );
     });
 
     /// The stricter of the two decoders this replaced required exactly

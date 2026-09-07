@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/features/pipelines/pipelines_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -20,19 +19,18 @@ SlicerPipeline _pipeline({
   PipelineTargetKind targetKind = PipelineTargetKind.printerClass,
   int? targetPrinterId,
   String? targetModelClass = 'X1C',
-}) =>
-    SlicerPipeline(
-      id: id,
-      name: name,
-      description: description,
-      printerPreset: const PresetRef(source: 'local', id: '3'),
-      processPreset: const PresetRef(source: 'local', id: '9'),
-      filamentPresets: const [PresetRef(source: 'local', id: '11')],
-      bedType: 'Engineering Plate',
-      targetKind: targetKind,
-      targetPrinterId: targetPrinterId,
-      targetModelClass: targetModelClass,
-    );
+}) => SlicerPipeline(
+  id: id,
+  name: name,
+  description: description,
+  printerPreset: const PresetRef(source: 'local', id: '3'),
+  processPreset: const PresetRef(source: 'local', id: '9'),
+  filamentPresets: const [PresetRef(source: 'local', id: '11')],
+  bedType: 'Engineering Plate',
+  targetKind: targetKind,
+  targetPrinterId: targetPrinterId,
+  targetModelClass: targetModelClass,
+);
 
 const _presets = UnifiedPresets(
   printers: [SlicerPreset(source: 'local', id: '3', name: 'X1C 0.4')],
@@ -60,7 +58,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(ProviderScope(
+    await pumpPhone(
+      tester,
+      const PipelinesScreen(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: scaler),
+        child: child!,
+      ),
       overrides: [
         noServerProfileOverride,
         pipelinesProvider.overrideWith((ref) async => pipelines),
@@ -71,20 +75,14 @@ void main() {
         pipelinePrinterClassesProvider.overrideWith((ref) async => ['X1C']),
         slicerPresetsProvider.overrideWith((ref) async => _presets),
       ],
-      child: plApp(
-        const PipelinesScreen(),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: scaler),
-          child: child!,
-        ),
-      ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
   group('the pipeline card', () {
-    testWidgets('names what the bundle holds and what it runs on',
-        (tester) async {
+    testWidgets('names what the bundle holds and what it runs on', (
+      tester,
+    ) async {
       await pump(tester, pipelines: [_pipeline()]);
 
       expect(find.text('Gridfinity PETG'), findsOneWidget);
@@ -93,19 +91,19 @@ void main() {
       expect(find.textContaining('Generic PETG'), findsOneWidget);
     });
 
-    testWidgets('an untargeted pipeline says so instead of offering a run',
-        (tester) async {
+    testWidgets('an untargeted pipeline says so instead of offering a run', (
+      tester,
+    ) async {
       // What every pipeline saved from the slice form looks like: the create
       // schema carries no target, so this is the normal first state.
-      await pump(tester, pipelines: [
-        _pipeline(targetModelClass: null),
-      ]);
+      await pump(tester, pipelines: [_pipeline(targetModelClass: null)]);
 
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     });
 
-    testWidgets('a pinned printer that is gone is named by its id',
-        (tester) async {
+    testWidgets('a pinned printer that is gone is named by its id', (
+      tester,
+    ) async {
       // Better than an empty line: the id is the only handle left on a printer
       // the fleet no longer lists.
       await pump(
@@ -122,32 +120,45 @@ void main() {
       expect(find.textContaining('41'), findsOneWidget);
     });
 
-    testWidgets('a session that may not author sees no edit or delete',
-        (tester) async {
+    testWidgets('a session that may not author sees no edit or delete', (
+      tester,
+    ) async {
       await pump(tester, pipelines: [_pipeline()], canWrite: false);
 
       expect(find.byIcon(Icons.more_vert), findsNothing);
-      expect(find.byIcon(Icons.history_rounded), findsWidgets,
-          reason: 'reading the history is not authoring');
+      expect(
+        find.byIcon(Icons.history_rounded),
+        findsWidgets,
+        reason: 'reading the history is not authoring',
+      );
     });
 
-    testWidgets('a long name still gets most of the row on a 360 dp screen',
-        (tester) async {
+    testWidgets('a long name still gets most of the row on a 360 dp screen', (
+      tester,
+    ) async {
       // Three action buttons sit beside the name. If they crowd it the name
       // ellipsizes early, and the name is the only thing telling two pipelines
       // apart.
-      await pump(tester, pipelines: [
-        _pipeline(name: 'Production PETG 0.6 nozzle, engineering plate'),
-      ]);
+      await pump(
+        tester,
+        pipelines: [
+          _pipeline(name: 'Production PETG 0.6 nozzle, engineering plate'),
+        ],
+      );
 
       final name = tester.getSize(
-          find.text('Production PETG 0.6 nozzle, engineering plate'));
-      expect(name.width, greaterThan(180),
-          reason: 'the title keeps more than half of a 360 dp row');
+        find.text('Production PETG 0.6 nozzle, engineering plate'),
+      );
+      expect(
+        name.width,
+        greaterThan(180),
+        reason: 'the title keeps more than half of a 360 dp row',
+      );
     });
 
-    testWidgets('authoring is behind the overflow menu, not beside the name',
-        (tester) async {
+    testWidgets('authoring is behind the overflow menu, not beside the name', (
+      tester,
+    ) async {
       await pump(tester, pipelines: [_pipeline()]);
 
       expect(find.byIcon(Icons.edit_outlined), findsNothing);
@@ -165,10 +176,14 @@ void main() {
       // the presets, the plate, each filament slot — ignored the setting while
       // the name above them grew. `Text.rich` reads the ambient MediaQuery.
       double heightOf(String needle) => tester
-          .getSize(find.ancestor(
-            of: find.textContaining(needle),
-            matching: find.byType(Padding),
-          ).first)
+          .getSize(
+            find
+                .ancestor(
+                  of: find.textContaining(needle),
+                  matching: find.byType(Padding),
+                )
+                .first,
+          )
           .height;
 
       await pump(tester, pipelines: [_pipeline()]);
@@ -181,41 +196,54 @@ void main() {
       );
       final scaled = heightOf('0.20mm Standard');
 
-      expect(scaled, greaterThan(plain * 1.5),
-          reason: 'a row that ignores the scaler stays the same height');
+      expect(
+        scaled,
+        greaterThan(plain * 1.5),
+        reason: 'a row that ignores the scaler stays the same height',
+      );
     });
   });
 
   group('what a screen reader gets', () {
-    testWidgets('a printer verdict is one utterance, name and all',
-        (tester) async {
+    testWidgets('a printer verdict is one utterance, name and all', (
+      tester,
+    ) async {
       // The icon carries the whole verdict — without a label on it a reader
       // hears the printer's name and nothing about whether it can take the job.
-      await tester.pumpWidget(plApp(Scaffold(
-        body: EligibilityView(
-          report: EligibilityReport(
-            ok: true,
-            targetKind: PipelineTargetKind.printerClass,
-            printerReports: const [
-              PerPrinterReport(printerId: 1, printerName: 'X1C left', ok: true),
-              PerPrinterReport(
-                printerId: 2,
-                printerName: 'X1C right',
-                ok: false,
-                issues: [
-                  EligibilityIssue(
-                    kind: EligibilityIssueKind.printerOffline,
-                    rawKind: 'printer_offline',
+      await tester.pumpWidget(
+        plApp(
+          Scaffold(
+            body: EligibilityView(
+              report: EligibilityReport(
+                ok: true,
+                targetKind: PipelineTargetKind.printerClass,
+                printerReports: const [
+                  PerPrinterReport(
+                    printerId: 1,
+                    printerName: 'X1C left',
+                    ok: true,
+                  ),
+                  PerPrinterReport(
+                    printerId: 2,
+                    printerName: 'X1C right',
+                    ok: false,
+                    issues: [
+                      EligibilityIssue(
+                        kind: EligibilityIssueKind.printerOffline,
+                        rawKind: 'printer_offline',
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
-      )));
+      );
       await tester.pumpAndSettle();
       final l10n = AppLocalizations.of(
-          tester.element(find.byType(EligibilityView)));
+        tester.element(find.byType(EligibilityView)),
+      );
 
       expect(
         tester.getSemantics(find.text('X1C left')),
@@ -227,34 +255,45 @@ void main() {
       );
     });
 
-    testWidgets("each printer's problems sit under that printer", (tester) async {
+    testWidgets("each printer's problems sit under that printer", (
+      tester,
+    ) async {
       // Pooled into one list, three printers with the same complaint read as
       // three anonymous complaints and the operator cannot tell which is which.
-      await tester.pumpWidget(plApp(Scaffold(
-        body: EligibilityView(
-          report: EligibilityReport(
-            ok: true,
-            targetKind: PipelineTargetKind.printerClass,
-            printerReports: const [
-              PerPrinterReport(printerId: 1, printerName: 'Alpha', ok: true),
-              PerPrinterReport(
-                printerId: 2,
-                printerName: 'Beta',
-                ok: false,
-                issues: [
-                  EligibilityIssue(
-                    kind: EligibilityIssueKind.printerOffline,
-                    rawKind: 'printer_offline',
+      await tester.pumpWidget(
+        plApp(
+          Scaffold(
+            body: EligibilityView(
+              report: EligibilityReport(
+                ok: true,
+                targetKind: PipelineTargetKind.printerClass,
+                printerReports: const [
+                  PerPrinterReport(
+                    printerId: 1,
+                    printerName: 'Alpha',
+                    ok: true,
+                  ),
+                  PerPrinterReport(
+                    printerId: 2,
+                    printerName: 'Beta',
+                    ok: false,
+                    issues: [
+                      EligibilityIssue(
+                        kind: EligibilityIssueKind.printerOffline,
+                        rawKind: 'printer_offline',
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
-      )));
+      );
       await tester.pumpAndSettle();
       final l10n = AppLocalizations.of(
-          tester.element(find.byType(EligibilityView)));
+        tester.element(find.byType(EligibilityView)),
+      );
 
       final offline = find.text(l10n.pipelineIssuePrinterOffline);
       expect(offline, findsOneWidget);
@@ -286,8 +325,11 @@ void main() {
       );
       await openFilters(tester);
 
-      expect(tester.takeException(), isNull,
-          reason: 'the sheet must scroll rather than overflow');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the sheet must scroll rather than overflow',
+      );
     });
 
     testWidgets('the actions stay reachable at that size', (tester) async {

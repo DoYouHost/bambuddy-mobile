@@ -151,7 +151,7 @@ WsMessage? parseWsMessage(String raw) {
 }
 
 int? _toIntOrNull(Object? value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
+  num n => n.toInt(),
+  String s => int.tryParse(s),
+  _ => null,
+};

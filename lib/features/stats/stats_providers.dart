@@ -65,8 +65,9 @@ class StatsFilter {
 }
 
 /// Active stats filter. Changing value reloads [statsProvider].
-final statsFilterProvider =
-    NotifierProvider<StatsFilterNotifier, StatsFilter>(StatsFilterNotifier.new);
+final statsFilterProvider = NotifierProvider<StatsFilterNotifier, StatsFilter>(
+  StatsFilterNotifier.new,
+);
 
 class StatsFilterNotifier extends Notifier<StatsFilter> {
   @override
@@ -102,8 +103,8 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
 /// [now] computed once per build (no clock in state).
 final statsProvider =
     AutoDisposeAsyncNotifierProvider<StatsNotifier, ArchiveStats>(
-  StatsNotifier.new,
-);
+      StatsNotifier.new,
+    );
 
 class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
   @override
@@ -136,8 +137,14 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
     return switch (f.range) {
       StatsRange.allTime => (null, null),
       StatsRange.last7Days => (today.subtract(const Duration(days: 6)), today),
-      StatsRange.last30Days => (today.subtract(const Duration(days: 29)), today),
-      StatsRange.last90Days => (today.subtract(const Duration(days: 89)), today),
+      StatsRange.last30Days => (
+        today.subtract(const Duration(days: 29)),
+        today,
+      ),
+      StatsRange.last90Days => (
+        today.subtract(const Duration(days: 89)),
+        today,
+      ),
       StatsRange.thisYear => (DateTime(now.year), today),
       StatsRange.custom => (f.from, f.to),
     };
@@ -155,21 +162,21 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
 /// deleting a printer either deletes its archives or clears their `printer_id`,
 /// so those runs are not in the aggregate to label. A server that does not send
 /// `printer_names` leaves that layer empty and the map is what it always was.
-final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
-  (ref) async {
-    final recorded = ref.watch(statsProvider).valueOrNull?.printerNames;
-    final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
-    final names = <int, String>{};
-    for (final entry in (recorded ?? const <String, String>{}).entries) {
-      final id = int.tryParse(entry.key);
-      if (id != null) names[id] = entry.value;
-    }
-    for (final printer in printers) {
-      names[printer.id] = printer.name;
-    }
-    return names;
-  },
-);
+final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
+  ref,
+) async {
+  final recorded = ref.watch(statsProvider).valueOrNull?.printerNames;
+  final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
+  final names = <int, String>{};
+  for (final entry in (recorded ?? const <String, String>{}).entries) {
+    final id = int.tryParse(entry.key);
+    if (id != null) names[id] = entry.value;
+  }
+  for (final printer in printers) {
+    names[printer.id] = printer.name;
+  }
+  return names;
+});
 
 /// Labels for the per-printer breakdowns: the live printer's current name
 /// first, so a rename shows up straight away, and behind it the name the
@@ -178,7 +185,8 @@ final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
 /// which is why its history used to read as a bare `#id`.
 final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
   final live = ref.watch(printerNamesProvider).valueOrNull ?? const {};
-  final recorded = ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
+  final recorded =
+      ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
   final labels = <int, String>{};
 
   // A blank name is dropped rather than stored, on both sides. Two reasons it
@@ -203,8 +211,9 @@ final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
 
 /// Slim list of all prints for active filter — source of rich stats (heatmap,
 /// records, colors, usage over time, histograms).
-final archiveSlimProvider =
-    FutureProvider.autoDispose<List<ArchiveSlim>>((ref) async {
+final archiveSlimProvider = FutureProvider.autoDispose<List<ArchiveSlim>>((
+  ref,
+) async {
   ref.watch(serverProfileProvider);
   final filter = ref.watch(statsFilterProvider);
   final (from, to) = StatsNotifier._resolveDates(filter);
@@ -221,8 +230,9 @@ final archiveSlimProvider =
 /// asks `/users/slim` first and falls back to the full listing, so on 1.2.6+
 /// the picker also appears for API-key sessions holding the Read Status scope,
 /// where before it never could.
-final statsUsersProvider =
-    FutureProvider.autoDispose<List<UserSummary>>((ref) async {
+final statsUsersProvider = FutureProvider.autoDispose<List<UserSummary>>((
+  ref,
+) async {
   ref.watch(serverProfileProvider);
   try {
     return await ref.read(statsRepositoryProvider).fetchUsers();
@@ -236,8 +246,9 @@ final statsUsersProvider =
 });
 
 /// Computed aggregates from slim list (pure calculation, no I/O).
-final statsComputedProvider =
-    Provider.autoDispose<AsyncValue<StatsComputed>>((ref) {
+final statsComputedProvider = Provider.autoDispose<AsyncValue<StatsComputed>>((
+  ref,
+) {
   return ref
       .watch(archiveSlimProvider)
       .whenData((items) => StatsComputed.from(items));
@@ -261,8 +272,8 @@ final failureAnalysisCacheProvider = Provider<FailureAnalysisCache>(
 /// in far past to cover entire archive.
 final failureAnalysisProvider =
     AutoDisposeAsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
-  FailureAnalysisNotifier.new,
-);
+      FailureAnalysisNotifier.new,
+    );
 
 class FailureAnalysisNotifier
     extends AutoDisposeAsyncNotifier<FailureAnalysis> {
@@ -315,9 +326,14 @@ class FailureAnalysisNotifier
       from ??= DateTime(2000);
       to ??= today;
       final full = await repo.fetchFailures(
-          from: from, to: to, createdById: filter.createdById);
-      await cache.save(filter,
-          FailureCacheEntry(analysis: full, coveredThrough: null, fetchedAt: now));
+        from: from,
+        to: to,
+        createdById: filter.createdById,
+      );
+      await cache.save(
+        filter,
+        FailureCacheEntry(analysis: full, coveredThrough: null, fetchedAt: now),
+      );
       return full;
     }
 
@@ -329,22 +345,34 @@ class FailureAnalysisNotifier
     final coveredThrough = base?.coveredThrough;
     final bankStart = coveredThrough == null
         ? DateTime(2000)
-        : DateTime(coveredThrough.year, coveredThrough.month,
-            coveredThrough.day + 1);
+        : DateTime(
+            coveredThrough.year,
+            coveredThrough.month,
+            coveredThrough.day + 1,
+          );
     // Bank days that closed since last time (typically 0–1 day).
     if (!bankStart.isAfter(yesterday)) {
       final bank = await repo.fetchFailures(
-          from: bankStart, to: yesterday, createdById: filter.createdById);
+        from: bankStart,
+        to: yesterday,
+        createdById: filter.createdById,
+      );
       banked = banked.merge(bank);
       await cache.save(
         filter,
         FailureCacheEntry(
-            analysis: banked, coveredThrough: yesterday, fetchedAt: now),
+          analysis: banked,
+          coveredThrough: yesterday,
+          fetchedAt: now,
+        ),
       );
     }
     // Today's incomplete day — separate, outside cache.
     final todayPart = await repo.fetchFailures(
-        from: today, to: today, createdById: filter.createdById);
+      from: today,
+      to: today,
+      createdById: filter.createdById,
+    );
     return banked.merge(todayPart);
   }
 }

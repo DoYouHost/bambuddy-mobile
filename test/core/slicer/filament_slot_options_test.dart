@@ -3,12 +3,7 @@ import 'package:bambuddy_mobile/core/slicer/filament_slot_options.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProcessOption _option(String key, {OptionType type = OptionType.coInt}) =>
-    ProcessOption(
-      key: key,
-      type: type,
-      mode: OptionMode.simple,
-      label: key,
-    );
+    ProcessOption(key: key, type: type, mode: OptionMode.simple, label: key);
 
 void main() {
   group('namesFilamentSlot', () {
@@ -36,9 +31,9 @@ void main() {
       // is a safer answer than a slot dropdown over a value that is no longer a
       // slot index.
       expect(
-          namesFilamentSlot(
-              _option('support_filament', type: OptionType.coEnum)),
-          isFalse);
+        namesFilamentSlot(_option('support_filament', type: OptionType.coEnum)),
+        isFalse,
+      );
     });
   });
 

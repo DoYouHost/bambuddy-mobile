@@ -77,8 +77,7 @@ class LogFileSink {
     if (_closed) return Future<void>.value();
     _chain = _chain.then((_) async {
       try {
-        await file.writeAsString('$line\n',
-            mode: FileMode.append, flush: true);
+        await file.writeAsString('$line\n', mode: FileMode.append, flush: true);
       } on Object {
         // A broken sink must never take down the thing it was observing.
       }

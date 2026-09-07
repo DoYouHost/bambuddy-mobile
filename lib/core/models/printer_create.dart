@@ -26,12 +26,12 @@ class PrinterCreate {
   final bool autoArchive;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'serial_number': serialNumber,
-        'ip_address': ipAddress,
-        'access_code': accessCode,
-        'auto_archive': autoArchive,
-        if (model != null && model!.isNotEmpty) 'model': model,
-        if (location != null && location!.isNotEmpty) 'location': location,
-      };
+    'name': name,
+    'serial_number': serialNumber,
+    'ip_address': ipAddress,
+    'access_code': accessCode,
+    'auto_archive': autoArchive,
+    if (model != null && model!.isNotEmpty) 'model': model,
+    if (location != null && location!.isNotEmpty) 'location': location,
+  };
 }

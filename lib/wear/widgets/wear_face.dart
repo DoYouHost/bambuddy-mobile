@@ -26,11 +26,11 @@ class WearFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: wearFaceInsets(
-          wearShapeOf(context),
-          MediaQuery.sizeOf(context),
-          widthFraction: widthFraction,
-        ),
-        child: child,
-      );
+    padding: wearFaceInsets(
+      wearShapeOf(context),
+      MediaQuery.sizeOf(context),
+      widthFraction: widthFraction,
+    ),
+    child: child,
+  );
 }

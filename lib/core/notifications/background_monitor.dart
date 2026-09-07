@@ -1,6 +1,7 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
-import '../../features/notifications/print_monitor.dart' show systemAppLocalizations;
+import '../../features/notifications/print_monitor.dart'
+    show systemAppLocalizations;
 import 'background_sync.dart';
 import 'print_monitor_task_handler.dart';
 
@@ -52,7 +53,10 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
     final l10n = systemAppLocalizations();
     await FlutterForegroundTask.startService(
       serviceId: foregroundServiceNotificationId,
-      serviceTypes: const [ForegroundServiceTypes.dataSync],
+      // Must name the same type the manifest declares, or `startForeground`
+      // throws on Android 14+. Why this one rather than `dataSync` is in the
+      // manifest, next to the declaration.
+      serviceTypes: const [ForegroundServiceTypes.connectedDevice],
       notificationTitle: l10n.bgServiceTitle,
       notificationText: l10n.bgServiceText,
       callback: startCallback,

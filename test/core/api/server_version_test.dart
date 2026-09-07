@@ -37,8 +37,11 @@ void main() {
       expect([v.major, v.minor, v.patch], [1, 2, 6]);
       expect(v.prereleaseNum, 1);
       expect(v.isPrerelease, isTrue);
-      expect(v.raw, '1.2.6b1-daily.20260729',
-          reason: 'the log has to carry what the server actually said');
+      expect(
+        v.raw,
+        '1.2.6b1-daily.20260729',
+        reason: 'the log has to carry what the server actually said',
+      );
     });
 
     test('rc and alpha count too', () {
@@ -77,24 +80,34 @@ void main() {
   group('tri-state calibrations', () {
     test('from 1.2.5 upward', () {
       for (final v in ['1.2.5', '1.2.5.1', '1.2.6', '2.0.0']) {
-        expect(parse(v).supports(ServerFeature.triStateCalibration), isTrue, reason: v);
+        expect(
+          parse(v).supports(ServerFeature.triStateCalibration),
+          isTrue,
+          reason: v,
+        );
       }
     });
 
     test('the whole 0.2.x line, not yet', () {
       for (final v in ['0.2.4.9', '0.2.4.8', '0.2.3', '0.1.5']) {
-        expect(parse(v).supports(ServerFeature.triStateCalibration), isFalse, reason: v);
+        expect(
+          parse(v).supports(ServerFeature.triStateCalibration),
+          isFalse,
+          reason: v,
+        );
       }
     });
 
     test('a 1.2.5 beta counts as supporting', () {
       // The change landed in that cycle; reading a beta as the older shape
       // would send a boolean where the user asked for auto.
-      expect(parse('1.2.5b1').supports(ServerFeature.triStateCalibration), isTrue);
+      expect(
+        parse('1.2.5b1').supports(ServerFeature.triStateCalibration),
+        isTrue,
+      );
     });
 
-    test('0.2.5bN comes out as "not supported" — and that is this method\'s limit',
-        () {
+    test('0.2.5bN comes out as "not supported" — and that is this method\'s limit', () {
       // bambuddy renumbered the 0.2.5 cycle to 1.2.5 partway through, so
       // `0.2.5b2` (the version our own server reports) is a beta of EXACTLY the
       // release that introduced the tri-state — and still sorts below 1.2.5 in
@@ -105,7 +118,10 @@ void main() {
       // not know it is a 422, while a missing auto option is only a missing
       // feature. The real answer comes from observing what the server replies —
       // see QueueRepository.supports(ServerFeature.triStateCalibration) and its tests.
-      expect(parse('0.2.5b2').supports(ServerFeature.triStateCalibration), isFalse);
+      expect(
+        parse('0.2.5b2').supports(ServerFeature.triStateCalibration),
+        isFalse,
+      );
       expect(parse('0.2.5b2') < parse('1.2.5'), isTrue);
     });
   });
@@ -116,33 +132,39 @@ void main() {
       // does not fail to compile — it quietly takes the feature away from
       // everybody. This test is the only thing that catches it.
       for (final f in ServerFeature.values) {
-        expect(ServerVersion.introducedIn[f], isNotNull,
-            reason: 'no version threshold for $f');
+        expect(
+          ServerVersion.introducedIn[f],
+          isNotNull,
+          reason: 'no version threshold for $f',
+        );
       }
     });
 
-    test('supports() reads the threshold from the map, not a separate compare', () {
-      final v125 = parse('1.2.5.2');
-      final v126 = parse('1.2.6');
+    test(
+      'supports() reads the threshold from the map, not a separate compare',
+      () {
+        final v125 = parse('1.2.5.2');
+        final v126 = parse('1.2.6');
 
-      // Tri-state arrived in 1.2.5 and everything else in 1.2.6 — the only
-      // difference between these two versions in the whole table.
-      expect(v125.supports(ServerFeature.triStateCalibration), isTrue);
-      expect(v126.supports(ServerFeature.triStateCalibration), isTrue);
+        // Tri-state arrived in 1.2.5 and everything else in 1.2.6 — the only
+        // difference between these two versions in the whole table.
+        expect(v125.supports(ServerFeature.triStateCalibration), isTrue);
+        expect(v126.supports(ServerFeature.triStateCalibration), isTrue);
 
-      for (final f in const [
-        ServerFeature.chamberTemp65,
-        ServerFeature.crossModelVariants,
-        ServerFeature.sliceLayoutOptions,
-        ServerFeature.processOverrides,
-        ServerFeature.usersSlimListing,
-        ServerFeature.printLogCostEnergy,
-        ServerFeature.labelStartingPosition,
-      ]) {
-        expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
-        expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
-      }
-    });
+        for (final f in const [
+          ServerFeature.chamberTemp65,
+          ServerFeature.crossModelVariants,
+          ServerFeature.sliceLayoutOptions,
+          ServerFeature.processOverrides,
+          ServerFeature.usersSlimListing,
+          ServerFeature.printLogCostEnergy,
+          ServerFeature.labelStartingPosition,
+        ]) {
+          expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
+          expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
+        }
+      },
+    );
   });
 
   group('1.2.6 gates', () {
@@ -154,17 +176,19 @@ void main() {
       expect(parse('1.2.6').chamberMaxTargetC, 65);
     });
 
-    test('a 1.2.6 beta counts as supporting — the features landed in that cycle',
-        () {
-      // 1.2.6b1 is the release these changes actually shipped in (#671 and the
-      // raised ceiling both live there), so reading a beta as the older
-      // contract would take features away from a server that has them.
-      final beta = parse('1.2.6b1');
-      expect(beta.chamberMaxTargetC, 65);
-      expect(beta.supports(ServerFeature.crossModelVariants), isTrue);
-      expect(beta.supports(ServerFeature.sliceLayoutOptions), isTrue);
-      expect(beta.supports(ServerFeature.processOverrides), isTrue);
-    });
+    test(
+      'a 1.2.6 beta counts as supporting — the features landed in that cycle',
+      () {
+        // 1.2.6b1 is the release these changes actually shipped in (#671 and the
+        // raised ceiling both live there), so reading a beta as the older
+        // contract would take features away from a server that has them.
+        final beta = parse('1.2.6b1');
+        expect(beta.chamberMaxTargetC, 65);
+        expect(beta.supports(ServerFeature.crossModelVariants), isTrue);
+        expect(beta.supports(ServerFeature.sliceLayoutOptions), isTrue);
+        expect(beta.supports(ServerFeature.processOverrides), isTrue);
+      },
+    );
 
     test('a daily build of the beta counts too', () {
       expect(parse('1.2.6b1-daily.20260809').chamberMaxTargetC, 65);

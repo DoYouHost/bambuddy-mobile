@@ -28,13 +28,13 @@ String hmsPayload({
   required int printerId,
   required String fullCode,
   String? jobId,
-}) =>
-    'hms:$printerId:$fullCode:${jobId ?? ''}';
+}) => 'hms:$printerId:$fullCode:${jobId ?? ''}';
 
 /// The fault an HMS notification action refers to, or null when the payload is
 /// not one (or was written by a version that formatted it differently).
 ({int printerId, String fullCode, String? jobId})? parseHmsPayload(
-    String? payload) {
+  String? payload,
+) {
   if (payload == null || !payload.startsWith('hms:')) return null;
   final parts = payload.split(':');
   if (parts.length != 4) return null;
@@ -67,13 +67,12 @@ List<int> parseMaintenancePayload(String? payload) {
 AuthService backgroundAuthService(
   SharedPreferences prefs,
   CredentialsStore credentials,
-) =>
-    AuthService(
-      bareDio: createBareDio(),
-      credentials: credentials,
-      onSignInRequired: (reason) =>
-          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
-    );
+) => AuthService(
+  bareDio: createBareDio(),
+  credentials: credentials,
+  onSignInRequired: (reason) =>
+      SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
+);
 
 /// Builds an authenticated [ApiClient] without Riverpod — usable in the
 /// background isolate (foreground service) and notification callback isolate
@@ -123,11 +122,13 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   final fault = parseHmsPayload(response.payload);
   if (fault == null) return;
   if (action == hmsStopAction) {
-    postHmsStopRequest(HmsStopRequest(
-      printerId: fault.printerId,
-      fullCode: fault.fullCode,
-      jobId: fault.jobId,
-    ));
+    postHmsStopRequest(
+      HmsStopRequest(
+        printerId: fault.printerId,
+        fullCode: fault.fullCode,
+        jobId: fault.jobId,
+      ),
+    );
     return;
   }
 

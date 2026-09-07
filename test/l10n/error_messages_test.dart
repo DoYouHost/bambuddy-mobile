@@ -46,14 +46,16 @@ void main() {
       expect(e.localized(pl), isNot(contains('klucz API')));
     });
 
-    test('with nothing to quote, the fallback blames no credential in particular',
-        () {
-      const e = AuthException(AppErrorCode.forbidden);
+    test(
+      'with nothing to quote, the fallback blames no credential in particular',
+      () {
+        const e = AuthException(AppErrorCode.forbidden);
 
-      expect(e.localized(pl), isNot(contains('klucz API')));
-      expect(e.localized(en), isNot(contains('API key')));
-      expect(e.localized(pl), isNotEmpty);
-    });
+        expect(e.localized(pl), isNot(contains('klucz API')));
+        expect(e.localized(en), isNot(contains('API key')));
+        expect(e.localized(pl), isNotEmpty);
+      },
+    );
 
     test('a deactivated key owner gets the remedy that actually applies', () {
       // "Check the key's permissions" is a dead end here: no scope or group
@@ -80,10 +82,12 @@ void main() {
   /// `messageFor(l10n) ?? itsOwnConfirmation` — the success wording stays the
   /// feature's, the failure wording never is.
   group('an action outcome', () {
-    test('success says nothing, so the caller can fall back to its own line',
-        () {
-      expect(ActionOutcome.ok.messageFor(pl), isNull);
-    });
+    test(
+      'success says nothing, so the caller can fall back to its own line',
+      () {
+        expect(ActionOutcome.ok.messageFor(pl), isNull);
+      },
+    );
 
     test('a failure reads exactly as the shared translator puts it', () {
       const failure = AuthException(

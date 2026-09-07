@@ -35,8 +35,8 @@ class WearShapeQuery {
 
   Future<WearShape> read() async =>
       await platform.ask('isScreenRound', fallback: true)
-          ? WearShape.round
-          : WearShape.square;
+      ? WearShape.round
+      : WearShape.square;
 }
 
 /// Reads the watch's shape once and hands it to everything below.

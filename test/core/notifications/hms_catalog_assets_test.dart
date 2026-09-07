@@ -45,14 +45,16 @@ void main() {
     expect(
       en.describe(printError(0x03008004)),
       isNotNull,
-      reason: 'assets/hms/print_errors_en.json did not load — the rest is vacuous',
+      reason:
+          'assets/hms/print_errors_en.json did not load — the rest is vacuous',
     );
   });
 
   /// The three errors that printer really reported, in fixture order.
   List<HmsError> capturedErrors() {
     final status = PrinterStatus.fromJson(
-        readFixture('printer_status_hms.json') as Map<String, dynamic>);
+      readFixture('printer_status_hms.json') as Map<String, dynamic>,
+    );
     final errors = status.hmsErrors;
     expect(errors, hasLength(3));
     return errors!;
@@ -81,7 +83,10 @@ void main() {
     test('a print error outside bambuddy\'s table stays unnamed', () {
       final unknown = printError(0x0300FFFF);
       expect(en.describe(unknown), isNull);
-      expect(hmsIsDisplayable(unknown, description: en.describe(unknown)), isFalse);
+      expect(
+        hmsIsDisplayable(unknown, description: en.describe(unknown)),
+        isFalse,
+      );
     });
 
     test('a blank full code is no identifier at all', () {
@@ -125,7 +130,10 @@ void main() {
       );
       expect(en.describe(verifyFailed), contains('rejected a command'));
       expect(verifyFailed.shortCode, '0500_0007');
-      expect(en.describe(const HmsError(code: '0x7', attr: 0x05000500)), isNull);
+      expect(
+        en.describe(const HmsError(code: '0x7', attr: 0x05000500)),
+        isNull,
+      );
     });
   });
 
@@ -155,7 +163,10 @@ void main() {
       const noAttr = HmsError(code: '0x1000a');
       expect(noAttr.shortCode, isNull);
       expect(en.describe(noAttr), isNull);
-      expect(hmsIsDisplayable(noAttr, description: en.describe(noAttr)), isFalse);
+      expect(
+        hmsIsDisplayable(noAttr, description: en.describe(noAttr)),
+        isFalse,
+      );
     });
 
     test('an unknown action-bearing fault is still not shown', () {
@@ -169,7 +180,10 @@ void main() {
         actions: const ['RESUME_PRINTING'],
       );
       expect(en.describe(unknown), isNull);
-      expect(hmsIsDisplayable(unknown, description: en.describe(unknown)), isFalse);
+      expect(
+        hmsIsDisplayable(unknown, description: en.describe(unknown)),
+        isFalse,
+      );
     });
   });
 
@@ -187,8 +201,11 @@ void main() {
     test('names a fault the bundled table has no word for', () {
       const text = 'The left hotend is not installed.';
       final e = printError(0x0300FFFF, description: text);
-      expect(en.describe(printError(0x0300FFFF)), isNull,
-          reason: 'premise: this code is outside the bundled table');
+      expect(
+        en.describe(printError(0x0300FFFF)),
+        isNull,
+        reason: 'premise: this code is outside the bundled table',
+      );
       expect(en.describe(e), text);
       expect(hmsIsDisplayable(e, description: en.describe(e)), isTrue);
       expect(hmsLabel(e, description: en.describe(e)), text);
@@ -203,17 +220,23 @@ void main() {
       expect(pl.describe(runout), isNot(english));
     });
 
-    test('a server too old to send it leaves the code as unknown as before', () {
-      // The whole compatibility claim in one line: absent field = today.
-      final legacy = HmsError.fromJson(const {
-        'code': '0xffff',
-        'attr': 0x0300FFFF,
-        'full_code': '0300FFFF',
-      });
-      expect(legacy.description, isNull);
-      expect(en.describe(legacy), isNull);
-      expect(hmsIsDisplayable(legacy, description: en.describe(legacy)), isFalse);
-    });
+    test(
+      'a server too old to send it leaves the code as unknown as before',
+      () {
+        // The whole compatibility claim in one line: absent field = today.
+        final legacy = HmsError.fromJson(const {
+          'code': '0xffff',
+          'attr': 0x0300FFFF,
+          'full_code': '0300FFFF',
+        });
+        expect(legacy.description, isNull);
+        expect(en.describe(legacy), isNull);
+        expect(
+          hmsIsDisplayable(legacy, description: en.describe(legacy)),
+          isFalse,
+        );
+      },
+    );
 
     test('an empty description is no text, not a fault without text', () {
       // Server-side default is `None`, but a regenerated catalogue could hold a
@@ -243,15 +266,21 @@ void main() {
       // Reported 2026-07-29: healthy X2D, printer/Bambu Studio/bambuddy all
       // fine, the app card red. Module 5 + the severity the server derives from
       // part_id used to compose "Fatal · mainboard" for a code we cannot name.
-      const reported =
-          HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1);
+      const reported = HmsError(
+        code: '0x20070',
+        attr: 83887616,
+        module: 5,
+        severity: 1,
+      );
       final description = en.describe(reported);
       expect(description, isNull);
       expect(hmsIsDisplayable(reported, description: description), isFalse);
       expect(hmsIsNotifiable(reported, description: description), isFalse);
       expect(hmsLabel(reported, description: description), isNull);
-      expect(hmsHumanText(reported, description: description),
-          '0500-0600-0002-0070');
+      expect(
+        hmsHumanText(reported, description: description),
+        '0500-0600-0002-0070',
+      );
     });
   });
 
@@ -269,10 +298,14 @@ void main() {
       });
 
       expect(en.describe(described), 'The AMS lid is open');
-      expect(hmsIsDisplayable(described, description: en.describe(described)),
-          isTrue);
-      expect(hmsIsNotifiable(described, description: en.describe(described)),
-          isTrue);
+      expect(
+        hmsIsDisplayable(described, description: en.describe(described)),
+        isTrue,
+      );
+      expect(
+        hmsIsNotifiable(described, description: en.describe(described)),
+        isTrue,
+      );
     });
 
     test('the bundled table wins, because it is the localized one', () async {
@@ -310,19 +343,23 @@ void main() {
   });
 
   group('locales', () {
-    test('pl describes the same codes in Polish and keeps unknowns unknown',
-        () async {
-      final pl = HmsCatalog();
-      await pl.load(const Locale('pl'));
-      expect(pl.describe(printError(0x03008004)), contains('filament'));
-      expect(pl.describe(printError(0x0300FFFF)), isNull);
-    });
+    test(
+      'pl describes the same codes in Polish and keeps unknowns unknown',
+      () async {
+        final pl = HmsCatalog();
+        await pl.load(const Locale('pl'));
+        expect(pl.describe(printError(0x03008004)), contains('filament'));
+        expect(pl.describe(printError(0x0300FFFF)), isNull);
+      },
+    );
 
     test('an unsupported locale falls back to the English table', () async {
       final de = HmsCatalog();
       await de.load(const Locale('de'));
-      expect(de.describe(printError(0x03008004)),
-          en.describe(printError(0x03008004)));
+      expect(
+        de.describe(printError(0x03008004)),
+        en.describe(printError(0x03008004)),
+      );
     });
   });
 }

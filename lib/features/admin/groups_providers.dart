@@ -11,8 +11,8 @@ import '../../providers.dart';
 /// empty list the way the picker does.
 final groupsListProvider =
     AutoDisposeAsyncNotifierProvider<GroupsListNotifier, List<GroupSummary>>(
-  GroupsListNotifier.new,
-);
+      GroupsListNotifier.new,
+    );
 
 class GroupsListNotifier extends AutoDisposeAsyncNotifier<List<GroupSummary>> {
   @override
@@ -22,15 +22,21 @@ class GroupsListNotifier extends AutoDisposeAsyncNotifier<List<GroupSummary>> {
   }
 
   Future<void> refresh() async {
-    state =
-        const AsyncValue<List<GroupSummary>>.loading().copyWithPrevious(state);
-    state =
-        await AsyncValue.guard(() => ref.read(groupsRepositoryProvider).list());
+    state = const AsyncValue<List<GroupSummary>>.loading().copyWithPrevious(
+      state,
+    );
+    state = await AsyncValue.guard(
+      () => ref.read(groupsRepositoryProvider).list(),
+    );
   }
 }
 
-final groupDetailProvider = AutoDisposeAsyncNotifierProviderFamily<
-    GroupDetailNotifier, GroupDetail, int>(GroupDetailNotifier.new);
+final groupDetailProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+      GroupDetailNotifier,
+      GroupDetail,
+      int
+    >(GroupDetailNotifier.new);
 
 /// One group with its members, keyed by id. Membership changes refresh this
 /// and the list (which carries `user_count`), and the account list too — the
@@ -54,11 +60,12 @@ class GroupDetailNotifier
 /// Every permission the server knows, for the editor to build itself from.
 /// Kept alive per screen rather than cached forever: the catalog grows with
 /// the server, and this is read once per form.
-final permissionCatalogProvider =
-    FutureProvider.autoDispose<PermissionCatalog>((ref) {
-  ref.watch(serverProfileProvider);
-  return ref.read(groupsRepositoryProvider).permissions();
-});
+final permissionCatalogProvider = FutureProvider.autoDispose<PermissionCatalog>(
+  (ref) {
+    ref.watch(serverProfileProvider);
+    return ref.read(groupsRepositoryProvider).permissions();
+  },
+);
 
 /// Whether the signed-in identity may see the groups at all.
 final canReadGroupsProvider = Provider<bool>(

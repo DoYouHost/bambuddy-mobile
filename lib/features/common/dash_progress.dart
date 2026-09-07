@@ -30,12 +30,12 @@ class DashSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: color,
-          value: value,
-        ),
-      );
+    width: size,
+    height: size,
+    child: CircularProgressIndicator(
+      strokeWidth: 2,
+      color: color,
+      value: value,
+    ),
+  );
 }

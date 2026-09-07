@@ -143,8 +143,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       suffixIcon: IconButton(
                         onPressed: state.busy ? null : _scanApiKey,
                         tooltip: l10n.scanApiKeyTitle,
-                        icon:
-                            Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                        icon: Icon(
+                          Icons.qr_code_scanner,
+                          color: t.textSecondary,
+                        ),
                       ).tagged('setup.scan_api_key'),
                     ),
                     onSubmitted: (v) => controller.probe(v),
@@ -153,8 +155,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 const SizedBox(height: 12),
                 FilledButton(
                   style: dashPrimaryButtonStyle(t),
-                  onPressed:
-                      state.busy ? null : () => controller.probe(_url.text),
+                  onPressed: state.busy
+                      ? null
+                      : () => controller.probe(_url.text),
                   child: Text(l10n.testConnection),
                 ).tagged('setup.test_connection'),
                 const SizedBox(height: 4),
@@ -220,10 +223,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final method = _method ?? challenge.methods.first;
     return [
       const SizedBox(height: 24),
-      Text(
-        l10n.twoFactorTitle,
-        style: t.titleSm,
-      ),
+      Text(l10n.twoFactorTitle, style: t.titleSm),
       const SizedBox(height: 8),
       if (challenge.methods.length > 1) ...[
         SegmentedButton<TwoFactorMethod>(
@@ -268,7 +268,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
           ],
           style: t.monoHeadline.copyWith(letterSpacing: 4),
-          decoration: dashFieldDecoration(t, labelText: l10n.twoFactorCodeLabel),
+          decoration: dashFieldDecoration(
+            t,
+            labelText: l10n.twoFactorCodeLabel,
+          ),
           onSubmitted: (v) =>
               controller.verifyTwoFactor(method: method, code: v),
         ),
@@ -277,12 +280,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         logTag(
           'setup.two_factor_send_email',
           TextButton.icon(
-            onPressed:
-                state.busy ? null : controller.sendTwoFactorEmailCode,
+            onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,
             icon: Icon(Icons.mail_outline, size: 18, color: t.textSecondary),
-            label: Text(state.emailCodeSent
-                ? l10n.twoFactorResendEmail
-                : l10n.twoFactorSendEmail),
+            label: Text(
+              state.emailCodeSent
+                  ? l10n.twoFactorResendEmail
+                  : l10n.twoFactorSendEmail,
+            ),
             style: TextButton.styleFrom(
               foregroundColor: t.textSecondary,
               textStyle: const TextStyle(
@@ -299,7 +303,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         onPressed: state.busy
             ? null
             : () =>
-                controller.verifyTwoFactor(method: method, code: _code.text),
+                  controller.verifyTwoFactor(method: method, code: _code.text),
         child: Text(l10n.twoFactorVerify),
       ).tagged('setup.two_factor_verify'),
       const SizedBox(height: 4),
@@ -327,10 +331,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
       ),
       const SizedBox(height: 4),
-      Text(
-        l10n.twoFactorSessionNote,
-        style: t.label,
-      ),
+      Text(l10n.twoFactorSessionNote, style: t.label),
     ];
   }
 
@@ -345,112 +346,101 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     AppLocalizations l10n,
     TwoFactorMethod method, {
     required bool sent,
-  }) =>
-      switch (method) {
-        TwoFactorMethod.totp => l10n.twoFactorExplainTotp,
-        TwoFactorMethod.email =>
-          sent ? l10n.twoFactorExplainEmailSent : l10n.twoFactorExplainEmail,
-        TwoFactorMethod.backup => l10n.twoFactorExplainBackup,
-      };
+  }) => switch (method) {
+    TwoFactorMethod.totp => l10n.twoFactorExplainTotp,
+    TwoFactorMethod.email =>
+      sent ? l10n.twoFactorExplainEmailSent : l10n.twoFactorExplainEmail,
+    TwoFactorMethod.backup => l10n.twoFactorExplainBackup,
+  };
 
   List<Widget> _authSection(
-          DashTokens t, AppLocalizations l10n, SetupController controller) =>
-      [
-        const SizedBox(height: 24),
-        Text(
-          l10n.serverRequiresAuth,
-          style: t.titleSm,
+    DashTokens t,
+    AppLocalizations l10n,
+    SetupController controller,
+  ) => [
+    const SizedBox(height: 24),
+    Text(l10n.serverRequiresAuth, style: t.titleSm),
+    const SizedBox(height: 8),
+    SegmentedButton<bool>(
+      segments: [
+        ButtonSegment(value: false, label: Text(l10n.authModeApiKey)),
+        ButtonSegment(value: true, label: Text(l10n.authModeLogin)),
+      ],
+      selected: {_useLogin},
+      onSelectionChanged: (s) => setState(() => _useLogin = s.first),
+    ).tagged('setup.auth_mode'),
+    const SizedBox(height: 16),
+    if (!_useLogin) ...[
+      Text(l10n.apiKeyExplain, style: t.bodySoft),
+      const SizedBox(height: 12),
+      logTag(
+        'setup.api_key',
+        TextField(
+          controller: _apiKey,
+          autocorrect: false,
+          style: t.monoValue,
+          decoration: dashFieldDecoration(
+            t,
+            labelText: l10n.apiKeyLabel,
+            hintText: 'bb_…',
+            suffixIcon: IconButton(
+              onPressed: _scanApiKey,
+              tooltip: l10n.scanApiKeyTitle,
+              icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+            ).tagged('setup.scan_api_key'),
+          ),
         ),
-        const SizedBox(height: 8),
-        SegmentedButton<bool>(
-          segments: [
-            ButtonSegment(value: false, label: Text(l10n.authModeApiKey)),
-            ButtonSegment(value: true, label: Text(l10n.authModeLogin)),
-          ],
-          selected: {_useLogin},
-          onSelectionChanged: (s) => setState(() => _useLogin = s.first),
-        ).tagged('setup.auth_mode'),
-        const SizedBox(height: 16),
-        if (!_useLogin) ...[
-          Text(
-            l10n.apiKeyExplain,
-            style: t.bodySoft,
-          ),
-          const SizedBox(height: 12),
-          logTag(
-            'setup.api_key',
-            TextField(
-              controller: _apiKey,
-              autocorrect: false,
-              style: t.monoValue,
-              decoration: dashFieldDecoration(
-                t,
-                labelText: l10n.apiKeyLabel,
-                hintText: 'bb_…',
-                suffixIcon: IconButton(
-                  onPressed: _scanApiKey,
-                  tooltip: l10n.scanApiKeyTitle,
-                  icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
-                ).tagged('setup.scan_api_key'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            style: dashPrimaryButtonStyle(t),
-            onPressed: () => controller.connectWithApiKey(_apiKey.text),
-            child: Text(l10n.saveAndConnect),
-          ).tagged('setup.connect_api_key'),
-        ] else ...[
-          Text(
-            l10n.loginExplain,
-            style: t.bodySoft,
-          ),
-          const SizedBox(height: 12),
-          logTag(
-            'setup.username',
-            TextField(
-              controller: _username,
-              autocorrect: false,
-              style: t.bodyStrong,
-              decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
-            ),
-          ),
-          const SizedBox(height: 12),
-          logTag(
-            'setup.password',
-            TextField(
-              controller: _password,
-              obscureText: true,
-              style: t.bodyStrong,
-              decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
-            ),
-          ),
-          CheckboxListTile(
-            value: _remember,
-            onChanged: (v) => setState(() => _remember = v ?? false),
-            title: Text(
-              l10n.rememberMe,
-              style: t.bodyStrong,
-            ),
-            subtitle: Text(
-              l10n.rememberMeSubtitle,
-              style: t.labelSoft.copyWith(color: t.textSecondary),
-            ),
-            activeColor: t.accentGreen,
-            checkColor: const Color(0xFF0A0C08),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ).tagged('setup.remember_me'),
-          FilledButton(
-            style: dashPrimaryButtonStyle(t),
-            onPressed: () => controller.connectWithLogin(
-              username: _username.text.trim(),
-              password: _password.text,
-              remember: _remember,
-            ),
-            child: Text(l10n.signInAndConnect),
-          ).tagged('setup.connect_login'),
-        ],
-      ];
+      ),
+      const SizedBox(height: 12),
+      FilledButton(
+        style: dashPrimaryButtonStyle(t),
+        onPressed: () => controller.connectWithApiKey(_apiKey.text),
+        child: Text(l10n.saveAndConnect),
+      ).tagged('setup.connect_api_key'),
+    ] else ...[
+      Text(l10n.loginExplain, style: t.bodySoft),
+      const SizedBox(height: 12),
+      logTag(
+        'setup.username',
+        TextField(
+          controller: _username,
+          autocorrect: false,
+          style: t.bodyStrong,
+          decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
+        ),
+      ),
+      const SizedBox(height: 12),
+      logTag(
+        'setup.password',
+        TextField(
+          controller: _password,
+          obscureText: true,
+          style: t.bodyStrong,
+          decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
+        ),
+      ),
+      CheckboxListTile(
+        value: _remember,
+        onChanged: (v) => setState(() => _remember = v ?? false),
+        title: Text(l10n.rememberMe, style: t.bodyStrong),
+        subtitle: Text(
+          l10n.rememberMeSubtitle,
+          style: t.labelSoft.copyWith(color: t.textSecondary),
+        ),
+        activeColor: t.accentGreen,
+        checkColor: const Color(0xFF0A0C08),
+        controlAffinity: ListTileControlAffinity.leading,
+        contentPadding: EdgeInsets.zero,
+      ).tagged('setup.remember_me'),
+      FilledButton(
+        style: dashPrimaryButtonStyle(t),
+        onPressed: () => controller.connectWithLogin(
+          username: _username.text.trim(),
+          password: _password.text,
+          remember: _remember,
+        ),
+        child: Text(l10n.signInAndConnect),
+      ).tagged('setup.connect_login'),
+    ],
+  ];
 }

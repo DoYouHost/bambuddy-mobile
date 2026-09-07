@@ -40,6 +40,17 @@ enum AppErrorCode {
 
   apiKeyRejected,
 
+  /// The slot holds no readable RFID tag, so Spoolman — which binds a spool to
+  /// the tag rather than to the (printer, AMS, tray) triple the native backend
+  /// writes — has nothing to bind to. Raised before the request, because the
+  /// server spends a bare 400 on it and that reaches the user as a number.
+  slotTagUnreadable,
+
+  /// The printer is not reachable, so the app cannot read what its slot holds.
+  /// Told apart from [slotTagUnreadable] because the remedy is the opposite:
+  /// nothing is wrong with the filament, the machine simply has to come back.
+  printerOffline,
+
   /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
   /// the password, so a rate-limited user gets it even when they finally type
   /// the right one; its own code because "wait 15 minutes" and "your password
@@ -116,22 +127,12 @@ class ApiException extends AppApiException {
 
 /// Bad credentials, an expired token or key, or missing permissions.
 class AuthException extends AppApiException {
-  const AuthException(
-    super.code, {
-    super.detail,
-    super.method,
-    super.path,
-  });
+  const AuthException(super.code, {super.detail, super.method, super.path});
 }
 
 /// Timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
-  const NetworkException(
-    super.code, {
-    super.detail,
-    super.method,
-    super.path,
-  });
+  const NetworkException(super.code, {super.detail, super.method, super.path});
 }
 
 /// The `on DioException catch (e) { throw mapDioException(e); }` every
@@ -141,6 +142,22 @@ Future<T> guard<T>(Future<T> Function() body) async {
     return await body();
   } on DioException catch (e) {
     throw mapDioException(e);
+  }
+}
+
+/// [guard] for a route that enforces a rule the app does not re-implement, so
+/// the 400 or 422 keeps the sentence explaining it — see
+/// [mapDioExceptionKeepingDetail] for which statuses that is and why.
+///
+/// The missing sibling for a long time: seventeen writes across eight
+/// repositories each spelled the `try` / `on DioException` out by hand purely
+/// to swap the mapper, and one of them grew a private `_removal` wrapper for
+/// three routes that needed it at once.
+Future<T> guardKeepingDetail<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    throw mapDioExceptionKeepingDetail(e);
   }
 }
 
@@ -245,13 +262,20 @@ AppApiException mapDioException(DioException e) {
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
-      return NetworkException(AppErrorCode.serverUnreachable,
-          detail: e.message, method: method, path: path);
+      return NetworkException(
+        AppErrorCode.serverUnreachable,
+        detail: e.message,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.badResponse:
       final code = e.response?.statusCode;
       if (code == 401) {
-        return AuthException(AppErrorCode.unauthorized,
-            method: method, path: path);
+        return AuthException(
+          AppErrorCode.unauthorized,
+          method: method,
+          path: path,
+        );
       }
       if (code == 403) {
         // The only party that knows *which* permission is missing is the
@@ -267,17 +291,32 @@ AppApiException mapDioException(DioException e) {
         );
       }
       if (code == 429) {
-        return ApiException(AppErrorCode.tooManyAttempts,
-            statusCode: 429, method: method, path: path);
+        return ApiException(
+          AppErrorCode.tooManyAttempts,
+          statusCode: 429,
+          method: method,
+          path: path,
+        );
       }
-      return ApiException(AppErrorCode.badResponse,
-          statusCode: code, method: method, path: path);
+      return ApiException(
+        AppErrorCode.badResponse,
+        statusCode: code,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.badCertificate:
-      return NetworkException(AppErrorCode.badCertificate,
-          method: method, path: path);
+      return NetworkException(
+        AppErrorCode.badCertificate,
+        method: method,
+        path: path,
+      );
     case DioExceptionType.cancel:
     case DioExceptionType.unknown:
-      return NetworkException(AppErrorCode.connectionError,
-          detail: e.message, method: method, path: path);
+      return NetworkException(
+        AppErrorCode.connectionError,
+        detail: e.message,
+        method: method,
+        path: path,
+      );
   }
 }

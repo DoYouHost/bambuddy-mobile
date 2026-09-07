@@ -24,10 +24,10 @@ enum No3mfReason {
   slicerSetting;
 
   static No3mfReason fromSlug(dynamic value) => switch (toStringOrNull(value)) {
-        'internal_storage' => No3mfReason.internalStorage,
-        'no_external_storage' => No3mfReason.noExternalStorage,
-        _ => No3mfReason.slicerSetting,
-      };
+    'internal_storage' => No3mfReason.internalStorage,
+    'no_external_storage' => No3mfReason.noExternalStorage,
+    _ => No3mfReason.slicerSetting,
+  };
 }
 
 /// Whether to nudge the user about prints that archived without their 3MF.
@@ -35,18 +35,17 @@ enum No3mfReason {
 /// True iff any archive in the last 30 days came through the no-3MF fallback.
 /// The server keeps no dismissal state — that is the client's to remember.
 class No3mfWarning {
-  const No3mfWarning({
-    required this.hasFallback,
-    required this.reason,
-  });
+  const No3mfWarning({required this.hasFallback, required this.reason});
 
   factory No3mfWarning.fromJson(Map<String, dynamic> json) => No3mfWarning(
-        hasFallback: json['has_fallback'] == true,
-        reason: No3mfReason.fromSlug(json['reason']),
-      );
+    hasFallback: json['has_fallback'] == true,
+    reason: No3mfReason.fromSlug(json['reason']),
+  );
 
-  static const none =
-      No3mfWarning(hasFallback: false, reason: No3mfReason.slicerSetting);
+  static const none = No3mfWarning(
+    hasFallback: false,
+    reason: No3mfReason.slicerSetting,
+  );
 
   final bool hasFallback;
 

@@ -61,10 +61,10 @@ class WidgetCoverCache {
     Future<String> Function({bool forceRefresh}) token,
   ) async {
     Future<Response<List<int>>> get(String t) => dio.get<List<int>>(
-          url,
-          queryParameters: {'token': t},
-          options: Options(responseType: ResponseType.bytes),
-        );
+      url,
+      queryParameters: {'token': t},
+      options: Options(responseType: ResponseType.bytes),
+    );
 
     try {
       final res = await get(await token());

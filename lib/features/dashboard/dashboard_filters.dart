@@ -5,7 +5,15 @@ import '../../core/notifications/hms_catalog.dart';
 
 /// Coarse status buckets a printer can fall into on the dashboard — mirrors the
 /// web app's `classifyPrinterStatus` so both clients group printers the same way.
-enum PrinterStatusBucket { all, printing, idle, paused, finished, error, offline }
+enum PrinterStatusBucket {
+  all,
+  printing,
+  idle,
+  paused,
+  finished,
+  error,
+  offline,
+}
 
 /// Classify a printer's live [status] into one bucket. Priority mirrors the web:
 /// offline (no connection) wins, then error (state FAILED or a displayable HMS
@@ -16,8 +24,11 @@ PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
   // Error = the same displayable HMS errors the card surfaces, or a FAILED
   // terminal state — through the shared filter, so the two cannot drift.
   final hasError =
-      firstDisplayableHmsError(status!, describe: HmsCatalog.instance.describe) !=
-          null;
+      firstDisplayableHmsError(
+        status!,
+        describe: HmsCatalog.instance.describe,
+      ) !=
+      null;
   if (hasError) return PrinterStatusBucket.error;
   switch (status.state?.toUpperCase()) {
     case 'RUNNING':
@@ -66,10 +77,7 @@ class DashboardFilters {
     return true;
   }
 
-  DashboardFilters copyWith({
-    PrinterStatusBucket? status,
-    bool? hideOffline,
-  }) =>
+  DashboardFilters copyWith({PrinterStatusBucket? status, bool? hideOffline}) =>
       DashboardFilters(
         status: status ?? this.status,
         hideOffline: hideOffline ?? this.hideOffline,

@@ -5,27 +5,27 @@ import 'package:flutter_test/flutter_test.dart';
 /// field that goes missing reads as a wrong value rather than as a null the
 /// server never sent.
 PrintLogEntry _full() => PrintLogEntry(
-      id: 7,
-      status: 'failed',
-      createdAt: DateTime(2026, 8, 1, 9, 59),
-      archiveId: 82,
-      printName: 'Benchy',
-      printerName: 'P1S',
-      printerId: 3,
-      startedAt: DateTime(2026, 8, 1, 10),
-      completedAt: DateTime(2026, 8, 1, 11, 30),
-      durationSeconds: 5400,
-      filamentType: 'PLA',
-      filamentColor: '#00AE42',
-      filamentUsedGrams: 42.5,
-      cost: 1.23,
-      energyKwh: 0.42,
-      energyCost: 0.19,
-      failureReason: 'warping',
-      thumbnailPath: 'data/thumbs/7.png',
-      createdById: 2,
-      createdByUsername: 'zosia',
-    );
+  id: 7,
+  status: 'failed',
+  createdAt: DateTime(2026, 8, 1, 9, 59),
+  archiveId: 82,
+  printName: 'Benchy',
+  printerName: 'P1S',
+  printerId: 3,
+  startedAt: DateTime(2026, 8, 1, 10),
+  completedAt: DateTime(2026, 8, 1, 11, 30),
+  durationSeconds: 5400,
+  filamentType: 'PLA',
+  filamentColor: '#00AE42',
+  filamentUsedGrams: 42.5,
+  cost: 1.23,
+  energyKwh: 0.42,
+  energyCost: 0.19,
+  failureReason: 'warping',
+  thumbnailPath: 'data/thumbs/7.png',
+  createdById: 2,
+  createdByUsername: 'zosia',
+);
 
 void main() {
   group('copyWith', () {
@@ -39,8 +39,11 @@ void main() {
       final after = before.copyWith(status: 'completed');
 
       expect(after.status, 'completed');
-      expect(after.cost, before.cost,
-          reason: 'a pre-1.2.6 PATCH answer omits cost; the local row holds it');
+      expect(
+        after.cost,
+        before.cost,
+        reason: 'a pre-1.2.6 PATCH answer omits cost; the local row holds it',
+      );
       expect(after.energyKwh, before.energyKwh);
       expect(after.energyCost, before.energyCost);
       expect(after.failureReason, before.failureReason);

@@ -14,7 +14,6 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -54,25 +53,33 @@ const _tree = [
     'groups': [
       {
         'group': 'Layer height',
-        'options': ['layer_height', 'sparse_infill_density', 'support_filament'],
+        'options': [
+          'layer_height',
+          'sparse_infill_density',
+          'support_filament',
+        ],
       },
     ],
   },
 ];
 
 Future<ProcessSchemaCatalog> _catalog() async {
-  final catalog = ProcessSchemaCatalog(readAsset: (key) async => switch (key) {
-        'assets/slicer/process-schema.json' => jsonEncode(_schema),
-        'assets/slicer/process-ui-tree.json' => jsonEncode(_tree),
-        _ => jsonEncode(const {'locals': {}, 'rules': []}),
-      });
+  final catalog = ProcessSchemaCatalog(
+    readAsset: (key) async => switch (key) {
+      'assets/slicer/process-schema.json' => jsonEncode(_schema),
+      'assets/slicer/process-ui-tree.json' => jsonEncode(_tree),
+      _ => jsonEncode(const {'locals': {}, 'rules': []}),
+    },
+  );
   await catalog.load();
   return catalog;
 }
 
 const _presets = UnifiedPresets(
   printers: [SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D')],
-  processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard')],
+  processes: [
+    SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
+  ],
   filaments: [SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic')],
 );
 
@@ -83,7 +90,10 @@ class _CapturingRepository extends SlicerRepository {
   Map<String, dynamic>? body;
 
   /// What the finished job reports back, as the server's `SliceResponse`.
-  Map<String, dynamic> result = const {'library_file_id': 9, 'name': 'out.gcode.3mf'};
+  Map<String, dynamic> result = const {
+    'library_file_id': 9,
+    'name': 'out.gcode.3mf',
+  };
 
   @override
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) async {
@@ -92,8 +102,11 @@ class _CapturingRepository extends SlicerRepository {
   }
 
   @override
-  Future<SliceJob> job(int jobId) async => SliceJob.fromJson(
-      {'job_id': jobId, 'status': 'completed', 'result': result});
+  Future<SliceJob> job(int jobId) async => SliceJob.fromJson({
+    'job_id': jobId,
+    'status': 'completed',
+    'result': result,
+  });
 }
 
 void main() {
@@ -110,7 +123,10 @@ void main() {
   Future<void> openSheet(
     WidgetTester tester, {
     bool available = true,
-    PresetValues presetValues = const PresetValues(resolved: true, reason: 'ok'),
+    PresetValues presetValues = const PresetValues(
+      resolved: true,
+      reason: 'ok',
+    ),
     List<FilamentRequirement> requirements = const [],
     EmbeddedSettings embedded = EmbeddedSettings.none,
     UnifiedPresets presets = _presets,
@@ -120,7 +136,21 @@ void main() {
     bool pipelinesSupported = false,
     List<OwnedFilament> owned = const [],
   }) async {
-    await tester.pumpWidget(ProviderScope(
+    await pumpPhone(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => showSliceScreen(
+                context,
+                const SliceTarget.archive(5, 'thing.3mf'),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
       overrides: [
         slicerRepositoryProvider.overrideWithValue(repo),
         slicerPresetsProvider.overrideWith((ref) async => presets),
@@ -128,31 +158,24 @@ void main() {
         sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider.overrideWith((ref) async => owned),
-        filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
+        filamentRequirementsProvider.overrideWith(
+          (ref, arg) async => requirements,
+        ),
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
         presetValuesProvider.overrideWith((ref, arg) async => presetValues),
         // Inert by default: without these the bar probes the pipeline routes
         // over a real Dio and leaves a hanging timer, the same trap as
         // [inertFirmwareOverride].
-        pipelinesSupportedProvider.overrideWith((ref) async => pipelinesSupported),
+        pipelinesSupportedProvider.overrideWith(
+          (ref) async => pipelinesSupported,
+        ),
         pipelinesProvider.overrideWith((ref) async => pipelines),
         // Reaches `currentUserProvider` and the repository's observed latch,
         // neither of which these tests stand up.
         canWritePipelinesProvider.overrideWith((ref) async => true),
       ],
-      child: plApp(Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: ElevatedButton(
-              onPressed: () => showSliceScreen(
-                  context, const SliceTarget.archive(5, 'thing.3mf')),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      )),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -172,8 +195,9 @@ void main() {
   }
 
   group('the shape of the form', () {
-    testWidgets('the plate is a plain row, not folded behind Advanced',
-        (tester) async {
+    testWidgets('the plate is a plain row, not folded behind Advanced', (
+      tester,
+    ) async {
       // It was briefly collapsed together with the layout switches; the plate
       // and how objects land on it are basic choices, not expert ones, so they
       // sit in the list like everything else.
@@ -182,15 +206,19 @@ void main() {
       expect(find.text('Zaawansowane'), findsNothing);
     });
 
-    testWidgets('the submit button is reachable without scrolling to it',
-        (tester) async {
+    testWidgets('the submit button is reachable without scrolling to it', (
+      tester,
+    ) async {
       // The reason this is a screen: as the last item of a scrolling sheet the
       // button sat below the fold on a multicolour file, and was clipped.
-      await openSheet(tester, requirements: const [
-        FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
-        FilamentRequirement(slotId: 2, type: 'PETG', color: '#00FF00'),
-        FilamentRequirement(slotId: 3, type: 'PETG', color: '#0000FF'),
-      ]);
+      await openSheet(
+        tester,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
+          FilamentRequirement(slotId: 2, type: 'PETG', color: '#00FF00'),
+          FilamentRequirement(slotId: 3, type: 'PETG', color: '#0000FF'),
+        ],
+      );
       // The form really is longer than the viewport — the last filament is
       // below the fold, which is what used to bury the button with it.
       expect(find.text('Filament 3'), findsNothing);
@@ -205,10 +233,13 @@ void main() {
       // With full_slots the list covers every project slot, so a slot the plate
       // ignores still needs a preset — the slicer wants one per slot. Saying
       // which ones it ignores is what stops a hunt for the wrong spool.
-      await openSheet(tester, requirements: const [
-        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
-        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
-      ]);
+      await openSheet(
+        tester,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+          FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
+        ],
+      );
       expect(find.text('Nieużywany na tej płycie'), findsOneWidget);
       expect(find.text('Filament 2'), findsOneWidget);
 
@@ -217,30 +248,36 @@ void main() {
       expect(body['filament_presets'], hasLength(2));
     });
 
-    testWidgets('are not marked when the server discriminated nothing',
-        (tester) async {
+    testWidgets('are not marked when the server discriminated nothing', (
+      tester,
+    ) async {
       // Its own fallback flags every slot used, so all-true means either "all
       // used" or "could not tell" — marking then would claim knowledge nobody
       // has.
-      await openSheet(tester, requirements: const [
-        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
-        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: true),
-      ]);
+      await openSheet(
+        tester,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+          FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: true),
+        ],
+      );
       expect(find.text('Nieużywany na tej płycie'), findsNothing);
     });
   });
 
   group('the entry point', () {
-    testWidgets('is absent when the server or our assets cannot support it',
-        (tester) async {
+    testWidgets('is absent when the server or our assets cannot support it', (
+      tester,
+    ) async {
       // Absent rather than disabled: an older server drops process_overrides
       // without a word, so a control that appears to work is worse than none.
       await openSheet(tester, available: false);
       expect(find.text('Ustawienia procesu'), findsNothing);
     });
 
-    testWidgets('shows the preset is untouched before anything is edited',
-        (tester) async {
+    testWidgets('shows the preset is untouched before anything is edited', (
+      tester,
+    ) async {
       await openSheet(tester);
       expect(find.text('Ustawienia procesu'), findsOneWidget);
       expect(find.text('Preset bez zmian'), findsOneWidget);
@@ -248,31 +285,40 @@ void main() {
   });
 
   group('the request body', () {
-    testWidgets('carries no process_overrides key when nothing was edited',
-        (tester) async {
+    testWidgets('carries no process_overrides key when nothing was edited', (
+      tester,
+    ) async {
       await openSheet(tester);
       final body = await slice(tester);
-      expect(body.containsKey('process_overrides'), isFalse,
-          reason: 'an untouched sheet must slice exactly as it did before');
+      expect(
+        body.containsKey('process_overrides'),
+        isFalse,
+        reason: 'an untouched sheet must slice exactly as it did before',
+      );
       expect(body['printer_preset'], {'source': 'local', 'id': '1'});
     });
 
-    testWidgets('carries the edits, serialised through the schema',
-        (tester) async {
+    testWidgets('carries the edits, serialised through the schema', (
+      tester,
+    ) async {
       await openSheet(tester);
       await tester.tap(find.text('Ustawienia procesu'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.descendant(
-              of: find.byKey(const ValueKey('layer_height')),
-              matching: find.byType(TextField)),
-          '0.28');
+        find.descendant(
+          of: find.byKey(const ValueKey('layer_height')),
+          matching: find.byType(TextField),
+        ),
+        '0.28',
+      );
       await tester.enterText(
-          find.descendant(
-              of: find.byKey(const ValueKey('sparse_infill_density')),
-              matching: find.byType(TextField)),
-          '25');
+        find.descendant(
+          of: find.byKey(const ValueKey('sparse_infill_density')),
+          matching: find.byType(TextField),
+        ),
+        '25',
+      );
       await tester.pumpAndSettle();
 
       // Back out of the screen: the edits live in the sheet, so there is no
@@ -289,19 +335,26 @@ void main() {
       });
     });
 
-    testWidgets('carries a filament slot as the index the slicer stores',
-        (tester) async {
+    testWidgets('carries a filament slot as the index the slicer stores', (
+      tester,
+    ) async {
       // The form's own picks are what name the slots in there, so this proves the
       // whole path: pick → label → index → body.
-      await openSheet(tester, requirements: const [
-        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
-        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
-      ]);
+      await openSheet(
+        tester,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+          FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
+        ],
+      );
       await tester.tap(find.text('Ustawienia procesu'));
       await tester.pumpAndSettle();
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byKey(const ValueKey('support_filament')),
-          matching: find.byType(DropdownMenu<String>)));
+          matching: find.byType(DropdownMenu<String>),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Named after the preset the form auto-picked, not "1" and "2"; and the
@@ -318,26 +371,37 @@ void main() {
       expect(body['process_overrides'], {'support_filament': '2'});
     });
 
-    testWidgets('drops an edit that matches what the preset already says',
-        (tester) async {
-      await openSheet(tester,
-          presetValues: const PresetValues(
-              resolved: true, reason: 'ok', values: {'layer_height': '0.28'}));
+    testWidgets('drops an edit that matches what the preset already says', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        presetValues: const PresetValues(
+          resolved: true,
+          reason: 'ok',
+          values: {'layer_height': '0.28'},
+        ),
+      );
       await tester.tap(find.text('Ustawienia procesu'));
       await tester.pumpAndSettle();
       await tester.enterText(
-          find.descendant(
-              of: find.byKey(const ValueKey('layer_height')),
-              matching: find.byType(TextField)),
-          '0.28');
+        find.descendant(
+          of: find.byKey(const ValueKey('layer_height')),
+          matching: find.byType(TextField),
+        ),
+        '0.28',
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
       expect(find.text('Preset bez zmian'), findsOneWidget);
       final body = await slice(tester);
-      expect(body.containsKey('process_overrides'), isFalse,
-          reason: 'an override equal to the preset is noise in the process JSON');
+      expect(
+        body.containsKey('process_overrides'),
+        isFalse,
+        reason: 'an override equal to the preset is noise in the process JSON',
+      );
     });
   });
 
@@ -351,9 +415,13 @@ void main() {
     ];
 
     testWidgets('reaches the body as the picked spool colour', (tester) async {
-      await openSheet(tester, owned: shelf, requirements: const [
-        FilamentRequirement(slotId: 1, type: 'PLA', color: '#0000FF'),
-      ]);
+      await openSheet(
+        tester,
+        owned: shelf,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PLA', color: '#0000FF'),
+        ],
+      );
       final body = await slice(tester);
       expect(body['filament_colours'], ['#0000FF']);
     });
@@ -378,66 +446,80 @@ void main() {
     );
     const catalog = UnifiedPresets(
       printers: [
-        SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D 0.4 nozzle'),
         SlicerPreset(
-            source: 'standard',
-            id: '9',
-            name: 'Bambu Lab X1 Carbon 0.4 nozzle'),
+          source: 'local',
+          id: '1',
+          name: 'Bambu Lab X2D 0.4 nozzle',
+        ),
+        SlicerPreset(
+          source: 'standard',
+          id: '9',
+          name: 'Bambu Lab X1 Carbon 0.4 nozzle',
+        ),
       ],
       processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm')],
       filaments: [SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA')],
     );
 
-    Future<void> open(WidgetTester tester,
-            {EmbeddedSettings embedded = foreign,
-            UnifiedPresets presets = catalog}) =>
-        openSheet(tester,
-            embedded: embedded,
-            presets: presets,
-            ownedCodes: const {'X2D'});
+    Future<void> open(
+      WidgetTester tester, {
+      EmbeddedSettings embedded = foreign,
+      UnifiedPresets presets = catalog,
+    }) => openSheet(
+      tester,
+      embedded: embedded,
+      presets: presets,
+      ownedCodes: const {'X2D'},
+    );
 
-    testWidgets('is named on the printer row when it is not the picked one',
-        (tester) async {
+    testWidgets('is named on the printer row when it is not the picked one', (
+      tester,
+    ) async {
       await open(tester);
 
-      expect(find.text('Plik jest pod X1 Carbon 0.4'),
-          findsOneWidget);
+      expect(find.text('Plik jest pod X1 Carbon 0.4'), findsOneWidget);
       expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
-    testWidgets('switches to it, which is what reveals the switch',
-        (tester) async {
+    testWidgets('switches to it, which is what reveals the switch', (
+      tester,
+    ) async {
       await open(tester);
       await tester.tap(find.text('Przełącz'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bambu Lab X1 Carbon 0.4 nozzle'), findsWidgets);
       expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
-      expect(find.text('Plik jest pod X1 Carbon 0.4'),
-          findsNothing,
-          reason: 'nothing left to point at once it is the picked printer');
+      expect(
+        find.text('Plik jest pod X1 Carbon 0.4'),
+        findsNothing,
+        reason: 'nothing left to point at once it is the picked printer',
+      );
     });
 
-    testWidgets('offers the action as a button, not as a word in a sentence',
-        (tester) async {
+    testWidgets('offers the action as a button, not as a word in a sentence', (
+      tester,
+    ) async {
       // It started as a tappable fragment at the end of the sentence, which the
       // printer's name pushed onto a line of its own — an orphan "·" that read
       // as a rendering fault, with a tap target the size of the words.
       await open(tester);
-      final size = tester.getSize(find.widgetWithText(FilledButton, 'Przełącz'));
+      final size = tester.getSize(
+        find.widgetWithText(FilledButton, 'Przełącz'),
+      );
 
       expect(size.height, greaterThanOrEqualTo(36));
       expect(size.width, greaterThanOrEqualTo(48));
     });
 
-    testWidgets('is named without an action when no preset matches it',
-        (tester) async {
+    testWidgets('is named without an action when no preset matches it', (
+      tester,
+    ) async {
       // Knowing what the file wants is worth something even when there is
       // nothing to switch to; an action that cannot work is not.
       await open(tester, presets: _presets);
 
-      expect(find.text('Plik jest pod X1 Carbon 0.4'),
-          findsOneWidget);
+      expect(find.text('Plik jest pod X1 Carbon 0.4'), findsOneWidget);
       expect(find.text('Przełącz'), findsNothing);
     });
 
@@ -458,36 +540,44 @@ void main() {
       // Absent rather than disabled, for the same reason the layout switches
       // are: nothing rejects the field, so a switch that looks live and slices
       // by the profile anyway is worse than no switch.
-      await openSheet(tester,
-          embedded: const EmbeddedSettings(
-            printer: 'Bambu Lab X2D',
-            process: '0.20mm Standard @BBL X2D',
-            serverSupportsAsDesigned: false,
-          ));
+      await openSheet(
+        tester,
+        embedded: const EmbeddedSettings(
+          printer: 'Bambu Lab X2D',
+          process: '0.20mm Standard @BBL X2D',
+          serverSupportsAsDesigned: false,
+        ),
+      );
       expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
-    testWidgets('is absent for a file with no embedded profile', (tester) async {
+    testWidgets('is absent for a file with no embedded profile', (
+      tester,
+    ) async {
       await openSheet(tester);
       expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
-    testWidgets('is absent while the picked printer is a different model',
-        (tester) async {
+    testWidgets('is absent while the picked printer is a different model', (
+      tester,
+    ) async {
       // The design's printer is not among the offered ones, so the form keeps
       // its own default and the offer never applies — honouring another
       // printer's embedded settings would lay the model out for the wrong bed.
-      await openSheet(tester,
-          embedded: const EmbeddedSettings(
-            printer: 'Bambu Lab P1S 0.4 nozzle',
-            process: '0.20mm Standard @BBL P1S',
-            serverSupportsAsDesigned: true,
-          ));
+      await openSheet(
+        tester,
+        embedded: const EmbeddedSettings(
+          printer: 'Bambu Lab P1S 0.4 nozzle',
+          process: '0.20mm Standard @BBL P1S',
+          serverSupportsAsDesigned: true,
+        ),
+      );
       expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
-    testWidgets('defaults the printer to the one the file was designed for',
-        (tester) async {
+    testWidgets('defaults the printer to the one the file was designed for', (
+      tester,
+    ) async {
       // Without this the switch is unreachable in practice: the user would have
       // to guess which printer makes the offer appear.
       await openSheet(
@@ -499,22 +589,26 @@ void main() {
             SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D'),
           ],
           processes: [
-            SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard')
+            SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
           ],
           filaments: [
-            SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic')
+            SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic'),
           ],
         ),
       );
 
       expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
       final body = await slice(tester);
-      expect(body['printer_preset'], {'source': 'local', 'id': '1'},
-          reason: 'the design\'s printer, not the first in the list');
+      expect(
+        body['printer_preset'],
+        {'source': 'local', 'id': '1'},
+        reason: 'the design\'s printer, not the first in the list',
+      );
     });
 
-    testWidgets('sends the field, and nothing the file overrules',
-        (tester) async {
+    testWidgets('sends the field, and nothing the file overrules', (
+      tester,
+    ) async {
       await openSheet(tester, embedded: designed);
       await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
@@ -532,8 +626,9 @@ void main() {
 
     testWidgets('locks every control the profiles drive', (tester) async {
       await openSheet(tester, embedded: designed);
-      ListTile tile(String label) => tester.widget<ListTile>(find.ancestor(
-          of: find.text(label), matching: find.byType(ListTile)));
+      ListTile tile(String label) => tester.widget<ListTile>(
+        find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
+      );
 
       expect(tile('Drukarka').enabled, isTrue);
       await tester.tap(find.text('Użyj ustawień z pliku'));
@@ -558,8 +653,11 @@ void main() {
       await tester.tap(find.text('Drukarka'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Szukaj profili'), findsNothing,
-          reason: 'the preset picker must not have opened');
+      expect(
+        find.text('Szukaj profili'),
+        findsNothing,
+        reason: 'the preset picker must not have opened',
+      );
     });
 
     testWidgets('dims a locked row, and drops its chevron', (tester) async {
@@ -568,14 +666,20 @@ void main() {
       await openSheet(tester, embedded: designed);
       double dimOf(String label) => tester
           .widgetList<Opacity>(
-              find.ancestor(of: find.text(label), matching: find.byType(Opacity)))
+            find.ancestor(of: find.text(label), matching: find.byType(Opacity)),
+          )
           .map((o) => o.opacity)
           .fold(1.0, (a, b) => a * b);
       int chevronsIn(String label) => tester
-          .widgetList<Icon>(find.descendant(
+          .widgetList<Icon>(
+            find.descendant(
               of: find.ancestor(
-                  of: find.text(label), matching: find.byType(ListTile)),
-              matching: find.byIcon(Icons.chevron_right)))
+                of: find.text(label),
+                matching: find.byType(ListTile),
+              ),
+              matching: find.byIcon(Icons.chevron_right),
+            ),
+          )
           .length;
 
       expect(dimOf('Drukarka'), 1.0);
@@ -590,8 +694,9 @@ void main() {
       expect(chevronsIn('Płyta robocza'), 0);
     });
 
-    testWidgets('drops a build plate that was picked before it was turned on',
-        (tester) async {
+    testWidgets('drops a build plate that was picked before it was turned on', (
+      tester,
+    ) async {
       // bed_type patches a process JSON the embedded path never builds, so
       // sending it would only misreport what this slice did.
       await openSheet(tester, embedded: designed);
@@ -617,16 +722,19 @@ void main() {
       expect((await slice(tester))['bed_type'], 'Textured PEI Plate');
     });
 
-    testWidgets('drops process overrides that were edited before it was on',
-        (tester) async {
+    testWidgets('drops process overrides that were edited before it was on', (
+      tester,
+    ) async {
       await openSheet(tester, embedded: designed);
       await tester.tap(find.text('Ustawienia procesu'));
       await tester.pumpAndSettle();
       await tester.enterText(
-          find.descendant(
-              of: find.byKey(const ValueKey('layer_height')),
-              matching: find.byType(TextField)),
-          '0.28');
+        find.descendant(
+          of: find.byKey(const ValueKey('layer_height')),
+          matching: find.byType(TextField),
+        ),
+        '0.28',
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
@@ -639,15 +747,18 @@ void main() {
       expect((await slice(tester)).containsKey('process_overrides'), isFalse);
     });
 
-    testWidgets('leaves a filament slot nothing could fill still pickable',
-        (tester) async {
+    testWidgets('leaves a filament slot nothing could fill still pickable', (
+      tester,
+    ) async {
       // The validator wants a ref per slot on this path too, so locking an
       // empty slot would dead-end the form: unsubmittable and unfixable.
       await openSheet(
         tester,
         embedded: designed,
         presets: const UnifiedPresets(
-          printers: [SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D')],
+          printers: [
+            SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D'),
+          ],
           processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm')],
           filaments: [],
         ),
@@ -655,8 +766,12 @@ void main() {
       await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
-      final filament = tester.widget<ListTile>(find.ancestor(
-          of: find.text('Filament'), matching: find.byType(ListTile)));
+      final filament = tester.widget<ListTile>(
+        find.ancestor(
+          of: find.text('Filament'),
+          matching: find.byType(ListTile),
+        ),
+      );
       expect(filament.enabled, isTrue);
     });
 
@@ -674,8 +789,9 @@ void main() {
       expect(body['auto_orient'], isTrue);
     });
 
-    testWidgets('turned off again slices by the profile as before',
-        (tester) async {
+    testWidgets('turned off again slices by the profile as before', (
+      tester,
+    ) async {
       await openSheet(tester, embedded: designed);
       await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
@@ -683,8 +799,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final body = await slice(tester);
-      expect(body.containsKey('use_embedded_settings'), isFalse,
-          reason: 'the default path must stay byte-identical to before');
+      expect(
+        body.containsKey('use_embedded_settings'),
+        isFalse,
+        reason: 'the default path must stay byte-identical to before',
+      );
     });
   });
 
@@ -732,8 +851,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the row is absent on a server without the routes',
-        (tester) async {
+    testWidgets('the row is absent on a server without the routes', (
+      tester,
+    ) async {
       // Older servers 404 the whole feature, and an API-key session is refused
       // it — a control that can only fail is worse than none.
       await openSheet(tester, pipelines: const [bundle]);
@@ -777,8 +897,9 @@ void main() {
       expect(find.text('Dotknij, aby wybrać'), findsNothing);
     });
 
-    testWidgets('a shorter pipeline leaves the slots it does not reach',
-        (tester) async {
+    testWidgets('a shorter pipeline leaves the slots it does not reach', (
+      tester,
+    ) async {
       // `filament_presets` is positional, so entry i only ever lands on slot i
       // and the tail keeps whatever was auto-picked for it.
       await openSheet(
@@ -795,8 +916,11 @@ void main() {
       await revealSlots(tester);
 
       expect(find.text('Bambu PETG HF'), findsOneWidget);
-      expect(find.text('Bambu PLA Basic'), findsOneWidget,
-          reason: 'slot 2 is beyond the pipeline and must keep its own pick');
+      expect(
+        find.text('Bambu PLA Basic'),
+        findsOneWidget,
+        reason: 'slot 2 is beyond the pipeline and must keep its own pick',
+      );
 
       final body = await slice(tester);
       expect(body['filament_presets'], [
@@ -805,8 +929,9 @@ void main() {
       ]);
     });
 
-    testWidgets('a preset this catalog does not list still reaches the request',
-        (tester) async {
+    testWidgets('a preset this catalog does not list still reaches the request', (
+      tester,
+    ) async {
       // A pipeline outlives the preset list it was saved from, and a cloud tier
       // that failed to load empties whole slots. Dropping the ref would rewrite
       // the user's pipeline silently on the next slice.
@@ -846,14 +971,17 @@ void main() {
       await slice(tester);
 
       expect(
-        find.text('${l10n(tester).sliceExternalFallback} '
-            '${l10n(tester).sliceExternalReadonly}'),
+        find.text(
+          '${l10n(tester).sliceExternalFallback} '
+          '${l10n(tester).sliceExternalReadonly}',
+        ),
         findsOneWidget,
       );
     });
 
-    testWidgets('every reason the server can send has a sentence',
-        (tester) async {
+    testWidgets('every reason the server can send has a sentence', (
+      tester,
+    ) async {
       // The five `_resolve_slice_destination` returns (library.py). A reason
       // the app knows but has no clause for reads as the generic half alone,
       // which is indistinguishable from a reason it has never heard of.
@@ -872,14 +1000,18 @@ void main() {
         await openSheet(tester);
         await slice(tester);
 
-        expect(find.text(l10n(tester).sliceExternalFallback), findsNothing,
-            reason: '$reason rendered without a reason clause');
+        expect(
+          find.text(l10n(tester).sliceExternalFallback),
+          findsNothing,
+          reason: '$reason rendered without a reason clause',
+        );
         await tester.pumpWidget(const SizedBox());
       }
     });
 
-    testWidgets('a reason this build has no sentence for still says where',
-        (tester) async {
+    testWidgets('a reason this build has no sentence for still says where', (
+      tester,
+    ) async {
       // A newer server may name a reason this app does not know. The half that
       // matters — where the file is — must not depend on recognizing it.
       repo.result = const {
@@ -898,8 +1030,10 @@ void main() {
       await openSheet(tester);
       await slice(tester);
 
-      expect(find.textContaining(l10n(tester).sliceExternalFallback),
-          findsNothing);
+      expect(
+        find.textContaining(l10n(tester).sliceExternalFallback),
+        findsNothing,
+      );
     });
   });
 }

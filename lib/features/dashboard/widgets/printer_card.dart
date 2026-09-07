@@ -100,7 +100,6 @@ class _PrinterCardState extends State<PrinterCard> {
 
   bool get _offline => _debounce.offline;
 
-
   @override
   void initState() {
     super.initState();
@@ -210,7 +209,8 @@ class _PrinterCardState extends State<PrinterCard> {
       status?.airductIsHeating,
     );
     final hasDetails = status?.hasDetails ?? false;
-    final hasFans = status != null &&
+    final hasFans =
+        status != null &&
         (status.coolingFanSpeed != null ||
             status.leftAuxFanSpeed != null ||
             status.bigFan1Speed != null ||
@@ -223,8 +223,10 @@ class _PrinterCardState extends State<PrinterCard> {
     // has something to show (speed is only actionable while printing).
     final showDetailsToggle =
         status != null && (hasDetails || hasFans || printing || canMove);
-    final hmsErrors =
-        displayableHmsErrors(status, describe: HmsCatalog.instance.describe);
+    final hmsErrors = displayableHmsErrors(
+      status,
+      describe: HmsCatalog.instance.describe,
+    );
 
     return _CardShell(
       tokens: t,
@@ -245,7 +247,9 @@ class _PrinterCardState extends State<PrinterCard> {
                       children: [
                         _IconSquare(tokens: t, offline: !connected),
                         const SizedBox(width: 9),
-                        Flexible(child: _NameText(name: name, tokens: t)),
+                        Flexible(
+                          child: _NameText(name: name, tokens: t),
+                        ),
                       ],
                     ),
                     _FirmwareLine(printerId: printerId),
@@ -261,7 +265,7 @@ class _PrinterCardState extends State<PrinterCard> {
                     label: status == null
                         ? l10n.statusUnavailable
                         : (status.state ??
-                            (connected ? l10n.online : l10n.offline)),
+                              (connected ? l10n.online : l10n.offline)),
                     offline: !connected,
                   ),
                   if (connected) ...[
@@ -381,15 +385,14 @@ class _IconSquare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = offline
-        ? tokens.textTertiary
-        : tokens.accentGreenInk;
+    final color = offline ? tokens.textTertiary : tokens.accentGreenInk;
     return Container(
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: (offline ? tokens.textTertiary : tokens.accentGreen)
-            .withValues(alpha: offline ? 0.10 : 0.14),
+        color: (offline ? tokens.textTertiary : tokens.accentGreen).withValues(
+          alpha: offline ? 0.10 : 0.14,
+        ),
         borderRadius: BorderRadius.circular(11),
       ),
       child: Icon(Icons.print_outlined, size: 18, color: color),
@@ -456,10 +459,8 @@ class _HeaderActions extends StatelessWidget {
           icon: Icons.videocam_outlined,
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => CameraView(
-                printerId: printerId,
-                printerName: printerName,
-              ),
+              builder: (_) =>
+                  CameraView(printerId: printerId, printerName: printerName),
             ),
           ),
         ),

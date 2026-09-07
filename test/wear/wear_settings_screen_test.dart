@@ -21,10 +21,10 @@ class _FakeProfile extends ServerProfileNotifier {
 
   @override
   ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://workshop.local:8000',
-        authMode: AuthMode.apiKey,
-        label: 'Workshop',
-      );
+    baseUrl: 'http://workshop.local:8000',
+    authMode: AuthMode.apiKey,
+    label: 'Workshop',
+  );
 
   @override
   Future<void> clear() async {
@@ -33,15 +33,14 @@ class _FakeProfile extends ServerProfileNotifier {
   }
 }
 
-
 WatchConfig _configFor(String host, {String? label}) => WatchConfig(
-      profile: ServerProfile(
-        baseUrl: 'http://$host:8000',
-        authMode: AuthMode.apiKey,
-        label: label,
-      ),
-      apiKey: 'bb_secret',
-    );
+  profile: ServerProfile(
+    baseUrl: 'http://$host:8000',
+    authMode: AuthMode.apiKey,
+    label: label,
+  ),
+  apiKey: 'bb_secret',
+);
 
 void main() {
   late _FakeProfile profile;
@@ -81,13 +80,18 @@ void main() {
     // wear dialog clips its subtitle to one line. Under the button, so on a
     // small face it is a scroll away.
     await revealOnWatch(
-        tester, find.text('Zapisany profil i poświadczenia zostaną usunięte.'));
-    expect(find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
-        findsOneWidget);
+      tester,
+      find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
+    );
+    expect(
+      find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('change server asks first, and a refusal changes nothing',
-      (tester) async {
+  testWidgets('change server asks first, and a refusal changes nothing', (
+    tester,
+  ) async {
     await pumpSettings(tester);
 
     await tapOnWatch(tester, find.text('Zmień serwer'));
@@ -120,8 +124,9 @@ void main() {
     expect(profile.cleared, isTrue);
   });
 
-  testWidgets('offers the server the phone sent, when it is a different one',
-      (tester) async {
+  testWidgets('offers the server the phone sent, when it is a different one', (
+    tester,
+  ) async {
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
     expect(find.text('Telefon proponuje inny serwer.'), findsOneWidget);
@@ -132,8 +137,9 @@ void main() {
     expect(sync.applied.single.profile.label, 'Garage');
   });
 
-  testWidgets('a double tap on the switch writes once, not twice',
-      (tester) async {
+  testWidgets('a double tap on the switch writes once, not twice', (
+    tester,
+  ) async {
     final gate = Completer<void>();
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
@@ -150,8 +156,9 @@ void main() {
     expect(sync.applied, hasLength(1));
   });
 
-  testWidgets('leaving mid-write does not touch a disposed widget',
-      (tester) async {
+  testWidgets('leaving mid-write does not touch a disposed widget', (
+    tester,
+  ) async {
     final gate = Completer<void>();
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
@@ -170,12 +177,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('says nothing about an offer for the server already running',
-      (tester) async {
+  testWidgets('says nothing about an offer for the server already running', (
+    tester,
+  ) async {
     // The phone pushes on every launch, and most of those name the server the
     // watch is already on — surfacing that as a switch would be noise.
-    await pumpSettings(tester,
-        offered: _configFor('workshop.local', label: 'Workshop'));
+    await pumpSettings(
+      tester,
+      offered: _configFor('workshop.local', label: 'Workshop'),
+    );
 
     expect(find.text('Telefon proponuje inny serwer.'), findsNothing);
     expect(find.text('Użyj tego serwera'), findsNothing);

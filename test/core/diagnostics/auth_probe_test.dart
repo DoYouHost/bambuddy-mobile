@@ -48,10 +48,10 @@ void main() {
   }
 
   TwoFactorChallenge challenge({String? cookie}) => TwoFactorChallenge(
-        preAuthToken: 'pre-auth-xyz',
-        methods: const [TwoFactorMethod.totp, TwoFactorMethod.backup],
-        challengeCookie: cookie,
-      );
+    preAuthToken: 'pre-auth-xyz',
+    methods: const [TwoFactorMethod.totp, TwoFactorMethod.backup],
+    challengeCookie: cookie,
+  );
 
   test('the binding survives the redactor as a readable yes or no', () async {
     // Regression: the field was called `cookie`, which is on the redactor's
@@ -71,20 +71,27 @@ void main() {
     expect(line, isNot(contains('pre-auth-xyz')));
   });
 
-  test('the offered methods are named, since they shape the whole step',
-      () async {
-    AuthProbe.twoFactorRequired(challenge(cookie: 'x'));
+  test(
+    'the offered methods are named, since they shape the whole step',
+    () async {
+      AuthProbe.twoFactorRequired(challenge(cookie: 'x'));
 
-    expect((await records()).single['methods'], ['totp', 'backup']);
-  });
+      expect((await records()).single['methods'], ['totp', 'backup']);
+    },
+  );
 
   test('a verification says which factor and how it failed', () async {
     AuthProbe.twoFactorVerified(TwoFactorMethod.totp);
-    AuthProbe.twoFactorVerified(TwoFactorMethod.backup,
-        failure: TwoFactorFailure.code, status: 401);
+    AuthProbe.twoFactorVerified(
+      TwoFactorMethod.backup,
+      failure: TwoFactorFailure.code,
+      status: 401,
+    );
 
     expect(
-      (await records()).map((r) => [r['evt'], r['method'], r['ok'], r['reason']]),
+      (await records()).map(
+        (r) => [r['evt'], r['method'], r['ok'], r['reason']],
+      ),
       [
         ['two_factor_verify', 'totp', true, null],
         ['two_factor_verify', 'backup', false, 'code'],
@@ -92,12 +99,14 @@ void main() {
     );
   });
 
-  test('a lapsed challenge is its own record, not a failed verification',
-      () async {
-    // Nothing went out, so calling it a rejection would put a request in the
-    // log that never happened.
-    AuthProbe.twoFactorLapsed();
+  test(
+    'a lapsed challenge is its own record, not a failed verification',
+    () async {
+      // Nothing went out, so calling it a rejection would put a request in the
+      // log that never happened.
+      AuthProbe.twoFactorLapsed();
 
-    expect((await records()).single['evt'], 'two_factor_lapsed');
-  });
+      expect((await records()).single['evt'], 'two_factor_lapsed');
+    },
+  );
 }

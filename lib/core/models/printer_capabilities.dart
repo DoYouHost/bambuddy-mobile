@@ -10,16 +10,38 @@ String _norm(String? model) => (model ?? '').trim().toUpperCase();
 /// temperature SENSOR is more widespread (X1C/X1E/P2S report it) but those
 /// models ignore M141, so only these may set a chamber target.
 const _chamberHeaterModels = <String>{
-  'H2C', 'H2D', 'H2DPRO', 'H2S', 'X2D',
-  'O1C', 'O1C2', 'O1D', 'O1E', 'O2D', 'O1S', 'N6',
+  'H2C',
+  'H2D',
+  'H2DPRO',
+  'H2S',
+  'X2D',
+  'O1C',
+  'O1C2',
+  'O1D',
+  'O1E',
+  'O2D',
+  'O1S',
+  'N6',
 };
 
 /// Models with a cooling/heating airduct flap toggle (P2S/X2D/H2*). Distinct
 /// from the heater set: P2S has the flap but no heater; X1E has a heater but
 /// no flap.
 const _airductModels = <String>{
-  'P2S', 'X2D', 'H2C', 'H2D', 'H2DPRO', 'H2S',
-  'N7', 'N6', 'O1C', 'O1C2', 'O1D', 'O1E', 'O2D', 'O1S',
+  'P2S',
+  'X2D',
+  'H2C',
+  'H2D',
+  'H2DPRO',
+  'H2S',
+  'N7',
+  'N6',
+  'O1C',
+  'O1C2',
+  'O1D',
+  'O1E',
+  'O2D',
+  'O1S',
 };
 
 /// Whether the model can actively heat its chamber (M141 has an effect).

@@ -17,17 +17,17 @@ class KProfile {
   });
 
   factory KProfile.fromJson(Map<String, dynamic> json) => KProfile(
-        slotId: toIntOrNull(json['slot_id']) ?? 0,
-        name: toStringOrNull(json['name']) ?? '',
-        // A string on the wire ("0.020000"), and kept as one: it is half of the
-        // key the printer's duplicate rows are folded on, and re-formatting a
-        // number would make two spellings of the same value look different.
-        kValue: toStringOrNull(json['k_value']) ?? '0',
-        extruderId: toIntOrNull(json['extruder_id']) ?? 0,
-        nozzleDiameter: toStringOrNull(json['nozzle_diameter']) ?? '',
-        filamentId: toStringOrNull(json['filament_id']) ?? '',
-        settingId: toStringOrNull(json['setting_id']),
-      );
+    slotId: toIntOrNull(json['slot_id']) ?? 0,
+    name: toStringOrNull(json['name']) ?? '',
+    // A string on the wire ("0.020000"), and kept as one: it is half of the
+    // key the printer's duplicate rows are folded on, and re-formatting a
+    // number would make two spellings of the same value look different.
+    kValue: toStringOrNull(json['k_value']) ?? '0',
+    extruderId: toIntOrNull(json['extruder_id']) ?? 0,
+    nozzleDiameter: toStringOrNull(json['nozzle_diameter']) ?? '',
+    filamentId: toStringOrNull(json['filament_id']) ?? '',
+    settingId: toStringOrNull(json['setting_id']),
+  );
 
   /// Storage slot on the printer — the `cali_idx` that selects this profile.
   /// Zero means "the default profile", which is not one the user picked.

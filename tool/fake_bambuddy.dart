@@ -99,9 +99,7 @@ Future<void> main(List<String> args) async {
   _photoBytes = photo == null
       ? _generatePhoto(1600, 900)
       : File(photo).readAsBytesSync();
-  _photoExtension = photo == null
-      ? 'png'
-      : photo.split('.').last.toLowerCase();
+  _photoExtension = photo == null ? 'png' : photo.split('.').last.toLowerCase();
 
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
   stdout.writeln('fake bambuddy on http://localhost:$port');
@@ -111,9 +109,8 @@ Future<void> main(List<String> args) async {
 
   unawaited(_serve(server));
   _prompt();
-  await for (final line in stdin
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())) {
+  await for (final line
+      in stdin.transform(utf8.decoder).transform(const LineSplitter())) {
     await _command(line.trim());
     _prompt();
   }
@@ -198,31 +195,42 @@ Future<void> _command(String raw) async {
       // Exactly what the server builds from a 32-bit print_error: attr carries
       // the whole value, code its low half, full_code the 8-hex key the
       // firmware matches a command against.
-      _fault(0x03008004, add: add, actions: [
-        'RESUME_PRINTING',
-        'IGNORE_RESUME',
-        'STOP_PRINTING',
-      ]);
+      _fault(
+        0x03008004,
+        add: add,
+        actions: ['RESUME_PRINTING', 'IGNORE_RESUME', 'STOP_PRINTING'],
+      );
     case 'door':
-      _fault(0x0300800F,
-          add: add, actions: ['RESUME_PRINTING', 'STOP_PRINTING']);
+      _fault(
+        0x0300800F,
+        add: add,
+        actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+      );
     case 'heat':
       _fault(0x03008009, add: add);
     case 'clog':
-      _fault(0x03008016,
-          add: add, actions: ['RESUME_PRINTING', 'STOP_PRINTING']);
+      _fault(
+        0x03008016,
+        add: add,
+        actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+      );
     case 'many':
       // Three at once, the way a real pile-up reads: two that offer buttons and
       // one that offers none, longest description last.
-      _fault(0x03008004, actions: [
-        'RESUME_PRINTING',
-        'IGNORE_RESUME',
-        'STOP_PRINTING',
-      ]);
-      _fault(0x0300800F,
-          add: true, actions: ['RESUME_PRINTING', 'STOP_PRINTING']);
-      _fault(0x03008016,
-          add: true, actions: ['RESUME_PRINTING', 'STOP_PRINTING']);
+      _fault(
+        0x03008004,
+        actions: ['RESUME_PRINTING', 'IGNORE_RESUME', 'STOP_PRINTING'],
+      );
+      _fault(
+        0x0300800F,
+        add: true,
+        actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+      );
+      _fault(
+        0x03008016,
+        add: true,
+        actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+      );
     case 'pile':
       // Everything the card can be asked to hold, including the two kinds it
       // must stay quiet about (hms[] and the blank full_code).
@@ -230,11 +238,11 @@ Future<void> _command(String raw) async {
       _fault(0x0300800F, add: true, actions: ['RESUME_PRINTING']);
       _fault(0x03008009, add: true);
       _fault(0x03008016, add: true, actions: ['RESUME_PRINTING']);
-      _fault(0x0300801A, add: true, actions: [
-        'RESUME_PRINTING',
-        'IGNORE_RESUME',
-        'STOP_PRINTING',
-      ]);
+      _fault(
+        0x0300801A,
+        add: true,
+        actions: ['RESUME_PRINTING', 'IGNORE_RESUME', 'STOP_PRINTING'],
+      );
     case 'hms[]':
       // The other channel: 64-bit attr+code, a component-diagnostics fault.
       // bambuddy's UI does not name these and neither does the app.
@@ -269,8 +277,10 @@ Future<void> _command(String raw) async {
     case 'plate':
       _awaitingPlateClear = true;
       _broadcastStatus();
-      stdout.writeln('  plate-clear gate up'
-          '${_connected ? '' : ' (printer is off — nothing on the wire)'}');
+      stdout.writeln(
+        '  plate-clear gate up'
+        '${_connected ? '' : ' (printer is off — nothing on the wire)'}',
+      );
     case 'off':
       _connected = false;
       _broadcastStatus();
@@ -281,12 +291,16 @@ Future<void> _command(String raw) async {
       stdout.writeln('  printer → online');
     case 'legacy':
       _legacyPlateGate = !_legacyPlateGate;
-      stdout.writeln('  status route answers like a '
-          '${_legacyPlateGate ? 'pre-#2864' : 'current'} server');
+      stdout.writeln(
+        '  status route answers like a '
+        '${_legacyPlateGate ? 'pre-#2864' : 'current'} server',
+      );
     case 'ack':
       _hmsAcks = !_hmsAcks;
-      stdout.writeln('  printer ${_hmsAcks ? 'answers' : 'ignores'} HMS actions'
-          '${_hmsAcks ? '' : ' → the route will 502'}');
+      stdout.writeln(
+        '  printer ${_hmsAcks ? 'answers' : 'ignores'} HMS actions'
+        '${_hmsAcks ? '' : ' → the route will 502'}',
+      );
     case 'status':
       stdout.writeln(
         '  $_state $_progress% · ${_connected ? 'online' : 'offline'}'
@@ -315,8 +329,8 @@ void _fault(
   String? description,
   bool add = false,
 }) {
-  final code = fullCode ??
-      printError.toRadixString(16).padLeft(8, '0').toUpperCase();
+  final code =
+      fullCode ?? printError.toRadixString(16).padLeft(8, '0').toUpperCase();
   final fault = {
     'code': '0x${(printError & 0xFFFF).toRadixString(16)}',
     'attr': printError,
@@ -337,7 +351,8 @@ void _fault(
         if (existing['full_code'] != code || code.isEmpty) existing,
     fault,
   ];
-  final short = '${(printError >> 16).toRadixString(16).padLeft(4, '0')}_'
+  final short =
+      '${(printError >> 16).toRadixString(16).padLeft(4, '0')}_'
       '${(printError & 0xFFFF).toRadixString(16).padLeft(4, '0')}';
   _pause('${short.toUpperCase()} (${_hmsErrors.length} reported)');
 }
@@ -381,8 +396,10 @@ void _set(String state, int progress) {
 Future<void> _replayDispatch() async {
   Future<void> frame(String note) async {
     _broadcastStatus();
-    stdout.writeln('  $note — job "$_printName", layer '
-        '${_layer ?? (_progress * 2.4).round()}, stage $_stage');
+    stdout.writeln(
+      '  $note — job "$_printName", layer '
+      '${_layer ?? (_progress * 2.4).round()}, stage $_stage',
+    );
     await Future<void>.delayed(const Duration(seconds: 1));
   }
 
@@ -411,8 +428,10 @@ Future<void> _replayDispatch() async {
   await frame('printing for real, first layer down');
   _layer = 2;
   await frame('layer 2 — THIS is the one alert that should arrive');
-  stdout.writeln('  expect exactly one "first layer" alert, naming '
-      '"$_nextPrintName"');
+  stdout.writeln(
+    '  expect exactly one "first layer" alert, naming '
+    '"$_nextPrintName"',
+  );
 }
 
 /// Puts the photo on the archive; [broadcast] adds the `archive_updated` frame
@@ -439,7 +458,8 @@ void _attachPhoto({required bool broadcast}) {
 /// fixed-width local timestamp.
 String _photoName(DateTime at) {
   String two(int v) => v.toString().padLeft(2, '0');
-  final stamp = '${at.year}${two(at.month)}${two(at.day)}_'
+  final stamp =
+      '${at.year}${two(at.month)}${two(at.day)}_'
       '${two(at.hour)}${two(at.minute)}${two(at.second)}';
   return 'finish_${stamp}_${at.millisecond.toString().padLeft(3, '0')}a'
       '.$_photoExtension';
@@ -512,8 +532,12 @@ Future<void> _serve(HttpServer server) async {
     }
     if (path == '/api/v1/printers/') {
       await _json(request, [
-        {'id': _printerId, 'name': 'X1C (atrapa)', 'model': 'X1C',
-         'status': _statusData()},
+        {
+          'id': _printerId,
+          'name': 'X1C (atrapa)',
+          'model': 'X1C',
+          'status': _statusData(),
+        },
       ]);
       continue;
     }
@@ -534,7 +558,8 @@ Future<void> _serve(HttpServer server) async {
         stdout.writeln('  → 400: printer is not awaiting plate-clear');
         request.response.statusCode = HttpStatus.badRequest;
         await _json(request, const {
-          'detail': 'Printer is not awaiting plate-clear acknowledgment '
+          'detail':
+              'Printer is not awaiting plate-clear acknowledgment '
               '(state=unknown)',
         });
         continue;
@@ -606,8 +631,10 @@ Future<void> _executeHmsAction(HttpRequest request) async {
   final json = jsonDecode(body) as Map<String, dynamic>;
   final printError = '${json['print_error']}';
   final action = '${json['action']}';
-  stdout.writeln('    body: print_error=$printError action=$action '
-      'job_id=${json['job_id'] ?? '(none)'}');
+  stdout.writeln(
+    '    body: print_error=$printError action=$action '
+    'job_id=${json['job_id'] ?? '(none)'}',
+  );
   _prompt();
 
   if (!RegExp(r'^[0-9A-Fa-f]{8}([0-9A-Fa-f]{8})?$').hasMatch(printError)) {
@@ -615,7 +642,10 @@ Future<void> _executeHmsAction(HttpRequest request) async {
     request.response.statusCode = HttpStatus.unprocessableEntity;
     await _json(request, {
       'detail': [
-        {'msg': 'String should match pattern', 'loc': ['body', 'print_error']},
+        {
+          'msg': 'String should match pattern',
+          'loc': ['body', 'print_error'],
+        },
       ],
     });
     return;
@@ -648,20 +678,24 @@ Future<void> _executeHmsAction(HttpRequest request) async {
 Future<void> _upgrade(HttpRequest request) async {
   final socket = await WebSocketTransformer.upgrade(request);
   _sockets.add(socket);
-  socket.add(jsonEncode({
-    'type': 'printer_status',
-    'printer_id': _printerId,
-    'data': _statusData(),
-  }));
+  socket.add(
+    jsonEncode({
+      'type': 'printer_status',
+      'printer_id': _printerId,
+      'data': _statusData(),
+    }),
+  );
   // The client's watchdog drops a socket that says nothing, and its heartbeat
   // expects an answer.
   final ticker = Timer.periodic(const Duration(seconds: 3), (_) {
     if (!_sockets.contains(socket)) return;
-    socket.add(jsonEncode({
-      'type': 'printer_status',
-      'printer_id': _printerId,
-      'data': _statusData(),
-    }));
+    socket.add(
+      jsonEncode({
+        'type': 'printer_status',
+        'printer_id': _printerId,
+        'data': _statusData(),
+      }),
+    );
   });
   socket.listen(
     (data) {
@@ -711,7 +745,14 @@ List<int> _generatePhoto(int width, int height) {
     ..add(_be32(height))
     ..add([8, 2, 0, 0, 0]);
   return [
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+    0x89,
+    0x50,
+    0x4E,
+    0x47,
+    0x0D,
+    0x0A,
+    0x1A,
+    0x0A,
     ..._chunk('IHDR', ihdr.takeBytes()),
     ..._chunk('IDAT', ZLibCodec().encode(raw.takeBytes())),
     ..._chunk('IEND', const []),
@@ -723,7 +764,12 @@ List<int> _chunk(String type, List<int> data) {
   return [..._be32(data.length), ...body, ..._be32(_crc32(body))];
 }
 
-List<int> _be32(int v) => [v >> 24 & 0xFF, v >> 16 & 0xFF, v >> 8 & 0xFF, v & 0xFF];
+List<int> _be32(int v) => [
+  v >> 24 & 0xFF,
+  v >> 16 & 0xFF,
+  v >> 8 & 0xFF,
+  v & 0xFF,
+];
 
 final _crcTable = List<int>.generate(256, (i) {
   var c = i;

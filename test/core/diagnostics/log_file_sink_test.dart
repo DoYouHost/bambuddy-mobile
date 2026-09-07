@@ -12,12 +12,12 @@ void main() {
   tearDown(() => dir.deleteSync(recursive: true));
 
   LogHeader header(LogStream stream) => LogHeader(
-        ts: DateTime.utc(2026, 7, 25, 12),
-        session: 'sess1',
-        app: '0.11.2+1102',
-        flavor: 'mobile',
-        stream: stream,
-      );
+    ts: DateTime.utc(2026, 7, 25, 12),
+    session: 'sess1',
+    app: '0.11.2+1102',
+    flavor: 'mobile',
+    stream: stream,
+  );
 
   test('names the fgs stream apart from the ui one', () {
     expect(
@@ -50,20 +50,26 @@ void main() {
     final sink = LogFileSink(LogFileSink.fileFor(dir, 'sess1', LogStream.fgs));
     await sink.writeHeader(header(LogStream.fgs));
 
-    final store = LogStore(header: header(LogStream.fgs), onLine: sink.writeLine)
-      ..add(LogSource.fgs, 'cycle', fields: const {'printers': 2});
+    final store = LogStore(
+      header: header(LogStream.fgs),
+      onLine: sink.writeLine,
+    )..add(LogSource.fgs, 'cycle', fields: const {'printers': 2});
     await sink.close();
 
     expect(store.recordCount, 1);
     expect(await sink.read(), contains('"evt":"cycle"'));
   });
 
-  test('reading a file that was never written yields empty, not a throw',
-      () async {
-    final sink = LogFileSink(LogFileSink.fileFor(dir, 'missing', LogStream.ui));
+  test(
+    'reading a file that was never written yields empty, not a throw',
+    () async {
+      final sink = LogFileSink(
+        LogFileSink.fileFor(dir, 'missing', LogStream.ui),
+      );
 
-    expect(await sink.read(), isEmpty);
-  });
+      expect(await sink.read(), isEmpty);
+    },
+  );
 
   test('writes after close are dropped silently', () async {
     final sink = LogFileSink(LogFileSink.fileFor(dir, 'sess1', LogStream.ui));
@@ -115,24 +121,28 @@ void main() {
 
   group('appending to a file another isolate left behind', () {
     test('a complete file reports a trailing newline', () async {
-      final sink = LogFileSink(LogFileSink.fileFor(dir, 'sess1', LogStream.fgs));
+      final sink = LogFileSink(
+        LogFileSink.fileFor(dir, 'sess1', LogStream.fgs),
+      );
       await sink.writeHeader(header(LogStream.fgs));
 
       expect(await sink.endsWithNewline(), isTrue);
     });
 
-    test('a torn last line does not, and a missing file does not either',
-        () async {
-      final file = LogFileSink.fileFor(dir, 'sess1', LogStream.fgs);
-      final sink = LogFileSink(file);
-      expect(await sink.endsWithNewline(), isFalse); // no file yet
+    test(
+      'a torn last line does not, and a missing file does not either',
+      () async {
+        final file = LogFileSink.fileFor(dir, 'sess1', LogStream.fgs);
+        final sink = LogFileSink(file);
+        expect(await sink.endsWithNewline(), isFalse); // no file yet
 
-      // What a process killed mid-write leaves: no closing newline. Appending
-      // straight onto it would glue two records into one unparseable line and
-      // cost both.
-      file.writeAsStringSync('{"t":1,"src":"fgs","ev');
+        // What a process killed mid-write leaves: no closing newline. Appending
+        // straight onto it would glue two records into one unparseable line and
+        // cost both.
+        file.writeAsStringSync('{"t":1,"src":"fgs","ev');
 
-      expect(await sink.endsWithNewline(), isFalse);
-    });
+        expect(await sink.endsWithNewline(), isFalse);
+      },
+    );
   });
 }

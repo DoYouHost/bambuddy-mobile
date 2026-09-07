@@ -63,15 +63,14 @@ void main() {
   Future<BackgroundRecording?> start({
     LogStream stream = LogStream.fgs,
     Map<String, String> secrets = const {},
-  }) =>
-      DiagnosticRecorder.startBackground(
-        settings: settings,
-        stream: stream,
-        resolveDirectory: () async => dir,
-        loadSecrets: () async => secrets,
-        clock: () => now,
-        attachErrors: false,
-      );
+  }) => DiagnosticRecorder.startBackground(
+    settings: settings,
+    stream: stream,
+    resolveDirectory: () async => dir,
+    loadSecrets: () async => secrets,
+    clock: () => now,
+    attachErrors: false,
+  );
 
   /// Skips what it cannot parse, the way `mergeSessions` and `LogSummary` do — a
   /// stream read off disk can end in a line a killed process never finished.
@@ -106,16 +105,18 @@ void main() {
       expect(await start(), isNull);
     });
 
-    test('when the first line of the UI stream is a record, not a header',
-        () async {
-      // Reachable: the header write is allowed to fail silently while the writes
-      // after it succeed. Accepted as a header it would have no `ts`, and the merge
-      // would drop this whole stream from every report.
-      await settings.saveDiagnosticsSession(session);
-      await writeUiStream(firstLine: '{"t":5,"src":"ui","evt":"tap"}');
+    test(
+      'when the first line of the UI stream is a record, not a header',
+      () async {
+        // Reachable: the header write is allowed to fail silently while the writes
+        // after it succeed. Accepted as a header it would have no `ts`, and the merge
+        // would drop this whole stream from every report.
+        await settings.saveDiagnosticsSession(session);
+        await writeUiStream(firstLine: '{"t":5,"src":"ui","evt":"tap"}');
 
-      expect(await start(), isNull);
-    });
+        expect(await start(), isNull);
+      },
+    );
 
     test('when the UI header belongs to a different session', () async {
       await settings.saveDiagnosticsSession(session);
@@ -203,14 +204,19 @@ void main() {
       expect(header['port'], 8443);
     });
 
-    test('stamps records with the session clock, not with its own start',
-        () async {
-      final recording = await start();
-      recording!.store.add(LogSource.fgs, 'start');
-      await recording.stop();
+    test(
+      'stamps records with the session clock, not with its own start',
+      () async {
+        final recording = await start();
+        recording!.store.add(LogSource.fgs, 'start');
+        await recording.stop();
 
-      expect(linesOf(LogStream.fgs).last['t'], 30000); // 30 s into the session
-    });
+        expect(
+          linesOf(LogStream.fgs).last['t'],
+          30000,
+        ); // 30 s into the session
+      },
+    );
 
     test('a second start appends without a second header', () async {
       // Android restarts this service after a swipe or a kill, so one recording is
@@ -262,22 +268,24 @@ void main() {
       expect(last['minutes'], recordingLimit.inMinutes);
     });
 
-    test('redacts with secrets of its own, which the header cannot carry',
-        () async {
-      // The header holds no secrets by design, so a stream that only inherited it
-      // would write the user's hostname into the first socket error. A failed
-      // lookup is not a URL, so only an exact value catches it.
-      final recording = await start(secrets: {'nas.example': '[HOST]'});
-      recording!.store.add(
-        LogSource.ws,
-        'connect_error',
-        fields: {'msg': "Failed host lookup: 'nas.example'"},
-      );
-      await recording.stop();
+    test(
+      'redacts with secrets of its own, which the header cannot carry',
+      () async {
+        // The header holds no secrets by design, so a stream that only inherited it
+        // would write the user's hostname into the first socket error. A failed
+        // lookup is not a URL, so only an exact value catches it.
+        final recording = await start(secrets: {'nas.example': '[HOST]'});
+        recording!.store.add(
+          LogSource.ws,
+          'connect_error',
+          fields: {'msg': "Failed host lookup: 'nas.example'"},
+        );
+        await recording.stop();
 
-      expect(linesOf(LogStream.fgs).last['msg'], contains('[HOST]'));
-      expect(linesOf(LogStream.fgs).last['msg'], isNot(contains('nas')));
-    });
+        expect(linesOf(LogStream.fgs).last['msg'], contains('[HOST]'));
+        expect(linesOf(LogStream.fgs).last['msg'], isNot(contains('nas')));
+      },
+    );
 
     test('owns the static while it lives and lets go of it after', () async {
       final recording = await start();
@@ -301,38 +309,40 @@ void main() {
       expect(linesOf(LogStream.action).last['evt'], 'action');
     });
 
-    test('a later session gets its own file and leaves the earlier one alone',
-        () async {
-      // What the isolate does when the app tells it the recording changed: close
-      // the stream it has, then open the new one. A service that outlived the
-      // previous recording is the reason this path exists at all.
-      final first = await start();
-      first!.store.add(LogSource.fgs, 'start');
-      await first.stop();
-      final firstLines = linesOf(LogStream.fgs).length;
+    test(
+      'a later session gets its own file and leaves the earlier one alone',
+      () async {
+        // What the isolate does when the app tells it the recording changed: close
+        // the stream it has, then open the new one. A service that outlived the
+        // previous recording is the reason this path exists at all.
+        final first = await start();
+        first!.store.add(LogSource.fgs, 'start');
+        await first.stop();
+        final firstLines = linesOf(LogStream.fgs).length;
 
-      await settings.saveDiagnosticsSession('sess-second');
-      final secondUi = LogFileSink(
-        LogFileSink.fileFor(dir, 'sess-second', LogStream.ui),
-      );
-      await secondUi.writeHeader(
-        LogHeader(
-          ts: now,
-          session: 'sess-second',
-          app: '0.11.3+1103',
-          flavor: 'mobile',
-        ),
-      );
-      await secondUi.close();
+        await settings.saveDiagnosticsSession('sess-second');
+        final secondUi = LogFileSink(
+          LogFileSink.fileFor(dir, 'sess-second', LogStream.ui),
+        );
+        await secondUi.writeHeader(
+          LogHeader(
+            ts: now,
+            session: 'sess-second',
+            app: '0.11.3+1103',
+            flavor: 'mobile',
+          ),
+        );
+        await secondUi.close();
 
-      final second = await start();
-      second!.store.add(LogSource.fgs, 'attach');
-      await second.stop();
+        final second = await start();
+        second!.store.add(LogSource.fgs, 'attach');
+        await second.stop();
 
-      expect(linesOf(LogStream.fgs), hasLength(firstLines));
-      final other = LogFileSink.fileFor(dir, 'sess-second', LogStream.fgs);
-      expect(other.readAsStringSync(), contains('"evt":"attach"'));
-    });
+        expect(linesOf(LogStream.fgs), hasLength(firstLines));
+        final other = LogFileSink.fileFor(dir, 'sess-second', LogStream.fgs);
+        expect(other.readAsStringSync(), contains('"evt":"attach"'));
+      },
+    );
 
     test('restores the error handlers it installed', () async {
       final mine = FlutterError.onError;
@@ -356,12 +366,11 @@ void main() {
   group('an isolate woken for one job', () {
     Future<BackgroundRecording?> startAction({
       Future<SettingsRepository> Function()? openSettings,
-    }) =>
-        DiagnosticRecorder.startAction(
-          openSettings: openSettings ?? () async => settings,
-          resolveDirectory: () async => dir,
-          clock: () => now,
-        );
+    }) => DiagnosticRecorder.startAction(
+      openSettings: openSettings ?? () async => settings,
+      resolveDirectory: () async => dir,
+      clock: () => now,
+    );
 
     test('records into the action stream, not the service\'s', () async {
       // Both are open at once whenever the phone is backgrounded, and two
@@ -391,16 +400,18 @@ void main() {
       expect(DiagnosticRecorder.active, same(first!.store));
     });
 
-    test('a platform read that fails costs the recording, not the job',
-        () async {
-      // The caller is carrying out the user's tap; a keystore that cannot be
-      // read must leave it unrecorded, never undone.
-      expect(
-        await startAction(
-          openSettings: () => Future.error(StateError('keystore')),
-        ),
-        isNull,
-      );
-    });
+    test(
+      'a platform read that fails costs the recording, not the job',
+      () async {
+        // The caller is carrying out the user's tap; a keystore that cannot be
+        // read must leave it unrecorded, never undone.
+        expect(
+          await startAction(
+            openSettings: () => Future.error(StateError('keystore')),
+          ),
+          isNull,
+        );
+      },
+    );
   });
 }

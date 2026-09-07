@@ -15,11 +15,10 @@ class ServerProfile {
   });
 
   factory ServerProfile.fromJson(Map<String, dynamic> json) => ServerProfile(
-        baseUrl: json['baseUrl'] as String,
-        authMode: AuthMode.values.asNameMap()[json['authMode']] ??
-            AuthMode.none,
-        label: json['label'] as String?,
-      );
+    baseUrl: json['baseUrl'] as String,
+    authMode: AuthMode.values.asNameMap()[json['authMode']] ?? AuthMode.none,
+    label: json['label'] as String?,
+  );
 
   /// E.g., `http://192.168.1.10:8000` — without trailing `/` or `/api/v1`.
   final String baseUrl;
@@ -42,10 +41,10 @@ class ServerProfile {
   }
 
   Map<String, dynamic> toJson() => {
-        'baseUrl': baseUrl,
-        'authMode': authMode.name,
-        if (label != null) 'label': label,
-      };
+    'baseUrl': baseUrl,
+    'authMode': authMode.name,
+    if (label != null) 'label': label,
+  };
 
   /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`.
   ///

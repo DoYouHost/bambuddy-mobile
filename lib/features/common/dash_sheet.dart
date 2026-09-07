@@ -22,18 +22,17 @@ Future<T?> dashSheet<T>(
   required WidgetBuilder builder,
   bool scrollControlled = true,
   bool dismissible = true,
-}) =>
-    showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: scrollControlled,
-      showDragHandle: true,
-      isDismissible: dismissible,
-      // Guards the top: a scroll-controlled sheet may reach full height, and
-      // Material's own flag covers everything except the bottom, which the
-      // SafeArea below takes instead.
-      useSafeArea: true,
-      builder: (ctx) => SafeArea(top: false, child: builder(ctx)),
-    );
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: scrollControlled,
+  showDragHandle: true,
+  isDismissible: dismissible,
+  // Guards the top: a scroll-controlled sheet may reach full height, and
+  // Material's own flag covers everything except the bottom, which the
+  // SafeArea below takes instead.
+  useSafeArea: true,
+  builder: (ctx) => SafeArea(top: false, child: builder(ctx)),
+);
 
 /// A sheet for content that draws its own surface — a `SheetSurface`, usually
 /// inside a `DraggableScrollableSheet`. The sheet itself is transparent and
@@ -46,12 +45,11 @@ Future<T?> dashSurfaceSheet<T>(
   required WidgetBuilder builder,
   Color? barrierColor = dashSheetBarrier,
   bool dismissible = true,
-}) =>
-    showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: barrierColor,
-      isDismissible: dismissible,
-      builder: builder,
-    );
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  barrierColor: barrierColor,
+  isDismissible: dismissible,
+  builder: builder,
+);

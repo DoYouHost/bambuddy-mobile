@@ -12,7 +12,8 @@ void main() {
       // Same status, opposite meaning: nothing to acknowledge on this printer.
       expect(
         isOfflinePlateClearRefusal(
-            'Printer is not awaiting plate-clear acknowledgment (state=IDLE)'),
+          'Printer is not awaiting plate-clear acknowledgment (state=IDLE)',
+        ),
         isFalse,
       );
     });
@@ -26,15 +27,19 @@ void main() {
     test('a missing permission is not the refusal', () {
       expect(
         isOfflinePlateClearRefusal(
-            "API key does not have 'printers:clear_plate' permission"),
+          "API key does not have 'printers:clear_plate' permission",
+        ),
         isFalse,
       );
     });
   });
 
   group('plateClearPending', () {
-    const dirty =
-        PrinterStatus(id: 1, connected: true, awaitingPlateClear: true);
+    const dirty = PrinterStatus(
+      id: 1,
+      connected: true,
+      awaitingPlateClear: true,
+    );
 
     test('both halves have to agree', () {
       expect(plateClearPending(dirty, gateEnabled: () => true), isTrue);
@@ -45,8 +50,9 @@ void main() {
     test('a plate nobody flagged, and a printer with no status at all', () {
       expect(
         plateClearPending(
-            const PrinterStatus(id: 1, connected: true),
-            gateEnabled: () => true),
+          const PrinterStatus(id: 1, connected: true),
+          gateEnabled: () => true,
+        ),
         isFalse,
       );
       // An older server omits the field entirely; unknown is not "waiting".
@@ -58,11 +64,13 @@ void main() {
       // server settings, and a card whose plate is clean must not subscribe
       // every printer on the dashboard to that fetch.
       var reads = 0;
-      plateClearPending(const PrinterStatus(id: 1, connected: true),
-          gateEnabled: () {
-        reads++;
-        return true;
-      });
+      plateClearPending(
+        const PrinterStatus(id: 1, connected: true),
+        gateEnabled: () {
+          reads++;
+          return true;
+        },
+      );
       expect(reads, 0);
     });
   });

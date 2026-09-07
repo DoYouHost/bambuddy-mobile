@@ -29,38 +29,32 @@ class ApiKeysRepository {
   /// POST /api-keys/ — the only response that carries the key itself. The
   /// caller must show it and let it go: there is no route that returns it
   /// again.
-  Future<CreatedApiKey> create(ApiKeyCreateInput body) async {
-    try {
+  Future<CreatedApiKey> create(ApiKeyCreateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.apiKeys,
         data: body.toJson(),
       );
       return CreatedApiKey.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// PATCH /api-keys/{id}.
-  Future<ApiKey> update(int keyId, ApiKeyUpdateInput body) async {
-    try {
+  Future<ApiKey> update(int keyId, ApiKeyUpdateInput body) {
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.apiKeyById(keyId),
         data: body.toJson(),
       );
       return ApiKey.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /api-keys/{id} — revocation. Whatever holds the key stops working
   /// at once, which is the point.
-  Future<void> delete(int keyId) async {
-    try {
+  Future<void> delete(int keyId) {
+    return guardKeepingDetail(() async {
       await _dio.delete<void>(Endpoints.apiKeyById(keyId));
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 }

@@ -16,7 +16,8 @@ class FailureAnalysis {
     this.failuresByHour = const {},
   });
 
-  factory FailureAnalysis.fromJson(Map<String, dynamic> json) => FailureAnalysis(
+  factory FailureAnalysis.fromJson(Map<String, dynamic> json) =>
+      FailureAnalysis(
         periodDays: toInt(json['period_days']),
         totalPrints: toInt(json['total_prints']),
         failedPrints: toInt(json['failed_prints']),
@@ -46,15 +47,15 @@ class FailureAnalysis {
 
   /// Serialization for cache — keys match [fromJson] for round-trip.
   Map<String, dynamic> toJson() => {
-        'period_days': periodDays,
-        'total_prints': totalPrints,
-        'failed_prints': failedPrints,
-        'failure_rate': failureRate,
-        'failures_by_reason': failuresByReason,
-        'failures_by_filament': failuresByFilament,
-        'failures_by_printer': failuresByPrinter,
-        'failures_by_hour': failuresByHour,
-      };
+    'period_days': periodDays,
+    'total_prints': totalPrints,
+    'failed_prints': failedPrints,
+    'failure_rate': failureRate,
+    'failures_by_reason': failuresByReason,
+    'failures_by_filament': failuresByFilament,
+    'failures_by_printer': failuresByPrinter,
+    'failures_by_hour': failuresByHour,
+  };
 
   /// Merge two disjoint (temporal) aggregates into one. Counters are additive
   /// (archive is append-only, periods don't overlap); `failureRate` recalculated
@@ -69,10 +70,14 @@ class FailureAnalysis {
       failedPrints: failed,
       failureRate: total == 0 ? 0 : failed * 100 / total,
       failuresByReason: _mergeCounts(failuresByReason, other.failuresByReason),
-      failuresByFilament:
-          _mergeCounts(failuresByFilament, other.failuresByFilament),
-      failuresByPrinter:
-          _mergeCounts(failuresByPrinter, other.failuresByPrinter),
+      failuresByFilament: _mergeCounts(
+        failuresByFilament,
+        other.failuresByFilament,
+      ),
+      failuresByPrinter: _mergeCounts(
+        failuresByPrinter,
+        other.failuresByPrinter,
+      ),
       failuresByHour: _mergeCounts(failuresByHour, other.failuresByHour),
     );
   }
@@ -83,4 +88,3 @@ Map<String, int> _mergeCounts(Map<String, int> a, Map<String, int> b) {
   b.forEach((k, v) => out[k] = (out[k] ?? 0) + v);
   return out;
 }
-

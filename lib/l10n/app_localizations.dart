@@ -1322,6 +1322,66 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get queueCancel;
 
+  /// No description provided for @queueStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop print'**
+  String get queueStop;
+
+  /// No description provided for @queueStopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop this print?'**
+  String get queueStopTitle;
+
+  /// No description provided for @queueStopBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer stops printing and the item leaves the queue. What has been printed so far cannot be resumed.'**
+  String get queueStopBody;
+
+  /// No description provided for @queueStopConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop print'**
+  String get queueStopConfirm;
+
+  /// No description provided for @queueRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get queueRemove;
+
+  /// No description provided for @queueRemoveStoppedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue?'**
+  String get queueRemoveStoppedTitle;
+
+  /// No description provided for @queueRemoveStoppedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is not showing this print as running. Removing it clears the item from the queue.'**
+  String get queueRemoveStoppedBody;
+
+  /// No description provided for @queueStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Print stopped'**
+  String get queueStopped;
+
+  /// No description provided for @queueRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from queue'**
+  String get queueRemoved;
+
+  /// No description provided for @queueRemovalStatusChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This item is no longer in the state shown. Refresh the queue and try again.'**
+  String get queueRemovalStatusChanged;
+
   /// No description provided for @queueNoFreePrinters.
   ///
   /// In en, this message translates to:
@@ -3223,6 +3283,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.'**
   String get errTooManyAttempts;
+
+  /// No description provided for @errSlotTagUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.'**
+  String get errSlotTagUnreadable;
+
+  /// No description provided for @errPrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.'**
+  String get errPrinterOffline;
 
   /// No description provided for @notifOngoingBody.
   ///

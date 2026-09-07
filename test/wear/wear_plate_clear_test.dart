@@ -10,7 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 
-WearFleet _fleet({required bool connected, required bool awaiting}) => WearFleet(
+WearFleet _fleet({required bool connected, required bool awaiting}) =>
+    WearFleet(
       printers: [
         PrinterWithStatus(
           printer: const Printer(id: 7, name: 'X1C'),
@@ -36,8 +37,9 @@ Future<FakeWearTransport> _pumpControl(
   bool awaiting = true,
   bool require = true,
 }) async {
-  final transport =
-      FakeWearTransport(fleet: _fleet(connected: connected, awaiting: awaiting));
+  final transport = FakeWearTransport(
+    fleet: _fleet(connected: connected, awaiting: awaiting),
+  );
   await pumpWear(
     tester,
     const WearPrinterControlScreen(printerId: 7),
@@ -55,8 +57,9 @@ Future<FakeWearTransport> _pumpControl(
 void main() {
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
-  testWidgets('an offline printer still offers the acknowledgement',
-      (tester) async {
+  testWidgets('an offline printer still offers the acknowledgement', (
+    tester,
+  ) async {
     final transport = await _pumpControl(tester);
 
     expect(find.text('Offline'), findsOneWidget);
@@ -72,8 +75,9 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Zwolnij płytę'), findsNothing);
   });
 
-  testWidgets('the scheduler not requiring it takes the button away',
-      (tester) async {
+  testWidgets('the scheduler not requiring it takes the button away', (
+    tester,
+  ) async {
     await _pumpControl(tester, require: false);
 
     expect(find.widgetWithText(FilledButton, 'Zwolnij płytę'), findsNothing);

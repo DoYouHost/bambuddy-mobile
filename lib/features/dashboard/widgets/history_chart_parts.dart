@@ -68,14 +68,16 @@ class HistoryStat extends StatelessWidget {
         children: [
           Text(
             label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -86,8 +88,8 @@ class HistoryStat extends StatelessWidget {
 /// Label of a history window in the range picker. The four values are the ones
 /// the sheets offer; anything else reads as the 24 h default.
 String sensorRangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-      6 => l10n.sensorHistoryRange6h,
-      48 => l10n.sensorHistoryRange48h,
-      168 => l10n.sensorHistoryRange7d,
-      _ => l10n.sensorHistoryRange24h,
-    };
+  6 => l10n.sensorHistoryRange6h,
+  48 => l10n.sensorHistoryRange48h,
+  168 => l10n.sensorHistoryRange7d,
+  _ => l10n.sensorHistoryRange24h,
+};

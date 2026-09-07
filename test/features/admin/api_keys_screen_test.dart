@@ -56,18 +56,6 @@ class _FakeKeys implements ApiKeysRepository {
   Future<void> delete(int keyId) async => deleted = keyId;
 }
 
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-
-  @override
-  Future<void> refresh() async {}
-}
-
 const _admin = CurrentUser(id: 1, username: 'admin', isAdmin: true);
 
 /// `api_keys:read` and nothing else — the list, no buttons.
@@ -82,7 +70,7 @@ Widget _app(Widget child, {required _FakeKeys repo, CurrentUser? signedInAs}) =>
     ProviderScope(
       overrides: [
         apiKeysRepositoryProvider.overrideWithValue(repo),
-        currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
+        currentUserOverride(signedInAs),
         fakeServerProfileOverride(authMode: AuthMode.jwt),
         apiKeyPrinterOptionsProvider.overrideWith(
           (ref) async => const [
@@ -117,8 +105,9 @@ void main() {
       expect(find.textContaining('nieużywany'), findsOneWidget);
     });
 
-    testWidgets('offers no issuing or revoking to a read-only identity',
-        (tester) async {
+    testWidgets('offers no issuing or revoking to a read-only identity', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const ApiKeysScreen(), repo: repo, signedInAs: _reader),
       );
@@ -128,8 +117,9 @@ void main() {
       expect(find.byTooltip('Odwołaj'), findsNothing);
     });
 
-    testWidgets('asks before revoking, and says what that means',
-        (tester) async {
+    testWidgets('asks before revoking, and says what that means', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const ApiKeysScreen(), repo: repo, signedInAs: _admin),
       );
@@ -139,8 +129,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Odwołać klucz Home Assistant?'), findsOneWidget);
-      expect(find.textContaining('przestanie działać natychmiast'),
-          findsOneWidget);
+      expect(
+        find.textContaining('przestanie działać natychmiast'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.widgetWithText(FilledButton, 'Odwołaj'));
       await tester.pumpAndSettle();
@@ -157,19 +149,21 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa'), 'SpoolBuddy');
+        find.widgetWithText(TextFormField, 'Nazwa'),
+        'SpoolBuddy',
+      );
       await tester.tap(find.widgetWithText(SwitchListTile, 'Kolejka'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
       expect(repo.created?.name, 'SpoolBuddy');
-      expect(repo.created?.scopes,
-          {ApiKeyScope.readStatus, ApiKeyScope.queue});
+      expect(repo.created?.scopes, {ApiKeyScope.readStatus, ApiKeyScope.queue});
     });
 
-    testWidgets('shows the key once, and says it will not come back',
-        (tester) async {
+    testWidgets('shows the key once, and says it will not come back', (
+      tester,
+    ) async {
       // The clipboard plugin is not there in a test; swallow the call.
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
@@ -181,7 +175,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa'), 'SpoolBuddy');
+        find.widgetWithText(TextFormField, 'Nazwa'),
+        'SpoolBuddy',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -199,7 +195,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa'), 'Warsztat');
+        find.widgetWithText(TextFormField, 'Nazwa'),
+        'Warsztat',
+      );
       // The form is a long list on a phone-sized screen; the printer section
       // is below the fold and not built until it scrolls into view.
       await tester.dragUntilVisible(
@@ -207,7 +205,9 @@ void main() {
         find.byType(ListView),
         const Offset(0, -200),
       );
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('A1 mini'));
       await tester.pumpAndSettle();
@@ -221,8 +221,11 @@ void main() {
   group('editing a key', () {
     testWidgets('sends only what changed', (tester) async {
       await tester.pumpWidget(
-        _app(ApiKeyFormScreen(existing: _homeAssistant),
-            repo: repo, signedInAs: _admin),
+        _app(
+          ApiKeyFormScreen(existing: _homeAssistant),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -237,11 +240,15 @@ void main() {
       expect(repo.updated?.$2.scopes, isNull);
     });
 
-    testWidgets('lifting a printer limit sends an explicit null',
-        (tester) async {
+    testWidgets('lifting a printer limit sends an explicit null', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _app(ApiKeyFormScreen(existing: _homeAssistant),
-            repo: repo, signedInAs: _admin),
+        _app(
+          ApiKeyFormScreen(existing: _homeAssistant),
+          repo: repo,
+          signedInAs: _admin,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -252,7 +259,9 @@ void main() {
         find.byType(ListView),
         const Offset(0, -200),
       );
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, 'Wszystkie drukarki'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();

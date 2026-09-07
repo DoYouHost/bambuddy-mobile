@@ -15,10 +15,10 @@ typedef _RawCatalog = (
 /// Runs in the isolate — 122 KB of JSON is the whole reason this is off the UI
 /// thread, and only plain maps and lists cross back.
 _RawCatalog _decode(List<String> sources) => (
-      jsonDecode(sources[0]) as Map<String, dynamic>,
-      jsonDecode(sources[1]) as List<dynamic>,
-      jsonDecode(sources[2]) as Map<String, dynamic>,
-    );
+  jsonDecode(sources[0]) as Map<String, dynamic>,
+  jsonDecode(sources[1]) as List<dynamic>,
+  jsonDecode(sources[2]) as Map<String, dynamic>,
+);
 
 /// Reads one asset by key. Injectable so tests can drive the degrade-to-empty
 /// paths, which are otherwise unreachable: the real keys are constants and a
@@ -34,7 +34,7 @@ typedef AssetReader = Future<String> Function(String key);
 /// gate on [isLoaded] and keep the screen out of reach.
 class ProcessSchemaCatalog {
   ProcessSchemaCatalog({AssetReader? readAsset})
-      : _readAsset = readAsset ?? rootBundle.loadString;
+    : _readAsset = readAsset ?? rootBundle.loadString;
 
   /// Shared instance per isolate.
   static final ProcessSchemaCatalog instance = ProcessSchemaCatalog();

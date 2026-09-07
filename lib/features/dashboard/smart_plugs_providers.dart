@@ -84,20 +84,19 @@ class SmartPlugsState {
     Map<int, bool>? optimistic,
     Set<int>? inFlight,
     bool? forbidden,
-  }) =>
-      SmartPlugsState(
-        plugs: plugs ?? this.plugs,
-        statuses: statuses ?? this.statuses,
-        optimistic: optimistic ?? this.optimistic,
-        inFlight: inFlight ?? this.inFlight,
-        forbidden: forbidden ?? this.forbidden,
-      );
+  }) => SmartPlugsState(
+    plugs: plugs ?? this.plugs,
+    statuses: statuses ?? this.statuses,
+    optimistic: optimistic ?? this.optimistic,
+    inFlight: inFlight ?? this.inFlight,
+    forbidden: forbidden ?? this.forbidden,
+  );
 }
 
 final smartPlugsProvider =
     AutoDisposeNotifierProvider<SmartPlugsNotifier, SmartPlugsState>(
-  SmartPlugsNotifier.new,
-);
+      SmartPlugsNotifier.new,
+    );
 
 /// Fetches plug list and polls statuses in loop (5s), and sends on/off
 /// commands with optimistic override and rollback (pattern like [ControlsNotifier]).
@@ -258,9 +257,7 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     _clearTimers[plugId] = Timer(_optimisticHold, () {
       _clearTimers.remove(plugId);
       if (!state.optimistic.containsKey(plugId)) return;
-      state = state.copyWith(
-        optimistic: {...state.optimistic}..remove(plugId),
-      );
+      state = state.copyWith(optimistic: {...state.optimistic}..remove(plugId));
     });
   }
 }

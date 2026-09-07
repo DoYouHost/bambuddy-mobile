@@ -1,4 +1,3 @@
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -27,14 +26,14 @@ import 'pipelines_providers.dart';
 /// ("tried to modify a provider while the widget tree was building"), which is
 /// what the history button used to do.
 Route<void> pipelineRunsRoute({PipelineRunFilter? filter}) => MaterialPageRoute(
-      builder: (_) => ProviderScope(
-        overrides: [
-          if (filter != null)
-            pipelineRunFilterSeedProvider.overrideWithValue(filter),
-        ],
-        child: const PipelineRunsScreen(),
-      ),
-    );
+  builder: (_) => ProviderScope(
+    overrides: [
+      if (filter != null)
+        pipelineRunFilterSeedProvider.overrideWithValue(filter),
+    ],
+    child: const PipelineRunsScreen(),
+  ),
+);
 
 /// What every run is doing: how many copies are done, which printer took each,
 /// and the two actions a run in trouble needs — cancel and retry-failed.
@@ -115,7 +114,8 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   void _maybeLoadMore() {
     if (!_scroll.hasClients) return;
     final position = _scroll.position;
-    if (position.pixels < position.maxScrollExtent - position.viewportDimension) {
+    if (position.pixels <
+        position.maxScrollExtent - position.viewportDimension) {
       return;
     }
     unawaited(_loadMore());
@@ -126,8 +126,12 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
       await ref.read(pipelineRunsProvider.notifier).loadMore();
     } on AppApiException catch (e) {
       if (!mounted) return;
-      showApiFailure(ScaffoldMessenger.of(context), e,
-          AppLocalizations.of(context), action: 'pipeline_runs.load_more');
+      showApiFailure(
+        ScaffoldMessenger.of(context),
+        e,
+        AppLocalizations.of(context),
+        action: 'pipeline_runs.load_more',
+      );
     }
   }
 
@@ -255,7 +259,8 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
       final n = await ref.read(pipelinesRepositoryProvider).clearTerminalRuns();
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
       messenger.showSnackBar(
-          SnackBar(content: Text(l10n.pipelineRunsCleared(n))));
+        SnackBar(content: Text(l10n.pipelineRunsCleared(n))),
+      );
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.clear');
     }
@@ -294,13 +299,17 @@ class _RunCard extends ConsumerWidget {
               ],
             ),
             if ((run.sourceFilename ?? '').isNotEmpty)
-              Text(l10n.pipelineRunSource(run.sourceFilename!),
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                l10n.pipelineRunSource(run.sourceFilename!),
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             if (run.parentRunId != null)
-              Text(l10n.pipelineRunRetryOf(run.parentRunId!),
-                  style: theme.textTheme.bodySmall),
+              Text(
+                l10n.pipelineRunRetryOf(run.parentRunId!),
+                style: theme.textTheme.bodySmall,
+              ),
             const SizedBox(height: 8),
             // Excluded from semantics: with a value and no `semanticsLabel`
             // Flutter synthesises a bare percentage ("50"), which a reader
@@ -312,21 +321,29 @@ class _RunCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(l10n.pipelineRunCopiesProgress(run.copiesFinished, run.copies),
-                style: theme.textTheme.bodySmall),
+            Text(
+              l10n.pipelineRunCopiesProgress(run.copiesFinished, run.copies),
+              style: theme.textTheme.bodySmall,
+            ),
             if (run.eligibilityOverridden)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(l10n.pipelineRunOverridden,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.tertiary)),
+                child: Text(
+                  l10n.pipelineRunOverridden,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
               ),
             if ((run.errorMessage ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(run.errorMessage!,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.error)),
+                child: Text(
+                  run.errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
               ),
             if (run.jobs.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -368,8 +385,10 @@ class _RunCard extends ConsumerWidget {
         color: colour.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(runStatusLabel(l10n, run.status),
-          style: theme.textTheme.labelSmall?.copyWith(color: colour)),
+      child: Text(
+        runStatusLabel(l10n, run.status),
+        style: theme.textTheme.labelSmall?.copyWith(color: colour),
+      ),
     );
   }
 
@@ -439,7 +458,9 @@ class _RunCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).cancel(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineRunCancelled)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.pipelineRunCancelled)),
+      );
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.cancel');
     }
@@ -456,7 +477,8 @@ class _RunCard extends ConsumerWidget {
       await ref.read(pipelinesRepositoryProvider).retryFailed(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
       messenger.showSnackBar(
-          SnackBar(content: Text(l10n.pipelineRunRetryStarted(count))));
+        SnackBar(content: Text(l10n.pipelineRunRetryStarted(count))),
+      );
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.retry');
     }

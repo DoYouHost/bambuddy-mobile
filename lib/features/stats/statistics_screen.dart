@@ -35,7 +35,10 @@ class StatisticsScreen extends ConsumerWidget {
         appBar: dashAppBar(
           context,
           title: l10n.statsTitle,
-          actions: [_UserFilterMenu(filter: filter), _RangeMenu(filter: filter)],
+          actions: [
+            _UserFilterMenu(filter: filter),
+            _RangeMenu(filter: filter),
+          ],
         ),
         body: RefreshIndicator(
           onRefresh: () async {
@@ -94,8 +97,10 @@ class _UserFilterMenu extends ConsumerWidget {
     return logTag(
       'stats.user_filter',
       PopupMenuButton<int>(
-        icon:
-            Icon(Icons.people_outline, color: DashTokens.of(context).textSecondary),
+        icon: Icon(
+          Icons.people_outline,
+          color: DashTokens.of(context).textSecondary,
+        ),
         tooltip: labelFor(filter.createdById),
         initialValue: filter.createdById ?? _allUsers,
         onSelected: (id) => ref
@@ -137,7 +142,10 @@ class _RangeMenu extends ConsumerWidget {
     return logTag(
       'stats.range',
       PopupMenuButton<StatsRange>(
-        icon: Icon(Icons.date_range, color: DashTokens.of(context).textSecondary),
+        icon: Icon(
+          Icons.date_range,
+          color: DashTokens.of(context).textSecondary,
+        ),
         tooltip: statsRangeLabel(l10n, filter.range),
         initialValue: filter.range,
         onSelected: (range) async {
@@ -165,7 +173,10 @@ class _RangeMenu extends ConsumerWidget {
           for (final r in StatsRange.values)
             PopupMenuItem(
               value: r,
-              child: logTag('stats.range.${r.name}', Text(statsRangeLabel(l10n, r))),
+              child: logTag(
+                'stats.range.${r.name}',
+                Text(statsRangeLabel(l10n, r)),
+              ),
             ),
         ],
       ),
@@ -192,7 +203,11 @@ class _StatsBody extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.bar_chart_outlined, size: 48, color: t.textTertiary),
+                  Icon(
+                    Icons.bar_chart_outlined,
+                    size: 48,
+                    color: t.textTertiary,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     l10n.statsEmpty,
@@ -355,10 +370,7 @@ class _OverviewCard extends StatelessWidget {
                 Icon(Icons.hourglass_empty, size: 14, color: t.textTertiary),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    l10n.statsEnergyWarmingUp,
-                    style: t.microSoft,
-                  ),
+                  child: Text(l10n.statsEnergyWarmingUp, style: t.microSoft),
                 ),
               ],
             ),
@@ -368,12 +380,7 @@ class _OverviewCard extends StatelessWidget {
             children: [
               Icon(Icons.summarize_outlined, size: 28, color: t.accentGreenInk),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  l10n.statsTotalCost,
-                  style: t.body,
-                ),
-              ),
+              Expanded(child: Text(l10n.statsTotalCost, style: t.body)),
               Text(
                 fmtNum(data.totalCost + data.totalEnergyCost),
                 style: t.monoTitle,
@@ -387,7 +394,11 @@ class _OverviewCard extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.label, required this.value});
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;

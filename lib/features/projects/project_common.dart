@@ -50,12 +50,12 @@ String projectPriorityLabel(AppLocalizations l10n, String priority) =>
 
 /// Status accent color, from the Dash design tokens.
 Color projectStatusColor(DashTokens t, String status) => switch (status) {
-      'active' => t.accentGreenInk,
-      'completed' => t.accentBlue,
-      'on_hold' => t.accentOrangeInk,
-      'archived' => t.textTertiary,
-      _ => t.textTertiary,
-    };
+  'active' => t.accentGreenInk,
+  'completed' => t.accentBlue,
+  'on_hold' => t.accentOrangeInk,
+  'archived' => t.textTertiary,
+  _ => t.textTertiary,
+};
 
 /// Parse a hex color string (`#RRGGBB`, `RRGGBB`, or `#RRGGBBAA`) to a [Color].
 /// Returns null when missing or malformed.
@@ -125,8 +125,11 @@ class ProjectColorSelector extends StatelessWidget {
           color: t.subCard,
           isSelected: selected == null,
           onTap: () => onChanged(null),
-          child: Icon(Icons.format_color_reset_outlined,
-              size: 18, color: t.textSecondary),
+          child: Icon(
+            Icons.format_color_reset_outlined,
+            size: 18,
+            color: t.textSecondary,
+          ),
         ),
         for (final hex in projectColorPalette)
           _swatch(

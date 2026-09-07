@@ -89,11 +89,14 @@ typedef AutoDrying = ({
   bool whilePrinting,
 });
 
-const noAutoDrying =
-    (betweenPrints: false, whenIdle: false, whilePrinting: false);
+const noAutoDrying = (
+  betweenPrints: false,
+  whenIdle: false,
+  whilePrinting: false,
+);
 
 AutoDrying autoDryingFrom(Map<String, dynamic> settings) => (
-      betweenPrints: settings.settingBool('queue_drying_enabled'),
-      whenIdle: settings.settingBool('ambient_drying_enabled'),
-      whilePrinting: settings.settingBool('print_drying_enabled'),
-    );
+  betweenPrints: settings.settingBool('queue_drying_enabled'),
+  whenIdle: settings.settingBool('ambient_drying_enabled'),
+  whilePrinting: settings.settingBool('print_drying_enabled'),
+);

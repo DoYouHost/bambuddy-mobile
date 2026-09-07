@@ -35,7 +35,13 @@ ScannedApiKeyConfig? parseScannedApiKey(String raw) {
 
   final uri = Uri.tryParse(s);
   if (uri != null && uri.hasQuery) {
-    final key = _firstParam(uri, const ['key', 'api_key', 'apikey', 'apiKey', 'token']);
+    final key = _firstParam(uri, const [
+      'key',
+      'api_key',
+      'apikey',
+      'apiKey',
+      'token',
+    ]);
     if (key != null) {
       return ScannedApiKeyConfig(
         baseUrl: _firstParam(uri, const ['url', 'base_url', 'baseUrl']),

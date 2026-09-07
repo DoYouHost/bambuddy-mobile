@@ -63,8 +63,9 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(skipObjectsProvider(widget.printerId));
     final pending = _pendingIn(async.valueOrNull);
-    final status =
-        ref.watch(printerStatusesProvider.select((m) => m[widget.printerId]));
+    final status = ref.watch(
+      printerStatusesProvider.select((m) => m[widget.printerId]),
+    );
     final layerNum = status?.layerNum ?? 0;
     final canSkipLayer = layerNum > 1;
     final canSelect = canSkipLayer && !_forbidden && !_skipping;
@@ -152,8 +153,8 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                           blockedReason: _forbidden
                               ? l10n.ctrlForbidden
                               : (!canSkipLayer
-                                  ? l10n.skipObjectsWaitForLayer(layerNum)
-                                  : null),
+                                    ? l10n.skipObjectsWaitForLayer(layerNum)
+                                    : null),
                           onToggle: () => _toggleSelected(obj),
                         ),
                       ),
@@ -173,9 +174,9 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
   /// [_selected]: keeping it would count it in the bar, name it in the
   /// confirmation, and re-send an id the printer has already dropped.
   List<PrintableObject> _pendingIn(PrintableObjects? data) => [
-        for (final obj in data?.objects ?? const <PrintableObject>[])
-          if (!obj.skipped && _selected.contains(obj.id)) obj,
-      ];
+    for (final obj in data?.objects ?? const <PrintableObject>[])
+      if (!obj.skipped && _selected.contains(obj.id)) obj,
+  ];
 
   /// Toggles one object in/out of the pending selection. The marker and tile
   /// widgets already withhold this callback (`onTap: null`) for a skipped
@@ -191,39 +192,38 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     AppLocalizations l10n,
     bool canConfirm,
     int count,
-  ) =>
-      DecoratedBox(
-        decoration: BoxDecoration(
-          color: t.navBar,
-          border: Border(top: BorderSide(color: t.hairline)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.skipObjectsSelectedCount(count),
-                    style: t.body.copyWith(color: t.textSecondary),
-                  ),
-                ),
-                if (_skipping)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: DashSpinner(size: 20),
-                  )
-                else
-                  FilledButton(
-                    onPressed: canConfirm ? _confirmSkipSelected : null,
-                    style: FilledButton.styleFrom(backgroundColor: t.danger),
-                    child: Text(l10n.skipObjectsSkip),
-                  ).tagged('skip_objects.skip'),
-              ],
+  ) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: t.navBar,
+      border: Border(top: BorderSide(color: t.hairline)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.skipObjectsSelectedCount(count),
+                style: t.body.copyWith(color: t.textSecondary),
+              ),
             ),
-          ),
+            if (_skipping)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: DashSpinner(size: 20),
+              )
+            else
+              FilledButton(
+                onPressed: canConfirm ? _confirmSkipSelected : null,
+                style: FilledButton.styleFrom(backgroundColor: t.danger),
+                child: Text(l10n.skipObjectsSkip),
+              ).tagged('skip_objects.skip'),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> _confirmSkipSelected() async {
     final l10n = AppLocalizations.of(context);
@@ -259,7 +259,8 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
       if (result.isOk) _selected.clear();
     });
 
-    final msg = result.messageFor(l10n) ??
+    final msg =
+        result.messageFor(l10n) ??
         l10n.skipObjectsSkippedToast(objs.length, names);
     ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
   }
@@ -420,7 +421,9 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     if (baseUrl == null || coverUrl == null) {
       background = noRender;
     } else {
-      background = ref.watch(cameraTokenProvider).when(
+      background = ref
+          .watch(cameraTokenProvider)
+          .when(
             loading: () => noRender,
             error: (_, _) => noRender,
             data: (token) => Image.network(
@@ -440,7 +443,9 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     // Real footprints when the slicer's object-ID mask is available; badges
     // placed from each object's centre point when it isn't, which is all
     // `/print/objects` carries.
-    final mask = ref.watch(objectPickMaskProvider(widget.printerId)).valueOrNull;
+    final mask = ref
+        .watch(objectPickMaskProvider(widget.printerId))
+        .valueOrNull;
 
     Widget marker(int i) {
       final obj = data.objects[i];
@@ -539,13 +544,18 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
 
   Offset center(double x, double y) =>
       Offset(x.clamp(0.05, 0.95), y.clamp(0.05, 0.95));
-  Size sizeIn(double spanW, double spanH) => obj.width == null || obj.height == null
+  Size sizeIn(double spanW, double spanH) =>
+      obj.width == null || obj.height == null
       ? const Size(fallbackSize, fallbackSize)
       : Size(
-          (spanW == 0 ? fallbackSize : (obj.width! / spanW) * content)
-              .clamp(0.08, 0.9),
-          (spanH == 0 ? fallbackSize : (obj.height! / spanH) * content)
-              .clamp(0.08, 0.9),
+          (spanW == 0 ? fallbackSize : (obj.width! / spanW) * content).clamp(
+            0.08,
+            0.9,
+          ),
+          (spanH == 0 ? fallbackSize : (obj.height! / spanH) * content).clamp(
+            0.08,
+            0.9,
+          ),
         );
 
   if (obj.x != null && obj.y != null && bbox != null) {
@@ -754,7 +764,10 @@ class _ObjectShapesPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     final digits = TextPainter(
-      text: TextSpan(text: text, style: style.copyWith(color: Colors.white)),
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(color: Colors.white),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
 
@@ -832,7 +845,11 @@ class _ObjectMarker extends StatelessWidget {
                 width: selected ? 2 : 1,
               ),
               boxShadow: const [
-                BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1)),
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
               ],
             ),
             child: FittedBox(
@@ -911,8 +928,9 @@ class _ObjectTile extends StatelessWidget {
     final accent = skipped
         ? t.danger
         : (selected ? t.accentBlue : t.accentGreenInk);
-    final accentBg = (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
-        .withValues(alpha: 0.15);
+    final accentBg =
+        (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
+            .withValues(alpha: 0.15);
 
     return Tooltip(
       message: blockedReason ?? '',
@@ -933,8 +951,8 @@ class _ObjectTile extends StatelessWidget {
               color: skipped
                   ? t.danger.withValues(alpha: 0.3)
                   : (selected
-                      ? t.accentBlue.withValues(alpha: 0.5)
-                      : t.subCardBorder),
+                        ? t.accentBlue.withValues(alpha: 0.5)
+                        : t.subCardBorder),
             ),
           ),
           child: Row(
@@ -1042,4 +1060,3 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-

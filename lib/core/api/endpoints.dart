@@ -281,8 +281,7 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/bed-jog';
 
   /// Relative toolhead X/Y jog. Query: `x`, `y` (signed mm, |·|≤200 each).
-  static String xyJog(int printerId) =>
-      '$apiPrefix/printers/$printerId/xy-jog';
+  static String xyJog(int printerId) => '$apiPrefix/printers/$printerId/xy-jog';
 
   /// Relative extrusion. Query: `distance` (signed mm, |d|≤100; +extrude,
   /// −retract). Firmware refuses extrusion below the min-extrude temperature.
@@ -406,6 +405,13 @@ abstract final class Endpoints {
   static String queueItemStart(int itemId) => '$apiPrefix/queue/$itemId/start';
   static String queueItemCancel(int itemId) =>
       '$apiPrefix/queue/$itemId/cancel';
+
+  /// The only route a `printing` item accepts: `/cancel` takes `pending` alone
+  /// and `DELETE` refuses anything currently printing, so without this a row
+  /// the server holds as printing has no way out of the queue at all
+  /// (issue #35 — a print that failed on the machine while the row stayed
+  /// `printing`). Present and unchanged since server v0.1.2.
+  static String queueItemStop(int itemId) => '$apiPrefix/queue/$itemId/stop';
 
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
@@ -550,7 +556,6 @@ abstract final class Endpoints {
   /// from.
   static String archivePlates(int archiveId) =>
       '$apiPrefix/archives/$archiveId/plates';
-
 
   // --- Print log (one row per run, in its own table) ---
 
@@ -834,8 +839,7 @@ abstract final class Endpoints {
   /// `SpoolResponse`). Server-side the slot must hold a readable RFID tag —
   /// without one there is no stable identity and every confirm would make a
   /// duplicate, so it answers 400.
-  static const inventorySpoolFromSlot =
-      '$apiPrefix/inventory/spools/from-slot';
+  static const inventorySpoolFromSlot = '$apiPrefix/inventory/spools/from-slot';
 
   // --- Spool form reference data (Phase 2) ---
 
@@ -890,8 +894,7 @@ abstract final class Endpoints {
 
   // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
-  static const spoolmanSpoolsBulk =
-      '$apiPrefix/spoolman/inventory/spools/bulk';
+  static const spoolmanSpoolsBulk = '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
   static String spoolmanSpoolArchive(int spoolId) =>
@@ -927,8 +930,24 @@ abstract final class Endpoints {
   /// it does NOT live under `/spoolman/inventory/`, and unlike every other
   /// inventory write it is gated on `filaments:update`, which no API key may
   /// hold — a key-authenticated session gets 403 here whatever its scopes.
-  static const spoolmanSpoolFromSlot =
-      '$apiPrefix/spoolman/spools/from-slot';
+  static const spoolmanSpoolFromSlot = '$apiPrefix/spoolman/spools/from-slot';
+
+  /// Spoolman's answer to the native `POST /inventory/assignments` (`POST`,
+  /// body `{tray_uuid|tag_uid, printer_id, ams_id, tray_id}`). The spool binds
+  /// to the tag, not to the slot: without one the server answers 400, so a slot
+  /// with no readable RFID cannot be assigned here at all. The triple is
+  /// optional context it uses to write the slot ledger [spoolmanAssignments]
+  /// reads back (`spoolman.py::link_spool`). Gated on `filaments:update` like
+  /// [spoolmanSpoolFromSlot] — denied to every API key.
+  static String spoolmanSpoolLink(int spoolId) =>
+      '$apiPrefix/spoolman/spools/$spoolId/link';
+
+  /// Clear a spool's tag link and drop its slot assignment (`POST`, no body).
+  /// Keyed on the spool, not the slot — the server deletes every assignment
+  /// row for it, since one spool can only sit in one slot
+  /// (`spoolman.py::unlink_spool`).
+  static String spoolmanSpoolUnlink(int spoolId) =>
+      '$apiPrefix/spoolman/spools/$spoolId/unlink';
 
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
@@ -1034,8 +1053,7 @@ abstract final class Endpoints {
 
   /// Add / remove / replace tags across files (`POST`, body
   /// `{file_ids, tag_ids, action}` → `TagBulkAssignResponse`).
-  static const libraryTagsBulkAssign =
-      '$apiPrefix/library/tags/bulk-assign';
+  static const libraryTagsBulkAssign = '$apiPrefix/library/tags/bulk-assign';
 
   // --- Library variant groups (server #671) ---
   //
@@ -1107,8 +1125,7 @@ abstract final class Endpoints {
   static const makerworldImport = '$apiPrefix/makerworld/import';
 
   /// Recent MakerWorld imports (`GET`, query `limit`).
-  static const makerworldRecentImports =
-      '$apiPrefix/makerworld/recent-imports';
+  static const makerworldRecentImports = '$apiPrefix/makerworld/recent-imports';
 
   /// MakerWorld thumbnail proxy (`GET`, query `url=<cover URL>`). Public
   /// — no auth; used directly by `Image.network`.

@@ -126,9 +126,10 @@ class ArchivePrinterMedia {
               kind: ArchiveMediaKind.timelapse,
             )
           : null,
-      remoteFiles: parseJsonList(json['remote_files'], ArchiveMediaFile.fromJson)
-          .where((f) => f.path.isNotEmpty)
-          .toList(),
+      remoteFiles: parseJsonList(
+        json['remote_files'],
+        ArchiveMediaFile.fromJson,
+      ).where((f) => f.path.isNotEmpty).toList(),
       // An unknown warning is dropped rather than surfaced: a newer server may
       // name a case this build has no sentence for, and a raw wire string is
       // not something to put in front of the user.

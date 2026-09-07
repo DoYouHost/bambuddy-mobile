@@ -39,7 +39,8 @@ class MakerWorldThumbnail extends ConsumerWidget {
       return placeholder();
     }
 
-    final src = '$baseUrl${Endpoints.makerworldThumbnail}'
+    final src =
+        '$baseUrl${Endpoints.makerworldThumbnail}'
         '?url=${Uri.encodeQueryComponent(cover)}';
     return ClipRRect(
       borderRadius: radius,

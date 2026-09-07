@@ -114,8 +114,9 @@ class _IdleViewState extends ConsumerState<_IdleView> {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 44),
                     ),
-                    onPressed:
-                        ref.read(bugReportProvider.notifier).showRecovered,
+                    onPressed: ref
+                        .read(bugReportProvider.notifier)
+                        .showRecovered,
                     child: Text(l10n.bugReportShow),
                   ).tagged('bug_report.recovered_show'),
                 ),
@@ -148,52 +149,53 @@ class _IdleViewState extends ConsumerState<_IdleView> {
   }
 
   List<Widget> _bugSteps(AppLocalizations l10n) => [
-        _Card(
-          title: l10n.bugReportIntroHeader,
-          rows: [
-            _Step(1, l10n.bugReportStepRecord),
-            _Step(2, l10n.bugReportStepReproduce),
-            _Step(3, l10n.bugReportStepFinish),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          title: l10n.bugReportPrivacyHeader,
-          icon: Icons.lock_outline_rounded,
-          rows: [
-            _Fact.kept(l10n.bugReportLogScreens),
-            _Fact.kept(l10n.bugReportLogRequests),
-            // The one nobody expects to be in there, and the reason the old
-            // version of this card needed a warning box of its own.
-            _Fact.kept(l10n.bugReportLogService),
-            _Fact.kept(l10n.bugReportLogErrors),
-            _Fact.kept(l10n.bugReportLogSetup),
-            _Fact.never(l10n.bugReportLogNoKey),
-            _Fact.never(l10n.bugReportLogNoTyping),
-            _Fact.never(l10n.bugReportLogNoAddress),
-            _Fact.never(l10n.bugReportLogNoData),
-          ],
-          note: l10n.bugReportReviewFirst,
-        ),
-        const SizedBox(height: 20),
-        logTag(
-          'bug_report.start',
-          FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-            icon: const Icon(Icons.fiber_manual_record_rounded, size: 16),
-            label: Text(l10n.bugReportStart),
-            onPressed: _start,
-          ),
-        ),
-      ];
+    _Card(
+      title: l10n.bugReportIntroHeader,
+      rows: [
+        _Step(1, l10n.bugReportStepRecord),
+        _Step(2, l10n.bugReportStepReproduce),
+        _Step(3, l10n.bugReportStepFinish),
+      ],
+    ),
+    const SizedBox(height: 12),
+    _Card(
+      title: l10n.bugReportPrivacyHeader,
+      icon: Icons.lock_outline_rounded,
+      rows: [
+        _Fact.kept(l10n.bugReportLogScreens),
+        _Fact.kept(l10n.bugReportLogRequests),
+        // The one nobody expects to be in there, and the reason the old
+        // version of this card needed a warning box of its own.
+        _Fact.kept(l10n.bugReportLogService),
+        _Fact.kept(l10n.bugReportLogErrors),
+        _Fact.kept(l10n.bugReportLogSetup),
+        _Fact.never(l10n.bugReportLogNoKey),
+        _Fact.never(l10n.bugReportLogNoTyping),
+        _Fact.never(l10n.bugReportLogNoAddress),
+        _Fact.never(l10n.bugReportLogNoData),
+      ],
+      note: l10n.bugReportReviewFirst,
+    ),
+    const SizedBox(height: 20),
+    logTag(
+      'bug_report.start',
+      FilledButton.icon(
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        icon: const Icon(Icons.fiber_manual_record_rounded, size: 16),
+        label: Text(l10n.bugReportStart),
+        onPressed: _start,
+      ),
+    ),
+  ];
 
   List<Widget> _requestForm(AppLocalizations l10n, BugReportState state) {
     final feature = state.kind == ReportKind.feature;
     final sent = state.send.phase == SendPhase.sent;
     return [
       _Card(
-        title:
-            feature ? l10n.bugReportFeatureHeader : l10n.bugReportChangeHeader,
+        title: feature
+            ? l10n.bugReportFeatureHeader
+            : l10n.bugReportChangeHeader,
         body: feature ? l10n.bugReportFeatureBody : l10n.bugReportChangeBody,
         icon: feature ? Icons.lightbulb_outline_rounded : Icons.tune_rounded,
       ),
@@ -216,7 +218,8 @@ class _IdleViewState extends ConsumerState<_IdleView> {
         controller: _description,
         // Frozen once the report is queued: what waits on disk is a copy, so
         // typing on would edit something that is no longer what gets sent.
-        enabled: state.send.phase == SendPhase.idle ||
+        enabled:
+            state.send.phase == SendPhase.idle ||
             state.send.phase == SendPhase.failed,
         label: feature ? l10n.bugReportFeatureLabel : l10n.bugReportChangeLabel,
         hint: feature ? l10n.bugReportFeatureHint : l10n.bugReportChangeHint,
@@ -267,7 +270,9 @@ class _IdleViewState extends ConsumerState<_IdleView> {
   void _finishRequest() {
     final l10n = AppLocalizations.of(context);
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
-    ScaffoldMessenger.of(context).snack(l10n.bugReportSent, replaceCurrent: true);
+    ScaffoldMessenger.of(
+      context,
+    ).snack(l10n.bugReportSent, replaceCurrent: true);
     _description.clear();
     ref.read(bugReportProvider.notifier).reset();
     GoRouter.of(context).go(home);
@@ -305,10 +310,7 @@ class _KindChoice extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 8),
-          child: Text(
-            l10n.bugReportKindQuestion,
-            style: t.bodyBold,
-          ),
+          child: Text(l10n.bugReportKindQuestion, style: t.bodyBold),
         ),
         SizedBox(
           width: double.infinity,
@@ -353,7 +355,8 @@ class _RecordingView extends ConsumerWidget {
       children: [
         _Card(
           title: l10n.bugReportRecordingHeader,
-          body: '${l10n.bugReportRecordingBody}\n\n'
+          body:
+              '${l10n.bugReportRecordingBody}\n\n'
               '${l10n.bugReportLimit(recordingLimit.inMinutes)}',
           icon: Icons.fiber_manual_record_rounded,
         ),
@@ -368,7 +371,9 @@ class _RecordingView extends ConsumerWidget {
             label: Text(l10n.bugReportMark),
             onPressed: () {
               ref.read(bugReportProvider.notifier).mark();
-              ScaffoldMessenger.of(context).snack(l10n.bugReportMarked, replaceCurrent: true);
+              ScaffoldMessenger.of(
+                context,
+              ).snack(l10n.bugReportMarked, replaceCurrent: true);
             },
           ),
         ),
@@ -405,10 +410,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     if (needed == (_tick != null)) return;
     _tick?.cancel();
     _tick = needed
-        ? Timer.periodic(
-            const Duration(seconds: 1),
-            (_) => setState(() {}),
-          )
+        ? Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}))
         : null;
   }
 
@@ -456,7 +458,8 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                 // copy then, so the next attempt is genuinely a fresh report.
                 _DescriptionField(
                   controller: _description,
-                  enabled: state.send.phase == SendPhase.idle ||
+                  enabled:
+                      state.send.phase == SendPhase.idle ||
                       state.send.phase == SendPhase.failed,
                 ),
                 _SendStatus(send: state.send),
@@ -465,9 +468,9 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
               _SummaryCard(summary: summary),
               const SizedBox(height: 12),
               TextButton.icon(
-                icon: Icon(_raw
-                    ? Icons.visibility_off_outlined
-                    : Icons.code_rounded),
+                icon: Icon(
+                  _raw ? Icons.visibility_off_outlined : Icons.code_rounded,
+                ),
                 label: Text(
                   _raw ? l10n.bugReportHideRaw : l10n.bugReportShowRaw,
                 ),
@@ -513,18 +516,17 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 48),
                                 ),
-                                icon: const Icon(Icons.save_alt_rounded,
-                                    size: 18),
+                                icon: const Icon(
+                                  Icons.save_alt_rounded,
+                                  size: 18,
+                                ),
                                 // Short, because the choice above already says
                                 // "save to a file" and two controls with the
                                 // same words are two things to tell apart.
                                 label: Text(l10n.bugReportSaveShort),
                                 onPressed: _save,
                               ).tagged('bug_report.save')
-                            : _SendButton(
-                                send: state.send,
-                                onSend: _send,
-                              ),
+                            : _SendButton(send: state.send, onSend: _send),
                       ),
                     ],
                   ),
@@ -575,10 +577,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
   /// reason to outlive that, so the session's files go and the user is handed
   /// back to where the bug happened. The router is taken before the await:
   /// discarding rebuilds this screen away.
-  Future<void> _finish(
-    ScaffoldMessengerState messenger,
-    String message,
-  ) async {
+  Future<void> _finish(ScaffoldMessengerState messenger, String message) async {
     final router = GoRouter.of(context);
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
     final controller = ref.read(bugReportProvider.notifier);
@@ -620,7 +619,10 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
 /// public issue. Spelled out rather than implied by a button label — the second
 /// option is irreversible and the first one is not.
 class _DestinationChoice extends StatelessWidget {
-  const _DestinationChoice({required this.destination, required this.onChanged});
+  const _DestinationChoice({
+    required this.destination,
+    required this.onChanged,
+  });
 
   final ReportDestination destination;
   final ValueChanged<ReportDestination> onChanged;
@@ -793,7 +795,10 @@ class _Waiting extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   l10n.bugReportSendWaitingBody,
-                  style: t.labelSoft.copyWith(color: t.textSecondary, height: 1.4),
+                  style: t.labelSoft.copyWith(
+                    color: t.textSecondary,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -863,19 +868,17 @@ class _Failed extends StatelessWidget {
   static String _requestFailureText(
     AppLocalizations l10n,
     RelayFailure? failure,
-  ) =>
-      switch (failure) {
-        RelayFailure.notYet => l10n.bugReportRequestFailedNotYet,
-        RelayFailure.duplicate => l10n.bugReportSendFailedDuplicate,
-        RelayFailure.unreachable => l10n.bugReportRequestFailedUnreachable,
-        RelayFailure.demo => l10n.bugReportRequestFailedDemo,
-        // Both dead ends, and both leave the user the same one way through:
-        // GitHub's own form.
-        RelayFailure.refused ||
-        RelayFailure.rejected ||
-        null =>
-          l10n.bugReportRequestFailedRefused,
-      };
+  ) => switch (failure) {
+    RelayFailure.notYet => l10n.bugReportRequestFailedNotYet,
+    RelayFailure.duplicate => l10n.bugReportSendFailedDuplicate,
+    RelayFailure.unreachable => l10n.bugReportRequestFailedUnreachable,
+    RelayFailure.demo => l10n.bugReportRequestFailedDemo,
+    // Both dead ends, and both leave the user the same one way through:
+    // GitHub's own form.
+    RelayFailure.refused ||
+    RelayFailure.rejected ||
+    null => l10n.bugReportRequestFailedRefused,
+  };
 }
 
 /// Calls off a queued report before the relay gets it. Rendered only while one
@@ -885,9 +888,9 @@ class _CancelSend extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => TextButton(
-        onPressed: ref.read(bugReportProvider.notifier).cancelSend,
-        child: Text(AppLocalizations.of(context).bugReportCancelSend),
-      ).tagged('bug_report.cancel_send');
+    onPressed: ref.read(bugReportProvider.notifier).cancelSend,
+    child: Text(AppLocalizations.of(context).bugReportCancelSend),
+  ).tagged('bug_report.cancel_send');
 }
 
 class _SendButton extends StatelessWidget {
@@ -937,13 +940,19 @@ class _SentActions extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded,
-                size: 16, color: t.accentGreen),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 16,
+              color: t.accentGreen,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '${l10n.bugReportSent} — ${body ?? l10n.bugReportSentBody}',
-                style: t.labelSoft.copyWith(color: t.textSecondary, height: 1.4),
+                style: t.labelSoft.copyWith(
+                  color: t.textSecondary,
+                  height: 1.4,
+                ),
               ),
             ),
           ],
@@ -1075,26 +1084,22 @@ class _LineRowState extends State<_LineRow> {
     final accent = line.isError
         ? t.danger
         : line.isWarning
-            ? t.accentOrangeInk
-            : line.isMarker
-                ? t.accentGreenInk
-                : t.textTertiary;
+        ? t.accentOrangeInk
+        : line.isMarker
+        ? t.accentGreenInk
+        : t.textTertiary;
     final detailStyle = t.monoMicro.copyWith(color: t.textSecondary);
 
-    final headerStyle = t.monoLabel.copyWith(color: line.isError || line.isWarning ? accent : t.textPrimary);
+    final headerStyle = t.monoLabel.copyWith(
+      color: line.isError || line.isWarning ? accent : t.textPrimary,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 54,
-            child: Text(
-              line.offset,
-              style: t.monoMicro,
-            ),
-          ),
+          SizedBox(width: 54, child: Text(line.offset, style: t.monoMicro)),
           Container(
             margin: const EdgeInsets.only(top: 4, right: 10),
             width: 6,
@@ -1108,7 +1113,8 @@ class _LineRowState extends State<_LineRow> {
             // from paddings spelled out a second time.
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final clamped = line.detail.isNotEmpty &&
+                final clamped =
+                    line.detail.isNotEmpty &&
                     _overflows(line.detail, detailStyle, constraints.maxWidth);
                 final block = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1116,8 +1122,10 @@ class _LineRowState extends State<_LineRow> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text('${line.src} · ${line.evt}',
-                              style: headerStyle),
+                          child: Text(
+                            '${line.src} · ${line.evt}',
+                            style: headerStyle,
+                          ),
                         ),
                         // Only where tapping does something: a chevron on a
                         // record that is already whole promises more than there is.
@@ -1268,18 +1276,12 @@ class _Card extends StatelessWidget {
           ),
           if (body case final String lead) ...[
             const SizedBox(height: 8),
-            Text(
-              lead,
-              style: t.bodyPlain.copyWith(height: 1.45),
-            ),
+            Text(lead, style: t.bodyPlain.copyWith(height: 1.45)),
           ],
           if (rows.isNotEmpty) ...[const SizedBox(height: 10), ...rows],
           if (note case final String closing) ...[
             const SizedBox(height: 10),
-            Text(
-              closing,
-              style: t.label.copyWith(height: 1.4),
-            ),
+            Text(closing, style: t.label.copyWith(height: 1.4)),
           ],
           if (footer != null) ...[const SizedBox(height: 14), footer!],
         ],
@@ -1323,7 +1325,10 @@ class _Fact extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: t.bodyPlain.copyWith(color: included ? t.textSecondary : t.textTertiary, height: 1.35),
+              style: t.bodyPlain.copyWith(
+                color: included ? t.textSecondary : t.textTertiary,
+                height: 1.35,
+              ),
             ),
           ),
         ],

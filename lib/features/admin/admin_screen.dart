@@ -83,10 +83,7 @@ class _SignedInAs extends StatelessWidget {
           Icon(Icons.badge_outlined, size: 15, color: t.textTertiary),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              l10n.adminSignedInAs(username),
-              style: t.labelSoft,
-            ),
+            child: Text(l10n.adminSignedInAs(username), style: t.labelSoft),
           ),
         ],
       ),
@@ -148,10 +145,7 @@ class _AdminEntry extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: t.titleMd,
-                        ),
+                        Text(title, style: t.titleMd),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
@@ -174,7 +168,9 @@ class _AdminEntry extends StatelessWidget {
 /// Whether to offer administration at all: an identity the server named, with
 /// at least one of the three read permissions. Nothing is shown to an
 /// anonymous session or to an API key — see [identifiedPermissionProvider].
-final canOpenAdminProvider = Provider<bool>((ref) =>
-    ref.watch(canReadUsersProvider) ||
-    ref.watch(canReadGroupsProvider) ||
-    ref.watch(canReadApiKeysProvider));
+final canOpenAdminProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(canReadUsersProvider) ||
+      ref.watch(canReadGroupsProvider) ||
+      ref.watch(canReadApiKeysProvider),
+);

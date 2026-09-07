@@ -23,16 +23,18 @@ void main() {
   /// The real app router, with no server profile — the state a fresh install is
   /// in, where every route but setup is redirected away.
   Future<GoRouter> pumpApp(WidgetTester tester) async {
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      diagnosticRecorderProvider.overrideWith(
-        (ref) => DiagnosticRecorder(
-          settings: ref.watch(settingsRepositoryProvider),
-          loadFacts: () async => facts,
-          resolveDirectory: () async => null,
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        diagnosticRecorderProvider.overrideWith(
+          (ref) => DiagnosticRecorder(
+            settings: ref.watch(settingsRepositoryProvider),
+            loadFacts: () async => facts,
+            resolveDirectory: () async => null,
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
     addTearDown(container.dispose);
     final router = container.read(routerProvider);
     await tester.pumpWidget(
@@ -50,8 +52,9 @@ void main() {
     return router;
   }
 
-  testWidgets('the bug report is reachable before the server is set up',
-      (tester) async {
+  testWidgets('the bug report is reachable before the server is set up', (
+    tester,
+  ) async {
     // Without this the redirect bounces every route back to setup, and a broken
     // setup — the report worth having most — could never be recorded.
     final router = await pumpApp(tester);

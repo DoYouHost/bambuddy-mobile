@@ -9,17 +9,17 @@ import '../inventory/inventory_providers.dart';
 /// Alphabetically sorted by definition name.
 final swatchCodesProvider =
     NotifierProvider<SwatchCodesNotifier, List<SwatchCode>>(
-  SwatchCodesNotifier.new,
-);
+      SwatchCodesNotifier.new,
+    );
 
 class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
   @override
-  List<SwatchCode> build() => _sorted(
-        ref.watch(settingsRepositoryProvider).loadSwatchCodes(),
-      );
+  List<SwatchCode> build() =>
+      _sorted(ref.watch(settingsRepositoryProvider).loadSwatchCodes());
 
   static List<SwatchCode> _sorted(List<SwatchCode> codes) {
-    final list = [...codes]..sort(
+    final list = [...codes]
+      ..sort(
         (a, b) =>
             a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
       );
@@ -74,8 +74,9 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
   /// Save entry (create or edit). [replacingCode] = old code on edit (if user
   /// changed code itself, remove old entry). Entry with same (new) code is overwritten.
   Future<void> save(SwatchCode entry, {String? replacingCode}) async {
-    final replacing =
-        replacingCode == null ? null : normalizeSwatchCode(replacingCode);
+    final replacing = replacingCode == null
+        ? null
+        : normalizeSwatchCode(replacingCode);
     final next = <SwatchCode>[
       for (final e in state)
         if (e.code != replacing && e.code != entry.code) e,
@@ -86,7 +87,10 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
 
   Future<void> remove(String code) async {
     final c = normalizeSwatchCode(code);
-    await _persist([for (final e in state) if (e.code != c) e]);
+    await _persist([
+      for (final e in state)
+        if (e.code != c) e,
+    ]);
   }
 
   /// Overwrite ENTIRE registry (file import). Dedup by code — first occurrence wins.
@@ -104,8 +108,9 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
 /// Filament definitions from inventory (active spools) without swatch code yet.
 /// Dedup by identity (brand+material+variant+color). Shares inventory fetch with
 /// Filaments tab; empty if inventory not loaded or failed.
-final uncodedFilamentsProvider =
-    Provider.autoDispose<List<FilamentIdentity>>((ref) {
+final uncodedFilamentsProvider = Provider.autoDispose<List<FilamentIdentity>>((
+  ref,
+) {
   final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
   final coded = {for (final c in ref.watch(swatchCodesProvider)) c.identityKey};
   final seen = <String>{};
@@ -125,7 +130,8 @@ final uncodedFilamentsProvider =
     out.add(identity);
   }
   out.sort(
-    (a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+    (a, b) =>
+        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
   );
   return out;
 });

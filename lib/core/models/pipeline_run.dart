@@ -37,18 +37,18 @@ enum EligibilityIssueKind {
   unknown;
 
   static EligibilityIssueKind parse(String? raw) => switch (raw) {
-        'printer_not_set' => EligibilityIssueKind.printerNotSet,
-        'printer_not_found' => EligibilityIssueKind.printerNotFound,
-        'printer_disabled' => EligibilityIssueKind.printerDisabled,
-        'printer_offline' => EligibilityIssueKind.printerOffline,
-        'filament_type_mismatch' => EligibilityIssueKind.filamentTypeMismatch,
-        'filament_color_mismatch' => EligibilityIssueKind.filamentColorMismatch,
-        'ams_slot_missing' => EligibilityIssueKind.amsSlotMissing,
-        'filament_unverified' => EligibilityIssueKind.filamentUnverified,
-        'no_class_matches' => EligibilityIssueKind.noClassMatches,
-        'class_not_set' => EligibilityIssueKind.classNotSet,
-        _ => EligibilityIssueKind.unknown,
-      };
+    'printer_not_set' => EligibilityIssueKind.printerNotSet,
+    'printer_not_found' => EligibilityIssueKind.printerNotFound,
+    'printer_disabled' => EligibilityIssueKind.printerDisabled,
+    'printer_offline' => EligibilityIssueKind.printerOffline,
+    'filament_type_mismatch' => EligibilityIssueKind.filamentTypeMismatch,
+    'filament_color_mismatch' => EligibilityIssueKind.filamentColorMismatch,
+    'ams_slot_missing' => EligibilityIssueKind.amsSlotMissing,
+    'filament_unverified' => EligibilityIssueKind.filamentUnverified,
+    'no_class_matches' => EligibilityIssueKind.noClassMatches,
+    'class_not_set' => EligibilityIssueKind.classNotSet,
+    _ => EligibilityIssueKind.unknown,
+  };
 }
 
 /// One eligibility complaint (`EligibilityIssueResponse`).
@@ -145,8 +145,10 @@ class EligibilityReport {
         targetPrinterName: json['target_printer_name'] as String?,
         targetModelClass: json['target_model_class'] as String?,
         issues: parseJsonList(json['issues'], EligibilityIssue.fromJson),
-        printerReports:
-            parseJsonList(json['printer_reports'], PerPrinterReport.fromJson),
+        printerReports: parseJsonList(
+          json['printer_reports'],
+          PerPrinterReport.fromJson,
+        ),
       );
 
   final bool ok;
@@ -165,9 +167,9 @@ class EligibilityReport {
 
   /// Everything worth showing, class-level first then per-printer.
   List<EligibilityIssue> get allIssues => [
-        ...issues,
-        for (final r in printerReports) ...r.issues,
-      ];
+    ...issues,
+    for (final r in printerReports) ...r.issues,
+  ];
 
   /// Whether anything at all is worth putting in front of the operator — an
   /// advisory-only report is still [ok] but should not slip past silently.
@@ -189,31 +191,31 @@ enum PipelineRunStatus {
   unknown;
 
   static PipelineRunStatus parse(String? raw) => switch (raw) {
-        'queued' => PipelineRunStatus.queued,
-        'slicing' => PipelineRunStatus.slicing,
-        'dispatching' => PipelineRunStatus.dispatching,
-        'in_progress' => PipelineRunStatus.inProgress,
-        'completed' => PipelineRunStatus.completed,
-        'failed' => PipelineRunStatus.failed,
-        'partial_failure' => PipelineRunStatus.partialFailure,
-        'cancelled' => PipelineRunStatus.cancelled,
-        _ => PipelineRunStatus.unknown,
-      };
+    'queued' => PipelineRunStatus.queued,
+    'slicing' => PipelineRunStatus.slicing,
+    'dispatching' => PipelineRunStatus.dispatching,
+    'in_progress' => PipelineRunStatus.inProgress,
+    'completed' => PipelineRunStatus.completed,
+    'failed' => PipelineRunStatus.failed,
+    'partial_failure' => PipelineRunStatus.partialFailure,
+    'cancelled' => PipelineRunStatus.cancelled,
+    _ => PipelineRunStatus.unknown,
+  };
 
   /// The value the `status` query parameter takes. [unknown] has none — it
   /// stands for a status this build has not heard of, so there is nothing to
   /// ask the server for.
   String? get wire => switch (this) {
-        PipelineRunStatus.queued => 'queued',
-        PipelineRunStatus.slicing => 'slicing',
-        PipelineRunStatus.dispatching => 'dispatching',
-        PipelineRunStatus.inProgress => 'in_progress',
-        PipelineRunStatus.completed => 'completed',
-        PipelineRunStatus.failed => 'failed',
-        PipelineRunStatus.partialFailure => 'partial_failure',
-        PipelineRunStatus.cancelled => 'cancelled',
-        PipelineRunStatus.unknown => null,
-      };
+    PipelineRunStatus.queued => 'queued',
+    PipelineRunStatus.slicing => 'slicing',
+    PipelineRunStatus.dispatching => 'dispatching',
+    PipelineRunStatus.inProgress => 'in_progress',
+    PipelineRunStatus.completed => 'completed',
+    PipelineRunStatus.failed => 'failed',
+    PipelineRunStatus.partialFailure => 'partial_failure',
+    PipelineRunStatus.cancelled => 'cancelled',
+    PipelineRunStatus.unknown => null,
+  };
 
   /// Every status the dashboard may filter by, in the order a run passes
   /// through them.
@@ -253,15 +255,15 @@ enum PipelineJobStatus {
   unknown;
 
   static PipelineJobStatus parse(String? raw) => switch (raw) {
-        'pending' => PipelineJobStatus.pending,
-        'awaiting_printer' => PipelineJobStatus.awaitingPrinter,
-        'queued' => PipelineJobStatus.queued,
-        'printing' => PipelineJobStatus.printing,
-        'completed' => PipelineJobStatus.completed,
-        'failed' => PipelineJobStatus.failed,
-        'cancelled' => PipelineJobStatus.cancelled,
-        _ => PipelineJobStatus.unknown,
-      };
+    'pending' => PipelineJobStatus.pending,
+    'awaiting_printer' => PipelineJobStatus.awaitingPrinter,
+    'queued' => PipelineJobStatus.queued,
+    'printing' => PipelineJobStatus.printing,
+    'completed' => PipelineJobStatus.completed,
+    'failed' => PipelineJobStatus.failed,
+    'cancelled' => PipelineJobStatus.cancelled,
+    _ => PipelineJobStatus.unknown,
+  };
 
   bool get isTerminal =>
       this == completed || this == failed || this == cancelled;
@@ -282,16 +284,16 @@ class PipelineJob {
   });
 
   factory PipelineJob.fromJson(Map<String, dynamic> json) => PipelineJob(
-        id: toIntOrNull(json['id']) ?? 0,
-        copyIndex: toIntOrNull(json['copy_index']) ?? 0,
-        status: PipelineJobStatus.parse(json['status'] as String?),
-        assignedPrinterId: toIntOrNull(json['assigned_printer_id']),
-        assignedPrinterName: json['assigned_printer_name'] as String?,
-        queueEntryId: toIntOrNull(json['queue_entry_id']),
-        errorMessage: json['error_message'] as String?,
-        dispatchedAt: dateTimeFromJson(json['dispatched_at']),
-        completedAt: dateTimeFromJson(json['completed_at']),
-      );
+    id: toIntOrNull(json['id']) ?? 0,
+    copyIndex: toIntOrNull(json['copy_index']) ?? 0,
+    status: PipelineJobStatus.parse(json['status'] as String?),
+    assignedPrinterId: toIntOrNull(json['assigned_printer_id']),
+    assignedPrinterName: json['assigned_printer_name'] as String?,
+    queueEntryId: toIntOrNull(json['queue_entry_id']),
+    errorMessage: json['error_message'] as String?,
+    dispatchedAt: dateTimeFromJson(json['dispatched_at']),
+    completedAt: dateTimeFromJson(json['completed_at']),
+  );
 
   final int id;
   final int copyIndex;
@@ -336,40 +338,40 @@ class PipelineRun {
   });
 
   factory PipelineRun.fromJson(Map<String, dynamic> json) => PipelineRun(
-        id: toIntOrNull(json['id']) ?? 0,
-        pipelineId: toIntOrNull(json['pipeline_id']),
-        pipelineName: json['pipeline_name'] as String?,
-        sourceLibraryFileId: toIntOrNull(json['source_library_file_id']),
-        sourceArchiveId: toIntOrNull(json['source_archive_id']),
-        sourceFilename: json['source_filename'] as String?,
-        parentRunId: toIntOrNull(json['parent_run_id']),
-        copies: toIntOrNull(json['copies']) ?? 0,
-        copiesCompleted: toIntOrNull(json['copies_completed']) ?? 0,
-        copiesFailed: toIntOrNull(json['copies_failed']) ?? 0,
-        copiesCancelled: toIntOrNull(json['copies_cancelled']) ?? 0,
-        copiesInProgress: toIntOrNull(json['copies_in_progress']) ?? 0,
-        status: PipelineRunStatus.parse(json['status'] as String?),
-        sliceJobId: toIntOrNull(json['slice_job_id']),
-        slicedLibraryFileId: toIntOrNull(json['sliced_library_file_id']),
-        eligibilityOverridden: json['eligibility_overridden'] == true,
-        errorMessage: json['error_message'] as String?,
-        createdBy: toIntOrNull(json['created_by']),
-        createdAt: dateTimeFromJson(json['created_at']),
-        startedAt: dateTimeFromJson(json['started_at']),
-        completedAt: dateTimeFromJson(json['completed_at']),
-        jobs: parseJsonList(json['jobs'], PipelineJob.fromJson),
-        // Null rather than the enum default: these are a snapshot of the
-        // pipeline's target and the server omits them for a run whose pipeline
-        // is gone, which is not the same as "targets a class".
-        targetKind: json['target_kind'] == null
-            ? null
-            : PipelineTargetKind.parse(json['target_kind'] as String?),
-        targetPrinterId: toIntOrNull(json['target_printer_id']),
-        targetModelClass: json['target_model_class'] as String?,
-        fanoutStrategy: json['fanout_strategy'] == null
-            ? null
-            : FanoutStrategy.parse(json['fanout_strategy'] as String?),
-      );
+    id: toIntOrNull(json['id']) ?? 0,
+    pipelineId: toIntOrNull(json['pipeline_id']),
+    pipelineName: json['pipeline_name'] as String?,
+    sourceLibraryFileId: toIntOrNull(json['source_library_file_id']),
+    sourceArchiveId: toIntOrNull(json['source_archive_id']),
+    sourceFilename: json['source_filename'] as String?,
+    parentRunId: toIntOrNull(json['parent_run_id']),
+    copies: toIntOrNull(json['copies']) ?? 0,
+    copiesCompleted: toIntOrNull(json['copies_completed']) ?? 0,
+    copiesFailed: toIntOrNull(json['copies_failed']) ?? 0,
+    copiesCancelled: toIntOrNull(json['copies_cancelled']) ?? 0,
+    copiesInProgress: toIntOrNull(json['copies_in_progress']) ?? 0,
+    status: PipelineRunStatus.parse(json['status'] as String?),
+    sliceJobId: toIntOrNull(json['slice_job_id']),
+    slicedLibraryFileId: toIntOrNull(json['sliced_library_file_id']),
+    eligibilityOverridden: json['eligibility_overridden'] == true,
+    errorMessage: json['error_message'] as String?,
+    createdBy: toIntOrNull(json['created_by']),
+    createdAt: dateTimeFromJson(json['created_at']),
+    startedAt: dateTimeFromJson(json['started_at']),
+    completedAt: dateTimeFromJson(json['completed_at']),
+    jobs: parseJsonList(json['jobs'], PipelineJob.fromJson),
+    // Null rather than the enum default: these are a snapshot of the
+    // pipeline's target and the server omits them for a run whose pipeline
+    // is gone, which is not the same as "targets a class".
+    targetKind: json['target_kind'] == null
+        ? null
+        : PipelineTargetKind.parse(json['target_kind'] as String?),
+    targetPrinterId: toIntOrNull(json['target_printer_id']),
+    targetModelClass: json['target_model_class'] as String?,
+    fanoutStrategy: json['fanout_strategy'] == null
+        ? null
+        : FanoutStrategy.parse(json['fanout_strategy'] as String?),
+  );
 
   final int id;
 
@@ -471,20 +473,20 @@ class PipelineRunFilter {
 
   /// How many of the four are set — for the badge on the filter button.
   int get activeCount => [
-        pipelineId,
-        status,
-        targetPrinterId,
-        targetModelClass,
-      ].where((v) => v != null).length;
+    pipelineId,
+    status,
+    targetPrinterId,
+    targetModelClass,
+  ].where((v) => v != null).length;
 
   /// Only the keys that are set: the route reads `None` as "do not filter", and
   /// an explicit null in the query string arrives as the string `"None"`.
   Map<String, dynamic> get queryParameters => {
-        'pipeline_id': ?pipelineId,
-        'status': ?status,
-        'target_printer_id': ?targetPrinterId,
-        'target_model_class': ?targetModelClass,
-      };
+    'pipeline_id': ?pipelineId,
+    'status': ?status,
+    'target_printer_id': ?targetPrinterId,
+    'target_model_class': ?targetModelClass,
+  };
 
   /// A copy with one field changed, where null **clears** it — the opposite of
   /// the pipeline update body, and the right rule for a filter the user is
@@ -495,17 +497,16 @@ class PipelineRunFilter {
     ({String? value})? status,
     ({int? value})? targetPrinterId,
     ({String? value})? targetModelClass,
-  }) =>
-      PipelineRunFilter(
-        pipelineId: pipelineId == null ? this.pipelineId : pipelineId.value,
-        status: status == null ? this.status : status.value,
-        targetPrinterId: targetPrinterId == null
-            ? this.targetPrinterId
-            : targetPrinterId.value,
-        targetModelClass: targetModelClass == null
-            ? this.targetModelClass
-            : targetModelClass.value,
-      );
+  }) => PipelineRunFilter(
+    pipelineId: pipelineId == null ? this.pipelineId : pipelineId.value,
+    status: status == null ? this.status : status.value,
+    targetPrinterId: targetPrinterId == null
+        ? this.targetPrinterId
+        : targetPrinterId.value,
+    targetModelClass: targetModelClass == null
+        ? this.targetModelClass
+        : targetModelClass.value,
+  );
 
   @override
   bool operator ==(Object other) =>

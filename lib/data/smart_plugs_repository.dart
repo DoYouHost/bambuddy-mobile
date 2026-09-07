@@ -39,16 +39,19 @@ class SmartPlugsRepository {
   /// `GET /smart-plugs/{id}/status` — live state + measurement. Auth errors bubble up
   /// (UI → /setup); others degrade to `null` (plug unreachable).
   Future<SmartPlugStatus?> fetchStatus(int plugId) => guardOrNull(() async {
-        final res =
-            await _dio.get<Map<String, dynamic>>(Endpoints.smartPlugStatus(plugId));
-        final body = res.data;
-        return body == null ? null : SmartPlugStatus.fromJson(body);
-      });
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.smartPlugStatus(plugId),
+    );
+    final body = res.data;
+    return body == null ? null : SmartPlugStatus.fromJson(body);
+  });
 
   /// `POST /smart-plugs/{id}/control` — body `{"action":...}`. Success =
   /// return without exception; 403 (no permission) → [AuthException(forbidden)].
-  Future<void> control(int plugId, SmartPlugAction action) => guard(() => _dio.post<dynamic>(
-        Endpoints.smartPlugControl(plugId),
-        data: {'action': action.wire},
-      ));
+  Future<void> control(int plugId, SmartPlugAction action) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.smartPlugControl(plugId),
+      data: {'action': action.wire},
+    ),
+  );
 }

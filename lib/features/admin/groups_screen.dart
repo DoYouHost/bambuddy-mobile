@@ -63,7 +63,8 @@ class GroupsScreen extends ConsumerWidget {
                     itemCount: groups.length,
                     itemBuilder: (_, i) => GroupCard(
                       group: groups[i],
-                      onTap: () => context.push('/admin/groups/${groups[i].id}'),
+                      onTap: () =>
+                          context.push('/admin/groups/${groups[i].id}'),
                     ),
                   ),
           ),
@@ -116,10 +117,13 @@ class GroupCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
-                      border:
-                          Border.all(color: accent.withValues(alpha: 0.4)),
+                      border: Border.all(color: accent.withValues(alpha: 0.4)),
                     ),
-                    child: Icon(Icons.group_outlined, size: 20, color: accentInk),
+                    child: Icon(
+                      Icons.group_outlined,
+                      size: 20,
+                      color: accentInk,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -140,7 +144,9 @@ class GroupCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(
                                 l10n.usersGroupSystem,
-                                style: t.micro.copyWith(color: t.accentOrangeInk),
+                                style: t.micro.copyWith(
+                                  color: t.accentOrangeInk,
+                                ),
                               ),
                             ],
                           ],

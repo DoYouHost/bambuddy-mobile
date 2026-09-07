@@ -76,12 +76,16 @@ class _DashSearchFieldState extends State<DashSearchField> {
           decoration: InputDecoration(
             isDense: true,
             filled: false,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 12,
+            ),
             prefixIcon: Icon(Icons.search, color: t.textTertiary),
             hintText: widget.hintText,
-            hintStyle:
-                TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+            hintStyle: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              color: t.textTertiary,
+            ),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,

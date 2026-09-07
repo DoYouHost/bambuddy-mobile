@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher icon composed by hand rather than `@mipmap/ic_launcher`: an
+     adaptive icon is masked to two thirds of the box it is drawn in, so at the
+     48 dp the guideline names it lands as a ~32 dp circle around a ~22 dp glyph,
+     nearly black on black — the icon Play could not find. The 16 % inset from
+     `mipmap-anydpi-v26/ic_launcher.xml` is not repeated here: it exists to
+     cancel that mask, and there is none in this drawable. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="48dp" android:height="48dp" android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="@color/ic_launcher_background" />
+        </shape>
+    </item>
+    <item
+        android:width="48dp"
+        android:height="48dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>

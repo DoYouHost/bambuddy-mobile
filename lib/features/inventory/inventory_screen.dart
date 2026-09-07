@@ -408,30 +408,40 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           itemBuilder: (_) => [
             PopupMenuItem(
               value: 'edit',
-              child: logTag('inventory.bulk_edit',
-                  Text(l10n.inventoryBulkEdit)),
+              child: logTag(
+                'inventory.bulk_edit',
+                Text(l10n.inventoryBulkEdit),
+              ),
             ),
             PopupMenuItem(
               value: 'reset',
-              child: logTag('inventory.bulk_reset_usage',
-                  Text(l10n.inventoryResetUsage)),
+              child: logTag(
+                'inventory.bulk_reset_usage',
+                Text(l10n.inventoryResetUsage),
+              ),
             ),
             if (filters.showArchived)
               PopupMenuItem(
                 value: 'restore',
                 child: logTag(
-                    'inventory.bulk_restore', Text(l10n.inventoryRestore)),
+                  'inventory.bulk_restore',
+                  Text(l10n.inventoryRestore),
+                ),
               )
             else
               PopupMenuItem(
                 value: 'archive',
                 child: logTag(
-                    'inventory.bulk_archive', Text(l10n.inventoryArchive)),
+                  'inventory.bulk_archive',
+                  Text(l10n.inventoryArchive),
+                ),
               ),
             PopupMenuItem(
               value: 'delete',
-              child:
-                  logTag('inventory.bulk_delete', Text(l10n.inventoryDelete)),
+              child: logTag(
+                'inventory.bulk_delete',
+                Text(l10n.inventoryDelete),
+              ),
             ),
           ],
         ).tagged('inventory.bulk_menu'),
@@ -618,5 +628,4 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return list;
   }
-
 }

@@ -37,15 +37,19 @@ void main() {
       );
     });
 
-    test('rememberServerUrl leaves the port for the authority pass to keep',
-        () {
-      redactor.rememberServerUrl('https://bambuddy.local:8443');
+    test(
+      'rememberServerUrl leaves the port for the authority pass to keep',
+      () {
+        redactor.rememberServerUrl('https://bambuddy.local:8443');
 
-      expect(
-        redactor.scrubString('GET https://bambuddy.local:8443/api/v1/printers'),
-        'GET https://[HOST]:8443/api/v1/printers',
-      );
-    });
+        expect(
+          redactor.scrubString(
+            'GET https://bambuddy.local:8443/api/v1/printers',
+          ),
+          'GET https://[HOST]:8443/api/v1/printers',
+        );
+      },
+    );
 
     test('rememberServerUrl ignores junk instead of throwing', () {
       redactor
@@ -61,8 +65,10 @@ void main() {
         ..remember(null, '[X]')
         ..remember('ok', '[X]');
 
-      expect(redactor.scrubString('ok, everything is ok'),
-          'ok, everything is ok');
+      expect(
+        redactor.scrubString('ok, everything is ok'),
+        'ok, everything is ok',
+      );
     });
 
     test('forget removes a value that is no longer held', () {
@@ -86,10 +92,14 @@ void main() {
     });
 
     test('keeps http and https distinguishable — that is the point', () {
-      expect(redactor.scrubString('https://a.example.com/x'),
-          isNot(contains('http://')));
-      expect(redactor.scrubString('http://a.example.com/x'),
-          startsWith('http://'));
+      expect(
+        redactor.scrubString('https://a.example.com/x'),
+        isNot(contains('http://')),
+      );
+      expect(
+        redactor.scrubString('http://a.example.com/x'),
+        startsWith('http://'),
+      );
     });
 
     test('masks credentials embedded in a url, host and all', () {
@@ -130,8 +140,10 @@ void main() {
 
     test('masks emails and Bambu serials', () {
       expect(redactor.scrubString('user@example.com'), '[EMAIL]');
-      expect(redactor.scrubString('printer 01P00A123456789 ready'),
-          'printer [SERIAL] ready');
+      expect(
+        redactor.scrubString('printer 01P00A123456789 ready'),
+        'printer [SERIAL] ready',
+      );
     });
 
     test('masks the serial shapes a live X2D answers with', () {
@@ -149,23 +161,30 @@ void main() {
       // up. An HMS code masked as `[SERIAL]` blinds the log to the one field the
       // HMS catalog exists to read, and `hours_until_due` is not anybody's
       // printer.
-      expect(redactor.scrubString('full_code 030001000001000A'),
-          'full_code 030001000001000A');
       expect(
-          redactor.scrubString('due in 33.01666666666665 h'),
-          'due in 33.01666666666665 h');
+        redactor.scrubString('full_code 030001000001000A'),
+        'full_code 030001000001000A',
+      );
+      expect(
+        redactor.scrubString('due in 33.01666666666665 h'),
+        'due in 33.01666666666665 h',
+      );
     });
 
     test('masks IPv4 addresses', () {
-      expect(redactor.scrubString('connecting to 192.168.1.50:8080'),
-          'connecting to [IP]:8080');
+      expect(
+        redactor.scrubString('connecting to 192.168.1.50:8080'),
+        'connecting to [IP]:8080',
+      );
     });
 
     test('leaves firmware versions alone', () {
       // Leading-zero octets are not valid IPv4 — that is what separates a
       // firmware string from an address.
-      expect(redactor.scrubString('firmware 01.09.01.00'),
-          'firmware 01.09.01.00');
+      expect(
+        redactor.scrubString('firmware 01.09.01.00'),
+        'firmware 01.09.01.00',
+      );
     });
   });
 
@@ -216,11 +235,12 @@ void main() {
       expect(
         out.values,
         everyElement('[REDACTED]'),
-        reason: 'żadne z tych pól nie diagnozuje nic, czego nie mówi stan gniazdka',
+        reason:
+            'none of these fields diagnose anything the plug state doesn\'t already say',
       );
     });
 
-    test('smart plug wiring: co ZOSTAJE, bo to jest diagnoza', () {
+    test('smart plug wiring: what STAYS, because it is diagnosis', () {
       final out = redactor.scrubFields(const {
         'plug_type': 'homeassistant',
         'mqtt_power_path': 'StatusSNS.ENERGY.Power',
@@ -231,28 +251,36 @@ void main() {
       });
 
       expect(out['plug_type'], 'homeassistant');
-      expect(out['mqtt_power_path'], 'StatusSNS.ENERGY.Power',
-          reason: 'wskaźnik na pole, nie adres — i to on tłumaczy zero watów');
+      expect(
+        out['mqtt_power_path'],
+        'StatusSNS.ENERGY.Power',
+        reason:
+            'a pointer to a field, not an address — and it explains zero watts',
+      );
       expect(out['rest_status_path'], 'state.power');
       expect(out['rest_method'], 'GET');
       expect(out['rest_power_multiplier'], 1.0);
       expect(out['off_delay_minutes'], 30);
     });
 
-    test('entity nie zjada identity, topic nie zjada niczego', () {
+    test('entity does not eat identity, topic does not eat anything', () {
       final out = redactor.scrubFields(const {
-        'identity': 'nie-sekret',
+        'identity': 'not-a-secret',
         'ha_entity_id': 'switch.x',
       });
 
-      expect(out['identity'], 'nie-sekret',
-          reason: '„identity" zawiera „entity" — dlatego wzorzec jest ogrodzony');
+      expect(
+        out['identity'],
+        'not-a-secret',
+        reason:
+            '"identity" contains "entity" — that\'s why the pattern is fenced',
+      );
       expect(out['ha_entity_id'], '[REDACTED]');
     });
 
-    test('cover_url i kamera zewnętrzna zostają czytelne', () {
-      // Zawężenie do prefiksu `rest_` jest celowe: te dwa są diagnostyczne,
-      // a host i tak maskuje przebieg po autorytecie URL-a.
+    test('cover_url and external camera stay readable', () {
+      // Narrowing to the `rest_` prefix is deliberate: these two are diagnostic,
+      // and the host masking already covers the URL's authority part.
       final out = redactor.scrubFields(const {
         'cover_url': 'https://bambu.example/api/v1/printers/1/cover',
         'external_camera_url': 'rtsp://admin:pw@192.168.1.50/stream',
@@ -265,36 +293,45 @@ void main() {
       expect(out['rest_status_url'], '[REDACTED]');
     });
 
-    test('zagnieżdżony rekord `first` — tak to leci w produkcji', () {
-      // http_probe próbkuje pierwszy rekord odpowiedzi jako mapę pod `first`,
-      // więc realna ścieżka to rekurencja w [scrub], nie [scrubFields].
-      final out = redactor.scrub(const {
-        'first': {
-          'name': 'Office Cabinet',
-          'plug_type': 'homeassistant',
-          'ha_entity_id': 'switch.office_cabinet',
-          'ha_power_entity': 'sensor.office_cabinet_power',
-          'mqtt_topic': null,
-          'rest_headers': {'Authorization': 'Bearer hunter2'},
-          'enabled': true,
-        },
-      }) as Map<String, Object?>;
+    test('a nested `first` record — this is how it flows in production', () {
+      // http_probe samples the response's first record as a map under `first`,
+      // so the real path is recursion in [scrub], not [scrubFields].
+      final out =
+          redactor.scrub(const {
+                'first': {
+                  'name': 'Office Cabinet',
+                  'plug_type': 'homeassistant',
+                  'ha_entity_id': 'switch.office_cabinet',
+                  'ha_power_entity': 'sensor.office_cabinet_power',
+                  'mqtt_topic': null,
+                  'rest_headers': {'Authorization': 'Bearer hunter2'},
+                  'enabled': true,
+                },
+              })
+              as Map<String, Object?>;
       final plug = out['first']! as Map<String, Object?>;
 
       expect(plug['ha_entity_id'], '[REDACTED]');
       expect(plug['ha_power_entity'], '[REDACTED]');
-      expect(plug['rest_headers'], '[REDACTED]',
-          reason: 'cała mapa nagłówków idzie w całości, nie klucz po kluczu');
+      expect(
+        plug['rest_headers'],
+        '[REDACTED]',
+        reason: 'the whole headers map goes as a unit, not key by key',
+      );
       expect(plug['mqtt_topic'], isNull);
-      expect(plug['name'], 'Office Cabinet',
-          reason: 'nazwa gniazdka zostaje — bez niej rekord przestaje być czytelny');
+      expect(
+        plug['name'],
+        'Office Cabinet',
+        reason:
+            'the plug name stays — without it the record stops being readable',
+      );
       expect(plug['plug_type'], 'homeassistant');
       expect(plug['enabled'], true);
     });
 
-    test('null zostaje nullem — „nieskonfigurowane" to też diagnoza', () {
-      // Bez tego gniazdko bez encji energii czyta się jak skonfigurowane
-      // i następny czytający szuka przyczyny zerowej energii gdzie indziej.
+    test('null stays null — "unconfigured" is also a diagnosis', () {
+      // Without this a plug with no energy entity reads as configured, and
+      // the next reader looks for the cause of zero energy somewhere else.
       final out = redactor.scrubFields(const {
         'ha_energy_today_entity': null,
         'ha_energy_total_entity': 'sensor.x_energy',
@@ -355,8 +392,10 @@ void main() {
 
       // Clipping the raw string first would have left a secret fragment in
       // the record; redacting first means the label survives instead.
-      expect(short.scrubString('key long-secret-value-here rejected'),
-          'key [APIKEY]…[clipped]');
+      expect(
+        short.scrubString('key long-secret-value-here rejected'),
+        'key [APIKEY]…[clipped]',
+      );
     });
   });
 
@@ -428,7 +467,8 @@ void main() {
     // A server at `http://printer:8080` registers `printer`, which turned
     // `printerError` into `[HOST]Error` — mangling the one field that says which
     // notification the record is about.
-    final redactor = bambuddyRedactor()..rememberServerUrl('http://printer:8080');
+    final redactor = bambuddyRedactor()
+      ..rememberServerUrl('http://printer:8080');
 
     final fields = redactor.scrubFields(const {
       'event': 'printerError',
@@ -444,7 +484,8 @@ void main() {
   test('still scrubs an event that is not shaped like one of ours', () {
     // Letters only is the whole guarantee: anything carrying a space, a digit or
     // punctuation did not come from the enum and is treated as user content.
-    final redactor = bambuddyRedactor()..rememberServerUrl('http://printer:8080');
+    final redactor = bambuddyRedactor()
+      ..rememberServerUrl('http://printer:8080');
 
     expect(
       redactor.scrubFields(const {'event': 'printer 3 finished'})['event'],

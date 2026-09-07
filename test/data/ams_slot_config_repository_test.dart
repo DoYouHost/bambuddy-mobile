@@ -6,13 +6,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late AmsSlotConfigRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = AmsSlotConfigRepository(dio);
   });
@@ -36,25 +38,36 @@ void main() {
         repo.cloudFilaments(),
         completion(
           isA<List<AmsFilamentPreset>>()
-              .having((l) => l.map((p) => p.id), 'ids',
-                  ['GFSL05_09', 'PFUS123'])
+              .having((l) => l.map((p) => p.id), 'ids', [
+                'GFSL05_09',
+                'PFUS123',
+              ])
               .having((l) => l.last.isUser, 'a user preset is marked', isTrue),
         ),
       );
     });
 
-    test('a missing cloud login surfaces as unauthorized, not as an empty list',
-        () {
-      // The picker has to tell "no presets" from "log in to see yours".
-      adapter.onGet('/api/v1/cloud/settings',
-          (s) => s.reply(401, {'detail': 'Not authenticated'}));
+    test(
+      'a missing cloud login surfaces as unauthorized, not as an empty list',
+      () {
+        // The picker has to tell "no presets" from "log in to see yours".
+        adapter.onGet(
+          '/api/v1/cloud/settings',
+          (s) => s.reply(401, {'detail': 'Not authenticated'}),
+        );
 
-      expect(
-        repo.cloudFilaments(),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
-      );
-    });
+        expect(
+          repo.cloudFilaments(),
+          throwsA(
+            isA<AuthException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.unauthorized,
+            ),
+          ),
+        );
+      },
+    );
 
     test('decodes an imported preset\'s compatibility list', () {
       adapter.onGet(
@@ -78,8 +91,11 @@ void main() {
         completion(
           isA<List<AmsFilamentPreset>>()
               .having((l) => l.single.pickerId, 'picker id', 'local_7')
-              .having((l) => l.single.compatiblePrinters, 'compatible printers',
-                  ['Bambu Lab X1 Carbon 0.4 nozzle'])
+              .having(
+                (l) => l.single.compatiblePrinters,
+                'compatible printers',
+                ['Bambu Lab X1 Carbon 0.4 nozzle'],
+              )
               .having((l) => l.single.nozzleTempMin, 'min temperature', 230),
         ),
       );
@@ -98,9 +114,13 @@ void main() {
 
       expect(
         repo.localFilaments(),
-        completion(isA<List<AmsFilamentPreset>>()
-            .having((l) => l.single.compatiblePrinters, 'compatible printers',
-                isNull)),
+        completion(
+          isA<List<AmsFilamentPreset>>().having(
+            (l) => l.single.compatiblePrinters,
+            'compatible printers',
+            isNull,
+          ),
+        ),
       );
     });
 
@@ -114,8 +134,13 @@ void main() {
 
       expect(
         repo.builtinFilaments(),
-        completion(isA<List<AmsFilamentPreset>>()
-            .having((l) => l.single.pickerId, 'picker id', 'builtin_GFL99')),
+        completion(
+          isA<List<AmsFilamentPreset>>().having(
+            (l) => l.single.pickerId,
+            'picker id',
+            'builtin_GFL99',
+          ),
+        ),
       );
     });
 
@@ -138,8 +163,7 @@ void main() {
         (s) => s.reply(200, {'Bambu Lab X1 Carbon': 'X1C'}),
       );
 
-      expect(repo.printerModels(),
-          completion({'Bambu Lab X1 Carbon': 'X1C'}));
+      expect(repo.printerModels(), completion({'Bambu Lab X1 Carbon': 'X1C'}));
     });
   });
 
@@ -156,8 +180,10 @@ void main() {
     test('answers null rather than failing when the detail cannot be read', () {
       // Best effort: losing the better id must not stop the slot being
       // configured with the one derived from the setting id.
-      adapter.onGet('/api/v1/cloud/settings/PFUS123',
-          (s) => s.reply(500, {'detail': 'boom'}));
+      adapter.onGet(
+        '/api/v1/cloud/settings/PFUS123',
+        (s) => s.reply(500, {'detail': 'boom'}),
+      );
 
       expect(repo.cloudFilamentId('PFUS123'), completion(isNull));
     });
@@ -177,14 +203,17 @@ void main() {
 
       expect(
         repo.slotPreset(1, amsId: 0, trayId: 2),
-        completion(isA<SlotPreset>()
-            .having((p) => p.presetId, 'preset id', 'GFSL05_09')),
+        completion(
+          isA<SlotPreset>().having((p) => p.presetId, 'preset id', 'GFSL05_09'),
+        ),
       );
     });
 
     test('an unmapped slot answers null, not an empty mapping', () {
       adapter.onGet(
-          '/api/v1/printers/1/slot-presets/0/2', (s) => s.reply(200, null));
+        '/api/v1/printers/1/slot-presets/0/2',
+        (s) => s.reply(200, null),
+      );
 
       expect(repo.slotPreset(1, amsId: 0, trayId: 2), completion(isNull));
     });
@@ -254,8 +283,10 @@ void main() {
     });
 
     test('reset posts to the tray route', () async {
-      adapter.onPost('/api/v1/printers/1/ams/0/tray/3/reset',
-          (s) => s.reply(200, {'success': true}));
+      adapter.onPost(
+        '/api/v1/printers/1/ams/0/tray/3/reset',
+        (s) => s.reply(200, {'success': true}),
+      );
 
       await repo.resetSlot(1, amsId: 0, trayId: 3);
     });
@@ -263,21 +294,32 @@ void main() {
     test('a printer that is not connected surfaces its 400', () {
       // The route answers 400 for a disconnected printer; the sheet says so
       // rather than reporting success.
-      adapter.onPost('/api/v1/printers/1/ams/0/tray/3/reset',
-          (s) => s.reply(400, {'detail': 'Printer not connected'}));
-
-      expect(repo.resetSlot(1, amsId: 0, trayId: 3),
-          throwsA(isA<ApiException>()));
-    });
-
-    test('a key without printers:control is refused', () {
-      adapter.onPost('/api/v1/printers/1/ams/0/tray/3/reset',
-          (s) => s.reply(403, {'detail': 'forbidden'}));
+      adapter.onPost(
+        '/api/v1/printers/1/ams/0/tray/3/reset',
+        (s) => s.reply(400, {'detail': 'Printer not connected'}),
+      );
 
       expect(
         repo.resetSlot(1, amsId: 0, trayId: 3),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.forbidden)),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('a key without printers:control is refused', () {
+      adapter.onPost(
+        '/api/v1/printers/1/ams/0/tray/3/reset',
+        (s) => s.reply(403, {'detail': 'forbidden'}),
+      );
+
+      expect(
+        repo.resetSlot(1, amsId: 0, trayId: 3),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.forbidden,
+          ),
+        ),
       );
     });
   });
@@ -310,8 +352,11 @@ void main() {
       expect(profiles, hasLength(1), reason: 'a junk row drops, the rest stay');
       expect(profiles.single.slotId, 3);
       expect(profiles.single.k, 0.02);
-      expect(profiles.single.kValue, '0.020000',
-          reason: 'kept verbatim — it is half the identity key');
+      expect(
+        profiles.single.kValue,
+        '0.020000',
+        reason: 'kept verbatim — it is half the identity key',
+      );
       expect(profiles.single.optionId, 'PLA basic|0.020000|GFL05');
     });
 
@@ -323,8 +368,10 @@ void main() {
         queryParameters: {'nozzle_diameter': '0.4'},
       );
 
-      expect(repo.kProfiles(1, nozzleDiameter: '0.4'),
-          throwsA(isA<ApiException>()));
+      expect(
+        repo.kProfiles(1, nozzleDiameter: '0.4'),
+        throwsA(isA<ApiException>()),
+      );
     });
   });
 }

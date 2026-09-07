@@ -24,17 +24,17 @@ Widget _screen(List<String> photos) => ProviderScope(
 );
 
 void main() {
-  testWidgets('licznik stron tylko przy więcej niż jednym zdjęciu', (
+  testWidgets('a page counter only when there is more than one photo', (
     tester,
   ) async {
-    await tester.pumpWidget(_screen(const ['finish.jpg', 'druga.jpg']));
+    await tester.pumpWidget(_screen(const ['finish.jpg', 'second.jpg']));
     await tester.pumpAndSettle();
 
     expect(find.byType(PageView), findsOneWidget);
     expect(find.text('1 / 2'), findsOneWidget);
   });
 
-  testWidgets('jedno zdjęcie → bez licznika', (tester) async {
+  testWidgets('a single photo → no counter', (tester) async {
     await tester.pumpWidget(_screen(const ['finish.jpg']));
     await tester.pumpAndSettle();
 
@@ -42,7 +42,7 @@ void main() {
     expect(find.textContaining(' / '), findsNothing);
   });
 
-  testWidgets('brak zdjęć → komunikat zamiast pustej przeglądarki', (
+  testWidgets('no photos → a message instead of an empty viewer', (
     tester,
   ) async {
     await tester.pumpWidget(_screen(const []));

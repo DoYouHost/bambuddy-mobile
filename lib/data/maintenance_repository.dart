@@ -27,7 +27,8 @@ class MaintenanceRepository {
 
   /// `GET /maintenance/printers/{id}` — one printer. Auth errors bubble up
   /// (UI → /setup); other errors degrade to `null`.
-  Future<PrinterMaintenanceOverview?> fetchPrinter(int printerId) => guardOrNull(() async {
+  Future<PrinterMaintenanceOverview?> fetchPrinter(int printerId) =>
+      guardOrNull(() async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.maintenancePrinter(printerId),
         );
@@ -37,10 +38,12 @@ class MaintenanceRepository {
 
   /// `POST /maintenance/items/{id}/perform` — reset counter. Body `{"notes": notes}`.
   /// 403 (no permission) → [AuthException(forbidden)].
-  Future<void> perform(int itemId, {String? notes}) => guard(() => _dio.post<dynamic>(
-        Endpoints.maintenancePerform(itemId),
-        data: {'notes': notes},
-      ));
+  Future<void> perform(int itemId, {String? notes}) => guard(
+    () => _dio.post<dynamic>(
+      Endpoints.maintenancePerform(itemId),
+      data: {'notes': notes},
+    ),
+  );
 
   // --- Type management (Settings tab) ---
 
@@ -64,26 +67,26 @@ class MaintenanceRepository {
       });
 
   /// `PATCH /maintenance/types/{id}` — edit a type (name, interval, icon, wiki).
-  Future<void> updateType(int typeId, MaintenanceTypeDraft draft) =>
-      guard(() => _dio.patch<dynamic>(
-            Endpoints.maintenanceType(typeId),
-            data: draft.toJson(),
-          ));
+  Future<void> updateType(int typeId, MaintenanceTypeDraft draft) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.maintenanceType(typeId),
+      data: draft.toJson(),
+    ),
+  );
 
   /// `DELETE /maintenance/types/{id}` — remove custom type (system → soft-hide).
   Future<void> deleteType(int typeId) =>
       guard(() => _dio.delete<dynamic>(Endpoints.maintenanceType(typeId)));
 
   /// `POST /maintenance/types/restore-defaults` — un-hide soft-deleted defaults.
-  Future<void> restoreDefaults() => guard(
-        () => _dio.post<dynamic>(Endpoints.maintenanceRestoreDefaults),
-      );
+  Future<void> restoreDefaults() =>
+      guard(() => _dio.post<dynamic>(Endpoints.maintenanceRestoreDefaults));
 
   /// `POST /maintenance/printers/{printerId}/assign/{typeId}` — attach a custom
   /// type to a printer so it shows up in that printer's status.
   Future<void> assignType(int printerId, int typeId) => guard(
-        () => _dio.post<dynamic>(Endpoints.maintenanceAssign(printerId, typeId)),
-      );
+    () => _dio.post<dynamic>(Endpoints.maintenanceAssign(printerId, typeId)),
+  );
 
   // --- Per-printer item management (Status tab) ---
 
@@ -95,23 +98,26 @@ class MaintenanceRepository {
     double? customIntervalHours,
     bool clearInterval = false,
     String? customIntervalType,
-  }) =>
-      guard(() => _dio.patch<dynamic>(
-            Endpoints.maintenanceItem(itemId),
-            data: {
-              'enabled': ?enabled,
-              if (clearInterval)
-                'custom_interval_hours': null
-              else
-                'custom_interval_hours': ?customIntervalHours,
-              'custom_interval_type': ?customIntervalType,
-            },
-          ));
+  }) => guard(
+    () => _dio.patch<dynamic>(
+      Endpoints.maintenanceItem(itemId),
+      data: {
+        'enabled': ?enabled,
+        if (clearInterval)
+          'custom_interval_hours': null
+        else
+          'custom_interval_hours': ?customIntervalHours,
+        'custom_interval_type': ?customIntervalType,
+      },
+    ),
+  );
 
   /// `GET /maintenance/items/{id}/history` — execution history.
   Future<List<MaintenanceHistoryEntry>> fetchHistory(int itemId) async {
     final body = await guard(() async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.maintenanceHistory(itemId));
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.maintenanceHistory(itemId),
+      );
       return res.data ?? const [];
     });
     return parseJsonList(body, MaintenanceHistoryEntry.fromJson);

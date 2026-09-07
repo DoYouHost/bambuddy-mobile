@@ -24,8 +24,12 @@ const _runout = HmsError(
 
 /// A component-diagnostics fault from the `hms[]` channel — named by neither
 /// bambuddy nor the app, on the phone or here.
-const _diagnostics =
-    HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 2);
+const _diagnostics = HmsError(
+  code: '0x20070',
+  attr: 83887616,
+  module: 5,
+  severity: 2,
+);
 
 WearFleet _fleetWith(List<HmsError> errors, {bool connected = true}) =>
     WearFleet(
@@ -51,8 +55,9 @@ Future<FakeWearTransport> _pumpControl(
   List<HmsError> errors, {
   bool connected = true,
 }) async {
-  final transport =
-      FakeWearTransport(fleet: _fleetWith(errors, connected: connected));
+  final transport = FakeWearTransport(
+    fleet: _fleetWith(errors, connected: connected),
+  );
   await pumpWear(
     tester,
     const WearPrinterControlScreen(printerId: 7),
@@ -73,8 +78,9 @@ void main() {
     await HmsCatalog.instance.load(const Locale('pl'));
   });
 
-  testWidgets('a fault is named, and offers the buttons its firmware lists',
-      (tester) async {
+  testWidgets('a fault is named, and offers the buttons its firmware lists', (
+    tester,
+  ) async {
     await _pumpControl(tester, const [_runout]);
 
     expect(find.textContaining('Skończył się filament'), findsOneWidget);
@@ -86,8 +92,9 @@ void main() {
     expect(find.text('Odrzuć wszystkie'), findsOneWidget);
   });
 
-  testWidgets('an unreachable printer offers no faults to act on',
-      (tester) async {
+  testWidgets('an unreachable printer offers no faults to act on', (
+    tester,
+  ) async {
     // `hms_errors` is deliberately carried forward across a disconnect so the
     // phone's alert memory can hold still. On screen those are last-known
     // values: shown here they would read as live faults under an OFFLINE chip,
@@ -100,35 +107,50 @@ void main() {
     expect(find.text('Odrzuć wszystkie'), findsNothing);
   });
 
-  testWidgets('an unnameable fault is not shown on the watch either',
-      (tester) async {
+  testWidgets('an unnameable fault is not shown on the watch either', (
+    tester,
+  ) async {
     await _pumpControl(tester, const [_diagnostics]);
 
     expect(find.textContaining('0500-0600'), findsNothing);
     expect(find.text('Odrzuć wszystkie'), findsNothing);
   });
 
-  testWidgets('an action carries the fault through to the transport',
-      (tester) async {
+  testWidgets('an action carries the fault through to the transport', (
+    tester,
+  ) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
     await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Wznów'));
     await tester.pumpAndSettle();
 
-    expect(transport.commands, ['executeHmsAction:7:03008004:RESUME_PRINTING:746795586']);
+    expect(transport.commands, [
+      'executeHmsAction:7:03008004:RESUME_PRINTING:746795586',
+    ]);
   });
 
-  testWidgets('stopping the print asks first, on the watch too', (tester) async {
+  testWidgets('stopping the print asks first, on the watch too', (
+    tester,
+  ) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
     // The fault's own stop button, not the lifecycle bar's below it.
-    await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Zatrzymaj').first);
+    await tapOnWatch(
+      tester,
+      find.widgetWithText(FilledButton, 'Zatrzymaj').first,
+    );
     await tester.pumpAndSettle();
-    expect(transport.commands, isEmpty, reason: 'nothing before the confirmation');
+    expect(
+      transport.commands,
+      isEmpty,
+      reason: 'nothing before the confirmation',
+    );
 
     await tapOnWatch(tester, find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
-    expect(transport.commands, ['executeHmsAction:7:03008004:STOP_PRINTING:746795586']);
+    expect(transport.commands, [
+      'executeHmsAction:7:03008004:STOP_PRINTING:746795586',
+    ]);
   });
 
   testWidgets('dismiss-all clears the printer', (tester) async {

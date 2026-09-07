@@ -17,8 +17,7 @@ void main() {
   );
   const untagged = Spool(id: 3, material: 'ABS');
 
-  test('finds a spool by its tag UID whatever case the printer reports',
-      () {
+  test('finds a spool by its tag UID whatever case the printer reports', () {
     final state = shelf([untagged, byUid]);
 
     expect(state.spoolForTag(tagUid: 'a1b2c3d4e5f60708')?.id, 1);

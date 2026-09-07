@@ -51,25 +51,23 @@ class ApiKey {
   });
 
   factory ApiKey.fromJson(Map<String, dynamic> json) => ApiKey(
-        id: toInt(json['id']),
-        name: toStringOrNull(json['name']) ?? '',
-        keyPrefix: toStringOrNull(json['key_prefix']) ?? '',
-        userId: toIntOrNull(json['user_id']),
-        scopes: {
-          for (final scope in ApiKeyScope.values)
-            if (json[scope.wire] == true) scope,
-        },
-        // Null means every printer; an empty list would mean none.
-        printerIds: json['printer_ids'] == null
-            ? null
-            : [
-                for (final id in json['printer_ids'] as List) toInt(id),
-              ],
-        enabled: json['enabled'] != false,
-        lastUsed: dateTimeFromJson(json['last_used']),
-        createdAt: dateTimeFromJson(json['created_at']),
-        expiresAt: dateTimeFromJson(json['expires_at']),
-      );
+    id: toInt(json['id']),
+    name: toStringOrNull(json['name']) ?? '',
+    keyPrefix: toStringOrNull(json['key_prefix']) ?? '',
+    userId: toIntOrNull(json['user_id']),
+    scopes: {
+      for (final scope in ApiKeyScope.values)
+        if (json[scope.wire] == true) scope,
+    },
+    // Null means every printer; an empty list would mean none.
+    printerIds: json['printer_ids'] == null
+        ? null
+        : [for (final id in json['printer_ids'] as List) toInt(id)],
+    enabled: json['enabled'] != false,
+    lastUsed: dateTimeFromJson(json['last_used']),
+    createdAt: dateTimeFromJson(json['created_at']),
+    expiresAt: dateTimeFromJson(json['expires_at']),
+  );
 
   final int id;
   final String name;
@@ -96,8 +94,7 @@ class ApiKey {
 
   /// Whether the server would already refuse it. The list still shows it —
   /// "why did this stop working" is the question it answers.
-  bool isExpired(DateTime now) =>
-      expiresAt != null && expiresAt!.isBefore(now);
+  bool isExpired(DateTime now) => expiresAt != null && expiresAt!.isBefore(now);
 }
 
 /// The one moment the full key exists in the app: the answer to `POST
@@ -107,9 +104,9 @@ class CreatedApiKey {
   const CreatedApiKey({required this.key, required this.apiKey});
 
   factory CreatedApiKey.fromJson(Map<String, dynamic> json) => CreatedApiKey(
-        key: toStringOrNull(json['key']) ?? '',
-        apiKey: ApiKey.fromJson(json),
-      );
+    key: toStringOrNull(json['key']) ?? '',
+    apiKey: ApiKey.fromJson(json),
+  );
 
   final String key;
   final ApiKey apiKey;
@@ -135,11 +132,11 @@ class ApiKeyCreateInput {
   final DateTime? expiresAt;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        for (final scope in ApiKeyScope.values) scope.wire: scopes.contains(scope),
-        if (printerIds != null) 'printer_ids': printerIds,
-        if (expiresAt != null) 'expires_at': expiresAt!.toUtc().toIso8601String(),
-      };
+    'name': name,
+    for (final scope in ApiKeyScope.values) scope.wire: scopes.contains(scope),
+    if (printerIds != null) 'printer_ids': printerIds,
+    if (expiresAt != null) 'expires_at': expiresAt!.toUtc().toIso8601String(),
+  };
 }
 
 /// Body for `PATCH /api-keys/{id}` (`schemas/api_key.py::APIKeyUpdate`).
@@ -177,15 +174,15 @@ class ApiKeyUpdateInput {
       expiresAt == null;
 
   Map<String, dynamic> toJson() => {
-        if (name != null) 'name': name,
-        if (scopes != null)
-          for (final scope in ApiKeyScope.values)
-            scope.wire: scopes!.contains(scope),
-        if (clearPrinterIds)
-          'printer_ids': null
-        else if (printerIds != null)
-          'printer_ids': printerIds,
-        if (enabled != null) 'enabled': enabled,
-        if (expiresAt != null) 'expires_at': expiresAt!.toUtc().toIso8601String(),
-      };
+    if (name != null) 'name': name,
+    if (scopes != null)
+      for (final scope in ApiKeyScope.values)
+        scope.wire: scopes!.contains(scope),
+    if (clearPrinterIds)
+      'printer_ids': null
+    else if (printerIds != null)
+      'printer_ids': printerIds,
+    if (enabled != null) 'enabled': enabled,
+    if (expiresAt != null) 'expires_at': expiresAt!.toUtc().toIso8601String(),
+  };
 }

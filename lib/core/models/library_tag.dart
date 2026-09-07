@@ -12,11 +12,7 @@ part 'library_tag.g.dart';
 /// for rows that came from the catalog endpoint.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class LibraryTag {
-  const LibraryTag({
-    required this.id,
-    required this.name,
-    this.fileCount = 0,
-  });
+  const LibraryTag({required this.id, required this.name, this.fileCount = 0});
 
   factory LibraryTag.fromJson(Map<String, dynamic> json) =>
       _$LibraryTagFromJson(json);

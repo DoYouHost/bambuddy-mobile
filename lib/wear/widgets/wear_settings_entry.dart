@@ -12,14 +12,12 @@ class WearSettingsEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: TextButton.icon(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const WearSettingsScreen(),
-            ),
-          ),
-          icon: const Icon(Icons.settings_outlined, size: 14),
-          label: Text(AppLocalizations.of(context).wearSettingsTitle),
-        ),
-      );
+    child: TextButton.icon(
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const WearSettingsScreen()),
+      ),
+      icon: const Icon(Icons.settings_outlined, size: 14),
+      label: Text(AppLocalizations.of(context).wearSettingsTitle),
+    ),
+  );
 }

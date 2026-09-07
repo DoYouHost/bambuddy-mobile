@@ -86,9 +86,7 @@ class ObjectPickMask {
       ids[i] = rgba[p] | (rgba[p + 1] << 8) | (rgba[p + 2] << 16);
     }
     final shapes = _buildShapes(ids, width, height);
-    return shapes.isEmpty
-        ? null
-        : ObjectPickMask._(width, height, ids, shapes);
+    return shapes.isEmpty ? null : ObjectPickMask._(width, height, ids, shapes);
   }
 
   /// Where the mask lands inside [box] when painted with [BoxFit.contain] —
@@ -146,11 +144,7 @@ class ObjectPickMask {
 /// Walks the mask row by row, collecting each object's scanline runs into a
 /// fill path, its borders into loose segments, and its widest run as the label
 /// anchor — one pass over the pixels for all three.
-Map<int, PickedObjectShape> _buildShapes(
-  Int32List ids,
-  int width,
-  int height,
-) {
+Map<int, PickedObjectShape> _buildShapes(Int32List ids, int width, int height) {
   final builders = <int, _ShapeBuilder>{};
   for (var y = 0; y < height; y++) {
     final row = y * width;
@@ -228,11 +222,11 @@ class _ShapeBuilder {
   }
 
   void addSegment(int x1, int y1, int x2, int y2) => _outline.addAll([
-        x1.toDouble(),
-        y1.toDouble(),
-        x2.toDouble(),
-        y2.toDouble(),
-      ]);
+    x1.toDouble(),
+    y1.toDouble(),
+    x2.toDouble(),
+    y2.toDouble(),
+  ]);
 
   /// [covers] answers whether a mask point still belongs to this object — the
   /// midpoint of two rows can fall outside a part that zigzags between them,

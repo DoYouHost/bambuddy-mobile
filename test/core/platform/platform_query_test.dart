@@ -14,9 +14,9 @@ void main() {
   void answer(Future<Object?> Function(MethodCall call) handler) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) {
-      calls.add(call);
-      return handler(call);
-    });
+          calls.add(call);
+          return handler(call);
+        });
   }
 
   setUp(calls.clear);
@@ -37,8 +37,11 @@ void main() {
     test('passes arguments through', () async {
       answer((_) async => 'entered');
 
-      final result = await query.ask<String>('read',
-          fallback: '', arguments: {'label': 'Server URL'});
+      final result = await query.ask<String>(
+        'read',
+        fallback: '',
+        arguments: {'label': 'Server URL'},
+      );
 
       expect(result, 'entered');
       expect(calls.single.arguments, {'label': 'Server URL'});

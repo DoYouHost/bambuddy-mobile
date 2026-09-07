@@ -49,10 +49,10 @@ void main() {
     asked = 0;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, (call) async {
-      expect(call.method, 'is24HourFormat');
-      asked++;
-      return platformSays;
-    });
+          expect(call.method, 'is24HourFormat');
+          asked++;
+          return platformSays;
+        });
   });
 
   tearDown(() {
@@ -67,20 +67,22 @@ void main() {
   Widget tree({
     required bool inTheTree,
     required void Function(bool) onChanged,
-  }) =>
-      MediaQuery(
-        data: MediaQueryData(alwaysUse24HourFormat: inTheTree),
-        child: SystemClockSync(
-          onChanged: onChanged,
-          child: Builder(builder: (context) {
-            belowSays = MediaQuery.alwaysUse24HourFormatOf(context);
-            return const SizedBox();
-          }),
-        ),
-      );
+  }) => MediaQuery(
+    data: MediaQueryData(alwaysUse24HourFormat: inTheTree),
+    child: SystemClockSync(
+      onChanged: onChanged,
+      child: Builder(
+        builder: (context) {
+          belowSays = MediaQuery.alwaysUse24HourFormatOf(context);
+          return const SizedBox();
+        },
+      ),
+    ),
+  );
 
-  testWidgets('publishes what the tree says while nobody else answers',
-      (tester) async {
+  testWidgets('publishes what the tree says while nobody else answers', (
+    tester,
+  ) async {
     final seen = <bool>[];
     await tester.pumpWidget(tree(inTheTree: true, onChanged: seen.add));
     await tester.pumpAndSettle();
@@ -89,8 +91,9 @@ void main() {
     expect(DateTimeFormats.system().time(_at), '21:20');
   });
 
-  testWidgets('the platform outranks a MediaQuery the engine left stale',
-      (tester) async {
+  testWidgets('the platform outranks a MediaQuery the engine left stale', (
+    tester,
+  ) async {
     // The engine sends the user settings once, when the view attaches. A switch
     // flipped afterwards never reaches the tree — on device the app went on
     // showing AM/PM until it was swiped out of recents.
@@ -104,8 +107,9 @@ void main() {
     expect(DateTimeFormats.system().time(_at), '21:20');
   });
 
-  testWidgets('asks again on every resume, which is when it can have changed',
-      (tester) async {
+  testWidgets('asks again on every resume, which is when it can have changed', (
+    tester,
+  ) async {
     platformSays = false;
     final seen = <bool>[];
     await tester.pumpWidget(tree(inTheTree: false, onChanged: seen.add));
@@ -131,8 +135,9 @@ void main() {
     expect(belowSays, isTrue);
   });
 
-  testWidgets('a host with no answer leaves the tree in charge',
-      (tester) async {
+  testWidgets('a host with no answer leaves the tree in charge', (
+    tester,
+  ) async {
     // A test, another platform, an older host build: the fallback is whatever
     // the engine did manage to push, not a hardcoded clock.
     await tester.pumpWidget(tree(inTheTree: true, onChanged: (_) {}));
@@ -142,8 +147,9 @@ void main() {
     expect(DateTimeFormats.system().time(_at), '21:20');
   });
 
-  testWidgets('an unchanged switch is not republished on every rebuild',
-      (tester) async {
+  testWidgets('an unchanged switch is not republished on every rebuild', (
+    tester,
+  ) async {
     final seen = <bool>[];
     await tester.pumpWidget(tree(inTheTree: true, onChanged: seen.add));
     await tester.pumpWidget(tree(inTheTree: true, onChanged: seen.add));
@@ -158,10 +164,15 @@ void main() {
       required bool running,
     }) async {
       SharedPreferences.setMockInitialValues({'clock_24h': false});
-      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
       return (
         settings,
-        _RecordingMonitor(running: running, onDisk: settings.loadUse24HourClock)
+        _RecordingMonitor(
+          running: running,
+          onDisk: settings.loadUse24HourClock,
+        ),
       );
     }
 
@@ -173,8 +184,11 @@ void main() {
 
       await publishSystemClock(true, settings: settings, monitor: monitor);
 
-      expect(monitor.pings, [(BackgroundSync.clock, true)],
-          reason: 'the new value was already on disk when the ping went out');
+      expect(
+        monitor.pings,
+        [(BackgroundSync.clock, true)],
+        reason: 'the new value was already on disk when the ping went out',
+      );
     });
 
     test('a service that is not running is not pinged', () async {
@@ -189,8 +203,9 @@ void main() {
     });
   });
 
-  testWidgets('a 12-hour phone is spelled as one, not left to the locale',
-      (tester) async {
+  testWidgets('a 12-hour phone is spelled as one, not left to the locale', (
+    tester,
+  ) async {
     // The locale under test is en_US, which reads 12-hour anyway — so this pins
     // that the published `false` is what decides, the same as it does on `pl`.
     platformSays = false;

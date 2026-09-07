@@ -12,46 +12,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-/// Answers every request with whatever the test hands it: a [ResponseBody] to
-/// reply, a [DioException] to fail. Failing from the adapter is the only honest
-/// way to get a `connectionError` — the real one never reaches a status.
-class _ScriptedAdapter implements HttpClientAdapter {
-  _ScriptedAdapter(this.reply);
-
-  final Object Function(RequestOptions options) reply;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    final answer = reply(options);
-    if (answer is DioException) throw answer;
-    return answer as ResponseBody;
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
 ResponseBody _text(String body, int status) => ResponseBody.fromString(
-      body,
-      status,
-      headers: {
-        Headers.contentTypeHeader: ['text/plain'],
-      },
-    );
+  body,
+  status,
+  headers: {
+    Headers.contentTypeHeader: ['text/plain'],
+  },
+);
 
 /// A body dio actually decodes — the count only exists for parsed JSON, and so
 /// is the error-body measuring, which is why the status is settable.
 ResponseBody _json(String body, [int status = 200]) => ResponseBody.fromString(
-      body,
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
+  body,
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,11 +42,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     recorder = DiagnosticRecorder(
       settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async => SessionFacts(
-        app: '0.11.2+1102',
-        flavor: 'mobile',
-        secrets: secrets,
-      ),
+      loadFacts: () async =>
+          SessionFacts(app: '0.11.2+1102', flavor: 'mobile', secrets: secrets),
       resolveDirectory: () async => null,
     );
     addTearDown(recorder.discard);
@@ -78,7 +52,7 @@ void main() {
   Dio dioAnswering(Object Function(RequestOptions options) reply) =>
       createBareDio()
         ..options.baseUrl = baseUrl
-        ..httpClientAdapter = _ScriptedAdapter(reply);
+        ..httpClientAdapter = ScriptedAdapter(reply);
 
   Future<List<Map<String, dynamic>>> stopAndParse() async {
     final jsonl = await recorder.stop();
@@ -93,23 +67,25 @@ void main() {
 
   setUp(useRecorder);
 
-  test('logs one line per call, with method, path, status and duration',
-      () async {
-    final dio = dioAnswering((_) => _text('[]', 200));
-    await recorder.start();
+  test(
+    'logs one line per call, with method, path, status and duration',
+    () async {
+      final dio = dioAnswering((_) => _text('[]', 200));
+      await recorder.start();
 
-    await dio.get<dynamic>('/api/v1/printers');
+      await dio.get<dynamic>('/api/v1/printers');
 
-    final records = await httpRecords();
-    expect(records, hasLength(1));
-    expect(records.single['evt'], 'response');
-    expect(records.single['method'], 'GET');
-    expect(records.single['path'], '/api/v1/printers');
-    expect(records.single['status'], 200);
-    expect(records.single['ms'], isA<int>());
-    // info is the default level and is left out of the encoded record.
-    expect(records.single.containsKey('lvl'), isFalse);
-  });
+      final records = await httpRecords();
+      expect(records, hasLength(1));
+      expect(records.single['evt'], 'response');
+      expect(records.single['method'], 'GET');
+      expect(records.single['path'], '/api/v1/printers');
+      expect(records.single['status'], 200);
+      expect(records.single['ms'], isA<int>());
+      // info is the default level and is left out of the encoded record.
+      expect(records.single.containsKey('lvl'), isFalse);
+    },
+  );
 
   test('keeps the query string out of the log', () async {
     // Where the camera and thumbnail tokens live. The path is logged, the query
@@ -127,9 +103,7 @@ void main() {
   test('counts the records a list endpoint answered with', () async {
     // "The queue is empty" versus "the queue came back full and the app showed
     // none of it" is the same 200 without this count.
-    final dio = dioAnswering(
-      (_) => _json('[{"id":1},{"id":2},{"id":3}]'),
-    );
+    final dio = dioAnswering((_) => _json('[{"id":1},{"id":2},{"id":3}]'));
     await recorder.start();
 
     await dio.get<dynamic>('/api/v1/queue/');
@@ -238,28 +212,36 @@ void main() {
       // `/queue/?status=pending` and `?status=printing` share a path, and the
       // query is deliberately absent from the log. Deduping them together would
       // hide every second answer behind a `same` that is not true.
-      final dio = dioAnswering((options) => _json(
-            options.uri.query.contains('printing')
-                ? '[${queueItem(status: 'printing', id: 9)}]'
-                : '[${queueItem()}]',
-          ));
+      final dio = dioAnswering(
+        (options) => _json(
+          options.uri.query.contains('printing')
+              ? '[${queueItem(status: 'printing', id: 9)}]'
+              : '[${queueItem()}]',
+        ),
+      );
       await recorder.start();
 
       for (var i = 0; i < 2; i++) {
-        await dio.get<dynamic>('/api/v1/queue/',
-            queryParameters: {'status': 'pending'});
-        await dio.get<dynamic>('/api/v1/queue/',
-            queryParameters: {'status': 'printing'});
+        await dio.get<dynamic>(
+          '/api/v1/queue/',
+          queryParameters: {'status': 'pending'},
+        );
+        await dio.get<dynamic>(
+          '/api/v1/queue/',
+          queryParameters: {'status': 'printing'},
+        );
       }
 
       final records = await httpRecords();
-      expect(records.take(2).every((r) => r.containsKey('first')), isTrue,
-          reason: 'each query is new the first time it is asked');
+      expect(
+        records.take(2).every((r) => r.containsKey('first')),
+        isTrue,
+        reason: 'each query is new the first time it is asked',
+      );
       expect(records.skip(2).map((r) => r['same']), [true, true]);
     });
 
-    test('a token minted under an allowlisted prefix is never sampled',
-        () async {
+    test('a token minted under an allowlisted prefix is never sampled', () async {
       // `/printers/camera/stream-token` sits inside `printers` and answers with
       // a camera token. A live recording logged `{"token":"[REDACTED]"}` — the
       // redactor caught it, and leaning on that is what the allowlist exists to
@@ -275,25 +257,28 @@ void main() {
       expect(jsonEncode(response), isNot(contains('cam-tok')));
     });
 
-    test('a list that grew is not "same" just because its first record held',
-        () async {
-      // Straight off a live log: a POST added an item, the next poll answered
-      // `n:2` with the same record on top, and `same` beside it read as
-      // "nothing happened".
-      var items = '{"id":180,"position":1,"status":"pending"}';
-      final dio = dioAnswering((_) => _json('[$items]'));
-      await recorder.start();
+    test(
+      'a list that grew is not "same" just because its first record held',
+      () async {
+        // Straight off a live log: a POST added an item, the next poll answered
+        // `n:2` with the same record on top, and `same` beside it read as
+        // "nothing happened".
+        var items = '{"id":180,"position":1,"status":"pending"}';
+        final dio = dioAnswering((_) => _json('[$items]'));
+        await recorder.start();
 
-      await dio.get<dynamic>('/api/v1/queue/');
-      items = '{"id":180,"position":1,"status":"pending"},'
-          '{"id":181,"position":2,"status":"pending"}';
-      await dio.get<dynamic>('/api/v1/queue/');
+        await dio.get<dynamic>('/api/v1/queue/');
+        items =
+            '{"id":180,"position":1,"status":"pending"},'
+            '{"id":181,"position":2,"status":"pending"}';
+        await dio.get<dynamic>('/api/v1/queue/');
 
-      final records = await httpRecords();
-      expect(records.map((r) => r['n']), [1, 2]);
-      expect(records.last.containsKey('same'), isFalse);
-      expect((records.last['first'] as Map)['id'], 180);
-    });
+        final records = await httpRecords();
+        expect(records.map((r) => r['n']), [1, 2]);
+        expect(records.last.containsKey('same'), isFalse);
+        expect((records.last['first'] as Map)['id'], 180);
+      },
+    );
 
     test('a peripheral endpoint contributes no record', () async {
       // Not on the allowlist: nothing here should ever carry a token into a log.
@@ -316,11 +301,13 @@ void main() {
 
       await dio.get<dynamic>('/api/v1/printers/1/status');
 
-      expect((await httpRecords()).single['first'], isA<Map<String, dynamic>>());
+      expect(
+        (await httpRecords()).single['first'],
+        isA<Map<String, dynamic>>(),
+      );
     });
 
-    test('an inline thumbnail is measured, not carried and not clipped',
-        () async {
+    test('an inline thumbnail is measured, not carried and not clipped', () async {
       // A library entry can carry an inline thumbnail; an image does not belong
       // in a bug report. It used to be cut by the size ceiling, which meant the
       // first two kilobytes of the image went in. The sample rule gets there
@@ -337,12 +324,13 @@ void main() {
       expect(jsonEncode(first), isNot(contains('AAAA')));
     });
 
-    test('a record too big even once measured goes in as clipped text',
-        () async {
+    test('a record too big even once measured goes in as clipped text', () async {
       // The ceiling still exists, for the record that is genuinely all content
       // the log is meant to keep: hundreds of numeric telemetry fields, none of
       // which the sample rule can shorten.
-      final fields = [for (var i = 0; i < 900; i++) '"t$i":${i / 10}'].join(',');
+      final fields = [
+        for (var i = 0; i < 900; i++) '"t$i":${i / 10}',
+      ].join(',');
       final dio = dioAnswering((_) => _json('[{"id":1,$fields}]'));
       await recorder.start();
 
@@ -356,85 +344,96 @@ void main() {
       expect(first, endsWith('…'));
     });
 
-    test('a 422 says which field failed without quoting what was sent',
-        () async {
-      // FastAPI echoes the offending input verbatim. The whole body used to go
-      // in as text, so a file named after a person rode along on every failed
-      // save — the same leak as the sampled record, one layer down.
-      final dio = dioAnswering(
-        (_) => _json(
-          '{"detail":[{"type":"string_type","loc":["body","archive_name"],'
-          '"input":"Prezent_dla_Ani_v3.3mf",'
-          '"msg":"Input should be a valid string"}]}',
-          422,
-        ),
-      );
-      await recorder.start();
+    test(
+      'a 422 says which field failed without quoting what was sent',
+      () async {
+        // FastAPI echoes the offending input verbatim. The whole body used to go
+        // in as text, so a file named after a person rode along on every failed
+        // save — the same leak as the sampled record, one layer down.
+        final dio = dioAnswering(
+          (_) => _json(
+            '{"detail":[{"type":"string_type","loc":["body","archive_name"],'
+            '"input":"Prezent_dla_Ani_v3.3mf",'
+            '"msg":"Input should be a valid string"}]}',
+            422,
+          ),
+        );
+        await recorder.start();
 
-      // The call itself still throws; the probe's record is the point.
-      await expectLater(
-        dio.post<dynamic>('/api/v1/queue/', data: {'x': 1}),
-        throwsA(isA<DioException>()),
-      );
+        // The call itself still throws; the probe's record is the point.
+        await expectLater(
+          dio.post<dynamic>('/api/v1/queue/', data: {'x': 1}),
+          throwsA(isA<DioException>()),
+        );
 
-      final body = (await httpRecords())
-          .firstWhere((r) => r['evt'] == 'error')['body'] as String;
-      // Which field, and how it was wrong — the two things the body is opened
-      // for.
-      expect(body, contains('string_type'));
-      expect(body, contains('archive_name'));
-      // And nothing of what the user typed.
-      expect(body, isNot(contains('Prezent')));
-      expect(body, contains('<str:22>'));
-    });
+        final body =
+            (await httpRecords()).firstWhere((r) => r['evt'] == 'error')['body']
+                as String;
+        // Which field, and how it was wrong — the two things the body is opened
+        // for.
+        expect(body, contains('string_type'));
+        expect(body, contains('archive_name'));
+        // And nothing of what the user typed.
+        expect(body, isNot(contains('Prezent')));
+        expect(body, contains('<str:22>'));
+      },
+    );
 
-    test('a proxy\'s error page is left readable, having nothing of anybody\'s',
-        () async {
-      // The other reason this field exists: an HTML page names the proxy in its
-      // first few tags, and measuring it would answer `<str:300>`.
-      final dio = dioAnswering(
-        (_) => _text('<html><head><title>502 Bad Gateway</title></head>', 502),
-      );
-      await recorder.start();
+    test(
+      'a proxy\'s error page is left readable, having nothing of anybody\'s',
+      () async {
+        // The other reason this field exists: an HTML page names the proxy in its
+        // first few tags, and measuring it would answer `<str:300>`.
+        final dio = dioAnswering(
+          (_) =>
+              _text('<html><head><title>502 Bad Gateway</title></head>', 502),
+        );
+        await recorder.start();
 
-      await expectLater(
-        dio.get<dynamic>('/api/v1/queue/'),
-        throwsA(isA<DioException>()),
-      );
+        await expectLater(
+          dio.get<dynamic>('/api/v1/queue/'),
+          throwsA(isA<DioException>()),
+        );
 
-      final body = (await httpRecords())
-          .firstWhere((r) => r['evt'] == 'error')['body'] as String;
-      expect(body, contains('502 Bad Gateway'));
-    });
+        final body =
+            (await httpRecords()).firstWhere((r) => r['evt'] == 'error')['body']
+                as String;
+        expect(body, contains('502 Bad Gateway'));
+      },
+    );
 
-    test('a plug keeps the wiring that explains it, and loses the house',
-        () async {
-      // The selectors were named as deliberately not secret — a JSON pointer
-      // like `state.power` is a field name, not an address, and it is what
-      // explains a plug reporting zero watts — and the sample rule measured
-      // them away regardless, because a dotted token is not a word, a number or
-      // a date. Caught only by running a whole real record through.
-      final dio = dioAnswering(
-        (_) => _json('[{"id":4,"name":"Gniazdko w garażu",'
+    test(
+      'a plug keeps the wiring that explains it, and loses the house',
+      () async {
+        // The selectors were named as deliberately not secret — a JSON pointer
+        // like `state.power` is a field name, not an address, and it is what
+        // explains a plug reporting zero watts — and the sample rule measured
+        // them away regardless, because a dotted token is not a word, a number or
+        // a date. Caught only by running a whole real record through.
+        final dio = dioAnswering(
+          (_) => _json(
+            '[{"id":4,"name":"Gniazdko w garażu",'
             '"plug_type":"homeassistant","ha_entity_id":"switch.szafa_biuro",'
             '"mqtt_power_path":"data.power","mqtt_state_path":"state.power",'
-            '"mqtt_power_multiplier":1.0,"rest_method":"POST"}]'),
-      );
-      await recorder.start();
+            '"mqtt_power_multiplier":1.0,"rest_method":"POST"}]',
+          ),
+        );
+        await recorder.start();
 
-      await dio.get<dynamic>('/api/v1/smart-plugs/');
+        await dio.get<dynamic>('/api/v1/smart-plugs/');
 
-      final first = (await httpRecords()).single['first']! as Map;
-      expect(first['mqtt_power_path'], 'data.power');
-      expect(first['mqtt_state_path'], 'state.power');
-      expect(first['plug_type'], 'homeassistant');
-      expect(first['rest_method'], 'POST');
-      expect(first['mqtt_power_multiplier'], 1.0);
-      // And the half that names somebody's home still goes.
-      expect(first['ha_entity_id'], '[REDACTED]');
-      expect(first['name'], '<str:17>');
-      expect(jsonEncode(first), isNot(contains('szafa_biuro')));
-    });
+        final first = (await httpRecords()).single['first']! as Map;
+        expect(first['mqtt_power_path'], 'data.power');
+        expect(first['mqtt_state_path'], 'state.power');
+        expect(first['plug_type'], 'homeassistant');
+        expect(first['rest_method'], 'POST');
+        expect(first['mqtt_power_multiplier'], 1.0);
+        // And the half that names somebody's home still goes.
+        expect(first['ha_entity_id'], '[REDACTED]');
+        expect(first['name'], '<str:17>');
+        expect(jsonEncode(first), isNot(contains('szafa_biuro')));
+      },
+    );
 
     test('a location sensor keeps the reading and loses the room', () async {
       // The same split as the plug above, on the surface that shows a drybox's
@@ -443,10 +442,12 @@ void main() {
       // the entity or of the shelf — a Home Assistant id names somebody's home
       // as surely as a plug's does.
       final dio = dioAnswering(
-        (_) => _json('[{"id":4,"name":"Szafa w sypialni",'
-            '"entity_id":"sensor.sypialnia_wilgotnosc","kind":"numeric",'
-            '"device_class":"humidity","unit":"%","state":"47.2","value":47.2,'
-            '"alerting":true,"reachable":true,"alert_above":45.0}]'),
+        (_) => _json(
+          '[{"id":4,"name":"Szafa w sypialni",'
+          '"entity_id":"sensor.sypialnia_wilgotnosc","kind":"numeric",'
+          '"device_class":"humidity","unit":"%","state":"47.2","value":47.2,'
+          '"alerting":true,"reachable":true,"alert_above":45.0}]',
+        ),
       );
       await recorder.start();
 
@@ -471,10 +472,12 @@ void main() {
       // name and not URLs, JWTs or serials by shape — so they went in verbatim
       // while the consent screen promised they never would.
       final dio = dioAnswering(
-        (_) => _json('[{"id":1,"status":"printing",'
-            '"archive_name":"Prezent_dla_Ani_v3.gcode.3mf",'
-            '"printer_name":"Drukarka w sypialni Kasi",'
-            '"printer_serial":"20P0AA000000001"}]'),
+        (_) => _json(
+          '[{"id":1,"status":"printing",'
+          '"archive_name":"Prezent_dla_Ani_v3.gcode.3mf",'
+          '"printer_name":"Drukarka w sypialni Kasi",'
+          '"printer_serial":"20P0AA000000001"}]',
+        ),
       );
       await recorder.start();
 
@@ -497,9 +500,13 @@ void main() {
       // fingerprint taken over the whole record never matches, so its 1.5 kB
       // went into a live log five times in under a minute with nothing changed.
       var tick = 0;
-      final dio = dioAnswering((_) => _json('[{"id":1,"last_state":"OFF",'
+      final dio = dioAnswering(
+        (_) => _json(
+          '[{"id":1,"last_state":"OFF",'
           '"last_checked":"2026-07-29T14:53:0${tick++}.914155",'
-          '"updated_at":"2026-07-29T14:53:0$tick.892861"}]'));
+          '"updated_at":"2026-07-29T14:53:0$tick.892861"}]',
+        ),
+      );
       await recorder.start();
 
       await dio.get<dynamic>('/api/v1/smart-plugs/');
@@ -516,50 +523,59 @@ void main() {
       );
     });
 
-    test('the timestamp shapes a live server actually sends are covered',
-        () async {
-      // The captured plug record, re-polled with its stamps moved on — three
-      // formats in one file: with a `Z`, without one, and microseconds either
-      // way. A pattern that misses any of them puts 1.5 kB in the log per poll.
-      final record = (readFixture('captured/smart_plugs.json') as List).first
-          as Map<String, dynamic>;
-      var polls = 0;
-      final dio = dioAnswering((_) {
-        polls++;
-        return _json(jsonEncode([
-          {
-            ...record,
-            'last_checked': '2026-07-29T14:53:0$polls.914155',
-            'updated_at': '2026-07-29T14:53:0$polls.892861',
-            'created_at': '2026-05-13T21:20:37.871673Z',
-          },
-        ]));
-      });
-      await recorder.start();
+    test(
+      'the timestamp shapes a live server actually sends are covered',
+      () async {
+        // The captured plug record, re-polled with its stamps moved on — three
+        // formats in one file: with a `Z`, without one, and microseconds either
+        // way. A pattern that misses any of them puts 1.5 kB in the log per poll.
+        final record =
+            (readFixture('captured/smart_plugs.json') as List).first
+                as Map<String, dynamic>;
+        var polls = 0;
+        final dio = dioAnswering((_) {
+          polls++;
+          return _json(
+            jsonEncode([
+              {
+                ...record,
+                'last_checked': '2026-07-29T14:53:0$polls.914155',
+                'updated_at': '2026-07-29T14:53:0$polls.892861',
+                'created_at': '2026-05-13T21:20:37.871673Z',
+              },
+            ]),
+          );
+        });
+        await recorder.start();
 
-      await dio.get<dynamic>('/api/v1/smart-plugs/');
-      await dio.get<dynamic>('/api/v1/smart-plugs/');
-      await dio.get<dynamic>('/api/v1/smart-plugs/');
+        await dio.get<dynamic>('/api/v1/smart-plugs/');
+        await dio.get<dynamic>('/api/v1/smart-plugs/');
+        await dio.get<dynamic>('/api/v1/smart-plugs/');
 
-      final records = await httpRecords();
-      expect(records.first.containsKey('first'), isTrue);
-      expect(records.skip(1).map((r) => r['same']), [true, true]);
-    },
-        // The only test here that needs a captured payload, and `captured/` is
-        // untracked (test/fixtures/README.md). The timestamp shapes it checks are
-        // written out in the body above; the fixture supplies the surrounding
-        // record, which is why this one waits for a local capture instead of
-        // being rewritten around an invented one.
-        skip: File('test/fixtures/captured/smart_plugs.json').existsSync()
-            ? null
-            : 'brak test/fixtures/captured — tool/capture_fixtures.sh '
-                'https://twój.serwer');
+        final records = await httpRecords();
+        expect(records.first.containsKey('first'), isTrue);
+        expect(records.skip(1).map((r) => r['same']), [true, true]);
+      },
+      // The only test here that needs a captured payload, and `captured/` is
+      // untracked (test/fixtures/README.md). The timestamp shapes it checks are
+      // written out in the body above; the fixture supplies the surrounding
+      // record, which is why this one waits for a local capture instead of
+      // being rewritten around an invented one.
+      skip: File('test/fixtures/captured/smart_plugs.json').existsSync()
+          ? null
+          : 'missing test/fixtures/captured — tool/capture_fixtures.sh '
+                'https://your.server',
+    );
 
     test('a real change is still a change, timestamps or not', () async {
       var state = 'OFF';
       var tick = 0;
-      final dio = dioAnswering((_) => _json('[{"id":1,"last_state":"$state",'
-          '"last_checked":"2026-07-29T14:53:0${tick++}.914155"}]'));
+      final dio = dioAnswering(
+        (_) => _json(
+          '[{"id":1,"last_state":"$state",'
+          '"last_checked":"2026-07-29T14:53:0${tick++}.914155"}]',
+        ),
+      );
       await recorder.start();
 
       await dio.get<dynamic>('/api/v1/smart-plugs/');
@@ -573,13 +589,15 @@ void main() {
 
     test('a downloaded image is neither counted nor sampled', () async {
       // Bytes: its length is a byte count, and `n:34000` would read as records.
-      final dio = dioAnswering((_) => ResponseBody.fromBytes(
-            Uint8List.fromList(List.filled(1000, 65)),
-            200,
-            headers: {
-              Headers.contentTypeHeader: ['image/png'],
-            },
-          ));
+      final dio = dioAnswering(
+        (_) => ResponseBody.fromBytes(
+          Uint8List.fromList(List.filled(1000, 65)),
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['image/png'],
+          },
+        ),
+      );
       await recorder.start();
 
       await dio.get<List<int>>(
@@ -595,9 +613,11 @@ void main() {
     test('a token inside a sampled body is redacted', () async {
       // The allowlist keeps token endpoints out, but a body is server-shaped and
       // the redactor is what makes that safe rather than lucky.
-      final dio = dioAnswering((_) => _json(
-            '[{"id":1,"nested":{"access_token":"tok-123","key":"bb_realkey12"}}]',
-          ));
+      final dio = dioAnswering(
+        (_) => _json(
+          '[{"id":1,"nested":{"access_token":"tok-123","key":"bb_realkey12"}}]',
+        ),
+      );
       await recorder.start();
 
       await dio.get<dynamic>('/api/v1/queue/');
@@ -608,20 +628,25 @@ void main() {
       expect(encoded, contains('[REDACTED]'));
     });
 
-    test('a new recording does not inherit the previous one\'s fingerprints',
-        () async {
-      final dio = dioAnswering((_) => _json('[${queueItem()}]'));
-      await recorder.start();
-      await dio.get<dynamic>('/api/v1/queue/');
-      await stopAndParse();
+    test(
+      'a new recording does not inherit the previous one\'s fingerprints',
+      () async {
+        final dio = dioAnswering((_) => _json('[${queueItem()}]'));
+        await recorder.start();
+        await dio.get<dynamic>('/api/v1/queue/');
+        await stopAndParse();
 
-      await useRecorder();
-      await recorder.start();
-      await dio.get<dynamic>('/api/v1/queue/');
+        await useRecorder();
+        await recorder.start();
+        await dio.get<dynamic>('/api/v1/queue/');
 
-      expect((await httpRecords()).single.containsKey('first'), isTrue,
-          reason: 'a session that starts with `same` starts with nothing');
-    });
+        expect(
+          (await httpRecords()).single.containsKey('first'),
+          isTrue,
+          reason: 'a session that starts with `same` starts with nothing',
+        );
+      },
+    );
   });
 
   test('announces a write before its answer', () async {

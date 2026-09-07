@@ -208,7 +208,8 @@ class _WearScrollViewState extends State<WearScrollView>
     final face = MediaQuery.sizeOf(context);
     // A square face keeps its corners and has nothing to curve away from; a
     // panel (a footer to pin, or content held still) is not a list.
-    final curved = widget.curved &&
+    final curved =
+        widget.curved &&
         shape == WearShape.round &&
         widget.footer == null &&
         !widget.centerWhenShort;
@@ -232,7 +233,10 @@ class _WearScrollViewState extends State<WearScrollView>
     }
     if (widget.footer case final footer?) {
       content = Column(
-        children: [Expanded(child: content), footer],
+        children: [
+          Expanded(child: content),
+          footer,
+        ],
       );
     }
 
@@ -242,9 +246,11 @@ class _WearScrollViewState extends State<WearScrollView>
           // The width a row gets is unchanged — this buys height, and a row
           // that re-wrapped as well would make every scroll a relayout.
           Padding(
-            padding:
-                wearFaceInsets(shape, face, widthFraction: widget.contentWidthFraction)
-                    .copyWith(top: 0, bottom: 0),
+            padding: wearFaceInsets(
+              shape,
+              face,
+              widthFraction: widget.contentWidthFraction,
+            ).copyWith(top: 0, bottom: 0),
             child: content,
           )
         else
@@ -268,45 +274,45 @@ class _WearScrollViewState extends State<WearScrollView>
   /// the list runs the whole height and only holds the first and last back far
   /// enough to come to rest near full size.
   Widget _list({Size? face}) => ListView(
-        controller: _controller,
-        physics: _physics,
-        padding: EdgeInsets.symmetric(
-          vertical: face == null
-              ? _leadIn
-              : face.shortestSide * roundCurveEndFraction,
-        ),
-        children: [
-          for (final child in widget.children)
-            if (face == null)
-              child
-            else
-              WearFaceCurve(
-                face: face,
-                cornerRadius: widget.itemCornerRadius,
-                child: child,
-              ),
-        ],
-      );
+    controller: _controller,
+    physics: _physics,
+    padding: EdgeInsets.symmetric(
+      vertical: face == null
+          ? _leadIn
+          : face.shortestSide * roundCurveEndFraction,
+    ),
+    children: [
+      for (final child in widget.children)
+        if (face == null)
+          child
+        else
+          WearFaceCurve(
+            face: face,
+            cornerRadius: widget.itemCornerRadius,
+            child: child,
+          ),
+    ],
+  );
 
   Widget _centered() => LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          controller: _controller,
-          physics: _physics,
-          padding: const EdgeInsets.symmetric(vertical: _leadIn),
-          child: ConstrainedBox(
-            // Fills the viewport when the content is short — that is what puts
-            // the column in the middle — and gives way to it when it isn't.
-            constraints: BoxConstraints(
-              minHeight: math.max(0, constraints.maxHeight - _leadIn * 2),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: widget.children,
-            ),
-          ),
+    builder: (context, constraints) => SingleChildScrollView(
+      controller: _controller,
+      physics: _physics,
+      padding: const EdgeInsets.symmetric(vertical: _leadIn),
+      child: ConstrainedBox(
+        // Fills the viewport when the content is short — that is what puts
+        // the column in the middle — and gives way to it when it isn't.
+        constraints: BoxConstraints(
+          minHeight: math.max(0, constraints.maxHeight - _leadIn * 2),
         ),
-      );
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: widget.children,
+        ),
+      ),
+    ),
+  );
 
   /// Softens the viewport's own edge, where a row scrolling out would otherwise
   /// be cut across in the middle of the black face.
@@ -317,31 +323,31 @@ class _WearScrollViewState extends State<WearScrollView>
   /// mask buys an offscreen compositing pass per frame for a gradient nobody
   /// can see, on the flavour that exists because of the battery.
   Widget _faded(Widget child) => LayoutBuilder(
-        builder: (context, constraints) {
-          final height = constraints.maxHeight;
-          if (!_scrolls || !height.isFinite || height <= _leadIn * 3) {
-            return child;
-          }
-          final fade = _leadIn / height;
-          return ShaderMask(
-            blendMode: BlendMode.dstIn,
-            shaderCallback: (bounds) => LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              // Alpha is all a `dstIn` mask reads; the colours are named
-              // rather than spelled in hex so they say "keep" and "drop".
-              colors: const [
-                Colors.transparent,
-                Colors.white,
-                Colors.white,
-                Colors.transparent,
-              ],
-              stops: [0, fade, 1 - fade, 1],
-            ).createShader(bounds),
-            child: child,
-          );
-        },
+    builder: (context, constraints) {
+      final height = constraints.maxHeight;
+      if (!_scrolls || !height.isFinite || height <= _leadIn * 3) {
+        return child;
+      }
+      final fade = _leadIn / height;
+      return ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          // Alpha is all a `dstIn` mask reads; the colours are named
+          // rather than spelled in hex so they say "keep" and "drop".
+          colors: const [
+            Colors.transparent,
+            Colors.white,
+            Colors.white,
+            Colors.transparent,
+          ],
+          stops: [0, fade, 1 - fade, 1],
+        ).createShader(bounds),
+        child: child,
       );
+    },
+  );
 
   /// Scrollable even when the content fits, so pull-to-refresh works on a
   /// half-empty face; the platform default where there is nothing to refresh.

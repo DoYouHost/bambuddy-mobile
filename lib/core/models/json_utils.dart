@@ -60,7 +60,9 @@ DateTime? dateTimeFromJson(dynamic value) {
   var raw = value.trim();
   if (raw.isEmpty) return null;
   if (_offsetThenZ.hasMatch(raw)) raw = raw.substring(0, raw.length - 1);
-  if (_hasTimeOfDay.hasMatch(raw) && !_zoneSuffix.hasMatch(raw)) raw = '${raw}Z';
+  if (_hasTimeOfDay.hasMatch(raw) && !_zoneSuffix.hasMatch(raw)) {
+    raw = '${raw}Z';
+  }
   return DateTime.tryParse(raw)?.toLocal();
 }
 
@@ -174,8 +176,7 @@ Map<String, dynamic> asJsonRecord(Map<dynamic, dynamic> value) =>
 List<T>? parseJsonListOrNull<T>(
   dynamic value,
   T Function(Map<String, dynamic>) fromJson,
-) =>
-    value is List ? parseJsonList(value, fromJson) : null;
+) => value is List ? parseJsonList(value, fromJson) : null;
 
 /// One tolerant nested record: anything that is not an object, and any record
 /// [fromJson] itself chokes on, reads as absent rather than throwing through
@@ -219,11 +220,11 @@ Map<int, V>? parseJsonMapByIdOrNull<V>(
 /// Tolerant `int?` coercion: accepts `int`, other `num` (truncated), or a
 /// parseable `String`; anything else (including non-numeric strings) → `null`.
 int? toIntOrNull(dynamic value) => switch (value) {
-      int n => n,
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
+  int n => n,
+  num n => n.toInt(),
+  String s => int.tryParse(s),
+  _ => null,
+};
 
 /// [toIntOrNull] with a `0` fallback — for fields the server always sends,
 /// where coercion failure should read as "0" rather than propagate `null`.
@@ -231,10 +232,10 @@ int toInt(dynamic value) => toIntOrNull(value) ?? 0;
 
 /// Tolerant `double?` coercion: accepts any `num` or a parseable `String`.
 double? toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
+  num n => n.toDouble(),
+  String s => double.tryParse(s),
+  _ => null,
+};
 
 /// [toDoubleOrNull] with a `0` fallback.
 double toDouble(dynamic value) => toDoubleOrNull(value) ?? 0;
@@ -282,11 +283,11 @@ Map<String, String> toStringMap(dynamic value) {
 /// capability or an accessory, where "not reported" and "not there" are the
 /// same answer.
 bool toBoolOrFalse(dynamic value) => switch (value) {
-      bool b => b,
-      num n => n != 0,
-      String s => s.toLowerCase() == 'true' || s == '1',
-      _ => false,
-    };
+  bool b => b,
+  num n => n != 0,
+  String s => s.toLowerCase() == 'true' || s == '1',
+  _ => false,
+};
 
 /// Tolerant `List<String>` coercion: keeps only string elements.
 List<String> toStringList(dynamic value) {

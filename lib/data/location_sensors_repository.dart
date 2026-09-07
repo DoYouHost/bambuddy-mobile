@@ -44,15 +44,14 @@ class LocationSensorsRepository {
   /// with an empty list rather than throwing: the whole feature is additive,
   /// and the latch above has already recorded why there is nothing to add.
   Future<List<LocationSensorBinding>> listBindings() => _sensors.watching(
-        () async {
-          final res =
-              await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);
-          return parseJsonList(res.data, LocationSensorBinding.fromJson);
-        },
-        absent: () => const [],
-        // The collection: it addresses nothing, so its 404 is the route.
-        observing: treat404AsAbsent,
-      );
+    () async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);
+      return parseJsonList(res.data, LocationSensorBinding.fromJson);
+    },
+    absent: () => const [],
+    // The collection: it addresses nothing, so its 404 is the route.
+    observing: treat404AsAbsent,
+  );
 
   /// The live state of one location's card-visible sensors, in the order the
   /// bindings were sorted into. A sensor the poller has not reached yet comes

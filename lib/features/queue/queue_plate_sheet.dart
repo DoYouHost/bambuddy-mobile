@@ -18,43 +18,42 @@ Future<int?> showQueuePlateSheet(
   BuildContext context, {
   required PlateList plates,
   required int? selected,
-}) =>
-    dashSheet<int>(
-      context,
-      builder: (ctx) {
-        final l10n = AppLocalizations.of(ctx);
-        final t = DashTokens.of(ctx);
-        return logTag(
-          'sheet.queue_plate',
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  l10n.queuePlatePickTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium,
-                ),
-              ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final plate in plates.plates)
-                      _PlateRow(
-                        plate: plate,
-                        selected: plate.index == selected,
-                        onTap: () => Navigator.pop(ctx, plate.index),
-                        tokens: t,
-                      ),
-                  ],
-                ),
-              ),
-            ],
+}) => dashSheet<int>(
+  context,
+  builder: (ctx) {
+    final l10n = AppLocalizations.of(ctx);
+    final t = DashTokens.of(ctx);
+    return logTag(
+      'sheet.queue_plate',
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              l10n.queuePlatePickTitle,
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
           ),
-        );
-      },
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final plate in plates.plates)
+                  _PlateRow(
+                    plate: plate,
+                    selected: plate.index == selected,
+                    onTap: () => Navigator.pop(ctx, plate.index),
+                    tokens: t,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  },
+);
 
 class _PlateRow extends StatelessWidget {
   const _PlateRow({

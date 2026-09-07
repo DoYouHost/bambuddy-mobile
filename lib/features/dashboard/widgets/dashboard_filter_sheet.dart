@@ -62,8 +62,10 @@ class _DashboardFilterSheet extends ConsumerWidget {
                       height: 48,
                       child: Row(
                         children: [
-                          Text(l10n.dashboardFilters,
-                              style: theme.textTheme.titleLarge),
+                          Text(
+                            l10n.dashboardFilters,
+                            style: theme.textTheme.titleLarge,
+                          ),
                           const Spacer(),
                           // Keep the button's slot laid out even when inactive,
                           // so it can't reflow the row.
@@ -73,8 +75,8 @@ class _DashboardFilterSheet extends ConsumerWidget {
                             maintainAnimation: true,
                             maintainState: true,
                             child: TextButton(
-                              onPressed: () => notifier.state =
-                                  const DashboardFilters(),
+                              onPressed: () =>
+                                  notifier.state = const DashboardFilters(),
                               child: Text(l10n.filtersClear),
                             ),
                           ),
@@ -91,8 +93,8 @@ class _DashboardFilterSheet extends ConsumerWidget {
                           ChoiceChip(
                             label: Text(_statusLabel(l10n, bucket)),
                             selected: filters.status == bucket,
-                            onSelected: (_) => notifier.state =
-                                filters.copyWith(status: bucket),
+                            onSelected: (_) => notifier.state = filters
+                                .copyWith(status: bucket),
                           ),
                       ],
                     ),
@@ -102,10 +104,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
                       value: filters.hideOffline,
                       onChanged: (v) =>
                           notifier.state = filters.copyWith(hideOffline: v),
-                      title: Text(
-                        l10n.hideOffline,
-                        style: t.bodyStrong,
-                      ),
+                      title: Text(l10n.hideOffline, style: t.bodyStrong),
                       activeThumbColor: t.accentGreen,
                     ),
                   ],
@@ -114,7 +113,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 
@@ -140,10 +139,7 @@ class _GroupLabel extends StatelessWidget {
     final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: t.bodyBold,
-      ),
+      child: Text(label, style: t.bodyBold),
     );
   }
 }

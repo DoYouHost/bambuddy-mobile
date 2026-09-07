@@ -36,8 +36,7 @@ import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
-import '../pipelines/pipelines_providers.dart'
-    show canRunPipelinesProvider;
+import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
@@ -405,9 +404,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .deleteMany(ids, purgeStats: purge);
     if (!mounted) return;
     _clearSelection();
-    messenger.snack(res.failed == 0
-              ? l10n.archiveDeletedCount(res.ok)
-              : l10n.archiveDeleteSomeFailed(res.ok, res.failed));
+    messenger.snack(
+      res.failed == 0
+          ? l10n.archiveDeletedCount(res.ok)
+          : l10n.archiveDeleteSomeFailed(res.ok, res.failed),
+    );
   }
 
   /// Add the selected prints to a project: pick a project from a sheet, then
@@ -500,11 +501,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// server would pick for a multi-plate file.
   void _previewGcode(Archive archive) {
     Navigator.pop(context);
-    context.push(gcodeViewerRoute(
-      archiveId: archive.id,
-      plate: archive.plateId,
-      title: archive.displayName,
-    ));
+    context.push(
+      gcodeViewerRoute(
+        archiveId: archive.id,
+        plate: archive.plateId,
+        title: archive.displayName,
+      ),
+    );
   }
 
   /// Timelapse: closes the sheet and opens the full-screen player.
@@ -602,12 +605,12 @@ class _No3mfBanner extends ConsumerWidget {
   /// Where the wiki explains this cause, or null when there is nothing to link —
   /// "put a card in" is the whole fix for an empty slot.
   static String? _docsUrl(No3mfReason reason) => switch (reason) {
-        No3mfReason.internalStorage =>
-          'https://wiki.bambuddy.cool/reference/troubleshooting/#archive-card-has-only-a-name',
-        No3mfReason.noExternalStorage => null,
-        No3mfReason.slicerSetting =>
-          'https://wiki.bambuddy.cool/getting-started/#step-4-enable-store-sent-files-on-external-storage',
-      };
+    No3mfReason.internalStorage =>
+      'https://wiki.bambuddy.cool/reference/troubleshooting/#archive-card-has-only-a-name',
+    No3mfReason.noExternalStorage => null,
+    No3mfReason.slicerSetting =>
+      'https://wiki.bambuddy.cool/getting-started/#step-4-enable-store-sent-files-on-external-storage',
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -624,17 +627,17 @@ class _No3mfBanner extends ConsumerWidget {
     final reason = warning.reason;
     final (title, body) = switch (reason) {
       No3mfReason.internalStorage => (
-          l10n.archiveNo3mfTitleInternal,
-          l10n.archiveNo3mfBodyInternal,
-        ),
+        l10n.archiveNo3mfTitleInternal,
+        l10n.archiveNo3mfBodyInternal,
+      ),
       No3mfReason.noExternalStorage => (
-          l10n.archiveNo3mfTitleNoStorage,
-          l10n.archiveNo3mfBodyNoStorage,
-        ),
+        l10n.archiveNo3mfTitleNoStorage,
+        l10n.archiveNo3mfBodyNoStorage,
+      ),
       No3mfReason.slicerSetting => (
-          l10n.archiveNo3mfTitle,
-          l10n.archiveNo3mfBody,
-        ),
+        l10n.archiveNo3mfTitle,
+        l10n.archiveNo3mfBody,
+      ),
     };
     final docs = _docsUrl(reason);
 
@@ -650,7 +653,11 @@ class _No3mfBanner extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.warning_amber_rounded, size: 20, color: t.accentOrangeInk),
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 20,
+              color: t.accentOrangeInk,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -841,7 +848,6 @@ class _ArchiveCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Corner markers on a card's thumbnail for the media a print carries beyond
@@ -885,7 +891,10 @@ class _MediaBadges extends StatelessWidget {
 
   Widget _badge(IconData icon, Color color, String label) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 1),
-    child: Semantics(label: label, child: Icon(icon, size: 12, color: color)),
+    child: Semantics(
+      label: label,
+      child: Icon(icon, size: 12, color: color),
+    ),
   );
 }
 
@@ -1006,7 +1015,7 @@ class _ArchiveSheet extends StatelessWidget {
             ),
           ),
         ),
-      )
+      ),
     );
   }
 }
@@ -1142,8 +1151,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
-    final canRunPipeline =
-        ref.watch(canRunPipelinesProvider).orFalse;
+    final canRunPipeline = ref.watch(canRunPipelinesProvider).orFalse;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -1187,8 +1195,7 @@ class _ArchiveMediaButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchable =
-        ref.watch(archiveMediaSupportedProvider).orFalse;
+    final searchable = ref.watch(archiveMediaSupportedProvider).orFalse;
     if (!archiveHasMedia(archive, printerSearchable: searchable)) {
       return const SizedBox.shrink();
     }
@@ -1341,8 +1348,10 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
                         value: d,
                         // Named per value: "purged 30 days" and "purged
                         // everything" are not the same report.
-                        child: logTag('archive_purge.days.$d',
-                            Text(l10n.archivePurgeDaysOption(d))),
+                        child: logTag(
+                          'archive_purge.days.$d',
+                          Text(l10n.archivePurgeDaysOption(d)),
+                        ),
                       ),
                   ],
                 ),
@@ -1615,7 +1624,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             ],
           ],
         ),
-      )
+      ),
     );
   }
 
@@ -1721,4 +1730,3 @@ class _ColorSwatch extends StatelessWidget {
     );
   }
 }
-

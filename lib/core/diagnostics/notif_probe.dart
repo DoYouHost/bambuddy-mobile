@@ -81,17 +81,16 @@ class NotifProbe {
     required int printerId,
     required int nid,
     Map<String, Object?> fields = const {},
-  }) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'posted',
-        fields: {
-          'event': event.name,
-          'printer_id': printerId,
-          'nid': nid,
-          ...fields,
-        },
-      );
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'posted',
+    fields: {
+      'event': event.name,
+      'printer_id': printerId,
+      'nid': nid,
+      ...fields,
+    },
+  );
 
   /// The platform refused an alert we had already decided to post.
   static void postError({
@@ -99,18 +98,17 @@ class NotifProbe {
     required int printerId,
     required int nid,
     required Object error,
-  }) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'post_error',
-        lvl: LogLevel.error,
-        fields: {
-          'event': event.name,
-          'printer_id': printerId,
-          'nid': nid,
-          'cause': error.runtimeType.toString(),
-        },
-      );
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'post_error',
+    lvl: LogLevel.error,
+    fields: {
+      'event': event.name,
+      'printer_id': printerId,
+      'nid': nid,
+      'cause': error.runtimeType.toString(),
+    },
+  );
 
   /// What became of the finish photo the server attached to an archive.
   ///
@@ -145,17 +143,16 @@ class NotifProbe {
     int? printerId,
     NotifEvent? event,
     Map<String, Object?> fields = const {},
-  }) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'suppressed',
-        fields: {
-          'event': event?.name,
-          'printer_id': printerId,
-          'reason': reason.name,
-          ...fields,
-        },
-      );
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'suppressed',
+    fields: {
+      'event': event?.name,
+      'printer_id': printerId,
+      'reason': reason.name,
+      ...fields,
+    },
+  );
 
   /// The baseline a fresh monitor latched from a printer's first frame.
   ///
@@ -196,17 +193,16 @@ class NotifProbe {
     required int percent,
     int? etaMin,
     required int active,
-  }) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'ongoing',
-        fields: {
-          'printer_id': printerId,
-          'pct': percent,
-          'eta_min': etaMin,
-          'active': active,
-        },
-      );
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'ongoing',
+    fields: {
+      'printer_id': printerId,
+      'pct': percent,
+      'eta_min': etaMin,
+      'active': active,
+    },
+  );
 
   /// Nothing is printing any more, so the progress notification went back to
   /// neutral. Named `reset` rather than `cleared` because in the foreground
@@ -249,21 +245,20 @@ class NotifProbe {
   /// keystore would not give up. The simplest explanation for "I pressed Mark
   /// Done and the counter never reset".
   static void noClient() => DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'no_client',
-        lvl: LogLevel.warn,
-      );
+    LogSource.notif,
+    'no_client',
+    lvl: LogLevel.warn,
+  );
 
   /// The notification plugin failed to initialise. Today that failure is an
   /// unobservable rejected future, and every later alert fails while the service
   /// keeps claiming it is monitoring.
-  static void initFailed(Object error) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.notif,
-        'init',
-        lvl: LogLevel.error,
-        fields: {'ok': false, 'cause': error.runtimeType.toString()},
-      );
+  static void initFailed(Object error) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'init',
+    lvl: LogLevel.error,
+    fields: {'ok': false, 'cause': error.runtimeType.toString()},
+  );
 
   /// Opens the lane with the state that decides everything else: which event
   /// types the user disabled, whether alerts are off wholesale, whether the OS
@@ -335,8 +330,7 @@ class LoggingNotifications implements NotificationService {
     required String title,
     required String body,
     required int progress,
-  }) =>
-      _inner.showOngoing(title: title, body: body, progress: progress);
+  }) => _inner.showOngoing(title: title, body: body, progress: progress);
 
   @override
   Future<void> clearOngoing() => _inner.clearOngoing();
@@ -355,27 +349,27 @@ class LoggingNotifications implements NotificationService {
     NotifProbe.posted(event: event, printerId: printerId, nid: id);
     return _inner
         .showAlert(
-      event: event,
-      printerId: printerId,
-      id: id,
-      title: title,
-      body: body,
-      payload: payload,
-      actions: actions,
-      picture: picture,
-    )
+          event: event,
+          printerId: printerId,
+          id: id,
+          title: title,
+          body: body,
+          payload: payload,
+          actions: actions,
+          picture: picture,
+        )
         // Rethrown with its original stack: absorbing it would remove an error
         // that today reaches the isolate's uncaught handler and gets its own
         // record from `ErrorProbe`.
         .catchError((Object error, StackTrace stack) {
-      NotifProbe.postError(
-        event: event,
-        printerId: printerId,
-        nid: id,
-        error: error,
-      );
-      Error.throwWithStackTrace(error, stack);
-    });
+          NotifProbe.postError(
+            event: event,
+            printerId: printerId,
+            nid: id,
+            error: error,
+          );
+          Error.throwWithStackTrace(error, stack);
+        });
   }
 
   @override

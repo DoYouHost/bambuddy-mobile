@@ -152,7 +152,9 @@ class _SpoolTile extends StatelessWidget {
                 children: [
                   if (selectionMode) ...[
                     Icon(
-                      selected ? Icons.check_box : Icons.check_box_outline_blank,
+                      selected
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
                       size: 22,
                       color: selected ? t.accentGreenInk : t.textTertiary,
                     ),
@@ -177,16 +179,21 @@ class _SpoolTile extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  _MaterialTag(label: spool.material, tokens: t),
+                                  _MaterialTag(
+                                    label: spool.material,
+                                    tokens: t,
+                                  ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       spool.displayName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: t.titleSm.copyWith(color: spool.isArchived
+                                      style: t.titleSm.copyWith(
+                                        color: spool.isArchived
                                             ? t.textTertiary
-                                            : t.textPrimary),
+                                            : t.textPrimary,
+                                      ),
                                     ),
                                   ),
                                   if (low) ...[
@@ -396,15 +403,14 @@ class _SpoolDetailSheet extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '#${spool.id}',
-                            style: t.monoHeadline.copyWith(color: t.accentGreenInk),
+                            style: t.monoHeadline.copyWith(
+                              color: t.accentGreenInk,
+                            ),
                           ),
                         ],
                       ),
                       if (spool.colorName != null)
-                        Text(
-                          spool.colorName!,
-                          style: t.bodyPlain,
-                        ),
+                        Text(spool.colorName!, style: t.bodyPlain),
                     ],
                   ),
                 ),
@@ -560,18 +566,12 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
               error: (_, _) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  l10n.inventoryUsageEmpty,
-                  style: t.labelSoft,
-                ),
+                child: Text(l10n.inventoryUsageEmpty, style: t.labelSoft),
               ),
               data: (entries) => entries.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        l10n.inventoryUsageEmpty,
-                        style: t.labelSoft,
-                      ),
+                      child: Text(l10n.inventoryUsageEmpty, style: t.labelSoft),
                     )
                   : Column(
                       children: [
@@ -585,7 +585,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
             ),
           ],
         ),
-      )
+      ),
     );
   }
 }
@@ -600,10 +600,7 @@ class _SheetSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Text(
-      label,
-      style: t.bodyBold.copyWith(color: t.textPrimary),
-    );
+    return Text(label, style: t.bodyBold.copyWith(color: t.textPrimary));
   }
 }
 
@@ -688,14 +685,8 @@ class _DetailRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: t.label.copyWith(color: t.textSecondary),
-                ),
-                if (trailing != null) ...[
-                  const SizedBox(height: 8),
-                  trailing!,
-                ],
+                Text(label, style: t.label.copyWith(color: t.textSecondary)),
+                if (trailing != null) ...[const SizedBox(height: 8), trailing!],
               ],
             ),
           ),
@@ -704,4 +695,3 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
-

@@ -14,10 +14,8 @@ import 'pipelines_providers.dart';
 ///
 /// A sheet rather than a row of chips on the screen: three selects is a form,
 /// and on a phone they cost more width than the list can spare.
-Future<void> showPipelineRunFilterSheet(BuildContext context) => dashSheet<void>(
-      context,
-      builder: (_) => const _PipelineRunFilterSheet(),
-    );
+Future<void> showPipelineRunFilterSheet(BuildContext context) =>
+    dashSheet<void>(context, builder: (_) => const _PipelineRunFilterSheet());
 
 /// One target choice. The server has two fields for this and ANDs them, but a
 /// run is dispatched to a printer *or* to a class, so the picker offers one
@@ -94,7 +92,8 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
             // Filters on where the pipeline points *now*: re-targeting one
             // moves its whole history from one answer to the other.
             helperText: l10n.pipelineRunsFilterTargetHint,
-            selected: filter.targetPrinterId == null &&
+            selected:
+                filter.targetPrinterId == null &&
                     filter.targetModelClass == null
                 ? null
                 : (
@@ -108,15 +107,14 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
                   l10n.pipelineRunOnPrinter(p.name),
                 ),
               for (final c in classes)
-                (
-                  (printerId: null, modelClass: c),
-                  l10n.pipelineRunOnClass(c),
-                ),
+                ((printerId: null, modelClass: c), l10n.pipelineRunOnClass(c)),
             ],
-            onPick: (v) => notifier.replace(filter.copyWith(
-              targetPrinterId: (value: v?.printerId),
-              targetModelClass: (value: v?.modelClass),
-            )),
+            onPick: (v) => notifier.replace(
+              filter.copyWith(
+                targetPrinterId: (value: v?.printerId),
+                targetModelClass: (value: v?.modelClass),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
 

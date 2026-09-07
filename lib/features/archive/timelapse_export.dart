@@ -71,21 +71,20 @@ class TimelapseExport {
     required String token,
     required String name,
     void Function(double? progress)? onProgress,
-  }) =>
-      downloadToCacheFile(
-        scratchName: 'timelapse-$archiveId.download',
-        download: (savePath) => _repository.downloadTo(
-          archiveId,
-          token: token,
-          savePath: savePath,
-          // A server that streams without a length reports -1 as the total; the
-          // bar goes indeterminate rather than jumping to a made-up fraction.
-          onProgress: (received, total) =>
-              onProgress?.call(total > 0 ? received / total : null),
-        ),
-        name: (contentType) =>
-            exportFilename(name, timelapseExtension(contentType)),
-      );
+  }) => downloadToCacheFile(
+    scratchName: 'timelapse-$archiveId.download',
+    download: (savePath) => _repository.downloadTo(
+      archiveId,
+      token: token,
+      savePath: savePath,
+      // A server that streams without a length reports -1 as the total; the
+      // bar goes indeterminate rather than jumping to a made-up fraction.
+      onProgress: (received, total) =>
+          onProgress?.call(total > 0 ? received / total : null),
+    ),
+    name: (contentType) =>
+        exportFilename(name, timelapseExtension(contentType)),
+  );
 }
 
 /// The device would not let the app write to the gallery. Distinct from a

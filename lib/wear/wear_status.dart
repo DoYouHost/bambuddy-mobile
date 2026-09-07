@@ -27,22 +27,22 @@ WearState wearStateOf(PrinterStatus? s) {
 extension WearStateView on WearState {
   /// Same wording as the home-screen widget statuses.
   String label(AppLocalizations l10n) => switch (this) {
-        WearState.offline => l10n.widgetStatusOffline,
-        WearState.printing => l10n.widgetStatusPrinting,
-        WearState.paused => l10n.widgetStatusPaused,
-        WearState.finished => l10n.widgetStatusFinished,
-        WearState.failed => l10n.widgetStatusFailed,
-        WearState.idle => l10n.widgetStatusIdle,
-      };
+    WearState.offline => l10n.widgetStatusOffline,
+    WearState.printing => l10n.widgetStatusPrinting,
+    WearState.paused => l10n.widgetStatusPaused,
+    WearState.finished => l10n.widgetStatusFinished,
+    WearState.failed => l10n.widgetStatusFailed,
+    WearState.idle => l10n.widgetStatusIdle,
+  };
 
   Color get color => switch (this) {
-        WearState.offline => const Color(0xFF9E9E9E),
-        WearState.printing => const Color(0xFF4CAF50),
-        WearState.paused => const Color(0xFFFFB300),
-        WearState.finished => const Color(0xFF42A5F5),
-        WearState.failed => const Color(0xFFEF5350),
-        WearState.idle => const Color(0xFF90A4AE),
-      };
+    WearState.offline => const Color(0xFF9E9E9E),
+    WearState.printing => const Color(0xFF4CAF50),
+    WearState.paused => const Color(0xFFFFB300),
+    WearState.finished => const Color(0xFF42A5F5),
+    WearState.failed => const Color(0xFFEF5350),
+    WearState.idle => const Color(0xFF90A4AE),
+  };
 }
 
 /// Remaining minutes as `1h 23min`; empty when unknown, which is what the

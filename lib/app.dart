@@ -112,11 +112,16 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref
             .read(controlsProvider.notifier)
-            .executeHmsAction(request.printerId,
-                printError: request.fullCode,
-                action: hmsStopAction,
-                jobId: request.jobId);
-        messenger.snack(result.messageFor(l10n) ?? l10n.hmsActionSent, clearQueue: true);
+            .executeHmsAction(
+              request.printerId,
+              printError: request.fullCode,
+              action: hmsStopAction,
+              jobId: request.jobId,
+            );
+        messenger.snack(
+          result.messageFor(l10n) ?? l10n.hmsActionSent,
+          clearQueue: true,
+        );
       } finally {
         _hmsStopInFlight = false;
       }
@@ -168,10 +173,10 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   /// Kept on disk for the foreground service isolate, which formats the ETA in
   /// its notifications and has no way to read the 24-hour switch itself.
   Future<void> _rememberClockFormat(bool use24Hour) => publishSystemClock(
-        use24Hour,
-        settings: ref.read(settingsRepositoryProvider),
-        monitor: ref.read(backgroundMonitorProvider),
-      );
+    use24Hour,
+    settings: ref.read(settingsRepositoryProvider),
+    monitor: ref.read(backgroundMonitorProvider),
+  );
 
   @override
   Widget build(BuildContext context) {

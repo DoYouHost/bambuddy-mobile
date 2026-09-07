@@ -71,10 +71,7 @@ void main() {
         ('humidity', LocationSensorCategory.humidity),
         ('battery', LocationSensorCategory.battery),
       ]) {
-        expect(
-          LocationSensorCategory.fromDeviceClass(deviceClass),
-          expected,
-        );
+        expect(LocationSensorCategory.fromDeviceClass(deviceClass), expected);
       }
     });
 

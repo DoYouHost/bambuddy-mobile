@@ -21,15 +21,15 @@ class ConnectionBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final (bg, fg, icon) = switch (tone) {
       BannerTone.error => (
-          scheme.errorContainer,
-          scheme.onErrorContainer,
-          Icons.cloud_off,
-        ),
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+        Icons.cloud_off,
+      ),
       BannerTone.info => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-          Icons.sync,
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+        Icons.sync,
+      ),
     };
     return Material(
       color: bg,
@@ -39,7 +39,9 @@ class ConnectionBanner extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: fg),
             const SizedBox(width: 8),
-            Expanded(child: Text(message, style: TextStyle(color: fg))),
+            Expanded(
+              child: Text(message, style: TextStyle(color: fg)),
+            ),
           ],
         ),
       ),

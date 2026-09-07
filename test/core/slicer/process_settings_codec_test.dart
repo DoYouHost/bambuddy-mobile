@@ -15,18 +15,17 @@ void main() {
     String? sidetext,
     Object? defaultValue,
     List<String>? enumValues,
-  }) =>
-      ProcessOption(
-        key: 'k',
-        type: type,
-        mode: OptionMode.advanced,
-        label: 'K',
-        min: min,
-        max: max,
-        sidetext: sidetext,
-        defaultValue: defaultValue,
-        enumValues: enumValues,
-      );
+  }) => ProcessOption(
+    key: 'k',
+    type: type,
+    mode: OptionMode.advanced,
+    label: 'K',
+    min: min,
+    max: max,
+    sidetext: sidetext,
+    defaultValue: defaultValue,
+    enumValues: enumValues,
+  );
 
   group('serializeSetting', () {
     test('coBool is 1/0, never true/false', () {
@@ -54,8 +53,14 @@ void main() {
       expect(serializeSetting(option(OptionType.coInt), 3), '3');
       expect(serializeSetting(option(OptionType.coString), ' text '), 'text');
       // coFloatOrPercent holds either shape, so it must not gain a % sign.
-      expect(serializeSetting(option(OptionType.coFloatOrPercent), '50%'), '50%');
-      expect(serializeSetting(option(OptionType.coFloatOrPercent), '0.5'), '0.5');
+      expect(
+        serializeSetting(option(OptionType.coFloatOrPercent), '50%'),
+        '50%',
+      );
+      expect(
+        serializeSetting(option(OptionType.coFloatOrPercent), '0.5'),
+        '0.5',
+      );
     });
 
     test('vectors become lists, trimmed, with empties dropped', () {
@@ -121,16 +126,23 @@ void main() {
   group('displaySidetext', () {
     test('a real unit is shown', () {
       expect(displaySidetext(option(OptionType.coFloat, sidetext: 'mm')), 'mm');
-      expect(displaySidetext(option(OptionType.coFloat, sidetext: 'mm/s²')),
-          'mm/s²');
+      expect(
+        displaySidetext(option(OptionType.coFloat, sidetext: 'mm/s²')),
+        'mm/s²',
+      );
     });
 
     test('an unresolved reference shows nothing', () {
       expect(
-          displaySidetext(option(OptionType.coFloat, sidetext: 'def_x->sidetext')),
-          isNull);
-      expect(displaySidetext(option(OptionType.coFloat, sidetext: 'Foo::bar')),
-          isNull);
+        displaySidetext(
+          option(OptionType.coFloat, sidetext: 'def_x->sidetext'),
+        ),
+        isNull,
+      );
+      expect(
+        displaySidetext(option(OptionType.coFloat, sidetext: 'Foo::bar')),
+        isNull,
+      );
       expect(displaySidetext(option(OptionType.coFloat, sidetext: '')), isNull);
       expect(displaySidetext(option(OptionType.coFloat)), isNull);
     });
@@ -146,15 +158,20 @@ void main() {
     });
 
     test('bools show as 1/0 and vectors as a comma list', () {
-      expect(baselineForDisplay(option(OptionType.coBool, defaultValue: true)),
-          '1');
       expect(
-          baselineForDisplay(option(OptionType.coBools, defaultValue: [true])),
-          '1');
+        baselineForDisplay(option(OptionType.coBool, defaultValue: true)),
+        '1',
+      );
       expect(
-          baselineForDisplay(
-              option(OptionType.coFloats, defaultValue: [500, 300])),
-          '500, 300');
+        baselineForDisplay(option(OptionType.coBools, defaultValue: [true])),
+        '1',
+      );
+      expect(
+        baselineForDisplay(
+          option(OptionType.coFloats, defaultValue: [500, 300]),
+        ),
+        '500, 300',
+      );
     });
 
     test('nothing known shows an empty field', () {
@@ -232,8 +249,11 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       catalog = ProcessSchemaCatalog();
       await catalog.load();
-      expect(catalog.isLoaded, isTrue,
-          reason: 'assets/slicer/*.json did not load — the rest is vacuous');
+      expect(
+        catalog.isLoaded,
+        isTrue,
+        reason: 'assets/slicer/*.json did not load — the rest is vacuous',
+      );
     });
 
     test('a field seeded from its own default is never modified', () {
@@ -251,14 +271,20 @@ void main() {
     test('every default serialises to a form the server keeps', () {
       for (final option in catalog.schema.values) {
         final wire = serializeSetting(option, baselineForDisplay(option));
-        expect(wire, anyOf(isA<String>(), isA<List<String>>()),
-            reason: '${option.key} (${option.type.name})');
+        expect(
+          wire,
+          anyOf(isA<String>(), isA<List<String>>()),
+          reason: '${option.key} (${option.type.name})',
+        );
       }
     });
 
     test('no bound survives as NaN', () {
       for (final option in catalog.schema.values) {
-        for (final bound in [numericBound(option.min), numericBound(option.max)]) {
+        for (final bound in [
+          numericBound(option.min),
+          numericBound(option.max),
+        ]) {
           if (bound != null) {
             expect(bound.isFinite, isTrue, reason: option.key);
           }
@@ -318,23 +344,34 @@ void main() {
     test('the preset values decide what counts as a deviation', () {
       // Same edit, two servers: one whose preset already says 0.28.
       const edit = {'layer_height': '0.28'};
-      expect(buildProcessOverrides(values: edit, schema: schema),
-          {'layer_height': '0.28'});
+      expect(buildProcessOverrides(values: edit, schema: schema), {
+        'layer_height': '0.28',
+      });
       expect(
-          buildProcessOverrides(
-              values: edit,
-              schema: schema,
-              presetValues: {'layer_height': '0.28'}),
-          isEmpty);
+        buildProcessOverrides(
+          values: edit,
+          schema: schema,
+          presetValues: {'layer_height': '0.28'},
+        ),
+        isEmpty,
+      );
     });
 
     test('an emptied vector sends nothing rather than an empty array', () {
-      for (final emptied in <Object>[<Object>[], <Object>['', ''], '', ' , ']) {
+      for (final emptied in <Object>[
+        <Object>[],
+        <Object>['', ''],
+        '',
+        ' , ',
+      ]) {
         expect(
-            buildProcessOverrides(
-                values: {'default_acceleration': emptied}, schema: schema),
-            isEmpty,
-            reason: '$emptied');
+          buildProcessOverrides(
+            values: {'default_acceleration': emptied},
+            schema: schema,
+          ),
+          isEmpty,
+          reason: '$emptied',
+        );
       }
     });
 
@@ -380,7 +417,11 @@ void main() {
       );
       expect(body, hasLength(5));
       for (final value in body.values) {
-        expect(value, anyOf(isA<String>(), isA<List<String>>()), reason: '$value');
+        expect(
+          value,
+          anyOf(isA<String>(), isA<List<String>>()),
+          reason: '$value',
+        );
       }
     });
   });

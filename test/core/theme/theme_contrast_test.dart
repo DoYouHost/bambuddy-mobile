@@ -35,11 +35,11 @@ void main() {
 
   /// [top] painted over [bottom], the way the framework composites it.
   Color over(Color top, Color bottom) => Color.from(
-        alpha: 1,
-        red: top.a * top.r + (1 - top.a) * bottom.r,
-        green: top.a * top.g + (1 - top.a) * bottom.g,
-        blue: top.a * top.b + (1 - top.a) * bottom.b,
-      );
+    alpha: 1,
+    red: top.a * top.r + (1 - top.a) * bottom.r,
+    green: top.a * top.g + (1 - top.a) * bottom.g,
+    blue: top.a * top.b + (1 - top.a) * bottom.b,
+  );
 
   /// Every surface a theme can put behind small text: each corner of the
   /// background gradient, the dialog and menu surface, and each of those with a
@@ -79,11 +79,15 @@ void main() {
 
   void expectReadable(String what, Color ink, DashTokens t) {
     final (measured, surface) = worstOf(ink, t);
-    expect(measured, greaterThanOrEqualTo(4.5),
-        reason: '$what is ${measured.toStringAsFixed(2)}:1 on '
-            '${t.brightness.name}, over '
-            '#${surface.toARGB32().toRadixString(16).substring(2)} — '
-            'small text owes 4.5:1');
+    expect(
+      measured,
+      greaterThanOrEqualTo(4.5),
+      reason:
+          '$what is ${measured.toStringAsFixed(2)}:1 on '
+          '${t.brightness.name}, over '
+          '#${surface.toARGB32().toRadixString(16).substring(2)} — '
+          'small text owes 4.5:1',
+    );
   }
 
   for (final t in [const DashTokens.light(), const DashTokens.dark()]) {
@@ -120,9 +124,13 @@ void main() {
     test('$theme: each ink keeps the hue of the accent it darkens', () {
       void sameHue(String what, Color accent, Color ink) {
         final (a, i) = (HSLColor.fromColor(accent), HSLColor.fromColor(ink));
-        expect((a.hue - i.hue).abs(), lessThan(8),
-            reason: '$what drifted from ${a.hue.round()}° '
-                'to ${i.hue.round()}°');
+        expect(
+          (a.hue - i.hue).abs(),
+          lessThan(8),
+          reason:
+              '$what drifted from ${a.hue.round()}° '
+              'to ${i.hue.round()}°',
+        );
       }
 
       sameHue('accentGreenInk', t.accentGreen, t.accentGreenInk);
@@ -138,11 +146,14 @@ void main() {
         ratio(over(t.textSecondary, surface), surface),
         ratio(over(t.textPrimary, surface), surface),
       ];
-      expect(steps, orderedEquals(<Matcher>[
-        lessThan(steps[1]),
-        lessThan(steps[2]),
-        anything,
-      ]));
+      expect(
+        steps,
+        orderedEquals(<Matcher>[
+          lessThan(steps[1]),
+          lessThan(steps[2]),
+          anything,
+        ]),
+      );
     });
   }
 }

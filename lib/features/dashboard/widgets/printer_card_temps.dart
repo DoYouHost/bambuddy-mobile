@@ -47,26 +47,29 @@ class _GaugeTile extends ConsumerWidget {
   final bool printing;
 
   bool get _isEditable => switch (reading.kind) {
-        _TempKind.nozzle || _TempKind.bed => true,
-        _TempKind.chamber => supportsChamberHeater(model),
-        _TempKind.unknown => false,
-      };
+    _TempKind.nozzle || _TempKind.bed => true,
+    _TempKind.chamber => supportsChamberHeater(model),
+    _TempKind.unknown => false,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final pending =
-        ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
+    final pending = ref.watch(
+      controlsProvider.select((s) => s.pendingFor(printerId)),
+    );
+    final forbidden = ref.watch(
+      controlRefusedProvider(ControlPermission.control),
+    );
     // Only the chamber gauge scales against the ceiling, so watching it on every
     // tile rebuilds nozzle and bed for nothing when the probe answers. 60 until
     // the server's version is known — see [chamberMaxTargetProvider].
     final chamberMax = reading.kind != _TempKind.chamber
         ? 60
         : ref
-            .watch(chamberMaxTargetProvider)
-            .maybeWhen(data: (v) => v, orElse: () => 60);
+              .watch(chamberMaxTargetProvider)
+              .maybeWhen(data: (v) => v, orElse: () => 60);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command
@@ -89,7 +92,8 @@ class _GaugeTile extends ConsumerWidget {
     final editable = _isEditable && !forbidden;
     // Hidden until the server is known to have the route: a shortcut that can
     // only ever error is worse than no shortcut.
-    final hasHistory = historyKinds.any((k) => k.kind == reading.raw) &&
+    final hasHistory =
+        historyKinds.any((k) => k.kind == reading.raw) &&
         ref
             .watch(heaterHistorySupportedProvider)
             .maybeWhen(data: (v) => v, orElse: () => false);
@@ -142,8 +146,9 @@ class _GaugeTile extends ConsumerWidget {
             top: 0,
             right: 0,
             child: TempGauge(
-              fraction:
-                  actual == null ? 0 : actual / reading.gaugeMax(chamberMax),
+              fraction: actual == null
+                  ? 0
+                  : actual / reading.gaugeMax(chamberMax),
               color: accent,
               trackColor: t.gaugeTrack,
               centerText: hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
@@ -266,12 +271,11 @@ const _heaterHistoryKinds = {'nozzle', 'nozzle_2', 'bed', 'chamber'};
 List<HeaterKindOption> _heaterKindOptions(
   List<_TempReading> readings,
   AppLocalizations l10n,
-) =>
-    [
-      for (final r in readings)
-        if (_heaterHistoryKinds.contains(r.raw))
-          (kind: r.raw, label: r.label(l10n)),
-    ];
+) => [
+  for (final r in readings)
+    if (_heaterHistoryKinds.contains(r.raw))
+      (kind: r.raw, label: r.label(l10n)),
+];
 
 /// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
 /// green; offline → red tinted with a vivid border.
@@ -356,12 +360,12 @@ class _TempReading {
       RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 
   String label(AppLocalizations l10n) => switch (kind) {
-        _TempKind.nozzle =>
-          index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
-        _TempKind.bed => l10n.tempBed,
-        _TempKind.chamber => l10n.tempChamber,
-        _TempKind.unknown => raw,
-      };
+    _TempKind.nozzle =>
+      index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
+    _TempKind.bed => l10n.tempBed,
+    _TempKind.chamber => l10n.tempChamber,
+    _TempKind.unknown => raw,
+  };
 
   /// Upper bound of the gauge sweep per sensor (approx working range).
   ///
@@ -373,11 +377,11 @@ class _TempReading {
   /// The chamber tracks it so a target at the ceiling cannot peg the needle
   /// past the end of the sweep.
   double gaugeMax(int chamberMax) => switch (kind) {
-        _TempKind.nozzle => 300,
-        _TempKind.bed => 120,
-        _TempKind.chamber => chamberMax.toDouble(),
-        _TempKind.unknown => 300,
-      };
+    _TempKind.nozzle => 300,
+    _TempKind.bed => 120,
+    _TempKind.chamber => chamberMax.toDouble(),
+    _TempKind.unknown => 300,
+  };
 
   /// Gauge/value color by thermal state (same for every sensor): heating or
   /// holding at the setpoint → orange; already above the setpoint (cooling) or
@@ -394,11 +398,11 @@ class _TempReading {
   /// Upper bound the target slider allows. Slightly under the server's hard
   /// caps (nozzle 320 / bed 140) to a sane working range; chamber = server max.
   int maxTarget(int chamberMax) => switch (kind) {
-        _TempKind.nozzle => 300,
-        _TempKind.bed => 120,
-        _TempKind.chamber => chamberMax,
-        _TempKind.unknown => 300,
-      };
+    _TempKind.nozzle => 300,
+    _TempKind.bed => 120,
+    _TempKind.chamber => chamberMax,
+    _TempKind.unknown => 300,
+  };
 
   /// Slider/stepper granularity: 1° everywhere for smooth fine control.
   int get targetStep => 1;
@@ -411,11 +415,11 @@ class _TempReading {
   /// which would take away the 60 people actually use. The [Wrap] takes the
   /// extra chip onto a second row if it has to.
   List<int> presets(int chamberMax) => switch (kind) {
-        _TempKind.nozzle => const [200, 220, 240, 260],
-        _TempKind.bed => const [50, 60, 80, 100],
-        _TempKind.chamber => [30, 40, 50, 60, if (chamberMax > 60) chamberMax],
-        _TempKind.unknown => const [],
-      };
+    _TempKind.nozzle => const [200, 220, 240, 260],
+    _TempKind.bed => const [50, 60, 80, 100],
+    _TempKind.chamber => [30, 40, 50, 60, if (chamberMax > 60) chamberMax],
+    _TempKind.unknown => const [],
+  };
 }
 
 /// Group raw temperature keys into current/target pairs and order known sensors
@@ -539,8 +543,11 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
   _TempReading get _reading => widget.reading;
 
-  void _bump(int delta) => setState(() =>
-      _target = (_target + delta).clamp(0, _reading.maxTarget(_chamberMax)).toInt());
+  void _bump(int delta) => setState(
+    () => _target = (_target + delta)
+        .clamp(0, _reading.maxTarget(_chamberMax))
+        .toInt(),
+  );
 
   Future<void> _apply(int target) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -550,11 +557,16 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final notifier = ref.read(controlsProvider.notifier);
     final result = switch (_reading.kind) {
       _TempKind.nozzle => await notifier.setNozzleTemp(
-          widget.printerId, _reading.raw, target,
-          nozzle: widget.nozzleIndex),
+        widget.printerId,
+        _reading.raw,
+        target,
+        nozzle: widget.nozzleIndex,
+      ),
       _TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
-      _TempKind.chamber =>
-        await notifier.setChamberTemp(widget.printerId, target),
+      _TempKind.chamber => await notifier.setChamberTemp(
+        widget.printerId,
+        target,
+      ),
       _TempKind.unknown => ActionOutcome.ok,
     };
     if (!mounted) return;
@@ -619,7 +631,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               style: t.label.copyWith(color: t.accentGreenInk),
             ),
           ],
-        )
+        ),
       );
     }
     return Align(
@@ -641,13 +653,17 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               children: [
                 busy
                     ? const DashSpinner(size: 16)
-                    : Icon(Icons.swap_horiz,
+                    : Icon(
+                        Icons.swap_horiz,
                         size: 16,
-                        color: enabled ? t.textPrimary : t.textTertiary),
+                        color: enabled ? t.textPrimary : t.textTertiary,
+                      ),
                 const SizedBox(width: 6),
                 Text(
                   l10n.ctrlActivate,
-                  style: t.bodyBold.copyWith(color: enabled ? t.textPrimary : t.textTertiary),
+                  style: t.bodyBold.copyWith(
+                    color: enabled ? t.textPrimary : t.textTertiary,
+                  ),
                 ),
               ],
             ),
@@ -670,8 +686,12 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     // status (poll/WS), so the lock persists through the physical switch.
     final showNozzleSwitch =
         _reading.kind == _TempKind.nozzle && widget.dualNozzle;
-    final liveExtruder = ref.watch(printerStatusesProvider
-            .select((m) => m[widget.printerId]?.activeExtruder)) ??
+    final liveExtruder =
+        ref.watch(
+          printerStatusesProvider.select(
+            (m) => m[widget.printerId]?.activeExtruder,
+          ),
+        ) ??
         widget.activeExtruder;
     // Confirmed once live status reports the requested nozzle — release the
     // lock (post-frame to avoid setState during build).
@@ -681,7 +701,8 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
       });
     }
     final switching =
-        _switchingTo == widget.nozzleIndex && liveExtruder != widget.nozzleIndex;
+        _switchingTo == widget.nozzleIndex &&
+        liveExtruder != widget.nozzleIndex;
     final isActiveNozzle = liveExtruder == widget.nozzleIndex;
     // With the airduct in Cooling, M141 does nothing, so a chamber target can
     // only be set once the flap is switched to Heating.
@@ -717,10 +738,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        _reading.label(l10n),
-                        style: t.titleLg,
-                      ),
+                      Text(_reading.label(l10n), style: t.titleLg),
                       const Spacer(),
                       Text(
                         _reading.actual == null
@@ -782,9 +800,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                                   value: _target.clamp(0, max).toDouble(),
                                   max: max.toDouble(),
                                   activeColor: accent,
-                                  onChanged: (v) => setState(() =>
-                                      _target = ((v / step).round() * step)
-                                          .clamp(0, max)),
+                                  onChanged: (v) => setState(
+                                    () => _target = ((v / step).round() * step)
+                                        .clamp(0, max),
+                                  ),
                                 ).tagged('temperature.slider'),
                               ),
                               _StepButton(
@@ -895,10 +914,7 @@ class _PresetChip extends StatelessWidget {
                   : t.subCardBorder,
             ),
           ),
-          child: Text(
-            label,
-            style: t.monoValue.copyWith(color: fg),
-          ),
+          child: Text(label, style: t.monoValue.copyWith(color: fg)),
         ),
         // Which chip is the current one is otherwise painted and nothing else:
         // a reader would announce seven identical buttons.
@@ -961,10 +977,7 @@ class _AirductToggle extends StatelessWidget {
       children: [
         Icon(Icons.air, size: 16, color: t.textSecondary),
         const SizedBox(width: 8),
-        Text(
-          l10n.ctrlAirduct,
-          style: t.body.copyWith(color: t.textSecondary),
-        ),
+        Text(l10n.ctrlAirduct, style: t.body.copyWith(color: t.textSecondary)),
         const Spacer(),
         SegmentedButton<bool>(
           showSelectedIcon: false,
@@ -1026,16 +1039,15 @@ class _SheetButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: filled ? t.accentGreen.withValues(alpha: 0.5) : t.subCardBorder,
+              color: filled
+                  ? t.accentGreen.withValues(alpha: 0.5)
+                  : t.subCardBorder,
             ),
           ),
           alignment: Alignment.center,
           child: busy
               ? const DashSpinner()
-              : Text(
-                  label,
-                  style: t.titleSm.copyWith(color: fg),
-                ),
+              : Text(label, style: t.titleSm.copyWith(color: fg)),
         ),
       ).tagged(id),
     );

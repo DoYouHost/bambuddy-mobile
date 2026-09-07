@@ -22,11 +22,10 @@ import 'users_providers.dart';
 Future<({bool deleteItems})?> confirmUserDelete(
   BuildContext context,
   CurrentUser user,
-) =>
-    showDialog<({bool deleteItems})>(
-      context: context,
-      builder: (_) => _UserDeleteDialog(user: user),
-    );
+) => showDialog<({bool deleteItems})>(
+  context: context,
+  builder: (_) => _UserDeleteDialog(user: user),
+);
 
 class _UserDeleteDialog extends ConsumerStatefulWidget {
   const _UserDeleteDialog({required this.user});
@@ -45,7 +44,9 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final counts = ref.watch(userItemsCountProvider(widget.user.id)).valueOrNull;
+    final counts = ref
+        .watch(userItemsCountProvider(widget.user.id))
+        .valueOrNull;
     final total = counts?.total ?? 0;
 
     return AlertDialog(
@@ -66,10 +67,7 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
               value: _deleteItems,
               onChanged: (v) => setState(() => _deleteItems = v),
               contentPadding: EdgeInsets.zero,
-              title: Text(
-                l10n.usersDeleteItemsToo,
-                style: t.body,
-              ),
+              title: Text(l10n.usersDeleteItemsToo, style: t.body),
               subtitle: Text(
                 _deleteItems
                     ? l10n.usersDeleteItemsTooHint

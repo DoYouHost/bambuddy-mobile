@@ -55,10 +55,7 @@ class TagChip extends StatelessWidget {
 
 /// Tag filter — multi-select with AND semantics, applied library-wide.
 Future<void> showTagFilterSheet(BuildContext context) =>
-    dashSheet<void>(
-      context,
-      builder: (_) => const _TagFilterSheet(),
-    );
+    dashSheet<void>(context, builder: (_) => const _TagFilterSheet());
 
 /// Tags of a single file. Returns `true` when the assignment changed, so the
 /// caller knows whether to refresh the listing.
@@ -71,10 +68,7 @@ Future<bool> showFileTagsSheet(BuildContext context, LibraryFile file) async =>
 
 /// Tags across the selected files (add / remove / replace).
 /// Returns `true` when something was applied.
-Future<bool> showBulkTagsSheet(
-  BuildContext context,
-  List<int> fileIds,
-) async =>
+Future<bool> showBulkTagsSheet(BuildContext context, List<int> fileIds) async =>
     await dashSheet<bool>(
       context,
       builder: (_) => _BulkTagsSheet(fileIds: fileIds),
@@ -86,17 +80,13 @@ Future<bool> showBulkTagsSheet(
 /// — that surfaces as the usual "not allowed" snack rather than a hidden button,
 /// because the app cannot see the caller's permissions.
 Future<void> showTagManageSheet(BuildContext context) =>
-    dashSheet<void>(
-      context,
-      builder: (_) => const _TagManageSheet(),
-    );
+    dashSheet<void>(context, builder: (_) => const _TagManageSheet());
 
 /// Shared behaviour of the four sheets: snacks, and creating a tag from a prompt.
 mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   AppLocalizations get l10n => AppLocalizations.of(context);
 
-  void snack(String message) => ScaffoldMessenger.of(context)
-      .snack(message);
+  void snack(String message) => ScaffoldMessenger.of(context).snack(message);
 
   /// Both halves of a failed action: the sentence and the record that somebody
   /// was stopped. Unmounted there is neither a messenger nor an `l10n` to
@@ -233,10 +223,7 @@ class _SheetHeader extends StatelessWidget {
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: t.microSoft,
-                  ),
+                  Text(subtitle!, style: t.microSoft),
                 ],
               ],
             ),
@@ -305,8 +292,9 @@ class _TagFilterSheetState extends ConsumerState<_TagFilterSheet>
                 logTag(
                   'tag_filter.clear',
                   TextButton(
-                    onPressed:
-                        _selected.isEmpty ? null : () => _apply(const {}),
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () => _apply(const {}),
                     child: Text(l10n.clear),
                   ),
                 ),
@@ -346,7 +334,9 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await ref.read(libraryRepositoryProvider).assignTags(
+      await ref
+          .read(libraryRepositoryProvider)
+          .assignTags(
             fileIds: [widget.file.id],
             tagIds: _selected.toList(),
             action: TagAssignAction.replace,
@@ -372,9 +362,7 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
             logId: 'file_tags',
             showCounts: false,
             onToggle: (id) => setState(() {
-              _selected.contains(id)
-                  ? _selected.remove(id)
-                  : _selected.add(id);
+              _selected.contains(id) ? _selected.remove(id) : _selected.add(id);
             }),
             onCreate: () async {
               final tag = await createTag('file_tags');
@@ -440,7 +428,9 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
     }
     setState(() => _saving = true);
     try {
-      final result = await ref.read(libraryRepositoryProvider).assignTags(
+      final result = await ref
+          .read(libraryRepositoryProvider)
+          .assignTags(
             fileIds: widget.fileIds,
             tagIds: _selected.toList(),
             action: action,
@@ -475,9 +465,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
             selected: _selected,
             logId: 'bulk_tags',
             onToggle: (id) => setState(() {
-              _selected.contains(id)
-                  ? _selected.remove(id)
-                  : _selected.add(id);
+              _selected.contains(id) ? _selected.remove(id) : _selected.add(id);
             }),
             onCreate: () async {
               final tag = await createTag('bulk_tags');
@@ -495,8 +483,9 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                 logTag(
                   'bulk_tags.replace',
                   TextButton(
-                    onPressed:
-                        _saving ? null : () => _apply(TagAssignAction.replace),
+                    onPressed: _saving
+                        ? null
+                        : () => _apply(TagAssignAction.replace),
                     child: Text(l10n.fmTagsReplace),
                   ),
                 ),
@@ -504,8 +493,9 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                 logTag(
                   'bulk_tags.remove',
                   TextButton(
-                    onPressed:
-                        _saving ? null : () => _apply(TagAssignAction.remove),
+                    onPressed: _saving
+                        ? null
+                        : () => _apply(TagAssignAction.remove),
                     child: Text(l10n.fmTagsRemove),
                   ),
                 ),
@@ -513,8 +503,9 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                 logTag(
                   'bulk_tags.add',
                   FilledButton(
-                    onPressed:
-                        _saving ? null : () => _apply(TagAssignAction.add),
+                    onPressed: _saving
+                        ? null
+                        : () => _apply(TagAssignAction.add),
                     child: Text(l10n.fmTagsAdd),
                   ),
                 ),
@@ -607,9 +598,13 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
                   if (tags.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      child:
-                          Text(l10n.fmTagsEmpty, textAlign: TextAlign.center),
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Text(
+                        l10n.fmTagsEmpty,
+                        textAlign: TextAlign.center,
+                      ),
                     )
                   else
                     for (final tag in tags)
@@ -628,13 +623,17 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
                             itemBuilder: (_) => [
                               PopupMenuItem(
                                 value: 'rename',
-                                child: logTag('tag_manage.rename',
-                                    Text(l10n.fmRename)),
+                                child: logTag(
+                                  'tag_manage.rename',
+                                  Text(l10n.fmRename),
+                                ),
                               ),
                               PopupMenuItem(
                                 value: 'delete',
-                                child: logTag('tag_manage.delete',
-                                    Text(l10n.fmDelete)),
+                                child: logTag(
+                                  'tag_manage.delete',
+                                  Text(l10n.fmDelete),
+                                ),
                               ),
                             ],
                           ),

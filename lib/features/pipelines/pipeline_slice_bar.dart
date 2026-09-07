@@ -55,8 +55,8 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
-    final canSave = ref.watch(canWritePipelinesProvider).orFalse &&
-        _selectionComplete;
+    final canSave =
+        ref.watch(canWritePipelinesProvider).orFalse && _selectionComplete;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -65,14 +65,17 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
           ListTile(
             leading: const Icon(Icons.account_tree_outlined),
             enabled: pipelines.isNotEmpty && !widget.busy,
-            title: Text(l10n.pipelineSection,
-                style: theme.textTheme.labelMedium),
+            title: Text(
+              l10n.pipelineSection,
+              style: theme.textTheme.labelMedium,
+            ),
             subtitle: Text(
               pipelines.isEmpty ? l10n.pipelineApplyEmpty : l10n.pipelineApply,
               style: theme.textTheme.bodyMedium,
             ),
-            trailing:
-                pipelines.isEmpty ? null : const Icon(Icons.chevron_right),
+            trailing: pipelines.isEmpty
+                ? null
+                : const Icon(Icons.chevron_right),
             onTap: pipelines.isEmpty || widget.busy ? null : _pick,
           ).tagged('slice.pipeline_apply'),
           if (ref.watch(canWritePipelinesProvider).orFalse)
@@ -85,7 +88,8 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.bookmark_add_outlined, size: 18),
                   label: Text(l10n.pipelineSaveAs),
                   onPressed: canSave && !_saving && !widget.busy ? _save : null,
@@ -119,8 +123,10 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     widget.onApply(picked);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content:
-              Text(AppLocalizations.of(context).pipelineApplied(picked.name))),
+        content: Text(
+          AppLocalizations.of(context).pipelineApplied(picked.name),
+        ),
+      ),
     );
   }
 
@@ -132,7 +138,9 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(pipelinesRepositoryProvider).create(
+      await ref
+          .read(pipelinesRepositoryProvider)
+          .create(
             SlicerPipeline(
               id: 0, // server assigns
               name: name,
@@ -146,8 +154,12 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineSaved)));
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'slice.pipeline_save');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'slice.pipeline_save',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -171,15 +183,15 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                   controller: controller,
                   autofocus: true,
                   maxLength: 200,
-                  decoration:
-                      InputDecoration(labelText: l10n.pipelineNameHint),
+                  decoration: InputDecoration(labelText: l10n.pipelineNameHint),
                   onChanged: (_) => setLocal(() {}),
-                  onSubmitted: (v) => v.trim().isEmpty
-                      ? null
-                      : Navigator.pop(ctx, v.trim()),
+                  onSubmitted: (v) =>
+                      v.trim().isEmpty ? null : Navigator.pop(ctx, v.trim()),
                 ).tagged('pipeline.name_field'),
-                Text(l10n.pipelineSaveHint,
-                    style: Theme.of(ctx).textTheme.bodySmall),
+                Text(
+                  l10n.pipelineSaveHint,
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
               ],
             ),
             actions: [
@@ -231,8 +243,10 @@ class _PipelinePicker extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child:
-                  Text(l10n.pipelineSection, style: theme.textTheme.titleMedium),
+              child: Text(
+                l10n.pipelineSection,
+                style: theme.textTheme.titleMedium,
+              ),
             ),
           ),
           Expanded(
@@ -242,8 +256,11 @@ class _PipelinePicker extends StatelessWidget {
               itemBuilder: (ctx, i) {
                 final p = pipelines[i];
                 return ListTile(
-                  title: Text(p.name,
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  title: Text(
+                    p.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     _summary(l10n, p),
                     maxLines: 2,

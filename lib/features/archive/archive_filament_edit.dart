@@ -170,7 +170,8 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                           grams == null
                               ? l10n.archiveFilamentNone
                               : l10n.archiveFilamentGrams(
-                                  filamentGramsText(grams)),
+                                  filamentGramsText(grams),
+                                ),
                           style: t.titleSm,
                         ),
                         if (actual != null) ...[
@@ -274,8 +275,9 @@ class _FilamentGramsDialog extends StatefulWidget {
 }
 
 class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
   final _field = FocusNode();
   FilamentGramsError? _error;
 
@@ -290,7 +292,8 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
       switch (error) {
         FilamentGramsError.notANumber => l10n.archiveFilamentNotANumber,
         FilamentGramsError.outOfRange => l10n.archiveFilamentOutOfRange(
-            filamentGramsText(filamentGramsMax)),
+          filamentGramsText(filamentGramsMax),
+        ),
       };
 
   void _save() {

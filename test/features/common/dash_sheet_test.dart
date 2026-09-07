@@ -9,8 +9,12 @@ void main() {
 
   /// Screen with a three-button navigation bar along the bottom.
   void withNavBar(WidgetTester tester) {
-    tester.view.viewPadding = FakeViewPadding(bottom: navBar * tester.view.devicePixelRatio);
-    tester.view.padding = FakeViewPadding(bottom: navBar * tester.view.devicePixelRatio);
+    tester.view.viewPadding = FakeViewPadding(
+      bottom: navBar * tester.view.devicePixelRatio,
+    );
+    tester.view.padding = FakeViewPadding(
+      bottom: navBar * tester.view.devicePixelRatio,
+    );
     addTearDown(tester.view.reset);
   }
 

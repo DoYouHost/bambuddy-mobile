@@ -17,15 +17,17 @@ void main() {
   const full = '/api/v1/users/';
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
   });
 
   ProviderContainer container() {
-    final c = ProviderContainer(overrides: [
-      noServerProfileOverride,
-      statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        noServerProfileOverride,
+        statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }

@@ -52,18 +52,23 @@ void main() {
   ) async {
     late ScaffoldMessengerState messenger;
     late AppLocalizations l10n;
-    await tester.pumpWidget(plApp(Builder(
-      builder: (context) {
-        messenger = ScaffoldMessenger.of(context);
-        l10n = AppLocalizations.of(context);
-        return const Scaffold(body: SizedBox.shrink());
-      },
-    )));
+    await tester.pumpWidget(
+      plApp(
+        Builder(
+          builder: (context) {
+            messenger = ScaffoldMessenger.of(context);
+            l10n = AppLocalizations.of(context);
+            return const Scaffold(body: SizedBox.shrink());
+          },
+        ),
+      ),
+    );
     return (messenger: messenger, l10n: l10n);
   }
 
-  testWidgets('the user reads the server\'s own reason, and it is recorded',
-      (tester) async {
+  testWidgets('the user reads the server\'s own reason, and it is recorded', (
+    tester,
+  ) async {
     final h = await harness(tester);
 
     showApiFailure(
@@ -88,8 +93,9 @@ void main() {
     expect(rows.single.containsKey('shown'), isFalse);
   });
 
-  testWidgets('a feature may word one status better and still be recorded',
-      (tester) async {
+  testWidgets('a feature may word one status better and still be recorded', (
+    tester,
+  ) async {
     final h = await harness(tester);
 
     showApiFailure(
@@ -108,26 +114,28 @@ void main() {
     expect(rows.single['status'], 409);
   });
 
-  testWidgets('a screen left mid-request records the failure and shows nothing',
-      (tester) async {
-    final h = await harness(tester);
+  testWidgets(
+    'a screen left mid-request records the failure and shows nothing',
+    (tester) async {
+      final h = await harness(tester);
 
-    // Null messenger is the call site saying "there is nobody to tell". The
-    // failure still happened, and without the record it is indistinguishable
-    // from a save that worked.
-    showApiFailure(
-      null,
-      const ApiException(AppErrorCode.badResponse, statusCode: 500),
-      h.l10n,
-      action: 'spool_form.save',
-    );
-    await tester.pump();
+      // Null messenger is the call site saying "there is nobody to tell". The
+      // failure still happened, and without the record it is indistinguishable
+      // from a save that worked.
+      showApiFailure(
+        null,
+        const ApiException(AppErrorCode.badResponse, statusCode: 500),
+        h.l10n,
+        action: 'spool_form.save',
+      );
+      await tester.pump();
 
-    expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
 
-    final rows = await failures();
-    expect(rows, hasLength(1));
-    expect(rows.single['action'], 'spool_form.save');
-    expect(rows.single['shown'], isFalse);
-  });
+      final rows = await failures();
+      expect(rows, hasLength(1));
+      expect(rows.single['action'], 'spool_form.save');
+      expect(rows.single['shown'], isFalse);
+    },
+  );
 }

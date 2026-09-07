@@ -66,7 +66,9 @@ class ProjectDetailScreen extends ConsumerWidget {
               // live in their own provider — without this the sets bar would
               // keep its number while everything above it updated.
               ref.invalidate(projectFileProgressProvider(projectId));
-              await ref.read(projectDetailProvider(projectId).notifier).refresh();
+              await ref
+                  .read(projectDetailProvider(projectId).notifier)
+                  .refresh();
             },
             child: ListView(
               padding: withSystemNavInset(
@@ -129,12 +131,7 @@ class _Header extends ConsumerWidget {
                       children: [
                         ProjectColorDot(color: project.color),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            project.name,
-                            style: t.display,
-                          ),
-                        ),
+                        Expanded(child: Text(project.name, style: t.display)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -144,11 +141,16 @@ class _Header extends ConsumerWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         ProjectStatusChip(status: project.status),
-                        _DashTag(label: projectPriorityLabel(l10n, project.priority)),
+                        _DashTag(
+                          label: projectPriorityLabel(l10n, project.priority),
+                        ),
                         if (project.dueDateParsed != null)
                           Text(
-                            l10n.projectDueOn(DateTimeFormats.of(context)
-                                .date(project.dueDateParsed!)),
+                            l10n.projectDueOn(
+                              DateTimeFormats.of(
+                                context,
+                              ).date(project.dueDateParsed!),
+                            ),
                             style: t.monoMicro,
                           ),
                       ],
@@ -158,18 +160,18 @@ class _Header extends ConsumerWidget {
               ),
             ],
           ),
-          if (project.description != null && project.description!.isNotEmpty) ...[
+          if (project.description != null &&
+              project.description!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(
-              project.description!,
-              style: t.bodySoft,
-            ),
+            Text(project.description!, style: t.bodySoft),
           ],
           if (project.url != null && project.url!.isNotEmpty) ...[
             const SizedBox(height: 8),
             InkWell(
-              onTap: () => launchUrl(Uri.parse(project.url!),
-                  mode: LaunchMode.externalApplication),
+              onTap: () => launchUrl(
+                Uri.parse(project.url!),
+                mode: LaunchMode.externalApplication,
+              ),
               child: Row(
                 children: [
                   Icon(Icons.link, size: 18, color: t.accentGreenInk),
@@ -201,7 +203,10 @@ class _Header extends ConsumerWidget {
               color: Colors.transparent,
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.subdirectory_arrow_right, color: t.textSecondary),
+                leading: Icon(
+                  Icons.subdirectory_arrow_right,
+                  color: t.textSecondary,
+                ),
                 title: Text(
                   project.parentName ?? '#${project.parentId}',
                   style: t.body,
@@ -238,7 +243,6 @@ class _Header extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 /// Neutral pill tag (priority, free-form tags) — same shape family as
@@ -258,10 +262,7 @@ class _DashTag extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: t.subCardBorder),
       ),
-      child: Text(
-        label,
-        style: t.micro.copyWith(color: t.textSecondary),
-      ),
+      child: Text(label, style: t.micro.copyWith(color: t.textSecondary)),
     );
   }
 }
@@ -308,11 +309,16 @@ class _ProgressCard extends ConsumerWidget {
   /// against. Either one missing (older server, or the user tracking plates and
   /// parts only) and the row is absent rather than showing an empty bar.
   List<Widget> _setsRow(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
     final target = project.targetSets;
     if (target == null || target <= 0) return const [];
 
-    final progress = ref.watch(projectFileProgressProvider(project.id)).valueOrNull;
+    final progress = ref
+        .watch(projectFileProgressProvider(project.id))
+        .valueOrNull;
     final files = ref.watch(projectFilesProvider(project.id)).valueOrNull;
     if (progress == null || files == null || files.isEmpty) return const [];
 
@@ -330,7 +336,11 @@ class _ProgressCard extends ConsumerWidget {
 }
 
 class _ProgressRow extends StatelessWidget {
-  const _ProgressRow({required this.label, required this.percent, this.trailing});
+  const _ProgressRow({
+    required this.label,
+    required this.percent,
+    this.trailing,
+  });
 
   final String label;
   final double percent;
@@ -345,10 +355,7 @@ class _ProgressRow extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: t.body,
-            ),
+            Text(label, style: t.body),
             Text(
               trailing == null
                   ? '${percent.toStringAsFixed(0)}%'
@@ -432,7 +439,11 @@ class _StatCards extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.label, required this.value});
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -457,10 +468,7 @@ class _StatTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value,
-                  style: t.titleMd,
-                ),
+                Text(value, style: t.titleMd),
                 Text(
                   label,
                   maxLines: 1,
@@ -501,7 +509,9 @@ class _NotesSection extends ConsumerWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Text(
           hasNotes ? notes : l10n.projectNotesEmpty,
-          style: t.bodySoft.copyWith(color: hasNotes ? t.textPrimary : t.textTertiary),
+          style: t.bodySoft.copyWith(
+            color: hasNotes ? t.textPrimary : t.textTertiary,
+          ),
         ),
       ),
     );
@@ -535,8 +545,9 @@ class _NotesEditDialog extends StatefulWidget {
 }
 
 class _NotesEditDialogState extends State<_NotesEditDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
 
   @override
   void dispose() {
@@ -559,7 +570,9 @@ class _NotesEditDialogState extends State<_NotesEditDialog> {
         logTag(
           'project_notes.cancel',
           TextButton(
-              onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
         ),
         logTag(
           'project_notes.save',
@@ -609,13 +622,17 @@ class _OverflowMenu extends ConsumerWidget {
         if (project.hasCover)
           PopupMenuItem(
             value: 'cover_delete',
-            child:
-                logTag('project.cover_delete', Text(l10n.projectCoverDelete)),
+            child: logTag(
+              'project.cover_delete',
+              Text(l10n.projectCoverDelete),
+            ),
           ),
         PopupMenuItem(
           value: 'template',
           child: logTag(
-              'project.create_template', Text(l10n.projectMenuCreateTemplate)),
+            'project.create_template',
+            Text(l10n.projectMenuCreateTemplate),
+          ),
         ),
         PopupMenuItem(
           value: 'delete',
@@ -641,7 +658,11 @@ class _OverflowMenu extends ConsumerWidget {
     try {
       await ref
           .read(projectsRepositoryProvider)
-          .uploadCoverImage(project.id, filePath: file.path, filename: file.name);
+          .uploadCoverImage(
+            project.id,
+            filePath: file.path,
+            filename: file.name,
+          );
       // `ProjectListResponse` has no `updated_at` to cache-bust the list
       // card's cover URL with, so a same-session reprint of a project whose
       // cover URL is otherwise stable could show the old bitmap from cache —
@@ -673,7 +694,9 @@ class _OverflowMenu extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final bytes = await ref.read(projectsRepositoryProvider).export(project.id);
+      final bytes = await ref
+          .read(projectsRepositoryProvider)
+          .export(project.id);
       final safeName = project.name.replaceAll(RegExp(r'[^\w\-]+'), '_');
       final saved = await saveBytesToDevice(
         fileName: '$safeName.zip',
@@ -721,7 +744,9 @@ class _OverflowMenu extends ConsumerWidget {
       id: 'project_delete',
     );
     if (!confirmed) return;
-    final result = await ref.read(projectsListProvider.notifier).delete(project.id);
+    final result = await ref
+        .read(projectsListProvider.notifier)
+        .delete(project.id);
     messenger.snack(result.messageFor(l10n) ?? l10n.projectDeleted);
     if (result.isOk) navigator.pop();
   }

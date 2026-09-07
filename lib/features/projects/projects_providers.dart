@@ -23,8 +23,11 @@ ActionOutcome _mapError(Object e, String action) => e is AppApiException
 /// Active status filter for the projects list (`null` = all).
 final projectStatusFilterProvider = StateProvider<String?>((_) => null);
 
-final projectsListProvider = AutoDisposeAsyncNotifierProvider<
-    ProjectsListNotifier, List<ProjectListResponse>>(ProjectsListNotifier.new);
+final projectsListProvider =
+    AutoDisposeAsyncNotifierProvider<
+      ProjectsListNotifier,
+      List<ProjectListResponse>
+    >(ProjectsListNotifier.new);
 
 /// Projects list with optional status filter. Rebuilds on profile or filter
 /// change. Delete is optimistic; create just refreshes (server computes stats).
@@ -41,9 +44,9 @@ class ProjectsListNotifier
     state = const AsyncValue<List<ProjectListResponse>>.loading()
         .copyWithPrevious(state);
     state = await AsyncValue.guard(
-      () => ref.read(projectsRepositoryProvider).list(
-            status: ref.read(projectStatusFilterProvider),
-          ),
+      () => ref
+          .read(projectsRepositoryProvider)
+          .list(status: ref.read(projectStatusFilterProvider)),
     );
   }
 
@@ -69,11 +72,15 @@ class ProjectsListNotifier
 /// Project templates (for "create from template"). Invalidated on changes.
 final projectTemplatesProvider =
     FutureProvider.autoDispose<List<ProjectListResponse>>(
-  (ref) => ref.watch(projectsRepositoryProvider).listTemplates(),
-);
+      (ref) => ref.watch(projectsRepositoryProvider).listTemplates(),
+    );
 
-final projectDetailProvider = AutoDisposeAsyncNotifierProviderFamily<
-    ProjectDetailNotifier, ProjectResponse, int>(ProjectDetailNotifier.new);
+final projectDetailProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+      ProjectDetailNotifier,
+      ProjectResponse,
+      int
+    >(ProjectDetailNotifier.new);
 
 /// Full project detail keyed by id. Refresh after edits (stats recompute server-side).
 class ProjectDetailNotifier
@@ -94,8 +101,9 @@ class ProjectDetailNotifier
   /// PATCH the project and replace state with the server response.
   Future<ActionOutcome> save(ProjectUpdate body) async {
     try {
-      final updated =
-          await ref.read(projectsRepositoryProvider).update(arg, body);
+      final updated = await ref
+          .read(projectsRepositoryProvider)
+          .update(arg, body);
       state = AsyncValue.data(updated);
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
@@ -104,10 +112,12 @@ class ProjectDetailNotifier
   }
 }
 
-final projectArchivesProvider = AutoDisposeAsyncNotifierProviderFamily<
-    ProjectArchivesNotifier, List<ArchivePreview>, int>(
-  ProjectArchivesNotifier.new,
-);
+final projectArchivesProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+      ProjectArchivesNotifier,
+      List<ArchivePreview>,
+      int
+    >(ProjectArchivesNotifier.new);
 
 /// Archives linked to a project, with add/remove that also refresh the detail
 /// (counts/stats change). Keyed by project id.
@@ -120,20 +130,23 @@ class ProjectArchivesNotifier
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue<List<ArchivePreview>>.loading()
-        .copyWithPrevious(state);
+    state = const AsyncValue<List<ArchivePreview>>.loading().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(
       () => ref.read(projectsRepositoryProvider).archives(arg),
     );
   }
 
   Future<ActionOutcome> add(List<int> archiveIds) => _mutate(
-      () => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds),
-      'project.archive_add');
+    () => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds),
+    'project.archive_add',
+  );
 
   Future<ActionOutcome> remove(int archiveId) => _mutate(
-      () => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]),
-      'project.archive_remove');
+    () => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]),
+    'project.archive_remove',
+  );
 
   Future<ActionOutcome> _mutate(
     Future<void> Function() action,
@@ -150,8 +163,12 @@ class ProjectArchivesNotifier
   }
 }
 
-final projectBomProvider = AutoDisposeAsyncNotifierProviderFamily<
-    ProjectBomNotifier, List<BomItem>, int>(ProjectBomNotifier.new);
+final projectBomProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+      ProjectBomNotifier,
+      List<BomItem>,
+      int
+    >(ProjectBomNotifier.new);
 
 /// BOM items for a project with full CRUD. Mutations refresh the list and the
 /// detail (BOM totals feed project stats). Keyed by project id.
@@ -164,24 +181,26 @@ class ProjectBomNotifier
   }
 
   Future<void> refresh() async {
-    state =
-        const AsyncValue<List<BomItem>>.loading().copyWithPrevious(state);
+    state = const AsyncValue<List<BomItem>>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(projectsRepositoryProvider).bom(arg),
     );
   }
 
   Future<ActionOutcome> add(BomItemInput body) => _mutate(
-      () => ref.read(projectsRepositoryProvider).addBomItem(arg, body),
-      'bom_item.save');
+    () => ref.read(projectsRepositoryProvider).addBomItem(arg, body),
+    'bom_item.save',
+  );
 
   Future<ActionOutcome> edit(int itemId, BomItemInput body) => _mutate(
-      () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body),
-      'bom_menu.edit');
+    () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body),
+    'bom_menu.edit',
+  );
 
   Future<ActionOutcome> delete(int itemId) => _mutate(
-      () => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId),
-      'bom_menu.delete');
+    () => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId),
+    'bom_menu.delete',
+  );
 
   Future<ActionOutcome> _mutate(
     Future<void> Function() action,
@@ -199,36 +218,37 @@ class ProjectBomNotifier
 }
 
 /// Queue items linked to a project (read-only list).
-final projectQueueProvider =
-    FutureProvider.autoDispose.family<List<QueueItem>, int>(
-  (ref, projectId) =>
-      ref.watch(projectsRepositoryProvider).queue(projectId),
-);
+final projectQueueProvider = FutureProvider.autoDispose
+    .family<List<QueueItem>, int>(
+      (ref, projectId) =>
+          ref.watch(projectsRepositoryProvider).queue(projectId),
+    );
 
 /// Project timeline events (read-only list).
-final projectTimelineProvider =
-    FutureProvider.autoDispose.family<List<TimelineEvent>, int>(
-  (ref, projectId) =>
-      ref.watch(projectsRepositoryProvider).timeline(projectId),
-);
+final projectTimelineProvider = FutureProvider.autoDispose
+    .family<List<TimelineEvent>, int>(
+      (ref, projectId) =>
+          ref.watch(projectsRepositoryProvider).timeline(projectId),
+    );
 
 /// Printable library files linked to the project (via linked folders).
-final projectFilesProvider =
-    FutureProvider.autoDispose.family<List<LibraryFile>, int>(
-  (ref, projectId) => ref.watch(projectsRepositoryProvider).files(projectId),
-);
+final projectFilesProvider = FutureProvider.autoDispose
+    .family<List<LibraryFile>, int>(
+      (ref, projectId) =>
+          ref.watch(projectsRepositoryProvider).files(projectId),
+    );
 
 /// Finished runs per library file, or `null` on a server without the route
 /// (< 1.2.5.2) — see [ProjectsRepository.fileProgress].
-final projectFileProgressProvider =
-    FutureProvider.autoDispose.family<List<ProjectFileProgress>?, int>(
-  (ref, projectId) =>
-      ref.watch(projectsRepositoryProvider).fileProgress(projectId),
-);
+final projectFileProgressProvider = FutureProvider.autoDispose
+    .family<List<ProjectFileProgress>?, int>(
+      (ref, projectId) =>
+          ref.watch(projectsRepositoryProvider).fileProgress(projectId),
+    );
 
 /// Folders linked to the project (File Manager folders with `project_id`).
-final projectFoldersProvider =
-    FutureProvider.autoDispose.family<List<LibraryFolder>, int>(
-  (ref, projectId) =>
-      ref.watch(projectsRepositoryProvider).linkedFolders(projectId),
-);
+final projectFoldersProvider = FutureProvider.autoDispose
+    .family<List<LibraryFolder>, int>(
+      (ref, projectId) =>
+          ref.watch(projectsRepositoryProvider).linkedFolders(projectId),
+    );

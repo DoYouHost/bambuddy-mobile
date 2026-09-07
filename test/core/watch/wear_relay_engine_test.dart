@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_watch_connectivity.dart';
 
+import '../../helpers.dart';
+
 void main() {
   // The engine reaches for prefs (a diagnostics session, the server profile)
   // before it answers anything.
@@ -19,7 +21,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     watch = FakeWatchConnectivity();
     engine = WearRelayEngine(watch: watch, openDio: () async => dio);
@@ -34,33 +36,46 @@ void main() {
 
   test('answers a forwarded request with the phone\'s session', () async {
     adapter.onPost(
-        '/api/v1/printers/1/print/pause', (s) => s.reply(200, {'ok': true}));
+      '/api/v1/printers/1/print/pause',
+      (s) => s.reply(200, {'ok': true}),
+    );
 
     expect(await engine.handle(request(WearRpcAction.pause)), isTrue);
     expect(WearRpcResponse.decode(watch.sent.single)!.ok, isTrue);
   });
 
   test('a message that is not a request is not answered', () async {
-    expect(await engine.handle(const WearRpcResponse.ok('x').encode()), isFalse);
+    expect(
+      await engine.handle(const WearRpcResponse.ok('x').encode()),
+      isFalse,
+    );
     expect(watch.sent, isEmpty);
   });
 
-  test('no server profile: answers phone-unconfigured, which means "yourself"',
-      () async {
-    final unconfigured =
-        WearRelayEngine(watch: watch, openDio: () async => null);
+  test(
+    'no server profile: answers phone-unconfigured, which means "yourself"',
+    () async {
+      final unconfigured = WearRelayEngine(
+        watch: watch,
+        openDio: () async => null,
+      );
 
-    expect(await unconfigured.handle(request(WearRpcAction.pause)), isTrue);
-    expect(WearRpcResponse.decode(watch.sent.single)!.error,
-        'phone-unconfigured');
-  });
+      expect(await unconfigured.handle(request(WearRpcAction.pause)), isTrue);
+      expect(
+        WearRpcResponse.decode(watch.sent.single)!.error,
+        'phone-unconfigured',
+      );
+    },
+  );
 
   group('the wake it was started for', () {
     test('runs a repeatable action from a watch that cannot wait', () async {
       // v1 has no idea the phone acked. It has given up by now, but pausing a
       // paused printer costs nothing and the state it wanted is reached.
       adapter.onPost(
-          '/api/v1/printers/1/print/pause', (s) => s.reply(200, {'ok': true}));
+        '/api/v1/printers/1/print/pause',
+        (s) => s.reply(200, {'ok': true}),
+      );
 
       expect(
         await engine.handle(request(WearRpcAction.pause, version: 1)),
@@ -93,21 +108,25 @@ void main() {
       expect(WearRpcResponse.decode(watch.sent.single)!.error, 'empty-queue');
     });
 
-    test('gates only the first request — a warm engine answers every one',
-        () async {
-      adapter
-        ..onPost('/api/v1/printers/1/print/pause',
-            (s) => s.reply(200, {'ok': true}))
-        ..onGet('/api/v1/queue/', (s) => s.reply(200, []));
+    test(
+      'gates only the first request — a warm engine answers every one',
+      () async {
+        adapter
+          ..onPost(
+            '/api/v1/printers/1/print/pause',
+            (s) => s.reply(200, {'ok': true}),
+          )
+          ..onGet('/api/v1/queue/', (s) => s.reply(200, []));
 
-      await engine.handle(request(WearRpcAction.pause, version: 1));
-      // Same v1 watch, second tap: the engine is up and answers in
-      // milliseconds, so there is nothing left to protect it from.
-      expect(
-        await engine.handle(request(WearRpcAction.startNext, version: 1)),
-        isTrue,
-      );
-      expect(watch.sent, hasLength(2));
-    });
+        await engine.handle(request(WearRpcAction.pause, version: 1));
+        // Same v1 watch, second tap: the engine is up and answers in
+        // milliseconds, so there is nothing left to protect it from.
+        expect(
+          await engine.handle(request(WearRpcAction.startNext, version: 1)),
+          isTrue,
+        );
+        expect(watch.sent, hasLength(2));
+      },
+    );
   });
 }

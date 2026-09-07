@@ -12,10 +12,7 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
 /// reverse flow from dashboard chip: spool is known, we pick a slot.
 /// Available when spool is not yet assigned anywhere.
 void _openAssignSheet(BuildContext context, Spool spool) {
-  dashSurfaceSheet<void>(
-    context,
-    builder: (_) => _AssignSheet(spool: spool),
-  );
+  dashSurfaceSheet<void>(context, builder: (_) => _AssignSheet(spool: spool));
 }
 
 /// Printer and slot picker for assigning [spool]. Printer list from dashboard roster;
@@ -78,15 +75,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Text(
-            l10n.inventoryAssignTitle,
-            style: t.display,
-          ),
+          Text(l10n.inventoryAssignTitle, style: t.display),
           const SizedBox(height: 4),
-          Text(
-            widget.spool.displayName,
-            style: t.bodyPlain,
-          ),
+          Text(widget.spool.displayName, style: t.bodyPlain),
           const SizedBox(height: 16),
 
           if (roster.isEmpty)
@@ -110,7 +101,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                     // One id for every row: the printer's name is the user's
                     // own text, and the field's tag does not reach the popup.
                     child: logTag(
-                        'spool_assign.printer_option', Text(p.printer.name)),
+                      'spool_assign.printer_option',
+                      Text(p.printer.name),
+                    ),
                   ),
               ],
               onChanged: (v) => setState(() => _printerId = v),
@@ -226,8 +219,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'spool_assign.save');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'spool_assign.save',
+      );
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);

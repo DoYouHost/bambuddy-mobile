@@ -27,8 +27,9 @@ final _offered = WatchConfig(
 );
 
 void main() {
-  const inputChannel =
-      MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_input');
+  const inputChannel = MethodChannel(
+    'page.codeberg.morganmlgman.bambuddy/wear_input',
+  );
 
   final calls = <MethodCall>[];
   String? entered;
@@ -37,13 +38,13 @@ void main() {
   void mockWatchInput() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(inputChannel, (call) async {
-      calls.add(call);
-      return switch (call.method) {
-        'isSupported' => isWatch,
-        'requestText' => entered,
-        _ => null,
-      };
-    });
+          calls.add(call);
+          return switch (call.method) {
+            'isSupported' => isWatch,
+            'requestText' => entered,
+            _ => null,
+          };
+        });
   }
 
   setUp(() async {
@@ -58,12 +59,14 @@ void main() {
         .setMockMethodCallHandler(inputChannel, null);
   });
 
-  Future<ProviderContainer> pumpSetup(WidgetTester tester,
-          {List<Override> overrides = const []}) =>
-      pumpWear(tester, const WearSetupScreen(), overrides: overrides);
+  Future<ProviderContainer> pumpSetup(
+    WidgetTester tester, {
+    List<Override> overrides = const [],
+  }) => pumpWear(tester, const WearSetupScreen(), overrides: overrides);
 
-  testWidgets('leads with the phone handoff, not with a field to type in',
-      (tester) async {
+  testWidgets('leads with the phone handoff, not with a field to type in', (
+    tester,
+  ) async {
     await pumpSetup(tester);
 
     expect(find.text('Ustaw z telefonu'), findsOneWidget);
@@ -86,9 +89,14 @@ void main() {
   });
 
   testWidgets('what the phone sent is shown before it is used', (tester) async {
-    await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
-    ]);
+    await pumpSetup(
+      tester,
+      overrides: [
+        watchConfigSyncProvider.overrideWithValue(
+          FakeWatchConfigSync(pending: _offered),
+        ),
+      ],
+    );
 
     await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
@@ -106,11 +114,17 @@ void main() {
     expect(find.text('Nie teraz'), findsOneWidget);
   });
 
-  testWidgets('"not now" hands the screen back, it does not apply anything',
-      (tester) async {
-    await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
-    ]);
+  testWidgets('"not now" hands the screen back, it does not apply anything', (
+    tester,
+  ) async {
+    await pumpSetup(
+      tester,
+      overrides: [
+        watchConfigSyncProvider.overrideWithValue(
+          FakeWatchConfigSync(pending: _offered),
+        ),
+      ],
+    );
     await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
@@ -123,12 +137,17 @@ void main() {
     expect(find.text('Wpisz ręcznie'), findsOneWidget);
   });
 
-  testWidgets('a failed adopt gives the spinner back, not a dead screen',
-      (tester) async {
-    await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(
-          FakeWatchConfigSync(pending: _offered, failsToApply: true)),
-    ]);
+  testWidgets('a failed adopt gives the spinner back, not a dead screen', (
+    tester,
+  ) async {
+    await pumpSetup(
+      tester,
+      overrides: [
+        watchConfigSyncProvider.overrideWithValue(
+          FakeWatchConfigSync(pending: _offered, failsToApply: true),
+        ),
+      ],
+    );
     await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
@@ -157,16 +176,21 @@ void main() {
     expect(profile?.label, 'Demo');
   });
 
-  testWidgets('a demo that cannot be saved says so instead of going quiet',
-      (tester) async {
+  testWidgets('a demo that cannot be saved says so instead of going quiet', (
+    tester,
+  ) async {
     // Demo runs in-process, so nothing here is a network step — but writing the
     // profile is still a disk write, and it throws rather than reporting itself
     // through the controller's error field. On a screen whose only other route
     // needs the watch keyboard, a button that just comes back is a dead end.
-    await pumpSetup(tester, overrides: [
-      settingsRepositoryProvider.overrideWith(
-          (ref) => _UnwritableSettings(ref.watch(sharedPreferencesProvider))),
-    ]);
+    await pumpSetup(
+      tester,
+      overrides: [
+        settingsRepositoryProvider.overrideWith(
+          (ref) => _UnwritableSettings(ref.watch(sharedPreferencesProvider)),
+        ),
+      ],
+    );
 
     await tapOnWatch(tester, find.text('Demo'));
     await tester.pumpAndSettle();
@@ -176,8 +200,10 @@ void main() {
     // Upwards, unlike [revealOnWatch]: reaching the button left the list at the
     // bottom, and the message belongs with the explanation at the top.
     await tester.scrollUntilVisible(
-        find.textContaining('prefs are gone'), -40,
-        scrollable: find.byType(Scrollable).first);
+      find.textContaining('prefs are gone'),
+      -40,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('prefs are gone'), findsOneWidget);
   });
 
@@ -191,15 +217,17 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Połącz'), findsOneWidget);
   });
 
-  testWidgets('the URL field takes no focus and types through the watch',
-      (tester) async {
+  testWidgets('the URL field takes no focus and types through the watch', (
+    tester,
+  ) async {
     entered = 'http://printer.local:8000';
     await pumpSetup(tester);
     await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'Adres serwera'));
+      find.widgetWithText(TextField, 'Adres serwera'),
+    );
     expect(field.readOnly, isTrue);
     expect(field.canRequestFocus, isFalse);
 
@@ -214,8 +242,9 @@ void main() {
     expect(find.text('http://printer.local:8000'), findsOneWidget);
   });
 
-  testWidgets('backing out of the watch input keeps the old value',
-      (tester) async {
+  testWidgets('backing out of the watch input keeps the old value', (
+    tester,
+  ) async {
     entered = null;
     await pumpSetup(tester);
     await tapOnWatch(tester, find.text('Wpisz ręcznie'));
@@ -224,19 +253,22 @@ void main() {
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'Adres serwera'));
+      find.widgetWithText(TextField, 'Adres serwera'),
+    );
     expect(field.controller!.text, isEmpty);
   });
 
-  testWidgets('falls back to an editable field where there is no watch input',
-      (tester) async {
+  testWidgets('falls back to an editable field where there is no watch input', (
+    tester,
+  ) async {
     isWatch = false;
     await pumpSetup(tester);
     await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'Adres serwera'));
+      find.widgetWithText(TextField, 'Adres serwera'),
+    );
     expect(field.readOnly, isFalse);
     expect(calls.map((c) => c.method), isNot(contains('requestText')));
   });

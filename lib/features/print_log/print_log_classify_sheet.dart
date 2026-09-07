@@ -37,8 +37,7 @@ class PrintLogClassifySheet extends ConsumerStatefulWidget {
       _PrintLogClassifySheetState();
 }
 
-class _PrintLogClassifySheetState
-    extends ConsumerState<PrintLogClassifySheet> {
+class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
   /// `''` is "not classified" — the value the server takes to clear the field.
   late String _reason = widget.entry.failureReason ?? '';
   late String _status = widget.entry.status;
@@ -61,12 +60,15 @@ class _PrintLogClassifySheetState
     final original = widget.entry.failureReason ?? '';
 
     setState(() => _saving = true);
-    final error = await ref.read(printLogProvider.notifier).reclassify(
+    final error = await ref
+        .read(printLogProvider.notifier)
+        .reclassify(
           widget.entry.id,
           // Each field is sent only when the user moved it: an unsent field is
           // a no-op server-side, which is what keeps an unwritable status.
-          failureReason:
-              _reason != original && _reason.isNotEmpty ? _reason : null,
+          failureReason: _reason != original && _reason.isNotEmpty
+              ? _reason
+              : null,
           clearFailureReason: _reason != original && _reason.isEmpty,
           status: _status == widget.entry.status ? null : _status,
         );
@@ -100,8 +102,9 @@ class _PrintLogClassifySheetState
     );
     if (!confirmed || !mounted) return;
 
-    final error =
-        await ref.read(printLogProvider.notifier).deleteEntry(widget.entry.id);
+    final error = await ref
+        .read(printLogProvider.notifier)
+        .deleteEntry(widget.entry.id);
     if (!mounted) return;
     if (error != null) {
       showApiFailure(
@@ -125,8 +128,7 @@ class _PrintLogClassifySheetState
     // Cost and energy are absent from every row below 1.2.6, so their lines
     // would read as "this run drew nothing" rather than "this server does not
     // say" — the same gate the list columns are behind.
-    final showMoney =
-        ref.watch(printLogCostEnergyProvider).orFalse;
+    final showMoney = ref.watch(printLogCostEnergyProvider).orFalse;
     final currency = ref.watch(currencySymbolProvider);
 
     return logTag(

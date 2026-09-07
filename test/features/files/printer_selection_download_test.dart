@@ -144,24 +144,26 @@ void main() {
     expect(repo.sentSizes, {'/a.3mf': 10, '/b.3mf': 0});
   });
 
-  test('a server without the preparation routes downloads the same bytes',
-      () async {
-    final single = _Repo(hasJobs: false);
-    await PrinterSelectionDownload(single, printerId: 1).run(
-      files: const [(path: '/a.3mf', size: 10)],
-      fileName: 'a.3mf',
-      scratchName: 'test.download',
-    );
-    expect(single.calls, ['legacy-file']);
+  test(
+    'a server without the preparation routes downloads the same bytes',
+    () async {
+      final single = _Repo(hasJobs: false);
+      await PrinterSelectionDownload(single, printerId: 1).run(
+        files: const [(path: '/a.3mf', size: 10)],
+        fileName: 'a.3mf',
+        scratchName: 'test.download',
+      );
+      expect(single.calls, ['legacy-file']);
 
-    final many = _Repo(hasJobs: false);
-    await PrinterSelectionDownload(many, printerId: 1).run(
-      files: const [(path: '/a.3mf', size: 10), (path: '/b.3mf', size: 20)],
-      fileName: 'files.zip',
-      scratchName: 'test.download',
-    );
-    expect(many.calls, ['legacy-zip']);
-  });
+      final many = _Repo(hasJobs: false);
+      await PrinterSelectionDownload(many, printerId: 1).run(
+        files: const [(path: '/a.3mf', size: 10), (path: '/b.3mf', size: 20)],
+        fileName: 'files.zip',
+        scratchName: 'test.download',
+      );
+      expect(many.calls, ['legacy-zip']);
+    },
+  );
 
   test('cancelling before anything started is not an error', () async {
     // The Cancel that arrives while the screen is still deciding whether this
@@ -170,35 +172,39 @@ void main() {
     await PrinterSelectionDownload(_Repo(), printerId: 1).cancel();
   });
 
-  test('a cancellation inside the capability window still stops the download',
-      () async {
-    // The window: the screen is dismissed while `supportsDownloadJobs()` is
-    // still awaiting the server's version. Nothing exists to cancel yet, and
-    // without the latch the preparation started afterwards and ran to
-    // completion — the server pulling files off a printer for a screen that had
-    // gone.
-    final answer = Completer<void>();
-    final repo = _Repo(jobsAnswer: answer);
-    final download = PrinterSelectionDownload(repo, printerId: 1);
+  test(
+    'a cancellation inside the capability window still stops the download',
+    () async {
+      // The window: the screen is dismissed while `supportsDownloadJobs()` is
+      // still awaiting the server's version. Nothing exists to cancel yet, and
+      // without the latch the preparation started afterwards and ran to
+      // completion — the server pulling files off a printer for a screen that had
+      // gone.
+      final answer = Completer<void>();
+      final repo = _Repo(jobsAnswer: answer);
+      final download = PrinterSelectionDownload(repo, printerId: 1);
 
-    final running = download.run(
-      files: const [(path: '/a.3mf', size: 10)],
-      fileName: 'a.3mf',
-      scratchName: 'test.download',
-    );
-    await download.cancel();
-    answer.complete();
+      final running = download.run(
+        files: const [(path: '/a.3mf', size: 10)],
+        fileName: 'a.3mf',
+        scratchName: 'test.download',
+      );
+      await download.cancel();
+      answer.complete();
 
-    await expectLater(
-      running,
-      throwsA(isA<PrinterDownloadFailure>().having(
-        (e) => e.reason,
-        'reason',
-        PrinterDownloadStopped.cancelled,
-      )),
-    );
-    expect(repo.calls, isEmpty, reason: 'no job was ever started');
-  });
+      await expectLater(
+        running,
+        throwsA(
+          isA<PrinterDownloadFailure>().having(
+            (e) => e.reason,
+            'reason',
+            PrinterDownloadStopped.cancelled,
+          ),
+        ),
+      );
+      expect(repo.calls, isEmpty, reason: 'no job was ever started');
+    },
+  );
 
   test('the same holds for a server that has no preparation routes', () async {
     // The legacy route cannot be called off once it is in flight, which is all

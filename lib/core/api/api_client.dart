@@ -13,12 +13,12 @@ import '../settings/server_profile.dart';
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
 Dio createBareDio() => Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 8),
-        receiveTimeout: const Duration(seconds: 15),
-        sendTimeout: const Duration(seconds: 15),
-      ),
-    )..interceptors.add(HttpProbe());
+  BaseOptions(
+    connectTimeout: const Duration(seconds: 8),
+    receiveTimeout: const Duration(seconds: 15),
+    sendTimeout: const Duration(seconds: 15),
+  ),
+)..interceptors.add(HttpProbe());
 
 /// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {
@@ -35,12 +35,14 @@ class ApiClient {
     if (profile.isDemo) {
       this.dio.httpClientAdapter = DemoHttpClientAdapter();
     }
-    this.dio.interceptors.add(AuthInterceptor(
-          authMode: profile.authMode,
-          credentials: credentials,
-          refreshAuth: refreshAuth,
-          retryDio: this.dio,
-        ));
+    this.dio.interceptors.add(
+      AuthInterceptor(
+        authMode: profile.authMode,
+        credentials: credentials,
+        refreshAuth: refreshAuth,
+        retryDio: this.dio,
+      ),
+    );
   }
 
   final Dio dio;

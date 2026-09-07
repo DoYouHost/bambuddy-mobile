@@ -42,10 +42,9 @@ void main() {
     // The constructor is the definition of the list; everything else is a copy
     // of it. `required this.id` and `this.name` are the two spellings.
     final ctor = bodyBetween('const PrinterStatus({', '});');
-    fields = RegExp(r'this\.(\w+)')
-        .allMatches(ctor)
-        .map((m) => m.group(1)!)
-        .toSet();
+    fields = RegExp(
+      r'this\.(\w+)',
+    ).allMatches(ctor).map((m) => m.group(1)!).toSet();
     // A guard on the guard: a constructor that stopped being found would let
     // every assertion below pass over an empty set.
     expect(fields, contains('id'));
@@ -63,7 +62,10 @@ void main() {
   test('every field is compared and hashed', () {
     // `==` and `hashCode` both read this one list, so it is the only place the
     // omission can happen — and the only one this has to check.
-    expectComplete('_fields', bodyBetween('List<Object?> get _fields => [', '];'));
+    expectComplete(
+      '_fields',
+      bodyBetween('List<Object?> get _fields => [', '];'),
+    );
   });
 
   test('every field is carried through mergedWith', () {
@@ -79,15 +81,24 @@ void main() {
     // Deliberately a subset — the point of the method is that most of the
     // status does *not* survive. What it must not do is keep naming a field
     // that has since been renamed away, which reads as intent and is nothing.
-    final kept = RegExp(r'(\w+):')
-        .allMatches(bodyBetween('PrinterStatus _clearedIfOffline() {', '\n  }'))
-        .map((m) => m.group(1)!)
-        .toSet()
-      ..remove('reason');
+    final kept =
+        RegExp(r'(\w+):')
+            .allMatches(
+              bodyBetween('PrinterStatus _clearedIfOffline() {', '\n  }'),
+            )
+            .map((m) => m.group(1)!)
+            .toSet()
+          ..remove('reason');
 
-    expect(kept.difference(fields), isEmpty,
-        reason: '_clearedIfOffline names something that is not a field');
-    expect(kept, contains('ams'),
-        reason: 'the physical AMS inventory survives a power-off');
+    expect(
+      kept.difference(fields),
+      isEmpty,
+      reason: '_clearedIfOffline names something that is not a field',
+    );
+    expect(
+      kept,
+      contains('ams'),
+      reason: 'the physical AMS inventory survives a power-off',
+    );
   });
 }

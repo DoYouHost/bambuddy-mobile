@@ -50,14 +50,13 @@ List<ScheduledDrying> scheduledDryingsFor(
   List<ScheduledDrying> all, {
   required int printerId,
   required int amsId,
-}) =>
-    [
-      for (final row in all)
-        if (row.printerId == printerId &&
-            row.amsId == amsId &&
-            (row.isPending || row.isFailed))
-          row,
-    ];
+}) => [
+  for (final row in all)
+    if (row.printerId == printerId &&
+        row.amsId == amsId &&
+        (row.isPending || row.isFailed))
+      row,
+];
 
 /// The drying temperatures and durations the server itself uses, from its
 /// `drying_presets` setting — the same table the web's Queue Auto-Drying page
@@ -76,7 +75,6 @@ final dryingPresetsProvider = Provider<Map<String, DryPreset>>(
 
 /// Whether the server dries on its own, and how. Read-only — see [AutoDrying].
 final autoDryingProvider = Provider<AutoDrying>(
-  (ref) => autoDryingFrom(
-    ref.watch(serverSettingsProvider).valueOrNull ?? const {},
-  ),
+  (ref) =>
+      autoDryingFrom(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
 );

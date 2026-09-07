@@ -21,8 +21,9 @@ class FirmwareRepository {
   /// `GET /firmware/updates` — firmware for entire farm in one request.
   Future<FirmwareUpdatesResponse> fetchUpdates() async {
     try {
-      final res =
-          await _dio.get<Map<String, dynamic>>(Endpoints.firmwareUpdates);
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.firmwareUpdates,
+      );
       return FirmwareUpdatesResponse.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);
@@ -33,8 +34,9 @@ class FirmwareRepository {
   /// (UI → /setup); other errors degrade to `null`.
   Future<FirmwareUpdateInfo?> fetchForPrinter(int printerId) async {
     try {
-      final res = await _dio
-          .get<Map<String, dynamic>>(Endpoints.firmwareUpdate(printerId));
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.firmwareUpdate(printerId),
+      );
       final body = res.data;
       return body == null ? null : FirmwareUpdateInfo.fromJson(body);
     } on DioException catch (e) {
@@ -51,8 +53,9 @@ class FirmwareRepository {
   /// `GET /firmware/updates/{id}/prepare` — probe before firmware upload.
   Future<FirmwareUploadPrepare> prepareUpload(int printerId) async {
     try {
-      final res = await _dio
-          .get<Map<String, dynamic>>(Endpoints.firmwarePrepare(printerId));
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.firmwarePrepare(printerId),
+      );
       return FirmwareUploadPrepare.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);

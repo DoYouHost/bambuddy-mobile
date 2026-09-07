@@ -48,8 +48,7 @@ void main() {
       expect(DateTimeFormats.forTest(locale: 'en_CA').time(_at), '9:20 p.m.');
     });
 
-    test('the hour cycle comes off the region, the markers off the language',
-        () {
+    test('the hour cycle comes off the region, the markers off the language', () {
       // A Polish app on a US phone: the device's convention decides the clock,
       // and the marker is borrowed from English because intl gives pl `a`/`p`.
       final f = DateTimeFormats.forTest(locale: 'en_US', wordLocale: 'pl');
@@ -118,18 +117,33 @@ void main() {
 
   test('an hour bucket is labelled the way the device reads clocks', () {
     final h24 = _fmt(locale: 'en_US', use24Hour: true);
-    expect([for (final h in [0, 6, 12, 18]) h24.hourOfDay(h)],
-        ['00:00', '06:00', '12:00', '18:00']);
+    expect(
+      [
+        for (final h in [0, 6, 12, 18]) h24.hourOfDay(h),
+      ],
+      ['00:00', '06:00', '12:00', '18:00'],
+    );
     final h12 = _fmt(locale: 'en_US');
-    expect([for (final h in [0, 6, 12, 18]) h12.hourOfDay(h)],
-        ['12:00 AM', '6:00 AM', '12:00 PM', '6:00 PM']);
+    expect(
+      [
+        for (final h in [0, 6, 12, 18]) h12.hourOfDay(h),
+      ],
+      ['12:00 AM', '6:00 AM', '12:00 PM', '6:00 PM'],
+    );
     // A 24-hour locale forced to 12h reads the axis the same way.
     expect(_fmt(locale: 'pl').hourOfDay(6), '6:00 AM');
   });
 
   test('short weekdays start on Monday, as every grid here draws them', () {
-    expect(_fmt(locale: 'en_US').shortWeekdaysMondayFirst,
-        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    expect(_fmt(locale: 'en_US').shortWeekdaysMondayFirst, [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ]);
     expect(_fmt(locale: 'pl').shortWeekdaysMondayFirst.first, 'pon.');
   });
 
@@ -154,8 +168,11 @@ void main() {
 
       expect(clock, isNull, reason: 'nobody has said — ask the locale');
       expect(spelled(clock), '21:20');
-      expect(spelled(clock, locale: 'en_US'), '9:20 PM',
-          reason: 'a 12-hour locale still reads 12-hour');
+      expect(
+        spelled(clock, locale: 'en_US'),
+        '9:20 PM',
+        reason: 'a 12-hour locale still reads 12-hour',
+      );
     });
 
     test('a dispatcher true is real and is taken', () {
@@ -194,8 +211,9 @@ void main() {
   });
 
   group('resolution against the platform', () {
-    testWidgets('an untranslated system language falls back to the app locale',
-        (tester) async {
+    testWidgets('an untranslated system language falls back to the app locale', (
+      tester,
+    ) async {
       // German is not a language the app ships, so German month names must not
       // leak into an English UI — but the app locale still has to format.
       tester.platformDispatcher.localeTestValue = const Locale('de', 'DE');
@@ -209,10 +227,12 @@ void main() {
             DefaultWidgetsLocalizations.delegate,
             DefaultMaterialLocalizations.delegate,
           ],
-          child: Builder(builder: (context) {
-            fmt = DateTimeFormats.of(context);
-            return const SizedBox();
-          }),
+          child: Builder(
+            builder: (context) {
+              fmt = DateTimeFormats.of(context);
+              return const SizedBox();
+            },
+          ),
         ),
       );
 
@@ -236,10 +256,12 @@ void main() {
             DefaultWidgetsLocalizations.delegate,
             DefaultMaterialLocalizations.delegate,
           ],
-          child: Builder(builder: (context) {
-            fmt = DateTimeFormats.of(context);
-            return const SizedBox();
-          }),
+          child: Builder(
+            builder: (context) {
+              fmt = DateTimeFormats.of(context);
+              return const SizedBox();
+            },
+          ),
         ),
       );
 

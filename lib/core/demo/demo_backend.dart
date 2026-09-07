@@ -114,7 +114,9 @@ class DemoBackend {
     final ids = rawBody is List
         ? rawBody.map((e) => e is int ? e : int.tryParse('$e')).nonNulls
         : const <int>[];
-    final valid = ids.where((e) => _x1Objects.any((o) => o['id'] == e)).toList();
+    final valid = ids
+        .where((e) => _x1Objects.any((o) => o['id'] == e))
+        .toList();
     _skippedObjects.addAll(valid);
     return _ok({'success': true, 'skipped_objects': valid});
   }
@@ -167,10 +169,38 @@ class DemoBackend {
   /// [PrintableObject]) — dividers tall and narrow, front/back wide and low —
   /// so the preview reads as actual parts instead of identical badges.
   static const _x1Objects = [
-    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
-    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
-    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
-    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
+    {
+      'id': 421,
+      'name': 'Divider_left.stl',
+      'x': 104.0,
+      'y': 104.0,
+      'width': 26.0,
+      'height': 34.0,
+    },
+    {
+      'id': 512,
+      'name': 'Divider_right.stl',
+      'x': 152.0,
+      'y': 104.0,
+      'width': 26.0,
+      'height': 34.0,
+    },
+    {
+      'id': 683,
+      'name': 'Drawer_front.stl',
+      'x': 104.0,
+      'y': 152.0,
+      'width': 34.0,
+      'height': 20.0,
+    },
+    {
+      'id': 705,
+      'name': 'Drawer_back.stl',
+      'x': 152.0,
+      'y': 152.0,
+      'width': 34.0,
+      'height': 20.0,
+    },
   ];
   static const _x1BboxAll = [88.0, 88.0, 168.0, 168.0];
 
@@ -185,7 +215,9 @@ class DemoBackend {
     path = path.substring(prefix.length);
     final seg = path.split('/').where((s) => s.isNotEmpty).toList();
     final q = uri.queryParameters;
-    final body = requestBody is Map<String, dynamic> ? requestBody : const <String, dynamic>{};
+    final body = requestBody is Map<String, dynamic>
+        ? requestBody
+        : const <String, dynamic>{};
 
     try {
       return _route(method, seg, q, body, requestBody) ?? _fallback(method);
@@ -235,10 +267,7 @@ class DemoBackend {
         // slice, both of which the routes below accept — the users listing is
         // the one thing 1.2.6 gates that is decided by probing instead.
         if (at(1, 'version')) {
-          return _ok(const {
-            'version': '1.2.6b1',
-            'repo': 'maziggy/bambuddy',
-          });
+          return _ok(const {'version': '1.2.6b1', 'repo': 'maziggy/bambuddy'});
         }
         return _notFound();
 
@@ -333,7 +362,9 @@ class DemoBackend {
             return _file(_printerFileBytes(path, pid), _demoContentType(path));
           }
           if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
-            final paths = (body['paths'] as List?)?.whereType<String>().toList();
+            final paths = (body['paths'] as List?)
+                ?.whereType<String>()
+                .toList();
             if (paths == null || paths.isEmpty) {
               return (status: 400, body: {'detail': 'No files specified'});
             }
@@ -351,7 +382,10 @@ class DemoBackend {
           return _fallback(m);
         }
         if (at(2, 'storage')) {
-          return _ok({'used_bytes': 3 * 1024 * 1024 * 1024, 'free_bytes': 24 * 1024 * 1024 * 1024});
+          return _ok({
+            'used_bytes': 3 * 1024 * 1024 * 1024,
+            'free_bytes': 24 * 1024 * 1024 * 1024,
+          });
         }
         if (at(2, 'kprofiles')) {
           return _ok(_kProfilesResponse(q['nozzle_diameter'] ?? '0.4'));
@@ -371,14 +405,22 @@ class DemoBackend {
         return _fallback(m);
 
       case 'ams-history':
-        return _ok(_amsHistory(id(1) ?? 1, id(2) ?? 0, int.tryParse(q['hours'] ?? '') ?? 24));
+        return _ok(
+          _amsHistory(
+            id(1) ?? 1,
+            id(2) ?? 0,
+            int.tryParse(q['hours'] ?? '') ?? 24,
+          ),
+        );
 
       case 'printer-sensor-history':
-        return _ok(_heaterHistory(
-          id(1) ?? 1,
-          int.tryParse(q['hours'] ?? '') ?? 24,
-          (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
-        ));
+        return _ok(
+          _heaterHistory(
+            id(1) ?? 1,
+            int.tryParse(q['hours'] ?? '') ?? 24,
+            (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
+          ),
+        );
 
       case 'scheduled-dryings':
         return _scheduledDryingRoute(m, s, q, body);
@@ -426,7 +468,9 @@ class DemoBackend {
           return _ok({'updates': _firmware, 'updates_available': 1});
         }
         if (at(1, 'updates')) {
-          final f = _firmware.where((e) => e['printer_id'] == id(2)).firstOrNull;
+          final f = _firmware
+              .where((e) => e['printer_id'] == id(2))
+              .firstOrNull;
           return f == null ? _notFound() : _ok(f);
         }
         return _notFound();
@@ -472,15 +516,15 @@ class DemoBackend {
           // X1C or the P1S says out loud that nothing would be injected.
           'gcode_snippets':
               '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
-                  '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+              '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
           // Drying presets as the real server stores them: a JSON string, not
           // an object. Two rows differ from the built-in defaults (PETG 70 °C /
           // 8 h) so demo shows the customisation actually reaching the sheet
           // rather than the bundled table that would look identical.
           'drying_presets':
               '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
-                  '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
-                  '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+              '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+              '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
           // The server's own drying automation, which the sheet reports and
           // never offers to change — writing these is settings:update, denied
           // to every API key.
@@ -527,17 +571,17 @@ class DemoBackend {
   }
 
   Map<String, dynamic> get _demoUser => {
-        'id': 1,
-        'username': DemoConfig.username,
-        'email': null,
-        'role': 'admin',
-        'is_active': true,
-        'is_admin': true,
-        'auth_source': 'local',
-        'groups': const <Object>[],
-        'permissions': const <Object>[],
-        'created_at': _iso(_daysAgo(60)),
-      };
+    'id': 1,
+    'username': DemoConfig.username,
+    'email': null,
+    'role': 'admin',
+    'is_active': true,
+    'is_admin': true,
+    'auth_source': 'local',
+    'groups': const <Object>[],
+    'permissions': const <Object>[],
+    'created_at': _iso(_daysAgo(60)),
+  };
 
   /// `/slicer/presets` — the tiers the unified picker merges, holding exactly
   /// the presets the demo pipelines point at plus a couple more so a picker has
@@ -766,7 +810,7 @@ class DemoBackend {
       final slots = file['id'] == _multiSlotFileId
           ? _twoToneSlots
           : const [
-              {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'}
+              {'slot_id': 1, 'type': 'PLA', 'color': '#0ACCB8'},
             ];
       for (final slot in slots) {
         final inPlate = used.contains(slot['slot_id']);
@@ -839,7 +883,8 @@ class DemoBackend {
         return (
           status: 400,
           body: {
-            'detail': 'STEP files cannot be sliced. The OrcaSlicer and Bambu '
+            'detail':
+                'STEP files cannot be sliced. The OrcaSlicer and Bambu '
                 'Studio command-line slicers load only STL and 3MF -- open the '
                 'STEP in your slicer and export it as one of those first.',
           },
@@ -860,8 +905,7 @@ class DemoBackend {
       'started_ms': DateTime.now().millisecondsSinceEpoch,
       'created_at': _iso(DateTime.now()),
       'embedded': body['use_embedded_settings'] == true,
-      'layer_height': _layerHeightOf(
-          process is Map ? '${process['id']}' : ''),
+      'layer_height': _layerHeightOf(process is Map ? '${process['id']}' : ''),
       'printer_preset': body['printer_preset'],
       'result': null,
     };
@@ -887,7 +931,7 @@ class DemoBackend {
     }
     final elapsed =
         (DateTime.now().millisecondsSinceEpoch - (job['started_ms'] as int)) /
-            1000;
+        1000;
     final done = elapsed >= sliceSeconds;
     // The sidecar publishes nothing for the first moment of a slice, which is
     // what puts the dialog on an indeterminate bar instead of a 0%.
@@ -897,8 +941,8 @@ class DemoBackend {
       'status': done
           ? 'completed'
           : started
-              ? 'running'
-              : 'pending',
+          ? 'running'
+          : 'pending',
       'kind': job['kind'],
       'source_id': (job['source'] as Map)['id'],
       'source_name': (job['source'] as Map)['filename'],
@@ -962,7 +1006,8 @@ class DemoBackend {
     };
     final printerPreset = job['printer_preset'];
     final model = _modelOfPrinterPreset(
-        printerPreset is Map ? '${printerPreset['id']}' : '');
+      printerPreset is Map ? '${printerPreset['id']}' : '',
+    );
     if (job['kind'] == 'archive') {
       final archive = _resliceArchive(source, base, seconds, grams, model);
       result['archive_id'] = archive['id'];
@@ -1011,8 +1056,9 @@ class DemoBackend {
     // The output is for whatever printer was just picked, not for the one the
     // source happened to print on — copying the source's model is what left a
     // cross-printer re-slice wearing the old badge (server #2636 follow-up).
-    final printer =
-        _printers.where((p) => p['model'] == model).firstOrNull?['id'];
+    final printer = _printers
+        .where((p) => p['model'] == model)
+        .firstOrNull?['id'];
     final archive = {
       ...source,
       'id': _archives.map((a) => toInt(a['id'])).reduce(math.max) + 1,
@@ -1134,9 +1180,9 @@ class DemoBackend {
   /// Full status for the REST endpoint (`id`+`name` included).
   /// For WS frames use [statusData] (id travels as `printer_id`).
   Map<String, dynamic> statusJson(int printerId) => {
-        'id': printerId,
-        ...statusData(printerId),
-      };
+    'id': printerId,
+    ...statusData(printerId),
+  };
 
   /// Status payload without `id` — the WS `data` shape.
   Map<String, dynamic> statusData(int printerId) =>
@@ -1149,11 +1195,11 @@ class DemoBackend {
         // fallback rather than as `3 =>` because an id that reached here at all
         // is one nothing should have asked about.
         _ => const {
-            'name': 'A1 mini',
-            'model': 'A1 mini',
-            'connected': false,
-            'state': null,
-          },
+          'name': 'A1 mini',
+          'model': 'A1 mini',
+          'connected': false,
+          'state': null,
+        },
       });
 
   /// Lays whatever the slot sheet wrote over the generated trays.
@@ -1218,8 +1264,7 @@ class DemoBackend {
       'subtask_name': printing ? 'Drawer organizer x4' : null,
       'gcode_file': printing ? '/data/Metadata/plate_1.gcode' : null,
       'progress': printing ? _r1(frac * 100) : 0,
-      'remaining_time':
-          printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
+      'remaining_time': printing ? ((_printCycleSec - elapsed) / 60).ceil() : 0,
       'layer_num': printing ? (frac * _totalLayers).floor() : 0,
       'total_layers': printing ? _totalLayers : 0,
       'temperatures': {
@@ -1261,43 +1306,43 @@ class DemoBackend {
   }
 
   Map<String, dynamic> _statusIdle() => {
-        'name': 'P1S',
-        'model': 'P1S',
-        'connected': true,
-        'state': 'IDLE',
-        'current_print': null,
-        'gcode_file': null,
-        'progress': 0,
-        'remaining_time': 0,
-        'layer_num': 0,
-        'total_layers': 0,
-        'temperatures': {
-          'nozzle': _r1(23.8 + _wiggle(0.3, phase: 10)),
-          'nozzle_target': 0.0,
-          'bed': _r1(23.5 + _wiggle(0.2, phase: 45)),
-          'bed_target': 0.0,
-        },
-        'cooling_fan_speed': 0,
-        'big_fan1_speed': 0,
-        'big_fan2_speed': 0,
-        'heatbreak_fan_speed': 0,
-        'speed_level': _speedLevel[2] ?? 2,
-        'chamber_light': _chamberLight[2] ?? false,
-        'wifi_signal': -61,
-        'door_open': false,
-        'ams_exists': true,
-        'ams': [_amsUnit2()],
-        'vt_tray': const <Object>[],
-        'tray_now': 255,
-        'active_extruder': 0,
-        'hms_errors': const <Object>[],
-        'firmware_version': '01.07.01.00',
-        'cover_url': null,
-        'supports_drying': false,
-        'awaiting_plate_clear': false,
-        'sdcard': true,
-        'ipcam': true,
-      };
+    'name': 'P1S',
+    'model': 'P1S',
+    'connected': true,
+    'state': 'IDLE',
+    'current_print': null,
+    'gcode_file': null,
+    'progress': 0,
+    'remaining_time': 0,
+    'layer_num': 0,
+    'total_layers': 0,
+    'temperatures': {
+      'nozzle': _r1(23.8 + _wiggle(0.3, phase: 10)),
+      'nozzle_target': 0.0,
+      'bed': _r1(23.5 + _wiggle(0.2, phase: 45)),
+      'bed_target': 0.0,
+    },
+    'cooling_fan_speed': 0,
+    'big_fan1_speed': 0,
+    'big_fan2_speed': 0,
+    'heatbreak_fan_speed': 0,
+    'speed_level': _speedLevel[2] ?? 2,
+    'chamber_light': _chamberLight[2] ?? false,
+    'wifi_signal': -61,
+    'door_open': false,
+    'ams_exists': true,
+    'ams': [_amsUnit2()],
+    'vt_tray': const <Object>[],
+    'tray_now': 255,
+    'active_extruder': 0,
+    'hms_errors': const <Object>[],
+    'firmware_version': '01.07.01.00',
+    'cover_url': null,
+    'supports_drying': false,
+    'awaiting_plate_clear': false,
+    'sdcard': true,
+    'ipcam': true,
+  };
 
   /// The second X1C: idle, and loaded with PLA only.
   ///
@@ -1307,44 +1352,44 @@ class DemoBackend {
   /// the state the per-printer breakdown exists for, and one that needs two
   /// machines of one model to reach.
   Map<String, dynamic> _statusSecondX1c() => {
-        'name': 'X1 Carbon #2',
-        'model': 'X1C',
-        'connected': true,
-        'state': 'IDLE',
-        'current_print': null,
-        'gcode_file': null,
-        'progress': 0,
-        'remaining_time': 0,
-        'layer_num': 0,
-        'total_layers': 0,
-        'temperatures': {
-          'nozzle': _r1(24.1 + _wiggle(0.3, phase: 25)),
-          'nozzle_target': 0.0,
-          'bed': _r1(23.9 + _wiggle(0.2, phase: 60)),
-          'bed_target': 0.0,
-          'chamber': _r1(25.0 + _wiggle(0.3, phase: 80)),
-        },
-        'cooling_fan_speed': 0,
-        'big_fan1_speed': 0,
-        'big_fan2_speed': 0,
-        'heatbreak_fan_speed': 0,
-        'speed_level': _speedLevel[5] ?? 2,
-        'chamber_light': _chamberLight[5] ?? false,
-        'wifi_signal': -54,
-        'door_open': false,
-        'ams_exists': true,
-        'ams': [_amsUnitPlaOnly()],
-        'vt_tray': const <Object>[],
-        'tray_now': 255,
-        'active_extruder': 0,
-        'hms_errors': const <Object>[],
-        'firmware_version': '01.08.02.00',
-        'cover_url': null,
-        'supports_drying': true,
-        'awaiting_plate_clear': false,
-        'sdcard': true,
-        'ipcam': true,
-      };
+    'name': 'X1 Carbon #2',
+    'model': 'X1C',
+    'connected': true,
+    'state': 'IDLE',
+    'current_print': null,
+    'gcode_file': null,
+    'progress': 0,
+    'remaining_time': 0,
+    'layer_num': 0,
+    'total_layers': 0,
+    'temperatures': {
+      'nozzle': _r1(24.1 + _wiggle(0.3, phase: 25)),
+      'nozzle_target': 0.0,
+      'bed': _r1(23.9 + _wiggle(0.2, phase: 60)),
+      'bed_target': 0.0,
+      'chamber': _r1(25.0 + _wiggle(0.3, phase: 80)),
+    },
+    'cooling_fan_speed': 0,
+    'big_fan1_speed': 0,
+    'big_fan2_speed': 0,
+    'heatbreak_fan_speed': 0,
+    'speed_level': _speedLevel[5] ?? 2,
+    'chamber_light': _chamberLight[5] ?? false,
+    'wifi_signal': -54,
+    'door_open': false,
+    'ams_exists': true,
+    'ams': [_amsUnitPlaOnly()],
+    'vt_tray': const <Object>[],
+    'tray_now': 255,
+    'active_extruder': 0,
+    'hms_errors': const <Object>[],
+    'firmware_version': '01.08.02.00',
+    'cover_url': null,
+    'supports_drying': true,
+    'awaiting_plate_clear': false,
+    'sdcard': true,
+    'ipcam': true,
+  };
 
   /// P2S wearing both accessory fan kits: `left_aux_fan_speed` is reported
   /// (airduct part 10 present) and `exhaust_fan_present` is true (part 3), so
@@ -1352,47 +1397,47 @@ class DemoBackend {
   /// A base P2S sends the same payload with `left_aux_fan_speed: null` and
   /// `exhaust_fan_present: false`, which hides both.
   Map<String, dynamic> _statusAccessoryFans() => {
-        'name': 'P2S',
-        'model': 'P2S',
-        'connected': true,
-        'state': 'IDLE',
-        'current_print': null,
-        'gcode_file': null,
-        'progress': 0,
-        'remaining_time': 0,
-        'layer_num': 0,
-        'total_layers': 0,
-        'temperatures': {
-          'nozzle': _r1(24.1 + _wiggle(0.3, phase: 20)),
-          'nozzle_target': 0.0,
-          'bed': _r1(23.9 + _wiggle(0.2, phase: 55)),
-          'bed_target': 0.0,
-          'chamber': _r1(25.4 + _wiggle(0.4, phase: 75)),
-        },
-        'cooling_fan_speed': _fanSpeeds['part'] ?? 0,
-        'big_fan1_speed': _fanSpeeds['aux'] ?? 0,
-        'left_aux_fan_speed': _fanSpeeds['aux2'] ?? 0,
-        'big_fan2_speed': _fanSpeeds['chamber'] ?? 0,
-        'exhaust_fan_present': true,
-        'heatbreak_fan_speed': 0,
-        'speed_level': _speedLevel[4] ?? 2,
-        'chamber_light': _chamberLight[4] ?? false,
-        'airduct_mode': _airductMode[4] ?? 0,
-        'wifi_signal': -49,
-        'door_open': false,
-        'ams_exists': false,
-        'ams': const <Object>[],
-        'vt_tray': const <Object>[],
-        'tray_now': 255,
-        'active_extruder': 0,
-        'hms_errors': const <Object>[],
-        'firmware_version': '01.02.00.00',
-        'cover_url': null,
-        'supports_drying': false,
-        'awaiting_plate_clear': false,
-        'sdcard': true,
-        'ipcam': true,
-      };
+    'name': 'P2S',
+    'model': 'P2S',
+    'connected': true,
+    'state': 'IDLE',
+    'current_print': null,
+    'gcode_file': null,
+    'progress': 0,
+    'remaining_time': 0,
+    'layer_num': 0,
+    'total_layers': 0,
+    'temperatures': {
+      'nozzle': _r1(24.1 + _wiggle(0.3, phase: 20)),
+      'nozzle_target': 0.0,
+      'bed': _r1(23.9 + _wiggle(0.2, phase: 55)),
+      'bed_target': 0.0,
+      'chamber': _r1(25.4 + _wiggle(0.4, phase: 75)),
+    },
+    'cooling_fan_speed': _fanSpeeds['part'] ?? 0,
+    'big_fan1_speed': _fanSpeeds['aux'] ?? 0,
+    'left_aux_fan_speed': _fanSpeeds['aux2'] ?? 0,
+    'big_fan2_speed': _fanSpeeds['chamber'] ?? 0,
+    'exhaust_fan_present': true,
+    'heatbreak_fan_speed': 0,
+    'speed_level': _speedLevel[4] ?? 2,
+    'chamber_light': _chamberLight[4] ?? false,
+    'airduct_mode': _airductMode[4] ?? 0,
+    'wifi_signal': -49,
+    'door_open': false,
+    'ams_exists': false,
+    'ams': const <Object>[],
+    'vt_tray': const <Object>[],
+    'tray_now': 255,
+    'active_extruder': 0,
+    'hms_errors': const <Object>[],
+    'firmware_version': '01.02.00.00',
+    'cover_url': null,
+    'supports_drying': false,
+    'awaiting_plate_clear': false,
+    'sdcard': true,
+    'ipcam': true,
+  };
 
   /// [tagUid] / [trayUuid] are what the AMS read off an RFID spool. Null on a
   /// third-party spool and on an empty slot, exactly as the server sends it —
@@ -1407,21 +1452,20 @@ class DemoBackend {
     int remain = -1,
     String? tagUid,
     String? trayUuid,
-  }) =>
-      {
-        'id': id,
-        'tray_color': color,
-        'tray_type': type,
-        'tray_sub_brands': subBrand ?? '',
-        'tray_id_name': idName ?? '',
-        'tray_info_idx': infoIdx ?? '',
-        'remain': remain,
-        'tag_uid': tagUid,
-        'tray_uuid': trayUuid,
-        'nozzle_temp_min': type == null ? null : '190',
-        'nozzle_temp_max': type == null ? null : '240',
-        'state': type == null ? 9 : 11,
-      };
+  }) => {
+    'id': id,
+    'tray_color': color,
+    'tray_type': type,
+    'tray_sub_brands': subBrand ?? '',
+    'tray_id_name': idName ?? '',
+    'tray_info_idx': infoIdx ?? '',
+    'remain': remain,
+    'tag_uid': tagUid,
+    'tray_uuid': trayUuid,
+    'nozzle_temp_min': type == null ? null : '190',
+    'nozzle_temp_max': type == null ? null : '240',
+    'state': type == null ? 9 : 11,
+  };
 
   // --- AMS slot configuration ---
 
@@ -1523,12 +1567,12 @@ class DemoBackend {
   ];
 
   Map<String, dynamic> _kProfilesResponse(String nozzleDiameter) => {
-        'nozzle_diameter': nozzleDiameter,
-        'profiles': [
-          for (final p in _kProfiles)
-            if (p['nozzle_diameter'] == nozzleDiameter) p,
-        ],
-      };
+    'nozzle_diameter': nozzleDiameter,
+    'profiles': [
+      for (final p in _kProfiles)
+        if (p['nozzle_diameter'] == nozzleDiameter) p,
+    ],
+  };
 
   String _slotKey(int printerId, int amsId, int trayId) =>
       '$printerId:$amsId:$trayId';
@@ -1600,68 +1644,104 @@ class DemoBackend {
   }
 
   Map<String, dynamic> _amsUnit1() => {
-        'id': 0,
-        'humidity': 21 + (_wiggle(1.5, periodSec: 600)).round(),
-        'temp': _r1(28.5 + _wiggle(0.5, periodSec: 300)),
-        'is_ams_ht': false,
-        'module_type': 'n3f', // AMS 2 Pro — drying-capable
-        'dry_time': _dryTime[0] ?? 0,
-        'dry_status': (_dryTime[0] ?? 0) > 0 ? 2 : 0,
-        'tray': [
-          _tray(0, '000000FF', 'PLA',
-              subBrand: 'PLA Basic', idName: 'A00-K0', infoIdx: 'GFA00', remain: 66),
-          _tray(1, 'FF6A13FF', 'PLA',
-              subBrand: 'PLA Basic', idName: 'A00-A0', infoIdx: 'GFA00', remain: 88),
-          _tray(2, 'FFFFFFFF', 'PETG', infoIdx: 'GFG02', remain: 78),
-          _tray(3, null, null),
-        ],
-      };
+    'id': 0,
+    'humidity': 21 + (_wiggle(1.5, periodSec: 600)).round(),
+    'temp': _r1(28.5 + _wiggle(0.5, periodSec: 300)),
+    'is_ams_ht': false,
+    'module_type': 'n3f', // AMS 2 Pro — drying-capable
+    'dry_time': _dryTime[0] ?? 0,
+    'dry_status': (_dryTime[0] ?? 0) > 0 ? 2 : 0,
+    'tray': [
+      _tray(
+        0,
+        '000000FF',
+        'PLA',
+        subBrand: 'PLA Basic',
+        idName: 'A00-K0',
+        infoIdx: 'GFA00',
+        remain: 66,
+      ),
+      _tray(
+        1,
+        'FF6A13FF',
+        'PLA',
+        subBrand: 'PLA Basic',
+        idName: 'A00-A0',
+        infoIdx: 'GFA00',
+        remain: 88,
+      ),
+      _tray(2, 'FFFFFFFF', 'PETG', infoIdx: 'GFG02', remain: 78),
+      _tray(3, null, null),
+    ],
+  };
 
   Map<String, dynamic> _amsUnit2() => {
-        'id': 0,
-        'humidity': 34,
-        'temp': _r1(24.0 + _wiggle(0.4, periodSec: 420)),
-        'is_ams_ht': false,
-        'module_type': 'ams',
-        'dry_time': 0,
-        'dry_status': 0,
-        'tray': [
-          _tray(0, '0ACCB8FF', 'PETG', infoIdx: 'GFG02', remain: 92),
-          _tray(1, 'D4AF37FF', 'PLA',
-              subBrand: 'PLA Silk', infoIdx: 'GFA05', remain: 10),
-          // A genuine Bambu spool the shelf has never seen: tagged, full, and
-          // deliberately absent from `_assignments`. That is the one state the
-          // slot sheet offers "add to inventory" from.
-          _tray(2, '00AE42FF', 'PLA',
-              subBrand: 'PLA Basic',
-              idName: 'A00-G1',
-              infoIdx: 'GFA00',
-              remain: 100,
-              tagUid: 'B7A21C0439E5D168',
-              trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
-          _tray(3, null, null),
-        ],
-      };
+    'id': 0,
+    'humidity': 34,
+    'temp': _r1(24.0 + _wiggle(0.4, periodSec: 420)),
+    'is_ams_ht': false,
+    'module_type': 'ams',
+    'dry_time': 0,
+    'dry_status': 0,
+    'tray': [
+      _tray(0, '0ACCB8FF', 'PETG', infoIdx: 'GFG02', remain: 92),
+      _tray(
+        1,
+        'D4AF37FF',
+        'PLA',
+        subBrand: 'PLA Silk',
+        infoIdx: 'GFA05',
+        remain: 10,
+      ),
+      // A genuine Bambu spool the shelf has never seen: tagged, full, and
+      // deliberately absent from `_assignments`. That is the one state the
+      // slot sheet offers "add to inventory" from.
+      _tray(
+        2,
+        '00AE42FF',
+        'PLA',
+        subBrand: 'PLA Basic',
+        idName: 'A00-G1',
+        infoIdx: 'GFA00',
+        remain: 100,
+        tagUid: 'B7A21C0439E5D168',
+        trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430',
+      ),
+      _tray(3, null, null),
+    ],
+  };
 
   /// PLA in every filled slot — no PETG anywhere, which is what gives the
   /// second X1C a real filament mismatch against a PETG pipeline.
   Map<String, dynamic> _amsUnitPlaOnly() => {
-        'id': 0,
-        'humidity': 29,
-        'temp': _r1(24.5 + _wiggle(0.4, periodSec: 380)),
-        'is_ams_ht': false,
-        'module_type': 'ams',
-        'dry_time': 0,
-        'dry_status': 0,
-        'tray': [
-          _tray(0, '2F4F9AFF', 'PLA',
-              subBrand: 'PLA Matte', infoIdx: 'GFA01', remain: 64),
-          _tray(1, 'E8E8E8FF', 'PLA',
-              subBrand: 'PLA Basic', infoIdx: 'GFA00', remain: 88),
-          _tray(2, null, null),
-          _tray(3, null, null),
-        ],
-      };
+    'id': 0,
+    'humidity': 29,
+    'temp': _r1(24.5 + _wiggle(0.4, periodSec: 380)),
+    'is_ams_ht': false,
+    'module_type': 'ams',
+    'dry_time': 0,
+    'dry_status': 0,
+    'tray': [
+      _tray(
+        0,
+        '2F4F9AFF',
+        'PLA',
+        subBrand: 'PLA Matte',
+        infoIdx: 'GFA01',
+        remain: 64,
+      ),
+      _tray(
+        1,
+        'E8E8E8FF',
+        'PLA',
+        subBrand: 'PLA Basic',
+        infoIdx: 'GFA00',
+        remain: 88,
+      ),
+      _tray(2, null, null),
+      _tray(3, null, null),
+    ],
+  };
 
   // --- Printer files (on-device storage) ---
 
@@ -1677,9 +1757,7 @@ class DemoBackend {
     final size = listed <= 0 ? 64 * 1024 : (listed > cap ? cap : listed);
     // A repeating pattern rather than zeroes, so a saved file is recognisably
     // this and not an empty allocation.
-    return Uint8List.fromList(
-      List<int>.generate(size, (i) => 0x30 + (i % 10)),
-    );
+    return Uint8List.fromList(List<int>.generate(size, (i) => 0x30 + (i % 10)));
   }
 
   /// Size the listing gives [path], or 0 when nothing lists it.
@@ -1764,9 +1842,9 @@ class DemoBackend {
   /// The 22 bytes of an empty ZIP — a valid archive every tool opens, which is
   /// the honest answer for a bundle of files that do not exist.
   Uint8List _emptyZip() => Uint8List.fromList([
-        0x50, 0x4B, 0x05, 0x06, // end-of-central-directory signature
-        ...List<int>.filled(18, 0),
-      ]);
+    0x50, 0x4B, 0x05, 0x06, // end-of-central-directory signature
+    ...List<int>.filled(18, 0),
+  ]);
 
   String _demoContentType(String path) {
     final name = path.toLowerCase();
@@ -1779,56 +1857,50 @@ class DemoBackend {
   Object _printerFiles(String path, int printerId) {
     final files = switch (path) {
       '/' => [
-          {'name': 'cache', 'path': '/cache', 'is_directory': true, 'size': 0},
-          {
-            'name': 'timelapse',
-            'path': '/timelapse',
-            'is_directory': true,
-            'size': 0,
-          },
-          {
-            'name': 'ipcam',
-            'path': '/ipcam',
-            'is_directory': true,
-            'size': 0,
-          },
-          {
-            'name': 'Drawer organizer x4.gcode.3mf',
-            'path': '/Drawer organizer x4.gcode.3mf',
-            'is_directory': false,
-            'size': 4318208,
-            'mtime': _iso(_daysAgo(0, hours: 2)),
-          },
-        ],
+        {'name': 'cache', 'path': '/cache', 'is_directory': true, 'size': 0},
+        {
+          'name': 'timelapse',
+          'path': '/timelapse',
+          'is_directory': true,
+          'size': 0,
+        },
+        {'name': 'ipcam', 'path': '/ipcam', 'is_directory': true, 'size': 0},
+        {
+          'name': 'Drawer organizer x4.gcode.3mf',
+          'path': '/Drawer organizer x4.gcode.3mf',
+          'is_directory': false,
+          'size': 4318208,
+          'mtime': _iso(_daysAgo(0, hours: 2)),
+        },
+      ],
       '/cache' => [
-          {
-            'name': 'Benchy.gcode.3mf',
-            'path': '/cache/Benchy.gcode.3mf',
-            'is_directory': false,
-            'size': 2108509,
-            'mtime': _iso(_daysAgo(3)),
-          },
-          {
-            'name': 'Cable clips x8.gcode.3mf',
-            'path': '/cache/Cable clips x8.gcode.3mf',
-            'is_directory': false,
-            'size': 1524736,
-            'mtime': _iso(_daysAgo(6)),
-          },
-        ],
+        {
+          'name': 'Benchy.gcode.3mf',
+          'path': '/cache/Benchy.gcode.3mf',
+          'is_directory': false,
+          'size': 2108509,
+          'mtime': _iso(_daysAgo(3)),
+        },
+        {
+          'name': 'Cable clips x8.gcode.3mf',
+          'path': '/cache/Cable clips x8.gcode.3mf',
+          'is_directory': false,
+          'size': 1524736,
+          'mtime': _iso(_daysAgo(6)),
+        },
+      ],
       // The two video directories are what a print leaves behind, so they are
       // generated from the demo's own prints rather than listed by hand: the
       // file the media sheet offers for an archive is then the same file this
       // listing shows, at the same path and the same size.
       '/timelapse' => [
-          for (final print in _archives)
-            if (print['printer_id'] == printerId)
-              ?_printVideos(print).timelapse,
-        ],
+        for (final print in _archives)
+          if (print['printer_id'] == printerId) ?_printVideos(print).timelapse,
+      ],
       '/ipcam' => [
-          for (final print in _archives)
-            if (print['printer_id'] == printerId) ..._printVideos(print).ipcam,
-        ],
+        for (final print in _archives)
+          if (print['printer_id'] == printerId) ..._printVideos(print).ipcam,
+      ],
       _ => const <Object>[],
     };
     return {'path': path, 'files': files};
@@ -1850,7 +1922,8 @@ class DemoBackend {
     Map<String, dynamic>? timelapse,
     List<Map<String, dynamic>> ipcam,
     List<String> warnings,
-  }) _printVideos(Map<String, dynamic> archive) {
+  })
+  _printVideos(Map<String, dynamic> archive) {
     final started = DateTime.tryParse('${archive['started_at']}');
     final ran = archive['actual_time_seconds'];
     if (started == null || ran is! int) {
@@ -1937,8 +2010,18 @@ class DemoBackend {
     int hours,
     List<String> kinds,
   ) {
-    const idle = {'nozzle': 26.0, 'nozzle_2': 26.0, 'bed': 24.0, 'chamber': 28.0};
-    const hot = {'nozzle': 220.0, 'nozzle_2': 218.0, 'bed': 60.0, 'chamber': 38.0};
+    const idle = {
+      'nozzle': 26.0,
+      'nozzle_2': 26.0,
+      'bed': 24.0,
+      'chamber': 28.0,
+    };
+    const hot = {
+      'nozzle': 220.0,
+      'nozzle_2': 218.0,
+      'bed': 60.0,
+      'chamber': 38.0,
+    };
     const printMinutes = 120;
     const rampMinutes = 10;
 
@@ -1961,7 +2044,10 @@ class DemoBackend {
         final noise = math.sin(i / 7) * (printing ? 1.2 : 0.3);
         final value = _r1(cold + (hot[kind]! - cold) * ramp + noise);
         points.add({
-          'recorded_at': now.subtract(Duration(minutes: i)).toUtc().toIso8601String(),
+          'recorded_at': now
+              .subtract(Duration(minutes: i))
+              .toUtc()
+              .toIso8601String(),
           'value': value,
           'target': printing ? hot[kind] : 0.0,
         });
@@ -2031,11 +2117,35 @@ class DemoBackend {
   /// Edit Queue Item filament-override dropdowns. Static set covering the common
   /// materials so the override UI is exercisable offline.
   List<Map<String, dynamic>> _availableFilaments() => const [
-        {'type': 'PLA', 'color': '#FFFFFF', 'tray_info_idx': 'GFA00', 'tray_sub_brands': 'Bambu PLA Basic', 'extruder_id': null},
-        {'type': 'PLA', 'color': '#1F8F4D', 'tray_info_idx': 'GFA01', 'tray_sub_brands': 'Bambu PLA Matte', 'extruder_id': null},
-        {'type': 'PETG', 'color': '#F55A74', 'tray_info_idx': 'GFG00', 'tray_sub_brands': 'Bambu PETG HF', 'extruder_id': null},
-        {'type': 'TPU 95A', 'color': '#34C46E', 'tray_info_idx': 'GFU00', 'tray_sub_brands': 'Bambu TPU 95A', 'extruder_id': null},
-      ];
+    {
+      'type': 'PLA',
+      'color': '#FFFFFF',
+      'tray_info_idx': 'GFA00',
+      'tray_sub_brands': 'Bambu PLA Basic',
+      'extruder_id': null,
+    },
+    {
+      'type': 'PLA',
+      'color': '#1F8F4D',
+      'tray_info_idx': 'GFA01',
+      'tray_sub_brands': 'Bambu PLA Matte',
+      'extruder_id': null,
+    },
+    {
+      'type': 'PETG',
+      'color': '#F55A74',
+      'tray_info_idx': 'GFG00',
+      'tray_sub_brands': 'Bambu PETG HF',
+      'extruder_id': null,
+    },
+    {
+      'type': 'TPU 95A',
+      'color': '#34C46E',
+      'tray_info_idx': 'GFU00',
+      'tray_sub_brands': 'Bambu TPU 95A',
+      'extruder_id': null,
+    },
+  ];
 
   Map<String, dynamic> _queueItem({
     required int id,
@@ -2051,50 +2161,49 @@ class DemoBackend {
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
-  }) =>
-      {
-        'id': id,
-        'printer_id': printerId,
-        'archive_id': null,
-        'library_file_id': null,
-        'position': position,
-        'status': status,
-        'required_filament_types': [type],
-        'ams_mapping': const <Object>[],
-        'use_ams': true,
-        'manual_start': false,
-        'auto_off_after': false,
-        'require_previous_success': false,
-        'gcode_injection': gcodeInjection,
-        'filament_short': false,
-        // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
-        // arrival emptied the real queue screen (docs/plans/07). Demo mode is
-        // where that regression should surface first, so it speaks the current
-        // contract and includes an `auto` rather than only the two easy values.
-        'bed_levelling': 'auto',
-        'flow_cali': 'off',
-        'nozzle_offset_cali': 'auto',
-        'vibration_cali': true,
-        'layer_inspect': true,
-        'timelapse': false,
-        'created_at': _iso(_daysAgo(createdDaysAgo)),
-        'archive_name': name,
-        'archive_thumbnail': null,
-        'archive_deleted': false,
-        'printer_name': printerId == null
-            ? null
-            : _printers.firstWhere((p) => p['id'] == printerId)['name'],
-        'print_time_seconds': timeSec,
-        'filament_used_grams': grams,
-        'filament_type': type,
-        'filament_color': color,
-        'layer_height': 0.2,
-        'nozzle_diameter': 0.4,
-        'sliced_for_model': slicedForModel,
-        // Non-empty only for a cross-model job: the candidates the scheduler
-        // may pick between, in priority order (server #671).
-        'variants': variants,
-      };
+  }) => {
+    'id': id,
+    'printer_id': printerId,
+    'archive_id': null,
+    'library_file_id': null,
+    'position': position,
+    'status': status,
+    'required_filament_types': [type],
+    'ams_mapping': const <Object>[],
+    'use_ams': true,
+    'manual_start': false,
+    'auto_off_after': false,
+    'require_previous_success': false,
+    'gcode_injection': gcodeInjection,
+    'filament_short': false,
+    // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
+    // arrival emptied the real queue screen (docs/plans/07). Demo mode is
+    // where that regression should surface first, so it speaks the current
+    // contract and includes an `auto` rather than only the two easy values.
+    'bed_levelling': 'auto',
+    'flow_cali': 'off',
+    'nozzle_offset_cali': 'auto',
+    'vibration_cali': true,
+    'layer_inspect': true,
+    'timelapse': false,
+    'created_at': _iso(_daysAgo(createdDaysAgo)),
+    'archive_name': name,
+    'archive_thumbnail': null,
+    'archive_deleted': false,
+    'printer_name': printerId == null
+        ? null
+        : _printers.firstWhere((p) => p['id'] == printerId)['name'],
+    'print_time_seconds': timeSec,
+    'filament_used_grams': grams,
+    'filament_type': type,
+    'filament_color': color,
+    'layer_height': 0.2,
+    'nozzle_diameter': 0.4,
+    'sliced_for_model': slicedForModel,
+    // Non-empty only for a cross-model job: the candidates the scheduler
+    // may pick between, in priority order (server #671).
+    'variants': variants,
+  };
 
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
@@ -2103,8 +2212,8 @@ class DemoBackend {
         // A cross-model job names itself after its first candidate and carries
         // the rest; anything else is an "add from archive" (reprint).
         final variantIds = [
-          for (final v in (body['variants'] as List?)?.whereType<Map>() ??
-              const <Map>[])
+          for (final v
+              in (body['variants'] as List?)?.whereType<Map>() ?? const <Map>[])
             v['library_file_id'] as int?,
         ].nonNulls.toList();
         final variantFiles = [
@@ -2115,35 +2224,40 @@ class DemoBackend {
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
         final lead = variantFiles.firstOrNull;
-        _queue.add(_queueItem(
-          id: _nextQueueId++,
-          printerId: body['printer_id'] as int?,
-          position: _queue.length + 1,
-          name: (lead?['print_name'] as String?) ??
-              (archive?['print_name'] as String?) ??
-              'Reprint',
-          status: 'pending',
-          timeSec: (lead?['print_time_seconds'] as int?) ??
-              (archive?['print_time_seconds'] as int?) ??
-              3600,
-          grams: (lead?['filament_used_grams'] as num?)?.toDouble() ??
-              (archive?['filament_used_grams'] as num?)?.toDouble() ??
-              20,
-          type: (archive?['filament_type'] as String?) ?? 'PLA',
-          color: (archive?['filament_color'] as String?) ?? '#808080',
-          createdDaysAgo: 0,
-          gcodeInjection: body['gcode_injection'] == true,
-          slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
-          variants: [
-            for (final (position, f) in variantFiles.indexed)
-              {
-                'library_file_id': f['id'],
-                'filename': f['filename'],
-                'target_model': f['sliced_for_model'],
-                'position': position,
-              },
-          ],
-        ));
+        _queue.add(
+          _queueItem(
+            id: _nextQueueId++,
+            printerId: body['printer_id'] as int?,
+            position: _queue.length + 1,
+            name:
+                (lead?['print_name'] as String?) ??
+                (archive?['print_name'] as String?) ??
+                'Reprint',
+            status: 'pending',
+            timeSec:
+                (lead?['print_time_seconds'] as int?) ??
+                (archive?['print_time_seconds'] as int?) ??
+                3600,
+            grams:
+                (lead?['filament_used_grams'] as num?)?.toDouble() ??
+                (archive?['filament_used_grams'] as num?)?.toDouble() ??
+                20,
+            type: (archive?['filament_type'] as String?) ?? 'PLA',
+            color: (archive?['filament_color'] as String?) ?? '#808080',
+            createdDaysAgo: 0,
+            gcodeInjection: body['gcode_injection'] == true,
+            slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+            variants: [
+              for (final (position, f) in variantFiles.indexed)
+                {
+                  'library_file_id': f['id'],
+                  'filename': f['filename'],
+                  'target_model': f['sliced_for_model'],
+                  'position': position,
+                },
+            ],
+          ),
+        );
         return _ok(_queue.last);
       }
     }
@@ -2151,12 +2265,12 @@ class DemoBackend {
       final items = body['items'];
       if (items is List) {
         for (final it in items.whereType<Map>()) {
-          final match =
-              _queue.where((e) => e['id'] == it['id']).firstOrNull;
+          final match = _queue.where((e) => e['id'] == it['id']).firstOrNull;
           if (match != null) match['position'] = it['position'];
         }
-        _queue.sort((a, b) =>
-            (a['position'] as int).compareTo(b['position'] as int));
+        _queue.sort(
+          (a, b) => (a['position'] as int).compareTo(b['position'] as int),
+        );
       }
       return _ok(const {'ok': true});
     }
@@ -2248,8 +2362,9 @@ class DemoBackend {
         'plate_id': plateId,
         'print_time_seconds': estSec,
         'actual_time_seconds': actualSec,
-        'time_accuracy':
-            status == 'completed' ? _r1(estSec / actualSec * 100) : null,
+        'time_accuracy': status == 'completed'
+            ? _r1(estSec / actualSec * 100)
+            : null,
         'filament_used_grams': grams,
         'filament_type': type,
         'filament_color': color,
@@ -2275,8 +2390,9 @@ class DemoBackend {
         'created_at': _iso(started),
         'run_count': 1,
         'last_run_at': _iso(started),
-        'total_filament_actual_grams':
-            noUsageRecorded ? null : (actualGrams ?? grams),
+        'total_filament_actual_grams': noUsageRecorded
+            ? null
+            : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
       };
@@ -2286,30 +2402,81 @@ class DemoBackend {
       // The one multi-plate print in the demo: without it the plate line on the
       // detail sheet and the plate picker in the print form have nothing to
       // stand on, and both are part of what the demo is showing off.
-      a('Drawer organizer x4', 1, 1,
-          estSec: 5400, grams: 96.2, color: '#000000', plateId: 2),
+      a(
+        'Drawer organizer x4',
+        1,
+        1,
+        estSec: 5400,
+        grams: 96.2,
+        color: '#000000',
+        plateId: 2,
+      ),
       a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
-      a('Raspberry Pi 5 case', 2, 3,
-          estSec: 7920, grams: 48.4, type: 'PETG', color: '#FFFFFF'),
+      a(
+        'Raspberry Pi 5 case',
+        2,
+        3,
+        estSec: 7920,
+        grams: 48.4,
+        type: 'PETG',
+        color: '#FFFFFF',
+      ),
       a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
-      a('Spiral vase', 2, 6,
-          estSec: 10680, grams: 88.1, color: '#D4AF37',
-          status: 'failed', failureReason: 'Spaghetti detected',
-          actualGrams: 35.2),
-      a('Cable clips x8', 1, 7,
-          estSec: 5520, grams: 42.3, type: 'PETG', color: '#FFFFFF', quantity: 8),
+      a(
+        'Spiral vase',
+        2,
+        6,
+        estSec: 10680,
+        grams: 88.1,
+        color: '#D4AF37',
+        status: 'failed',
+        failureReason: 'Spaghetti detected',
+        actualGrams: 35.2,
+      ),
+      a(
+        'Cable clips x8',
+        1,
+        7,
+        estSec: 5520,
+        grams: 42.3,
+        type: 'PETG',
+        color: '#FFFFFF',
+        quantity: 8,
+      ),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
       a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
-      a('Wall hook x4', 1, 18,
-          estSec: 4980, grams: 38.2, type: 'PETG', color: '#FFFFFF',
-          status: 'failed', failureReason: 'Bed adhesion',
-          noUsageRecorded: true),
-      a('Desk drawer divider', 2, 22, estSec: 9840, grams: 104.6, color: '#000000'),
-      a('Flexi dragon', 1, 26,
-          estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
+      a(
+        'Wall hook x4',
+        1,
+        18,
+        estSec: 4980,
+        grams: 38.2,
+        type: 'PETG',
+        color: '#FFFFFF',
+        status: 'failed',
+        failureReason: 'Bed adhesion',
+        noUsageRecorded: true,
+      ),
+      a(
+        'Desk drawer divider',
+        2,
+        22,
+        estSec: 9840,
+        grams: 104.6,
+        color: '#000000',
+      ),
+      a(
+        'Flexi dragon',
+        1,
+        26,
+        estSec: 14400,
+        grams: 156.3,
+        type: 'TPU',
+        color: '#0ACC38',
+      ),
     ];
   }
 
@@ -2329,32 +2496,31 @@ class DemoBackend {
     Map<String, dynamic> row(
       Map<String, dynamic> archive, {
       String? failureReason,
-    }) =>
-        {
-          'id': id++,
-          'archive_id': archive['id'],
-          'print_name': archive['print_name'],
-          'printer_name': _printerName(archive['printer_id'] as int?),
-          'printer_id': archive['printer_id'],
-          'status': archive['status'],
-          'started_at': archive['started_at'],
-          'completed_at': archive['completed_at'],
-          'duration_seconds': archive['actual_time_seconds'],
-          'filament_type': archive['filament_type'],
-          'filament_color': archive['filament_color'],
-          // The run's own figure, not the file's estimate — the same
-          // distinction the server keeps, and what makes the archive sheet's
-          // second line agree with this table.
-          'filament_used_grams': archive['total_filament_actual_grams'],
-          'cost': archive['cost'],
-          'energy_kwh': archive['energy_kwh'],
-          'energy_cost': archive['energy_cost'],
-          'failure_reason': failureReason ?? archive['failure_reason'],
-          'thumbnail_path': null,
-          'created_by_id': 1,
-          'created_by_username': DemoConfig.username,
-          'created_at': archive['created_at'],
-        };
+    }) => {
+      'id': id++,
+      'archive_id': archive['id'],
+      'print_name': archive['print_name'],
+      'printer_name': _printerName(archive['printer_id'] as int?),
+      'printer_id': archive['printer_id'],
+      'status': archive['status'],
+      'started_at': archive['started_at'],
+      'completed_at': archive['completed_at'],
+      'duration_seconds': archive['actual_time_seconds'],
+      'filament_type': archive['filament_type'],
+      'filament_color': archive['filament_color'],
+      // The run's own figure, not the file's estimate — the same
+      // distinction the server keeps, and what makes the archive sheet's
+      // second line agree with this table.
+      'filament_used_grams': archive['total_filament_actual_grams'],
+      'cost': archive['cost'],
+      'energy_kwh': archive['energy_kwh'],
+      'energy_cost': archive['energy_cost'],
+      'failure_reason': failureReason ?? archive['failure_reason'],
+      'thumbnail_path': null,
+      'created_by_id': 1,
+      'created_by_username': DemoConfig.username,
+      'created_at': archive['created_at'],
+    };
 
     Map<String, dynamic> orphan(
       String name,
@@ -2396,8 +2562,14 @@ class DemoBackend {
 
     return [
       // Newest first, the order the server sorts by.
-      orphan('Bracket v3 (deleted archive)', 1, 0,
-          status: 'failed', failureReason: 'cloggedNozzle', energyKwh: 0.06),
+      orphan(
+        'Bracket v3 (deleted archive)',
+        1,
+        0,
+        status: 'failed',
+        failureReason: 'cloggedNozzle',
+        energyKwh: 0.06,
+      ),
       for (final a in _archives) row(a),
       orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
     ];
@@ -2506,22 +2678,23 @@ class DemoBackend {
     final column = q['sort_by'];
     if (column == null) return rows;
     Comparable<Object>? key(Map<String, dynamic> e) => switch (column) {
-          'date' => '${e['started_at'] ?? e['created_at']}',
-          'print_name' => '${e['print_name'] ?? ''}'.toLowerCase(),
-          'printer' => '${e['printer_name'] ?? ''}'.toLowerCase(),
-          'user' => '${e['created_by_username'] ?? ''}'.toLowerCase(),
-          'status' => '${e['status']}',
-          'duration' => e['duration_seconds'] as int?,
-          'completed_at' => e['completed_at'] as String?,
-          'filament' => '${e['filament_type'] ?? ''}',
-          'filament_used' => (e['filament_used_grams'] as num?)?.toDouble(),
-          'cost' => (e['cost'] as num?)?.toDouble(),
-          'energy' => (e['energy_kwh'] as num?)?.toDouble(),
-          'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
-          _ => null,
-        };
+      'date' => '${e['started_at'] ?? e['created_at']}',
+      'print_name' => '${e['print_name'] ?? ''}'.toLowerCase(),
+      'printer' => '${e['printer_name'] ?? ''}'.toLowerCase(),
+      'user' => '${e['created_by_username'] ?? ''}'.toLowerCase(),
+      'status' => '${e['status']}',
+      'duration' => e['duration_seconds'] as int?,
+      'completed_at' => e['completed_at'] as String?,
+      'filament' => '${e['filament_type'] ?? ''}',
+      'filament_used' => (e['filament_used_grams'] as num?)?.toDouble(),
+      'cost' => (e['cost'] as num?)?.toDouble(),
+      'energy' => (e['energy_kwh'] as num?)?.toDouble(),
+      'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+      _ => null,
+    };
     final descending = q['sort_dir'] != 'asc';
-    final sorted = [...rows]..sort((a, b) {
+    final sorted = [...rows]
+      ..sort((a, b) {
         final ka = key(a);
         final kb = key(b);
         // Nulls last whichever way the column is pointing, as the server does:
@@ -2583,11 +2756,15 @@ class DemoBackend {
       switch (s[1]) {
         case 'search':
           final query = (q['q'] ?? '').toLowerCase();
-          return _ok(_archives
-              .where((a) =>
-                  ('${a['print_name']}'.toLowerCase()).contains(query) ||
-                  ('${a['filename']}'.toLowerCase()).contains(query))
-              .toList());
+          return _ok(
+            _archives
+                .where(
+                  (a) =>
+                      ('${a['print_name']}'.toLowerCase()).contains(query) ||
+                      ('${a['filename']}'.toLowerCase()).contains(query),
+                )
+                .toList(),
+          );
         case 'stats':
           return _ok(_archiveStats());
         case 'slim':
@@ -2607,7 +2784,7 @@ class DemoBackend {
                 'completed_at': a['completed_at'],
                 'cost': a['cost'],
                 'quantity': a['quantity'],
-              }
+              },
           ]);
         case 'analysis':
           return _ok(_failureAnalysis(q));
@@ -2617,11 +2794,11 @@ class DemoBackend {
             final old = _archivesOlderThan(days);
             return _ok({
               'count': old.length,
-              'total_bytes':
-                  old.fold<int>(0, (sum, a) => sum + (a['file_size'] as int)),
-              'sample_filenames': [
-                for (final a in old.take(3)) a['filename'],
-              ],
+              'total_bytes': old.fold<int>(
+                0,
+                (sum, a) => sum + (a['file_size'] as int),
+              ),
+              'sample_filenames': [for (final a in old.take(3)) a['filename']],
               'older_than_days': days,
             });
           }
@@ -2761,21 +2938,22 @@ class DemoBackend {
   List<Map<String, dynamic>> _archivesOlderThan(int days) {
     final cutoff = _daysAgo(days);
     return _archives
-        .where((a) =>
-            DateTime.parse(a['created_at'] as String).isBefore(cutoff))
+        .where(
+          (a) => DateTime.parse(a['created_at'] as String).isBefore(cutoff),
+        )
         .toList();
   }
 
   Map<String, dynamic> _archiveStats() {
-    final completed =
-        _archives.where((a) => a['status'] == 'completed').length;
+    final completed = _archives.where((a) => a['status'] == 'completed').length;
     final failed = _archives.where((a) => a['status'] == 'failed').length;
     final byType = <String, int>{};
     final byPrinter = <String, int>{};
     var hours = 0.0, grams = 0.0, cost = 0.0, kwh = 0.0;
     for (final a in _archives) {
       byType.update('${a['filament_type']}', (v) => v + 1, ifAbsent: () => 1);
-      final printerName = _printers
+      final printerName =
+          _printers
               .where((p) => p['id'] == a['printer_id'])
               .firstOrNull?['name'] ??
           '?';
@@ -2811,21 +2989,29 @@ class DemoBackend {
     final byFilament = <String, int>{};
     final byPrinter = <String, int>{};
     for (final a in failed) {
-      byReason.update('${a['failure_reason'] ?? 'Unknown'}', (v) => v + 1,
-          ifAbsent: () => 1);
-      byFilament.update('${a['filament_type']}', (v) => v + 1,
-          ifAbsent: () => 1);
+      byReason.update(
+        '${a['failure_reason'] ?? 'Unknown'}',
+        (v) => v + 1,
+        ifAbsent: () => 1,
+      );
+      byFilament.update(
+        '${a['filament_type']}',
+        (v) => v + 1,
+        ifAbsent: () => 1,
+      );
       byPrinter.update(
-          '${_printers.where((p) => p['id'] == a['printer_id']).firstOrNull?['name'] ?? '?'}',
-          (v) => v + 1,
-          ifAbsent: () => 1);
+        '${_printers.where((p) => p['id'] == a['printer_id']).firstOrNull?['name'] ?? '?'}',
+        (v) => v + 1,
+        ifAbsent: () => 1,
+      );
     }
     return {
       'period_days': int.tryParse(q['days'] ?? '') ?? 30,
       'total_prints': _archives.length,
       'failed_prints': failed.length,
-      'failure_rate':
-          _archives.isEmpty ? 0 : _r1(failed.length * 100 / _archives.length),
+      'failure_rate': _archives.isEmpty
+          ? 0
+          : _r1(failed.length * 100 / _archives.length),
       'failures_by_reason': byReason,
       'failures_by_filament': byFilament,
       'failures_by_printer': byPrinter,
@@ -2881,28 +3067,28 @@ class DemoBackend {
   ];
 
   List<Map<String, dynamic>> _locationSensorReadings(int locationId) => [
-        for (final sensor in _locationSensors)
-          if (sensor['location_id'] == locationId)
-            {
-              ...sensor,
-              'state': switch (sensor['id']) {
-                1 => '24.4',
-                2 => '47.2',
-                _ => '78',
-              },
-              'value': switch (sensor['id']) {
-                1 => 24.4,
-                2 => 47.2,
-                _ => 78.0,
-              },
-              'alerting': sensor['id'] == 2,
-              // The battery sensor is the one the demo leaves unreachable, so
-              // its last value is shown under the struck-through sensor icon
-              // instead of passing for a current one.
-              'reachable': sensor['id'] != 3,
-              'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
-            },
-      ];
+    for (final sensor in _locationSensors)
+      if (sensor['location_id'] == locationId)
+        {
+          ...sensor,
+          'state': switch (sensor['id']) {
+            1 => '24.4',
+            2 => '47.2',
+            _ => '78',
+          },
+          'value': switch (sensor['id']) {
+            1 => 24.4,
+            2 => 47.2,
+            _ => 78.0,
+          },
+          'alerting': sensor['id'] == 2,
+          // The battery sensor is the one the demo leaves unreachable, so
+          // its last value is shown under the struck-through sensor icon
+          // instead of passing for a current one.
+          'reachable': sensor['id'] != 3,
+          'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
+        },
+  ];
 
   // --- Slicer pipelines + runs ---
 
@@ -2913,47 +3099,46 @@ class DemoBackend {
   /// with no target at all — what every pipeline saved from the slice form
   /// looks like, and the only way to reach the amber "set a target" line and
   /// the edit screen behind it.
-  List<Map<String, dynamic>> get _pipelines =>
-      _pipelinesStore ??= [
-        {
-          'id': 1,
-          'name': 'Gridfinity PETG',
-          'description': 'Bins and baseplates, 0.20mm, engineering plate.',
-          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
-          'process_preset': {'source': 'local', 'id': 'q-020-std'},
-          'filament_presets': [
-            {'source': 'local', 'id': 'f-petg-white'},
-          ],
-          'bed_type': 'Engineering Plate',
-          'target_kind': 'printer_class',
-          'target_printer_id': null,
-          'target_model_class': 'X1C',
-          'fanout_strategy': 'max_parallel',
-          'created_by': 1,
-          'created_at': _iso(_daysAgo(21)),
-          'updated_at': _iso(_daysAgo(3)),
-        },
-        {
-          'id': 2,
-          'name': 'Nightly ASA brackets',
-          'description': null,
-          'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
-          'process_preset': {'source': 'local', 'id': 'q-028-draft'},
-          'filament_presets': [
-            {'source': 'local', 'id': 'f-asa-black'},
-          ],
-          'bed_type': null,
-          // Untargeted, as `SlicerPipelineCreate` leaves every new bundle: the
-          // create schema declares none of these four fields.
-          'target_kind': 'printer_class',
-          'target_printer_id': null,
-          'target_model_class': null,
-          'fanout_strategy': 'max_parallel',
-          'created_by': 1,
-          'created_at': _iso(_daysAgo(2)),
-          'updated_at': _iso(_daysAgo(2)),
-        },
-      ];
+  List<Map<String, dynamic>> get _pipelines => _pipelinesStore ??= [
+    {
+      'id': 1,
+      'name': 'Gridfinity PETG',
+      'description': 'Bins and baseplates, 0.20mm, engineering plate.',
+      'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+      'process_preset': {'source': 'local', 'id': 'q-020-std'},
+      'filament_presets': [
+        {'source': 'local', 'id': 'f-petg-white'},
+      ],
+      'bed_type': 'Engineering Plate',
+      'target_kind': 'printer_class',
+      'target_printer_id': null,
+      'target_model_class': 'X1C',
+      'fanout_strategy': 'max_parallel',
+      'created_by': 1,
+      'created_at': _iso(_daysAgo(21)),
+      'updated_at': _iso(_daysAgo(3)),
+    },
+    {
+      'id': 2,
+      'name': 'Nightly ASA brackets',
+      'description': null,
+      'printer_preset': {'source': 'local', 'id': 'p-x1c-04'},
+      'process_preset': {'source': 'local', 'id': 'q-028-draft'},
+      'filament_presets': [
+        {'source': 'local', 'id': 'f-asa-black'},
+      ],
+      'bed_type': null,
+      // Untargeted, as `SlicerPipelineCreate` leaves every new bundle: the
+      // create schema declares none of these four fields.
+      'target_kind': 'printer_class',
+      'target_printer_id': null,
+      'target_model_class': null,
+      'fanout_strategy': 'max_parallel',
+      'created_by': 1,
+      'created_at': _iso(_daysAgo(2)),
+      'updated_at': _iso(_daysAgo(2)),
+    },
+  ];
 
   /// `/slicer-pipelines` — CRUD, the pre-flight, and dispatch.
   DemoResult? _pipelineRoute(
@@ -3015,8 +3200,9 @@ class DemoBackend {
         // `0` clears the pinned printer and `''` clears the class — the two
         // sentinels the API defines, because null cannot reach the column.
         if (body['target_printer_id'] != null) {
-          row['target_printer_id'] =
-              body['target_printer_id'] == 0 ? null : body['target_printer_id'];
+          row['target_printer_id'] = body['target_printer_id'] == 0
+              ? null
+              : body['target_printer_id'];
         }
         if (body['target_model_class'] != null) {
           final asked = '${body['target_model_class']}';
@@ -3048,7 +3234,9 @@ class DemoBackend {
           for (final r in _pipelineRuns)
             if (r['pipeline_id'] == pipelineId) r,
         ],
-        'total': _pipelineRuns.where((r) => r['pipeline_id'] == pipelineId).length,
+        'total': _pipelineRuns
+            .where((r) => r['pipeline_id'] == pipelineId)
+            .length,
       });
     }
     return _fallback(m);
@@ -3110,8 +3298,9 @@ class DemoBackend {
         'printer_reports': const <Object>[],
       };
     }
-    final candidates =
-        _printers.where((p) => p['model'] == modelClass).toList();
+    final candidates = _printers
+        .where((p) => p['model'] == modelClass)
+        .toList();
     if (candidates.isEmpty) {
       return {
         'ok': false,
@@ -3149,7 +3338,8 @@ class DemoBackend {
     if (slots is! List || slots.isEmpty) return null;
     final first = slots.first;
     if (first is! Map) return null;
-    final filaments = (_slicerPresets['local']?['filament'] ?? const []) as List;
+    final filaments =
+        (_slicerPresets['local']?['filament'] ?? const []) as List;
     for (final preset in filaments) {
       if (preset is Map && preset['id'] == first['id']) {
         return preset['filament_type'] as String?;
@@ -3199,7 +3389,10 @@ class DemoBackend {
 
   /// `POST /{id}/run` — 409 with the report when the pre-flight blocks and the
   /// caller did not force, otherwise a 202 and a live run.
-  DemoResult _startRun(Map<String, dynamic> pipeline, Map<String, dynamic> body) {
+  DemoResult _startRun(
+    Map<String, dynamic> pipeline,
+    Map<String, dynamic> body,
+  ) {
     final report = _eligibility(pipeline);
     final forced = body['force'] == true;
     if (report['ok'] != true && !forced) {
@@ -3272,23 +3465,23 @@ class DemoBackend {
         .toList();
     return switch ('${pipeline['fanout_strategy']}') {
       'round_robin' => [
-          for (var i = 0; i < copies; i++)
-            candidates.isEmpty
-                ? (null, null)
-                : (
-                    candidates[i % candidates.length]['id'] as int,
-                    candidates[i % candidates.length]['name'] as String,
-                  ),
-        ],
+        for (var i = 0; i < copies; i++)
+          candidates.isEmpty
+              ? (null, null)
+              : (
+                  candidates[i % candidates.length]['id'] as int,
+                  candidates[i % candidates.length]['name'] as String,
+                ),
+      ],
       'fill_one_first' => [
-          for (var i = 0; i < copies; i++)
-            candidates.isEmpty
-                ? (null, null)
-                : (
-                    candidates.first['id'] as int,
-                    candidates.first['name'] as String,
-                  ),
-        ],
+        for (var i = 0; i < copies; i++)
+          candidates.isEmpty
+              ? (null, null)
+              : (
+                  candidates.first['id'] as int,
+                  candidates.first['name'] as String,
+                ),
+      ],
       _ => [for (var i = 0; i < copies; i++) (null, null)],
     };
   }
@@ -3296,7 +3489,9 @@ class DemoBackend {
   String? _pipelineSourceName(Map<String, dynamic> body) {
     final libraryId = body['source_library_file_id'];
     if (libraryId != null) {
-      return _libraryFiles.where((f) => f['id'] == libraryId).firstOrNull?['filename']
+      return _libraryFiles
+              .where((f) => f['id'] == libraryId)
+              .firstOrNull?['filename']
           as String?;
     }
     final archiveId = body['source_archive_id'];
@@ -3318,59 +3513,59 @@ class DemoBackend {
   ///   null, as `ondelete="SET NULL"` leaves them) — the run that must *not*
   ///   offer Retry, because the server would answer 400;
   /// * one **failed at the slice**, carrying the error the card shows.
-  List<Map<String, dynamic>> get _pipelineRuns =>
-      _pipelineRunsStore ??= [
-        _runRow(
-          id: 91,
-          status: 'in_progress',
-          copies: 4,
-          jobStatuses: const ['completed', 'printing', 'queued', 'queued'],
-          printerIds: const [1, 5, null, null],
-          minutesAgo: 26,
-        ),
-        _runRow(
-          id: 90,
-          status: 'partial_failure',
-          copies: 3,
-          jobStatuses: const ['completed', 'failed', 'completed'],
-          printerIds: const [1, 5, 1],
-          minutesAgo: 190,
-          completed: true,
-        ),
-        _runRow(
-          id: 89,
-          status: 'partial_failure',
-          copies: 2,
-          jobStatuses: const ['completed', 'failed'],
-          printerIds: const [1, 5],
-          minutesAgo: 1450,
-          completed: true,
-          sourceGone: true,
-        ),
-        _runRow(
-          id: 88,
-          status: 'failed',
-          copies: 2,
-          jobStatuses: const ['failed', 'failed'],
-          printerIds: const [null, null],
-          minutesAgo: 2880,
-          completed: true,
-          error: 'Slicing failed: filament preset is not compatible with the '
-              'selected printer',
-        ),
-        // Filler: enough finished runs that the list crosses one page, so
-        // "load more" and the row count under it are reachable.
-        for (var i = 0; i < 26; i++)
-          _runRow(
-            id: 62 - i,
-            status: 'completed',
-            copies: 1,
-            jobStatuses: const ['completed'],
-            printerIds: const [1],
-            minutesAgo: 4320 + i * 180,
-            completed: true,
-          ),
-      ];
+  List<Map<String, dynamic>> get _pipelineRuns => _pipelineRunsStore ??= [
+    _runRow(
+      id: 91,
+      status: 'in_progress',
+      copies: 4,
+      jobStatuses: const ['completed', 'printing', 'queued', 'queued'],
+      printerIds: const [1, 5, null, null],
+      minutesAgo: 26,
+    ),
+    _runRow(
+      id: 90,
+      status: 'partial_failure',
+      copies: 3,
+      jobStatuses: const ['completed', 'failed', 'completed'],
+      printerIds: const [1, 5, 1],
+      minutesAgo: 190,
+      completed: true,
+    ),
+    _runRow(
+      id: 89,
+      status: 'partial_failure',
+      copies: 2,
+      jobStatuses: const ['completed', 'failed'],
+      printerIds: const [1, 5],
+      minutesAgo: 1450,
+      completed: true,
+      sourceGone: true,
+    ),
+    _runRow(
+      id: 88,
+      status: 'failed',
+      copies: 2,
+      jobStatuses: const ['failed', 'failed'],
+      printerIds: const [null, null],
+      minutesAgo: 2880,
+      completed: true,
+      error:
+          'Slicing failed: filament preset is not compatible with the '
+          'selected printer',
+    ),
+    // Filler: enough finished runs that the list crosses one page, so
+    // "load more" and the row count under it are reachable.
+    for (var i = 0; i < 26; i++)
+      _runRow(
+        id: 62 - i,
+        status: 'completed',
+        copies: 1,
+        jobStatuses: const ['completed'],
+        printerIds: const [1],
+        minutesAgo: 4320 + i * 180,
+        completed: true,
+      ),
+  ];
 
   /// One run row, with the roll-up counted from the per-copy statuses the way
   /// `_materialise_run` counts it — so the card's progress and the numbers
@@ -3400,8 +3595,8 @@ class DemoBackend {
       'source_filename': sourceGone
           ? null
           : _libraryFiles
-              .where((f) => f['id'] == _pipelineSourceFileId)
-              .firstOrNull?['filename'],
+                .where((f) => f['id'] == _pipelineSourceFileId)
+                .firstOrNull?['filename'],
       'parent_run_id': null,
       'copies': copies,
       'copies_completed': count('completed'),
@@ -3416,8 +3611,9 @@ class DemoBackend {
       'created_by': 1,
       'created_at': _iso(created),
       'started_at': _iso(created.add(const Duration(seconds: 12))),
-      'completed_at':
-          completed ? _iso(created.add(const Duration(minutes: 74))) : null,
+      'completed_at': completed
+          ? _iso(created.add(const Duration(minutes: 74)))
+          : null,
       'jobs': [
         for (var i = 0; i < jobStatuses.length; i++)
           {
@@ -3428,14 +3624,16 @@ class DemoBackend {
             'assigned_printer_name': printerIds[i] == null
                 ? null
                 : _printers
-                    .where((p) => p['id'] == printerIds[i])
-                    .firstOrNull?['name'],
+                      .where((p) => p['id'] == printerIds[i])
+                      .firstOrNull?['name'],
             'queue_entry_id': null,
             'status': jobStatuses[i],
-            'error_message':
-                jobStatuses[i] == 'failed' ? 'Print failed on layer 41' : null,
+            'error_message': jobStatuses[i] == 'failed'
+                ? 'Print failed on layer 41'
+                : null,
             'dispatched_at': _iso(created),
-            'completed_at': jobStatuses[i] == 'completed' || jobStatuses[i] == 'failed'
+            'completed_at':
+                jobStatuses[i] == 'completed' || jobStatuses[i] == 'failed'
                 ? _iso(created.add(const Duration(minutes: 68)))
                 : null,
           },
@@ -3497,7 +3695,8 @@ class DemoBackend {
     if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
       final before = _pipelineRuns.length;
       _pipelineRuns.removeWhere(
-          (r) => _terminalRunStatuses.contains(r['status']));
+        (r) => _terminalRunStatuses.contains(r['status']),
+      );
       return _ok({'deleted': before - _pipelineRuns.length});
     }
 
@@ -3544,7 +3743,11 @@ class DemoBackend {
         );
       }
       final failed = (run['jobs'] as List)
-          .where((j) => j is Map && (j['status'] == 'failed' || j['status'] == 'cancelled'))
+          .where(
+            (j) =>
+                j is Map &&
+                (j['status'] == 'failed' || j['status'] == 'cancelled'),
+          )
           .length;
       if (failed == 0) {
         return (status: 400, body: {'detail': 'No failed copies to retry'});
@@ -3655,13 +3858,20 @@ class DemoBackend {
       return _ok(const {'ok': true});
     }
     if (s.length == 2 && m == 'GET') {
-      return _ok(_plug(plugId, plugId == 1 ? 'Workshop plug' : 'Office plug',
-          plugId == 1 ? 'tasmota' : 'homeassistant', plugId));
+      return _ok(
+        _plug(
+          plugId,
+          plugId == 1 ? 'Workshop plug' : 'Office plug',
+          plugId == 1 ? 'tasmota' : 'homeassistant',
+          plugId,
+        ),
+      );
     }
     return _fallback(m);
   }
 
-  Map<String, dynamic> _plug(int id, String name, String type, int printerId) => {
+  Map<String, dynamic> _plug(int id, String name, String type, int printerId) =>
+      {
         'id': id,
         'name': name,
         'plug_type': type,
@@ -3731,13 +3941,13 @@ class DemoBackend {
 
   Map<String, dynamic> _maintenanceStatus(int itemId) {
     final item = _maintenanceItems[itemId]!;
-    final type = _maintenanceTypes
-        .firstWhere((t) => t['id'] == item['type_id']);
-    final printer =
-        _printers.firstWhere((p) => p['id'] == item['printer_id']);
+    final type = _maintenanceTypes.firstWhere(
+      (t) => t['id'] == item['type_id'],
+    );
+    final printer = _printers.firstWhere((p) => p['id'] == item['printer_id']);
     final interval =
         (item['custom_interval_hours'] as double?) ??
-            type['default_interval_hours'] as double;
+        type['default_interval_hours'] as double;
     final since = item['hours_since'] as double;
     final until = interval - since;
     return {
@@ -3782,9 +3992,14 @@ class DemoBackend {
   }
 
   DemoResult? _maintenanceRoute(
-      String m, List<String> s, Map<String, dynamic> body) {
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
     if (s.length >= 2 && s[1] == 'overview') {
-      return _ok([for (final p in _printers) _maintenanceOverviewFor(p['id'] as int)]);
+      return _ok([
+        for (final p in _printers) _maintenanceOverviewFor(p['id'] as int),
+      ]);
     }
     if (s.length >= 3 && s[1] == 'printers') {
       final pid = int.tryParse(s[2]);
@@ -3792,9 +4007,8 @@ class DemoBackend {
       if (s.length >= 5 && s[3] == 'assign') {
         final typeId = int.tryParse(s[4]);
         if (typeId != null) {
-          final newId = _maintenanceItems.keys
-                  .fold<int>(0, (a, b) => math.max(a, b)) +
-              1;
+          final newId =
+              _maintenanceItems.keys.fold<int>(0, (a, b) => math.max(a, b)) + 1;
           _maintenanceItems[newId] = {
             'printer_id': pid,
             'type_id': typeId,
@@ -3811,7 +4025,11 @@ class DemoBackend {
       if (s.length == 2 && m == 'GET') return _ok(_maintenanceTypes);
       if (s.length == 2 && m == 'POST') {
         final newId =
-            _maintenanceTypes.fold<int>(0, (a, t) => math.max(a, t['id'] as int)) + 1;
+            _maintenanceTypes.fold<int>(
+              0,
+              (a, t) => math.max(a, t['id'] as int),
+            ) +
+            1;
         final type = {
           'id': newId,
           'name': body['name'] ?? 'Custom task',
@@ -3827,8 +4045,9 @@ class DemoBackend {
         return _ok(type);
       }
       final typeId = int.tryParse(s[2]);
-      final type =
-          _maintenanceTypes.where((t) => t['id'] == typeId).firstOrNull;
+      final type = _maintenanceTypes
+          .where((t) => t['id'] == typeId)
+          .firstOrNull;
       if (type != null && m == 'PATCH') {
         for (final k in ['name', 'description', 'icon', 'wiki_url']) {
           if (body.containsKey(k)) type[k] = body[k];
@@ -3904,58 +4123,146 @@ class DemoBackend {
       String? archivedAt,
       int? lowStockPct,
       double baseline = 0,
-    }) =>
-        {
-          'id': id++,
-          'material': material,
-          'subtype': subtype,
-          'color_name': colorName,
-          'rgba': rgba,
-          'extra_colors': null,
-          'effect_type': effect,
-          'brand': brand,
-          'label_weight': label,
-          'core_weight': 250,
-          'weight_used': used,
-          'weight_used_baseline': baseline,
-          'cost_per_kg': cost,
-          'low_stock_threshold_pct': lowStockPct,
-          'storage_location': location,
-          'category': null,
-          'note': null,
-          'nozzle_temp_min': material == 'PETG' ? 230 : 190,
-          'nozzle_temp_max': material == 'PETG' ? 260 : 230,
-          'tag_uid': null,
-          'archived_at': archivedAt,
-          'last_used': _iso(_daysAgo(id % 6)),
-          'created_at': _iso(_daysAgo(30 + id)),
-          'k_profiles': const <Object>[],
-        };
+    }) => {
+      'id': id++,
+      'material': material,
+      'subtype': subtype,
+      'color_name': colorName,
+      'rgba': rgba,
+      'extra_colors': null,
+      'effect_type': effect,
+      'brand': brand,
+      'label_weight': label,
+      'core_weight': 250,
+      'weight_used': used,
+      'weight_used_baseline': baseline,
+      'cost_per_kg': cost,
+      'low_stock_threshold_pct': lowStockPct,
+      'storage_location': location,
+      'category': null,
+      'note': null,
+      'nozzle_temp_min': material == 'PETG' ? 230 : 190,
+      'nozzle_temp_max': material == 'PETG' ? 260 : 230,
+      'tag_uid': null,
+      'archived_at': archivedAt,
+      'last_used': _iso(_daysAgo(id % 6)),
+      'created_at': _iso(_daysAgo(30 + id)),
+      'k_profiles': const <Object>[],
+    };
 
     return [
-      spool('PLA', 'Basic', 'Black', '000000FF', used: 340, location: 'Shelf A'),
-      spool('PLA', 'Basic', 'Orange', 'FF6A13FF', used: 120, location: 'Shelf A'),
-      spool('PLA', 'Matte', 'Charcoal', '3B3B3BFF', used: 610, location: 'Shelf B'),
-      spool('PETG', 'HF', 'White', 'FFFFFFFF', used: 220, cost: 29.99, location: 'Dry box'),
-      spool('PETG', 'Translucent', 'Teal', '0ACCB8FF', used: 80, cost: 29.99, location: 'Dry box'),
-      spool('TPU', '95A', 'Green', '0ACC38FF',
-          used: 445, cost: 34.99, location: 'Shelf B', lowStockPct: 20),
+      spool(
+        'PLA',
+        'Basic',
+        'Black',
+        '000000FF',
+        used: 340,
+        location: 'Shelf A',
+      ),
+      spool(
+        'PLA',
+        'Basic',
+        'Orange',
+        'FF6A13FF',
+        used: 120,
+        location: 'Shelf A',
+      ),
+      spool(
+        'PLA',
+        'Matte',
+        'Charcoal',
+        '3B3B3BFF',
+        used: 610,
+        location: 'Shelf B',
+      ),
+      spool(
+        'PETG',
+        'HF',
+        'White',
+        'FFFFFFFF',
+        used: 220,
+        cost: 29.99,
+        location: 'Dry box',
+      ),
+      spool(
+        'PETG',
+        'Translucent',
+        'Teal',
+        '0ACCB8FF',
+        used: 80,
+        cost: 29.99,
+        location: 'Dry box',
+      ),
+      spool(
+        'TPU',
+        '95A',
+        'Green',
+        '0ACC38FF',
+        used: 445,
+        cost: 34.99,
+        location: 'Shelf B',
+        lowStockPct: 20,
+      ),
       // The one spool whose counter has been reset before: consumed (405 g)
       // reads lower than used (905 g), which is the split the reset action
       // makes and the only way to see it without pressing the button.
-      spool('PLA', 'Silk', 'Gold', 'D4AF37FF',
-          used: 905, baseline: 500, effect: 'silk', location: 'Shelf A'),
-      spool('ABS', null, 'Red', 'C12E1FFF',
-          used: 380, archivedAt: _iso(_daysAgo(10))),
+      spool(
+        'PLA',
+        'Silk',
+        'Gold',
+        'D4AF37FF',
+        used: 905,
+        baseline: 500,
+        effect: 'silk',
+        location: 'Shelf A',
+      ),
+      spool(
+        'ABS',
+        null,
+        'Red',
+        'C12E1FFF',
+        used: 380,
+        archivedAt: _iso(_daysAgo(10)),
+      ),
     ];
   }
 
   late final List<Map<String, dynamic>> _assignments = [
-    {'spool_id': 1, 'printer_id': 1, 'ams_id': 0, 'tray_id': 0, 'printer_name': 'X1 Carbon'},
-    {'spool_id': 2, 'printer_id': 1, 'ams_id': 0, 'tray_id': 1, 'printer_name': 'X1 Carbon'},
-    {'spool_id': 4, 'printer_id': 1, 'ams_id': 0, 'tray_id': 2, 'printer_name': 'X1 Carbon'},
-    {'spool_id': 5, 'printer_id': 2, 'ams_id': 0, 'tray_id': 0, 'printer_name': 'P1S'},
-    {'spool_id': 7, 'printer_id': 2, 'ams_id': 0, 'tray_id': 1, 'printer_name': 'P1S'},
+    {
+      'spool_id': 1,
+      'printer_id': 1,
+      'ams_id': 0,
+      'tray_id': 0,
+      'printer_name': 'X1 Carbon',
+    },
+    {
+      'spool_id': 2,
+      'printer_id': 1,
+      'ams_id': 0,
+      'tray_id': 1,
+      'printer_name': 'X1 Carbon',
+    },
+    {
+      'spool_id': 4,
+      'printer_id': 1,
+      'ams_id': 0,
+      'tray_id': 2,
+      'printer_name': 'X1 Carbon',
+    },
+    {
+      'spool_id': 5,
+      'printer_id': 2,
+      'ams_id': 0,
+      'tray_id': 0,
+      'printer_name': 'P1S',
+    },
+    {
+      'spool_id': 7,
+      'printer_id': 2,
+      'ams_id': 0,
+      'tray_id': 1,
+      'printer_name': 'P1S',
+    },
   ];
 
   /// Per-printer-model preset overrides, by spool id — written by the spool
@@ -3970,20 +4277,110 @@ class DemoBackend {
   ];
 
   static final List<Map<String, dynamic>> _colorCatalog = [
-    {'id': 1, 'manufacturer': 'Bambu Lab', 'color_name': 'Black', 'hex_color': '#000000', 'material': 'PLA', 'is_default': true},
-    {'id': 2, 'manufacturer': 'Bambu Lab', 'color_name': 'Jade White', 'hex_color': '#FFFFFF', 'material': 'PLA', 'is_default': true},
-    {'id': 3, 'manufacturer': 'Bambu Lab', 'color_name': 'Orange', 'hex_color': '#FF6A13', 'material': 'PLA', 'is_default': true},
-    {'id': 4, 'manufacturer': 'Bambu Lab', 'color_name': 'Bambu Green', 'hex_color': '#00AE42', 'material': 'PLA', 'is_default': true},
-    {'id': 5, 'manufacturer': 'Bambu Lab', 'color_name': 'Red', 'hex_color': '#C12E1F', 'material': 'PLA', 'is_default': true},
-    {'id': 6, 'manufacturer': 'Bambu Lab', 'color_name': 'Blue Grey', 'hex_color': '#5B6579', 'material': 'PETG', 'is_default': true},
-    {'id': 7, 'manufacturer': 'Bambu Lab', 'color_name': 'Gold', 'hex_color': '#D4AF37', 'material': 'PLA', 'is_default': true, 'effect_type': 'silk'},
+    {
+      'id': 1,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Black',
+      'hex_color': '#000000',
+      'material': 'PLA',
+      'is_default': true,
+    },
+    {
+      'id': 2,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Jade White',
+      'hex_color': '#FFFFFF',
+      'material': 'PLA',
+      'is_default': true,
+    },
+    {
+      'id': 3,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Orange',
+      'hex_color': '#FF6A13',
+      'material': 'PLA',
+      'is_default': true,
+    },
+    {
+      'id': 4,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Bambu Green',
+      'hex_color': '#00AE42',
+      'material': 'PLA',
+      'is_default': true,
+    },
+    {
+      'id': 5,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Red',
+      'hex_color': '#C12E1F',
+      'material': 'PLA',
+      'is_default': true,
+    },
+    {
+      'id': 6,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Blue Grey',
+      'hex_color': '#5B6579',
+      'material': 'PETG',
+      'is_default': true,
+    },
+    {
+      'id': 7,
+      'manufacturer': 'Bambu Lab',
+      'color_name': 'Gold',
+      'hex_color': '#D4AF37',
+      'material': 'PLA',
+      'is_default': true,
+      'effect_type': 'silk',
+    },
   ];
 
   static final List<Map<String, dynamic>> _filamentPresets = [
-    {'id': 1, 'name': 'Bambu PLA Basic', 'type': 'PLA', 'brand': 'Bambu Lab', 'color_hex': '#000000', 'cost_per_kg': 25.99, 'spool_weight_g': 1000.0, 'print_temp_min': 190, 'print_temp_max': 230},
-    {'id': 2, 'name': 'Bambu PLA Matte', 'type': 'PLA', 'brand': 'Bambu Lab', 'color_hex': '#3B3B3B', 'cost_per_kg': 26.99, 'spool_weight_g': 1000.0, 'print_temp_min': 190, 'print_temp_max': 230},
-    {'id': 3, 'name': 'Bambu PETG HF', 'type': 'PETG', 'brand': 'Bambu Lab', 'color_hex': '#FFFFFF', 'cost_per_kg': 29.99, 'spool_weight_g': 1000.0, 'print_temp_min': 230, 'print_temp_max': 260},
-    {'id': 4, 'name': 'Bambu TPU 95A', 'type': 'TPU', 'brand': 'Bambu Lab', 'color_hex': '#0ACC38', 'cost_per_kg': 34.99, 'spool_weight_g': 1000.0, 'print_temp_min': 200, 'print_temp_max': 250},
+    {
+      'id': 1,
+      'name': 'Bambu PLA Basic',
+      'type': 'PLA',
+      'brand': 'Bambu Lab',
+      'color_hex': '#000000',
+      'cost_per_kg': 25.99,
+      'spool_weight_g': 1000.0,
+      'print_temp_min': 190,
+      'print_temp_max': 230,
+    },
+    {
+      'id': 2,
+      'name': 'Bambu PLA Matte',
+      'type': 'PLA',
+      'brand': 'Bambu Lab',
+      'color_hex': '#3B3B3B',
+      'cost_per_kg': 26.99,
+      'spool_weight_g': 1000.0,
+      'print_temp_min': 190,
+      'print_temp_max': 230,
+    },
+    {
+      'id': 3,
+      'name': 'Bambu PETG HF',
+      'type': 'PETG',
+      'brand': 'Bambu Lab',
+      'color_hex': '#FFFFFF',
+      'cost_per_kg': 29.99,
+      'spool_weight_g': 1000.0,
+      'print_temp_min': 230,
+      'print_temp_max': 260,
+    },
+    {
+      'id': 4,
+      'name': 'Bambu TPU 95A',
+      'type': 'TPU',
+      'brand': 'Bambu Lab',
+      'color_hex': '#0ACC38',
+      'cost_per_kg': 34.99,
+      'spool_weight_g': 1000.0,
+      'print_temp_min': 200,
+      'print_temp_max': 250,
+    },
   ];
 
   DemoResult? _inventoryRoute(
@@ -3999,9 +4396,11 @@ class DemoBackend {
         if (s.length == 2) {
           if (m == 'GET') {
             final includeArchived = q['include_archived'] == 'true';
-            return _ok(includeArchived
-                ? _spools
-                : _spools.where((x) => x['archived_at'] == null).toList());
+            return _ok(
+              includeArchived
+                  ? _spools
+                  : _spools.where((x) => x['archived_at'] == null).toList(),
+            );
           }
           if (m == 'POST') return _ok(_createSpool(body));
         }
@@ -4090,10 +4489,12 @@ class DemoBackend {
         if (s.length == 2) {
           if (m == 'GET') return _ok(_assignments);
           if (m == 'POST') {
-            _assignments.removeWhere((a) =>
-                a['printer_id'] == body['printer_id'] &&
-                a['ams_id'] == body['ams_id'] &&
-                a['tray_id'] == body['tray_id']);
+            _assignments.removeWhere(
+              (a) =>
+                  a['printer_id'] == body['printer_id'] &&
+                  a['ams_id'] == body['ams_id'] &&
+                  a['tray_id'] == body['tray_id'],
+            );
             _assignments.add({
               'spool_id': body['spool_id'],
               'printer_id': body['printer_id'],
@@ -4107,10 +4508,12 @@ class DemoBackend {
           }
         }
         if (s.length == 5 && m == 'DELETE') {
-          _assignments.removeWhere((a) =>
-              '${a['printer_id']}' == s[2] &&
-              '${a['ams_id']}' == s[3] &&
-              '${a['tray_id']}' == s[4]);
+          _assignments.removeWhere(
+            (a) =>
+                '${a['printer_id']}' == s[2] &&
+                '${a['ams_id']}' == s[3] &&
+                '${a['tray_id']}' == s[4],
+          );
           return _ok(const {'ok': true});
         }
         return _fallback(m);
@@ -4141,12 +4544,13 @@ class DemoBackend {
   DemoResult? _bulkSpools(String action, Map<String, dynamic> body) {
     // `reset-consumed-counter-bulk` is the one route keyed on `spool_ids`.
     final isReset = action == 'reset-consumed-counter-bulk';
-    if (!isReset && !const {
-      'bulk-update',
-      'bulk-delete',
-      'bulk-archive',
-      'bulk-restore',
-    }.contains(action)) {
+    if (!isReset &&
+        !const {
+          'bulk-update',
+          'bulk-delete',
+          'bulk-archive',
+          'bulk-restore',
+        }.contains(action)) {
       return null;
     }
 
@@ -4166,8 +4570,7 @@ class DemoBackend {
     }
 
     final found = [
-      for (final id in ids)
-        ?_spools.where((x) => x['id'] == id).firstOrNull,
+      for (final id in ids) ?_spools.where((x) => x['id'] == id).firstOrNull,
     ];
     final foundIds = {for (final spool in found) spool['id']};
     final notFound = [
@@ -4246,7 +4649,10 @@ class DemoBackend {
     final amsId = (body['ams_id'] as num?)?.toInt();
     final trayId = (body['tray_id'] as num?)?.toInt();
     if (printerId == null || amsId == null || trayId == null) {
-      return (status: 400, body: {'detail': 'Provide printer_id, ams_id and tray_id'});
+      return (
+        status: 400,
+        body: {'detail': 'Provide printer_id, ams_id and tray_id'},
+      );
     }
 
     final units = statusData(printerId)['ams'];
@@ -4279,7 +4685,8 @@ class DemoBackend {
 
     // "PLA Basic" → subtype "Basic", the same split the server makes.
     final subBrands = (tray['tray_sub_brands'] as String?)?.trim() ?? '';
-    final subtype = subBrands.toUpperCase().startsWith('${material.toUpperCase()} ')
+    final subtype =
+        subBrands.toUpperCase().startsWith('${material.toUpperCase()} ')
         ? subBrands.substring(material.length + 1)
         : null;
 
@@ -4300,17 +4707,20 @@ class DemoBackend {
       'tray_uuid': trayUuid,
     });
 
-    _assignments.removeWhere((a) =>
-        a['printer_id'] == printerId &&
-        a['ams_id'] == amsId &&
-        a['tray_id'] == trayId);
+    _assignments.removeWhere(
+      (a) =>
+          a['printer_id'] == printerId &&
+          a['ams_id'] == amsId &&
+          a['tray_id'] == trayId,
+    );
     _assignments.add({
       'spool_id': spool['id'],
       'printer_id': printerId,
       'ams_id': amsId,
       'tray_id': trayId,
-      'printer_name':
-          _printers.where((p) => p['id'] == printerId).firstOrNull?['name'],
+      'printer_name': _printers
+          .where((p) => p['id'] == printerId)
+          .firstOrNull?['name'],
     });
     return _ok(spool);
   }
@@ -4387,8 +4797,20 @@ class DemoBackend {
   // --- Library ---
 
   late final List<Map<String, dynamic>> _libraryFolders = [
-    {'id': 1, 'name': 'Calibration', 'parent_id': null, 'file_count': 3, 'children': <Object>[]},
-    {'id': 2, 'name': 'Household', 'parent_id': null, 'file_count': 2, 'children': <Object>[]},
+    {
+      'id': 1,
+      'name': 'Calibration',
+      'parent_id': null,
+      'file_count': 3,
+      'children': <Object>[],
+    },
+    {
+      'id': 2,
+      'name': 'Household',
+      'parent_id': null,
+      'file_count': 2,
+      'children': <Object>[],
+    },
   ];
 
   /// The models are spread across the demo fleet on purpose: a variant group is
@@ -4396,26 +4818,87 @@ class DemoBackend {
   /// members that target the same one — so a library sliced entirely for the
   /// X1C could never demonstrate the feature.
   late final List<Map<String, dynamic>> _libraryFiles = [
-    _libFile(1, 'Benchy.gcode.3mf', 1, 2108509, printCount: 3, timeSec: 3540, grams: 15.8),
-    _libFile(2, 'Calibration cube.gcode.3mf', 1, 812340, printCount: 1, timeSec: 1620, grams: 6.1),
-    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4,
-        model: 'P1S'),
-    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2,
-        model: 'P1S'),
-    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
-        model: 'P2S'),
+    _libFile(
+      1,
+      'Benchy.gcode.3mf',
+      1,
+      2108509,
+      printCount: 3,
+      timeSec: 3540,
+      grams: 15.8,
+    ),
+    _libFile(
+      2,
+      'Calibration cube.gcode.3mf',
+      1,
+      812340,
+      printCount: 1,
+      timeSec: 1620,
+      grams: 6.1,
+    ),
+    _libFile(
+      3,
+      'Temp tower PLA.gcode.3mf',
+      1,
+      1430200,
+      printCount: 1,
+      timeSec: 5340,
+      grams: 21.4,
+      model: 'P1S',
+    ),
+    _libFile(
+      4,
+      'Drawer organizer x4.gcode.3mf',
+      2,
+      4318208,
+      printCount: 2,
+      timeSec: 5400,
+      grams: 96.2,
+      model: 'P1S',
+    ),
+    _libFile(
+      5,
+      'Cable clips x8.gcode.3mf',
+      2,
+      1524736,
+      printCount: 1,
+      timeSec: 5520,
+      grams: 42.3,
+      model: 'P2S',
+    ),
     // The un-sliced sources — the only files the Slice button is offered on,
     // since anything already `gcode.3mf` is printable and cannot be re-sliced.
     // Three of them because the form looks different for each: a plain 3MF
     // fills one filament slot, the two-tone one fills four (two of which its
     // plates never touch), and an STL has no plates and so no "as designed".
-    _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf', model: null),
-    _libFile(7, 'Hue dial two-tone.3mf', null, 2204160, fileType: '3mf', model: null),
+    _libFile(
+      6,
+      'SD card adapter.3mf',
+      null,
+      634212,
+      fileType: '3mf',
+      model: null,
+    ),
+    _libFile(
+      7,
+      'Hue dial two-tone.3mf',
+      null,
+      2204160,
+      fileType: '3mf',
+      model: null,
+    ),
     _libFile(8, 'Lamp shade.stl', null, 1841664, fileType: 'stl', model: null),
     // Uploaded straight from CAD, and refused before a byte is read: neither
     // slicer CLI loads STEP. The button is still offered — the file is not
     // printable — which is exactly the state the server's own message is for.
-    _libFile(9, 'Motor bracket.step', null, 412160, fileType: 'step', model: null),
+    _libFile(
+      9,
+      'Motor bracket.step',
+      null,
+      412160,
+      fileType: 'step',
+      model: null,
+    ),
   ];
 
   final List<Map<String, dynamic>> _libraryTrash = [];
@@ -4438,25 +4921,24 @@ class DemoBackend {
     // records which printer the *output* was built for, so an un-sliced
     // upload has no answer to give.
     String? model = 'X1C',
-  }) =>
-      {
-        'id': id,
-        'folder_id': folderId,
-        'filename': filename,
-        'file_type': fileType,
-        'file_size': size,
-        'thumbnail_path': null,
-        'print_count': printCount,
-        'duplicate_count': 0,
-        'created_by_username': DemoConfig.username,
-        'created_at': _iso(_daysAgo(id * 2)),
-        'print_name': filename.split('.').first,
-        'print_time_seconds': timeSec,
-        'filament_used_grams': grams,
-        'sliced_for_model': model,
-        'variant_group_id': null,
-        'variant_count': 0,
-      };
+  }) => {
+    'id': id,
+    'folder_id': folderId,
+    'filename': filename,
+    'file_type': fileType,
+    'file_size': size,
+    'thumbnail_path': null,
+    'print_count': printCount,
+    'duplicate_count': 0,
+    'created_by_username': DemoConfig.username,
+    'created_at': _iso(_daysAgo(id * 2)),
+    'print_name': filename.split('.').first,
+    'print_time_seconds': timeSec,
+    'filament_used_grams': grams,
+    'sliced_for_model': model,
+    'variant_group_id': null,
+    'variant_count': 0,
+  };
 
   /// Cross-model variant groups (server #671), served because the demo now
   /// reports 1.2.6 — the file manager's grouping button appears at that version
@@ -4481,11 +4963,13 @@ class DemoBackend {
           member['library_file_id'] as int?,
       ].nonNulls.toList();
       if (ids.length < 2) {
-        return (status: 400, body: {'detail': 'A variant group needs at least 2 members'});
+        return (
+          status: 400,
+          body: {'detail': 'A variant group needs at least 2 members'},
+        );
       }
       final files = [
-        for (final id in ids)
-          ..._libraryFiles.where((f) => f['id'] == id),
+        for (final id in ids) ..._libraryFiles.where((f) => f['id'] == id),
       ];
       if (files.length != ids.length) {
         return (status: 404, body: {'detail': 'Library file not found'});
@@ -4496,7 +4980,8 @@ class DemoBackend {
           return (
             status: 400,
             body: {
-              'detail': '${f['filename']} is not a sliced file — only sliced '
+              'detail':
+                  '${f['filename']} is not a sliced file — only sliced '
                   'output can be a print variant',
             },
           );
@@ -4504,7 +4989,9 @@ class DemoBackend {
         if (f['variant_group_id'] != null) {
           return (
             status: 409,
-            body: {'detail': '${f['filename']} already belongs to a variant group'},
+            body: {
+              'detail': '${f['filename']} already belongs to a variant group',
+            },
           );
         }
         final model = '${f['sliced_for_model']}';
@@ -4513,7 +5000,8 @@ class DemoBackend {
           return (
             status: 400,
             body: {
-              'detail': '${f['filename']} and $clash are both sliced for '
+              'detail':
+                  '${f['filename']} and $clash are both sliced for '
                   '$model — variants must target different printers',
             },
           );
@@ -4546,8 +5034,7 @@ class DemoBackend {
       final fileId = int.tryParse(s[3]);
       final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
       final groupId = file?['variant_group_id'];
-      final group =
-          _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+      final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
       // 404 is the ordinary answer for an ungrouped file, not an error.
       return group == null ? _notFound() : _ok(group);
     }
@@ -4581,14 +5068,16 @@ class DemoBackend {
           if (q.containsKey('project_id')) return _ok(const <Object>[]);
           final folderId = int.tryParse(q['folder_id'] ?? '');
           if (folderId != null) {
-            return _ok(_libraryFiles
-                .where((f) => f['folder_id'] == folderId)
-                .toList());
+            return _ok(
+              _libraryFiles.where((f) => f['folder_id'] == folderId).toList(),
+            );
           }
           // include_root=false → whole library; otherwise root level only.
-          return _ok(q['include_root'] == 'false'
-              ? _libraryFiles
-              : _libraryFiles.where((f) => f['folder_id'] == null).toList());
+          return _ok(
+            q['include_root'] == 'false'
+                ? _libraryFiles
+                : _libraryFiles.where((f) => f['folder_id'] == null).toList(),
+          );
         }
         if (s.length == 2 && m == 'POST') {
           return (status: 501, body: {'detail': 'Upload unavailable in demo'});
@@ -4604,29 +5093,32 @@ class DemoBackend {
           final ids = (body['file_ids'] as List?) ?? const [];
           for (final f in _libraryFiles) {
             if (!ids.contains(f['id'])) continue;
-            _queue.add(_queueItem(
-              id: _nextQueueId++,
-              printerId: null,
-              position: _queue.length + 1,
-              name: '${f['print_name']}',
-              status: 'pending',
-              timeSec: (f['print_time_seconds'] as int?) ?? 3600,
-              grams: (f['filament_used_grams'] as num?)?.toDouble() ?? 20,
-              type: 'PLA',
-              color: '#808080',
-              createdDaysAgo: 0,
-            ));
+            _queue.add(
+              _queueItem(
+                id: _nextQueueId++,
+                printerId: null,
+                position: _queue.length + 1,
+                name: '${f['print_name']}',
+                status: 'pending',
+                timeSec: (f['print_time_seconds'] as int?) ?? 3600,
+                grams: (f['filament_used_grams'] as num?)?.toDouble() ?? 20,
+                type: 'PLA',
+                color: '#808080',
+                createdDaysAgo: 0,
+              ),
+            );
           }
           return _ok(const {'ok': true});
         }
         final fileId = int.tryParse(s.length > 2 ? s[2] : '');
-        final file =
-            _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+        final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
         if (file == null) return _fallback(m);
         if (s.length == 3) {
           if (m == 'GET') return _ok(file);
           if (m == 'PUT') {
-            if (body.containsKey('filename')) file['filename'] = body['filename'];
+            if (body.containsKey('filename')) {
+              file['filename'] = body['filename'];
+            }
             return _ok(file);
           }
           if (m == 'DELETE') {
@@ -4671,8 +5163,9 @@ class DemoBackend {
         }
         if (s.length >= 3 && s[2] == 'by-project') return _ok(const <Object>[]);
         final folderId = int.tryParse(s.length > 2 ? s[2] : '');
-        final folder =
-            _libraryFolders.where((f) => f['id'] == folderId).firstOrNull;
+        final folder = _libraryFolders
+            .where((f) => f['id'] == folderId)
+            .firstOrNull;
         if (folder == null) return _fallback(m);
         if (m == 'PUT') {
           if (body.containsKey('name')) folder['name'] = body['name'];
@@ -4690,7 +5183,9 @@ class DemoBackend {
           'total_files': _libraryFiles.length,
           'total_folders': _libraryFolders.length,
           'total_size': _libraryFiles.fold<int>(
-              0, (sum, f) => sum + (f['file_size'] as int)),
+            0,
+            (sum, f) => sum + (f['file_size'] as int),
+          ),
           'free_bytes': 52 * 1024 * 1024 * 1024,
         });
 
@@ -4701,7 +5196,11 @@ class DemoBackend {
 
       case 'trash':
         if (s.length == 2 && m == 'GET') {
-          return _ok({'items': _libraryTrash, 'total': _libraryTrash.length, 'retention_days': 30});
+          return _ok({
+            'items': _libraryTrash,
+            'total': _libraryTrash.length,
+            'retention_days': 30,
+          });
         }
         if (s.length == 2 && m == 'DELETE') {
           _libraryTrash.clear();
@@ -4712,8 +5211,14 @@ class DemoBackend {
           final t = _libraryTrash.where((f) => f['id'] == tid).firstOrNull;
           if (t != null) {
             _libraryTrash.remove(t);
-            _libraryFiles.add(_libFile(
-                t['id'] as int, t['filename'] as String, null, t['file_size'] as int));
+            _libraryFiles.add(
+              _libFile(
+                t['id'] as int,
+                t['filename'] as String,
+                null,
+                t['file_size'] as int,
+              ),
+            );
           }
           return _ok(const {'ok': true});
         }
@@ -4792,16 +5297,18 @@ class DemoBackend {
     final isFirst = p['id'] == 1;
     final previews = isFirst
         ? _archives
-            .take(3)
-            .map((a) => {
+              .take(3)
+              .map(
+                (a) => {
                   'id': a['id'],
                   'print_name': a['print_name'],
                   'thumbnail_path': null,
                   'status': a['status'],
                   'filament_type': a['filament_type'],
                   'filament_color': a['filament_color'],
-                })
-            .toList()
+                },
+              )
+              .toList()
         : const <Object>[];
     return {
       ...p,
@@ -4845,8 +5352,9 @@ class DemoBackend {
         'remaining_prints': isFirst ? 5 : 0,
         'remaining_parts': null,
         'bom_total_items': bom.length,
-        'bom_completed_items':
-            bom.where((b) => b['is_complete'] == true).length,
+        'bom_completed_items': bom
+            .where((b) => b['is_complete'] == true)
+            .length,
         'bom_cost': 2.6,
       },
     };
@@ -4899,7 +5407,9 @@ class DemoBackend {
     if (s.length >= 3) {
       switch (s[2]) {
         case 'archives':
-          return _ok((_projectListJson(project)['archives'] as List?) ?? const []);
+          return _ok(
+            (_projectListJson(project)['archives'] as List?) ?? const [],
+          );
         case 'queue':
           return _ok(const <Object>[]);
         case 'timeline':
@@ -4986,14 +5496,14 @@ class _DemoDownloadJob {
   String get state => token == null ? 'preparing' : 'ready';
 
   Map<String, dynamic> toJson() => {
-        'job_id': jobId,
-        'printer_id': printerId,
-        'state': state,
-        'requested': paths.length,
-        'successful': staged,
-        'failed': 0,
-        'token': token,
-        'filename': filename,
-        'message': null,
-      };
+    'job_id': jobId,
+    'printer_id': printerId,
+    'state': state,
+    'requested': paths.length,
+    'successful': staged,
+    'failed': 0,
+    'token': token,
+    'filename': filename,
+    'message': null,
+  };
 }

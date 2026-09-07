@@ -21,7 +21,7 @@ typedef TimerFactory = Timer Function(Duration, void Function());
 /// would collapse on a frame that never mentioned the printer's connection.
 class OfflineDebounce {
   OfflineDebounce({this.window = defaultWindow, TimerFactory? timerFactory})
-      : _timer = timerFactory ?? Timer.new;
+    : _timer = timerFactory ?? Timer.new;
 
   /// Long enough for the other lane to contradict the frame, short enough that
   /// a printer someone switched off does not look present for a whole minute.

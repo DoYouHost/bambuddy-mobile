@@ -12,12 +12,12 @@ void main() {
   late PrintersRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = PrintersRepository(dio);
   });
 
-  test('fetchAll: lista + statusy', () async {
+  test('fetchAll: list + statuses', () async {
     adapter
       ..onGet(
         '/api/v1/printers/',
@@ -30,8 +30,7 @@ void main() {
       )
       ..onGet(
         '/api/v1/printers/2/status',
-        (server) =>
-            server.reply(200, readFixture('printer_status_idle.json')),
+        (server) => server.reply(200, readFixture('printer_status_idle.json')),
       );
 
     final all = await repo.fetchAll();
@@ -42,36 +41,39 @@ void main() {
     expect(all[1].status?.state, 'IDLE');
   });
 
-  test('padnięty status jednej drukarki nie wywala dashboardu', () async {
-    adapter
-      ..onGet(
-        '/api/v1/printers/',
-        (server) => server.reply(200, readFixture('printers_list.json')),
-      )
-      ..onGet(
-        '/api/v1/printers/1/status',
-        (server) =>
-            server.reply(200, readFixture('printer_status_printing.json')),
-      )
-      ..onGet(
-        '/api/v1/printers/2/status',
-        (server) => server.reply(500, {'detail': 'printer offline'}),
-      );
+  test(
+    'a failed status for one printer does not crash the dashboard',
+    () async {
+      adapter
+        ..onGet(
+          '/api/v1/printers/',
+          (server) => server.reply(200, readFixture('printers_list.json')),
+        )
+        ..onGet(
+          '/api/v1/printers/1/status',
+          (server) =>
+              server.reply(200, readFixture('printer_status_printing.json')),
+        )
+        ..onGet(
+          '/api/v1/printers/2/status',
+          (server) => server.reply(500, {'detail': 'printer offline'}),
+        );
 
-    final all = await repo.fetchAll();
+      final all = await repo.fetchAll();
 
-    expect(all, hasLength(2));
-    expect(all[0].status, isNotNull);
-    expect(all[1].status, isNull);
-  });
+      expect(all, hasLength(2));
+      expect(all[0].status, isNotNull);
+      expect(all[1].status, isNull);
+    },
+  );
 
-  test('niesparsowalny wpis na liście jest pomijany', () async {
+  test('an unparseable list entry is skipped', () async {
     adapter.onGet(
       '/api/v1/printers/',
       (server) => server.reply(200, [
         {'id': 1, 'name': 'OK'},
-        {'name': 'bez id — odpada'},
-        'śmieć',
+        {'name': 'no id — dropped'},
+        'junk',
       ]),
     );
 
@@ -80,17 +82,19 @@ void main() {
     expect(printers.single.name, 'OK');
   });
 
-  test('401 na liście → AuthException (UI odsyła do konfiguracji)',
-      () async {
-    adapter.onGet(
-      '/api/v1/printers/',
-      (server) => server.reply(401, {'detail': 'Unauthorized'}),
-    );
+  test(
+    '401 on the list → AuthException (UI redirects to configuration)',
+    () async {
+      adapter.onGet(
+        '/api/v1/printers/',
+        (server) => server.reply(401, {'detail': 'Unauthorized'}),
+      );
 
-    await expectLater(repo.fetchPrinters(), throwsA(isA<AuthException>()));
-  });
+      await expectLater(repo.fetchPrinters(), throwsA(isA<AuthException>()));
+    },
+  );
 
-  test('401 na statusie też wypływa jako AuthException', () async {
+  test('401 on the status also flows out as AuthException', () async {
     adapter
       ..onGet(
         '/api/v1/printers/',

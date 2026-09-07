@@ -62,26 +62,26 @@ class _WearScreenState extends State<WearScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: WearToastScope(
-            show: _show,
-            // Expands so the screen under the message is laid out exactly as it
-            // was before there was a layer above it: a Stack sizes itself to its
-            // children otherwise, and every watch screen expects to be handed
-            // the whole face.
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                widget.child,
-                if (_message case final message?)
-                  WearToast(
-                    message: message.message,
-                    tone: message.tone,
-                    onDismiss: _dismiss,
-                  ),
-              ],
-            ),
-          ),
+    body: SafeArea(
+      child: WearToastScope(
+        show: _show,
+        // Expands so the screen under the message is laid out exactly as it
+        // was before there was a layer above it: a Stack sizes itself to its
+        // children otherwise, and every watch screen expects to be handed
+        // the whole face.
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            widget.child,
+            if (_message case final message?)
+              WearToast(
+                message: message.message,
+                tone: message.tone,
+                onDismiss: _dismiss,
+              ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }

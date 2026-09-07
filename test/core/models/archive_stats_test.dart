@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ArchiveStats.fromJson', () {
-    test('parsuje pełną odpowiedź /archives/stats', () {
+    test('parses full /archives/stats response', () {
       final stats = ArchiveStats.fromJson(const {
         'total_prints': 83,
         'successful_prints': 77,
@@ -55,27 +55,27 @@ void main() {
       expect(stats.printerNames, isEmpty);
     });
 
-    test('successRate liczony z sukcesów względem rozstrzygniętych', () {
+    test('successRate calculated from successes relative to resolved', () {
       final stats = ArchiveStats.fromJson(const {
         'successful_prints': 77,
         'failed_prints': 3,
       });
-      // 77 / (77 + 3) = 96.25% — wydruki w toku nie wchodzą do mianownika.
+      // 77 / (77 + 3) = 96.25% — running prints do not enter the denominator.
       expect(stats.successRate, closeTo(96.25, 0.001));
     });
 
-    test('anulowane wydruki nie wchodzą do mianownika successRate', () {
+    test('cancelled prints do not enter the successRate denominator', () {
       final stats = ArchiveStats.fromJson(const {
         'successful_prints': 77,
         'failed_prints': 3,
         'cancelled_prints': 20,
       });
       expect(stats.cancelledPrints, 20);
-      // Ten sam wynik co bez anulowanych — mianownik to tylko sukces+porażka.
+      // Same result as without cancelled — denominator is only success+failure.
       expect(stats.successRate, closeTo(96.25, 0.001));
     });
 
-    test('puste / brakujące pola → bezpieczne defaulty', () {
+    test('empty / missing fields → safe defaults', () {
       final stats = ArchiveStats.fromJson(const {});
       expect(stats.totalPrints, 0);
       expect(stats.cancelledPrints, 0);

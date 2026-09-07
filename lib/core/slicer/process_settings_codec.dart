@@ -24,8 +24,9 @@ typedef SettingValue = Object;
 
 /// Leading numeric prefix, matching JavaScript's `parseFloat` — the bounds this
 /// runs on were written for it.
-final _leadingNumber =
-    RegExp(r'^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?');
+final _leadingNumber = RegExp(
+  r'^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?',
+);
 
 /// Renders one scalar the way a process preset stores it.
 ///
@@ -140,8 +141,10 @@ bool isModified(ProcessOption option, Object? value, [Object? presetValue]) {
 /// Both sides of a comparison through the same serialiser, so `20` and `20%`
 /// compare equal on a percent and a list and its comma form do not differ.
 String _flatten(ProcessOption option, Object value) {
-  final serialized =
-      serializeSetting(option, value is List ? value.map(_stringify).join(', ') : value);
+  final serialized = serializeSetting(
+    option,
+    value is List ? value.map(_stringify).join(', ') : value,
+  );
   return serialized is List ? serialized.join(', ') : serialized as String;
 }
 

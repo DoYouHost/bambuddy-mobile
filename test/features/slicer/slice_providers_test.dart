@@ -44,10 +44,13 @@ void main() {
       required bool serverAccepts,
       bool assetsLoad = true,
     }) {
-      final c = container(overrides: [
-        processOverridesProvider.overrideWith((ref) async => serverAccepts),
-        if (!assetsLoad) processSchemaProvider.overrideWith((ref) async => null),
-      ]);
+      final c = container(
+        overrides: [
+          processOverridesProvider.overrideWith((ref) async => serverAccepts),
+          if (!assetsLoad)
+            processSchemaProvider.overrideWith((ref) async => null),
+        ],
+      );
       return c.read(processSettingsAvailableProvider.future);
     }
 
@@ -65,11 +68,14 @@ void main() {
     test('an older server is not asked about the assets at all', () async {
       // Short-circuit: below 1.2.6 there is nothing to show regardless, and
       // decoding 156 KB to discover that would be wasted on every slice.
-      final c = container(overrides: [
-        processOverridesProvider.overrideWith((ref) async => false),
-        processSchemaProvider.overrideWith(
-            (ref) async => throw StateError('should not be read')),
-      ]);
+      final c = container(
+        overrides: [
+          processOverridesProvider.overrideWith((ref) async => false),
+          processSchemaProvider.overrideWith(
+            (ref) async => throw StateError('should not be read'),
+          ),
+        ],
+      );
       expect(await c.read(processSettingsAvailableProvider.future), isFalse);
     });
   });
@@ -78,7 +84,8 @@ void main() {
     test('puts the preset source and id on the wire', () async {
       final repo = _CountingRepository();
       final c = container(
-          overrides: [slicerRepositoryProvider.overrideWithValue(repo)]);
+        overrides: [slicerRepositoryProvider.overrideWithValue(repo)],
+      );
 
       await c.read(presetValuesProvider(('local', '12')).future);
       expect(repo.asked, [('local', '12')]);
@@ -90,7 +97,8 @@ void main() {
       // rebuild of the sheet.
       final repo = _CountingRepository();
       final c = container(
-          overrides: [slicerRepositoryProvider.overrideWithValue(repo)]);
+        overrides: [slicerRepositoryProvider.overrideWithValue(repo)],
+      );
 
       // Listening keeps the autoDispose family alive between reads, as a widget
       // watching it would.

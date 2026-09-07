@@ -36,23 +36,24 @@ void main() {
   Future<ProviderContainer> pumpApp(
     WidgetTester tester, {
     ServerProfile? profile,
-  }) =>
-      pumpWear(
-        tester,
-        const WearApp(),
-        wrapInApp: false,
-        overrides: [
-          serverProfileOverride(profile),
-          watchConfigSyncProvider.overrideWithValue(sync),
-          // The fake's empty fleet keeps `WearHome` off the network: it renders
-          // its "no printers" message instead of polling.
-          wearTransportProvider.overrideWith(
-              (ref) => HybridWearTransport(relay: FakeWearTransport())),
-        ],
-      );
+  }) => pumpWear(
+    tester,
+    const WearApp(),
+    wrapInApp: false,
+    overrides: [
+      serverProfileOverride(profile),
+      watchConfigSyncProvider.overrideWithValue(sync),
+      // The fake's empty fleet keeps `WearHome` off the network: it renders
+      // its "no printers" message instead of polling.
+      wearTransportProvider.overrideWith(
+        (ref) => HybridWearTransport(relay: FakeWearTransport()),
+      ),
+    ],
+  );
 
-  testWidgets('a push for the server already running is adopted silently',
-      (tester) async {
+  testWidgets('a push for the server already running is adopted silently', (
+    tester,
+  ) async {
     final container = await pumpApp(tester, profile: _workshop);
 
     // Same server, fresh secret — this is how a rotated JWT reaches the watch,
@@ -64,22 +65,29 @@ void main() {
     expect(container.read(pendingWatchConfigProvider), isNull);
   });
 
-  testWidgets('a push naming another server is offered, never applied',
-      (tester) async {
+  testWidgets('a push naming another server is offered, never applied', (
+    tester,
+  ) async {
     final container = await pumpApp(tester, profile: _workshop);
 
-    sync.pushes.add(_configFor(const ServerProfile(
-        baseUrl: 'http://garage.local:8000',
-        authMode: AuthMode.apiKey,
-        label: 'Garage')));
+    sync.pushes.add(
+      _configFor(
+        const ServerProfile(
+          baseUrl: 'http://garage.local:8000',
+          authMode: AuthMode.apiKey,
+          label: 'Garage',
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(sync.applied, isEmpty);
     expect(container.read(pendingWatchConfigProvider)?.profile.label, 'Garage');
   });
 
-  testWidgets('with nothing configured the push still waits for a tap',
-      (tester) async {
+  testWidgets('with nothing configured the push still waits for a tap', (
+    tester,
+  ) async {
     final container = await pumpApp(tester);
 
     sync.pushes.add(_configFor(_workshop));

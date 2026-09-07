@@ -29,10 +29,11 @@ void main() {
 
   setUpAll(() {
     sources = {
-      for (final file in Directory('lib/wear')
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.dart')))
+      for (final file
+          in Directory('lib/wear')
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.dart')))
         file.path: file.readAsStringSync(),
     };
   });
@@ -54,7 +55,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Pick a role from WearText (or add one there) instead of a '
+      reason:
+          'Pick a role from WearText (or add one there) instead of a '
           'literal: a size chosen at the call site drifts from every other '
           'screen showing the same kind of text.',
     );
@@ -70,7 +72,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Name it in wear_theme.dart. Four greys had already drifted '
+      reason:
+          'Name it in wear_theme.dart. Four greys had already drifted '
           'apart there — 0xFF1C1C1E and 0xFF2A2A2C with nothing saying which '
           'was for what — and the status chip and the fault card turned out to '
           'be the same tinted box written twice, at 0.15/0.6 and 0.2/0.5 '
@@ -89,7 +92,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'A snackbar is laid out against the square the display reports, '
+      reason:
+          'A snackbar is laid out against the square the display reports, '
           'and a watch is the circle inscribed in it: pinned to the bottom of '
           'that square it lands where the circle has almost no width left, so '
           'most of the bar and most of its sentence are off the glass. Say it '

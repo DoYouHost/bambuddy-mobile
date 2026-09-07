@@ -16,8 +16,9 @@ void main() {
   SlicerPreset preset(String name, {String? type}) =>
       SlicerPreset(source: 'cloud', id: name, name: name, filamentType: type);
 
-  List<String> namesOf(List<SlicerPreset> presets) =>
-      [for (final p in presets) p.name];
+  List<String> namesOf(List<SlicerPreset> presets) => [
+    for (final p in presets) p.name,
+  ];
 
   group('by printer model', () {
     test('drops what names another printer, keeps what names none', () {
@@ -62,14 +63,11 @@ void main() {
 
     test('without the registry the short code still decides, and a model '
         'written into the body of the name no longer resolves at all', () {
-      final kept = filterFilamentPresets(
-        [
-          preset('Bambu PLA Basic @BBL P1S'),
-          preset('Bambu PLA Basic @BBL X1C'),
-          preset('X1C eSUN PETG-Basic'),
-        ],
-        printerModel: 'X1C',
-      );
+      final kept = filterFilamentPresets([
+        preset('Bambu PLA Basic @BBL P1S'),
+        preset('Bambu PLA Basic @BBL X1C'),
+        preset('X1C eSUN PETG-Basic'),
+      ], printerModel: 'X1C');
 
       expect(namesOf(kept), [
         'Bambu PLA Basic @BBL X1C',
@@ -80,50 +78,45 @@ void main() {
 
   group('by material', () {
     test('the declared type is the evidence when the preset has one', () {
-      final kept = filterFilamentPresets(
-        [
-          preset('Some house blend', type: 'PLA'),
-          preset('Another house blend', type: 'PETG'),
-        ],
-        material: 'pla',
-      );
+      final kept = filterFilamentPresets([
+        preset('Some house blend', type: 'PLA'),
+        preset('Another house blend', type: 'PETG'),
+      ], material: 'pla');
 
       expect(namesOf(kept), ['Some house blend']);
     });
 
     test('a declared type that disagrees settles it — the name is not read '
         'as a second opinion', () {
-      final kept = filterFilamentPresets(
-        [preset('PETG that prints under PLA supports', type: 'PETG')],
-        material: 'PLA',
-      );
+      final kept = filterFilamentPresets([
+        preset('PETG that prints under PLA supports', type: 'PETG'),
+      ], material: 'PLA');
 
       expect(kept, isEmpty);
     });
 
     test('falls back to the name, which is all the cloud tier gives', () {
-      final kept = filterFilamentPresets(
-        [preset('Bambu PLA Matte @BBL X1C'), preset('Bambu PETG HF @BBL X1C')],
-        material: 'PLA',
-      );
+      final kept = filterFilamentPresets([
+        preset('Bambu PLA Matte @BBL X1C'),
+        preset('Bambu PETG HF @BBL X1C'),
+      ], material: 'PLA');
 
       expect(namesOf(kept), ['Bambu PLA Matte @BBL X1C']);
     });
 
     test('a material is a word, not a substring: PC is not PCTG', () {
-      final kept = filterFilamentPresets(
-        [preset('Bambu PCTG'), preset('Bambu PC Emerge')],
-        material: 'PC',
-      );
+      final kept = filterFilamentPresets([
+        preset('Bambu PCTG'),
+        preset('Bambu PC Emerge'),
+      ], material: 'PC');
 
       expect(namesOf(kept), ['Bambu PC Emerge']);
     });
 
     test('a variant still counts as its base material', () {
-      final kept = filterFilamentPresets(
-        [preset('Bambu PLA-CF @BBL X1C')],
-        material: 'PLA',
-      );
+      final kept = filterFilamentPresets([
+        preset('Bambu PLA-CF @BBL X1C'),
+      ], material: 'PLA');
 
       expect(kept, hasLength(1));
     });
@@ -142,10 +135,12 @@ void main() {
       SlicerPreset(source: 'cloud', id: 'GFG00', name: 'Bambu PETG HF'),
     ];
 
-    expect(namesOf(filterFilamentPresets(all, query: 'petg')),
-        ['Bambu PETG HF']);
-    expect(namesOf(filterFilamentPresets(all, query: 'gfa')),
-        ['Bambu PLA Basic']);
+    expect(namesOf(filterFilamentPresets(all, query: 'petg')), [
+      'Bambu PETG HF',
+    ]);
+    expect(namesOf(filterFilamentPresets(all, query: 'gfa')), [
+      'Bambu PLA Basic',
+    ]);
   });
 
   test('the filters compose — model and material at once', () {

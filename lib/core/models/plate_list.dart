@@ -105,12 +105,12 @@ class PlateList {
   });
 
   factory PlateList.fromJson(Map<String, dynamic> json) => PlateList(
-        plates: parsePlates(json['plates']),
-        // Absent on the library route and on a source-only 3MF. Read as "there
-        // is G-code to preview", never as "this file exists".
-        hasGcode: json['has_gcode'] == true,
-        embedded: EmbeddedSettings.fromJson(json),
-      );
+    plates: parsePlates(json['plates']),
+    // Absent on the library route and on a source-only 3MF. Read as "there
+    // is G-code to preview", never as "this file exists".
+    hasGcode: json['has_gcode'] == true,
+    embedded: EmbeddedSettings.fromJson(json),
+  );
 
   static const none = PlateList();
 

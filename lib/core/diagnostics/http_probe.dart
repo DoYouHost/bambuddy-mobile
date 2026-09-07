@@ -100,8 +100,8 @@ class HttpProbe extends Interceptor {
           // instead of as an error.
           'empty':
               _isRead(response.requestOptions.method) && response.data == null
-                  ? true
-                  : null,
+              ? true
+              : null,
           ..._sampleOf(store, response),
         },
       );
@@ -188,8 +188,7 @@ class HttpProbe extends Interceptor {
         // dio's message only restates the status when there is a response, so
         // it earns its place exactly when there is none.
         'msg': status == null ? _reasonOf(err, cause) : null,
-        'body':
-            status == null ? null : _bodyPreview(err.response?.data, store),
+        'body': status == null ? null : _bodyPreview(err.response?.data, store),
       },
     );
     handler.next(err);

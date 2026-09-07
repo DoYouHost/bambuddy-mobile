@@ -30,12 +30,16 @@ void main() {
     required List<Printer> printers,
     required Map<String, String> recorded,
   }) async {
-    final container = ProviderContainer(overrides: [
-      printersRepositoryProvider.overrideWithValue(_FakePrintersRepo(printers)),
-      statsProvider.overrideWith(
-        () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
-      ),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        printersRepositoryProvider.overrideWithValue(
+          _FakePrintersRepo(printers),
+        ),
+        statsProvider.overrideWith(
+          () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
     // Auto-dispose: something has to hold them the way the Stats screen does.
     container.listen(statsProvider, (_, _) {});
@@ -46,26 +50,30 @@ void main() {
     return container.read(printerNamesProvider.future);
   }
 
-  test('a live printer is named from the live record, so a rename shows up',
-      () async {
-    final names = await resolve(
-      printers: const [Printer(id: 1, name: 'Ultron mk2')],
-      recorded: const {'1': 'Ultron'},
-    );
+  test(
+    'a live printer is named from the live record, so a rename shows up',
+    () async {
+      final names = await resolve(
+        printers: const [Printer(id: 1, name: 'Ultron mk2')],
+        recorded: const {'1': 'Ultron'},
+      );
 
-    expect(names[1], 'Ultron mk2');
-  });
+      expect(names[1], 'Ultron mk2');
+    },
+  );
 
-  test('an id the live list does not cover is named from the recorded names',
-      () async {
-    final names = await resolve(
-      printers: const [Printer(id: 1, name: 'Ultron')],
-      recorded: const {'1': 'Ultron', '7': 'Vision'},
-    );
+  test(
+    'an id the live list does not cover is named from the recorded names',
+    () async {
+      final names = await resolve(
+        printers: const [Printer(id: 1, name: 'Ultron')],
+        recorded: const {'1': 'Ultron', '7': 'Vision'},
+      );
 
-    expect(names[1], 'Ultron');
-    expect(names[7], 'Vision');
-  });
+      expect(names[1], 'Ultron');
+      expect(names[7], 'Vision');
+    },
+  );
 
   test('a caller that cannot read /printers still gets names', () async {
     final names = await resolve(
@@ -85,13 +93,15 @@ void main() {
     expect(names, {3: 'Jarvis'});
   });
 
-  test('without printer_names the map is the live printers, as before',
-      () async {
-    final names = await resolve(
-      printers: const [Printer(id: 2, name: 'Wanda')],
-      recorded: const {},
-    );
+  test(
+    'without printer_names the map is the live printers, as before',
+    () async {
+      final names = await resolve(
+        printers: const [Printer(id: 2, name: 'Wanda')],
+        recorded: const {},
+      );
 
-    expect(names, {2: 'Wanda'});
-  });
+      expect(names, {2: 'Wanda'});
+    },
+  );
 }

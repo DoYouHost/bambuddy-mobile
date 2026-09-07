@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
-import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
@@ -17,47 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Records alerts instead of touching the plugin.
-class _FakeNotifications implements NotificationService {
-  final alerts = <Map<String, Object?>>[];
-
-  @override
-  Future<void> showAlert({
-    required NotifEvent event,
-    required int printerId,
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-    List<NotificationAction>? actions,
-    AlertPicture? picture,
-  }) async {
-    alerts.add({
-      'event': event,
-      'printerId': printerId,
-      'id': id,
-      'body': body,
-      'payload': payload,
-      'actionIds': [for (final a in actions ?? const []) a.id],
-    });
-  }
-
-  @override
-  Future<bool> isAlertActive(int id) async => true;
-
-  @override
-  Future<void> clearOngoing() async {}
-  @override
-  Future<void> init() async {}
-  @override
-  Future<bool> requestPermission() async => true;
-  @override
-  Future<void> showOngoing({
-    required String title,
-    required String body,
-    required int progress,
-  }) async {}
-}
+import '../../helpers.dart';
 
 /// Repo driven from the test: returns the injected list / printer.
 class _FakeRepo extends MaintenanceRepository {
@@ -95,16 +54,15 @@ MaintenanceStatus _item({
   required int id,
   bool isDue = false,
   bool enabled = true,
-}) =>
-    MaintenanceStatus(
-      id: id,
-      printerId: 1,
-      printerName: 'X2D',
-      maintenanceTypeId: id,
-      maintenanceTypeName: 'Task $id',
-      enabled: enabled,
-      isDue: isDue,
-    );
+}) => MaintenanceStatus(
+  id: id,
+  printerId: 1,
+  printerName: 'X2D',
+  maintenanceTypeId: id,
+  maintenanceTypeName: 'Task $id',
+  enabled: enabled,
+  isDue: isDue,
+);
 
 PrinterMaintenanceOverview _printer(List<MaintenanceStatus> items) =>
     PrinterMaintenanceOverview(
@@ -117,27 +75,26 @@ PrinterMaintenanceOverview _printer(List<MaintenanceStatus> items) =>
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _FakeNotifications notifications;
+  late RecordingNotifications notifications;
   late _FakeRepo repo;
   late Set<int> persisted;
 
   MaintenanceMonitor monitor({
     NotificationPrefs? prefs,
     Future<Set<int>> Function()? reload,
-  }) =>
-      MaintenanceMonitor(
-        notifications,
-        repo: repo,
-        prefs: prefs ??
-            const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
-        initialNotified: persisted,
-        persist: (s) async => persisted = {...s},
-        reload: reload,
-        l10n: () => lookupAppLocalizations(const Locale('en')),
-      );
+  }) => MaintenanceMonitor(
+    notifications,
+    repo: repo,
+    prefs:
+        prefs ?? const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
+    initialNotified: persisted,
+    persist: (s) async => persisted = {...s},
+    reload: reload,
+    l10n: () => lookupAppLocalizations(const Locale('en')),
+  );
 
   setUp(() {
-    notifications = _FakeNotifications();
+    notifications = RecordingNotifications();
     repo = _FakeRepo();
     persisted = {};
   });
@@ -168,25 +125,27 @@ void main() {
     expect(notifications.alerts, hasLength(1));
   });
 
-  test('check: re-arm — an item that stops being due leaves the dedup set', () async {
-    repo.overview = [
-      _printer([_item(id: 10, isDue: true)]),
-    ];
-    final m1 = monitor();
-    await m1.check();
-    expect(persisted, {10});
+  test(
+    'check: re-arm — an item that stops being due leaves the dedup set',
+    () async {
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true)]),
+      ];
+      final m1 = monitor();
+      await m1.check();
+      expect(persisted, {10});
 
-    // Maintenance performed → no longer due.
-    repo.overview = [
-      _printer([_item(id: 10)]),
-    ];
-    await m1.check();
-    expect(persisted, isEmpty);
-  });
+      // Maintenance performed → no longer due.
+      repo.overview = [
+        _printer([_item(id: 10)]),
+      ];
+      await m1.check();
+      expect(persisted, isEmpty);
+    },
+  );
 
   test('check: reload from disk unblocks the alert after "Mark Done" in another '
-      'isolate',
-      () async {
+      'isolate', () async {
     // The item is still due on the server (perform failed), but the notification
     // callback took it out of the set on disk — the poll must see that and alert
     // again.
@@ -206,45 +165,55 @@ void main() {
     expect(notifications.alerts, hasLength(1));
   });
 
-  test('check: "Mark Done" during the request is not lost under the write',
-      () async {
-    // The request takes seconds; a tap inside that window rewrites this very set
-    // from the callback isolate. Reading before the request would hand back the
-    // state we started with and undo that write.
-    repo.overview = [
-      _printer([_item(id: 10, isDue: true)]),
-    ];
-    persisted = {10};
-    var onDisk = {10};
-    repo.onFetch = () => onDisk = {}; // the user taps mid-fetch
+  test(
+    'check: "Mark Done" during the request is not lost under the write',
+    () async {
+      // The request takes seconds; a tap inside that window rewrites this very set
+      // from the callback isolate. Reading before the request would hand back the
+      // state we started with and undo that write.
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true)]),
+      ];
+      persisted = {10};
+      var onDisk = {10};
+      repo.onFetch = () => onDisk = {}; // the user taps mid-fetch
 
-    await monitor(reload: () async => {...onDisk}).check();
+      await monitor(reload: () async => {...onDisk}).check();
 
-    expect(notifications.alerts, hasLength(1), reason: 'item re-armed');
-  });
+      expect(notifications.alerts, hasLength(1), reason: 'item re-armed');
+    },
+  );
 
-  test('check: "Mark Done" after the request is not lost under the write either',
-      () async {
-    // Same situation as above, only the tap lands after the read: between it and
-    // the final write. The write must therefore start from disk, not from the copy
-    // this poll started with — otherwise an item taken out of the set comes back
-    // into it and a counter that was never reset stays silent forever.
-    repo.overview = [
-      _printer([_item(id: 10, isDue: true)]),
-    ];
-    persisted = {10};
-    var onDisk = {10};
-    var reads = 0;
+  test(
+    'check: "Mark Done" after the request is not lost under the write either',
+    () async {
+      // Same situation as above, only the tap lands after the read: between it and
+      // the final write. The write must therefore start from disk, not from the copy
+      // this poll started with — otherwise an item taken out of the set comes back
+      // into it and a counter that was never reset stays silent forever.
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true)]),
+      ];
+      persisted = {10};
+      var onDisk = {10};
+      var reads = 0;
 
-    await monitor(reload: () async {
-      final snapshot = {...onDisk};
-      if (reads++ == 0) onDisk = {}; // tap right after the read
-      return snapshot;
-    }).check();
+      await monitor(
+        reload: () async {
+          final snapshot = {...onDisk};
+          if (reads++ == 0) onDisk = {}; // tap right after the read
+          return snapshot;
+        },
+      ).check();
 
-    expect(reads, 2, reason: 'read at the start and again before the write');
-    expect(persisted, isEmpty, reason: 're-arm from another isolate survived the write');
-  });
+      expect(reads, 2, reason: 'read at the start and again before the write');
+      expect(
+        persisted,
+        isEmpty,
+        reason: 're-arm from another isolate survived the write',
+      );
+    },
+  );
 
   test('check: a disabled event → silence', () async {
     repo.overview = [
@@ -283,18 +252,21 @@ void main() {
     expect(id, lessThan(13 * alertBandWidth));
   });
 
-  test('remindOnPrintEnd: one summary reminder when items are overdue', () async {
-    repo.overview = [
-      _printer([_item(id: 10, isDue: true), _item(id: 12, isDue: true)]),
-    ];
+  test(
+    'remindOnPrintEnd: one summary reminder when items are overdue',
+    () async {
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true), _item(id: 12, isDue: true)]),
+      ];
 
-    await monitor().remindOnPrintEnd(1);
+      await monitor().remindOnPrintEnd(1);
 
-    final alert = notifications.alerts.single;
-    expect(alert['id'], 13 * alertBandWidth + 1);
-    expect(alert['payload'], '10,12');
-    expect(alert['actionIds'], [maintenancePerformActionId]);
-  });
+      final alert = notifications.alerts.single;
+      expect(alert['id'], 13 * alertBandWidth + 1);
+      expect(alert['payload'], '10,12');
+      expect(alert['actionIds'], [maintenancePerformActionId]);
+    },
+  );
 
   test('remindOnPrintEnd: nothing overdue → no notification', () async {
     repo.overview = [
@@ -307,32 +279,34 @@ void main() {
   });
 
   test(
-      'remindOnPrintEnd: a disabled item (enabled=false) is skipped even when due',
-      () async {
-    repo.overview = [
-      _printer([
-        _item(id: 10, isDue: true, enabled: false),
-        _item(id: 12, isDue: true),
-      ]),
-    ];
+    'remindOnPrintEnd: a disabled item (enabled=false) is skipped even when due',
+    () async {
+      repo.overview = [
+        _printer([
+          _item(id: 10, isDue: true, enabled: false),
+          _item(id: 12, isDue: true),
+        ]),
+      ];
 
-    await monitor().remindOnPrintEnd(1);
+      await monitor().remindOnPrintEnd(1);
 
-    final alert = notifications.alerts.single;
-    expect(alert['payload'], '12');
-  });
+      final alert = notifications.alerts.single;
+      expect(alert['payload'], '12');
+    },
+  );
 
   test(
-      'remindOnPrintEnd: every overdue item disabled → no notification',
-      () async {
-    repo.overview = [
-      _printer([_item(id: 10, isDue: true, enabled: false)]),
-    ];
+    'remindOnPrintEnd: every overdue item disabled → no notification',
+    () async {
+      repo.overview = [
+        _printer([_item(id: 10, isDue: true, enabled: false)]),
+      ];
 
-    await monitor().remindOnPrintEnd(1);
+      await monitor().remindOnPrintEnd(1);
 
-    expect(notifications.alerts, isEmpty);
-  });
+      expect(notifications.alerts, isEmpty);
+    },
+  );
 
   group('diagnostics', () {
     late DiagnosticRecorder recorder;
@@ -349,7 +323,9 @@ void main() {
 
     tearDown(() => recorder.discard());
 
-    Future<List<Map<String, Object?>>> rows(Future<void> Function() body) async {
+    Future<List<Map<String, Object?>>> rows(
+      Future<void> Function() body,
+    ) async {
       await recorder.start();
       await body();
       return [
@@ -372,7 +348,10 @@ void main() {
 
       final all = await rows(() => monitor().check());
 
-      final check = [for (final r in all) if (r['evt'] == 'maintenance_check') r];
+      final check = [
+        for (final r in all)
+          if (r['evt'] == 'maintenance_check') r,
+      ];
       expect(check.single['due'], 2);
       expect(check.single['fresh'], 1);
     });
@@ -382,13 +361,18 @@ void main() {
 
       final all = await rows(() => monitor().check());
 
-      final skip = [for (final r in all) if (r['evt'] == 'suppressed') r];
+      final skip = [
+        for (final r in all)
+          if (r['evt'] == 'suppressed') r,
+      ];
       expect(skip.single['reason'], 'fetchFailed');
       expect(skip.single['event'], 'maintenanceDue');
       expect(skip.single['cause'], 'DioException');
       // The overview never finished, so there is nothing to report on.
-      expect([for (final r in all) if (r['evt'] == 'maintenance_check') r],
-          isEmpty);
+      expect([
+        for (final r in all)
+          if (r['evt'] == 'maintenance_check') r,
+      ], isEmpty);
     });
 
     test('no printer data is noData, not fetchFailed', () async {
@@ -397,7 +381,10 @@ void main() {
       // which.
       final all = await rows(() => monitor().remindOnPrintEnd(99));
 
-      final skip = [for (final r in all) if (r['evt'] == 'suppressed') r];
+      final skip = [
+        for (final r in all)
+          if (r['evt'] == 'suppressed') r,
+      ];
       expect(skip.single['reason'], 'noData');
       expect(skip.single['printer_id'], 99);
     });

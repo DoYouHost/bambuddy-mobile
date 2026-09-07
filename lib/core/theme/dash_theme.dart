@@ -136,76 +136,76 @@ class DashTokens {
 
   factory DashTokens.of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? const DashTokens.dark()
-          : const DashTokens.light();
+      ? const DashTokens.dark()
+      : const DashTokens.light();
 
   const DashTokens.dark()
-      : brightness = Brightness.dark,
-        backgroundGradient = const RadialGradient(
-          center: Alignment(-0.6, -1),
-          radius: 1.4,
-          colors: [Color(0xFF131A12), Color(0xFF07090A), Color(0xFF050605)],
-          stops: [0.0, 0.55, 1.0],
-        ),
-        cardGradient = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0x0DFFFFFF), Color(0x04FFFFFF)],
-        ),
-        cardBorder = const Color(0x12FFFFFF),
-        subCard = const Color(0x08FFFFFF),
-        subCardBorder = const Color(0x0DFFFFFF),
-        groupCard = const Color(0x06FFFFFF),
-        groupCardBorder = const Color(0x0FFFFFFF),
-        textPrimary = const Color(0xFFFBFCF9),
-        textSecondary = const Color(0xB0F2F4EF),
-        textTertiary = const Color(0x88F2F4EF),
-        accentGreen = const Color(0xFF5FE08A),
-        accentGreenInk = const Color(0xFF5FE08A),
-        accentOrange = const Color(0xFFFF9F5C),
-        accentOrangeInk = const Color(0xFFFF9F5C),
-        accentBlue = const Color(0xFF4FA6F7),
-        danger = const Color(0xFFFF6B6B),
-        gaugeTrack = const Color(0x10FFFFFF),
-        hairline = const Color(0x14FFFFFF),
-        dottedRule = const Color(0x24FFFFFF),
-        navBar = const Color(0x59000000),
-        overlaySurface = const Color(0xFF0E1310),
-        overlayBorder = const Color(0x24FFFFFF);
+    : brightness = Brightness.dark,
+      backgroundGradient = const RadialGradient(
+        center: Alignment(-0.6, -1),
+        radius: 1.4,
+        colors: [Color(0xFF131A12), Color(0xFF07090A), Color(0xFF050605)],
+        stops: [0.0, 0.55, 1.0],
+      ),
+      cardGradient = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0x0DFFFFFF), Color(0x04FFFFFF)],
+      ),
+      cardBorder = const Color(0x12FFFFFF),
+      subCard = const Color(0x08FFFFFF),
+      subCardBorder = const Color(0x0DFFFFFF),
+      groupCard = const Color(0x06FFFFFF),
+      groupCardBorder = const Color(0x0FFFFFFF),
+      textPrimary = const Color(0xFFFBFCF9),
+      textSecondary = const Color(0xB0F2F4EF),
+      textTertiary = const Color(0x88F2F4EF),
+      accentGreen = const Color(0xFF5FE08A),
+      accentGreenInk = const Color(0xFF5FE08A),
+      accentOrange = const Color(0xFFFF9F5C),
+      accentOrangeInk = const Color(0xFFFF9F5C),
+      accentBlue = const Color(0xFF4FA6F7),
+      danger = const Color(0xFFFF6B6B),
+      gaugeTrack = const Color(0x10FFFFFF),
+      hairline = const Color(0x14FFFFFF),
+      dottedRule = const Color(0x24FFFFFF),
+      navBar = const Color(0x59000000),
+      overlaySurface = const Color(0xFF0E1310),
+      overlayBorder = const Color(0x24FFFFFF);
 
   const DashTokens.light()
-      : brightness = Brightness.light,
-        backgroundGradient = const RadialGradient(
-          center: Alignment(-0.6, -1),
-          radius: 1.4,
-          colors: [Color(0xFFEAF2E7), Color(0xFFF6F8F4), Color(0xFFFDFEFC)],
-          stops: [0.0, 0.55, 1.0],
-        ),
-        cardGradient = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFF5F7F3)],
-        ),
-        cardBorder = const Color(0x14000000),
-        subCard = const Color(0x05000000),
-        subCardBorder = const Color(0x0F000000),
-        groupCard = const Color(0x04000000),
-        groupCardBorder = const Color(0x12000000),
-        textPrimary = const Color(0xFF10130E),
-        textSecondary = const Color(0xC4202318),
-        textTertiary = const Color(0xAC202318),
-        accentGreen = const Color(0xFF34C46E),
-        accentGreenInk = const Color(0xFF18733D),
-        accentOrange = const Color(0xFFE07C36),
-        accentOrangeInk = const Color(0xFFA05019),
-        accentBlue = const Color(0xFF2C7FE0),
-        danger = const Color(0xFFD64545),
-        gaugeTrack = const Color(0x14000000),
-        hairline = const Color(0x14000000),
-        dottedRule = const Color(0x1F000000),
-        navBar = const Color(0x0A000000),
-        overlaySurface = const Color(0xFFF6F8F4),
-        overlayBorder = const Color(0x14000000);
+    : brightness = Brightness.light,
+      backgroundGradient = const RadialGradient(
+        center: Alignment(-0.6, -1),
+        radius: 1.4,
+        colors: [Color(0xFFEAF2E7), Color(0xFFF6F8F4), Color(0xFFFDFEFC)],
+        stops: [0.0, 0.55, 1.0],
+      ),
+      cardGradient = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFFFFF), Color(0xFFF5F7F3)],
+      ),
+      cardBorder = const Color(0x14000000),
+      subCard = const Color(0x05000000),
+      subCardBorder = const Color(0x0F000000),
+      groupCard = const Color(0x04000000),
+      groupCardBorder = const Color(0x12000000),
+      textPrimary = const Color(0xFF10130E),
+      textSecondary = const Color(0xC4202318),
+      textTertiary = const Color(0xAC202318),
+      accentGreen = const Color(0xFF34C46E),
+      accentGreenInk = const Color(0xFF18733D),
+      accentOrange = const Color(0xFFE07C36),
+      accentOrangeInk = const Color(0xFFA05019),
+      accentBlue = const Color(0xFF2C7FE0),
+      danger = const Color(0xFFD64545),
+      gaugeTrack = const Color(0x14000000),
+      hairline = const Color(0x14000000),
+      dottedRule = const Color(0x1F000000),
+      navBar = const Color(0x0A000000),
+      overlaySurface = const Color(0xFFF6F8F4),
+      overlayBorder = const Color(0x14000000);
 }
 
 /// Full-screen gradient backdrop for a "2a" screen. Wrap a transparent
@@ -241,9 +241,9 @@ class DashBackground extends StatelessWidget {
 /// it by inheritance. The bar's own [AppBar.preferredSize] is kept, so a bar
 /// with a `bottom:` is not clipped.
 PreferredSizeWidget loggedAppBar(AppBar bar) => PreferredSize(
-      preferredSize: bar.preferredSize,
-      child: logTag('chrome.appbar', bar),
-    );
+  preferredSize: bar.preferredSize,
+  child: logTag('chrome.appbar', bar),
+);
 
 PreferredSizeWidget dashAppBar(
   BuildContext context, {
@@ -368,7 +368,9 @@ InputDecoration dashFieldDecoration(
   final radius = BorderRadius.circular(14);
   OutlineInputBorder border(Color color, [double width = 1]) =>
       OutlineInputBorder(
-          borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+        borderRadius: radius,
+        borderSide: BorderSide(color: color, width: width),
+      );
   return InputDecoration(
     isDense: true,
     filled: true,
@@ -414,20 +416,20 @@ InputDecoration dashFieldDecoration(
 /// Primary CTA button style for Dash screens: filled vivid green with dark
 /// ink, matching the queue screen's "start next" FAB.
 ButtonStyle dashPrimaryButtonStyle(DashTokens t) => FilledButton.styleFrom(
-      backgroundColor: t.accentGreen,
-      foregroundColor: const Color(0xFF0A0C08),
-      disabledBackgroundColor: t.accentGreen.withValues(alpha: 0.35),
-      disabledForegroundColor: const Color(0xFF0A0C08).withValues(alpha: 0.5),
-      textStyle: const TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-      ),
-      // Horizontal padding matters for auto-width buttons (dialog actions);
-      // full-width CTAs center their label regardless, so this is safe there.
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    );
+  backgroundColor: t.accentGreen,
+  foregroundColor: const Color(0xFF0A0C08),
+  disabledBackgroundColor: t.accentGreen.withValues(alpha: 0.35),
+  disabledForegroundColor: const Color(0xFF0A0C08).withValues(alpha: 0.5),
+  textStyle: const TextStyle(
+    fontFamily: DashTokens.fontUi,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  ),
+  // Horizontal padding matters for auto-width buttons (dialog actions);
+  // full-width CTAs center their label regardless, so this is safe there.
+  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+);
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill — fixed regardless of brightness, since the green fill itself is a
@@ -445,30 +447,31 @@ ThemeData buildDashThemeData(Brightness brightness) {
       ? const DashTokens.dark()
       : const DashTokens.light();
 
-  final colorScheme = ColorScheme.fromSeed(
-    seedColor: t.accentGreen,
-    brightness: brightness,
-  ).copyWith(
-    primary: t.accentGreenInk,
-    onPrimary: _onAccentGreenFill,
-    secondary: t.accentBlue,
-    error: t.danger,
-    onError: Colors.white,
-    surface: t.overlaySurface,
-    onSurface: t.textPrimary,
-    surfaceContainerHighest: t.overlaySurface,
-    surfaceContainerHigh: t.overlaySurface,
-    surfaceContainer: t.overlaySurface,
-    onSurfaceVariant: t.textSecondary,
-    outline: t.subCardBorder,
-    outlineVariant: t.hairline,
-  );
+  final colorScheme =
+      ColorScheme.fromSeed(
+        seedColor: t.accentGreen,
+        brightness: brightness,
+      ).copyWith(
+        primary: t.accentGreenInk,
+        onPrimary: _onAccentGreenFill,
+        secondary: t.accentBlue,
+        error: t.danger,
+        onError: Colors.white,
+        surface: t.overlaySurface,
+        onSurface: t.textPrimary,
+        surfaceContainerHighest: t.overlaySurface,
+        surfaceContainerHigh: t.overlaySurface,
+        surfaceContainer: t.overlaySurface,
+        onSurfaceVariant: t.textSecondary,
+        outline: t.subCardBorder,
+        outlineVariant: t.hairline,
+      );
 
   final baseText = ThemeData(brightness: brightness).textTheme.apply(
-        fontFamily: DashTokens.fontUi,
-        bodyColor: t.textPrimary,
-        displayColor: t.textPrimary,
-      );
+    fontFamily: DashTokens.fontUi,
+    bodyColor: t.textPrimary,
+    displayColor: t.textPrimary,
+  );
 
   final radius14 = BorderRadius.circular(14);
   final radius16 = BorderRadius.circular(16);
@@ -478,8 +481,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor:
-        t.isDark ? const Color(0xFF07090A) : const Color(0xFFFDFEFC),
+    scaffoldBackgroundColor: t.isDark
+        ? const Color(0xFF07090A)
+        : const Color(0xFFFDFEFC),
     textTheme: baseText,
     primaryTextTheme: baseText,
     iconTheme: IconThemeData(color: t.textSecondary),
@@ -612,48 +616,61 @@ ThemeData buildDashThemeData(Brightness brightness) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected)
-                ? t.accentGreen.withValues(alpha: 0.18)
-                : t.subCard),
-        foregroundColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected)
-                ? t.accentGreenInk
-                : t.textSecondary),
-        side: WidgetStateProperty.resolveWith((states) => BorderSide(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? t.accentGreen.withValues(alpha: 0.18)
+              : t.subCard,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? t.accentGreenInk
+              : t.textSecondary,
+        ),
+        side: WidgetStateProperty.resolveWith(
+          (states) => BorderSide(
             color: states.contains(WidgetState.selected)
                 ? t.accentGreen.withValues(alpha: 0.4)
-                : t.subCardBorder)),
-        textStyle: const WidgetStatePropertyAll(TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        )),
+                : t.subCardBorder,
+          ),
+        ),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         shape: const WidgetStatePropertyAll(StadiumBorder()),
       ),
     ),
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith((states) =>
-          states.contains(WidgetState.selected) ? t.accentGreen : null),
-      trackColor: WidgetStateProperty.resolveWith((states) =>
-          states.contains(WidgetState.selected)
-              ? t.accentGreen.withValues(alpha: 0.4)
-              : t.subCard),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? t.accentGreen : null,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? t.accentGreen.withValues(alpha: 0.4)
+            : t.subCard,
+      ),
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
     checkboxTheme: CheckboxThemeData(
-      fillColor: WidgetStateProperty.resolveWith((states) =>
-          states.contains(WidgetState.selected) ? t.accentGreen : null),
+      fillColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? t.accentGreen : null,
+      ),
       checkColor: const WidgetStatePropertyAll(_onAccentGreenFill),
       // subCardBorder (~5% white) is invisible for an interactive control;
       // use the mid-contrast outline Material itself uses (onSurfaceVariant).
       side: BorderSide(color: t.textSecondary, width: 1.5),
     ),
     radioTheme: RadioThemeData(
-      fillColor: WidgetStateProperty.resolveWith((states) =>
-          states.contains(WidgetState.selected)
-              ? t.accentGreen
-              : t.textTertiary),
+      fillColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? t.accentGreen
+            : t.textTertiary,
+      ),
     ),
     sliderTheme: SliderThemeData(
       activeTrackColor: t.accentGreen,
@@ -672,37 +689,58 @@ ThemeData buildDashThemeData(Brightness brightness) {
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
             borderRadius: radius16,
-            side: BorderSide(color: t.overlayBorder))),
+            side: BorderSide(color: t.overlayBorder),
+          ),
+        ),
       ),
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
             borderRadius: radius16,
-            side: BorderSide(color: t.overlayBorder))),
+            side: BorderSide(color: t.overlayBorder),
+          ),
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       isDense: true,
       filled: true,
       fillColor: t.subCard,
-      labelStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary),
-      hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+      labelStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        color: t.textSecondary,
+      ),
+      hintStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        color: t.textTertiary,
+      ),
       border: OutlineInputBorder(
-          borderRadius: radius14, borderSide: BorderSide(color: t.subCardBorder)),
+        borderRadius: radius14,
+        borderSide: BorderSide(color: t.subCardBorder),
+      ),
       enabledBorder: OutlineInputBorder(
-          borderRadius: radius14, borderSide: BorderSide(color: t.subCardBorder)),
+        borderRadius: radius14,
+        borderSide: BorderSide(color: t.subCardBorder),
+      ),
       focusedBorder: OutlineInputBorder(
-          borderRadius: radius14,
-          borderSide: BorderSide(color: t.accentGreen, width: 1.5)),
+        borderRadius: radius14,
+        borderSide: BorderSide(color: t.accentGreen, width: 1.5),
+      ),
       errorBorder: OutlineInputBorder(
-          borderRadius: radius14, borderSide: BorderSide(color: t.danger)),
+        borderRadius: radius14,
+        borderSide: BorderSide(color: t.danger),
+      ),
       focusedErrorBorder: OutlineInputBorder(
-          borderRadius: radius14, borderSide: BorderSide(color: t.danger, width: 1.5)),
+        borderRadius: radius14,
+        borderSide: BorderSide(color: t.danger, width: 1.5),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(style: dashPrimaryButtonStyle(t)),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -710,7 +748,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
         backgroundColor: t.subCard,
         foregroundColor: t.textPrimary,
         textStyle: const TextStyle(
-            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+          fontFamily: DashTokens.fontUi,
+          fontWeight: FontWeight.w700,
+        ),
         // Match the filled button padding so heights line up when buttons of
         // different kinds sit side by side.
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -722,7 +762,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
         foregroundColor: t.textPrimary,
         side: BorderSide(color: t.subCardBorder),
         textStyle: const TextStyle(
-            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+          fontFamily: DashTokens.fontUi,
+          fontWeight: FontWeight.w700,
+        ),
         // Match the filled button padding so heights line up when buttons of
         // different kinds sit side by side.
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -733,7 +775,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
       style: TextButton.styleFrom(
         foregroundColor: t.accentGreenInk,
         textStyle: const TextStyle(
-            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+          fontFamily: DashTokens.fontUi,
+          fontWeight: FontWeight.w700,
+        ),
         shape: RoundedRectangleBorder(borderRadius: radius14),
       ),
     ),

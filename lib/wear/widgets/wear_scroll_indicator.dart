@@ -69,7 +69,9 @@ class WearScrollIndicator extends StatelessWidget {
     final content = position.maxScrollExtent + position.viewportDimension;
     return _ScrollFraction(
       offset: (position.pixels / position.maxScrollExtent).clamp(0.0, 1.0),
-      visible: content <= 0 ? 1 : (position.viewportDimension / content).clamp(0.0, 1.0),
+      visible: content <= 0
+          ? 1
+          : (position.viewportDimension / content).clamp(0.0, 1.0),
     );
   }
 }
@@ -135,14 +137,16 @@ class _WearScrollIndicatorPainter extends CustomPainter {
   void _paintArc(Canvas canvas, Size size, Paint track, Paint thumb) {
     final radius = size.shortestSide / 2 - _edgeGap - _stroke / 2;
     if (radius <= 0) return;
-    final bounds = Rect.fromCircle(center: size.center(Offset.zero), radius: radius);
+    final bounds = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: radius,
+    );
     // Angles run clockwise from 3 o'clock, so the track is centred on the right
     // edge of the face.
     final start = -_trackSweep / 2;
     canvas.drawArc(bounds, start, _trackSweep, false, track);
 
-    final thumbSweep =
-        math.max(_trackSweep * metrics.visible, _minThumbSweep);
+    final thumbSweep = math.max(_trackSweep * metrics.visible, _minThumbSweep);
     final thumbStart = start + (_trackSweep - thumbSweep) * metrics.offset;
     canvas.drawArc(bounds, thumbStart, thumbSweep, false, thumb);
   }
@@ -157,7 +161,10 @@ class _WearScrollIndicatorPainter extends CustomPainter {
     final thumbLength = math.max(length * metrics.visible, _stroke * 3);
     final thumbTop = top + (length - thumbLength) * metrics.offset;
     canvas.drawLine(
-        Offset(x, thumbTop), Offset(x, thumbTop + thumbLength), thumb);
+      Offset(x, thumbTop),
+      Offset(x, thumbTop + thumbLength),
+      thumb,
+    );
   }
 
   @override

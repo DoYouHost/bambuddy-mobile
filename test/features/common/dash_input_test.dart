@@ -53,8 +53,9 @@ void main() {
       WidgetTester tester, {
       String? value,
       ({String id, VoidCallback onPressed})? clear,
-    }) =>
-        tester.pumpWidget(plApp(Builder(
+    }) => tester.pumpWidget(
+      plApp(
+        Builder(
           builder: (context) => Scaffold(
             body: dashPickerField(
               context,
@@ -66,18 +67,22 @@ void main() {
               onTap: () => opened++,
             ),
           ),
-        )));
+        ),
+      ),
+    );
 
     Color colourOf(WidgetTester tester, String text) =>
         tester.widget<Text>(find.text(text)).style!.color!;
 
-    testWidgets('an empty value shows the placeholder, and shows that it is one',
-        (tester) async {
-      await pump(tester);
-      final t = DashTokens.of(tester.element(find.text('Nothing picked')));
+    testWidgets(
+      'an empty value shows the placeholder, and shows that it is one',
+      (tester) async {
+        await pump(tester);
+        final t = DashTokens.of(tester.element(find.text('Nothing picked')));
 
-      expect(colourOf(tester, 'Nothing picked'), t.textTertiary);
-    });
+        expect(colourOf(tester, 'Nothing picked'), t.textTertiary);
+      },
+    );
 
     testWidgets('a value reads as one, in the primary ink', (tester) async {
       await pump(tester, value: 'Bambu PLA Basic');
@@ -104,8 +109,9 @@ void main() {
       expect(opened, 0);
     });
 
-    testWidgets('keyboard focus is visible — the decorator is told it has it',
-        (tester) async {
+    testWidgets('keyboard focus is visible — the decorator is told it has it', (
+      tester,
+    ) async {
       await pump(tester);
       expect(
         tester.widget<InputDecorator>(find.byType(InputDecorator)).isFocused,
@@ -122,8 +128,9 @@ void main() {
       );
     });
 
-    testWidgets('a field with no clear callback never grows one',
-        (tester) async {
+    testWidgets('a field with no clear callback never grows one', (
+      tester,
+    ) async {
       await pump(tester, value: 'Bambu PLA Basic');
 
       expect(find.byIcon(Icons.clear), findsNothing);
@@ -139,24 +146,29 @@ void main() {
     setUp(() => picked = []);
 
     Future<void> pump(WidgetTester tester, {int? selected}) =>
-        tester.pumpWidget(plApp(Builder(
-          builder: (context) => Scaffold(
-            body: dashAnyOrOne<int>(
-              context,
-              id: 'test.filter',
-              anyLabel: 'Any printer',
-              selected: selected,
-              options: const [(3, 'P1S'), (4, 'X1C')],
-              onPick: picked.add,
+        tester.pumpWidget(
+          plApp(
+            Builder(
+              builder: (context) => Scaffold(
+                body: dashAnyOrOne<int>(
+                  context,
+                  id: 'test.filter',
+                  anyLabel: 'Any printer',
+                  selected: selected,
+                  options: const [(3, 'P1S'), (4, 'X1C')],
+                  onPick: picked.add,
+                ),
+              ),
             ),
           ),
-        )));
+        );
 
     String fieldText(WidgetTester tester) =>
         tester.widget<TextField>(find.byType(TextField)).controller!.text;
 
-    testWidgets('nothing picked shows the any-row, not an empty field',
-        (tester) async {
+    testWidgets('nothing picked shows the any-row, not an empty field', (
+      tester,
+    ) async {
       // The reason no sentinel is needed: `initialSelection: null` resolves
       // against the null row, so the field names the state it is in. A
       // stand-in value was introduced on the belief that it could not.
@@ -181,8 +193,9 @@ void main() {
       expect(picked, [3]);
     });
 
-    testWidgets('choosing the any-row reports null, not a stand-in',
-        (tester) async {
+    testWidgets('choosing the any-row reports null, not a stand-in', (
+      tester,
+    ) async {
       // The half every caller depends on: one "no filter" state, so a screen
       // never has to map a magic value back before writing its query.
       await pump(tester, selected: 4);
@@ -194,8 +207,9 @@ void main() {
       expect(picked, [null]);
     });
 
-    testWidgets('every value row records under one id, the any-row its own',
-        (tester) async {
+    testWidgets('every value row records under one id, the any-row its own', (
+      tester,
+    ) async {
       // Labels are names people gave things and stay out of the log, so which
       // row it was is deliberately not recoverable — only that it was a row.
       await pump(tester);

@@ -46,7 +46,9 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).snack(msg, duration: const Duration(seconds: 3));
+    ScaffoldMessenger.of(
+      context,
+    ).snack(msg, duration: const Duration(seconds: 3));
   }
 
   // --- Export / import ---
@@ -63,7 +65,9 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'codes': [for (final c in codes) c.toJson()],
     };
-    final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
+    final bytes = utf8.encode(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
     final saved = await saveBytesToDevice(
       dialogTitle: l10n.swatchExport,
       fileName: 'swatch-codes.json',
@@ -148,9 +152,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         .read(swatchCodesProvider.notifier)
         .save(result, replacingCode: initial?.code);
     if (!mounted) return;
-    _snack(initial == null
-        ? l10n.swatchCreatedSnack(result.code)
-        : l10n.swatchUpdatedSnack(result.code));
+    _snack(
+      initial == null
+          ? l10n.swatchCreatedSnack(result.code)
+          : l10n.swatchUpdatedSnack(result.code),
+    );
   }
 
   /// Quick code generation for inventory filament (no form).
@@ -207,7 +213,9 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         ? allCodes
         : allCodes.where((c) {
             return c.code.contains(normalizedQuery) ||
-                c.displayName.toLowerCase().contains(query.trim().toLowerCase());
+                c.displayName.toLowerCase().contains(
+                  query.trim().toLowerCase(),
+                );
           }).toList();
 
     // Flattened once per build (cheap widget construction); the sliver list
@@ -327,7 +335,10 @@ class _SectionHeader extends StatelessWidget {
         children: [
           SectionHeading(
             label.toUpperCase(),
-            style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.8),
+            style: t.label.copyWith(
+              color: t.accentGreenInk,
+              letterSpacing: 0.8,
+            ),
           ),
           const SizedBox(width: 8),
           Container(
@@ -337,10 +348,7 @@ class _SectionHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: t.subCardBorder),
             ),
-            child: Text(
-              '$count',
-              style: t.monoLabel,
-            ),
+            child: Text('$count', style: t.monoLabel),
           ),
         ],
       ),
@@ -467,8 +475,9 @@ class _SwatchTile extends StatelessWidget {
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       icon: Icon(Icons.copy_rounded, color: t.textSecondary),
-                      tooltip:
-                          MaterialLocalizations.of(context).copyButtonLabel,
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).copyButtonLabel,
                       onPressed: onCopy,
                     ),
                   ),
@@ -535,11 +544,15 @@ class _UncodedTile extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: t.accentGreenInk,
                       side: BorderSide(
-                          color: t.accentGreen.withValues(alpha: 0.55)),
+                        color: t.accentGreen.withValues(alpha: 0.55),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       textStyle: const TextStyle(
                         fontFamily: DashTokens.fontUi,
                         fontSize: 14,
@@ -583,11 +596,7 @@ class _EmptyHint extends StatelessWidget {
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              textAlign: TextAlign.center,
-              style: t.labelSoft,
-            ),
+            Text(subtitle!, textAlign: TextAlign.center, style: t.labelSoft),
           ],
         ],
       ),
@@ -601,8 +610,9 @@ class _UpperCaseFormatter extends TextInputFormatter {
 
   @override
   TextEditingValue formatEditUpdate(
-          TextEditingValue oldValue, TextEditingValue newValue) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) => newValue.copyWith(text: newValue.text.toUpperCase());
 }
 
 /// Code create/edit sheet. Material required; code manually editable (length/
@@ -694,7 +704,8 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
         variant: clean(_variant),
         colorName: clean(_colorName),
         rgba: rgba.isEmpty ? null : rgba,
-        createdAt: widget.initial?.createdAt ??
+        createdAt:
+            widget.initial?.createdAt ??
             DateTime.now().toUtc().toIso8601String(),
       ),
     );
@@ -822,11 +833,13 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                     child: Container(
                       width: 24,
                       decoration: BoxDecoration(
-                        color: preview ??
+                        color:
+                            preview ??
                             theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(6),
-                        border:
-                            Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -855,8 +868,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                           _isEdit ? Icons.check : Icons.auto_awesome,
                           size: 18,
                         ),
-                        label:
-                            Text(_isEdit ? l10n.swatchSave : l10n.swatchGenerateCode),
+                        label: Text(
+                          _isEdit ? l10n.swatchSave : l10n.swatchGenerateCode,
+                        ),
                       ),
                     ),
                   ),
@@ -895,10 +909,12 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
       shown = colors.where((c) => c.isDefault).take(60).toList();
     } else {
       shown = colors
-          .where((c) =>
-              c.colorName.toLowerCase().contains(q) ||
-              c.manufacturer.toLowerCase().contains(q) ||
-              (c.material?.toLowerCase().contains(q) ?? false))
+          .where(
+            (c) =>
+                c.colorName.toLowerCase().contains(q) ||
+                c.manufacturer.toLowerCase().contains(q) ||
+                (c.material?.toLowerCase().contains(q) ?? false),
+          )
           .take(80)
           .toList();
     }
@@ -930,8 +946,9 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
               child: Text(
                 l10n.swatchNoCatalogColors,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             )
           else
@@ -952,15 +969,19 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
                         color:
                             color ?? theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
-                        border:
-                            Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                     ),
                     title: Text(c.colorName.isEmpty ? '—' : c.colorName),
                     subtitle: c.manufacturer.isEmpty
                         ? null
-                        : Text(c.manufacturer,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        : Text(
+                            c.manufacturer,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                     onTap: () => Navigator.pop(context, c),
                   ).tagged('swatch_form.color_option');
                 },

@@ -59,10 +59,10 @@ class ServerFingerprint {
   final int? port;
 
   Map<String, Object?> toJson() => {
-        'scheme': scheme,
-        'host_kind': hostKind.name,
-        if (port != null) 'port': port,
-      };
+    'scheme': scheme,
+    'host_kind': hostKind.name,
+    if (port != null) 'port': port,
+  };
 }
 
 /// First line of every log file: everything that is true for the whole session.
@@ -121,12 +121,12 @@ class LogHeader {
       server: fields['server'] as String?,
       serverUrl: switch (fields['scheme']) {
         final String scheme => ServerFingerprint(
-            scheme: scheme,
-            hostKind: fields['host_kind'] == HostKind.ip.name
-                ? HostKind.ip
-                : HostKind.name,
-            port: fields['port'] as int?,
-          ),
+          scheme: scheme,
+          hostKind: fields['host_kind'] == HostKind.ip.name
+              ? HostKind.ip
+              : HostKind.name,
+          port: fields['port'] as int?,
+        ),
         _ => null,
       },
       auth: fields['auth'] as String?,
@@ -136,18 +136,18 @@ class LogHeader {
   /// The same session, tagged as a different stream — what a background isolate
   /// writes at the top of its own file.
   LogHeader copyWith({LogStream? stream}) => LogHeader(
-        ts: ts,
-        session: session,
-        app: app,
-        flavor: flavor,
-        stream: stream ?? this.stream,
-        os: os,
-        device: device,
-        locale: locale,
-        server: server,
-        serverUrl: serverUrl,
-        auth: auth,
-      );
+    ts: ts,
+    session: session,
+    app: app,
+    flavor: flavor,
+    stream: stream ?? this.stream,
+    os: os,
+    device: device,
+    locale: locale,
+    server: server,
+    serverUrl: serverUrl,
+    auth: auth,
+  );
 
   /// Session identifier shared by every stream file of one recording.
   /// 128 random bits as hex — no uuid dependency for what is just a join key.
@@ -188,19 +188,19 @@ class LogHeader {
   final String? auth;
 
   Map<String, Object?> toJson() => {
-        'v': formatVersion,
-        'ts': ts.toUtc().toIso8601String(),
-        'session': session,
-        'stream': stream.name,
-        'app': app,
-        'flavor': flavor,
-        if (os != null) 'os': os,
-        if (device != null) 'device': device,
-        if (locale != null) 'locale': locale,
-        if (server != null) 'server': server,
-        if (serverUrl != null) ...serverUrl!.toJson(),
-        if (auth != null) 'auth': auth,
-      };
+    'v': formatVersion,
+    'ts': ts.toUtc().toIso8601String(),
+    'session': session,
+    'stream': stream.name,
+    'app': app,
+    'flavor': flavor,
+    if (os != null) 'os': os,
+    if (device != null) 'device': device,
+    if (locale != null) 'locale': locale,
+    if (server != null) 'server': server,
+    if (serverUrl != null) ...serverUrl!.toJson(),
+    if (auth != null) 'auth': auth,
+  };
 
   String toJsonLine() => jsonEncode(toJson());
 }
@@ -240,12 +240,12 @@ class LogEvent {
   }
 
   Map<String, Object?> toJson() => {
-        't': t,
-        'src': src.name,
-        if (lvl != LogLevel.info) 'lvl': lvl.name,
-        'evt': evt,
-        ...fields,
-      };
+    't': t,
+    'src': src.name,
+    if (lvl != LogLevel.info) 'lvl': lvl.name,
+    'evt': evt,
+    ...fields,
+  };
 
   String toJsonLine() => jsonEncode(toJson());
 }

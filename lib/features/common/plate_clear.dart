@@ -24,8 +24,8 @@ import 'dash_async.dart';
 /// offline control stops being offered for the rest of the session.
 final offlinePlateClearProvider =
     NotifierProvider<OfflinePlateClearNotifier, bool>(
-  OfflinePlateClearNotifier.new,
-);
+      OfflinePlateClearNotifier.new,
+    );
 
 class OfflinePlateClearNotifier extends Notifier<bool> {
   @override
@@ -51,8 +51,7 @@ class OfflinePlateClearNotifier extends Notifier<bool> {
 bool plateClearPending(
   PrinterStatus? status, {
   required bool Function() gateEnabled,
-}) =>
-    status?.awaitingPlateClear == true && gateEnabled();
+}) => status?.awaitingPlateClear == true && gateEnabled();
 
 /// Whether a screen should offer the acknowledgement for [status].
 ///
@@ -65,8 +64,7 @@ bool plateClearPending(
 bool plateClearOffered(WidgetRef ref, PrinterStatus? status) {
   final pending = plateClearPending(
     status,
-    gateEnabled: () =>
-        ref.watch(requirePlateClearProvider).orFalse,
+    gateEnabled: () => ref.watch(requirePlateClearProvider).orFalse,
   );
   if (!pending) return false;
   return status?.connected == true || ref.watch(offlinePlateClearProvider);

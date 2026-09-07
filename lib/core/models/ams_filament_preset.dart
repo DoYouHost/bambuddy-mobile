@@ -63,8 +63,9 @@ class AmsFilamentPreset {
         filamentType: json['filament_type'] as String?,
         nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
         nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
-        compatiblePrinters:
-            _decodePrinterList(json['compatible_printers'] as String?),
+        compatiblePrinters: _decodePrinterList(
+          json['compatible_printers'] as String?,
+        ),
       );
 
   /// From `/cloud/builtin-filaments` — `{filament_id, name}`.
@@ -105,10 +106,10 @@ class AmsFilamentPreset {
   /// built-in `GFA05` would otherwise be equally "5" — so local and built-in
   /// ids are prefixed, matching what the web writes.
   String get pickerId => switch (source) {
-        AmsPresetSource.local => 'local_$id',
-        AmsPresetSource.builtin => 'builtin_$id',
-        AmsPresetSource.cloud => id,
-      };
+    AmsPresetSource.local => 'local_$id',
+    AmsPresetSource.builtin => 'builtin_$id',
+    AmsPresetSource.cloud => id,
+  };
 
   /// The value `/slot-presets` takes as `preset_source`.
   String get sourceKey => source.name;
@@ -141,12 +142,12 @@ class SlotPreset {
   });
 
   factory SlotPreset.fromJson(Map<String, dynamic> json) => SlotPreset(
-        amsId: toIntOrNull(json['ams_id']) ?? 0,
-        trayId: toIntOrNull(json['tray_id']) ?? 0,
-        presetId: json['preset_id']?.toString() ?? '',
-        presetName: json['preset_name'] as String? ?? '',
-        presetSource: json['preset_source'] as String?,
-      );
+    amsId: toIntOrNull(json['ams_id']) ?? 0,
+    trayId: toIntOrNull(json['tray_id']) ?? 0,
+    presetId: json['preset_id']?.toString() ?? '',
+    presetName: json['preset_name'] as String? ?? '',
+    presetSource: json['preset_source'] as String?,
+  );
 
   final int amsId;
   final int trayId;

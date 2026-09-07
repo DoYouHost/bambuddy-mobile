@@ -22,11 +22,9 @@ void main() {
   ];
 
   Widget app() => ProviderScope(
-        overrides: [
-          statsUsersProvider.overrideWith((ref) async => users),
-        ],
-        child: plApp(const StatisticsScreen()),
-      );
+    overrides: [statsUsersProvider.overrideWith((ref) async => users)],
+    child: plApp(const StatisticsScreen()),
+  );
 
   Element screen(WidgetTester tester) =>
       tester.element(find.byType(StatisticsScreen));
@@ -52,16 +50,22 @@ void main() {
     await tester.pumpAndSettle();
 
     final container = containerOf(tester);
-    expect(container.read(statsFilterProvider).createdById, isNull,
-        reason: 'starts unfiltered');
+    expect(
+      container.read(statsFilterProvider).createdById,
+      isNull,
+      reason: 'starts unfiltered',
+    );
 
     await pick(tester, 'bob');
     expect(container.read(statsFilterProvider).createdById, 8);
 
     // The regression itself: with a user selected, return to "all".
     await pick(tester, l10nOf(tester).statsAllUsers);
-    expect(container.read(statsFilterProvider).createdById, isNull,
-        reason: '"All users" must clear the filter, not be a no-op');
+    expect(
+      container.read(statsFilterProvider).createdById,
+      isNull,
+      reason: '"All users" must clear the filter, not be a no-op',
+    );
   });
 
   testWidgets('"no user" still sends -1 rather than null', (tester) async {

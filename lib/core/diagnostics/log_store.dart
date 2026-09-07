@@ -33,9 +33,9 @@ class LogStore {
     DateTime? openedAt,
     this.onLine,
     this.onClosed,
-  })  : redactor = redactor ?? bambuddyRedactor(),
-        _openedAtOverride = openedAt,
-        _clock = clock ?? (() => ambient.clock.now());
+  }) : redactor = redactor ?? bambuddyRedactor(),
+       _openedAtOverride = openedAt,
+       _clock = clock ?? (() => ambient.clock.now());
 
   final LogHeader header;
   final LogRedactor redactor;
@@ -161,8 +161,7 @@ class LogStore {
     onClosed?.call(limit);
   }
 
-  void _write(LogEvent event) =>
-      _append(_Record(event.toJsonLine(), event.t));
+  void _write(LogEvent event) => _append(_Record(event.toJsonLine(), event.t));
 
   /// "The bug just happened" marker the user presses while recording.
   void mark() => add(LogSource.app, 'user_marker');
@@ -192,10 +191,13 @@ class LogStore {
   /// record. Ties keep arrival order — Dart's sort is not stable on its own,
   /// hence the sequence number (same trick as `mergeSessions`).
   String export() {
-    final ordered = [
-      for (var i = 0; i < _records.length; i++) (i, _records.elementAt(i)),
-    ]..sort((a, b) =>
-        a.$2.t != b.$2.t ? a.$2.t.compareTo(b.$2.t) : a.$1.compareTo(b.$1));
+    final ordered =
+        [for (var i = 0; i < _records.length; i++) (i, _records.elementAt(i))]
+          ..sort(
+            (a, b) => a.$2.t != b.$2.t
+                ? a.$2.t.compareTo(b.$2.t)
+                : a.$1.compareTo(b.$1),
+          );
 
     final buf = StringBuffer()..writeln(header.toJsonLine());
     if (_dropped > 0) {

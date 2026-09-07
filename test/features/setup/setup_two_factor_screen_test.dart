@@ -37,11 +37,13 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
     adapter = DioAdapter(dio: dio);
-    container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
-      bareDioProvider.overrideWithValue(dio),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
+        bareDioProvider.overrideWithValue(dio),
+      ],
+    );
     closed = false;
     addTearDown(closeSetup);
   });
@@ -69,8 +71,10 @@ void main() {
     WidgetTester tester, {
     List<String> methods = const ['totp'],
   }) async {
-    adapter.onGet('$_baseUrl/api/v1/auth/status',
-        (s) => s.reply(200, readFixture('auth_status_enabled.json')));
+    adapter.onGet(
+      '$_baseUrl/api/v1/auth/status',
+      (s) => s.reply(200, readFixture('auth_status_enabled.json')),
+    );
     adapter.onPost(
       '$_baseUrl/api/v1/auth/login',
       (s) => s.reply(200, {
@@ -110,13 +114,16 @@ void main() {
     await signInTo(tester);
 
     expect(find.byType(SegmentedButton<Object?>), findsNothing);
-    expect(find.text('Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.'),
-        findsOneWidget);
+    expect(
+      find.text('Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.'),
+      findsOneWidget,
+    );
     closeSetup();
   });
 
-  testWidgets('backup codes switch the field to 8 letters and digits',
-      (tester) async {
+  testWidgets('backup codes switch the field to 8 letters and digits', (
+    tester,
+  ) async {
     // A digits-only keyboard on an 8-character alphanumeric code is the whole
     // difference between "2FA works" and "my codes are all rejected".
     await signInTo(tester, methods: ['totp', 'backup']);
@@ -132,8 +139,9 @@ void main() {
     closeSetup();
   });
 
-  testWidgets('switching method clears a code typed for the previous one',
-      (tester) async {
+  testWidgets('switching method clears a code typed for the previous one', (
+    tester,
+  ) async {
     // Six digits meant for the authenticator, submitted as a backup code, burn
     // one of the five attempts the server allows per quarter hour.
     await signInTo(tester, methods: ['totp', 'backup']);

@@ -69,8 +69,10 @@ void main() {
         ],
       });
 
-      final offline =
-          PrinterStatus.fromJson({'id': 1, 'connected': false}).mergedWith(known);
+      final offline = PrinterStatus.fromJson({
+        'id': 1,
+        'connected': false,
+      }).mergedWith(known);
 
       expect(offline.nozzleRack, hasLength(1));
     });
@@ -141,11 +143,11 @@ void main() {
 
     test('no pick and no field both read as null', () {
       QueueItem parse(Map<String, dynamic> extra) => QueueItem.fromJson({
-            'id': 5,
-            'position': 1,
-            'status': 'pending',
-            ...extra,
-          });
+        'id': 5,
+        'position': 1,
+        'status': 'pending',
+        ...extra,
+      });
 
       expect(parse(const {}).nozzleRackChoice, isNull);
       expect(parse({'nozzle_rack_choice': null}).nozzleRackChoice, isNull);

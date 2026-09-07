@@ -15,9 +15,9 @@ class UserSummary {
   const UserSummary({required this.id, required this.username});
 
   factory UserSummary.fromJson(Map<String, dynamic> json) => UserSummary(
-        id: toInt(json['id']),
-        username: toStringOrNull(json['username']) ?? '?',
-      );
+    id: toInt(json['id']),
+    username: toStringOrNull(json['username']) ?? '?',
+  );
 
   final int id;
   final String username;

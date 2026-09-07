@@ -58,12 +58,7 @@ class SectionCard extends StatelessWidget {
             children: [
               Icon(icon, size: 19, color: t.accentGreenInk),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: t.titleSm,
-                ),
-              ),
+              Expanded(child: Text(title, style: t.titleSm)),
               ?action,
             ],
           ),
@@ -96,10 +91,7 @@ Widget _emptyHint(BuildContext context, String text) {
   final t = DashTokens.of(context);
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 12),
-    child: Text(
-      text,
-      style: t.bodySoft.copyWith(color: t.textTertiary),
-    ),
+    child: Text(text, style: t.bodySoft.copyWith(color: t.textTertiary)),
   );
 }
 
@@ -140,7 +132,10 @@ class ProjectFilesSection extends ConsumerWidget {
               for (final folder in folders)
                 _FolderTile(
                   folder: folder,
-                  files: [for (final f in files) if (f.folderId == folder.id) f],
+                  files: [
+                    for (final f in files)
+                      if (f.folderId == folder.id) f,
+                  ],
                   onPrint: (f) => _print(context, ref, f),
                   onUnlink: () => _unlink(context, ref, folder),
                 ),
@@ -160,10 +155,11 @@ class ProjectFilesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
-    final linked = (ref.read(projectFoldersProvider(projectId)).valueOrNull ??
-            const <LibraryFolder>[])
-        .map((f) => f.id)
-        .toSet();
+    final linked =
+        (ref.read(projectFoldersProvider(projectId)).valueOrNull ??
+                const <LibraryFolder>[])
+            .map((f) => f.id)
+            .toSet();
     final List<LibraryFolder> candidates;
     try {
       final tree = await ref.read(libraryRepositoryProvider).listFolders();
@@ -186,8 +182,10 @@ class ProjectFilesSection extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(l10n.projectLinkFolder,
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              child: Text(
+                l10n.projectLinkFolder,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
             ),
             if (candidates.isEmpty)
               Padding(
@@ -203,7 +201,9 @@ class ProjectFilesSection extends ConsumerWidget {
                       ListTile(
                         leading: const Icon(Icons.folder_outlined),
                         title: Text(f.name),
-                        subtitle: Text(l10n.projectFolderFileCount(f.fileCount)),
+                        subtitle: Text(
+                          l10n.projectFolderFileCount(f.fileCount),
+                        ),
                         onTap: () => Navigator.pop(ctx, f.id),
                       ).tagged('project.link_folder_option'),
                   ],
@@ -216,7 +216,9 @@ class ProjectFilesSection extends ConsumerWidget {
     if (folderId == null) return;
 
     try {
-      await ref.read(projectsRepositoryProvider).setFolderProject(folderId, projectId);
+      await ref
+          .read(projectsRepositoryProvider)
+          .setFolderProject(folderId, projectId);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
       messenger.snack(l10n.projectFolderLinked);
@@ -226,11 +228,16 @@ class ProjectFilesSection extends ConsumerWidget {
   }
 
   Future<void> _unlink(
-      BuildContext context, WidgetRef ref, LibraryFolder folder) async {
+    BuildContext context,
+    WidgetRef ref,
+    LibraryFolder folder,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(projectsRepositoryProvider).setFolderProject(folder.id, null);
+      await ref
+          .read(projectsRepositoryProvider)
+          .setFolderProject(folder.id, null);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
       messenger.snack(l10n.projectFolderUnlinked);
@@ -254,8 +261,8 @@ class ProjectFilesSection extends ConsumerWidget {
       );
 
   List<LibraryFolder> _flatten(List<LibraryFolder> tree) => [
-        for (final f in tree) ...[f, ..._flatten(f.children)],
-      ];
+    for (final f in tree) ...[f, ..._flatten(f.children)],
+  ];
 }
 
 class _FolderTile extends StatelessWidget {
@@ -284,10 +291,7 @@ class _FolderTile extends StatelessWidget {
         iconColor: t.textSecondary,
         collapsedIconColor: t.textSecondary,
         leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
-        title: Text(
-          folder.name,
-          style: t.titleSm,
-        ),
+        title: Text(folder.name, style: t.titleSm),
         subtitle: Text(
           l10n.projectFolderFileCount(folder.fileCount),
           style: t.labelSoft,
@@ -318,7 +322,10 @@ class _FolderTile extends StatelessWidget {
                 ),
                 trailing: f.isPrintable
                     ? IconButton(
-                        icon: Icon(Icons.print_outlined, color: t.accentGreenInk),
+                        icon: Icon(
+                          Icons.print_outlined,
+                          color: t.accentGreenInk,
+                        ),
                         tooltip: l10n.fmPrint,
                         onPressed: () => onPrint(f),
                       ).tagged('project.print_file')
@@ -359,8 +366,10 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                   ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.insert_drive_file_outlined,
-                        color: t.textSecondary),
+                    leading: Icon(
+                      Icons.insert_drive_file_outlined,
+                      color: t.textSecondary,
+                    ),
                     title: Text(
                       name,
                       maxLines: 2,
@@ -371,8 +380,10 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.download_outlined,
-                              color: t.accentGreenInk),
+                          icon: Icon(
+                            Icons.download_outlined,
+                            color: t.accentGreenInk,
+                          ),
                           tooltip: l10n.projectAttachmentDownload,
                           onPressed: () => _download(context, ref, name),
                         ).tagged('project.attachment_download'),
@@ -402,7 +413,9 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     }
     messenger.snack(l10n.projectUploading);
     try {
-      await ref.read(projectsRepositoryProvider).uploadAttachment(
+      await ref
+          .read(projectsRepositoryProvider)
+          .uploadAttachment(
             project.id,
             filePath: chosen.path,
             filename: chosen.name,
@@ -414,12 +427,17 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     }
   }
 
-  Future<void> _download(BuildContext context, WidgetRef ref, String name) async {
+  Future<void> _download(
+    BuildContext context,
+    WidgetRef ref,
+    String name,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final bytes =
-          await ref.read(projectsRepositoryProvider).downloadAttachment(project.id, name);
+      final bytes = await ref
+          .read(projectsRepositoryProvider)
+          .downloadAttachment(project.id, name);
       final saved = await saveBytesToDevice(fileName: name, bytes: bytes);
       switch (saved.outcome) {
         case DeviceFileOutcome.cancelled:
@@ -430,9 +448,13 @@ class ProjectAttachmentsSection extends ConsumerWidget {
           messenger.snack(l10n.projectFileSaved(saved.path!));
       }
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n,
-          action: 'project.attachment_download',
-          message: l10n.projectDownloadFailed);
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'project.attachment_download',
+        message: l10n.projectDownloadFailed,
+      );
     }
   }
 
@@ -440,7 +462,9 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(projectsRepositoryProvider).deleteAttachment(project.id, name);
+      await ref
+          .read(projectsRepositoryProvider)
+          .deleteAttachment(project.id, name);
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       messenger.snack(l10n.projectAttachmentDeleted);
     } on AppApiException catch (e) {
@@ -499,7 +523,9 @@ class ProjectBomSection extends ConsumerWidget {
         value: item.isComplete,
         activeColor: t.accentGreen,
         checkColor: const Color(0xFF0A0C08),
-        onChanged: (v) => ref.read(projectBomProvider(projectId).notifier).edit(
+        onChanged: (v) => ref
+            .read(projectBomProvider(projectId).notifier)
+            .edit(
               item.id,
               BomItemInput(
                 name: item.name,
@@ -509,18 +535,21 @@ class ProjectBomSection extends ConsumerWidget {
       ).tagged('project.bom_done'),
       title: Text(
         item.name,
-        style: t.body.copyWith(color: item.isComplete ? t.textTertiary : t.textPrimary, decoration: item.isComplete ? TextDecoration.lineThrough : null),
+        style: t.body.copyWith(
+          color: item.isComplete ? t.textTertiary : t.textPrimary,
+          decoration: item.isComplete ? TextDecoration.lineThrough : null,
+        ),
       ),
-      subtitle: Text(
-        subtitle,
-        style: t.monoMicro,
-      ),
+      subtitle: Text(subtitle, style: t.monoMicro),
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: t.textSecondary),
         onSelected: (v) {
           if (v == 'edit') _editItem(context, ref, item);
           if (v == 'open' && item.sourcingUrl != null) {
-            launchUrl(Uri.parse(item.sourcingUrl!), mode: LaunchMode.externalApplication);
+            launchUrl(
+              Uri.parse(item.sourcingUrl!),
+              mode: LaunchMode.externalApplication,
+            );
           }
           if (v == 'delete') {
             ref.read(projectBomProvider(projectId).notifier).delete(item.id);
@@ -547,7 +576,11 @@ class ProjectBomSection extends ConsumerWidget {
     ).tagged('project.bom_item');
   }
 
-  Future<void> _editItem(BuildContext context, WidgetRef ref, BomItem? item) async {
+  Future<void> _editItem(
+    BuildContext context,
+    WidgetRef ref,
+    BomItem? item,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final input = await showDialog<BomItemInput>(
@@ -556,8 +589,9 @@ class ProjectBomSection extends ConsumerWidget {
     );
     if (input == null) return;
     final notifier = ref.read(projectBomProvider(projectId).notifier);
-    final result =
-        item == null ? await notifier.add(input) : await notifier.edit(item.id, input);
+    final result = item == null
+        ? await notifier.add(input)
+        : await notifier.edit(item.id, input);
     if (!context.mounted) return;
     messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
   }
@@ -594,17 +628,18 @@ class ProjectTimelineSection extends ConsumerWidget {
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(_eventIcon(e.eventType), color: t.accentGreenInk),
-                      title: Text(
-                        e.title,
-                        style: t.body,
+                      leading: Icon(
+                        _eventIcon(e.eventType),
+                        color: t.accentGreenInk,
                       ),
+                      title: Text(e.title, style: t.body),
                       subtitle: Text(
                         [
                           if (e.description != null) e.description!,
                           if (e.timestampParsed != null)
-                            DateTimeFormats.of(context)
-                                .dateTime(e.timestampParsed!),
+                            DateTimeFormats.of(
+                              context,
+                            ).dateTime(e.timestampParsed!),
                         ].join('\n'),
                         style: t.monoMicro,
                       ),
@@ -626,7 +661,6 @@ class ProjectTimelineSection extends ConsumerWidget {
     if (t.contains('bom')) return Icons.shopping_cart_outlined;
     return Icons.fiber_manual_record_outlined;
   }
-
 }
 
 /// Add / edit dialog for a BOM line item.
@@ -685,7 +719,9 @@ class _BomItemDialogState extends State<BomItemDialog> {
             ).tagged('bom_item.needed'),
             TextField(
               controller: _price,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(labelText: l10n.bomUnitPrice),
             ).tagged('bom_item.price'),
             TextField(
@@ -704,7 +740,9 @@ class _BomItemDialogState extends State<BomItemDialog> {
         logTag(
           'bom_item.cancel',
           TextButton(
-              onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
         ),
         logTag(
           'bom_item.save',
@@ -726,9 +764,11 @@ class _BomItemDialogState extends State<BomItemDialog> {
                   // nothing to clear, so these never trigger on create.
                   clearUnitPrice: item?.unitPrice != null && price == null,
                   sourcingUrl: url.isEmpty ? null : url,
-                  clearSourcingUrl: (item?.sourcingUrl?.isNotEmpty ?? false) && url.isEmpty,
+                  clearSourcingUrl:
+                      (item?.sourcingUrl?.isNotEmpty ?? false) && url.isEmpty,
                   remarks: remarks.isEmpty ? null : remarks,
-                  clearRemarks: (item?.remarks?.isNotEmpty ?? false) && remarks.isEmpty,
+                  clearRemarks:
+                      (item?.remarks?.isNotEmpty ?? false) && remarks.isEmpty,
                 ),
               );
             },

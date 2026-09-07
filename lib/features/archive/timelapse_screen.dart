@@ -175,14 +175,11 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     final status = await _probe(url);
     await _discard();
     if (!mounted) return;
-    _fail(
-      switch (status) {
-        null => _Failure.open,
-        final s when s >= 400 => _Failure.http,
-        _ => _Failure.stalled,
-      },
-      status: status,
-    );
+    _fail(switch (status) {
+      null => _Failure.open,
+      final s when s >= 400 => _Failure.http,
+      _ => _Failure.stalled,
+    }, status: status);
   }
 
   /// Status of a one-kilobyte range request against [url], or null when the
@@ -318,7 +315,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
         },
       );
       if (!mounted) return;
-      messenger.snack(denied ? l10n.timelapseSaveDenied : l10n.timelapseSaveFailed);
+      messenger.snack(
+        denied ? l10n.timelapseSaveDenied : l10n.timelapseSaveFailed,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -345,7 +344,9 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     _version++;
     await _retry();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).snack(AppLocalizations.of(context).timelapseEdited);
+    ScaffoldMessenger.of(
+      context,
+    ).snack(AppLocalizations.of(context).timelapseEdited);
   }
 
   /// One line per way this can go wrong — the status is worth showing, not
@@ -483,7 +484,9 @@ class _Controls extends StatelessWidget {
                   value.isPlaying ? Icons.pause : Icons.play_arrow,
                   color: Colors.white,
                 ),
-                tooltip: value.isPlaying ? l10n.timelapsePause : l10n.timelapsePlay,
+                tooltip: value.isPlaying
+                    ? l10n.timelapsePause
+                    : l10n.timelapsePlay,
                 onPressed: onToggle,
               ),
             ),
@@ -512,5 +515,4 @@ class _Controls extends StatelessWidget {
       ),
     );
   }
-
 }

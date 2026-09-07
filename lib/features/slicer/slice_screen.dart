@@ -51,9 +51,9 @@ class SliceTarget {
 /// item of the scrolling list — reachable only by scrolling past everything and
 /// clipped at the bottom edge. A screen gets an app bar and a pinned action bar.
 Future<bool> showSliceScreen(BuildContext context, SliceTarget target) async {
-  final done = await Navigator.of(context).push<bool>(
-    MaterialPageRoute(builder: (_) => _SliceScreen(target: target)),
-  );
+  final done = await Navigator.of(
+    context,
+  ).push<bool>(MaterialPageRoute(builder: (_) => _SliceScreen(target: target)));
   return done ?? false;
 }
 
@@ -119,10 +119,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final ownedCodesAsync = ref.watch(ownedPrinterCodesProvider);
     final ownedCodes = ownedCodesAsync.valueOrNull ?? const <String>{};
     final owned =
-        ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
-    final reqs = ref
-            .watch(filamentRequirementsProvider(_filamentKey))
-            .valueOrNull ??
+        ref.watch(ownedFilamentsProvider).valueOrNull ??
+        const <OwnedFilament>[];
+    final reqs =
+        ref.watch(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
     final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
@@ -161,10 +161,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             final filaments = _filterFilaments(presets.filaments, code, owned);
             for (var i = 0; i < slotCount; i++) {
               _filaments[i] ??= _pickDefaultFilament(
-                  filaments, owned, i < reqs.length ? reqs[i] : null);
+                filaments,
+                owned,
+                i < reqs.length ? reqs[i] : null,
+              );
             }
 
-            final ready = _printer != null &&
+            final ready =
+                _printer != null &&
                 _process != null &&
                 _filaments.every((f) => f != null) &&
                 !_submitting;
@@ -188,190 +192,235 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 8),
                     children: [
-                Text(widget.target.name,
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
-                // Above the slots it fills, and hidden entirely on a server
-                // without the routes — see [PipelineSliceBar].
-                PipelineSliceBar(
-                  printer: _printer,
-                  process: _process,
-                  filaments: _filaments,
-                  bedType: _bedType,
-                  busy: _submitting,
-                  onApply: (p) =>
-                      setState(() => _applyPipeline(p, presets, slotCount)),
-                ),
-                _slotTile(
-                  label: l10n.slicePrinter,
-                  icon: Icons.print_outlined,
-                  selected: _printer,
-                  // The design's own printer is often one the user does not
-                  // own, so it is not in `printers` — without this the switch
-                  // would live behind the picker's "all presets" toggle.
-                  footnote: _designedPrinterNote(presets.printers, embedded),
-                  // Locked, not just inert: moving off the design's target would
-                  // drop the gate and take the switch with it.
-                  enabled: !asDesigned,
-                  onTap: () async {
-                    final p = await _openPicker(
-                        title: l10n.slicePrinter,
-                        filtered: printers,
-                        all: presets.printers);
-                    if (p != null && mounted) setState(() => _pickPrinter(p));
-                  },
-                ),
-                if (canUseEmbedded)
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: SwitchListTile(
-                      value: _useEmbedded,
-                      onChanged: (v) => setState(() => _useEmbedded = v),
-                      secondary: const Icon(Icons.auto_awesome_outlined),
-                      title: Text(l10n.sliceAsDesigned,
-                          style: theme.textTheme.labelMedium),
-                      subtitle: Text(l10n.sliceAsDesignedHint,
-                          style: theme.textTheme.bodySmall),
-                    ).tagged('slice.as_designed'),
-                  ),
-                _slotTile(
-                  label: l10n.sliceProcess,
-                  icon: Icons.tune,
-                  selected: _process,
-                  enabled: !asDesigned,
-                  onTap: () async {
-                    final p = await _openPicker(
-                        title: l10n.sliceProcess,
-                        filtered: processes,
-                        all: presets.processes);
-                    if (p != null && mounted) setState(() => _process = p);
-                  },
-                ),
-                _dimWhenLocked(
-                  !asDesigned,
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      leading: const Icon(Icons.grid_on_outlined),
-                      // Patches a process JSON the embedded path never builds.
-                      enabled: !asDesigned,
-                      title: Text(l10n.sliceBedType,
-                          style: theme.textTheme.labelMedium),
-                      subtitle: Text(
-                          asDesigned
-                              ? l10n.sliceAsDesignedInactive
-                              : _bedType ?? l10n.sliceBedDefault,
-                          style: theme.textTheme.bodyMedium),
-                      trailing: asDesigned ? null : const Icon(Icons.chevron_right),
-                      onTap: _pickBedType,
-                    ).tagged('slice.bed_type'),
-                  ),
-                ),
-                // Absent, not disabled, unless the server accepts
-                // `process_overrides` *and* our own vendored metadata loaded —
-                // `SliceRequest` forbids no extra fields, so an older server
-                // would drop the whole map without a word.
-                if (ref
-                    .watch(processSettingsAvailableProvider)
-                    .maybeWhen(data: (v) => v, orElse: () => false))
-                  _dimWhenLocked(
-                    !asDesigned,
-                    Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        leading: const Icon(Icons.tune_outlined),
-                        enabled: processRef != null && !asDesigned,
-                        title: Text(l10n.processSettingsTitle,
-                            style: theme.textTheme.labelMedium),
-                        subtitle: Text(
-                          asDesigned
-                              ? l10n.sliceAsDesignedInactive
-                              : processRef == null
-                                  ? l10n.sliceProcessSettingsNeedsProcess
-                                  : overrides.isEmpty
-                                      ? l10n.sliceProcessSettingsUnchanged
-                                      : l10n.sliceProcessSettingsChanged(
-                                          overrides.length),
-                          style: theme.textTheme.bodyMedium,
+                      Text(
+                        widget.target.name,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      // Above the slots it fills, and hidden entirely on a server
+                      // without the routes — see [PipelineSliceBar].
+                      PipelineSliceBar(
+                        printer: _printer,
+                        process: _process,
+                        filaments: _filaments,
+                        bedType: _bedType,
+                        busy: _submitting,
+                        onApply: (p) => setState(
+                          () => _applyPipeline(p, presets, slotCount),
                         ),
-                        trailing:
-                            asDesigned ? null : const Icon(Icons.chevron_right),
-                        onTap: processRef == null || asDesigned
-                            ? null
-                            : () => showProcessSettings(
-                                  context,
-                                  preset: processRef,
-                                  values: _processValues,
-                                  onChanged: (next) =>
-                                      setState(() => _processValues = next),
-                                  filamentSlots: _filamentSlots(
-                                      slotCount, reqs, discriminated),
+                      ),
+                      _slotTile(
+                        label: l10n.slicePrinter,
+                        icon: Icons.print_outlined,
+                        selected: _printer,
+                        // The design's own printer is often one the user does not
+                        // own, so it is not in `printers` — without this the switch
+                        // would live behind the picker's "all presets" toggle.
+                        footnote: _designedPrinterNote(
+                          presets.printers,
+                          embedded,
+                        ),
+                        // Locked, not just inert: moving off the design's target would
+                        // drop the gate and take the switch with it.
+                        enabled: !asDesigned,
+                        onTap: () async {
+                          final p = await _openPicker(
+                            title: l10n.slicePrinter,
+                            filtered: printers,
+                            all: presets.printers,
+                          );
+                          if (p != null && mounted) {
+                            setState(() => _pickPrinter(p));
+                          }
+                        },
+                      ),
+                      if (canUseEmbedded)
+                        Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: SwitchListTile(
+                            value: _useEmbedded,
+                            onChanged: (v) => setState(() => _useEmbedded = v),
+                            secondary: const Icon(Icons.auto_awesome_outlined),
+                            title: Text(
+                              l10n.sliceAsDesigned,
+                              style: theme.textTheme.labelMedium,
+                            ),
+                            subtitle: Text(
+                              l10n.sliceAsDesignedHint,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ).tagged('slice.as_designed'),
+                        ),
+                      _slotTile(
+                        label: l10n.sliceProcess,
+                        icon: Icons.tune,
+                        selected: _process,
+                        enabled: !asDesigned,
+                        onTap: () async {
+                          final p = await _openPicker(
+                            title: l10n.sliceProcess,
+                            filtered: processes,
+                            all: presets.processes,
+                          );
+                          if (p != null && mounted) {
+                            setState(() => _process = p);
+                          }
+                        },
+                      ),
+                      _dimWhenLocked(
+                        !asDesigned,
+                        Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: ListTile(
+                            leading: const Icon(Icons.grid_on_outlined),
+                            // Patches a process JSON the embedded path never builds.
+                            enabled: !asDesigned,
+                            title: Text(
+                              l10n.sliceBedType,
+                              style: theme.textTheme.labelMedium,
+                            ),
+                            subtitle: Text(
+                              asDesigned
+                                  ? l10n.sliceAsDesignedInactive
+                                  : _bedType ?? l10n.sliceBedDefault,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            trailing: asDesigned
+                                ? null
+                                : const Icon(Icons.chevron_right),
+                            onTap: _pickBedType,
+                          ).tagged('slice.bed_type'),
+                        ),
+                      ),
+                      // Absent, not disabled, unless the server accepts
+                      // `process_overrides` *and* our own vendored metadata loaded —
+                      // `SliceRequest` forbids no extra fields, so an older server
+                      // would drop the whole map without a word.
+                      if (ref
+                          .watch(processSettingsAvailableProvider)
+                          .maybeWhen(data: (v) => v, orElse: () => false))
+                        _dimWhenLocked(
+                          !asDesigned,
+                          Card(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            child: ListTile(
+                              leading: const Icon(Icons.tune_outlined),
+                              enabled: processRef != null && !asDesigned,
+                              title: Text(
+                                l10n.processSettingsTitle,
+                                style: theme.textTheme.labelMedium,
+                              ),
+                              subtitle: Text(
+                                asDesigned
+                                    ? l10n.sliceAsDesignedInactive
+                                    : processRef == null
+                                    ? l10n.sliceProcessSettingsNeedsProcess
+                                    : overrides.isEmpty
+                                    ? l10n.sliceProcessSettingsUnchanged
+                                    : l10n.sliceProcessSettingsChanged(
+                                        overrides.length,
+                                      ),
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                              trailing: asDesigned
+                                  ? null
+                                  : const Icon(Icons.chevron_right),
+                              onTap: processRef == null || asDesigned
+                                  ? null
+                                  : () => showProcessSettings(
+                                      context,
+                                      preset: processRef,
+                                      values: _processValues,
+                                      onChanged: (next) =>
+                                          setState(() => _processValues = next),
+                                      filamentSlots: _filamentSlots(
+                                        slotCount,
+                                        reqs,
+                                        discriminated,
+                                      ),
+                                    ),
+                            ).tagged('slice.process_settings'),
+                          ),
+                        ),
+                      // Hidden entirely before server 1.2.6: the fields are dropped
+                      // without a word there, and a switch that does nothing is worse
+                      // than no switch. See [sliceLayoutOptionsProvider].
+                      if (ref
+                          .watch(sliceLayoutOptionsProvider)
+                          .maybeWhen(data: (v) => v, orElse: () => false))
+                        Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: Column(
+                            children: [
+                              SwitchListTile(
+                                value: _autoOrient,
+                                onChanged: (v) =>
+                                    setState(() => _autoOrient = v),
+                                secondary: const Icon(
+                                  Icons.screen_rotation_alt_outlined,
                                 ),
-                      ).tagged('slice.process_settings'),
-                    ),
-                  ),
-                // Hidden entirely before server 1.2.6: the fields are dropped
-                // without a word there, and a switch that does nothing is worse
-                // than no switch. See [sliceLayoutOptionsProvider].
-                if (ref
-                    .watch(sliceLayoutOptionsProvider)
-                    .maybeWhen(data: (v) => v, orElse: () => false))
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          value: _autoOrient,
-                          onChanged: (v) => setState(() => _autoOrient = v),
-                          secondary:
-                              const Icon(Icons.screen_rotation_alt_outlined),
-                          title: Text(l10n.sliceAutoOrient,
-                              style: theme.textTheme.labelMedium),
-                          subtitle: Text(l10n.sliceAutoOrientHint,
-                              style: theme.textTheme.bodySmall),
-                        ).tagged('slice.auto_orient'),
-                        SwitchListTile(
-                          value: _autoArrange,
-                          onChanged: (v) => setState(() => _autoArrange = v),
-                          secondary: const Icon(Icons.grid_view_outlined),
-                          title: Text(l10n.sliceAutoArrange,
-                              style: theme.textTheme.labelMedium),
-                          subtitle: Text(l10n.sliceAutoArrangeHint,
-                              style: theme.textTheme.bodySmall),
-                        ).tagged('slice.auto_arrange'),
-                      ],
-                    ),
-                  ),
-                for (var i = 0; i < slotCount; i++)
-                  _slotTile(
-                    label: slotCount == 1
-                        ? l10n.sliceFilament
-                        : l10n.sliceFilamentNumbered('${i + 1}'),
-                    icon: Icons.cable,
-                    swatch: i < reqs.length ? colorFromHex(reqs[i].color) : null,
-                    typeHint: i < reqs.length ? reqs[i].type : null,
-                    // Only when the server actually told used from unused —
-                    // its own fallback flags everything used, and marking every
-                    // row then would claim knowledge nobody has.
-                    unused: discriminated &&
-                        i < reqs.length &&
-                        !reqs[i].usedInPlate,
-                    selected: _filaments[i],
-                    // An empty slot stays pickable: the validator wants a ref per
-                    // slot on this path too, so locking it dead-ends the form.
-                    enabled: !asDesigned || _filaments[i] == null,
-                    onTap: () async {
-                      final p = await _openPicker(
-                          title: slotCount == 1
+                                title: Text(
+                                  l10n.sliceAutoOrient,
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                                subtitle: Text(
+                                  l10n.sliceAutoOrientHint,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ).tagged('slice.auto_orient'),
+                              SwitchListTile(
+                                value: _autoArrange,
+                                onChanged: (v) =>
+                                    setState(() => _autoArrange = v),
+                                secondary: const Icon(Icons.grid_view_outlined),
+                                title: Text(
+                                  l10n.sliceAutoArrange,
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                                subtitle: Text(
+                                  l10n.sliceAutoArrangeHint,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ).tagged('slice.auto_arrange'),
+                            ],
+                          ),
+                        ),
+                      for (var i = 0; i < slotCount; i++)
+                        _slotTile(
+                          label: slotCount == 1
                               ? l10n.sliceFilament
                               : l10n.sliceFilamentNumbered('${i + 1}'),
-                          filtered: filaments,
-                          all: presets.filaments);
-                      if (p != null && mounted) setState(() => _filaments[i] = p);
-                    },
-                  ),
+                          icon: Icons.cable,
+                          swatch: i < reqs.length
+                              ? colorFromHex(reqs[i].color)
+                              : null,
+                          typeHint: i < reqs.length ? reqs[i].type : null,
+                          // Only when the server actually told used from unused —
+                          // its own fallback flags everything used, and marking every
+                          // row then would claim knowledge nobody has.
+                          unused:
+                              discriminated &&
+                              i < reqs.length &&
+                              !reqs[i].usedInPlate,
+                          selected: _filaments[i],
+                          // An empty slot stays pickable: the validator wants a ref per
+                          // slot on this path too, so locking it dead-ends the form.
+                          enabled: !asDesigned || _filaments[i] == null,
+                          onTap: () async {
+                            final p = await _openPicker(
+                              title: slotCount == 1
+                                  ? l10n.sliceFilament
+                                  : l10n.sliceFilamentNumbered('${i + 1}'),
+                              filtered: filaments,
+                              all: presets.filaments,
+                            );
+                            if (p != null && mounted) {
+                              setState(() => _filaments[i] = p);
+                            }
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -419,15 +468,21 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       return null;
     }
     final theme = Theme.of(context);
-    final style = theme.textTheme.bodySmall
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    final designed =
-        all.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final designed = all
+        .where((p) => embedded.matchesPrinter(p.name))
+        .firstOrNull;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_l10n.sliceDesignedFor(_shortPresetName(embedded.printer!)),
-            style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(
+          _l10n.sliceDesignedFor(_shortPresetName(embedded.printer!)),
+          style: style,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         // Naming the printer is worth something even with nothing to switch to.
         if (designed != null)
           Padding(
@@ -471,10 +526,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     int slotCount,
   ) {
     _printerPicked = true;
-    _printer =
-        resolvePresetRef(catalog, pipeline.printerPreset, PresetSlot.printer);
-    _process =
-        resolvePresetRef(catalog, pipeline.processPreset, PresetSlot.process);
+    _printer = resolvePresetRef(
+      catalog,
+      pipeline.printerPreset,
+      PresetSlot.printer,
+    );
+    _process = resolvePresetRef(
+      catalog,
+      pipeline.processPreset,
+      PresetSlot.process,
+    );
     _bedType = pipeline.bedType;
     _processValues = {};
 
@@ -482,7 +543,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     for (var i = 0; i < _filaments.length; i++) {
       if (i >= pipeline.filamentPresets.length) continue;
       _filaments[i] = resolvePresetRef(
-          catalog, pipeline.filamentPresets[i], PresetSlot.filament);
+        catalog,
+        pipeline.filamentPresets[i],
+        PresetSlot.filament,
+      );
     }
 
     // A bundle authored for a different printer must not keep the "as designed"
@@ -514,18 +578,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
   /// two have to name the same plate or the slots offered are not the slots the
   /// slice will use.
-  PlateSource get _filamentKey => (
-        isArchive: widget.target.isArchive,
-        id: widget.target.id,
-        plate: 1,
-      );
+  PlateSource get _filamentKey =>
+      (isArchive: widget.target.isArchive, id: widget.target.id, plate: 1);
 
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
   bool get _asDesigned {
     if (!_useEmbedded) return false;
-    final embedded =
-        ref.read(embeddedSettingsProvider(_sourceKey)).valueOrNull;
+    final embedded = ref.read(embeddedSettingsProvider(_sourceKey)).valueOrNull;
     return embedded?.matchesPrinter(_printer?.name) ?? false;
   }
 
@@ -543,8 +603,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     if (_printerPicked || !embedded.isAvailable) return;
     if (embedded.matchesPrinter(_printer?.name)) return;
 
-    final designed =
-        printers.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    final designed = printers
+        .where((p) => embedded.matchesPrinter(p.name))
+        .firstOrNull;
     if (designed == null) return;
     _pickPrinter(designed);
     // Adopted, not chosen: the note below must still offer the other printers.
@@ -588,11 +649,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           slot: i + 1,
           // The picker prefixes the number itself, so the type — or failing that
           // the bare word — is a more useful fallback than repeating it.
-          label: _filaments[i]?.name ??
+          label:
+              _filaments[i]?.name ??
               (i < reqs.length ? reqs[i].type : null) ??
               l10n.sliceFilament,
-          unused:
-              discriminated && i < reqs.length && !reqs[i].usedInPlate,
+          unused: discriminated && i < reqs.length && !reqs[i].usedInPlate,
         ),
     ];
   }
@@ -624,9 +685,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     // would invite a re-pick of something that is already set.
     final unresolved = selected != null && isUnresolved(selected);
     final subtitle = switch (selected) {
-      null => typeHint != null
-          ? '${_l10n.sliceSelect} · $typeHint'
-          : _l10n.sliceSelect,
+      null =>
+        typeHint != null
+            ? '${_l10n.sliceSelect} · $typeHint'
+            : _l10n.sliceSelect,
       _ when unresolved => _l10n.pipelinePresetGone,
       _ => selected.name,
     };
@@ -649,21 +711,26 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: selected == null || unresolved
-                      ? theme.colorScheme.onSurfaceVariant
-                      : null,
-                )),
+            Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: selected == null || unresolved
+                    ? theme.colorScheme.onSurfaceVariant
+                    : null,
+              ),
+            ),
             // The slot still has to be picked — the slicer wants one preset per
             // project slot — but saying which ones the plate ignores stops the
             // user hunting for the right spool for a slot that prints nothing.
             if (unused)
-              Text(_l10n.sliceFilamentUnused,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                _l10n.sliceFilamentUnused,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ?footnote,
           ],
         ),
@@ -678,12 +745,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final l10n = _l10n;
     // Sentinel '' = "Default (inherit from preset)" → stored as null.
     Widget tile(String value, String label) => ListTile(
-          leading: Icon((_bedType ?? '') == value
-              ? Icons.radio_button_checked
-              : Icons.radio_button_unchecked),
-          title: Text(label),
-          onTap: () => Navigator.pop(context, value),
-        ).tagged('slice.bed_type');
+      leading: Icon(
+        (_bedType ?? '') == value
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked,
+      ),
+      title: Text(label),
+      onTap: () => Navigator.pop(context, value),
+    ).tagged('slice.bed_type');
     final picked = await dashSheet<String>(
       context,
       scrollControlled: false,
@@ -725,11 +794,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ? const <String>[]
         : sliceFilamentColours(
             picked: _filaments,
-            owned: ref.read(ownedFilamentsProvider).valueOrNull ??
+            owned:
+                ref.read(ownedFilamentsProvider).valueOrNull ??
                 const <OwnedFilament>[],
             requirements:
-                ref.read(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
-                    const <FilamentRequirement>[],
+                ref
+                    .read(filamentRequirementsProvider(_filamentKey))
+                    .valueOrNull ??
+                const <FilamentRequirement>[],
           );
     final overrides = asDesigned
         ? const <String, Object>{}
@@ -777,12 +849,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           : await repo.sliceLibraryFile(target.id, body);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _submitting = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'slice.submit', message: sliceRefusalMessage(l10n, e));
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'slice.submit',
+        message: sliceRefusalMessage(l10n, e),
+      );
       return;
     }
     if (!mounted) return;
-    final ok = await showDialog<bool>(
+    final ok =
+        await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (_) => _SliceProgressDialog(jobId: jobId),
@@ -798,7 +876,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       ? null
       : list.firstWhere((p) => p.isLocal, orElse: () => list.first);
 
-  List<SlicerPreset> _filterPrinters(List<SlicerPreset> all, Set<String> codes) {
+  List<SlicerPreset> _filterPrinters(
+    List<SlicerPreset> all,
+    Set<String> codes,
+  ) {
     if (codes.isEmpty) return all;
     return all
         .where((p) => p.isLocal || codes.any((c) => _containsCode(p.name, c)))
@@ -832,8 +913,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       return all.where((p) => p.isLocal || compat(p)).toList();
     }
     return all
-        .where((p) =>
-            p.isLocal || (_ownedMatch(p.name, ownedNames) && compat(p)))
+        .where(
+          (p) => p.isLocal || (_ownedMatch(p.name, ownedNames) && compat(p)),
+        )
         .toList();
   }
 
@@ -846,12 +928,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   ) {
     if (filtered.isEmpty) return null;
     if (req != null) {
-      final ofType = [
-        for (final o in owned)
-          if (req.type == null || _typeMatches(o.material, req.type!)) o,
-      ]..sort((a, b) =>
-          colorDistance(a.color, req.color)
-              .compareTo(colorDistance(b.color, req.color)));
+      final ofType =
+          [
+            for (final o in owned)
+              if (req.type == null || _typeMatches(o.material, req.type!)) o,
+          ]..sort(
+            (a, b) => colorDistance(
+              a.color,
+              req.color,
+            ).compareTo(colorDistance(b.color, req.color)),
+          );
       for (final o in ofType) {
         final match = filtered.where((p) => p.name == o.name);
         if (match.isNotEmpty) return match.first;
@@ -947,8 +1033,10 @@ class _PresetPickerState extends State<_PresetPicker> {
               child: Row(
                 children: [
                   Expanded(
-                    child:
-                        Text(widget.title, style: theme.textTheme.titleMedium),
+                    child: Text(
+                      widget.title,
+                      style: theme.textTheme.titleMedium,
+                    ),
                   ),
                   Text(l10n.sliceShowAll, style: theme.textTheme.bodySmall),
                   Switch(
@@ -987,12 +1075,18 @@ class _PresetPickerState extends State<_PresetPicker> {
                         final p = items[i];
                         return ListTile(
                           dense: true,
-                          title: Text(p.name,
-                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          title: Text(
+                            p.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           subtitle: Text(_sourceLabel(l10n, p.source)),
                           trailing: p.isLocal
-                              ? Icon(Icons.star,
-                                  size: 16, color: theme.colorScheme.primary)
+                              ? Icon(
+                                  Icons.star,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                )
                               : null,
                           onTap: () => Navigator.pop(ctx, p),
                         ).tagged('slice.preset_option');
@@ -1006,11 +1100,11 @@ class _PresetPickerState extends State<_PresetPicker> {
   }
 
   String _sourceLabel(AppLocalizations l10n, String source) => switch (source) {
-        'local' => l10n.sliceTierLocal,
-        'cloud' => l10n.sliceTierCloud,
-        'orca_cloud' => l10n.sliceTierOrcaCloud,
-        _ => l10n.sliceTierStandard,
-      };
+    'local' => l10n.sliceTierLocal,
+    'cloud' => l10n.sliceTierCloud,
+    'orca_cloud' => l10n.sliceTierOrcaCloud,
+    _ => l10n.sliceTierStandard,
+  };
 }
 
 /// Polls a slice job to completion, showing live stage/progress, then the
@@ -1078,9 +1172,11 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
 
     Widget content;
     if (_error != null) {
-      content = Text(_error is AppApiException
-          ? (_error! as AppApiException).localized(l10n)
-          : l10n.sliceFailed);
+      content = Text(
+        _error is AppApiException
+            ? (_error! as AppApiException).localized(l10n)
+            : l10n.sliceFailed,
+      );
     } else if (job != null && job.isFailed) {
       content = Text(job.errorDetail ?? l10n.sliceFailed);
     } else if (success) {
@@ -1090,14 +1186,20 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (r?.name != null)
-            Text(r!.name!,
-                style: theme.textTheme.bodyMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              r!.name!,
+              style: theme.textTheme.bodyMedium,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           if (r?.printTimeSeconds != null)
-            Text(l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!))),
+            Text(
+              l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!)),
+            ),
           if (r?.filamentUsedG != null)
-            Text(l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1))),
+            Text(
+              l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1)),
+            ),
           if (r?.externalWriteFallback != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -1105,8 +1207,9 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
                 l10n.sliceExternalFallback,
                 ?_externalFallbackReason(l10n, r!.externalWriteFallback!),
               ].join(' '),
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.error),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
             ),
           ],
         ],
@@ -1120,18 +1223,23 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
         children: [
           LinearProgressIndicator(value: fraction),
           const SizedBox(height: 12),
-          Text(stage ?? l10n.sliceInProgress,
-              style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
+          Text(
+            stage ?? l10n.sliceInProgress,
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
         ],
       );
     }
 
     return AlertDialog(
-      title: Text(_error != null || (job?.isFailed ?? false)
-          ? l10n.sliceFailed
-          : success
-              ? l10n.sliceDone
-              : l10n.sliceInProgress),
+      title: Text(
+        _error != null || (job?.isFailed ?? false)
+            ? l10n.sliceFailed
+            : success
+            ? l10n.sliceDone
+            : l10n.sliceInProgress,
+      ),
       content: content,
       actions: terminal
           ? [

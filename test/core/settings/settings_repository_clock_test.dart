@@ -2,7 +2,9 @@ import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<SettingsRepository> _repo([Map<String, Object> initial = const {}]) async {
+Future<SettingsRepository> _repo([
+  Map<String, Object> initial = const {},
+]) async {
   SharedPreferences.setMockInitialValues(initial);
   return SettingsRepository(await SharedPreferences.getInstance());
 }

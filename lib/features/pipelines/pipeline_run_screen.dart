@@ -61,10 +61,8 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
     // "run anyway" before the pre-flight would skip the one check that tells
     // the operator which printer is going to reject the job.
     final blocked = report != null && !report.ok;
-    final canStart = _pipeline != null &&
-        _pipeline!.isRunnable &&
-        !_checking &&
-        !_starting;
+    final canStart =
+        _pipeline != null && _pipeline!.isRunnable && !_checking && !_starting;
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.pipelineRun),
@@ -75,17 +73,21 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  Text(widget.sourceName,
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    widget.sourceName,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
                   Card(
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     child: ListTile(
                       leading: const Icon(Icons.account_tree_outlined),
-                      title: Text(l10n.pipelineSection,
-                          style: theme.textTheme.labelMedium),
+                      title: Text(
+                        l10n.pipelineSection,
+                        style: theme.textTheme.labelMedium,
+                      ),
                       subtitle: Text(
                         _pipeline?.name ??
                             (pipelines.isEmpty
@@ -110,13 +112,19 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded,
-                              size: 18, color: theme.colorScheme.tertiary),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 18,
+                            color: theme.colorScheme.tertiary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(l10n.pipelineNeedsTarget,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.tertiary)),
+                            child: Text(
+                              l10n.pipelineNeedsTarget,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.tertiary,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -150,11 +158,12 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.play_arrow_rounded),
-                    label: Text(blocked
-                        ? l10n.pipelineRunAnyway
-                        : l10n.pipelineRunStart),
+                    label: Text(
+                      blocked ? l10n.pipelineRunAnyway : l10n.pipelineRunStart,
+                    ),
                     style: blocked
                         ? FilledButton.styleFrom(
                             backgroundColor: theme.colorScheme.error,
@@ -250,8 +259,12 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
       if (!mounted) return;
       setState(() => _report = report);
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'pipeline_run.check');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'pipeline_run.check',
+      );
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -266,7 +279,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
 
     setState(() => _starting = true);
     try {
-      await ref.read(pipelinesRepositoryProvider).run(
+      await ref
+          .read(pipelinesRepositoryProvider)
+          .run(
             pipeline.id,
             source: widget.source,
             copies: _copies,
@@ -290,8 +305,12 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
       });
     } on AppApiException catch (e) {
       if (mounted) setState(() => _starting = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'pipeline_run.start');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'pipeline_run.start',
+      );
     }
   }
 }
@@ -322,8 +341,10 @@ class _RunPipelinePicker extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Semantics(
                 header: true,
-                child: Text(l10n.pipelineSection,
-                    style: theme.textTheme.titleMedium),
+                child: Text(
+                  l10n.pipelineSection,
+                  style: theme.textTheme.titleMedium,
+                ),
               ),
             ),
           ),
@@ -337,26 +358,28 @@ class _RunPipelinePicker extends StatelessWidget {
     ThemeData theme,
     AppLocalizations l10n,
     ScrollController controller,
-  ) =>
-      ListView.builder(
-        controller: controller,
-        itemCount: pipelines.length,
-        itemBuilder: (ctx, i) {
-          final p = pipelines[i];
-          return ListTile(
-            title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: p.isRunnable
-                ? Text(
-                    p.targetKind == PipelineTargetKind.printerClass
-                        ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
-                        : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'),
-                    style: theme.textTheme.bodySmall,
-                  )
-                : Text(l10n.pipelineNoTargetChip,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.tertiary)),
-            onTap: () => Navigator.pop(ctx, p),
-          ).tagged('pipeline_run.option');
-        },
-      );
+  ) => ListView.builder(
+    controller: controller,
+    itemCount: pipelines.length,
+    itemBuilder: (ctx, i) {
+      final p = pipelines[i];
+      return ListTile(
+        title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: p.isRunnable
+            ? Text(
+                p.targetKind == PipelineTargetKind.printerClass
+                    ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
+                    : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'),
+                style: theme.textTheme.bodySmall,
+              )
+            : Text(
+                l10n.pipelineNoTargetChip,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                ),
+              ),
+        onTap: () => Navigator.pop(ctx, p),
+      ).tagged('pipeline_run.option');
+    },
+  );
 }

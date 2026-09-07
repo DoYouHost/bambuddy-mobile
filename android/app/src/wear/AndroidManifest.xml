@@ -13,7 +13,8 @@
     <!-- The watch has no gallery screen and starts at API 30 anyway. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
     <!-- The watch never posts its own notifications (Wear OS bridges the
          phone's), so neither the runtime permission nor the reboot
@@ -43,8 +44,10 @@
             android:theme="@style/WearLaunchTheme"
             tools:replace="android:theme"
             tools:node="merge">
-            <!-- Branded launch (Play's Wear quality check): the app icon on
-                 black from the first pixel to Flutter's first frame. The phone's
+            <!-- What Flutter puts behind its UI once the engine takes over, and
+                 the same style `WearLaunchTheme` names as `postSplashScreenTheme`
+                 — the two must agree, because Flutter swaps the window itself in
+                 `onCreate` whatever the splash library was told. The phone's
                  LaunchTheme/NormalTheme pair is white in the day variant and
                  carries no icon at all, so the watch gets its own pair rather
                  than an override of theirs — see res/values/styles.xml. -->

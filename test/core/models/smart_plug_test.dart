@@ -47,8 +47,11 @@ void main() {
     });
 
     test('an MQTT plug is monitor-only', () {
-      const monitor =
-          SmartPlug(id: 1, plugType: 'mqtt', mqttPowerTopic: 'tele/x1c/SENSOR');
+      const monitor = SmartPlug(
+        id: 1,
+        plugType: 'mqtt',
+        mqttPowerTopic: 'tele/x1c/SENSOR',
+      );
       expect(monitor.isMonitorOnly, isTrue);
       expect(monitor.canBeSwitched, isFalse);
     });
@@ -79,29 +82,46 @@ void main() {
 
     test('anything else is unknown, not off', () {
       for (final unknown in [null, '', 'unavailable', '2']) {
-        expect(SmartPlug(id: 1, lastState: unknown).lastIsOn, isNull,
-            reason: '$unknown');
-        expect(SmartPlugStatus(state: unknown).isOn, isNull, reason: '$unknown');
+        expect(
+          SmartPlug(id: 1, lastState: unknown).lastIsOn,
+          isNull,
+          reason: '$unknown',
+        );
+        expect(
+          SmartPlugStatus(state: unknown).isOn,
+          isNull,
+          reason: '$unknown',
+        );
       }
     });
   });
 
   group('reportsPower', () {
     test('Home Assistant needs a power sensor', () {
-      const blind =
-          SmartPlug(id: 1, plugType: 'homeassistant', haEntityId: 'switch.a');
+      const blind = SmartPlug(
+        id: 1,
+        plugType: 'homeassistant',
+        haEntityId: 'switch.a',
+      );
       expect(blind.reportsPower, isFalse);
     });
 
     test('MQTT accepts the legacy topic as well', () {
-      const legacy = SmartPlug(id: 1, plugType: 'mqtt', mqttTopic: 'tele/x1c/SENSOR');
+      const legacy = SmartPlug(
+        id: 1,
+        plugType: 'mqtt',
+        mqttTopic: 'tele/x1c/SENSOR',
+      );
       expect(legacy.reportsPower, isTrue);
       expect(const SmartPlug(id: 2, plugType: 'mqtt').reportsPower, isFalse);
     });
 
     test('REST needs a path to read watts from', () {
-      const metered =
-          SmartPlug(id: 1, plugType: 'rest', restPowerPath: 'meters.0.power');
+      const metered = SmartPlug(
+        id: 1,
+        plugType: 'rest',
+        restPowerPath: 'meters.0.power',
+      );
       expect(metered.reportsPower, isTrue);
       expect(const SmartPlug(id: 2, plugType: 'rest').reportsPower, isFalse);
     });

@@ -43,21 +43,26 @@ class ProjectsScreen extends ConsumerWidget {
               tooltip: l10n.projectStatus,
               initialValue: filter,
               onSelected: (v) =>
-                  ref.read(projectStatusFilterProvider.notifier).state =
-                      v == '' ? null : v,
+                  ref.read(projectStatusFilterProvider.notifier).state = v == ''
+                  ? null
+                  : v,
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: '',
-                  child:
-                      logTag('projects.filter_all', Text(l10n.projectsFilterAll)),
+                  child: logTag(
+                    'projects.filter_all',
+                    Text(l10n.projectsFilterAll),
+                  ),
                 ),
                 // Named per value: the statuses are a fixed server-side list,
                 // and which one was filtered on is the point of the record.
                 for (final s in projectStatusValues)
                   PopupMenuItem(
                     value: s,
-                    child: logTag('projects.filter_status.$s',
-                        Text(projectStatusLabel(l10n, s))),
+                    child: logTag(
+                      'projects.filter_status.$s',
+                      Text(projectStatusLabel(l10n, s)),
+                    ),
                   ),
               ],
             ).tagged('projects.filter_menu'),
@@ -69,8 +74,10 @@ class ProjectsScreen extends ConsumerWidget {
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'import',
-                  child:
-                      logTag('projects.import', Text(l10n.projectMenuImport)),
+                  child: logTag(
+                    'projects.import',
+                    Text(l10n.projectMenuImport),
+                  ),
                 ),
               ],
             ).tagged('projects.overflow_menu'),
@@ -114,9 +121,9 @@ class ProjectsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openCreate(BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ProjectFormScreen()),
-      );
+  Future<void> _openCreate(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ProjectFormScreen()));
 
   Future<void> _importProject(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
@@ -131,10 +138,9 @@ class ProjectsScreen extends ConsumerWidget {
     }
     messenger.snack(l10n.projectUploading);
     try {
-      await ref.read(projectsRepositoryProvider).importFile(
-            filePath: file.path,
-            filename: file.name,
-          );
+      await ref
+          .read(projectsRepositoryProvider)
+          .importFile(filePath: file.path, filename: file.name);
       await ref.read(projectsListProvider.notifier).refresh();
       messenger.snack(l10n.projectImported);
     } on AppApiException {
@@ -156,8 +162,10 @@ class _ProjectCard extends StatelessWidget {
     final fraction = progressFraction(project.progressPercent);
     final counts = <String>[
       '${l10n.projectStatCompleted} ${project.completedCount}',
-      if (project.failedCount > 0) '${l10n.projectStatFailed} ${project.failedCount}',
-      if (project.queueCount > 0) '${l10n.projectStatQueued} ${project.queueCount}',
+      if (project.failedCount > 0)
+        '${l10n.projectStatFailed} ${project.failedCount}',
+      if (project.queueCount > 0)
+        '${l10n.projectStatQueued} ${project.queueCount}',
     ];
 
     return Padding(
@@ -231,10 +239,7 @@ class _ProjectCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                         ],
-                        Text(
-                          counts.join(' · '),
-                          style: t.monoLabel,
-                        ),
+                        Text(counts.join(' · '), style: t.monoLabel),
                       ],
                     ),
                   ),

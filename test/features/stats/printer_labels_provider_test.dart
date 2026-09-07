@@ -22,11 +22,14 @@ void main() {
     required Map<String, String> recorded,
     required Map<int, String> live,
   }) async {
-    final container = ProviderContainer(overrides: [
-      statsProvider.overrideWith(
-          () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded))),
-      printerNamesProvider.overrideWith((ref) async => live),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        statsProvider.overrideWith(
+          () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
+        ),
+        printerNamesProvider.overrideWith((ref) async => live),
+      ],
+    );
     addTearDown(container.dispose);
     // Both sources are async and the merge reads them synchronously, so they
     // have to have landed before it is read at all.
@@ -37,28 +40,28 @@ void main() {
   }
 
   test('a deleted printer keeps the name its prints were made under', () async {
-    expect(
-      await labels(recorded: const {'71': 'Ultron'}, live: const {}),
-      {71: 'Ultron'},
-    );
+    expect(await labels(recorded: const {'71': 'Ultron'}, live: const {}), {
+      71: 'Ultron',
+    });
   });
 
-  test('a live printer is named from the live list, so a rename shows at once',
-      () async {
-    expect(
-      await labels(
-        recorded: const {'1': 'Old name', '71': 'Ultron'},
-        live: const {1: 'New name'},
-      ),
-      {1: 'New name', 71: 'Ultron'},
-    );
-  });
+  test(
+    'a live printer is named from the live list, so a rename shows at once',
+    () async {
+      expect(
+        await labels(
+          recorded: const {'1': 'Old name', '71': 'Ultron'},
+          live: const {1: 'New name'},
+        ),
+        {1: 'New name', 71: 'Ultron'},
+      );
+    },
+  );
 
   test('an older server sends no names, which changes nothing', () async {
-    expect(
-      await labels(recorded: const {}, live: const {1: 'X1C'}),
-      {1: 'X1C'},
-    );
+    expect(await labels(recorded: const {}, live: const {1: 'X1C'}), {
+      1: 'X1C',
+    });
   });
 
   test('a key that is not an id is dropped rather than guessed', () async {
@@ -68,8 +71,7 @@ void main() {
     );
   });
 
-  test('a nameless live printer does not blank out the recorded name',
-      () async {
+  test('a nameless live printer does not blank out the recorded name', () async {
     // `PrinterUpdate.name` has no minimum length and the PATCH route assigns it
     // unchecked, so a printer really can end up with an empty name. Letting it
     // win would draw a bar with nothing written on it — the `#id` fallback only
@@ -80,11 +82,13 @@ void main() {
     );
   });
 
-  test('a printer nameless on both sides is left to the row fallback',
-      () async {
-    expect(
-      await labels(recorded: const {'71': '   '}, live: const {71: ''}),
-      isEmpty,
-    );
-  });
+  test(
+    'a printer nameless on both sides is left to the row fallback',
+    () async {
+      expect(
+        await labels(recorded: const {'71': '   '}, live: const {71: ''}),
+        isEmpty,
+      );
+    },
+  );
 }

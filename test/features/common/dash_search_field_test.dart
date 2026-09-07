@@ -37,8 +37,9 @@ void main() {
     ];
   }
 
-  testWidgets('names the clear button apart from the field itself',
-      (tester) async {
+  testWidgets('names the clear button apart from the field itself', (
+    tester,
+  ) async {
     // Without its own tag the clear button inherits the field's id, and the log
     // cannot tell "searched again" from "gave up and wiped the query" — a live
     // run is what exposed it, since both readings are plausible in code.

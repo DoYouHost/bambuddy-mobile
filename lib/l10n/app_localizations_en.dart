@@ -699,6 +699,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueCancel => 'Cancel';
 
   @override
+  String get queueStop => 'Stop print';
+
+  @override
+  String get queueStopTitle => 'Stop this print?';
+
+  @override
+  String get queueStopBody =>
+      'The printer stops printing and the item leaves the queue. What has been printed so far cannot be resumed.';
+
+  @override
+  String get queueStopConfirm => 'Stop print';
+
+  @override
+  String get queueRemove => 'Remove from queue';
+
+  @override
+  String get queueRemoveStoppedTitle => 'Remove from queue?';
+
+  @override
+  String get queueRemoveStoppedBody =>
+      'The printer is not showing this print as running. Removing it clears the item from the queue.';
+
+  @override
+  String get queueStopped => 'Print stopped';
+
+  @override
+  String get queueRemoved => 'Removed from queue';
+
+  @override
+  String get queueRemovalStatusChanged =>
+      'This item is no longer in the state shown. Refresh the queue and try again.';
+
+  @override
   String get queueNoFreePrinters => 'No free printers right now';
 
   @override
@@ -1860,6 +1893,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errTooManyAttempts =>
       'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.';
+
+  @override
+  String get errSlotTagUnreadable =>
+      'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.';
+
+  @override
+  String get errPrinterOffline =>
+      'The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.';
 
   @override
   String notifOngoingBody(int percent, String eta) {

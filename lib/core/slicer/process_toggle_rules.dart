@@ -40,8 +40,13 @@ Set<String> disabledOptionKeys({
   for (final rule in toggles.rules) {
     final condition = conditionOf(rule.enableIf);
     if (condition == null) continue;
-    final evaluator =
-        _Evaluator(config, toggles.locals, schema, <String>{}, memo);
+    final evaluator = _Evaluator(
+      config,
+      toggles.locals,
+      schema,
+      <String>{},
+      memo,
+    );
     if (_asBoolean(evaluator.evaluate(condition)) == false) {
       disabled.addAll(rule.fields);
     }
@@ -113,7 +118,9 @@ class _ConfigReader {
   static Object? _firstScalar(Object? value) {
     var scalar = value;
     if (scalar is List) scalar = scalar.isEmpty ? null : scalar.first;
-    return (scalar is bool || scalar is num || scalar is String) ? scalar : null;
+    return (scalar is bool || scalar is num || scalar is String)
+        ? scalar
+        : null;
   }
 }
 
@@ -148,12 +155,25 @@ class _Token {
 
 /// Longest-first: `->` must be tried before `-`, `<=` before `<`.
 const _operators = <String>[
-  '->', '||', '&&', '==', '!=', '<=', '>=', '(', ')', ',', '<', '>', '!',
+  '->',
+  '||',
+  '&&',
+  '==',
+  '!=',
+  '<=',
+  '>=',
+  '(',
+  ')',
+  ',',
+  '<',
+  '>',
+  '!',
 ];
 
 final _numberLiteral = RegExp(r'\d+(\.\d*)?f?');
-final _identifierPattern =
-    RegExp(r'[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*');
+final _identifierPattern = RegExp(
+  r'[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*',
+);
 
 bool _isDigit(String ch) {
   final code = ch.codeUnitAt(0);
@@ -206,7 +226,13 @@ List<_Token>? _tokenize(String source) {
 /// Recursive-descent evaluator. A resolved value is `bool`, `double`, `String`,
 /// [_EnumRead] or [_EnumSymbol]; `null` means "could not determine".
 class _Evaluator {
-  _Evaluator(this._config, this._locals, this._schema, this._resolving, this._memo);
+  _Evaluator(
+    this._config,
+    this._locals,
+    this._schema,
+    this._resolving,
+    this._memo,
+  );
 
   final _ConfigReader _config;
   final Map<String, String> _locals;
@@ -235,7 +261,9 @@ class _Evaluator {
 
   bool _eat(String op) {
     final token = _peek();
-    if (token != null && token.kind == _TokenKind.operator && token.text == op) {
+    if (token != null &&
+        token.kind == _TokenKind.operator &&
+        token.text == op) {
       _pos++;
       return true;
     }
@@ -391,8 +419,7 @@ class _Evaluator {
     if (_resolving.contains(name)) return null;
 
     _resolving.add(name);
-    final nested =
-        _Evaluator(_config, _locals, _schema, _resolving, _memo);
+    final nested = _Evaluator(_config, _locals, _schema, _resolving, _memo);
     final value = nested.evaluate(source);
     _resolving.remove(name);
 
@@ -450,8 +477,8 @@ Object? _compare(
   final symbol = left is _EnumSymbol
       ? left
       : right is _EnumSymbol
-          ? right
-          : null;
+      ? right
+      : null;
 
   if (symbol != null) {
     if (op != '==' && op != '!=') return null;
@@ -461,8 +488,9 @@ Object? _compare(
     final declared = schema[other.optionKey]?.enumValues;
     if (declared == null || other.value == null) return null;
 
-    final matches =
-        _enumCandidates(symbol.name).where(declared.contains).toList();
+    final matches = _enumCandidates(
+      symbol.name,
+    ).where(declared.contains).toList();
     if (matches.length != 1) return null;
 
     final equal = matches.first == other.value;
@@ -512,7 +540,9 @@ List<String> _enumCandidates(String symbol) {
   for (final core in cores) {
     final snake = core
         .replaceAllMapped(
-            RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m[1]}_${m[2]}')
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (m) => '${m[1]}_${m[2]}',
+        )
         .toLowerCase();
     out.add(snake);
     out.add(snake.replaceAll('_', ' '));

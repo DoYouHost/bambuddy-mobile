@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Branded launch, required by Play's Wear quality check: the app icon on
-         black for the whole startup instead of the blank window Flutter's stock
-         theme leaves. Named apart from the phone's LaunchTheme on purpose — that
-         one comes as a day/night pair, and in night mode the phone's black-but-
-         iconless variant would win over a same-named override here. -->
-    <style name="WearLaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">@drawable/wear_launch_background</item>
+    <!-- Branded launch, Play's Wear quality check WO-V15: the app icon on black
+         until Flutter's first frame. Wear OS 3 (API 30) has no system splash, so
+         the icon comes from core-splashscreen, which backports the attributes
+         below and maps them onto the platform ones on API 31+ — hence no
+         `android:` prefix on them, and hence `installSplashScreen()` before
+         `super.onCreate` (BrandedLaunch.kt). A launcher theme of our own is what
+         Play saw as "no icon" in version code 1002026020. -->
+    <style name="WearLaunchTheme" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/wear_splash_icon</item>
+        <item name="postSplashScreenTheme">@style/WearNormalTheme</item>
     </style>
 
     <!-- Behind the Flutter UI once the engine has taken over. Spelled out as

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('FailureAnalysis.fromJson', () {
-    test('parsuje odpowiedź /archives/analysis/failures', () {
+    test('parses /archives/analysis/failures response', () {
       final f = FailureAnalysis.fromJson(const {
         'period_days': 90,
         'total_prints': 90,
@@ -21,7 +21,7 @@ void main() {
   });
 
   group('FailureAnalysis round-trip', () {
-    test('toJson → fromJson zachowuje pola', () {
+    test('toJson → fromJson preserves fields', () {
       const f = FailureAnalysis(
         periodDays: 30,
         totalPrints: 50,
@@ -40,7 +40,7 @@ void main() {
   });
 
   group('FailureAnalysis.merge', () {
-    test('sumuje liczniki i scala mapy per klucz', () {
+    test('sums counters and merges maps per key', () {
       const a = FailureAnalysis(
         totalPrints: 80,
         failedPrints: 4,
@@ -57,16 +57,22 @@ void main() {
       expect(m.failuresByReason, {'Unknown': 4, 'Adhesion': 1});
     });
 
-    test('failureRate liczony z sum, nie jako średnia procentów', () {
-      // 0% na 90 wydrukach + 100% na 10 wydrukach = 10/100, czyli 10% (nie 50%).
+    test('failureRate calculated from sums, not average of percentages', () {
+      // 0% on 90 prints + 100% on 10 prints = 10/100, i.e. 10% (not 50%).
       const a = FailureAnalysis(
-          totalPrints: 90, failedPrints: 0, failureRate: 0);
+        totalPrints: 90,
+        failedPrints: 0,
+        failureRate: 0,
+      );
       const b = FailureAnalysis(
-          totalPrints: 10, failedPrints: 10, failureRate: 100);
+        totalPrints: 10,
+        failedPrints: 10,
+        failureRate: 100,
+      );
       expect(a.merge(b).failureRate, 10);
     });
 
-    test('scalenie z pustym agregatem jest neutralne', () {
+    test('merging with empty aggregate is neutral', () {
       const base = FailureAnalysis();
       const day = FailureAnalysis(
         totalPrints: 3,

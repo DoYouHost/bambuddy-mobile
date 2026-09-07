@@ -28,8 +28,7 @@ class WearApp extends ConsumerStatefulWidget {
   ConsumerState<WearApp> createState() => _WearAppState();
 }
 
-class _WearAppState extends ConsumerState<WearApp>
-    with WidgetsBindingObserver {
+class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
   StreamSubscription<WatchConfig>? _configSub;
 
   @override
@@ -56,8 +55,7 @@ class _WearAppState extends ConsumerState<WearApp>
   /// provider (e.g. while still on the setup screen).
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        ref.exists(wearFleetProvider)) {
+    if (state == AppLifecycleState.resumed && ref.exists(wearFleetProvider)) {
       unawaited(ref.read(wearFleetProvider.notifier).refresh());
     }
   }
@@ -97,8 +95,9 @@ class _WearAppState extends ConsumerState<WearApp>
 
   @override
   Widget build(BuildContext context) {
-    final hasProfile =
-        ref.watch(serverProfileProvider.select((p) => p != null));
+    final hasProfile = ref.watch(
+      serverProfileProvider.select((p) => p != null),
+    );
     return MaterialApp(
       title: 'Bambuddy Watch',
       debugShowCheckedModeBanner: false,

@@ -52,13 +52,15 @@ void main() {
   });
 
   test('a maintenance tap is none of this handler\'s business', () async {
-    await handleHmsAction(NotificationResponse(
-      notificationResponseType:
-          NotificationResponseType.selectedNotificationAction,
-      id: 1,
-      actionId: maintenancePerformActionId,
-      payload: '4',
-    ));
+    await handleHmsAction(
+      NotificationResponse(
+        notificationResponseType:
+            NotificationResponseType.selectedNotificationAction,
+        id: 1,
+        actionId: maintenancePerformActionId,
+        payload: '4',
+      ),
+    );
     expect(takeHmsStop(), isNull);
   });
 }

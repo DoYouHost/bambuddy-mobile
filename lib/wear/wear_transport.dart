@@ -181,7 +181,9 @@ class RelayTransport implements WearTransport {
     final list = data?['printers'];
     if (list is! List) {
       return WearFleet(
-          printers: const [], queuePending: pending is int ? pending : null);
+        printers: const [],
+        queuePending: pending is int ? pending : null,
+      );
     }
     final out = <PrinterWithStatus>[];
     // Tolerant per-entry parsing, mirroring parseJsonList: one malformed
@@ -208,7 +210,9 @@ class RelayTransport implements WearTransport {
       out.add(PrinterWithStatus(printer: printer, status: status));
     }
     return WearFleet(
-        printers: out, queuePending: pending is int ? pending : null);
+      printers: out,
+      queuePending: pending is int ? pending : null,
+    );
   }
 
   @override
@@ -241,14 +245,13 @@ class RelayTransport implements WearTransport {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _call(
-        WearRpcAction.hmsAction,
-        printerId: printerId,
-        printError: printError,
-        hmsAction: action,
-        jobId: jobId,
-      );
+  }) => _call(
+    WearRpcAction.hmsAction,
+    printerId: printerId,
+    printError: printError,
+    hmsAction: action,
+    jobId: jobId,
+  );
 }
 
 /// One relay request waiting for its reply, with a deadline the phone can push
@@ -291,7 +294,6 @@ class _PendingCall {
   void dispose() => _timer?.cancel();
 }
 
-
 /// Direct REST to the server — the pre-relay behavior, kept as the fallback
 /// when the phone is out of reach. Requires a configured profile on the watch.
 class RestTransport implements WearTransport {
@@ -299,9 +301,9 @@ class RestTransport implements WearTransport {
     required PrintersRepository printers,
     required PrinterCommandsRepository commands,
     required QueueRepository queue,
-  })  : _printers = printers,
-        _commands = commands,
-        _queue = queue;
+  }) : _printers = printers,
+       _commands = commands,
+       _queue = queue;
 
   final PrintersRepository _printers;
   final PrinterCommandsRepository _commands;
@@ -351,9 +353,12 @@ class RestTransport implements WearTransport {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _commands.executeHmsAction(printerId,
-          printError: printError, action: action, jobId: jobId);
+  }) => _commands.executeHmsAction(
+    printerId,
+    printError: printError,
+    action: action,
+    jobId: jobId,
+  );
 }
 
 /// Which side actually served the last successful call.
@@ -370,8 +375,8 @@ class HybridWearTransport implements WearTransport {
   /// The configured watch: relay through the phone, with [rest] behind it where
   /// the watch has a server profile of its own.
   HybridWearTransport({required WearTransport relay, WearTransport? rest})
-      : _relay = relay,
-        _rest = rest;
+    : _relay = relay,
+      _rest = rest;
 
   /// Demo mode, the one case with no relay at all: relaying would be actively
   /// wrong there, because the phone answers from *its* server and a watch
@@ -382,8 +387,8 @@ class HybridWearTransport implements WearTransport {
   /// the compiler checks at every call site. As an assert it held only in debug,
   /// and the release build met it as a null-check crash inside a request.
   HybridWearTransport.restOnly(WearTransport rest)
-      : _relay = null,
-        _rest = rest;
+    : _relay = null,
+      _rest = rest;
 
   /// Null only via [HybridWearTransport.restOnly].
   final WearTransport? _relay;
@@ -414,7 +419,8 @@ class HybridWearTransport implements WearTransport {
       lastMode = WearTransportMode.relay;
       return result;
     } on Exception catch (e) {
-      final canFallback = e is WearRelayUnreachable ||
+      final canFallback =
+          e is WearRelayUnreachable ||
           (action.mayRepeatOverRest && e is WearRelayTimeout);
       final rest = _rest;
       if (!canFallback || rest == null) rethrow;
@@ -465,7 +471,11 @@ class HybridWearTransport implements WearTransport {
       // timeout. The buttons fail rather than risk running twice.
       _run(
         WearRpcAction.hmsAction,
-        (t) => t.executeHmsAction(printerId,
-            printError: printError, action: action, jobId: jobId),
+        (t) => t.executeHmsAction(
+          printerId,
+          printError: printError,
+          action: action,
+          jobId: jobId,
+        ),
       );
 }

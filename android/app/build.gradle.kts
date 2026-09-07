@@ -25,15 +25,15 @@ if (!hasReleaseKeystore) {
 
 android {
     namespace = "page.codeberg.morganmlgman.bambuddy_mobile"
-    // file_picker (via flutter_plugin_android_lifecycle) wymaga compileSdk >= 36;
-    // przypięte na sztywno, bo domyślne flutter.compileSdkVersion jest niższe.
+    // file_picker (via flutter_plugin_android_lifecycle) needs compileSdk >= 36;
+    // pinned here because the default flutter.compileSdkVersion is lower.
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // Wymagane przez flutter_local_notifications (v18+): część jego API
-        // korzysta z nowszych klas java.time, dostępnych na starszych Androidach
-        // dopiero przez desugaring biblioteki standardowej.
+        // Required by flutter_local_notifications (v18+): part of its API uses
+        // newer java.time classes, which reach older Androids only through
+        // desugaring of the standard library.
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -124,4 +124,10 @@ dependencies {
     // and must not break if that plugin ever narrows it to `implementation`.
     // Keep the version equal to the plugin's.
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
+    // Branded launch on the watch (Play's Wear quality check WO-V15). Wear OS 3
+    // (API 30) has no system splash screen, so the icon on black only exists
+    // there through this backport. Wear-only: the phone keeps Flutter's stock
+    // launch theme, and — as with wear-input above — both flavors compile
+    // `src/main`, so the call sits in each flavor's own BrandedLaunch.kt.
+    "wearImplementation"("androidx.core:core-splashscreen:1.2.0")
 }

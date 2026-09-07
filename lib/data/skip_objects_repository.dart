@@ -42,7 +42,9 @@ class SkipObjectsRepository {
           options: Options(responseType: ResponseType.bytes),
         );
         final bytes = res.data;
-        return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+        return bytes == null || bytes.isEmpty
+            ? null
+            : Uint8List.fromList(bytes);
       });
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;
@@ -57,10 +59,10 @@ class SkipObjectsRepository {
   /// raw string instead of a list (422 `list_type`, issue #22). Success =
   /// returns without exception; 403 → [AuthException(forbidden)].
   Future<void> skip(int printerId, List<int> objectIds) => guard(
-        () => _dio.post<dynamic>(
-          Endpoints.printSkipObjects(printerId),
-          data: objectIds,
-          options: Options(contentType: Headers.jsonContentType),
-        ),
-      );
+    () => _dio.post<dynamic>(
+      Endpoints.printSkipObjects(printerId),
+      data: objectIds,
+      options: Options(contentType: Headers.jsonContentType),
+    ),
+  );
 }

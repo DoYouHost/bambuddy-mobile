@@ -5,16 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const channel =
-      MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_input');
+  const channel = MethodChannel(
+    'page.codeberg.morganmlgman.bambuddy/wear_input',
+  );
   final calls = <MethodCall>[];
 
   void mockChannel(Future<Object?> Function(MethodCall call) handler) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) {
-      calls.add(call);
-      return handler(call);
-    });
+          calls.add(call);
+          return handler(call);
+        });
   }
 
   setUp(calls.clear);

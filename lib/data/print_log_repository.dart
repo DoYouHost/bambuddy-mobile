@@ -130,15 +130,13 @@ class PrintLogRepository {
       'failure_reason': ?(clearFailureReason ? '' : failureReason),
       'status': ?status,
     };
-    try {
+    return guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
         Endpoints.printLogEntry(entryId),
         data: data,
       );
       return PrintLogEntry.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioExceptionKeepingDetail(e);
-    }
+    });
   }
 
   /// DELETE /print-log/{id} — drop one run. The archive it points at is
@@ -152,9 +150,9 @@ class PrintLogRepository {
   /// Every user's rows, not the caller's, and every filter is ignored: the
   /// route takes no query at all. Archives and queue items are never touched.
   Future<int> clearAll() => guard(() async {
-        final res = await _dio.delete<Map<String, dynamic>>(Endpoints.printLog);
-        return toInt(res.data?['deleted']);
-      });
+    final res = await _dio.delete<Map<String, dynamic>>(Endpoints.printLog);
+    return toInt(res.data?['deleted']);
+  });
 
   /// A `datetime` query param the way the server can compare it.
   ///

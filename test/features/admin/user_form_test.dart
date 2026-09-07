@@ -72,16 +72,15 @@ Widget _app(
     GroupSummary(id: 5, name: 'Domownicy'),
     GroupSummary(id: 1, name: 'Administrators', isSystem: true),
   ],
-}) =>
-    ProviderScope(
-      overrides: [
-        usersRepositoryProvider.overrideWithValue(repo),
-        advancedAuthStatusProvider.overrideWith((ref) async => advanced),
-        groupOptionsProvider.overrideWith((ref) async => groups),
-        currentUserProvider.overrideWith(_NobodySignedIn.new),
-      ],
-      child: plApp(child),
-    );
+}) => ProviderScope(
+  overrides: [
+    usersRepositoryProvider.overrideWithValue(repo),
+    advancedAuthStatusProvider.overrideWith((ref) async => advanced),
+    groupOptionsProvider.overrideWith((ref) async => groups),
+    currentUserProvider.overrideWith(_NobodySignedIn.new),
+  ],
+  child: plApp(child),
+);
 
 class _NobodySignedIn extends CurrentUserNotifier {
   @override
@@ -94,15 +93,20 @@ void main() {
   setUp(() => repo = _FakeUsers());
 
   group('creating an account', () {
-    testWidgets('will not send a password the server would reject',
-        (tester) async {
+    testWidgets('will not send a password the server would reject', (
+      tester,
+    ) async {
       await tester.pumpWidget(_app(const UserFormScreen(), repo: repo));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa użytkownika'), 'zosia');
+        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        'zosia',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Hasło'), 'krotkie');
+        find.widgetWithText(TextFormField, 'Hasło'),
+        'krotkie',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -115,12 +119,18 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa użytkownika'), 'zosia');
+        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        'zosia',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Hasło'), 'Sekret!23');
+        find.widgetWithText(TextFormField, 'Hasło'),
+        'Sekret!23',
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Powtórz hasło'), 'Sekret!23');
+        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        'Sekret!23',
+      );
       await tester.tap(find.text('Domownicy'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Zapisz'));
@@ -136,18 +146,25 @@ void main() {
       expect(body.role, UserRoles.user);
     });
 
-    testWidgets('will not create an account from two different passwords',
-        (tester) async {
+    testWidgets('will not create an account from two different passwords', (
+      tester,
+    ) async {
       await tester.pumpWidget(_app(const UserFormScreen(), repo: repo));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa użytkownika'), 'zosia');
+        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        'zosia',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Hasło'), 'Sekret!23');
+        find.widgetWithText(TextFormField, 'Hasło'),
+        'Sekret!23',
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Powtórz hasło'), 'Sekret!24');
+        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        'Sekret!24',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -161,17 +178,25 @@ void main() {
 
       expect(find.text('(wbudowana)'), findsOneWidget);
       expect(find.text('Administrators'), findsOneWidget);
-      expect(find.textContaining('Administratorem czyni konto'), findsOneWidget);
+      expect(
+        find.textContaining('Administratorem czyni konto'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('asks for no password when the server mails one',
-        (tester) async {
-      await tester.pumpWidget(_app(
-        const UserFormScreen(),
-        repo: repo,
-        advanced:
-            const AdvancedAuthStatus(enabled: true, smtpConfigured: true),
-      ));
+    testWidgets('asks for no password when the server mails one', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          const UserFormScreen(),
+          repo: repo,
+          advanced: const AdvancedAuthStatus(
+            enabled: true,
+            smtpConfigured: true,
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.widgetWithText(TextFormField, 'Hasło'), findsNothing);
@@ -180,7 +205,9 @@ void main() {
       // The e-mail is what the password is mailed to, so it stops being
       // optional — saving without one gets nowhere.
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa użytkownika'), 'zosia');
+        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        'zosia',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -188,14 +215,19 @@ void main() {
       expect(repo.created, isNull);
     });
 
-    testWidgets('warns when the mail carrying that password cannot be sent',
-        (tester) async {
-      await tester.pumpWidget(_app(
-        const UserFormScreen(),
-        repo: repo,
-        advanced:
-            const AdvancedAuthStatus(enabled: true, smtpConfigured: false),
-      ));
+    testWidgets('warns when the mail carrying that password cannot be sent', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          const UserFormScreen(),
+          repo: repo,
+          advanced: const AdvancedAuthStatus(
+            enabled: true,
+            smtpConfigured: false,
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -228,8 +260,9 @@ void main() {
       expect(body.groupIds, isNull);
     });
 
-    testWidgets('leaves the password alone when the field is left empty',
-        (tester) async {
+    testWidgets('leaves the password alone when the field is left empty', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const UserFormScreen(existing: _member), repo: repo),
       );
@@ -237,13 +270,12 @@ void main() {
 
       // Nothing to confirm until a new password is typed, so the second field
       // stays out of the way.
-      expect(
-        find.widgetWithText(TextFormField, 'Powtórz hasło'),
-        findsNothing,
-      );
+      expect(find.widgetWithText(TextFormField, 'Powtórz hasło'), findsNothing);
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nazwa użytkownika'), 'zosia2');
+        find.widgetWithText(TextFormField, 'Nazwa użytkownika'),
+        'zosia2',
+      );
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
@@ -251,18 +283,24 @@ void main() {
       expect(repo.updated!.$2.password, isNull);
     });
 
-    testWidgets('asks to repeat a new password once one is typed',
-        (tester) async {
+    testWidgets('asks to repeat a new password once one is typed', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const UserFormScreen(existing: _member), repo: repo),
       );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Nowe hasło'), 'Sekret!23');
+        find.widgetWithText(TextFormField, 'Nowe hasło'),
+        'Sekret!23',
+      );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(TextFormField, 'Powtórz hasło'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextFormField, 'Powtórz hasło'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
@@ -271,8 +309,9 @@ void main() {
       expect(repo.updated, isNull);
     });
 
-    testWidgets('never sends a role — group membership carries admin',
-        (tester) async {
+    testWidgets('never sends a role — group membership carries admin', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const UserFormScreen(existing: _member), repo: repo),
       );
@@ -289,8 +328,9 @@ void main() {
       expect(repo.updated!.$2.groupIds, [1, 5]);
     });
 
-    testWidgets('offers no password field for a directory account',
-        (tester) async {
+    testWidgets('offers no password field for a directory account', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _app(const UserFormScreen(existing: _ldapMember), repo: repo),
       );
@@ -304,50 +344,54 @@ void main() {
   group('deleting an account', () {
     Future<({bool deleteItems})?> openDialog(WidgetTester tester) async {
       ({bool deleteItems})? choice;
-      await tester.pumpWidget(_app(
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () async =>
-                choice = await confirmUserDelete(context, _member),
-            child: const Text('open'),
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () async =>
+                  choice = await confirmUserDelete(context, _member),
+              child: const Text('open'),
+            ),
           ),
+          repo: repo,
         ),
-        repo: repo,
-      ));
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       return choice;
     }
 
-    testWidgets('keeps what the account created unless asked otherwise',
-        (tester) async {
+    testWidgets('keeps what the account created unless asked otherwise', (
+      tester,
+    ) async {
       await openDialog(tester);
 
       expect(find.textContaining('To konto utworzyło 3'), findsOneWidget);
-      expect(
-        find.textContaining('zostaną, bez właściciela'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('zostaną, bez właściciela'), findsOneWidget);
     });
 
     testWidgets('carries the choice back to the caller', (tester) async {
       ({bool deleteItems})? choice;
-      await tester.pumpWidget(_app(
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () async =>
-                choice = await confirmUserDelete(context, _member),
-            child: const Text('open'),
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () async =>
+                  choice = await confirmUserDelete(context, _member),
+              child: const Text('open'),
+            ),
           ),
+          repo: repo,
         ),
-        repo: repo,
-      ));
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Usuń je razem z kontem'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, 'Usuń je razem z kontem'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Usuń'));
       await tester.pumpAndSettle();
@@ -358,18 +402,20 @@ void main() {
     testWidgets('backing out answers nothing at all', (tester) async {
       ({bool deleteItems})? choice;
       var returned = false;
-      await tester.pumpWidget(_app(
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () async {
-              choice = await confirmUserDelete(context, _member);
-              returned = true;
-            },
-            child: const Text('open'),
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                choice = await confirmUserDelete(context, _member);
+                returned = true;
+              },
+              child: const Text('open'),
+            ),
           ),
+          repo: repo,
         ),
-        repo: repo,
-      ));
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();

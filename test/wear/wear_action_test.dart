@@ -42,7 +42,9 @@ void main() {
     return key.currentState! as _HostState;
   }
 
-  testWidgets('busy while the action runs, idle again after it', (tester) async {
+  testWidgets('busy while the action runs, idle again after it', (
+    tester,
+  ) async {
     final host = await pumpHost(tester);
     final gate = Completer<void>();
 
@@ -58,8 +60,9 @@ void main() {
     expect(host.done, 1);
   });
 
-  testWidgets('a second call while one is in flight is dropped',
-      (tester) async {
+  testWidgets('a second call while one is in flight is dropped', (
+    tester,
+  ) async {
     final host = await pumpHost(tester);
     final gate = Completer<void>();
     var runs = 0;
@@ -80,8 +83,9 @@ void main() {
     expect(runs, 2);
   });
 
-  testWidgets('a failure reaches onError and still clears busy',
-      (tester) async {
+  testWidgets('a failure reaches onError and still clears busy', (
+    tester,
+  ) async {
     final host = await pumpHost(tester);
 
     await host.go(() async => throw Exception('keystore is gone'));
@@ -108,8 +112,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a failure after the widget is gone is swallowed too',
-      (tester) async {
+  testWidgets('a failure after the widget is gone is swallowed too', (
+    tester,
+  ) async {
     final host = await pumpHost(tester);
     final gate = Completer<void>();
 

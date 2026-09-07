@@ -47,7 +47,9 @@ class SlotPresetSources {
 /// static, cloud presets change when the user edits them in the slicer, and the
 /// sheet opens once per slot — refetching three times on every open would be
 /// three round trips to show the same list.
-final slotPresetSourcesProvider = FutureProvider<SlotPresetSources>((ref) async {
+final slotPresetSourcesProvider = FutureProvider<SlotPresetSources>((
+  ref,
+) async {
   final repo = ref.watch(amsSlotConfigRepositoryProvider);
 
   // A tier that cannot be read is one tier fewer, not a failed sheet: the
@@ -101,8 +103,9 @@ final slotPresetSourcesProvider = FutureProvider<SlotPresetSources>((ref) async 
 /// auto-disposed. Degrades to empty, which costs the two name shapes that need
 /// it to resolve; those presets then classify as "names no printer" and are
 /// kept, never guessed at.
-final printerModelRegistryProvider =
-    FutureProvider<Map<String, String>>((ref) async {
+final printerModelRegistryProvider = FutureProvider<Map<String, String>>((
+  ref,
+) async {
   try {
     return await ref.watch(amsSlotConfigRepositoryProvider).printerModels();
   } on AppApiException {
@@ -126,35 +129,29 @@ typedef KProfileTable = ({List<KProfile> profiles, bool failed});
 /// disconnected machine answers 400 and a key without `kprofiles:read` answers
 /// 403, and neither should take down a sheet whose other half still works. The
 /// write then falls back to the printer's default K.
-final kProfilesProvider =
-    FutureProvider.autoDispose.family<KProfileTable, KProfileKey>(
-  (ref, key) async {
-    try {
-      final profiles =
-          await ref.watch(amsSlotConfigRepositoryProvider).kProfiles(
-                key.printerId,
-                nozzleDiameter: key.nozzleDiameter,
-              );
-      return (profiles: profiles, failed: false);
-    } on Object {
-      // Deliberately every failure, not just `AppApiException`: whatever went
-      // wrong, the honest report is "the printer's calibrations are not
-      // available", and a picker that vanishes instead reads as a missing
-      // feature.
-      return (profiles: const <KProfile>[], failed: true);
-    }
-  },
-);
+final kProfilesProvider = FutureProvider.autoDispose
+    .family<KProfileTable, KProfileKey>((ref, key) async {
+      try {
+        final profiles = await ref
+            .watch(amsSlotConfigRepositoryProvider)
+            .kProfiles(key.printerId, nozzleDiameter: key.nozzleDiameter);
+        return (profiles: profiles, failed: false);
+      } on Object {
+        // Deliberately every failure, not just `AppApiException`: whatever went
+        // wrong, the honest report is "the printer's calibrations are not
+        // available", and a picker that vanishes instead reads as a missing
+        // feature.
+        return (profiles: const <KProfile>[], failed: true);
+      }
+    });
 
 /// The preset a slot was configured with, or null when it has none.
 ///
 /// Auto-disposed and per slot: unlike the catalogue this is state the user is
 /// about to change, so a stale copy would preselect the wrong entry.
-final slotPresetProvider =
-    FutureProvider.autoDispose.family<SlotPreset?, SlotKey>((ref, slot) {
-  return ref.watch(amsSlotConfigRepositoryProvider).slotPreset(
-        slot.printerId,
-        amsId: slot.amsId,
-        trayId: slot.trayId,
-      );
-});
+final slotPresetProvider = FutureProvider.autoDispose
+    .family<SlotPreset?, SlotKey>((ref, slot) {
+      return ref
+          .watch(amsSlotConfigRepositoryProvider)
+          .slotPreset(slot.printerId, amsId: slot.amsId, trayId: slot.trayId);
+    });

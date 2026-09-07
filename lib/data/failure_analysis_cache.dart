@@ -23,12 +23,10 @@ class FailureCacheEntry {
   final DateTime fetchedAt;
 
   Map<String, dynamic> toJson() => {
-        'analysis': analysis.toJson(),
-        'covered_through': coveredThrough == null
-            ? null
-            : _ymd(coveredThrough!),
-        'fetched_at': fetchedAt.toIso8601String(),
-      };
+    'analysis': analysis.toJson(),
+    'covered_through': coveredThrough == null ? null : _ymd(coveredThrough!),
+    'fetched_at': fetchedAt.toIso8601String(),
+  };
 
   static FailureCacheEntry? fromJson(Map<String, dynamic> json) {
     final a = json['analysis'];
@@ -69,17 +67,15 @@ class FailureAnalysisCache {
     if (raw == null) return null;
     try {
       return FailureCacheEntry.fromJson(
-          jsonDecode(raw) as Map<String, dynamic>);
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
     } on Object {
       return null;
     }
   }
 
-  Future<void> save(StatsFilter filter, FailureCacheEntry entry) =>
-      _prefs.setString(
-        '$_prefix${signature(filter)}',
-        jsonEncode(entry.toJson()),
-      );
+  Future<void> save(StatsFilter filter, FailureCacheEntry entry) => _prefs
+      .setString('$_prefix${signature(filter)}', jsonEncode(entry.toJson()));
 
   /// Drop every bucket, for when a run's classification changed underneath
   /// them (the print-log editor).

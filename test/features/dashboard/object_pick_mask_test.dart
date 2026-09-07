@@ -24,34 +24,37 @@ Uint8List _rgba(int width, int height, int Function(int x, int y) idAt) {
 /// 10×10 plate: object 80 as a 4×3 block, object 300 (an id that only decodes
 /// right if the green channel is read) as a 5×5 ring around a hole.
 ObjectPickMask _plate() => ObjectPickMask.fromRgba(
-      _rgba(10, 10, (x, y) {
-        if (x >= 1 && x <= 4 && y >= 1 && y <= 3) return 80;
-        final ring = x >= 5 && x <= 9 && y >= 5 && y <= 9;
-        final hole = x >= 6 && x <= 8 && y >= 6 && y <= 8;
-        return ring && !hole ? 300 : 0;
-      }),
-      10,
-      10,
-    )!;
+  _rgba(10, 10, (x, y) {
+    if (x >= 1 && x <= 4 && y >= 1 && y <= 3) return 80;
+    final ring = x >= 5 && x <= 9 && y >= 5 && y <= 9;
+    final hole = x >= 6 && x <= 8 && y >= 6 && y <= 8;
+    return ring && !hole ? 300 : 0;
+  }),
+  10,
+  10,
+)!;
 
 void main() {
   const box = Size(100, 100); // 10 logical px per mask pixel.
 
-  test('id obiektu składa się z kanałów r/g/b', () {
+  test('object id is composed of r/g/b channels', () {
     expect(_plate().shapes.keys, containsAll(<int>[80, 300]));
   });
 
-  test('dotknięcie kształtu zwraca jego obiekt, dotknięcie płyty nic', () {
-    final mask = _plate();
+  test(
+    'tapping a shape returns its object, tapping the plate returns nothing',
+    () {
+      final mask = _plate();
 
-    expect(mask.idAt(const Offset(25, 25), box), 80);
-    expect(mask.idAt(const Offset(55, 55), box), 300);
-    // The ring's hole is plate, not the object drawn around it.
-    expect(mask.idAt(const Offset(75, 75), box), isNull);
-    expect(mask.idAt(const Offset(5, 95), box), isNull);
-  });
+      expect(mask.idAt(const Offset(25, 25), box), 80);
+      expect(mask.idAt(const Offset(55, 55), box), 300);
+      // The ring's hole is plate, not the object drawn around it.
+      expect(mask.idAt(const Offset(75, 75), box), isNull);
+      expect(mask.idAt(const Offset(5, 95), box), isNull);
+    },
+  );
 
-  test('pasy letterboxa nie trafiają w nic', () {
+  test('letterbox bars hit nothing', () {
     final mask = _plate();
     // A mask narrower than its box is centred, so x<50 is the left bar. Without
     // the bounds check it would clamp onto whatever touches the plate's edge.
@@ -59,7 +62,7 @@ void main() {
     expect(mask.idAt(const Offset(75, 25), const Size(200, 100)), 80);
   });
 
-  test('tolerancja ratuje dotknięcie tuż obok, ale nie przebija trafienia', () {
+  test('tolerance rescues a tap just outside, but does not override a hit', () {
     final mask = _plate();
 
     // 5 px past the block's left edge — within a finger's slop.
@@ -70,7 +73,7 @@ void main() {
     expect(mask.idAt(const Offset(55, 55), box, tolerance: 40), 300);
   });
 
-  test('prostokąt: obrys, zasięg etykiety i kotwica pośrodku', () {
+  test('rectangle: outline, label span and anchor at the center', () {
     final shape = _plate().shapes[80]!;
 
     expect(shape.bounds, const Rect.fromLTRB(1, 1, 5, 4));
@@ -80,7 +83,7 @@ void main() {
     expect(shape.outline.length, 14 * 4);
   });
 
-  test('pierścień: etykieta ląduje w materiale, nie w dziurze', () {
+  test('ring: label lands on the material, not in the hole', () {
     final mask = _plate();
     final anchor = mask.shapes[300]!.labelAnchor;
 
@@ -88,7 +91,7 @@ void main() {
     expect(mask.idAt(anchor * 10, box), 300);
   });
 
-  test('maska bez obiektów i maska za krótka to brak maski', () {
+  test('a mask with no objects and a too-short mask are no mask at all', () {
     expect(ObjectPickMask.fromRgba(_rgba(4, 4, (_, _) => 0), 4, 4), isNull);
     expect(ObjectPickMask.fromRgba(Uint8List(16), 4, 4), isNull);
   });

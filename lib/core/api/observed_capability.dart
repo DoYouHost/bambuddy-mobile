@@ -51,8 +51,8 @@ class ObservedCapability {
   /// from a healthy server whose version read failed. What is still worth
   /// watching is the permission (`AmsHistoryRepository`).
   ObservedCapability.unversioned({this.whenUnknown = true})
-      : _feature = null,
-        _version = null;
+    : _feature = null,
+      _version = null;
 
   final ServerFeature? _feature;
   final ServerVersionService? _version;

@@ -48,6 +48,7 @@ class AvailableFilament {
   final int? extruderId;
 
   /// Display label — sub-brand if known, else the raw type.
-  String get label =>
-      (traySubBrands != null && traySubBrands!.isNotEmpty) ? traySubBrands! : type;
+  String get label => (traySubBrands != null && traySubBrands!.isNotEmpty)
+      ? traySubBrands!
+      : type;
 }

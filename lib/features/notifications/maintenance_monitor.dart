@@ -33,8 +33,8 @@ class MaintenanceMonitor {
     this.persist,
     this.reload,
     AppLocalizations Function()? l10n,
-  })  : _notified = {...?initialNotified},
-        _l10n = l10n ?? systemAppLocalizations;
+  }) : _notified = {...?initialNotified},
+       _l10n = l10n ?? systemAppLocalizations;
 
   final NotificationService _notifications;
   final MaintenanceRepository _repo;
@@ -178,7 +178,7 @@ class MaintenanceMonitor {
   }
 
   NotificationAction _resetAction(AppLocalizations l) => NotificationAction(
-        id: maintenancePerformActionId,
-        title: l.maintenanceNotifAction,
-      );
+    id: maintenancePerformActionId,
+    title: l.maintenanceNotifAction,
+  );
 }

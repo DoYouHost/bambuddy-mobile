@@ -61,8 +61,12 @@ class _SignedInState extends ConsumerState<_SignedIn> {
       ref.invalidate(cloudAuthStatusProvider);
       ref.invalidate(makerworldStatusProvider);
     } on AppApiException catch (e) {
-      showApiFailure(mounted ? ScaffoldMessenger.of(context) : null, e, l10n,
-          action: 'cloud.sign_out');
+      showApiFailure(
+        mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'cloud.sign_out',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -100,16 +104,10 @@ class _SignedInState extends ConsumerState<_SignedIn> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      status.email ?? l10n.cloudSignedIn,
-                      style: t.titleSm,
-                    ),
+                    Text(status.email ?? l10n.cloudSignedIn, style: t.titleSm),
                     if (status.region != null) ...[
                       const SizedBox(height: 3),
-                      Text(
-                        _regionLabel(l10n),
-                        style: t.label,
-                      ),
+                      Text(_regionLabel(l10n), style: t.label),
                     ],
                   ],
                 ),
@@ -118,18 +116,16 @@ class _SignedInState extends ConsumerState<_SignedIn> {
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          l10n.cloudCredsNote,
-          style: t.label,
-        ),
+        Text(l10n.cloudCredsNote, style: t.label),
         const SizedBox(height: 24),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
             foregroundColor: t.textPrimary,
             side: BorderSide(color: t.cardBorder),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           onPressed: _busy ? null : _signOut,
           icon: _busy
@@ -141,8 +137,9 @@ class _SignedInState extends ConsumerState<_SignedIn> {
     );
   }
 
-  String _regionLabel(AppLocalizations l10n) =>
-      widget.status.region == 'china' ? l10n.cloudRegionChina : l10n.cloudRegionGlobal;
+  String _regionLabel(AppLocalizations l10n) => widget.status.region == 'china'
+      ? l10n.cloudRegionChina
+      : l10n.cloudRegionGlobal;
 }
 
 /// Login form: email/password/region, then on `needs_verification` — 2FA code.
@@ -194,11 +191,9 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     }
     setState(() => _busy = true);
     try {
-      final res = await ref.read(cloudRepositoryProvider).login(
-            email: email,
-            password: password,
-            region: _region,
-          );
+      final res = await ref
+          .read(cloudRepositoryProvider)
+          .login(email: email, password: password, region: _region);
       _handleResult(res);
     } on AppApiException catch (e) {
       _failed(e, 'cloud.sign_in');
@@ -216,7 +211,9 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     }
     setState(() => _busy = true);
     try {
-      final res = await ref.read(cloudRepositoryProvider).verify(
+      final res = await ref
+          .read(cloudRepositoryProvider)
+          .verify(
             email: _email.text.trim(),
             code: code,
             tfaKey: _tfaKey,
@@ -248,7 +245,9 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
       return;
     }
     // No success and no verification → server message (or generic).
-    ScaffoldMessenger.of(context).snack(res.message.isNotEmpty ? res.message : _l10n.cloudSignInFailed);
+    ScaffoldMessenger.of(
+      context,
+    ).snack(res.message.isNotEmpty ? res.message : _l10n.cloudSignInFailed);
   }
 
   @override
@@ -269,10 +268,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.cloudCredsNote,
-                style: t.label,
-              ),
+              Text(l10n.cloudCredsNote, style: t.label),
               const SizedBox(height: 20),
               TextField(
                 controller: _email,
@@ -291,26 +287,32 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                 enabled: !_verifying && !_busy,
                 obscureText: _obscure,
                 style: fieldStyle(),
-                decoration: dashFieldDecoration(
-                  t,
-                  labelText: l10n.cloudPassword,
-                ).copyWith(
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        _obscure ? Icons.visibility : Icons.visibility_off,
-                        color: t.textTertiary),
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                  ).tagged('cloud.reveal_password'),
-                ),
+                decoration:
+                    dashFieldDecoration(
+                      t,
+                      labelText: l10n.cloudPassword,
+                    ).copyWith(
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility : Icons.visibility_off,
+                          color: t.textTertiary,
+                        ),
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ).tagged('cloud.reveal_password'),
+                    ),
               ).tagged('cloud.password'),
               const SizedBox(height: 14),
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment(
-                      value: 'global', label: Text(l10n.cloudRegionGlobal)),
+                    value: 'global',
+                    label: Text(l10n.cloudRegionGlobal),
+                  ),
                   ButtonSegment(
-                      value: 'china', label: Text(l10n.cloudRegionChina)),
+                    value: 'china',
+                    label: Text(l10n.cloudRegionChina),
+                  ),
                 ],
                 selected: {_region},
                 onSelectionChanged: (_verifying || _busy)
@@ -342,8 +344,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                 style: dashPrimaryButtonStyle(t),
                 onPressed: _busy ? null : (_verifying ? _verify : _signIn),
                 child: _busy
-                    ? DashSpinner(color: Color(0xFF0A0C08),
-                      )
+                    ? DashSpinner(color: Color(0xFF0A0C08))
                     : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
               ).tagged('cloud.sign_in'),
             ],

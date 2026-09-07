@@ -24,25 +24,27 @@ void main() {
     DateTime? initial,
     DateTime? firstDate,
   }) async {
-    await tester.pumpWidget(plApp(
-      Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: ElevatedButton(
-              onPressed: () async {
-                answer.at = await pickDateTime(
-                  context,
-                  initial: initial,
-                  firstDate: firstDate,
-                );
-                answer.done = true;
-              },
-              child: const Text('go'),
+    await tester.pumpWidget(
+      plApp(
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  answer.at = await pickDateTime(
+                    context,
+                    initial: initial,
+                    firstDate: firstDate,
+                  );
+                  answer.done = true;
+                },
+                child: const Text('go'),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();
   }
@@ -113,26 +115,29 @@ void main() {
   /// first day it may show, and a stored instant that has since passed is
   /// exactly how a form gets there — a queue row scheduled for this morning, or
   /// a drying time picked before the user went back to the sliders.
-  testWidgets('an instant already gone opens the calendar, it does not assert',
-      (tester) async {
-    final answer = _Answer();
+  testWidgets(
+    'an instant already gone opens the calendar, it does not assert',
+    (tester) async {
+      final answer = _Answer();
 
-    await withClock(Clock.fixed(now), () async {
-      await open(tester, answer, initial: DateTime(2026, 8, 30, 6));
-      await accept(tester);
-      await accept(tester);
-    });
+      await withClock(Clock.fixed(now), () async {
+        await open(tester, answer, initial: DateTime(2026, 8, 30, 6));
+        await accept(tester);
+        await accept(tester);
+      });
 
-    expect(tester.takeException(), isNull);
-    // The *day* is clamped to the earliest one on offer; the hour is the one
-    // that was stored, because no clock value was ever out of range.
-    expect(answer.at, DateTime(2026, 9, 3, 6));
-  });
+      expect(tester.takeException(), isNull);
+      // The *day* is clamped to the earliest one on offer; the hour is the one
+      // that was stored, because no clock value was ever out of range.
+      expect(answer.at, DateTime(2026, 9, 3, 6));
+    },
+  );
 
   /// The queue edits jobs whose time has passed, so its calendar reaches back a
   /// day — otherwise "the same day, an hour later" cannot be expressed.
-  testWidgets('a caller can ask for a day the default would refuse',
-      (tester) async {
+  testWidgets('a caller can ask for a day the default would refuse', (
+    tester,
+  ) async {
     final answer = _Answer();
 
     await withClock(Clock.fixed(now), () async {

@@ -63,8 +63,9 @@ final pipelinesProvider = FutureProvider.autoDispose<List<SlicerPipeline>>(
 /// Overridden in a [ProviderScope] around the screen, not written into the
 /// notifier from `initState` — modifying a provider in a widget life-cycle
 /// throws, and a post-frame write fetches the unfiltered page first.
-final pipelineRunFilterSeedProvider =
-    Provider<PipelineRunFilter>((_) => const PipelineRunFilter());
+final pipelineRunFilterSeedProvider = Provider<PipelineRunFilter>(
+  (_) => const PipelineRunFilter(),
+);
 
 /// What the runs dashboard is narrowed to. `autoDispose`, so leaving the screen
 /// clears it — a filter the user cannot see must not still be hiding runs.
@@ -74,9 +75,9 @@ final pipelineRunFilterSeedProvider =
 /// it was not told about.
 final pipelineRunFilterProvider =
     NotifierProvider.autoDispose<PipelineRunFilterNotifier, PipelineRunFilter>(
-  PipelineRunFilterNotifier.new,
-  dependencies: [pipelineRunFilterSeedProvider],
-);
+      PipelineRunFilterNotifier.new,
+      dependencies: [pipelineRunFilterSeedProvider],
+    );
 
 class PipelineRunFilterNotifier extends AutoDisposeNotifier<PipelineRunFilter> {
   @override
@@ -112,23 +113,21 @@ class PipelineRunsView {
     List<PipelineRun>? runs,
     int? total,
     bool? loadingMore,
-  }) =>
-      PipelineRunsView(
-        runs: runs ?? this.runs,
-        total: total ?? this.total,
-        loadingMore: loadingMore ?? this.loadingMore,
-      );
+  }) => PipelineRunsView(
+    runs: runs ?? this.runs,
+    total: total ?? this.total,
+    loadingMore: loadingMore ?? this.loadingMore,
+  );
 }
 
 /// Page 0 on build, appended by [loadMore], rebuilt on a filter change.
-final pipelineRunsProvider = AsyncNotifierProvider.autoDispose<
-    PipelineRunsNotifier, PipelineRunsView>(
-  PipelineRunsNotifier.new,
-  dependencies: [pipelineRunFilterProvider],
-);
+final pipelineRunsProvider =
+    AsyncNotifierProvider.autoDispose<PipelineRunsNotifier, PipelineRunsView>(
+      PipelineRunsNotifier.new,
+      dependencies: [pipelineRunFilterProvider],
+    );
 
-class PipelineRunsNotifier
-    extends AutoDisposeAsyncNotifier<PipelineRunsView> {
+class PipelineRunsNotifier extends AutoDisposeAsyncNotifier<PipelineRunsView> {
   @override
   Future<PipelineRunsView> build() async {
     // Watched, not read: changing a filter has to start the list over, since
@@ -164,16 +163,17 @@ class PipelineRunsNotifier
     if (view == null || view.loadingMore || !view.hasMore) return;
     state = AsyncData(view.copyWith(loadingMore: true));
     try {
-      final page = await ref.read(pipelinesRepositoryProvider).runs(
+      final page = await ref
+          .read(pipelinesRepositoryProvider)
+          .runs(
             offset: view.runs.length,
             filter: ref.read(pipelineRunFilterProvider),
           );
       // `total` from the same query, so runs cleared between the two requests
       // shrink the count instead of stranding the footer.
-      state = AsyncData(PipelineRunsView(
-        runs: [...view.runs, ...page.runs],
-        total: page.total,
-      ));
+      state = AsyncData(
+        PipelineRunsView(runs: [...view.runs, ...page.runs], total: page.total),
+      );
     } on AppApiException {
       // Only the spinner goes: a failed page must not empty the list the user
       // was reading. Thrown on, because a press deserves an answer.
@@ -194,7 +194,9 @@ class PipelineRunsNotifier
   Future<bool> refreshLoaded() async {
     final loaded = state.valueOrNull?.runs.length ?? 0;
     try {
-      final page = await ref.read(pipelinesRepositoryProvider).runs(
+      final page = await ref
+          .read(pipelinesRepositoryProvider)
+          .runs(
             limit: loaded.clamp(
               PipelinesRepository.pageSize,
               PipelinesRepository.maxPageSize,
@@ -224,17 +226,16 @@ class PipelineRunsNotifier
 }
 
 /// One run, for the detail sheet's poll.
-final pipelineRunProvider =
-    FutureProvider.autoDispose.family<PipelineRun, int>(
+final pipelineRunProvider = FutureProvider.autoDispose.family<PipelineRun, int>(
   (ref, runId) => ref.watch(pipelinesRepositoryProvider).runById(runId),
 );
 
 /// Every printer, for the "specific printer" target picker.
 final pipelineTargetPrintersProvider =
     FutureProvider.autoDispose<List<Printer>>((ref) async {
-  final all = await ref.watch(printersRepositoryProvider).fetchAll();
-  return [for (final p in all) p.printer];
-});
+      final all = await ref.watch(printersRepositoryProvider).fetchAll();
+      return [for (final p in all) p.printer];
+    });
 
 /// The distinct printer models installed here, for the "printer class" picker.
 ///
@@ -242,12 +243,13 @@ final pipelineTargetPrintersProvider =
 /// `ownedPrinterCodesProvider`: the server matches a class with a plain
 /// `Printer.model == target_model_class` (`pipeline_eligibility.py`), and an
 /// upper-cased value simply matches nothing.
-final pipelinePrinterClassesProvider =
-    FutureProvider.autoDispose<List<String>>((ref) async {
-  final printers = await ref.watch(pipelineTargetPrintersProvider.future);
-  final models = <String>{
-    for (final p in printers)
-      if (p.model != null && p.model!.isNotEmpty) p.model!,
-  };
-  return models.toList()..sort();
-});
+final pipelinePrinterClassesProvider = FutureProvider.autoDispose<List<String>>(
+  (ref) async {
+    final printers = await ref.watch(pipelineTargetPrintersProvider.future);
+    final models = <String>{
+      for (final p in printers)
+        if (p.model != null && p.model!.isNotEmpty) p.model!,
+    };
+    return models.toList()..sort();
+  },
+);

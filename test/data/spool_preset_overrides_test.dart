@@ -7,34 +7,28 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
-  late List<RequestOptions> sent;
-
-  /// Every request as it left, so a body can be asserted on. The mock
-  /// adapter's own handlers run once at declaration, not once per request.
-  InterceptorsWrapper recorder() => InterceptorsWrapper(
-        onRequest: (options, handler) {
-          sent.add(options);
-          handler.next(options);
-        },
-      );
+  late RequestLog sent;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
-    sent = [];
-    dio.interceptors.add(recorder());
+    sent = captureRequests(dio);
   });
 
   void replyVersion(String version) => adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-      );
+    '/api/v1/updates/version',
+    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+  );
 
-  InventoryRepository nativeRepo() =>
-      InventoryRepository(NativeInventorySource(dio), ServerVersionService(dio));
+  InventoryRepository nativeRepo() => InventoryRepository(
+    NativeInventorySource(dio),
+    ServerVersionService(dio),
+  );
 
   group('reading a spool\'s per-model presets', () {
     test('keeps both levels of the cascade, and what each names', () async {
@@ -85,8 +79,11 @@ void main() {
       final repo = nativeRepo();
 
       expect(await repo.fetchPresetOverrides(7), isEmpty);
-      expect(await repo.supportsPresetOverrides(), isTrue,
-          reason: 'the version row is what answers this');
+      expect(
+        await repo.supportsPresetOverrides(),
+        isTrue,
+        reason: 'the version row is what answers this',
+      );
     });
 
     test('a 403 reaches the caller — a form that showed nothing would '
@@ -100,8 +97,11 @@ void main() {
       await expectLater(
         nativeRepo().fetchPresetOverrides(7),
         throwsA(
-          isA<AuthException>()
-              .having((e) => e.code, 'code', AppErrorCode.forbidden),
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.forbidden,
+          ),
         ),
       );
     });
@@ -132,33 +132,36 @@ void main() {
   });
 
   group('writing them back', () {
-    test('sends the write shape, and nothing the route does not accept',
-        () async {
-      replyVersion('1.2.6b1');
-      adapter.onPut(
-        '/api/v1/inventory/spools/7/filament-presets',
-        (s) => s.reply(200, []),
-        data: Matchers.any,
-      );
+    test(
+      'sends the write shape, and nothing the route does not accept',
+      () async {
+        replyVersion('1.2.6b1');
+        adapter.onPut(
+          '/api/v1/inventory/spools/7/filament-presets',
+          (s) => s.reply(200, []),
+          data: Matchers.any,
+        );
 
-      await nativeRepo().savePresetOverrides(7, const [
-        SpoolPresetOverride(
-          printerModel: 'X1C',
-          slicerFilament: 'GFA00',
-          slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
-        ),
-      ]);
+        await nativeRepo().savePresetOverrides(7, const [
+          SpoolPresetOverride(
+            printerModel: 'X1C',
+            slicerFilament: 'GFA00',
+            slicerFilamentName: 'Bambu PLA Basic @BBL X1C',
+          ),
+        ]);
 
-      final body = sent.singleWhere((r) => r.method == 'PUT').data as List;
-      expect(body, [
-        {
-          'printer_model': 'X1C',
-          'nozzle_diameter': '',
-          'slicer_filament': 'GFA00',
-          'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
-        },
-      ]);
-    });
+        final body =
+            sent.requests.singleWhere((r) => r.method == 'PUT').data as List;
+        expect(body, [
+          {
+            'printer_model': 'X1C',
+            'nozzle_diameter': '',
+            'slicer_filament': 'GFA00',
+            'slicer_filament_name': 'Bambu PLA Basic @BBL X1C',
+          },
+        ]);
+      },
+    );
 
     test('an empty list is how the last override is cleared', () async {
       replyVersion('1.2.6b1');
@@ -170,47 +173,54 @@ void main() {
 
       await nativeRepo().savePresetOverrides(7, const []);
 
-      expect(sent.singleWhere((r) => r.method == 'PUT').data, isEmpty);
+      expect(sent.requests.singleWhere((r) => r.method == 'PUT').data, isEmpty);
     });
 
-    test('saving against a spool that is gone does not hide the section',
-        () async {
-      // Same shape as the drying cancel: the route 404s for a missing spool,
-      // and reading that as "this server has no overrides" took the whole
-      // section away until the app restarted.
-      replyVersion('1.2.6b1');
-      adapter.onPut(
-        '/api/v1/inventory/spools/7/filament-presets',
-        (s) => s.reply(404, {'detail': 'Spool not found'}),
-        data: Matchers.any,
-      );
-      final repo = nativeRepo();
+    test(
+      'saving against a spool that is gone does not hide the section',
+      () async {
+        // Same shape as the drying cancel: the route 404s for a missing spool,
+        // and reading that as "this server has no overrides" took the whole
+        // section away until the app restarted.
+        replyVersion('1.2.6b1');
+        adapter.onPut(
+          '/api/v1/inventory/spools/7/filament-presets',
+          (s) => s.reply(404, {'detail': 'Spool not found'}),
+          data: Matchers.any,
+        );
+        final repo = nativeRepo();
 
-      await expectLater(
-        repo.savePresetOverrides(7, const []),
-        throwsA(isA<AppApiException>()),
-        reason: 'the user pressed Save, so the failure still reaches them',
-      );
-      expect(await repo.supportsPresetOverrides(), isTrue);
-    });
+        await expectLater(
+          repo.savePresetOverrides(7, const []),
+          throwsA(isA<AppApiException>()),
+          reason: 'the user pressed Save, so the failure still reaches them',
+        );
+        expect(await repo.supportsPresetOverrides(), isTrue);
+      },
+    );
 
-    test('a refusal reaches the user — the save was something they asked for',
-        () async {
-      replyVersion('1.2.6b1');
-      adapter.onPut(
-        '/api/v1/inventory/spools/7/filament-presets',
-        (s) => s.reply(403, {'detail': 'Missing required permissions'}),
-        data: Matchers.any,
-      );
+    test(
+      'a refusal reaches the user — the save was something they asked for',
+      () async {
+        replyVersion('1.2.6b1');
+        adapter.onPut(
+          '/api/v1/inventory/spools/7/filament-presets',
+          (s) => s.reply(403, {'detail': 'Missing required permissions'}),
+          data: Matchers.any,
+        );
 
-      await expectLater(
-        nativeRepo().savePresetOverrides(7, const []),
-        throwsA(
-          isA<AuthException>()
-              .having((e) => e.code, 'code', AppErrorCode.forbidden),
-        ),
-      );
-    });
+        await expectLater(
+          nativeRepo().savePresetOverrides(7, const []),
+          throwsA(
+            isA<AuthException>().having(
+              (e) => e.code,
+              'code',
+              AppErrorCode.forbidden,
+            ),
+          ),
+        );
+      },
+    );
   });
 
   test('the Spoolman twin is the same call on the Spoolman path', () async {

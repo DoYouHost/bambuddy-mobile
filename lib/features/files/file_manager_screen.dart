@@ -30,8 +30,7 @@ import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../../data/pipelines_repository.dart' show PipelineSource;
 import '../pipelines/pipeline_run_screen.dart';
-import '../pipelines/pipelines_providers.dart'
-    show canRunPipelinesProvider;
+import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
@@ -67,8 +66,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     });
   }
 
-  void _snack(String msg) =>
-      _messenger.snack(msg);
+  void _snack(String msg) => _messenger.snack(msg);
 
   /// Both halves of a failed action: the sentence, and the record that somebody
   /// was stopped. Unmounted — the screen was left while the request was in
@@ -102,8 +100,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                     IconButton(
                       tooltip: l10n.fmSortBy,
                       icon: const Icon(Icons.sort),
-                      onPressed:
-                          state == null ? null : () => _openSortSheet(state),
+                      onPressed: state == null
+                          ? null
+                          : () => _openSortSheet(state),
                     ),
                   ),
                   logTag(
@@ -123,8 +122,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 FloatingActionButton(
                   backgroundColor: t.accentGreen,
                   foregroundColor: const Color(0xFF0A0C08),
-                  onPressed:
-                      state == null ? null : () => _openCreateSheet(state),
+                  onPressed: state == null
+                      ? null
+                      : () => _openCreateSheet(state),
                   child: const Icon(Icons.add),
                 ),
               ),
@@ -172,8 +172,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           message: s.fetchFailed
               ? l10n.connectFailed
               : s.isSearching || s.isTagFiltering || s.typeFilter != null
-                  ? l10n.fmNoMatches
-                  : l10n.fmEmpty,
+              ? l10n.fmNoMatches
+              : l10n.fmEmpty,
           icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
         ),
       );
@@ -266,8 +266,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             IconButton(
               tooltip: l10n.fmGroupAsVariants,
               icon: const Icon(Icons.alt_route),
-              onPressed:
-                  s.selected.length < 2 ? null : () => _groupAsVariants(s),
+              onPressed: s.selected.length < 2
+                  ? null
+                  : () => _groupAsVariants(s),
             ),
           ),
         logTag(
@@ -343,9 +344,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               (FileSort.sizeAsc, l10n.fmSortSizeSmallest),
             ])
               ListTile(
-                leading: Icon(s.sort == entry.$1
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked),
+                leading: Icon(
+                  s.sort == entry.$1
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                ),
                 title: Text(entry.$2),
                 onTap: () {
                   notifier.setSort(entry.$1);
@@ -388,10 +391,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(file.displayName,
-                        style: Theme.of(ctx).textTheme.titleMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      file.displayName,
+                      style: Theme.of(ctx).textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -459,15 +464,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               Consumer(
                 builder: (_, sheetRef, _) =>
                     sheetRef.watch(canRunPipelinesProvider).orFalse
-                        ? ListTile(
-                            leading: const Icon(Icons.account_tree_outlined),
-                            title: Text(l10n.pipelineRun),
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              _runPipeline(file);
-                            },
-                          ).tagged('file_actions.run_pipeline')
-                        : const SizedBox.shrink(),
+                    ? ListTile(
+                        leading: const Icon(Icons.account_tree_outlined),
+                        title: Text(l10n.pipelineRun),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _runPipeline(file);
+                        },
+                      ).tagged('file_actions.run_pipeline')
+                    : const SizedBox.shrink(),
               ),
             ListTile(
               leading: const Icon(Icons.playlist_add),
@@ -483,9 +488,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               ListTile(
                 leading: const Icon(Icons.sell_outlined),
                 title: Text(l10n.fmTags),
-                subtitle: Text(file.tags.isEmpty
-                    ? l10n.fmTagsNone
-                    : file.tagNames.join(', ')),
+                subtitle: Text(
+                  file.tags.isEmpty
+                      ? l10n.fmTagsNone
+                      : file.tagNames.join(', '),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _tagFile(file);
@@ -609,9 +616,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final target = await _pickFolder(state, excludeFolderId: null);
     if (target == null || !mounted) return; // anulowano
     try {
-      await ref
-          .read(libraryRepositoryProvider)
-          .moveFiles([file.id], folderId: target.moveTargetId);
+      await ref.read(libraryRepositoryProvider).moveFiles([
+        file.id,
+      ], folderId: target.moveTargetId);
       if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
       if (!mounted) return;
@@ -688,8 +695,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _groupAsVariants(FileManagerState s) async {
     final ids = s.selected.toList();
     try {
-      final group =
-          await ref.read(libraryRepositoryProvider).createVariantGroup(ids);
+      final group = await ref
+          .read(libraryRepositoryProvider)
+          .createVariantGroup(ids);
       if (!mounted) return;
       ref.read(fileManagerProvider.notifier).clearSelection();
       await ref.read(fileManagerProvider.notifier).refresh();
@@ -708,16 +716,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// as null, which is the same "nothing to queue" as an ungrouped file.
   Future<void> _queueAsVariants(LibraryFile file) async {
     try {
-      final group =
-          await ref.read(libraryRepositoryProvider).variantGroupForFile(file.id);
+      final group = await ref
+          .read(libraryRepositoryProvider)
+          .variantGroupForFile(file.id);
       if (group == null || group.members.length < 2) {
         if (!mounted) return;
         _snack(_l10n.fmVariantsGone);
         return;
       }
-      await ref.read(queueRepositoryProvider).addCrossModel(
-            [for (final m in group.members) m.libraryFileId],
-          );
+      await ref.read(queueRepositoryProvider).addCrossModel([
+        for (final m in group.members) m.libraryFileId,
+      ]);
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
@@ -779,10 +788,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// G-code preview: opens the full-screen 3D viewer for a sliced library file.
   void _previewGcode(LibraryFile file) {
-    context.push(gcodeViewerRoute(
-      libraryFileId: file.id,
-      title: file.displayName,
-    ));
+    context.push(
+      gcodeViewerRoute(libraryFileId: file.id, title: file.displayName),
+    );
   }
 
   /// Run a saved pipeline against this file — slices it and dispatches the
@@ -813,13 +821,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (!mounted) return;
     final file = picked.file;
     if (file == null) {
-      if (picked.outcome == DeviceFileOutcome.failed) _snack(l10n.fmUploadFailed);
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        _snack(l10n.fmUploadFailed);
+      }
       return;
     }
 
     _snack(l10n.fmUploading);
     try {
-      await ref.read(libraryRepositoryProvider).uploadFile(
+      await ref
+          .read(libraryRepositoryProvider)
+          .uploadFile(
             filePath: file.path,
             filename: file.name,
             folderId: s.currentFolderId,
@@ -838,8 +850,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     required String title,
     required String label,
     String? initial,
-  }) =>
-      promptName(context, title: title, label: label, initial: initial);
+  }) => promptName(context, title: title, label: label, initial: initial);
 
   /// Target folder picker (move). Includes "All Files" (root).
   /// [excludeFolderId] skips folder and its subtree (folder move).
@@ -859,14 +870,18 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(l10n.fmMoveTo,
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              child: Text(
+                l10n.fmMoveTo,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.home_outlined),
               title: Text(l10n.fmRoot),
-              onTap: () =>
-                  Navigator.pop(ctx, const LibraryFolder(id: -1, name: '')),  // Sentinel for root.
+              onTap: () => Navigator.pop(
+                ctx,
+                const LibraryFolder(id: -1, name: ''),
+              ), // Sentinel for root.
             ).tagged('files.move_target_root'),
             for (final f in folders)
               if (f.id != excludeFolderId && !f.isExternal)
@@ -880,7 +895,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ),
     );
   }
-
 }
 
 /// Helper: for root selection from [_pickFolder] we return sentinel id=-1;
@@ -902,7 +916,8 @@ class _StatsBar extends ConsumerWidget {
       if (stats.totalFiles != null) l10n.fmStatsFiles(stats.totalFiles!),
       if (stats.totalFolders != null) l10n.fmStatsFolders(stats.totalFolders!),
       if (stats.totalSizeBytes != null) formatBytes(stats.totalSizeBytes!),
-      if (stats.freeBytes != null) l10n.fmStatsFree(formatBytes(stats.freeBytes!)),
+      if (stats.freeBytes != null)
+        l10n.fmStatsFree(formatBytes(stats.freeBytes!)),
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
     return Container(
@@ -929,7 +944,8 @@ class _Breadcrumb extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final crumbs = state.breadcrumb;
-    TextStyle crumbStyle(bool current) => t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
+    TextStyle crumbStyle(bool current) =>
+        t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
     return SizedBox(
       height: 44,
       child: ListView(
@@ -937,8 +953,11 @@ class _Breadcrumb extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8),
         children: [
           TextButton.icon(
-            icon: Icon(Icons.home_outlined,
-                size: 18, color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk),
+            icon: Icon(
+              Icons.home_outlined,
+              size: 18,
+              color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk,
+            ),
             label: Text(l10n.fmRoot, style: crumbStyle(crumbs.isEmpty)),
             onPressed: crumbs.isEmpty ? null : () => onOpen(null),
           ).tagged('files.crumb_root'),
@@ -948,8 +967,10 @@ class _Breadcrumb extends StatelessWidget {
               onPressed: i == crumbs.length - 1
                   ? null
                   : () => onOpen(crumbs[i].id),
-              child: Text(crumbs[i].name,
-                  style: crumbStyle(i == crumbs.length - 1)),
+              child: Text(
+                crumbs[i].name,
+                style: crumbStyle(i == crumbs.length - 1),
+              ),
             ).tagged('files.crumb'),
           ],
         ],
@@ -999,7 +1020,9 @@ class _FilterRow extends ConsumerWidget {
               // listing is no longer the folder in the breadcrumb above it.
               icon: Icon(
                 state.tagFilter.isEmpty ? Icons.sell_outlined : Icons.sell,
-                color: state.tagFilter.isEmpty ? t.textSecondary : t.accentGreenInk,
+                color: state.tagFilter.isEmpty
+                    ? t.textSecondary
+                    : t.accentGreenInk,
               ),
               onPressed: () => showTagFilterSheet(context),
             ),
@@ -1116,17 +1139,22 @@ class _FolderTile extends StatelessWidget {
                       'files.folder_actions',
                       PopupMenuButton<String>(
                         icon: Icon(Icons.more_vert, color: t.textSecondary),
-                        onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
+                        onSelected: (v) =>
+                            v == 'rename' ? onRename() : onDelete(),
                         itemBuilder: (ctx) => [
                           PopupMenuItem(
                             value: 'rename',
-                            child: logTag('files.folder.rename',
-                                Text(l10n.fmRename)),
+                            child: logTag(
+                              'files.folder.rename',
+                              Text(l10n.fmRename),
+                            ),
                           ),
                           PopupMenuItem(
                             value: 'delete',
-                            child: logTag('files.folder.delete',
-                                Text(l10n.fmDelete)),
+                            child: logTag(
+                              'files.folder.delete',
+                              Text(l10n.fmDelete),
+                            ),
                           ),
                         ],
                       ),
@@ -1240,12 +1268,16 @@ class _FileTile extends StatelessWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.alt_route,
-                                  size: 12, color: t.textTertiary),
+                              Icon(
+                                Icons.alt_route,
+                                size: 12,
+                                color: t.textTertiary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                AppLocalizations.of(context)
-                                    .fmVariantsMemberCount(file.variantCount),
+                                AppLocalizations.of(
+                                  context,
+                                ).fmVariantsMemberCount(file.variantCount),
                                 style: t.micro,
                               ),
                             ],

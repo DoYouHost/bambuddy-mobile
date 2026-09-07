@@ -123,9 +123,11 @@ class PrinterDownloadRun {
         // landing, not a loss: the poll and the DELETE are in flight together,
         // and whichever the server answers first, what the user asked for
         // happened.
-        throw PrinterDownloadFailure(_cancelling
-            ? PrinterDownloadStopped.cancelled
-            : PrinterDownloadStopped.lost);
+        throw PrinterDownloadFailure(
+          _cancelling
+              ? PrinterDownloadStopped.cancelled
+              : PrinterDownloadStopped.lost,
+        );
       }
       job = next;
       onJob?.call(job);

@@ -41,7 +41,8 @@ enum WsDisconnectReason {
 /// Which frame fields go in and why repeats collapse:
 /// `docs/diagnostics-log.md`.
 class WsProbe {
-  WsProbe({DateTime Function()? clock}) : _now = clock ?? (() => ambient.clock.now()) {
+  WsProbe({DateTime Function()? clock})
+    : _now = clock ?? (() => ambient.clock.now()) {
     _live.add(this);
   }
 
@@ -131,11 +132,7 @@ class WsProbe {
   /// status of a rejected upgrade, which is the whole story when it is 401.
   /// [phase] `token` means the mint failed and no socket was ever attempted —
   /// the mint is an HTTP call, so `HttpProbe` has the details.
-  void connectError(
-    Object error, {
-    required String phase,
-    int? status,
-  }) {
+  void connectError(Object error, {required String phase, int? status}) {
     final cause = error.runtimeType.toString();
     DiagnosticRecorder.active?.add(
       LogSource.ws,
@@ -271,50 +268,50 @@ class WsProbe {
   /// enough to cover the server's own `status_key`, so a `repeated` record
   /// means what it says.
   static Map<String, Object?> _detailsOf(WsMessage? msg) => switch (msg) {
-        WsPrinterStatus(status: final s) => {
-          'printer_id': s.id,
-          // Only when it is false: "the printer went offline mid-print" is a
-          // report, "it is still there" on every record is padding.
-          'connected': s.connected == false ? false : null,
-          'state': s.state,
-          // English from the server ("Heating", "Auto bed leveling").
-          'stage': s.stgCurName,
-          // The number behind that name, because that is what the first-layer
-          // and milestone gates read: 0 is "Printing", 1-254 a stage of the
-          // printer's own, -1/255 none. The name alone cannot tell stage 0 from
-          // a frame that reported no stage at all.
-          'stg': s.stgCur,
-          'progress': s.progress?.round(),
-          'layer': s.layerNum,
-          'layers': s.totalLayers,
-          'eta_min': s.remainingTime,
-          ..._temperatures(s.temperatures),
-          'cooling_fan': s.coolingFanSpeed,
-          'big_fan1': s.bigFan1Speed,
-          'big_fan2': s.bigFan2Speed,
-          'heatbreak_fan': s.heatbreakFanSpeed,
-          'speed': s.speedLevel,
-          'light': s.chamberLight,
-          'airduct': s.airductMode,
-          'door_open': s.doorOpen == true ? true : null,
-          'plate_wait': s.awaitingPlateClear == true ? true : null,
-          'extruder': s.activeExtruder,
-          // Only on a machine with a Filament Track Switch fitted, which is the
-          // only case where a slot's nozzle cannot be read off
-          // `ams_extruder_map` — and the only case a report about the wrong
-          // nozzle size needs it.
-          'fts_inlet': _inlets(s.amsSwitchInlet),
-          'tray_now': s.trayNow,
-          ..._hms(s.hmsErrors),
-          ..._ams(s.ams),
-          ..._external(s.vtTray),
-        },
-        // Whose plate, not what the server said about it: the message is a
-        // localized sentence that can carry the printer's name.
-        WsPlateNotEmpty(printerId: final id) => {'printer_id': id},
-        WsPrintEvent(printerId: final id) => {'printer_id': id},
-        _ => const {},
-      };
+    WsPrinterStatus(status: final s) => {
+      'printer_id': s.id,
+      // Only when it is false: "the printer went offline mid-print" is a
+      // report, "it is still there" on every record is padding.
+      'connected': s.connected == false ? false : null,
+      'state': s.state,
+      // English from the server ("Heating", "Auto bed leveling").
+      'stage': s.stgCurName,
+      // The number behind that name, because that is what the first-layer
+      // and milestone gates read: 0 is "Printing", 1-254 a stage of the
+      // printer's own, -1/255 none. The name alone cannot tell stage 0 from
+      // a frame that reported no stage at all.
+      'stg': s.stgCur,
+      'progress': s.progress?.round(),
+      'layer': s.layerNum,
+      'layers': s.totalLayers,
+      'eta_min': s.remainingTime,
+      ..._temperatures(s.temperatures),
+      'cooling_fan': s.coolingFanSpeed,
+      'big_fan1': s.bigFan1Speed,
+      'big_fan2': s.bigFan2Speed,
+      'heatbreak_fan': s.heatbreakFanSpeed,
+      'speed': s.speedLevel,
+      'light': s.chamberLight,
+      'airduct': s.airductMode,
+      'door_open': s.doorOpen == true ? true : null,
+      'plate_wait': s.awaitingPlateClear == true ? true : null,
+      'extruder': s.activeExtruder,
+      // Only on a machine with a Filament Track Switch fitted, which is the
+      // only case where a slot's nozzle cannot be read off
+      // `ams_extruder_map` — and the only case a report about the wrong
+      // nozzle size needs it.
+      'fts_inlet': _inlets(s.amsSwitchInlet),
+      'tray_now': s.trayNow,
+      ..._hms(s.hmsErrors),
+      ..._ams(s.ams),
+      ..._external(s.vtTray),
+    },
+    // Whose plate, not what the server said about it: the message is a
+    // localized sentence that can carry the printer's name.
+    WsPlateNotEmpty(printerId: final id) => {'printer_id': id},
+    WsPrintEvent(printerId: final id) => {'printer_id': id},
+    _ => const {},
+  };
 
   /// `tray_type` is free text on some server versions, so a slot's material
   /// goes through [FilamentMaterial]'s closed list; colour and sub-brand are
@@ -322,9 +319,9 @@ class WsProbe {
   /// `{0: "A"}` as `0:A`, or null when no switch is fitted.
   static String? _inlets(Map<int, String>? inlets) =>
       (inlets == null || inlets.isEmpty)
-          ? null
-          : (inlets.entries.map((e) => '${e.key}:${e.value}').toList()..sort())
-              .join(',');
+      ? null
+      : (inlets.entries.map((e) => '${e.key}:${e.value}').toList()..sort())
+            .join(',');
 
   static Map<String, Object?> _ams(List<AmsUnit>? units) {
     if (units == null || units.isEmpty) return const {};
@@ -352,14 +349,14 @@ class WsProbe {
   }
 
   static List<Map<String, Object?>> _trays(List<AmsTray>? trays) => [
-        for (final tray in trays ?? const <AmsTray>[])
-          _pruned({
-            'id': tray.id,
-            'mat': FilamentMaterial.canonical(tray.trayType),
-            // -1 means "no RFID tag", i.e. nobody knows.
-            'remain': (tray.remain ?? -1) < 0 ? null : tray.remain,
-          }),
-      ];
+    for (final tray in trays ?? const <AmsTray>[])
+      _pruned({
+        'id': tray.id,
+        'mat': FilamentMaterial.canonical(tray.trayType),
+        // -1 means "no RFID tag", i.e. nobody knows.
+        'remain': (tray.remain ?? -1) < 0 ? null : tray.remain,
+      }),
+  ];
 
   static int? _positive(int? value) => (value ?? 0) > 0 ? value : null;
 
@@ -380,10 +377,7 @@ class WsProbe {
       for (final error in errors.take(3))
         if (error.code case final String code) code,
     ];
-    return {
-      'hms': errors.length,
-      if (codes.isNotEmpty) 'hms_codes': codes,
-    };
+    return {'hms': errors.length, if (codes.isNotEmpty) 'hms_codes': codes};
   }
 
   /// Every temperature the server sent, under its own name and rounded.
@@ -395,32 +389,28 @@ class WsProbe {
   /// dropped the `*_heating` and `*_time` fields.
   static Map<String, Object?> _temperatures(Map<String, double>? temps) {
     if (temps == null || temps.isEmpty) return const {};
-    return {
-      for (final entry in temps.entries) entry.key: entry.value.round(),
-    };
+    return {for (final entry in temps.entries) entry.key: entry.value.round()};
   }
 
   static LogLevel _closeLevel(WsDisconnectReason reason) => switch (reason) {
-        // The app's own doing, and it says so; nothing to explain.
-        WsDisconnectReason.suspend ||
-        WsDisconnectReason.dispose =>
-          LogLevel.info,
-        _ => LogLevel.warn,
-      };
+    // The app's own doing, and it says so; nothing to explain.
+    WsDisconnectReason.suspend || WsDisconnectReason.dispose => LogLevel.info,
+    _ => LogLevel.warn,
+  };
 
   /// Known types are named by the parser's own vocabulary; an unknown one is
   /// the server's string, which is how a new frame type gets noticed at all.
   static String _typeName(WsMessage? msg) => switch (msg) {
-        WsPrinterStatus() => 'printer_status',
-        WsPlateNotEmpty() => 'plate_not_empty',
-        WsPrintEvent(completed: final completed) =>
-          completed ? 'print_complete' : 'print_start',
-        WsArchiveUpdated() => 'archive_updated',
-        WsPipelineRunUpdated() => 'pipeline_run_updated',
-        WsPong() => 'pong',
-        WsUnknown(type: final type) => _knownShape(type),
-        null => 'unparsed',
-      };
+    WsPrinterStatus() => 'printer_status',
+    WsPlateNotEmpty() => 'plate_not_empty',
+    WsPrintEvent(completed: final completed) =>
+      completed ? 'print_complete' : 'print_start',
+    WsArchiveUpdated() => 'archive_updated',
+    WsPipelineRunUpdated() => 'pipeline_run_updated',
+    WsPong() => 'pong',
+    WsUnknown(type: final type) => _knownShape(type),
+    null => 'unparsed',
+  };
 
   /// Held to [_typeShape] because a sentence from a confused endpoint is not a
   /// frame type and has no business being logged verbatim.

@@ -226,5 +226,4 @@ bool rowFitsRoundFace({
   required double diameter,
   required double rowWidth,
   required double dyFromCenter,
-}) =>
-    rowWidth / 2 <= roundHalfChord(diameter, dyFromCenter);
+}) => rowWidth / 2 <= roundHalfChord(diameter, dyFromCenter);

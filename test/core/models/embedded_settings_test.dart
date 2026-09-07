@@ -9,14 +9,13 @@ void main() {
     Object? printer = 'Bambu Lab X1 Carbon 0.4 nozzle',
     Object? process = '0.20mm Standard @BBL X1C',
     bool withDesignOverrides = true,
-  }) =>
-      {
-        'file_id': 45,
-        'plates': const [],
-        'embedded_printer': printer,
-        'embedded_process': process,
-        if (withDesignOverrides) 'design_overrides': const [],
-      };
+  }) => {
+    'file_id': 45,
+    'plates': const [],
+    'embedded_printer': printer,
+    'embedded_process': process,
+    if (withDesignOverrides) 'design_overrides': const [],
+  };
 
   group('server support', () {
     test('is read from the design_overrides key, empty list and all', () {
@@ -34,13 +33,17 @@ void main() {
       // server #1325 (v0.2.4.3), so a server can name the design's printer and
       // still drop use_embedded_settings without a word — which is exactly the
       // switch that appears to work and changes nothing.
-      final settings =
-          EmbeddedSettings.fromJson(plates(withDesignOverrides: false));
+      final settings = EmbeddedSettings.fromJson(
+        plates(withDesignOverrides: false),
+      );
 
       expect(settings.printer, isNotNull);
       expect(settings.serverSupportsAsDesigned, isFalse);
-      expect(settings.isAvailable, isFalse,
-          reason: 'naming the printer is not the same as honouring the field');
+      expect(
+        settings.isAvailable,
+        isFalse,
+        reason: 'naming the printer is not the same as honouring the field',
+      );
     });
   });
 
@@ -48,15 +51,20 @@ void main() {
     test('offers nothing when it carries no embedded profile', () {
       // An STL or a plain-model 3MF: the server ignores the field for these.
       final settings = EmbeddedSettings.fromJson(
-          plates(printer: null, process: null));
+        plates(printer: null, process: null),
+      );
 
       expect(settings.isAvailable, isFalse);
-      expect(settings.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'), isFalse);
+      expect(
+        settings.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'),
+        isFalse,
+      );
     });
 
     test('treats a blank name as no name', () {
-      final settings =
-          EmbeddedSettings.fromJson(plates(printer: '   ', process: ''));
+      final settings = EmbeddedSettings.fromJson(
+        plates(printer: '   ', process: ''),
+      );
 
       expect(settings.printer, isNull);
       expect(settings.isAvailable, isFalse);
@@ -66,44 +74,62 @@ void main() {
       expect(EmbeddedSettings.fromJson(plates(printer: 42)).printer, isNull);
     });
 
-    test('reads the short answer a current server gives for an unparsable 3MF',
-        () {
-      // `routes/library.py::get_library_file_plates` returns early for a
-      // non-3MF and for one that is not a readable zip, naming neither the
-      // design nor the key — so a current server can answer in the shape of an
-      // old one. Both halves read false, which is the same conclusion.
-      final settings = EmbeddedSettings.fromJson(const {
-        'file_id': 9,
-        'filename': 'thing.stl',
-        'plates': [],
-        'is_multi_plate': false,
-      });
+    test(
+      'reads the short answer a current server gives for an unparsable 3MF',
+      () {
+        // `routes/library.py::get_library_file_plates` returns early for a
+        // non-3MF and for one that is not a readable zip, naming neither the
+        // design nor the key — so a current server can answer in the shape of an
+        // old one. Both halves read false, which is the same conclusion.
+        final settings = EmbeddedSettings.fromJson(const {
+          'file_id': 9,
+          'filename': 'thing.stl',
+          'plates': [],
+          'is_multi_plate': false,
+        });
 
-      expect(settings.serverSupportsAsDesigned, isFalse);
-      expect(settings.printer, isNull);
-      expect(settings.isAvailable, isFalse);
-    });
+        expect(settings.serverSupportsAsDesigned, isFalse);
+        expect(settings.printer, isNull);
+        expect(settings.isAvailable, isFalse);
+      },
+    );
   });
 
   group('printer match', () {
     final settings = EmbeddedSettings.fromJson(plates());
 
-    test('accepts the same preset regardless of case, padding or the # prefix',
-        () {
-      // All three come off the same preset namespace; a modified preset carries
-      // the "# " marker the web strips the same way.
-      expect(settings.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'), isTrue);
-      expect(settings.matchesPrinter('bambu lab x1 carbon 0.4 NOZZLE'), isTrue);
-      expect(settings.matchesPrinter('# Bambu Lab X1 Carbon 0.4 nozzle'), isTrue);
-      expect(settings.matchesPrinter('  Bambu Lab X1 Carbon 0.4 nozzle  '),
-          isTrue);
-    });
+    test(
+      'accepts the same preset regardless of case, padding or the # prefix',
+      () {
+        // All three come off the same preset namespace; a modified preset carries
+        // the "# " marker the web strips the same way.
+        expect(
+          settings.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'),
+          isTrue,
+        );
+        expect(
+          settings.matchesPrinter('bambu lab x1 carbon 0.4 NOZZLE'),
+          isTrue,
+        );
+        expect(
+          settings.matchesPrinter('# Bambu Lab X1 Carbon 0.4 nozzle'),
+          isTrue,
+        );
+        expect(
+          settings.matchesPrinter('  Bambu Lab X1 Carbon 0.4 nozzle  '),
+          isTrue,
+        );
+      },
+    );
 
     test('refuses another model, and another nozzle on the same model', () {
       // The gate is load-bearing: the embedded settings lay the model out for
       // the bed they were made for, and this path has no re-targeting step.
       expect(settings.matchesPrinter('Bambu Lab P1S 0.4 nozzle'), isFalse);
-      expect(settings.matchesPrinter('Bambu Lab X1 Carbon 0.6 nozzle'), isFalse);
+      expect(
+        settings.matchesPrinter('Bambu Lab X1 Carbon 0.6 nozzle'),
+        isFalse,
+      );
     });
 
     test('refuses when nothing is picked yet', () {
@@ -111,11 +137,14 @@ void main() {
     });
 
     test('never matches while the server cannot honour it', () {
-      final unsupported =
-          EmbeddedSettings.fromJson(plates(withDesignOverrides: false));
+      final unsupported = EmbeddedSettings.fromJson(
+        plates(withDesignOverrides: false),
+      );
 
-      expect(unsupported.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'),
-          isFalse);
+      expect(
+        unsupported.matchesPrinter('Bambu Lab X1 Carbon 0.4 nozzle'),
+        isFalse,
+      );
     });
   });
 

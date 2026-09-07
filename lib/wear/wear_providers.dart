@@ -15,9 +15,7 @@ import 'wear_transport.dart';
 /// Nothing is persisted: the Data Layer latches the last context itself, so a
 /// dropped offer is re-read from there on the next launch.
 final pendingWatchConfigProvider =
-    NotifierProvider<PendingWatchConfig, WatchConfig?>(
-  PendingWatchConfig.new,
-);
+    NotifierProvider<PendingWatchConfig, WatchConfig?>(PendingWatchConfig.new);
 
 class PendingWatchConfig extends Notifier<WatchConfig?> {
   @override
@@ -56,10 +54,10 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
   // repositories can't even be constructed (apiClientProvider throws) — so this
   // is only ever called on a branch that has one.
   RestTransport rest() => RestTransport(
-        printers: ref.watch(printersRepositoryProvider),
-        commands: ref.watch(printerCommandsRepositoryProvider),
-        queue: ref.watch(queueRepositoryProvider),
-      );
+    printers: ref.watch(printersRepositoryProvider),
+    commands: ref.watch(printerCommandsRepositoryProvider),
+    queue: ref.watch(queueRepositoryProvider),
+  );
   // Demo runs entirely in this process (the API client swaps in the fake
   // backend), so there is nothing for the phone to answer — and asking it would
   // hand back the real fleet from the real server it is configured for. Demo is
@@ -80,8 +78,8 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
 /// the poll runs only while a screen watching it is mounted (autoDispose).
 final wearFleetProvider =
     AsyncNotifierProvider.autoDispose<WearFleetNotifier, WearFleet>(
-  WearFleetNotifier.new,
-);
+      WearFleetNotifier.new,
+    );
 
 class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   Timer? _timer;
@@ -105,12 +103,15 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// active print) keeps the familiar 5 s.
   void _scheduleNext(WearFleet? fleet) {
     if (_disposed) return;
-    final relaying = ref.read(wearTransportProvider).lastMode ==
-        WearTransportMode.relay;
-    final active = fleet?.printers.any((p) => switch (wearStateOf(p.status)) {
-              WearState.printing || WearState.paused => true,
-              _ => false,
-            }) ??
+    final relaying =
+        ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
+    final active =
+        fleet?.printers.any(
+          (p) => switch (wearStateOf(p.status)) {
+            WearState.printing || WearState.paused => true,
+            _ => false,
+          },
+        ) ??
         // Unknown fleet (fetch failed) → poll fast to recover quickly.
         true;
     final interval = relaying && !active
@@ -171,7 +172,10 @@ class WearActions {
     required String printError,
     required String action,
     String? jobId,
-  }) =>
-      _transport.executeHmsAction(printerId,
-          printError: printError, action: action, jobId: jobId);
+  }) => _transport.executeHmsAction(
+    printerId,
+    printError: printError,
+    action: action,
+    jobId: jobId,
+  );
 }

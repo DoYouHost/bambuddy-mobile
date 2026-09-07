@@ -93,7 +93,11 @@ class StatsComputed {
     }
 
     for (final a in items) {
-      final day = DateTime(a.createdAt.year, a.createdAt.month, a.createdAt.day);
+      final day = DateTime(
+        a.createdAt.year,
+        a.createdAt.month,
+        a.createdAt.day,
+      );
       c.printsByDay[day] = (c.printsByDay[day] ?? 0) + 1;
       c.gramsByDay[day] = (c.gramsByDay[day] ?? 0) + (a.filamentUsedGrams ?? 0);
       final kwh = a.energyKwh;
@@ -146,8 +150,7 @@ class StatsComputed {
       }
       final cost = a.cost;
       if (cost != null &&
-          (c.mostExpensive == null ||
-              cost > (c.mostExpensive!.cost ?? 0))) {
+          (c.mostExpensive == null || cost > (c.mostExpensive!.cost ?? 0))) {
         c.mostExpensive = a;
       }
       if (kwh != null &&

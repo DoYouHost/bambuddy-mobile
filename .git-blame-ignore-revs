@@ -1,0 +1,11 @@
+# Revisions that changed formatting only, and that `git blame` should look
+# through rather than at. GitHub honours this file automatically; locally it
+# takes one setup command:
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Add nothing here but whole-tree, no-behaviour-change commits — a revision
+# listed by mistake hides real authorship for good.
+
+# style: format the tree with dart format and enforce in ci
+2fd36fb64e8eaa3504d1a5d21748b47c8a414c95

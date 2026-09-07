@@ -24,9 +24,9 @@ class _Shelf extends InventoryNotifier {
 
   @override
   Future<InventoryState> build() async => InventoryState(
-        spools: [_spool],
-        assignmentBySpool: {_spool.id: _assignment},
-      );
+    spools: [_spool],
+    assignmentBySpool: {_spool.id: _assignment},
+  );
 }
 
 void main() {
@@ -66,24 +66,27 @@ void main() {
       trayId: 0,
     );
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        inventoryProvider.overrideWith(() => _Shelf(spool, assignment)),
-        noServerProfileOverride,
-      ],
-      child: MediaQuery(
-        data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-        child: plApp(const InventoryScreen()),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryProvider.overrideWith(() => _Shelf(spool, assignment)),
+          noServerProfileOverride,
+        ],
+        child: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: plApp(const InventoryScreen()),
+        ),
       ),
-    ));
+    );
     await settle(tester);
   }
 
   /// The slot label as [assignmentSlotLabel] builds it for AMS unit 0, tray 0.
   final slotLabel = find.text('AMS0 · 1');
 
-  testWidgets('the AMS slot label is not clipped on a 360 dp phone',
-      (tester) async {
+  testWidgets('the AMS slot label is not clipped on a 360 dp phone', (
+    tester,
+  ) async {
     await pumpShelf(tester, surface: const Size(360, 640));
 
     expect(slotLabel, findsOneWidget);

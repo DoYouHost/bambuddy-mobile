@@ -12,9 +12,10 @@ String? _describeNone(HmsError e) => null;
 
 void main() {
   group('HomeWidgetPublisher.keyFor', () {
-    test('offline z zaległym błędem HMS → status OFFLINE, nie ERROR', () {
-      // mergedWith niesie stary hms_errors dalej po rozłączeniu — widget nie może
-      // przez to pokazać błędu zamiast OFFLINE (fizycznie niemożliwy alarm).
+    test('offline with a stale HMS error → status OFFLINE, not ERROR', () {
+      // mergedWith carries the old hms_errors along past a disconnect — the widget
+      // must not show an error instead of OFFLINE because of it (a physically
+      // impossible alarm).
       final statuses = {
         1: const PrinterStatus(
           id: 1,
@@ -24,11 +25,14 @@ void main() {
           hmsErrors: [HmsError(code: 'A', severity: 2)],
         ),
       };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeAll);
+      final key = HomeWidgetPublisher.keyFor(
+        statuses,
+        describeHms: _describeAll,
+      );
       expect(key.statusKey, 'offline');
     });
 
-    test('online z błędem HMS → status ERROR', () {
+    test('online with an HMS error → status ERROR', () {
       final statuses = {
         1: const PrinterStatus(
           id: 1,
@@ -39,28 +43,37 @@ void main() {
           hmsErrors: [HmsError(code: 'A', severity: 2)],
         ),
       };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeAll);
+      final key = HomeWidgetPublisher.keyFor(
+        statuses,
+        describeHms: _describeAll,
+      );
       expect(key.statusKey, 'error');
     });
 
-    test('kod bez opisu nie robi z drukarki błędu na ekranie głównym', () {
-      // The X2D report reached the home-screen widget too: an undocumented code
-      // with server severity 1 used to flip it to ERROR while the print ran.
-      final statuses = {
-        1: const PrinterStatus(
-          id: 1,
-          name: 'X2D',
-          connected: true,
-          state: 'RUNNING',
-          progress: 40,
-          hmsErrors: [
-            HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
-          ],
-        ),
-      };
-      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeNone);
-      expect(key.statusKey, 'printing');
-      expect(key.progressPct, 40);
-    });
+    test(
+      'a code with no description does not turn the printer into an error on the home screen',
+      () {
+        // The X2D report reached the home-screen widget too: an undocumented code
+        // with server severity 1 used to flip it to ERROR while the print ran.
+        final statuses = {
+          1: const PrinterStatus(
+            id: 1,
+            name: 'X2D',
+            connected: true,
+            state: 'RUNNING',
+            progress: 40,
+            hmsErrors: [
+              HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
+            ],
+          ),
+        };
+        final key = HomeWidgetPublisher.keyFor(
+          statuses,
+          describeHms: _describeNone,
+        );
+        expect(key.statusKey, 'printing');
+        expect(key.progressPct, 40);
+      },
+    );
   });
 }

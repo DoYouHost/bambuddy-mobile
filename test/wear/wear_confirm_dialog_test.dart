@@ -13,35 +13,39 @@ void main() {
 
   /// Opens the dialog on a real watch face — the small one by default, since a
   /// confirmation is the screen with the least room to spare.
-  Future<void> pumpAndOpen(WidgetTester tester,
-      {Size face = wearFaceSmall,
-      WearShape shape = WearShape.round,
-      String title = 'Stop print?'}) async {
+  Future<void> pumpAndOpen(
+    WidgetTester tester, {
+    Size face = wearFaceSmall,
+    WearShape shape = WearShape.round,
+    String title = 'Stop print?',
+  }) async {
     result = null;
     useWatchFace(tester, shape, face);
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      // The dialog is a route, so the shape has to come from above the navigator
-      // — see [wearShapeBuilder].
-      builder: wearShapeBuilder,
-      home: Builder(
-        builder: (context) => TextButton(
-          onPressed: () async {
-            result = await showDialog<bool>(
-              context: context,
-              builder: (_) => WearConfirmDialog(
-                icon: Icons.stop_rounded,
-                title: title,
-                subtitle: 'X1C',
-                confirmColor: const Color(0xFFB3261E),
-              ),
-            );
-          },
-          child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        // The dialog is a route, so the shape has to come from above the navigator
+        // — see [wearShapeBuilder].
+        builder: wearShapeBuilder,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              result = await showDialog<bool>(
+                context: context,
+                builder: (_) => WearConfirmDialog(
+                  icon: Icons.stop_rounded,
+                  title: title,
+                  subtitle: 'X1C',
+                  confirmColor: const Color(0xFFB3261E),
+                ),
+              );
+            },
+            child: const Text('open'),
+          ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -68,14 +72,17 @@ void main() {
     expect(result, isFalse);
   });
 
-  testWidgets('a long question does not push the answer off the face',
-      (tester) async {
+  testWidgets('a long question does not push the answer off the face', (
+    tester,
+  ) async {
     // Both regressions the 192 dp emulator found: a fixed-width button row
     // overflowing the narrow content by 11 px, and the question growing until
     // the buttons needed a scroll. The row is pinned and sized from the width
     // it is given, so the taps below land without anyone scrolling first.
-    await pumpAndOpen(tester,
-        title: 'Change the server this watch talks to, dropping every secret?');
+    await pumpAndOpen(
+      tester,
+      title: 'Change the server this watch talks to, dropping every secret?',
+    );
 
     await tester.tap(find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
@@ -83,8 +90,9 @@ void main() {
     expect(result, isTrue);
   });
 
-  Size confirmButton(WidgetTester tester) => tester
-      .getSize(find.widgetWithIcon(IconButton, Icons.check_rounded).first);
+  Size confirmButton(WidgetTester tester) => tester.getSize(
+    find.widgetWithIcon(IconButton, Icons.check_rounded).first,
+  );
 
   testWidgets('a big face gets the full-size buttons', (tester) async {
     await pumpAndOpen(tester, face: wearFaceLarge);
@@ -93,8 +101,9 @@ void main() {
     expect(confirmButton(tester).width, 52.0);
   });
 
-  testWidgets('a small face shrinks them instead of overflowing',
-      (tester) async {
+  testWidgets('a small face shrinks them instead of overflowing', (
+    tester,
+  ) async {
     await pumpAndOpen(tester);
 
     // 192 dp of face leaves 113 dp: the pair gives up 3 dp each rather than 11
@@ -104,8 +113,9 @@ void main() {
     expect(width, greaterThanOrEqualTo(48.0));
   });
 
-  testWidgets('a square face of the same size keeps them full size',
-      (tester) async {
+  testWidgets('a square face of the same size keeps them full size', (
+    tester,
+  ) async {
     // The dialog is a route, so this passes only while the shape is injected
     // above the navigator: wrapped around `home` instead, the scope is a
     // sibling of the dialog and it falls back to round — which reads as a

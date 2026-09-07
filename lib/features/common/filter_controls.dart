@@ -83,10 +83,7 @@ class FilterGroupLabel extends StatelessWidget {
     final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: t.bodyBold,
-      ),
+      child: Text(label, style: t.bodyBold),
     );
   }
 }

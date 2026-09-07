@@ -38,8 +38,9 @@ void main() {
       // `AsyncLoading.copyWithPrevious` is how a pull-to-refresh reports
       // itself; a control must not blink off underneath the user for it.
       const settled = AsyncValue.data(true);
-      final refreshing =
-          const AsyncValue<bool>.loading().copyWithPrevious(settled);
+      final refreshing = const AsyncValue<bool>.loading().copyWithPrevious(
+        settled,
+      );
 
       expect(refreshing.orFalse, isTrue);
     });

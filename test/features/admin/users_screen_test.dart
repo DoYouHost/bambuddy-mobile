@@ -30,43 +30,28 @@ const _member = CurrentUser(
   permissions: {'queue:read'},
 );
 
-class _FakeUsersList extends UsersListNotifier {
-  _FakeUsersList(this._users);
-
-  final List<CurrentUser> _users;
-
-  @override
-  Future<List<CurrentUser>> build() async => _users;
-}
-
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-}
-
 Widget _app(
   List<CurrentUser> users, {
   CurrentUser? signedInAs,
-  UserItemsCount counts =
-      const UserItemsCount(archives: 12, queueItems: 3, libraryFiles: 7),
-}) =>
-    ProviderScope(
-      overrides: [
-        usersListProvider.overrideWith(() => _FakeUsersList(users)),
-        currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
-        fakeServerProfileOverride(authMode: AuthMode.jwt),
-        userItemsCountProvider.overrideWith((ref, id) async => counts),
-      ],
-      child: plApp(const UsersScreen()),
-    );
+  UserItemsCount counts = const UserItemsCount(
+    archives: 12,
+    queueItems: 3,
+    libraryFiles: 7,
+  ),
+}) => ProviderScope(
+  overrides: [
+    usersListOverride(users),
+    currentUserOverride(signedInAs),
+    fakeServerProfileOverride(authMode: AuthMode.jwt),
+    userItemsCountProvider.overrideWith((ref, id) async => counts),
+  ],
+  child: plApp(const UsersScreen()),
+);
 
 void main() {
-  testWidgets('shows each account with its role, state and groups',
-      (tester) async {
+  testWidgets('shows each account with its role, state and groups', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(const [_admin, _member]));
     await tester.pumpAndSettle();
 
@@ -82,9 +67,7 @@ void main() {
   });
 
   testWidgets('marks the account this session belongs to', (tester) async {
-    await tester.pumpWidget(
-      _app(const [_admin, _member], signedInAs: _member),
-    );
+    await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _member));
     await tester.pumpAndSettle();
 
     expect(find.text('ty'), findsOneWidget);
@@ -116,25 +99,31 @@ void main() {
     expect(find.text('brak'), findsWidgets);
   });
 
-  testWidgets('an empty server says so instead of showing a blank list',
-      (tester) async {
+  testWidgets('an empty server says so instead of showing a blank list', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(const []));
     await tester.pumpAndSettle();
 
     expect(find.text('Na tym serwerze nie ma kont.'), findsOneWidget);
   });
 
-  testWidgets('offers no way to add or edit an account to a non-admin',
-      (tester) async {
+  testWidgets('offers no way to add or edit an account to a non-admin', (
+    tester,
+  ) async {
     // `users:read` opens the list, and stops there: every write carries
     // `RequireAdminIfAuthEnabled` on top of its permission.
-    await tester.pumpWidget(_app(const [_admin, _member],
+    await tester.pumpWidget(
+      _app(
+        const [_admin, _member],
         signedInAs: const CurrentUser(
           id: 9,
           username: 'domownik',
           isAdmin: false,
           permissions: {'users:read'},
-        )));
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Dodaj konto'), findsNothing);
@@ -146,7 +135,9 @@ void main() {
     expect(find.text('Usuń'), findsNothing);
   });
 
-  testWidgets('gives an admin the add, edit and delete entries', (tester) async {
+  testWidgets('gives an admin the add, edit and delete entries', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _admin));
     await tester.pumpAndSettle();
 
@@ -159,8 +150,9 @@ void main() {
     expect(find.text('Usuń'), findsOneWidget);
   });
 
-  testWidgets('leaves out delete on the account you are signed in with',
-      (tester) async {
+  testWidgets('leaves out delete on the account you are signed in with', (
+    tester,
+  ) async {
     // The server refuses it (`users.py::delete_user`) — offering the button
     // would only buy an error message.
     await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _admin));
@@ -180,7 +172,7 @@ void main() {
     }) {
       final container = ProviderContainer(
         overrides: [
-          currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
+          currentUserOverride(user),
           fakeServerProfileOverride(authMode: authMode),
         ],
       );
@@ -201,23 +193,27 @@ void main() {
     });
 
     test('`users:read` is enough — the admin role is not required', () async {
-      final container = containerFor(const CurrentUser(
-        id: 3,
-        username: 'domownik',
-        isAdmin: false,
-        permissions: {'users:read'},
-      ));
+      final container = containerFor(
+        const CurrentUser(
+          id: 3,
+          username: 'domownik',
+          isAdmin: false,
+          permissions: {'users:read'},
+        ),
+      );
       await container.read(currentUserProvider.future);
       expect(container.read(canReadUsersProvider), isTrue);
     });
 
     test('reading is not managing — a non-admin gets the list only', () async {
-      final container = containerFor(const CurrentUser(
-        id: 3,
-        username: 'domownik',
-        isAdmin: false,
-        permissions: {'users:read', 'users:create'},
-      ));
+      final container = containerFor(
+        const CurrentUser(
+          id: 3,
+          username: 'domownik',
+          isAdmin: false,
+          permissions: {'users:read', 'users:create'},
+        ),
+      );
       await container.read(currentUserProvider.future);
 
       // Even `users:create` is not enough: the route demands the admin role
@@ -226,25 +222,27 @@ void main() {
       expect(container.read(canManageUsersProvider), isFalse);
     });
 
-    test('an API-key session is refused, whatever /auth/me claims it is',
-        () async {
-      // The server hands a key the synthetic admin with every permission
-      // (`routes/auth.py::_api_key_to_user_response`) and then refuses it every
-      // administrative route (`core/auth.py::_check_apikey_permissions`).
-      // Believing the first is how the account list ended up 403-ing on a key
-      // session.
-      final container = containerFor(
-        const CurrentUser(
-          id: 0,
-          username: 'api-key:bb_abcd',
-          role: 'admin',
-          isAdmin: true,
-          permissions: {'users:read', 'groups:read', 'api_keys:read'},
-        ),
-        authMode: AuthMode.apiKey,
-      );
-      await container.read(currentUserProvider.future);
-      expect(container.read(canReadUsersProvider), isFalse);
-    });
+    test(
+      'an API-key session is refused, whatever /auth/me claims it is',
+      () async {
+        // The server hands a key the synthetic admin with every permission
+        // (`routes/auth.py::_api_key_to_user_response`) and then refuses it every
+        // administrative route (`core/auth.py::_check_apikey_permissions`).
+        // Believing the first is how the account list ended up 403-ing on a key
+        // session.
+        final container = containerFor(
+          const CurrentUser(
+            id: 0,
+            username: 'api-key:bb_abcd',
+            role: 'admin',
+            isAdmin: true,
+            permissions: {'users:read', 'groups:read', 'api_keys:read'},
+          ),
+          authMode: AuthMode.apiKey,
+        );
+        await container.read(currentUserProvider.future);
+        expect(container.read(canReadUsersProvider), isFalse);
+      },
+    );
   });
 }

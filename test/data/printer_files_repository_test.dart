@@ -7,38 +7,36 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late PrinterFilesRepository repo;
-  late List<RequestOptions> sent;
+  late RequestLog sent;
   late Directory scratch;
 
   setUp(() {
     scratch = Directory.systemTemp.createTempSync('printer-files-test');
     addTearDown(() => scratch.deleteSync(recursive: true));
-    dio = Dio(BaseOptions(
-      baseUrl: 'http://s.local:8000',
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 15),
-    ));
-    sent = [];
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        sent.add(options);
-        handler.next(options);
-      },
-    ));
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'http://s.local:8000',
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
+      ),
+    );
+    sent = captureRequests(dio);
     adapter = DioAdapter(dio: dio);
     repo = PrinterFilesRepository(dio);
   });
 
   group('listFiles', () {
     void replyWith(Map<String, dynamic> body) => adapter.onGet(
-          '/api/v1/printers/1/files',
-          (s) => s.reply(200, body),
-          queryParameters: {'path': '/'},
-        );
+      '/api/v1/printers/1/files',
+      (s) => s.reply(200, body),
+      queryParameters: {'path': '/'},
+    );
 
     test('parses entries and reports the printer as reachable', () async {
       replyWith(const {
@@ -57,29 +55,33 @@ void main() {
       expect(listing.printerUnavailable, isFalse);
     });
 
-    test('an empty listing with the warning means the printer did not answer',
-        () async {
-      replyWith(const {
-        'path': '/',
-        'files': [],
-        'warnings': ['printer_unavailable'],
-      });
+    test(
+      'an empty listing with the warning means the printer did not answer',
+      () async {
+        replyWith(const {
+          'path': '/',
+          'files': [],
+          'warnings': ['printer_unavailable'],
+        });
 
-      final listing = await repo.listFiles(1, '/');
+        final listing = await repo.listFiles(1, '/');
 
-      expect(listing.files, isEmpty);
-      expect(listing.printerUnavailable, isTrue);
-    });
+        expect(listing.files, isEmpty);
+        expect(listing.printerUnavailable, isTrue);
+      },
+    );
 
-    test('a server that sends no warnings keeps reading as an empty folder',
-        () async {
-      replyWith(const {'path': '/', 'files': []});
+    test(
+      'a server that sends no warnings keeps reading as an empty folder',
+      () async {
+        replyWith(const {'path': '/', 'files': []});
 
-      final listing = await repo.listFiles(1, '/');
+        final listing = await repo.listFiles(1, '/');
 
-      expect(listing.files, isEmpty);
-      expect(listing.printerUnavailable, isFalse);
-    });
+        expect(listing.files, isEmpty);
+        expect(listing.printerUnavailable, isFalse);
+      },
+    );
 
     test('an unrelated warning is not the unavailable one', () async {
       replyWith(const {
@@ -102,44 +104,48 @@ void main() {
   });
 
   group('downloads', () {
-    test('a single file lands on disk, never in memory, and cannot time out',
-        () async {
-      adapter.onGet(
-        '/api/v1/printers/1/files/download',
-        (s) => s.reply(200, 'model bytes'),
-        queryParameters: {'path': '/a.3mf'},
-      );
-      final target = '${scratch.path}/a.3mf';
+    test(
+      'a single file lands on disk, never in memory, and cannot time out',
+      () async {
+        adapter.onGet(
+          '/api/v1/printers/1/files/download',
+          (s) => s.reply(200, 'model bytes'),
+          queryParameters: {'path': '/a.3mf'},
+        );
+        final target = '${scratch.path}/a.3mf';
 
-      await repo.downloadFileTo(1, '/a.3mf', target);
+        await repo.downloadFileTo(1, '/a.3mf', target);
 
-      // The adapter serves the reply JSON-encoded, so the quotes are the
-      // mock's, not the route's: what matters is that the body reached the file.
-      expect(File(target).readAsStringSync(), contains('model bytes'));
-      expect(sent.single.receiveTimeout, Duration.zero);
-      expect(sent.single.responseType, ResponseType.stream);
-    });
+        // The adapter serves the reply JSON-encoded, so the quotes are the
+        // mock's, not the route's: what matters is that the body reached the file.
+        expect(File(target).readAsStringSync(), contains('model bytes'));
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
+        expect(sent.requests.single.responseType, ResponseType.stream);
+      },
+    );
 
-    test('the ZIP is asked for with a POST and the body stays {paths}',
-        () async {
-      adapter.onPost(
-        '/api/v1/printers/1/files/download-zip',
-        (s) => s.reply(200, 'zip bytes'),
-        data: {
-          'paths': ['/a.3mf', '/b.3mf']
-        },
-      );
-      final target = '${scratch.path}/files.zip';
+    test(
+      'the ZIP is asked for with a POST and the body stays {paths}',
+      () async {
+        adapter.onPost(
+          '/api/v1/printers/1/files/download-zip',
+          (s) => s.reply(200, 'zip bytes'),
+          data: {
+            'paths': ['/a.3mf', '/b.3mf'],
+          },
+        );
+        final target = '${scratch.path}/files.zip';
 
-      await repo.downloadZipTo(1, const ['/a.3mf', '/b.3mf'], target);
+        await repo.downloadZipTo(1, const ['/a.3mf', '/b.3mf'], target);
 
-      expect(File(target).readAsStringSync(), contains('zip bytes'));
-      expect(sent.single.method, 'POST');
-      expect(sent.single.data, {
-        'paths': ['/a.3mf', '/b.3mf']
-      });
-      expect(sent.single.receiveTimeout, Duration.zero);
-    });
+        expect(File(target).readAsStringSync(), contains('zip bytes'));
+        expect(sent.requests.single.method, 'POST');
+        expect(sent.requests.single.data, {
+          'paths': ['/a.3mf', '/b.3mf'],
+        });
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
+      },
+    );
 
     test('progress is reported as it arrives', () async {
       adapter.onGet(
@@ -159,54 +165,63 @@ void main() {
       expect(seen, isNotEmpty);
     });
 
-    test('the refusals the file manager words itself keep their status',
-        () async {
-      for (final status in const [413, 504, 507]) {
-        adapter.onGet(
-          '/api/v1/printers/1/files/download',
-          (s) => s.reply(status, {'detail': 'no'}),
-          queryParameters: {'path': '/big.3mf'},
-        );
+    test(
+      'the refusals the file manager words itself keep their status',
+      () async {
+        for (final status in const [413, 504, 507]) {
+          adapter.onGet(
+            '/api/v1/printers/1/files/download',
+            (s) => s.reply(status, {'detail': 'no'}),
+            queryParameters: {'path': '/big.3mf'},
+          );
 
-        await expectLater(
-          repo.downloadFileTo(1, '/big.3mf', '${scratch.path}/big.3mf'),
-          throwsA(isA<ApiException>()
-              .having((e) => e.statusCode, 'statusCode', status)),
-        );
-      }
-    });
+          await expectLater(
+            repo.downloadFileTo(1, '/big.3mf', '${scratch.path}/big.3mf'),
+            throwsA(
+              isA<ApiException>().having(
+                (e) => e.statusCode,
+                'statusCode',
+                status,
+              ),
+            ),
+          );
+        }
+      },
+    );
   });
 
   group('download jobs', () {
-    test('start sends the selection, its sizes and how to present it',
-        () async {
-      adapter.onPost(
-        '/api/v1/printers/1/files/download-job',
-        (s) => s.reply(200, const {
-          'job_id': 'job-1',
-          'printer_id': 1,
-          'state': 'queued',
-          'requested': 2,
+    test(
+      'start sends the selection, its sizes and how to present it',
+      () async {
+        adapter.onPost(
+          '/api/v1/printers/1/files/download-job',
+          (s) => s.reply(200, const {
+            'job_id': 'job-1',
+            'printer_id': 1,
+            'state': 'queued',
+            'requested': 2,
+            'filename': 'X1-files.zip',
+          }),
+          data: Matchers.any,
+        );
+
+        final job = await repo.startDownloadJob(
+          1,
+          paths: const ['/a.3mf', '/b.3mf'],
+          sizes: const {'/a.3mf': 10, '/b.3mf': 20},
+          filename: 'X1-files.zip',
+        );
+
+        expect(job?.jobId, 'job-1');
+        expect(sent.requests.single.data, {
+          'paths': ['/a.3mf', '/b.3mf'],
+          'sizes': {'/a.3mf': 10, '/b.3mf': 20},
           'filename': 'X1-files.zip',
-        }),
-        data: Matchers.any,
-      );
-
-      final job = await repo.startDownloadJob(
-        1,
-        paths: const ['/a.3mf', '/b.3mf'],
-        sizes: const {'/a.3mf': 10, '/b.3mf': 20},
-        filename: 'X1-files.zip',
-      );
-
-      expect(job?.jobId, 'job-1');
-      expect(sent.single.data, {
-        'paths': ['/a.3mf', '/b.3mf'],
-        'sizes': {'/a.3mf': 10, '/b.3mf': 20},
-        'filename': 'X1-files.zip',
-        'as_zip': true,
-      });
-    });
+          'as_zip': true,
+        });
+      },
+    );
 
     test('an incomplete map of sizes is left out entirely', () async {
       // The schema wants one per path or none at all.
@@ -223,32 +238,34 @@ void main() {
         filename: 'X1-files.zip',
       );
 
-      expect(sent.single.data, isNot(contains('sizes')));
+      expect(sent.requests.single.data, isNot(contains('sizes')));
     });
 
-    test('one size the listing could not read disqualifies the whole set',
-        () async {
-      // A `0` is a size the FTP listing failed to parse, not an empty file.
-      // Sending it would pass the server's free-space check on a lie and the
-      // transfer would fail halfway through instead — so the complete-looking
-      // map goes in the bin with the partial one. The rule lives in the
-      // repository because it is about what this route may be told, not about
-      // whichever screen is asking.
-      adapter.onPost(
-        '/api/v1/printers/1/files/download-job',
-        (s) => s.reply(200, const {'job_id': 'job-1', 'state': 'queued'}),
-        data: Matchers.any,
-      );
+    test(
+      'one size the listing could not read disqualifies the whole set',
+      () async {
+        // A `0` is a size the FTP listing failed to parse, not an empty file.
+        // Sending it would pass the server's free-space check on a lie and the
+        // transfer would fail halfway through instead — so the complete-looking
+        // map goes in the bin with the partial one. The rule lives in the
+        // repository because it is about what this route may be told, not about
+        // whichever screen is asking.
+        adapter.onPost(
+          '/api/v1/printers/1/files/download-job',
+          (s) => s.reply(200, const {'job_id': 'job-1', 'state': 'queued'}),
+          data: Matchers.any,
+        );
 
-      await repo.startDownloadJob(
-        1,
-        paths: const ['/a.3mf', '/b.3mf'],
-        sizes: const {'/a.3mf': 4096, '/b.3mf': 0},
-        filename: 'X1-files.zip',
-      );
+        await repo.startDownloadJob(
+          1,
+          paths: const ['/a.3mf', '/b.3mf'],
+          sizes: const {'/a.3mf': 4096, '/b.3mf': 0},
+          filename: 'X1-files.zip',
+        );
 
-      expect(sent.single.data, isNot(contains('sizes')));
-    });
+        expect(sent.requests.single.data, isNot(contains('sizes')));
+      },
+    );
 
     test('a server without the route answers null, and says so once', () async {
       // Against a version that claims the route, so the latch is what the
@@ -297,8 +314,13 @@ void main() {
           sizes: const {},
           filename: 'a.3mf',
         ),
-        throwsA(isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.forbidden)),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.forbidden,
+          ),
+        ),
       );
       expect(await repo.supportsDownloadJobs(), isFalse);
     });
@@ -337,38 +359,42 @@ void main() {
       expect(await repo.supportsDownloadJobs(), isTrue);
     });
 
-    test('cancelling something already gone is the state that was asked for',
-        () async {
-      adapter.onDelete(
-        '/api/v1/printers/1/files/download-jobs/job-1',
-        (s) => s.reply(404, {'detail': 'Printer download job not found'}),
-      );
+    test(
+      'cancelling something already gone is the state that was asked for',
+      () async {
+        adapter.onDelete(
+          '/api/v1/printers/1/files/download-jobs/job-1',
+          (s) => s.reply(404, {'detail': 'Printer download job not found'}),
+        );
 
-      await expectLater(repo.cancelDownloadJob(1, 'job-1'), completes);
-    });
+        await expectLater(repo.cancelDownloadJob(1, 'job-1'), completes);
+      },
+    );
 
-    test('the prepared bundle is fetched by its token, without a deadline',
-        () async {
-      adapter.onGet(
-        '/api/v1/printers/1/files/dl/tok%2F1/X1%20files.zip',
-        (s) => s.reply(200, 'zip bytes'),
-      );
-      final target = '${scratch.path}/files.zip';
+    test(
+      'the prepared bundle is fetched by its token, without a deadline',
+      () async {
+        adapter.onGet(
+          '/api/v1/printers/1/files/dl/tok%2F1/X1%20files.zip',
+          (s) => s.reply(200, 'zip bytes'),
+        );
+        final target = '${scratch.path}/files.zip';
 
-      await repo.downloadPreparedTo(
-        1,
-        token: 'tok/1',
-        filename: 'X1 files.zip',
-        savePath: target,
-      );
+        await repo.downloadPreparedTo(
+          1,
+          token: 'tok/1',
+          filename: 'X1 files.zip',
+          savePath: target,
+        );
 
-      expect(File(target).readAsStringSync(), contains('zip bytes'));
-      // Both are user data in a URL path: a token with a slash in it must not
-      // address a different route, and a space must not break the request.
-      expect(sent.single.path, contains('tok%2F1'));
-      expect(sent.single.path, contains('X1%20files.zip'));
-      expect(sent.single.receiveTimeout, Duration.zero);
-    });
+        expect(File(target).readAsStringSync(), contains('zip bytes'));
+        // Both are user data in a URL path: a token with a slash in it must not
+        // address a different route, and a space must not break the request.
+        expect(sent.requests.single.path, contains('tok%2F1'));
+        expect(sent.requests.single.path, contains('X1%20files.zip'));
+        expect(sent.requests.single.receiveTimeout, Duration.zero);
+      },
+    );
 
     test('nothing seen and no version known keeps the legacy path', () async {
       // `whenUnknown: false`: the fallback downloads the same bytes, so the

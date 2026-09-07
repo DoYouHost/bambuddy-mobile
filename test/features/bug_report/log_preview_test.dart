@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// A session-shaped log: header line, then [records] records of ~40 chars.
 String session(int records) => [
-      '{"v":1,"ts":"2026-07-29T08:00:00.000Z","session":"s1","app":"0.11.5"}',
-      for (var i = 0; i < records; i++)
-        '{"t":$i,"src":"ui","evt":"tap","id":"nav.queue"}',
-    ].join('\n');
+  '{"v":1,"ts":"2026-07-29T08:00:00.000Z","session":"s1","app":"0.11.5"}',
+  for (var i = 0; i < records; i++)
+    '{"t":$i,"src":"ui","evt":"tap","id":"nav.queue"}',
+].join('\n');
 
 void main() {
   group('logPreview', () {
@@ -24,10 +24,16 @@ void main() {
 
       final preview = logPreview(log, maxChars: 1024);
 
-      expect(preview.text, startsWith('{"v":1,'),
-          reason: 'the header is the context every record is read against');
-      expect(preview.text, contains('"t":1999'),
-          reason: 'the bug is at the end — that is where recording stops');
+      expect(
+        preview.text,
+        startsWith('{"v":1,'),
+        reason: 'the header is the context every record is read against',
+      );
+      expect(
+        preview.text,
+        contains('"t":1999'),
+        reason: 'the bug is at the end — that is where recording stops',
+      );
       expect(preview.text, isNot(contains('"t":0,')));
       expect(preview.text.length, lessThanOrEqualTo(1024));
       expect(preview.hiddenChars, greaterThan(0));
@@ -40,8 +46,11 @@ void main() {
       final firstRecord = preview.text.split('\n')[1];
 
       expect(firstRecord, startsWith('{"t":'));
-      expect(firstRecord, endsWith('}'),
-          reason: 'half a JSON line reads as a corrupted log');
+      expect(
+        firstRecord,
+        endsWith('}'),
+        reason: 'half a JSON line reads as a corrupted log',
+      );
     });
 
     test('a log with no line breaks is clipped as plain text', () {

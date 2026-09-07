@@ -46,28 +46,43 @@ class MultiWidgetPublisher {
   ) async {
     final ranked = _ranked(statuses);
     final total = ranked.length;
-    final printing =
-        ranked.where((s) => WidgetStatus.isActive(WidgetStatus.keyFor(s))).length;
-    final offline =
-        ranked.where((s) => WidgetStatus.keyFor(s) == WidgetStatus.offline).length;
+    final printing = ranked
+        .where((s) => WidgetStatus.isActive(WidgetStatus.keyFor(s)))
+        .length;
+    final offline = ranked
+        .where((s) => WidgetStatus.keyFor(s) == WidgetStatus.offline)
+        .length;
     final idle = total - printing - offline;
 
-    await HomeWidget.saveWidgetData<String>('multi_title', l10n.widgetMultiTitle);
     await HomeWidget.saveWidgetData<String>(
-        'multi_count', l10n.widgetMultiActive(printing, total));
+      'multi_title',
+      l10n.widgetMultiTitle,
+    );
+    await HomeWidget.saveWidgetData<String>(
+      'multi_count',
+      l10n.widgetMultiActive(printing, total),
+    );
     await HomeWidget.saveWidgetData<int>('multi_printing', printing);
     await HomeWidget.saveWidgetData<int>('multi_total', total);
     await HomeWidget.saveWidgetData<String>(
-        'multi_gauge_label', l10n.widgetMultiGaugeLabel);
+      'multi_gauge_label',
+      l10n.widgetMultiGaugeLabel,
+    );
     await HomeWidget.saveWidgetData<String>(
-        'multi_idle_label', idle > 0 ? l10n.widgetMultiIdleCount(idle) : '');
-    await HomeWidget.saveWidgetData<String>('multi_offline_label',
-        offline > 0 ? l10n.widgetMultiOfflineCount(offline) : '');
+      'multi_idle_label',
+      idle > 0 ? l10n.widgetMultiIdleCount(idle) : '',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      'multi_offline_label',
+      offline > 0 ? l10n.widgetMultiOfflineCount(offline) : '',
+    );
 
     final shown = ranked.take(_maxRows).toList();
     final extra = total - shown.length;
     await HomeWidget.saveWidgetData<String>(
-        'multi_more', extra > 0 ? l10n.widgetMultiMore(extra) : '');
+      'multi_more',
+      extra > 0 ? l10n.widgetMultiMore(extra) : '',
+    );
 
     for (var i = 0; i < _maxRows; i++) {
       if (i < shown.length) {
@@ -75,12 +90,18 @@ class MultiWidgetPublisher {
         final key = WidgetStatus.keyFor(s);
         final active = WidgetStatus.isActive(key);
         await HomeWidget.saveWidgetData<String>(
-            'multi_name_$i', s.name ?? l10n.widgetNoPrinter);
+          'multi_name_$i',
+          s.name ?? l10n.widgetNoPrinter,
+        );
         await HomeWidget.saveWidgetData<String>('multi_status_$i', key);
         await HomeWidget.saveWidgetData<String>(
-            'multi_sub_$i', _sub(s, l10n, key));
+          'multi_sub_$i',
+          _sub(s, l10n, key),
+        );
         await HomeWidget.saveWidgetData<int>(
-            'multi_pct_$i', active ? WidgetStatus.progressPct(s) : -1);
+          'multi_pct_$i',
+          active ? WidgetStatus.progressPct(s) : -1,
+        );
       } else {
         // Clear leftover slots so a shrinking roster doesn't show stale rows.
         await HomeWidget.saveWidgetData<String>('multi_name_$i', '');
@@ -129,10 +150,11 @@ class MultiWidgetPublisher {
   static String _signature(Map<int, PrinterStatus> statuses) {
     final ranked = _ranked(statuses);
     return ranked
-        .map((s) =>
-            '${s.id}:${WidgetStatus.keyFor(s)}:${WidgetStatus.progressPct(s)}:'
-            '${(s.currentPrint ?? s.gcodeFile)?.trim() ?? ''}')
+        .map(
+          (s) =>
+              '${s.id}:${WidgetStatus.keyFor(s)}:${WidgetStatus.progressPct(s)}:'
+              '${(s.currentPrint ?? s.gcodeFile)?.trim() ?? ''}',
+        )
         .join('|');
   }
-
 }

@@ -66,7 +66,9 @@ class PrinterFilesRepository {
       );
       return res.data;
     });
-    return data == null ? const PrinterStorage() : PrinterStorage.fromJson(data);
+    return data == null
+        ? const PrinterStorage()
+        : PrinterStorage.fromJson(data);
   }
 
   /// Streams one printer file into [savePath].
@@ -139,31 +141,30 @@ class PrinterFilesRepository {
     required Map<String, int> sizes,
     required String filename,
     bool asZip = true,
-  }) =>
-      _downloadJobs.watching(
-        () async {
-          final res = await _dio.post<Map<String, dynamic>>(
-            Endpoints.printerFilesJob(printerId),
-            data: {
-              'paths': paths,
-              'sizes': ?_vouchedSizes(paths, sizes),
-              'filename': filename,
-              'as_zip': asZip,
-            },
-          );
-          return PrinterDownloadJob.fromJson(res.data ?? const {});
+  }) => _downloadJobs.watching(
+    () async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        Endpoints.printerFilesJob(printerId),
+        data: {
+          'paths': paths,
+          'sizes': ?_vouchedSizes(paths, sizes),
+          'filename': filename,
+          'as_zip': asZip,
         },
-        absent: () => null,
-        // Not a 403: this runs because the user pressed Download, so a refusal
-        // is the one thing they have to be told.
-        absentOn: const {404},
-        // The one route that keeps this against the rule: `_load_printer_or
-        // _404` does give it a second reason to 404, but this latch picks
-        // between two *working* paths rather than between a feature and
-        // nothing. Wrong costs a slower download; not latching costs a wasted
-        // 404 before every download on a 1.2.6 daily older than the route.
-        observing: treat404AsAbsent,
       );
+      return PrinterDownloadJob.fromJson(res.data ?? const {});
+    },
+    absent: () => null,
+    // Not a 403: this runs because the user pressed Download, so a refusal
+    // is the one thing they have to be told.
+    absentOn: const {404},
+    // The one route that keeps this against the rule: `_load_printer_or
+    // _404` does give it a second reason to 404, but this latch picks
+    // between two *working* paths rather than between a feature and
+    // nothing. Wrong costs a slower download; not latching costs a wasted
+    // 404 before every download on a 1.2.6 daily older than the route.
+    observing: treat404AsAbsent,
+  );
 
   /// [sizes] as the server may be told them, or **null when they are not worth
   /// sending** — the whole map goes or none of it does.
@@ -253,9 +254,9 @@ class PrinterFilesRepository {
 
   /// Delete a single file. 404/500 surface as [ApiException] via [guard].
   Future<void> deleteFile(int printerId, String path) => guard(
-        () => _dio.delete<dynamic>(
-          Endpoints.printerFileDelete(printerId),
-          queryParameters: {'path': path},
-        ),
-      );
+    () => _dio.delete<dynamic>(
+      Endpoints.printerFileDelete(printerId),
+      queryParameters: {'path': path},
+    ),
+  );
 }

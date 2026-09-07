@@ -47,9 +47,7 @@ class RecordingBannerScaffold extends ConsumerWidget {
       final limit = next.autoStoppedBy;
       if (limit != null) _announceLimit(context, limit);
     });
-    final recording = ref.watch(
-      bugReportProvider.select((s) => s.isRecording),
-    );
+    final recording = ref.watch(bugReportProvider.select((s) => s.isRecording));
     return Stack(
       children: [
         child,
@@ -63,19 +61,23 @@ class RecordingBannerScaffold extends ConsumerWidget {
 
   void _announceLimit(BuildContext context, String limit) {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).snack(limit == 'size'
-              ? l10n.bugReportSizeLimitReached(
-                  recordingSizeLimit ~/ (1024 * 1024))
-              : l10n.bugReportLimitReached(recordingLimit.inMinutes), action: SnackBarAction(
-          label: l10n.bugReportShow,
-          onPressed: () {
-            final navigator = rootNavigatorKey.currentContext;
-            if (navigator == null || !navigator.mounted) return;
-            if (GoRouter.of(navigator).state.uri.path != bugReportRoute) {
-              navigator.push(bugReportRoute);
-            }
-          },
-        ), duration: const Duration(seconds: 8), replaceCurrent: true);
+    ScaffoldMessenger.of(context).snack(
+      limit == 'size'
+          ? l10n.bugReportSizeLimitReached(recordingSizeLimit ~/ (1024 * 1024))
+          : l10n.bugReportLimitReached(recordingLimit.inMinutes),
+      action: SnackBarAction(
+        label: l10n.bugReportShow,
+        onPressed: () {
+          final navigator = rootNavigatorKey.currentContext;
+          if (navigator == null || !navigator.mounted) return;
+          if (GoRouter.of(navigator).state.uri.path != bugReportRoute) {
+            navigator.push(bugReportRoute);
+          }
+        },
+      ),
+      duration: const Duration(seconds: 8),
+      replaceCurrent: true,
+    );
   }
 }
 
@@ -136,8 +138,9 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
   /// `0:42 / 5:00`. The ceiling is part of the clock because the recording ends
   /// on it by itself — a bar that simply vanished would read as a malfunction.
   String _elapsed(DateTime? startedAt) {
-    final elapsed =
-        startedAt == null ? Duration.zero : DateTime.now().difference(startedAt);
+    final elapsed = startedAt == null
+        ? Duration.zero
+        : DateTime.now().difference(startedAt);
     return '${formatElapsed(elapsed)} / ${formatElapsed(recordingLimit)}';
   }
 
@@ -146,7 +149,10 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
   Offset _currentTopLeft() {
     final bar = _barKey.currentContext?.findRenderObject();
     final layer = _layerKey.currentContext?.findRenderObject();
-    if (bar is RenderBox && layer is RenderBox && bar.hasSize && layer.hasSize) {
+    if (bar is RenderBox &&
+        layer is RenderBox &&
+        bar.hasSize &&
+        layer.hasSize) {
       return layer.globalToLocal(bar.localToGlobal(Offset.zero));
     }
     return const Offset(_edgeMargin, _edgeMargin);
@@ -165,7 +171,9 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
   }
 
   void _drag(DragUpdateDetails details) {
-    setState(() => _position = (_position ?? _currentTopLeft()) + details.delta);
+    setState(
+      () => _position = (_position ?? _currentTopLeft()) + details.delta,
+    );
   }
 
   /// Keeps the bar reachable: it may not be dragged under the status bar or off
@@ -189,7 +197,9 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
     return LayoutBuilder(
       key: _layerKey,
       builder: (context, constraints) {
-        final bar = _collapsed ? _pill(context, elapsed) : _bar(context, elapsed);
+        final bar = _collapsed
+            ? _pill(context, elapsed)
+            : _bar(context, elapsed);
         final position = _position;
         return Stack(
           children: [
@@ -238,15 +248,13 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
   // endless animation would repaint for the whole session on the very screen the
   // user is reproducing a bug on.
   Widget _dot(DashTokens t) => Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(color: t.danger, shape: BoxShape.circle),
-      );
+    width: 9,
+    height: 9,
+    decoration: BoxDecoration(color: t.danger, shape: BoxShape.circle),
+  );
 
-  Widget _clock(DashTokens t, String elapsed) => Text(
-        elapsed,
-        style: t.monoValue.copyWith(color: t.textSecondary),
-      );
+  Widget _clock(DashTokens t, String elapsed) =>
+      Text(elapsed, style: t.monoValue.copyWith(color: t.textSecondary));
 
   Widget _bar(BuildContext context, String elapsed) {
     final l10n = AppLocalizations.of(context);
@@ -266,7 +274,10 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
                 onPanStart: (_) => _startDrag(),
                 onPanUpdate: _drag,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   child: Icon(
                     Icons.drag_indicator,
                     size: 18,
@@ -291,7 +302,9 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
                 color: t.textSecondary,
                 onPressed: () {
                   ref.read(bugReportProvider.notifier).mark();
-                  ScaffoldMessenger.of(context).snack(l10n.bugReportMarked, replaceCurrent: true);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).snack(l10n.bugReportMarked, replaceCurrent: true);
                 },
               ),
             ),
@@ -353,11 +366,7 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _dot(t),
-                const SizedBox(width: 8),
-                _clock(t, elapsed),
-              ],
+              children: [_dot(t), const SizedBox(width: 8), _clock(t, elapsed)],
             ),
           ),
         ),
@@ -369,15 +378,14 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
     required IconData icon,
     required Color color,
     required VoidCallback onPressed,
-  }) =>
-      IconButton(
-        icon: Icon(icon, size: 19),
-        color: color,
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-        onPressed: onPressed,
-      );
+  }) => IconButton(
+    icon: Icon(icon, size: 19),
+    color: color,
+    padding: EdgeInsets.zero,
+    visualDensity: VisualDensity.compact,
+    constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+    onPressed: onPressed,
+  );
 
   Future<void> _finish(BuildContext context, WidgetRef ref) async {
     await ref.read(bugReportProvider.notifier).stop();

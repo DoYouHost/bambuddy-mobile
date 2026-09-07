@@ -7,19 +7,20 @@ GcodeViewerConfig _config({
   String url = '/api/v1/library/files/7/gcode',
   Map<String, String> headers = const {'X-API-Key': 'bb_secret'},
   Map<String, String> labels = const {'loading': 'Loading'},
-}) =>
-    GcodeViewerConfig(
-      gcodeUrl: url,
-      headers: headers,
-      dark: true,
-      labels: labels,
-      featureLabels: const {1: 'Walls', 2: 'Sparse infill'},
-    );
+}) => GcodeViewerConfig(
+  gcodeUrl: url,
+  headers: headers,
+  dark: true,
+  labels: labels,
+  featureLabels: const {1: 'Walls', 2: 'Sparse infill'},
+);
 
 /// The `window.__BB = {...};` object the shell was given, decoded back.
 Map<String, Object?> _configFrom(String document) {
-  final match =
-      RegExp(r'window\.__BB = (\{.*?\});', dotAll: true).firstMatch(document);
+  final match = RegExp(
+    r'window\.__BB = (\{.*?\});',
+    dotAll: true,
+  ).firstMatch(document);
   expect(match, isNotNull, reason: 'config was not injected');
   return jsonDecode(match!.group(1)!) as Map<String, Object?>;
 }
@@ -28,7 +29,8 @@ void main() {
   group('document', () {
     test('both placeholders are replaced', () {
       final document = buildViewerDocument(
-        shell: '<html><script>__BB_CONFIG__</script>'
+        shell:
+            '<html><script>__BB_CONFIG__</script>'
             '<script>__BB_BUNDLE__</script></html>',
         bundle: 'console.log(1);',
         config: _config(),
@@ -41,10 +43,12 @@ void main() {
 
     test('the font faces land in their own block', () {
       final document = buildViewerDocument(
-        shell: '<style>__BB_FONTS__</style><script>__BB_CONFIG__</script>'
+        shell:
+            '<style>__BB_FONTS__</style><script>__BB_CONFIG__</script>'
             '<script>__BB_BUNDLE__</script>',
         bundle: '',
-        fonts: '@font-face { font-family: Manrope; src: url(data:font/woff2;'
+        fonts:
+            '@font-face { font-family: Manrope; src: url(data:font/woff2;'
             'base64,AAAA) format("woff2"); }',
         config: _config(),
       );
@@ -121,8 +125,10 @@ void main() {
       // A slot the file records no colour for stays null rather than
       // collapsing the list: the page indexes it by tool number.
       expect(config['filamentColors'], ['#FF0000', null]);
-      expect((config['labels']! as Map<String, Object?>)['filaments'],
-          {'0': 'Filament 1', '1': 'Filament 2'});
+      expect((config['labels']! as Map<String, Object?>)['filaments'], {
+        '0': 'Filament 1',
+        '1': 'Filament 2',
+      });
     });
 
     test('a label cannot close the script element', () {
@@ -142,8 +148,10 @@ void main() {
   group('report', () {
     test('ready', () {
       expect(parseGcodeViewerReport('ready'), const GcodeViewerReport.ready());
-      expect(parseGcodeViewerReport(' ready\n'),
-          const GcodeViewerReport.ready());
+      expect(
+        parseGcodeViewerReport(' ready\n'),
+        const GcodeViewerReport.ready(),
+      );
     });
 
     test('loading is alive but not ready', () {

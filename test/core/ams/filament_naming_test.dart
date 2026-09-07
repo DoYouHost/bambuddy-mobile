@@ -42,13 +42,15 @@ void main() {
       expect(parsed.variant, 'eSUN PETG Basic');
     });
 
-    test('falls back to the slicer naming convention for an unknown material',
-        () {
-      final parsed = parsePresetName('Acme XYZ99 Matte');
-      expect(parsed.brand, 'Acme');
-      expect(parsed.material, 'XYZ99');
-      expect(parsed.variant, 'Matte');
-    });
+    test(
+      'falls back to the slicer naming convention for an unknown material',
+      () {
+        final parsed = parsePresetName('Acme XYZ99 Matte');
+        expect(parsed.brand, 'Acme');
+        expect(parsed.material, 'XYZ99');
+        expect(parsed.variant, 'Matte');
+      },
+    );
   });
 
   group('filamentIdFromSettingId', () {
@@ -58,8 +60,10 @@ void main() {
     });
 
     test('keeps a user preset id, minus the version suffix', () {
-      expect(filamentIdFromSettingId('PFUS9ac902733670a9_02'),
-          'PFUS9ac902733670a9');
+      expect(
+        filamentIdFromSettingId('PFUS9ac902733670a9_02'),
+        'PFUS9ac902733670a9',
+      );
       expect(filamentIdFromSettingId('PFSP1234'), 'PFSP1234');
     });
   });

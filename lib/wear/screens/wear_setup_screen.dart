@@ -113,51 +113,46 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// it is worth a look: a phone that switched servers used to reconfigure the
   /// watch silently, and nothing on the watch said which server it was on.
   List<Widget> _offerSection(AppLocalizations l10n, WatchConfig offer) => [
-        Text(
-          l10n.wearFromPhone,
-          textAlign: TextAlign.center,
-          style: WearText.body,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          offer.profile.displayName,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: WearText.section,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          switch (offer.profile.authMode) {
-            AuthMode.apiKey => l10n.wearAuthKey,
-            AuthMode.jwt => l10n.wearAuthLogin,
-            AuthMode.none => l10n.wearAuthNone,
-          },
-          textAlign: TextAlign.center,
-          style: WearText.fine,
-        ),
-        if (_phoneError != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            _errorText(l10n, _phoneError!),
-            textAlign: TextAlign.center,
-            style: wearErrorStyle(context),
-          ),
-        ],
-        const SizedBox(height: 10),
-        if (busy)
-          wearSpinner
-        else
-          FilledButton(
-            onPressed: () => _useOffer(offer),
-            child: Text(l10n.wearFromPhoneUse),
-          ),
-        TextButton(
-          onPressed: () =>
-              ref.read(pendingWatchConfigProvider.notifier).dismiss(),
-          child: Text(l10n.wearFromPhoneLater),
-        ),
-      ];
+    Text(l10n.wearFromPhone, textAlign: TextAlign.center, style: WearText.body),
+    const SizedBox(height: 4),
+    Text(
+      offer.profile.displayName,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: WearText.section,
+    ),
+    const SizedBox(height: 2),
+    Text(
+      switch (offer.profile.authMode) {
+        AuthMode.apiKey => l10n.wearAuthKey,
+        AuthMode.jwt => l10n.wearAuthLogin,
+        AuthMode.none => l10n.wearAuthNone,
+      },
+      textAlign: TextAlign.center,
+      style: WearText.fine,
+    ),
+    if (_phoneError != null) ...[
+      const SizedBox(height: 6),
+      Text(
+        _errorText(l10n, _phoneError!),
+        textAlign: TextAlign.center,
+        style: wearErrorStyle(context),
+      ),
+    ],
+    const SizedBox(height: 10),
+    if (busy)
+      wearSpinner
+    else
+      FilledButton(
+        onPressed: () => _useOffer(offer),
+        child: Text(l10n.wearFromPhoneUse),
+      ),
+    TextButton(
+      onPressed: () => ref.read(pendingWatchConfigProvider.notifier).dismiss(),
+      child: Text(l10n.wearFromPhoneLater),
+    ),
+  ];
 
   /// Adopt the offered config. The failure has to stay on screen: it is what
   /// stands between the user and a working watch, so a message that times out
@@ -173,45 +168,45 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// The path almost everybody should take: the phone already knows the server
   /// and the credentials, and pushes both over the Data Layer.
   List<Widget> _phoneHandoffSection(AppLocalizations l10n) => [
-        Text(
-          l10n.wearSetupPhoneTitle,
-          textAlign: TextAlign.center,
-          style: WearText.section,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l10n.wearSetupPhoneBody,
-          textAlign: TextAlign.center,
-          style: WearText.small,
-        ),
-        if (_phoneEmpty || _phoneError != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            switch (_phoneError) {
-              final error? => _errorText(l10n, error),
-              null => l10n.wearSetupPhoneEmpty,
-            },
-            textAlign: TextAlign.center,
-            style: wearErrorStyle(context),
-          ),
-        ],
-        const SizedBox(height: 10),
-        if (busy)
-          wearSpinner
-        else
-          FilledButton(
-            onPressed: _checkPhone,
-            child: Text(l10n.wearSetupPhoneCheck),
-          ),
-        TextButton(
-          onPressed: () => setState(() => _manual = true),
-          child: Text(l10n.wearSetupManual),
-        ),
-        TextButton(
-          onPressed: busy ? null : _startDemo,
-          child: Text(l10n.wearSetupDemo),
-        ),
-      ];
+    Text(
+      l10n.wearSetupPhoneTitle,
+      textAlign: TextAlign.center,
+      style: WearText.section,
+    ),
+    const SizedBox(height: 6),
+    Text(
+      l10n.wearSetupPhoneBody,
+      textAlign: TextAlign.center,
+      style: WearText.small,
+    ),
+    if (_phoneEmpty || _phoneError != null) ...[
+      const SizedBox(height: 6),
+      Text(
+        switch (_phoneError) {
+          final error? => _errorText(l10n, error),
+          null => l10n.wearSetupPhoneEmpty,
+        },
+        textAlign: TextAlign.center,
+        style: wearErrorStyle(context),
+      ),
+    ],
+    const SizedBox(height: 10),
+    if (busy)
+      wearSpinner
+    else
+      FilledButton(
+        onPressed: _checkPhone,
+        child: Text(l10n.wearSetupPhoneCheck),
+      ),
+    TextButton(
+      onPressed: () => setState(() => _manual = true),
+      child: Text(l10n.wearSetupManual),
+    ),
+    TextButton(
+      onPressed: busy ? null : _startDemo,
+      child: Text(l10n.wearSetupDemo),
+    ),
+  ];
 
   /// Straight into demo mode, without a keyboard anywhere near it.
   ///
@@ -224,15 +219,12 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   /// just puts itself back is a dead end with no explanation.
   Future<void> _startDemo() {
     setState(() => _phoneError = null);
-    return run(
-      () async {
-        await ref.read(setupControllerProvider.notifier).enterDemo();
-        if (!mounted) return;
-        final error = ref.read(setupControllerProvider).error;
-        if (error != null) setState(() => _phoneError = error);
-      },
-      onError: (error) => setState(() => _phoneError = error),
-    );
+    return run(() async {
+      await ref.read(setupControllerProvider.notifier).enterDemo();
+      if (!mounted) return;
+      final error = ref.read(setupControllerProvider).error;
+      if (error != null) setState(() => _phoneError = error);
+    }, onError: (error) => setState(() => _phoneError = error));
   }
 
   /// Look for what the phone last latched and *offer* it. A live push is picked
@@ -244,102 +236,105 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       _phoneEmpty = false;
       _phoneError = null;
     });
-    return run(
-      () async {
-        // Bounded on purpose: the Data Layer call never answers at all where
-        // Google Play services are missing, and the run guard covers a throw,
-        // not a call that simply never returns. Coming back empty at least
-        // leaves the manual path reachable.
-        final found = await ref
-            .read(watchConfigSyncProvider)
-            .latestPending()
-            .timeout(const Duration(seconds: 5), onTimeout: () => null);
-        if (!mounted) return;
-        // Empty is an outcome, not a failure — hence a field of its own rather
-        // than an error.
-        setState(() => _phoneEmpty = found == null);
-        if (found != null) {
-          ref.read(pendingWatchConfigProvider.notifier).offer(found);
-        }
-      },
-      onError: (error) => setState(() => _phoneError = error),
-    );
+    return run(() async {
+      // Bounded on purpose: the Data Layer call never answers at all where
+      // Google Play services are missing, and the run guard covers a throw,
+      // not a call that simply never returns. Coming back empty at least
+      // leaves the manual path reachable.
+      final found = await ref
+          .read(watchConfigSyncProvider)
+          .latestPending()
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+      if (!mounted) return;
+      // Empty is an outcome, not a failure — hence a field of its own rather
+      // than an error.
+      setState(() => _phoneEmpty = found == null);
+      if (found != null) {
+        ref.read(pendingWatchConfigProvider.notifier).offer(found);
+      }
+    }, onError: (error) => setState(() => _phoneError = error));
   }
 
   List<Widget> _manualSection(
     SetupController controller,
     AppLocalizations l10n,
     SetupState state,
-  ) =>
-      [
-        _compactField(_url, l10n.wearServerUrl,
-            keyboard: TextInputType.url, enabled: !state.busy),
-        const SizedBox(height: 8),
-        if (state.busy)
-          wearSpinner
-        else if (!state.needsAuth)
-          FilledButton(
-            onPressed: () => controller.probe(_url.text),
-            child: Text(l10n.wearConnect),
-          ),
-        if (state.error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              _errorText(l10n, state.error!),
-              textAlign: TextAlign.center,
-              style: wearErrorStyle(context),
-            ),
-          ),
-        if (state.twoFactor case final challenge?)
-          ..._twoFactorSection(controller, l10n, challenge, state)
-        else if (state.needsAuth && !state.busy)
-          ..._authSection(controller, l10n)
-        else if (!state.busy)
-          // Only offered before the server answers: once we are past the probe,
-          // dropping back to the handoff would throw that progress away.
-          TextButton(
-            onPressed: () => setState(() => _manual = false),
-            child: Text(l10n.wearSetupPhoneTitle),
-          ),
-      ];
-
-  List<Widget> _authSection(SetupController controller, AppLocalizations l10n) => [
-        const SizedBox(height: 12),
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(value: false, label: Text(l10n.wearAuthKey)),
-            ButtonSegment(value: true, label: Text(l10n.wearAuthLogin)),
-          ],
-          selected: {_useLogin},
-          onSelectionChanged: (s) => setState(() => _useLogin = s.first),
+  ) => [
+    _compactField(
+      _url,
+      l10n.wearServerUrl,
+      keyboard: TextInputType.url,
+      enabled: !state.busy,
+    ),
+    const SizedBox(height: 8),
+    if (state.busy)
+      wearSpinner
+    else if (!state.needsAuth)
+      FilledButton(
+        onPressed: () => controller.probe(_url.text),
+        child: Text(l10n.wearConnect),
+      ),
+    if (state.error != null)
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          _errorText(l10n, state.error!),
+          textAlign: TextAlign.center,
+          style: wearErrorStyle(context),
         ),
-        const SizedBox(height: 8),
-        if (!_useLogin) ...[
-          _compactField(_apiKey, '${l10n.apiKeyLabel} (bb_…)'),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: () => controller.connectWithApiKey(_apiKey.text),
-            child: Text(l10n.fmSave),
-          ),
-        ] else ...[
-          _compactField(_username, l10n.wearUsername),
-          const SizedBox(height: 8),
-          _compactField(_password, l10n.passwordLabel, obscure: true),
-          const SizedBox(height: 8),
-          FilledButton(
-            // Watch has no background re-login flow; always remember credentials
-            // so an expired JWT recovers silently.
-            onPressed: () => controller.connectWithLogin(
-              username: _username.text.trim(),
-              password: _password.text,
-              remember: true,
-            ),
-            child: Text(l10n.cloudSignIn),
-          ),
-        ],
-      ];
+      ),
+    if (state.twoFactor case final challenge?)
+      ..._twoFactorSection(controller, l10n, challenge, state)
+    else if (state.needsAuth && !state.busy)
+      ..._authSection(controller, l10n)
+    else if (!state.busy)
+      // Only offered before the server answers: once we are past the probe,
+      // dropping back to the handoff would throw that progress away.
+      TextButton(
+        onPressed: () => setState(() => _manual = false),
+        child: Text(l10n.wearSetupPhoneTitle),
+      ),
+  ];
+
+  List<Widget> _authSection(
+    SetupController controller,
+    AppLocalizations l10n,
+  ) => [
+    const SizedBox(height: 12),
+    SegmentedButton<bool>(
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(value: false, label: Text(l10n.wearAuthKey)),
+        ButtonSegment(value: true, label: Text(l10n.wearAuthLogin)),
+      ],
+      selected: {_useLogin},
+      onSelectionChanged: (s) => setState(() => _useLogin = s.first),
+    ),
+    const SizedBox(height: 8),
+    if (!_useLogin) ...[
+      _compactField(_apiKey, '${l10n.apiKeyLabel} (bb_…)'),
+      const SizedBox(height: 8),
+      FilledButton(
+        onPressed: () => controller.connectWithApiKey(_apiKey.text),
+        child: Text(l10n.fmSave),
+      ),
+    ] else ...[
+      _compactField(_username, l10n.wearUsername),
+      const SizedBox(height: 8),
+      _compactField(_password, l10n.passwordLabel, obscure: true),
+      const SizedBox(height: 8),
+      FilledButton(
+        // Watch has no background re-login flow; always remember credentials
+        // so an expired JWT recovers silently.
+        onPressed: () => controller.connectWithLogin(
+          username: _username.text.trim(),
+          password: _password.text,
+          remember: true,
+        ),
+        child: Text(l10n.cloudSignIn),
+      ),
+    ],
+  ];
 
   /// The code step, watch-sized. Same controller as the phone, so the whole
   /// flow (challenge, e-mail resend, expiry) behaves identically; only the
@@ -361,11 +356,14 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         style: WearText.section,
       ),
       const SizedBox(height: 8),
-      _compactField(_code, l10n.twoFactorCodeLabel,
-          keyboard: method.isNumericCode
-              ? TextInputType.number
-              : TextInputType.visiblePassword,
-          enabled: !state.busy),
+      _compactField(
+        _code,
+        l10n.twoFactorCodeLabel,
+        keyboard: method.isNumericCode
+            ? TextInputType.number
+            : TextInputType.visiblePassword,
+        enabled: !state.busy,
+      ),
       const SizedBox(height: 8),
       if (method == TwoFactorMethod.email)
         TextButton(
@@ -380,7 +378,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         onPressed: state.busy
             ? null
             : () =>
-                controller.verifyTwoFactor(method: method, code: _code.text),
+                  controller.verifyTwoFactor(method: method, code: _code.text),
         child: Text(l10n.twoFactorVerify),
       ),
       TextButton(
@@ -439,7 +437,9 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   }
 
   Future<void> _editOnWatch(
-      TextEditingController controller, String label) async {
+    TextEditingController controller,
+    String label,
+  ) async {
     try {
       final text = await _wearInput.request(label: label);
       if (text != null && mounted) setState(() => controller.text = text);

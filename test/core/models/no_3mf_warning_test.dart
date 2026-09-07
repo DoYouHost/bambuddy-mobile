@@ -33,8 +33,10 @@ void main() {
         No3mfReason.slicerSetting,
       );
       expect(
-        No3mfWarning.fromJson(const {'has_fallback': true, 'reason': null})
-            .reason,
+        No3mfWarning.fromJson(const {
+          'has_fallback': true,
+          'reason': null,
+        }).reason,
         No3mfReason.slicerSetting,
       );
     });
@@ -50,8 +52,10 @@ void main() {
     });
 
     test('nothing to nudge about', () {
-      final quiet = No3mfWarning.fromJson(
-          const {'has_fallback': false, 'reason': null});
+      final quiet = No3mfWarning.fromJson(const {
+        'has_fallback': false,
+        'reason': null,
+      });
 
       expect(quiet.hasFallback, isFalse);
       expect(No3mfWarning.none.hasFallback, isFalse);

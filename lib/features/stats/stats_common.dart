@@ -15,28 +15,33 @@ enum StatMetric { weight, prints, time }
 extension StatMetricValue on StatMetric {
   /// Extract metric value from bucket [b].
   num of(StatBucket b) => switch (this) {
-        StatMetric.weight => b.grams,
-        StatMetric.prints => b.prints,
-        StatMetric.time => b.seconds,
-      };
+    StatMetric.weight => b.grams,
+    StatMetric.prints => b.prints,
+    StatMetric.time => b.seconds,
+  };
 
   String label(AppLocalizations l) => switch (this) {
-        StatMetric.weight => l.statsMetricWeight,
-        StatMetric.prints => l.statsMetricPrints,
-        StatMetric.time => l.statsMetricTime,
-      };
+    StatMetric.weight => l.statsMetricWeight,
+    StatMetric.prints => l.statsMetricPrints,
+    StatMetric.time => l.statsMetricTime,
+  };
 
   /// Formatted metric value for row label.
   String format(AppLocalizations l, num v) => switch (this) {
-        StatMetric.weight => fmtGrams(v.toDouble()),
-        StatMetric.prints => '${v.round()}',
-        StatMetric.time => formatSeconds(l, v.round()),
-      };
+    StatMetric.weight => fmtGrams(v.toDouble()),
+    StatMetric.prints => '${v.round()}',
+    StatMetric.time => formatSeconds(l, v.round()),
+  };
 }
 
 /// Section card with fixed header — common wrapper for all widgets.
 class SectionCard extends StatelessWidget {
-  const SectionCard({super.key, required this.title, required this.child, this.trailing});
+  const SectionCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
 
   final String title;
   final Widget child;
@@ -57,12 +62,7 @@ class SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: t.titleSm,
-                ),
-              ),
+              Expanded(child: Text(title, style: t.titleSm)),
               ?trailing,
             ],
           ),
@@ -125,19 +125,18 @@ class RingGauge extends StatelessWidget {
           color: color,
           track: t.gaugeTrack,
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: t.display,
-          ),
-        ),
+        child: Center(child: Text(label, style: t.display)),
       ),
     );
   }
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.percent, required this.color, required this.track});
+  _RingPainter({
+    required this.percent,
+    required this.color,
+    required this.track,
+  });
 
   final double percent;
   final Color color;
@@ -209,7 +208,14 @@ class LegendDot extends StatelessWidget {
 
 /// Duration histogram bucket labels (upper bounds — common PL/EN).
 const durationBucketLabels = <String>[
-  '<30min', '<1h', '<2h', '<4h', '<8h', '<12h', '<24h', '24h+',
+  '<30min',
+  '<1h',
+  '<2h',
+  '<4h',
+  '<8h',
+  '<12h',
+  '<24h',
+  '24h+',
 ];
 
 /// Number to max 2 decimal places, no trailing zeros.
@@ -220,5 +226,6 @@ String fmtNum(num v) {
 }
 
 /// Filament: grams below 1 kg, otherwise kilograms.
-String fmtGrams(double g) =>
-    g >= 1000 ? '${(g / 1000).toStringAsFixed(2)} kg' : '${g.toStringAsFixed(0)} g';
+String fmtGrams(double g) => g >= 1000
+    ? '${(g / 1000).toStringAsFixed(2)} kg'
+    : '${g.toStringAsFixed(0)} g';

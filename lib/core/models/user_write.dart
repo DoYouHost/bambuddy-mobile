@@ -31,12 +31,12 @@ class UserCreateInput {
   final List<int>? groupIds;
 
   Map<String, dynamic> toJson() => {
-        'username': username,
-        if (password != null) 'password': password,
-        if (email != null) 'email': email,
-        'role': role,
-        if (groupIds != null) 'group_ids': groupIds,
-      };
+    'username': username,
+    if (password != null) 'password': password,
+    if (email != null) 'email': email,
+    'role': role,
+    if (groupIds != null) 'group_ids': groupIds,
+  };
 }
 
 /// Body for `PATCH /users/{id}` (`backend/app/schemas/auth.py::UserUpdate`).
@@ -72,13 +72,13 @@ class UserUpdateInput {
       groupIds == null;
 
   Map<String, dynamic> toJson() => {
-        if (username != null) 'username': username,
-        if (password != null) 'password': password,
-        if (email != null) 'email': email,
-        if (role != null) 'role': role,
-        if (isActive != null) 'is_active': isActive,
-        if (groupIds != null) 'group_ids': groupIds,
-      };
+    if (username != null) 'username': username,
+    if (password != null) 'password': password,
+    if (email != null) 'email': email,
+    if (role != null) 'role': role,
+    if (isActive != null) 'is_active': isActive,
+    if (groupIds != null) 'group_ids': groupIds,
+  };
 }
 
 /// Password rules the server enforces in `_validate_password_complexity`
@@ -93,7 +93,9 @@ PasswordRule? checkPasswordComplexity(String password) {
   if (!password.contains(RegExp(r'[A-Z]'))) return PasswordRule.noUppercase;
   if (!password.contains(RegExp(r'[a-z]'))) return PasswordRule.noLowercase;
   if (!password.contains(RegExp(r'\d'))) return PasswordRule.noDigit;
-  if (!password.contains(RegExp(r'[^A-Za-z0-9]'))) return PasswordRule.noSpecial;
+  if (!password.contains(RegExp(r'[^A-Za-z0-9]'))) {
+    return PasswordRule.noSpecial;
+  }
   return null;
 }
 
@@ -116,7 +118,10 @@ class AdvancedAuthStatus {
 
   /// What an older server that doesn't know the route leaves us with: the
   /// classic shape, where the admin sets the password.
-  static const legacy = AdvancedAuthStatus(enabled: false, smtpConfigured: false);
+  static const legacy = AdvancedAuthStatus(
+    enabled: false,
+    smtpConfigured: false,
+  );
 
   final bool enabled;
   final bool smtpConfigured;

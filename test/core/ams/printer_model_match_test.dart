@@ -25,7 +25,10 @@ void main() {
     test('tolerates a nozzle size written without the word', () {
       // "@BBL X1C 0.4" has to resolve to X1C; folding the size into the token
       // would leave the preset matching no printer and hide it.
-      expect(presetPrinterModel('Bambu PLA Basic @BBL X1C 0.4', _models), 'X1C');
+      expect(
+        presetPrinterModel('Bambu PLA Basic @BBL X1C 0.4', _models),
+        'X1C',
+      );
       expect(
         presetPrinterModel('Bambu PLA Basic @BBL X1C 0.4mm', _models),
         'X1C',
@@ -34,8 +37,10 @@ void main() {
 
     test('resolves the long form through the registry', () {
       expect(
-        presetPrinterModel('SUNLU TPU 95A @Bambu Lab X1 Carbon 0.4 nozzle',
-            _models),
+        presetPrinterModel(
+          'SUNLU TPU 95A @Bambu Lab X1 Carbon 0.4 nozzle',
+          _models,
+        ),
         'X1C',
       );
     });
@@ -51,7 +56,10 @@ void main() {
 
     test('finds a model written at the front, with no suffix at all', () {
       // The shape behind bambuddy #1623.
-      expect(presetPrinterModel('X1C eSUN PETG-Basic Filament', _models), 'X1C');
+      expect(
+        presetPrinterModel('X1C eSUN PETG-Basic Filament', _models),
+        'X1C',
+      );
     });
 
     test('does not let a short model eat a longer one', () {

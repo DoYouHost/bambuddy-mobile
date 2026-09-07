@@ -56,15 +56,15 @@ extension WearRpcActionRetry on WearRpcAction {
   /// Exhaustive on purpose: a new action is classified here, in the protocol,
   /// rather than separately in each place that asks.
   WearRpcRetry get retry => switch (this) {
-        WearRpcAction.getFleet => WearRpcRetry.read,
-        WearRpcAction.pause => WearRpcRetry.idempotent,
-        WearRpcAction.resume => WearRpcRetry.idempotent,
-        WearRpcAction.stop => WearRpcRetry.idempotent,
-        WearRpcAction.clearPlate => WearRpcRetry.idempotent,
-        WearRpcAction.hmsClear => WearRpcRetry.idempotent,
-        WearRpcAction.hmsAction => WearRpcRetry.idempotent,
-        WearRpcAction.startNext => WearRpcRetry.destructive,
-      };
+    WearRpcAction.getFleet => WearRpcRetry.read,
+    WearRpcAction.pause => WearRpcRetry.idempotent,
+    WearRpcAction.resume => WearRpcRetry.idempotent,
+    WearRpcAction.stop => WearRpcRetry.idempotent,
+    WearRpcAction.clearPlate => WearRpcRetry.idempotent,
+    WearRpcAction.hmsClear => WearRpcRetry.idempotent,
+    WearRpcAction.hmsAction => WearRpcRetry.idempotent,
+    WearRpcAction.startNext => WearRpcRetry.destructive,
+  };
 
   /// Whether the **watch** may serve this over its own REST connection after
   /// the relay timed out (`HybridWearTransport`).
@@ -142,13 +142,13 @@ String _newRpcId() =>
 /// over the plugin's EventChannel are `Map<Object?, Object?>` below the top
 /// level — only the outermost map gets cast by the plugin.
 dynamic deepSanitize(dynamic value) => switch (value) {
-      Map m => <String, dynamic>{
-          for (final e in m.entries)
-            if (e.value != null) '${e.key}': deepSanitize(e.value),
-        },
-      List l => [for (final v in l) deepSanitize(v)],
-      _ => value,
-    };
+  Map m => <String, dynamic>{
+    for (final e in m.entries)
+      if (e.value != null) '${e.key}': deepSanitize(e.value),
+  },
+  List l => [for (final v in l) deepSanitize(v)],
+  _ => value,
+};
 
 /// Blank is how a value the sender did not have arrives over the bridge, and it
 /// is never a valid code, action key or job id.
@@ -174,8 +174,8 @@ class WearRpcRequest {
     this.printError,
     this.hmsAction,
     this.jobId,
-  })  : id = _newRpcId(),
-        version = wearRpcVersion;
+  }) : id = _newRpcId(),
+       version = wearRpcVersion;
 
   final String id;
   final WearRpcAction action;
@@ -211,20 +211,20 @@ class WearRpcRequest {
       version >= wearRpcWakeAwareVersion || action.isRepeatSafe;
 
   Map<String, dynamic> encode() => <String, dynamic>{
-        // The version this request carries, not the one this build speaks. They
-        // differ the moment a decoded request is encoded again, and the field
-        // is the whole basis of the wake gate: stamping the current version on
-        // a v1 sender would promote a watch that stopped waiting long ago into
-        // one the phone may run a non-repeat-safe action for.
-        _kVersion: version,
-        _kKind: _kindRequest,
-        _kId: id,
-        _kAction: action.name,
-        if (printerId != null) _kPrinterId: printerId,
-        if (printError != null) _kPrintError: printError,
-        if (hmsAction != null) _kHmsAction: hmsAction,
-        if (jobId != null) _kJobId: jobId,
-      };
+    // The version this request carries, not the one this build speaks. They
+    // differ the moment a decoded request is encoded again, and the field
+    // is the whole basis of the wake gate: stamping the current version on
+    // a v1 sender would promote a watch that stopped waiting long ago into
+    // one the phone may run a non-repeat-safe action for.
+    _kVersion: version,
+    _kKind: _kindRequest,
+    _kId: id,
+    _kAction: action.name,
+    if (printerId != null) _kPrinterId: printerId,
+    if (printError != null) _kPrintError: printError,
+    if (hmsAction != null) _kHmsAction: hmsAction,
+    if (jobId != null) _kJobId: jobId,
+  };
 
   /// Returns null for foreign/malformed maps and for responses — the shared
   /// message stream carries both kinds, so decoders act as filters.
@@ -256,13 +256,13 @@ class WearRpcRequest {
 /// Phone→watch response, correlated to the request by [id].
 class WearRpcResponse {
   const WearRpcResponse.ok(this.id, [this.data])
-      : ok = true,
-        error = null,
-        reason = null;
+    : ok = true,
+      error = null,
+      reason = null;
 
   const WearRpcResponse.failure(this.id, this.error, {this.reason})
-      : ok = false,
-        data = null;
+    : ok = false,
+      data = null;
 
   final String id;
   final bool ok;
@@ -281,14 +281,14 @@ class WearRpcResponse {
   final String? reason;
 
   Map<String, dynamic> encode() => <String, dynamic>{
-        _kVersion: wearRpcVersion,
-        _kKind: _kindResponse,
-        _kId: id,
-        _kOk: ok,
-        if (data != null) _kData: deepSanitize(data),
-        if (error != null) _kError: error,
-        if (reason != null) _kReason: reason,
-      };
+    _kVersion: wearRpcVersion,
+    _kKind: _kindResponse,
+    _kId: id,
+    _kOk: ok,
+    if (data != null) _kData: deepSanitize(data),
+    if (error != null) _kError: error,
+    if (reason != null) _kReason: reason,
+  };
 
   /// Returns null for foreign/malformed maps and for requests.
   static WearRpcResponse? decode(Map<Object?, Object?> map) {
@@ -329,17 +329,20 @@ class WearRpcAck {
   final String state;
 
   Map<String, dynamic> encode() => <String, dynamic>{
-        _kVersion: wearRpcVersion,
-        _kKind: _kindAck,
-        _kId: id,
-        _kState: state,
-      };
+    _kVersion: wearRpcVersion,
+    _kKind: _kindAck,
+    _kId: id,
+    _kState: state,
+  };
 
   /// Returns null for foreign/malformed maps and for the other two kinds.
   static WearRpcAck? decode(Map<Object?, Object?> map) {
     if (map[_kKind] != _kindAck) return null;
     final id = map[_kId];
     if (id is! String || id.isEmpty) return null;
-    return WearRpcAck(id, state: _stringOrNull(map[_kState]) ?? wearRpcAckWaking);
+    return WearRpcAck(
+      id,
+      state: _stringOrNull(map[_kState]) ?? wearRpcAckWaking,
+    );
   }
 }

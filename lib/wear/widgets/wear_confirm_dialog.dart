@@ -81,11 +81,7 @@ class WearConfirmDialog extends StatelessWidget {
           children: [
             Icon(icon, color: confirmColor, size: 28),
             const SizedBox(height: 6),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: WearText.hero,
-            ),
+            Text(title, textAlign: TextAlign.center, style: WearText.hero),
             if (subtitle != null) ...[
               const SizedBox(height: 3),
               Text(
@@ -136,8 +132,10 @@ class _Answer extends StatelessWidget {
           // emulators and the smaller watches use) hands this row 113 dp where
           // a 225 dp face hands it 133. A fixed pair of 52 dp buttons
           // overflowed the small one by 11.
-          final diameter =
-              math.min(_diameter, (constraints.maxWidth - _gap) / 2);
+          final diameter = math.min(
+            _diameter,
+            (constraints.maxWidth - _gap) / 2,
+          );
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

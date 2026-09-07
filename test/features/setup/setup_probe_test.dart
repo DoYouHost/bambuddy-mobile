@@ -55,9 +55,9 @@ void main() {
   ServerProfile? savedProfile() => container.read(serverProfileProvider);
 
   void mockAuthStatus(String fixture) => adapter.onGet(
-        '$_baseUrl/api/v1/auth/status',
-        (server) => server.reply(200, readFixture(fixture)),
-      );
+    '$_baseUrl/api/v1/auth/status',
+    (server) => server.reply(200, readFixture(fixture)),
+  );
 
   group('SetupController.probe', () {
     test('auth on + requires_setup → sign-in form, no error', () async {
@@ -84,21 +84,23 @@ void main() {
       expect(savedProfile(), isNull);
     });
 
-    test('auth off → connected immediately, with no credentials at all',
-        () async {
-      // An auth-free server is a supported configuration: the probe is the whole
-      // setup, and AuthMode.none must be what lands in the profile so the
-      // interceptor never attaches a stale header.
-      mockAuthStatus('auth_status_disabled.json');
+    test(
+      'auth off → connected immediately, with no credentials at all',
+      () async {
+        // An auth-free server is a supported configuration: the probe is the whole
+        // setup, and AuthMode.none must be what lands in the profile so the
+        // interceptor never attaches a stale header.
+        mockAuthStatus('auth_status_disabled.json');
 
-      await controller().probe(_baseUrl);
+        await controller().probe(_baseUrl);
 
-      expect(state().error, isNull);
-      expect(savedProfile()?.baseUrl, _baseUrl);
-      expect(savedProfile()?.authMode, AuthMode.none);
-      expect(credentials.jwt, isNull);
-      expect(credentials.apiKey, isNull);
-    });
+        expect(state().error, isNull);
+        expect(savedProfile()?.baseUrl, _baseUrl);
+        expect(savedProfile()?.authMode, AuthMode.none);
+        expect(credentials.jwt, isNull);
+        expect(credentials.apiKey, isNull);
+      },
+    );
 
     test('auth on → waits for credentials', () async {
       mockAuthStatus('auth_status_enabled.json');
@@ -127,20 +129,24 @@ void main() {
       expect(state().baseUrl, _baseUrl);
     });
 
-    test('a proxy with bambuddy down surfaces the status, not a setup error',
-        () async {
-      adapter.onGet('$_baseUrl/api/v1/auth/status',
-          (server) => server.reply(502, {'detail': 'Bad Gateway'}));
+    test(
+      'a proxy with bambuddy down surfaces the status, not a setup error',
+      () async {
+        adapter.onGet(
+          '$_baseUrl/api/v1/auth/status',
+          (server) => server.reply(502, {'detail': 'Bad Gateway'}),
+        );
 
-      await controller().probe(_baseUrl);
+        await controller().probe(_baseUrl);
 
-      expect(
-        state().error,
-        isA<ApiException>().having((e) => e.statusCode, 'statusCode', 502),
-      );
-      expect(state().baseUrl, isNull);
-      expect(savedProfile(), isNull);
-    });
+        expect(
+          state().error,
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 502),
+        );
+        expect(state().baseUrl, isNull);
+        expect(savedProfile(), isNull);
+      },
+    );
 
     test('an unreachable host reports unreachable', () async {
       adapter.onGet(
@@ -158,8 +164,11 @@ void main() {
 
       expect(
         state().error,
-        isA<NetworkException>()
-            .having((e) => e.code, 'code', AppErrorCode.serverUnreachable),
+        isA<NetworkException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.serverUnreachable,
+        ),
       );
     });
 
@@ -168,8 +177,10 @@ void main() {
       await controller().probe(_baseUrl);
       expect(state().busy, isFalse);
 
-      adapter.onGet('http://other.local:8000/api/v1/auth/status',
-          (server) => server.reply(500, {'detail': 'boom'}));
+      adapter.onGet(
+        'http://other.local:8000/api/v1/auth/status',
+        (server) => server.reply(500, {'detail': 'boom'}),
+      );
       await controller().probe('http://other.local:8000');
       expect(state().busy, isFalse);
     });
@@ -181,17 +192,24 @@ void main() {
       await controller().probe(_baseUrl);
     }
 
-    void mockLogin(void Function(dynamic server) reply,
-            {String password = 'sekret'}) =>
-        adapter.onPost('$_baseUrl/api/v1/auth/login', reply,
-            data: {'username': 'tester', 'password': password});
+    void mockLogin(
+      void Function(dynamic server) reply, {
+      String password = 'sekret',
+    }) => adapter.onPost(
+      '$_baseUrl/api/v1/auth/login',
+      reply,
+      data: {'username': 'tester', 'password': password},
+    );
 
     test('valid credentials → profile saved as jwt, token stored', () async {
       await probed();
       mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
 
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+        username: 'tester',
+        password: 'sekret',
+        remember: false,
+      );
 
       expect(state().error, isNull);
       expect(savedProfile()?.authMode, AuthMode.jwt);
@@ -200,46 +218,63 @@ void main() {
       expect(await credentials.readRememberedLogin(), isNull);
     });
 
-    test('the identity comes from the login answer, not a second request',
-        () async {
-      // `GET /auth/me` is deliberately not mocked: if the sign-in path asked
-      // for it, this container would have no answer and the user would be
-      // unknown. The login response's own `user` is what must land.
-      await probed();
-      mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
+    test(
+      'the identity comes from the login answer, not a second request',
+      () async {
+        // `GET /auth/me` is deliberately not mocked: if the sign-in path asked
+        // for it, this container would have no answer and the user would be
+        // unknown. The login response's own `user` is what must land.
+        await probed();
+        mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
 
-      await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+        await controller().connectWithLogin(
+          username: 'tester',
+          password: 'sekret',
+          remember: false,
+        );
 
-      final user = await container.read(currentUserProvider.future);
-      expect(user?.username, 'tester');
-      expect(user?.isAdmin, isTrue);
-    });
+        final user = await container.read(currentUserProvider.future);
+        expect(user?.username, 'tester');
+        expect(user?.isAdmin, isTrue);
+      },
+    );
 
-    test('remember=true also stores the credentials for silent re-login',
-        () async {
-      await probed();
-      mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
+    test(
+      'remember=true also stores the credentials for silent re-login',
+      () async {
+        await probed();
+        mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
 
-      await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: true);
+        await controller().connectWithLogin(
+          username: 'tester',
+          password: 'sekret',
+          remember: true,
+        );
 
-      expect((await credentials.readRememberedLogin())?.username, 'tester');
-    });
+        expect((await credentials.readRememberedLogin())?.username, 'tester');
+      },
+    );
 
     test('wrong password → error, nothing saved, form usable again', () async {
       await probed();
       mockLogin(
-          (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
-          password: 'zle');
+        (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
+        password: 'zle',
+      );
 
       await controller().connectWithLogin(
-          username: 'tester', password: 'zle', remember: true);
+        username: 'tester',
+        password: 'zle',
+        remember: true,
+      );
 
       expect(
         state().error,
-        isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.invalidCredentials),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.invalidCredentials,
+        ),
       );
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
@@ -251,16 +286,25 @@ void main() {
       // Ten wrong passwords in fifteen minutes and the server stops checking
       // them; the app has to say so or the user keeps trying and stays locked.
       await probed();
-      mockLogin((s) => s.reply(429,
-          {'detail': 'Too many failed attempts. Please try again later.'}));
+      mockLogin(
+        (s) => s.reply(429, {
+          'detail': 'Too many failed attempts. Please try again later.',
+        }),
+      );
 
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+        username: 'tester',
+        password: 'sekret',
+        remember: false,
+      );
 
       expect(
         state().error,
-        isA<ApiException>()
-            .having((e) => e.code, 'code', AppErrorCode.tooManyAttempts),
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.tooManyAttempts,
+        ),
       );
       expect(savedProfile(), isNull);
     });
@@ -270,33 +314,48 @@ void main() {
       mockLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
 
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: true);
+        username: 'tester',
+        password: 'sekret',
+        remember: true,
+      );
 
       expect(state().error, isNull);
       expect(state().busy, isFalse);
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(savedProfile(), isNull, reason: 'the login is not finished yet');
       expect(credentials.jwt, isNull);
-      expect(await credentials.readRememberedLogin(), isNull,
-          reason: 'a password that cannot renew a 2FA session is not kept');
+      expect(
+        await credentials.readRememberedLogin(),
+        isNull,
+        reason: 'a password that cannot renew a 2FA session is not kept',
+      );
     });
 
     test('empty fields → missingCredentials, no request', () async {
       await probed();
 
       await controller().connectWithLogin(
-          username: '', password: 'sekret', remember: false);
+        username: '',
+        password: 'sekret',
+        remember: false,
+      );
       expect(state().error, SetupErrorCode.missingCredentials);
 
       await controller().connectWithLogin(
-          username: 'tester', password: '', remember: false);
+        username: 'tester',
+        password: '',
+        remember: false,
+      );
       expect(state().error, SetupErrorCode.missingCredentials);
       expect(savedProfile(), isNull);
     });
 
     test('without a successful probe it does nothing', () async {
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+        username: 'tester',
+        password: 'sekret',
+        remember: false,
+      );
 
       expect(savedProfile(), isNull);
       expect(state().error, isNull);
@@ -311,15 +370,22 @@ void main() {
       await probed();
 
       mockLogin(
-          (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
-          password: 'zle');
+        (s) => s.reply(401, {'detail': 'Incorrect username or password'}),
+        password: 'zle',
+      );
       await controller().connectWithLogin(
-          username: 'tester', password: 'zle', remember: false);
+        username: 'tester',
+        password: 'zle',
+        remember: false,
+      );
       expect(settings.loadSignInRequired(), isTrue);
 
       mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: true);
+        username: 'tester',
+        password: 'sekret',
+        remember: true,
+      );
       expect(settings.loadSignInRequired(), isFalse);
     });
   });
@@ -346,13 +412,18 @@ void main() {
     }
 
     void mockPrinters(void Function(dynamic server) reply, String key) =>
-        adapter.onGet('$_baseUrl/api/v1/printers/', reply,
-            headers: {'X-API-Key': key});
+        adapter.onGet(
+          '$_baseUrl/api/v1/printers/',
+          reply,
+          headers: {'X-API-Key': key},
+        );
 
     test('accepted key → profile saved as apiKey, key stored', () async {
       await probed();
       mockPrinters(
-          (s) => s.reply(200, readFixture('printers_list.json')), 'bb_dobry');
+        (s) => s.reply(200, readFixture('printers_list.json')),
+        'bb_dobry',
+      );
 
       await controller().connectWithApiKey('bb_dobry');
 
@@ -367,7 +438,9 @@ void main() {
       // header must carry the key alone or the server rejects a correct key.
       await probed();
       mockPrinters(
-          (s) => s.reply(200, readFixture('printers_list.json')), 'bb_dobry');
+        (s) => s.reply(200, readFixture('printers_list.json')),
+        'bb_dobry',
+      );
 
       await controller().connectWithApiKey('  bb_dobry \n');
 
@@ -378,14 +451,19 @@ void main() {
     test('rejected key → error, nothing saved', () async {
       await probed();
       mockPrinters(
-          (s) => s.reply(401, {'detail': 'Invalid API key'}), 'bb_slaby');
+        (s) => s.reply(401, {'detail': 'Invalid API key'}),
+        'bb_slaby',
+      );
 
       await controller().connectWithApiKey('bb_slaby');
 
       expect(
         state().error,
-        isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.apiKeyRejected),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.apiKeyRejected,
+        ),
       );
       expect(state().busy, isFalse);
       expect(savedProfile(), isNull);
@@ -437,8 +515,9 @@ void main() {
     // server's five minutes.
     setUp(() {
       container = buildContainer([
-        twoFactorLifetimeProvider
-            .overrideWithValue(const Duration(milliseconds: 50)),
+        twoFactorLifetimeProvider.overrideWithValue(
+          const Duration(milliseconds: 50),
+        ),
       ]);
     });
 
@@ -447,36 +526,47 @@ void main() {
       await controller().probe(_baseUrl);
     }
 
-    void mockLogin(void Function(dynamic server) reply) =>
-        adapter.onPost('$_baseUrl/api/v1/auth/login', reply,
-            data: {'username': 'tester', 'password': 'sekret'});
+    void mockLogin(void Function(dynamic server) reply) => adapter.onPost(
+      '$_baseUrl/api/v1/auth/login',
+      reply,
+      data: {'username': 'tester', 'password': 'sekret'},
+    );
 
-    void mockVerify(void Function(dynamic server) reply,
-            {String code = '123456', String method = 'totp'}) =>
-        adapter.onPost('$_baseUrl/api/v1/auth/2fa/verify', reply, data: {
-          'pre_auth_token': 'pre-auth-xyz',
-          'code': code,
-          'method': method,
-        });
+    void mockVerify(
+      void Function(dynamic server) reply, {
+      String code = '123456',
+      String method = 'totp',
+    }) => adapter.onPost(
+      '$_baseUrl/api/v1/auth/2fa/verify',
+      reply,
+      data: {'pre_auth_token': 'pre-auth-xyz', 'code': code, 'method': method},
+    );
 
     /// Signs in as far as the code step, against a server offering [methods].
     Future<void> atCodeStep({List<String> methods = const ['totp']}) async {
       await probed();
-      mockLogin((s) => s.reply(200, {
-            'requires_2fa': true,
-            'pre_auth_token': 'pre-auth-xyz',
-            'two_fa_methods': methods,
-          }));
+      mockLogin(
+        (s) => s.reply(200, {
+          'requires_2fa': true,
+          'pre_auth_token': 'pre-auth-xyz',
+          'two_fa_methods': methods,
+        }),
+      );
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+        username: 'tester',
+        password: 'sekret',
+        remember: false,
+      );
     }
 
     test('the right code finishes the sign-in', () async {
       await atCodeStep();
       mockVerify((s) => s.reply(200, readFixture('login_response_ok.json')));
 
-      await controller()
-          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+      await controller().verifyTwoFactor(
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
 
       expect(state().error, isNull);
       expect(savedProfile()?.authMode, AuthMode.jwt);
@@ -488,16 +578,23 @@ void main() {
       // dropping back to the password form here would throw away a live
       // challenge and cost the user a whole round trip.
       await atCodeStep();
-      mockVerify((s) => s.reply(401, {'detail': 'Invalid TOTP code'}),
-          code: '000000');
+      mockVerify(
+        (s) => s.reply(401, {'detail': 'Invalid TOTP code'}),
+        code: '000000',
+      );
 
-      await controller()
-          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '000000');
+      await controller().verifyTwoFactor(
+        method: TwoFactorMethod.totp,
+        code: '000000',
+      );
 
       expect(
         state().error,
-        isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.twoFactorCodeRejected),
+        isA<AuthException>().having(
+          (e) => e.code,
+          'code',
+          AppErrorCode.twoFactorCodeRejected,
+        ),
       );
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().busy, isFalse);
@@ -509,24 +606,32 @@ void main() {
       // field up would let the user type into something already dead.
       await atCodeStep();
       mockVerify(
-          (s) => s.reply(401, {'detail': 'Invalid or expired pre-auth token'}));
+        (s) => s.reply(401, {'detail': 'Invalid or expired pre-auth token'}),
+      );
 
-      await controller()
-          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+      await controller().verifyTwoFactor(
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
 
       expect(state().twoFactor, isNull);
       expect(
         state().error,
         isA<AuthException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorChallengeExpired),
+          (e) => e.code,
+          'code',
+          AppErrorCode.twoFactorChallengeExpired,
+        ),
       );
     });
 
     test('an empty code is refused without a request', () async {
       await atCodeStep();
 
-      await controller()
-          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '   ');
+      await controller().verifyTwoFactor(
+        method: TwoFactorMethod.totp,
+        code: '   ',
+      );
 
       expect(state().error, SetupErrorCode.missingTwoFactorCode);
       expect(state().twoFactor, isNotNull);
@@ -537,26 +642,32 @@ void main() {
       // could only ever go one way.
       adapter.onPost(
         '$_baseUrl/api/v1/auth/2fa/email/send',
-        (s) => s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
+        (s) =>
+            s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
         data: {'pre_auth_token': 'pre-auth-xyz'},
       );
 
       await atCodeStep(methods: ['email']);
 
       expect(state().emailCodeSent, isTrue);
-      expect(state().twoFactor?.preAuthToken, 'pre-auth-2',
-          reason: 'the send consumes the old token and issues a new one');
+      expect(
+        state().twoFactor?.preAuthToken,
+        'pre-auth-2',
+        reason: 'the send consumes the old token and issues a new one',
+      );
     });
 
-    test('an account with a choice is not mailed a code it did not ask for',
-        () async {
-      // The send is rate-limited (3 per 15 minutes) and reaches the user's
-      // inbox — spending it on a method they may not use is not ours to do.
-      await atCodeStep(methods: ['totp', 'email', 'backup']);
+    test(
+      'an account with a choice is not mailed a code it did not ask for',
+      () async {
+        // The send is rate-limited (3 per 15 minutes) and reaches the user's
+        // inbox — spending it on a method they may not use is not ours to do.
+        await atCodeStep(methods: ['totp', 'email', 'backup']);
 
-      expect(state().emailCodeSent, isFalse);
-      expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
-    });
+        expect(state().emailCodeSent, isFalse);
+        expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
+      },
+    );
 
     test('a failed send keeps the step usable', () async {
       adapter.onPost(
@@ -570,7 +681,10 @@ void main() {
       expect(
         state().error,
         isA<ApiException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorEmailUnavailable),
+          (e) => e.code,
+          'code',
+          AppErrorCode.twoFactorEmailUnavailable,
+        ),
       );
       expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
       expect(state().emailCodeSent, isFalse);
@@ -591,7 +705,10 @@ void main() {
       expect(
         state().error,
         isA<AuthException>().having(
-            (e) => e.code, 'code', AppErrorCode.twoFactorChallengeExpired),
+          (e) => e.code,
+          'code',
+          AppErrorCode.twoFactorChallengeExpired,
+        ),
       );
     });
 
@@ -601,7 +718,8 @@ void main() {
       // throw away a challenge the user just refreshed.
       adapter.onPost(
         '$_baseUrl/api/v1/auth/2fa/email/send',
-        (s) => s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
+        (s) =>
+            s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
         data: {'pre_auth_token': 'pre-auth-xyz'},
       );
       await atCodeStep(methods: ['totp', 'email']);
@@ -610,8 +728,11 @@ void main() {
       await controller().sendTwoFactorEmailCode();
       await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      expect(state().twoFactor?.preAuthToken, 'pre-auth-2',
-          reason: 'the old challenge\'s timer must not take the new one down');
+      expect(
+        state().twoFactor?.preAuthToken,
+        'pre-auth-2',
+        reason: 'the old challenge\'s timer must not take the new one down',
+      );
     });
 
     test('signing in stops the countdown', () async {
@@ -620,8 +741,10 @@ void main() {
       await atCodeStep();
       mockVerify((s) => s.reply(200, readFixture('login_response_ok.json')));
 
-      await controller()
-          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+      await controller().verifyTwoFactor(
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
       await Future<void>.delayed(const Duration(milliseconds: 60));
 
       expect(state().error, isNull);

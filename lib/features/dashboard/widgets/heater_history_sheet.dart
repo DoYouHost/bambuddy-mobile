@@ -24,15 +24,17 @@ typedef HeaterHistoryQuery = ({int printerId, int hours, String kind});
 /// when the sheet closes; keyed by hours and kind so switching either refetches.
 final heaterHistoryDataProvider = FutureProvider.autoDispose
     .family<HeaterHistory, HeaterHistoryQuery>((ref, q) async {
-  return ref.watch(heaterHistoryRepositoryProvider).fetch(
-        q.printerId,
-        hours: q.hours,
-        // Only the sensor on screen. A week of one heater is already ~10k
-        // samples; asking for all of them at once to make the sensor switch
-        // instant would multiply that by three series nobody is looking at.
-        kinds: [q.kind],
-      );
-});
+      return ref
+          .watch(heaterHistoryRepositoryProvider)
+          .fetch(
+            q.printerId,
+            hours: q.hours,
+            // Only the sensor on screen. A week of one heater is already ~10k
+            // samples; asking for all of them at once to make the sensor switch
+            // instant would multiply that by three series nobody is looking at.
+            kinds: [q.kind],
+          );
+    });
 
 /// Whether the temperature tiles offer their chart shortcut at all: the server
 /// has the route and this session may read it. Invalidated by the sheet after a
@@ -106,10 +108,7 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.heaterHistoryTitle,
-                style: theme.textTheme.titleMedium,
-              ),
+              Text(l10n.heaterHistoryTitle, style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
               if (widget.kinds.length > 1) ...[
                 SegmentedButton<String>(
@@ -145,8 +144,9 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
               Text(
                 l10n.heaterHistoryRecordingInfo,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -158,10 +158,10 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
   /// Same hue per sensor as the live tile reads: hot end orange, bed blue,
   /// chamber green.
   static Color _kindColor(String kind) => switch (kind) {
-        'bed' => const Color(0xFF3B82F6),
-        'chamber' => const Color(0xFF10B981),
-        _ => const Color(0xFFF97316),
-      };
+    'bed' => const Color(0xFF3B82F6),
+    'chamber' => const Color(0xFF10B981),
+    _ => const Color(0xFFF97316),
+  };
 }
 
 class _Content extends StatelessWidget {
@@ -178,7 +178,9 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final points = thinnedForChart(series?.points ?? const <HeaterHistoryPoint>[]);
+    final points = thinnedForChart(
+      series?.points ?? const <HeaterHistoryPoint>[],
+    );
 
     final values = <FlSpot>[
       for (final p in points)
@@ -232,7 +234,8 @@ class _Content extends StatelessWidget {
     );
   }
 
-  static String _fmt(double? v) => v == null ? '—' : '${v.toStringAsFixed(1)}°C';
+  static String _fmt(double? v) =>
+      v == null ? '—' : '${v.toStringAsFixed(1)}°C';
 
   LineChartData _chartData(
     BuildContext context,
@@ -240,8 +243,9 @@ class _Content extends StatelessWidget {
     List<FlSpot> targets,
   ) {
     final theme = Theme.of(context);
-    final axis = theme.textTheme.bodySmall
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final axis = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
@@ -266,13 +270,15 @@ class _Content extends StatelessWidget {
       borderData: FlBorderData(show: false),
       titlesData: FlTitlesData(
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 36,
-            getTitlesWidget: (v, meta) => Text(v.toInt().toString(), style: axis),
+            getTitlesWidget: (v, meta) =>
+                Text(v.toInt().toString(), style: axis),
           ),
         ),
         bottomTitles: AxisTitles(
@@ -330,21 +336,22 @@ class _Legend extends StatelessWidget {
     if (!hasTarget) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final style = theme.textTheme.bodySmall
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
 
     Widget item(Color c, bool dashed, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 18,
-              height: 2,
-              child: CustomPaint(painter: _LinePainter(c, dashed: dashed)),
-            ),
-            const SizedBox(width: 6),
-            Text(label, style: style),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 18,
+          height: 2,
+          child: CustomPaint(painter: _LinePainter(c, dashed: dashed)),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: style),
+      ],
+    );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -369,8 +376,11 @@ class _LinePainter extends CustomPainter {
       ..color = color
       ..strokeWidth = 2;
     if (!dashed) {
-      canvas.drawLine(Offset(0, size.height / 2),
-          Offset(size.width, size.height / 2), paint);
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        paint,
+      );
       return;
     }
     const dash = 4.0;

@@ -4,11 +4,11 @@ part of 'inventory_screen.dart';
 /// keeps a generic sensor glyph — a CO2 meter or a door contact is shown by its
 /// own name, and guessing an icon for it would only mislead.
 IconData _climateIcon(LocationSensorCategory category) => switch (category) {
-      LocationSensorCategory.temperature => Icons.thermostat,
-      LocationSensorCategory.humidity => Icons.water_drop_outlined,
-      LocationSensorCategory.battery => Icons.battery_std_outlined,
-      LocationSensorCategory.other => Icons.sensors,
-    };
+  LocationSensorCategory.temperature => Icons.thermostat,
+  LocationSensorCategory.humidity => Icons.water_drop_outlined,
+  LocationSensorCategory.battery => Icons.battery_std_outlined,
+  LocationSensorCategory.other => Icons.sensors,
+};
 
 /// What one reading says, as a pill's label: the number with its unit, the
 /// on/off state of a binary sensor, or a dash when the entity has never been
@@ -50,8 +50,9 @@ class _ClimatePills extends StatelessWidget {
                 dense: true,
                 label: '${reading.name} ${_climateValue(l10n, reading)}',
                 accent: reading.alerting ? t.accentOrange : t.textSecondary,
-                accentInk:
-                    reading.alerting ? t.accentOrangeInk : t.textSecondary,
+                accentInk: reading.alerting
+                    ? t.accentOrangeInk
+                    : t.textSecondary,
                 icon: reading.reachable
                     ? _climateIcon(reading.category)
                     : Icons.sensors_off,
@@ -100,8 +101,7 @@ class _LocationClimateSheet extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final climates =
-        ref.watch(locationClimateProvider).valueOrNull ?? const {};
+    final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
     final entries = climates.values.toList();
 
     return logTag(
@@ -138,15 +138,10 @@ class _LocationClimateSheet extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            climate.location.name,
-                            style: t.titleSm,
-                          ),
+                          child: Text(climate.location.name, style: t.titleSm),
                         ),
                         Text(
-                          l10n.inventorySpoolCount(
-                            climate.location.spoolCount,
-                          ),
+                          l10n.inventorySpoolCount(climate.location.spoolCount),
                           style: t.label.copyWith(color: t.textSecondary),
                         ),
                       ],

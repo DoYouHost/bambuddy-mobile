@@ -101,15 +101,16 @@ abstract class NotificationService {
 /// Production implementation using `flutter_local_notifications`.
 class LocalNotificationService implements NotificationService {
   LocalNotificationService({FlutterLocalNotificationsPlugin? plugin})
-      : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
 
   static const String _alertsChannelId = 'print_alerts';
 
-  AndroidFlutterLocalNotificationsPlugin? get _android =>
-      _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
 
   @override
   Future<void> init() async {
@@ -128,12 +129,14 @@ class LocalNotificationService implements NotificationService {
 
     final android = _android;
     if (android == null) return;
-    await android.createNotificationChannel(const AndroidNotificationChannel(
-      _alertsChannelId,
-      'Print alerts',
-      description: 'Print finished or failed',
-      importance: Importance.high,
-    ));
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _alertsChannelId,
+        'Print alerts',
+        description: 'Print finished or failed',
+        importance: Importance.high,
+      ),
+    );
   }
 
   @override

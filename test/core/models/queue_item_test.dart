@@ -5,9 +5,10 @@ import '../../helpers.dart';
 
 void main() {
   group('QueueItem.fromJson', () {
-    test('parsuje drukujący element kolejki, ignorując nieznane pola', () {
+    test('parses a printing queue item, ignoring unknown fields', () {
       final item = QueueItem.fromJson(
-          readFixture('queue_item.json') as Map<String, dynamic>);
+        readFixture('queue_item.json') as Map<String, dynamic>,
+      );
 
       expect(item.id, 78);
       expect(item.position, 1);
@@ -15,33 +16,43 @@ void main() {
       expect(item.statusKind, QueueItemStatusKind.printing);
       expect(item.isActive, isTrue);
       expect(item.printerName, 'X2D-3DP');
-      expect(item.filamentType, 'PETG, PLA',
-          reason: 'przecinkowe złączenie typów musi być zachowane');
-      expect(item.filamentColor, contains(','),
-          reason: 'kolor wielokolorowy rozdzielony przecinkami');
+      expect(
+        item.filamentType,
+        'PETG, PLA',
+        reason: 'the comma-joined types must be preserved',
+      );
+      expect(
+        item.filamentColor,
+        contains(','),
+        reason: 'a multicolor color is comma-separated',
+      );
       expect(item.archiveId, 77);
       expect(item.beenJumped, isFalse);
       expect(item.createdAt, isA<DateTime>());
     });
 
-    test('nieznany status trafia do QueueItemStatusKind.unknown', () {
+    test('an unknown status lands in QueueItemStatusKind.unknown', () {
       final item = QueueItem.fromJson(const {
         'id': 1,
         'position': 1,
         'status': 'weird_new_status',
-        'extra_unknown_key': 'wartosc_ktorej_nie_znamy',
+        'extra_unknown_key': 'value_we_dont_know',
       });
 
       expect(item.statusKind, QueueItemStatusKind.unknown);
       expect(item.isActive, isFalse);
     });
 
-    test('mapowanie AMS ze slicera: brak pola = brak (stary serwer)', () {
-      final item = QueueItem.fromJson(const {'id': 1, 'position': 1, 'status': 'pending'});
+    test('slicer AMS mapping: no field = none (old server)', () {
+      final item = QueueItem.fromJson(const {
+        'id': 1,
+        'position': 1,
+        'status': 'pending',
+      });
       expect(item.archiveHasSlicerAmsMapping, isFalse);
     });
 
-    test('mapowanie AMS ze slicera odczytane, gdy serwer je zgłasza', () {
+    test('slicer AMS mapping read when the server reports it', () {
       final item = QueueItem.fromJson(const {
         'id': 1,
         'position': 1,
@@ -52,11 +63,11 @@ void main() {
     });
   });
 
-  group('QueueItemStatusKind klasyfikacja', () {
+  group('QueueItemStatusKind classification', () {
     QueueItemStatusKind kind(String s) =>
         QueueItem(id: 1, position: 1, status: s).statusKind;
 
-    test('pending i queued → pending', () {
+    test('pending and queued → pending', () {
       expect(kind('pending'), QueueItemStatusKind.pending);
       expect(kind('queued'), QueueItemStatusKind.pending);
     });
@@ -77,26 +88,25 @@ void main() {
       expect(kind('completed'), QueueItemStatusKind.completed);
     });
 
-    test('cancelled i canceled → cancelled', () {
+    test('cancelled and canceled → cancelled', () {
       expect(kind('cancelled'), QueueItemStatusKind.cancelled);
       expect(kind('canceled'), QueueItemStatusKind.cancelled);
     });
 
-    test('failed i error → failed', () {
+    test('failed and error → failed', () {
       expect(kind('failed'), QueueItemStatusKind.failed);
       expect(kind('error'), QueueItemStatusKind.failed);
     });
 
-    test('nieznany status → unknown', () {
+    test('an unknown status → unknown', () {
       expect(kind('weird_new_status'), QueueItemStatusKind.unknown);
     });
   });
 
   group('QueueItem.isActive', () {
-    bool active(String s) =>
-        QueueItem(id: 1, position: 1, status: s).isActive;
+    bool active(String s) => QueueItem(id: 1, position: 1, status: s).isActive;
 
-    test('aktywne statusy zwracają true', () {
+    test('active statuses return true', () {
       expect(active('printing'), isTrue);
       expect(active('paused'), isTrue);
       expect(active('pending'), isTrue);
@@ -104,7 +114,7 @@ void main() {
       expect(active('scheduled'), isTrue);
     });
 
-    test('zakończone/błędne statusy zwracają false', () {
+    test('finished/failed statuses return false', () {
       expect(active('completed'), isFalse);
       expect(active('cancelled'), isFalse);
       expect(active('failed'), isFalse);

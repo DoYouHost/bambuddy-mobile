@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   group('ArchivePrinterMedia.fromJson', () {
     test('reads both halves of the answer', () {
@@ -125,7 +127,7 @@ void main() {
     late ArchiveRepository repo;
 
     setUp(() {
-      dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      dio = testDio();
       adapter = DioAdapter(dio: dio);
       repo = ArchiveRepository(dio);
     });
@@ -158,10 +160,7 @@ void main() {
         (s) => s.reply(500, {'detail': 'boom'}),
       );
 
-      await expectLater(
-        repo.printerMedia(7),
-        throwsA(isA<AppApiException>()),
-      );
+      await expectLater(repo.printerMedia(7), throwsA(isA<AppApiException>()));
     });
 
     test('a 403 hides the route without recording it as absent', () async {
@@ -170,30 +169,29 @@ void main() {
         (s) => s.reply(403, {'detail': 'Forbidden'}),
       );
 
-      await expectLater(
-        repo.printerMedia(7),
-        throwsA(isA<AppApiException>()),
-      );
+      await expectLater(repo.printerMedia(7), throwsA(isA<AppApiException>()));
       expect(await repo.supportsPrinterMedia(), isFalse);
     });
 
-    test('an answer settles the capability without a version service',
-        () async {
-      adapter.onGet(
-        '/api/v1/archives/7/printer-media',
-        (s) => s.reply(200, const {
-          'archive_id': 7,
-          'printer_id': 2,
-          'remote_files': [
-            {'name': 'a.mp4', 'path': '/ipcam/a.mp4', 'size': 10},
-          ],
-        }),
-      );
+    test(
+      'an answer settles the capability without a version service',
+      () async {
+        adapter.onGet(
+          '/api/v1/archives/7/printer-media',
+          (s) => s.reply(200, const {
+            'archive_id': 7,
+            'printer_id': 2,
+            'remote_files': [
+              {'name': 'a.mp4', 'path': '/ipcam/a.mp4', 'size': 10},
+            ],
+          }),
+        );
 
-      final media = await repo.printerMedia(7);
+        final media = await repo.printerMedia(7);
 
-      expect(media?.remoteFiles, hasLength(1));
-      expect(await repo.supportsPrinterMedia(), isTrue);
-    });
+        expect(media?.remoteFiles, hasLength(1));
+        expect(await repo.supportsPrinterMedia(), isTrue);
+      },
+    );
   });
 }

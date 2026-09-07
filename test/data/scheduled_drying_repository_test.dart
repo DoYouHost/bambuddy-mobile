@@ -6,21 +6,23 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../helpers.dart';
+
 void main() {
   late Dio dio;
   late DioAdapter adapter;
   late ScheduledDryingRepository repo;
 
   setUp(() {
-    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    dio = testDio();
     adapter = DioAdapter(dio: dio);
     repo = ScheduledDryingRepository(dio, ServerVersionService(dio));
   });
 
   void replyVersion(String version) => adapter.onGet(
-        '/api/v1/updates/version',
-        (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
-      );
+    '/api/v1/updates/version',
+    (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+  );
 
   Map<String, dynamic> row({
     int id = 7,
@@ -28,30 +30,26 @@ void main() {
     String? startAfter = '2026-09-04T21:00:00Z',
     String? waitingReason,
     String? errorMessage,
-  }) =>
-      {
-        'id': id,
-        'printer_id': 3,
-        'ams_id': 1,
-        'temp': 65,
-        'duration_hours': 8,
-        'filament': 'PETG',
-        'rotate_tray': false,
-        'start_after': startAfter,
-        'status': status,
-        'waiting_reason': waitingReason,
-        'error_message': errorMessage,
-        'created_at': '2026-09-03T10:00:00Z',
-        'started_at': null,
-        'completed_at': null,
-      };
+  }) => {
+    'id': id,
+    'printer_id': 3,
+    'ams_id': 1,
+    'temp': 65,
+    'duration_hours': 8,
+    'filament': 'PETG',
+    'rotate_tray': false,
+    'start_after': startAfter,
+    'status': status,
+    'waiting_reason': waitingReason,
+    'error_message': errorMessage,
+    'created_at': '2026-09-03T10:00:00Z',
+    'started_at': null,
+    'completed_at': null,
+  };
 
   group('list', () {
     test('parses a row, reading the start instant as UTC', () async {
-      adapter.onGet(
-        '/api/v1/scheduled-dryings',
-        (s) => s.reply(200, [row()]),
-      );
+      adapter.onGet('/api/v1/scheduled-dryings', (s) => s.reply(200, [row()]));
 
       final rows = await repo.list();
 
@@ -68,17 +66,19 @@ void main() {
       expect(rows.single.startAfter!.toUtc(), DateTime.utc(2026, 9, 4, 21));
     });
 
-    test('a stamp without the Z is UTC too, not the phone\'s wall clock',
-        () async {
-      adapter.onGet(
-        '/api/v1/scheduled-dryings',
-        (s) => s.reply(200, [row(startAfter: '2026-09-04T21:00:00')]),
-      );
+    test(
+      'a stamp without the Z is UTC too, not the phone\'s wall clock',
+      () async {
+        adapter.onGet(
+          '/api/v1/scheduled-dryings',
+          (s) => s.reply(200, [row(startAfter: '2026-09-04T21:00:00')]),
+        );
 
-      final rows = await repo.list();
+        final rows = await repo.list();
 
-      expect(rows.single.startAfter!.toUtc(), DateTime.utc(2026, 9, 4, 21));
-    });
+        expect(rows.single.startAfter!.toUtc(), DateTime.utc(2026, 9, 4, 21));
+      },
+    );
 
     test('a null start_after is "as soon as the printer is idle"', () async {
       adapter.onGet(
@@ -117,15 +117,17 @@ void main() {
       expect(await repo.list(), isEmpty);
     });
 
-    test('a 403 answers the same way — the card has nothing to say either',
-        () async {
-      adapter.onGet(
-        '/api/v1/scheduled-dryings',
-        (s) => s.reply(403, {'detail': 'Missing required permissions'}),
-      );
+    test(
+      'a 403 answers the same way — the card has nothing to say either',
+      () async {
+        adapter.onGet(
+          '/api/v1/scheduled-dryings',
+          (s) => s.reply(403, {'detail': 'Missing required permissions'}),
+        );
 
-      expect(await repo.list(), isEmpty);
-    });
+        expect(await repo.list(), isEmpty);
+      },
+    );
 
     test('any other failure still surfaces', () async {
       adapter.onGet(
@@ -135,8 +137,9 @@ void main() {
 
       expect(
         repo.list(),
-        throwsA(isA<AppApiException>()
-            .having((e) => e.statusCode, 'statusCode', 500)),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'statusCode', 500),
+        ),
       );
     });
   });
@@ -161,71 +164,60 @@ void main() {
         (s) => s.reply(200, [row(waitingReason: 'ams_on_fire')]),
       );
 
-      expect((await repo.list()).single.waitingReason,
-          DryingWaitReason.unknown);
+      expect(
+        (await repo.list()).single.waitingReason,
+        DryingWaitReason.unknown,
+      );
     });
 
     test('no reason at all stays null', () async {
-      adapter.onGet(
-        '/api/v1/scheduled-dryings',
-        (s) => s.reply(200, [row()]),
-      );
+      adapter.onGet('/api/v1/scheduled-dryings', (s) => s.reply(200, [row()]));
 
       expect((await repo.list()).single.waitingReason, isNull);
     });
   });
 
   group('create', () {
-    test('sends the start instant as naive UTC, which is what the column is',
-        () async {
-      Map<String, dynamic>? sent;
-      adapter.onPost(
-        '/api/v1/scheduled-dryings',
-        (s) => s.reply(200, row()),
-        data: Matchers.any,
-      );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'POST') {
-          sent = options.data as Map<String, dynamic>;
-        }
-        handler.next(options);
-      }));
+    test(
+      'sends the start instant as naive UTC, which is what the column is',
+      () async {
+        final sent = captureRequests(dio);
+        adapter.onPost(
+          '/api/v1/scheduled-dryings',
+          (s) => s.reply(200, row()),
+          data: Matchers.any,
+        );
 
-      await repo.create(
-        printerId: 3,
-        amsId: 1,
-        temp: 65,
-        durationHours: 8,
-        filament: 'PETG',
-        startAfter: DateTime.utc(2026, 9, 4, 21).toLocal(),
-      );
+        await repo.create(
+          printerId: 3,
+          amsId: 1,
+          temp: 65,
+          durationHours: 8,
+          filament: 'PETG',
+          startAfter: DateTime.utc(2026, 9, 4, 21).toLocal(),
+        );
 
-      expect(sent!['start_after'], '2026-09-04T21:00:00');
-      expect(sent!['printer_id'], 3);
-      expect(sent!['ams_id'], 1);
-      expect(sent!['temp'], 65);
-      expect(sent!['duration_hours'], 8);
-      expect(sent!['filament'], 'PETG');
-      expect(sent!['rotate_tray'], isFalse);
-    });
+        expect((sent.last.data as Map)['start_after'], '2026-09-04T21:00:00');
+        expect((sent.last.data as Map)['printer_id'], 3);
+        expect((sent.last.data as Map)['ams_id'], 1);
+        expect((sent.last.data as Map)['temp'], 65);
+        expect((sent.last.data as Map)['duration_hours'], 8);
+        expect((sent.last.data as Map)['filament'], 'PETG');
+        expect((sent.last.data as Map)['rotate_tray'], isFalse);
+      },
+    );
 
     test('no instant means the key is left out, not sent as null', () async {
-      Map<String, dynamic>? sent;
+      final sent = captureRequests(dio);
       adapter.onPost(
         '/api/v1/scheduled-dryings',
         (s) => s.reply(200, row(startAfter: null)),
         data: Matchers.any,
       );
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'POST') {
-          sent = options.data as Map<String, dynamic>;
-        }
-        handler.next(options);
-      }));
 
       await repo.create(printerId: 3, amsId: 0, temp: 45, durationHours: 4);
 
-      expect(sent!.containsKey('start_after'), isFalse);
+      expect((sent.last.data as Map).containsKey('start_after'), isFalse);
     });
 
     test('a refusal surfaces as the server worded it', () async {
@@ -243,8 +235,9 @@ void main() {
           durationHours: 4,
           startAfter: DateTime(2020),
         ),
-        throwsA(isA<AppApiException>()
-            .having((e) => e.statusCode, 'statusCode', 400)),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'statusCode', 400),
+        ),
       );
     });
   });
@@ -291,8 +284,7 @@ void main() {
       expect(await repo.supportsScheduling(), isFalse);
     });
 
-    test('cancelling something already gone does not hide scheduling',
-        () async {
+    test('cancelling something already gone does not hide scheduling', () async {
       // The bug this default exists for. `DELETE /scheduled-dryings/{id}` 404s
       // routinely — the job started, or someone cancelled it from the web
       // between the list refresh and the tap — and reading that as "this
@@ -304,8 +296,11 @@ void main() {
         (s) => s.reply(404, {'detail': 'Scheduled drying not found'}),
       );
 
-      await expectLater(repo.cancel(7), throwsA(isA<AppApiException>()),
-          reason: 'the user pressed Cancel, so the failure still reaches them');
+      await expectLater(
+        repo.cancel(7),
+        throwsA(isA<AppApiException>()),
+        reason: 'the user pressed Cancel, so the failure still reaches them',
+      );
       expect(await repo.supportsScheduling(), isTrue);
     });
 

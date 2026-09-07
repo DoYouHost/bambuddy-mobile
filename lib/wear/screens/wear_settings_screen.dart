@@ -37,7 +37,6 @@ class WearSettingsScreen extends ConsumerStatefulWidget {
 
 class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     with WearAction {
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -51,8 +50,11 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
           WearHeader(l10n.wearSettingsTitle),
           const SizedBox(height: 12),
           if (profile != null) ...[
-            Text(l10n.wearCurrentServer,
-                textAlign: TextAlign.center, style: WearText.fine),
+            Text(
+              l10n.wearCurrentServer,
+              textAlign: TextAlign.center,
+              style: WearText.fine,
+            ),
             Text(
               profile.displayName,
               textAlign: TextAlign.center,
@@ -68,8 +70,11 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
             // Only when it is a different server: an offer for the one already
             // running is adopted by `WearApp` without ever reaching a screen.
             if (offered != null && !offered.isSameServerAs(profile)) ...[
-              Text(l10n.wearFromPhoneWaiting,
-                  textAlign: TextAlign.center, style: WearText.small),
+              Text(
+                l10n.wearFromPhoneWaiting,
+                textAlign: TextAlign.center,
+                style: WearText.small,
+              ),
               const SizedBox(height: 6),
               FilledButton(
                 onPressed: () => _switchTo(offered),
@@ -98,18 +103,20 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
 
   /// Adopt the server the phone offered, in place of the one running.
   Future<void> _switchTo(WatchConfig config) => run(
-        () => ref.read(pendingWatchConfigProvider.notifier).adopt(config),
-        onDone: () => Navigator.of(context).pop(),
-        // No onError: a refused write leaves the offer standing and brings the
-        // button back, which is the whole message. Saying more would need copy
-        // this screen does not have yet.
-      );
+    () => ref.read(pendingWatchConfigProvider.notifier).adopt(config),
+    onDone: () => Navigator.of(context).pop(),
+    // No onError: a refused write leaves the offer standing and brings the
+    // button back, which is the whole message. Saying more would need copy
+    // this screen does not have yet.
+  );
 
   /// Drop the profile and every secret, which routes the app back to setup. The
   /// same wording and the same clearing the phone's drawer uses, so "change
   /// server" means one thing across both apps.
   Future<void> _forgetServer(
-      AppLocalizations l10n, ServerProfile? profile) async {
+    AppLocalizations l10n,
+    ServerProfile? profile,
+  ) async {
     // Read before the dialog: `clear()` has to reach the notifier even if this
     // widget goes away while the question is on screen.
     final profiles = ref.read(serverProfileProvider.notifier);

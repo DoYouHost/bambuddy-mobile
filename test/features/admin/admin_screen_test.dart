@@ -8,31 +8,24 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-class _FakeCurrentUser extends CurrentUserNotifier {
-  _FakeCurrentUser(this._user);
-
-  final CurrentUser? _user;
-
-  @override
-  Future<CurrentUser?> build() async => _user;
-}
-
 ProviderContainer _containerFor(
   CurrentUser? user, {
   AuthMode authMode = AuthMode.jwt,
 }) {
-  final container = ProviderContainer(overrides: [
-    currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
-    fakeServerProfileOverride(authMode: authMode),
-  ]);
+  final container = ProviderContainer(
+    overrides: [
+      currentUserOverride(user),
+      fakeServerProfileOverride(authMode: authMode),
+    ],
+  );
   addTearDown(container.dispose);
   return container;
 }
 
 Widget _app(CurrentUser? user) => UncontrolledProviderScope(
-      container: _containerFor(user),
-      child: plApp(const AdminScreen()),
-    );
+  container: _containerFor(user),
+  child: plApp(const AdminScreen()),
+);
 
 void main() {
   testWidgets('an admin is offered all three', (tester) async {
@@ -50,12 +43,16 @@ void main() {
   testWidgets('each entry stands on its own permission', (tester) async {
     // The household account from the backlog: it may see who has an account,
     // and nothing beyond that.
-    await tester.pumpWidget(_app(const CurrentUser(
-      id: 5,
-      username: 'domownik',
-      isAdmin: false,
-      permissions: {'users:read'},
-    )));
+    await tester.pumpWidget(
+      _app(
+        const CurrentUser(
+          id: 5,
+          username: 'domownik',
+          isAdmin: false,
+          permissions: {'users:read'},
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Użytkownicy'), findsOneWidget);
@@ -65,31 +62,34 @@ void main() {
 
   group('canOpenAdminProvider', () {
     test('one read permission is enough to offer the entry', () async {
-      final container = _containerFor(const CurrentUser(
-        id: 5,
-        username: 'domownik',
-        isAdmin: false,
-        permissions: {'api_keys:read'},
-      ));
+      final container = _containerFor(
+        const CurrentUser(
+          id: 5,
+          username: 'domownik',
+          isAdmin: false,
+          permissions: {'api_keys:read'},
+        ),
+      );
       await container.read(currentUserProvider.future);
 
       expect(container.read(canOpenAdminProvider), isTrue);
     });
 
     test('an account granted none of the three is offered nothing', () async {
-      final container = _containerFor(const CurrentUser(
-        id: 5,
-        username: 'domownik',
-        isAdmin: false,
-        permissions: {'queue:read'},
-      ));
+      final container = _containerFor(
+        const CurrentUser(
+          id: 5,
+          username: 'domownik',
+          isAdmin: false,
+          permissions: {'queue:read'},
+        ),
+      );
       await container.read(currentUserProvider.future);
 
       expect(container.read(canOpenAdminProvider), isFalse);
     });
 
-    test('a server with authentication off has nobody to show it to',
-        () async {
+    test('a server with authentication off has nobody to show it to', () async {
       final container = _containerFor(null);
       await container.read(currentUserProvider.future);
 

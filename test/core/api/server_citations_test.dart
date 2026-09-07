@@ -39,7 +39,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Cite the symbol instead: `routes/users.py::update_user`.\n'
+      reason:
+          'Cite the symbol instead: `routes/users.py::update_user`.\n'
           '${offenders.join('\n')}',
     );
   });
@@ -72,10 +73,11 @@ void main() {
     final files = <String, File?>{};
 
     for (final directory in ['lib', 'test']) {
-      for (final source in Directory(directory)
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.dart'))) {
+      for (final source
+          in Directory(directory)
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.dart'))) {
         for (final match in citation.allMatches(source.readAsStringSync())) {
           final path = match.group(1)!;
           final symbol = match.group(2)!;
@@ -88,7 +90,9 @@ void main() {
                 .toList();
             return candidates.length == 1 ? candidates.first : null;
           });
-          if (file == null) continue; // Ambiguous or gone: not this test's call.
+          if (file == null) {
+            continue; // Ambiguous or gone: not this test's call.
+          }
 
           final declared = RegExp(declaration(symbol), multiLine: true);
           if (!declared.hasMatch(file.readAsStringSync())) {
@@ -101,7 +105,8 @@ void main() {
     expect(
       missing,
       isEmpty,
-      reason: 'The server renamed or removed these. Follow what replaced them '
+      reason:
+          'The server renamed or removed these. Follow what replaced them '
           'and update both the citation and the sentence around it — the '
           'behaviour it describes may have moved too.\n${missing.join('\n')}',
     );

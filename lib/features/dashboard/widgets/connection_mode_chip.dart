@@ -18,7 +18,8 @@ class ConnectionModeChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final live = ref.watch(wsConnectionStateProvider).valueOrNull ==
+    final live =
+        ref.watch(wsConnectionStateProvider).valueOrNull ==
         WsConnectionState.connected;
 
     final accent = live ? t.accentGreen : t.accentOrange;
@@ -43,15 +44,15 @@ class ConnectionModeChip extends ConsumerWidget {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
               )
             else
               Icon(Icons.sync, size: 13, color: ink),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: t.label.copyWith(color: ink),
-            ),
+            Text(label, style: t.label.copyWith(color: ink)),
           ],
         ),
       ),

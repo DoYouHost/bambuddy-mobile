@@ -74,31 +74,27 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// the button dead with nothing on screen saying why. Enabled, the tap runs
   /// the validator and the field explains itself.
   bool get _hasInput =>
-      _slicerFilament != null ||
-      _c.values.any((c) => c.text.trim().isNotEmpty);
+      _slicerFilament != null || _c.values.any((c) => c.text.trim().isNotEmpty);
 
   SpoolBulkPatch _patch() => SpoolBulkPatch(
-        material: _trim('material'),
-        brand: _trim('brand'),
-        subtype: _trim('subtype'),
-        colorName: _trim('colorName'),
-        rgba: normalizeRgba(_c['rgba']!.text),
-        labelWeight: _int('labelWeight'),
-        coreWeight: _int('coreWeight'),
-        costPerKg: parseUserDecimal(_c['costPerKg']!.text),
-        category: _trim('category'),
-        // The range is enforced by the field's validator, which runs before
-        // this is ever built; the clamp is the backstop that keeps a 422 out
-        // of a batch of 500 spools if that ever stops being true.
-        lowStockThresholdPct: _int('lowStock')?.clamp(
-          _lowStockMin,
-          _lowStockMax,
-        ),
-        storageLocation: _trim('location'),
-        slicerFilament: _slicerFilament,
-        slicerFilamentName: _slicerFilamentName,
-        note: _trim('note'),
-      );
+    material: _trim('material'),
+    brand: _trim('brand'),
+    subtype: _trim('subtype'),
+    colorName: _trim('colorName'),
+    rgba: normalizeRgba(_c['rgba']!.text),
+    labelWeight: _int('labelWeight'),
+    coreWeight: _int('coreWeight'),
+    costPerKg: parseUserDecimal(_c['costPerKg']!.text),
+    category: _trim('category'),
+    // The range is enforced by the field's validator, which runs before
+    // this is ever built; the clamp is the backstop that keeps a 422 out
+    // of a batch of 500 spools if that ever stops being true.
+    lowStockThresholdPct: _int('lowStock')?.clamp(_lowStockMin, _lowStockMax),
+    storageLocation: _trim('location'),
+    slicerFilament: _slicerFilament,
+    slicerFilamentName: _slicerFilamentName,
+    note: _trim('note'),
+  );
 
   Future<void> _apply() async {
     final l10n = AppLocalizations.of(context);
@@ -168,14 +164,22 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
 
             _FormSection(label: l10n.inventorySectionFilament),
             _presetField(l10n),
-            _combo('material', l10n.inventoryFieldMaterial,
-                ref.watch(materialOptionsProvider)),
-            _combo('brand', l10n.inventoryFieldBrand,
-                ref.watch(brandOptionsProvider)),
-            _combo('subtype', l10n.inventoryFieldSubtype,
-                ref.watch(subtypeOptionsProvider)),
-            _field('labelWeight', l10n.inventoryFieldLabelWeight,
-                number: true),
+            _combo(
+              'material',
+              l10n.inventoryFieldMaterial,
+              ref.watch(materialOptionsProvider),
+            ),
+            _combo(
+              'brand',
+              l10n.inventoryFieldBrand,
+              ref.watch(brandOptionsProvider),
+            ),
+            _combo(
+              'subtype',
+              l10n.inventoryFieldSubtype,
+              ref.watch(subtypeOptionsProvider),
+            ),
+            _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
             const SizedBox(height: 8),
             _FormSection(label: l10n.inventorySectionColor),
@@ -187,22 +191,31 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
 
             const SizedBox(height: 8),
             _FormSection(label: l10n.inventorySectionAdditional),
-            _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
-                number: true),
+            _field(
+              'coreWeight',
+              l10n.inventoryFieldEmptySpoolWeight,
+              number: true,
+            ),
             _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
             // Category and the low-stock override are native-only columns:
             // on Spoolman the patch drops them, so offering the fields would
             // promise "1 field will be overwritten" and then change nothing.
             if (native) ...[
               _field('category', l10n.inventoryFieldCategory),
-              _field('lowStock', l10n.inventoryFieldLowStock,
-                  number: true,
-                  hint: l10n.inventoryLowStockHint,
-                  min: _lowStockMin,
-                  max: _lowStockMax),
+              _field(
+                'lowStock',
+                l10n.inventoryFieldLowStock,
+                number: true,
+                hint: l10n.inventoryLowStockHint,
+                min: _lowStockMin,
+                max: _lowStockMax,
+              ),
             ],
-            _combo('location', l10n.inventoryFieldLocation,
-                ref.watch(locationOptionsProvider)),
+            _combo(
+              'location',
+              l10n.inventoryFieldLocation,
+              ref.watch(locationOptionsProvider),
+            ),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             const SizedBox(height: 20),
@@ -218,58 +231,61 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// button that does nothing yet. See [_hasInput] for why the gate is "any
   /// input" rather than "a patch would come out of it".
   Widget _applyButton(DashTokens t, AppLocalizations l10n) => ListenableBuilder(
-        // One listenable for all twelve fields, so typing anywhere re-evaluates
-        // the button without a setState on every keystroke.
-        listenable: Listenable.merge(_c.values.toList()),
-        builder: (context, _) => SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: t.accentGreen,
-              foregroundColor: _onAccentGreen,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-            ),
-            onPressed: _saving || !_hasInput ? null : _apply,
-            child: _saving
-                ? DashSpinner(size: 20, color: _onAccentGreen)
-                : Text(
-                    l10n.inventoryBulkEditApply(_count),
-                    style: const TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-          ).tagged('bulk_edit.apply'),
+    // One listenable for all twelve fields, so typing anywhere re-evaluates
+    // the button without a setState on every keystroke.
+    listenable: Listenable.merge(_c.values.toList()),
+    builder: (context, _) => SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: t.accentGreen,
+          foregroundColor: _onAccentGreen,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
-      );
+        onPressed: _saving || !_hasInput ? null : _apply,
+        child: _saving
+            ? DashSpinner(size: 20, color: _onAccentGreen)
+            : Text(
+                l10n.inventoryBulkEditApply(_count),
+                style: const TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+      ).tagged('bulk_edit.apply'),
+    ),
+  );
 
   /// Editable combo: pick from what the shelf already uses, or type a new
   /// value. Same widget the per-spool form uses, minus the required marker —
   /// nothing is required here.
   Widget _combo(String key, String label, List<String> options) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: dashCombo<String>(
-          context,
-          id: _fieldTag(key, area: 'bulk_edit'),
-          controller: _c[key],
-          label: Text(label),
-          filterable: true,
-          textStyle: DashTokens.of(context).body,
-          entries: [
-            for (final o in options)
-              DropdownMenuEntry(
-                value: o,
-                label: o,
-                labelWidget: logTagMaterial(
-                    '${_fieldTag(key, area: 'bulk_edit')}.option', o, Text(o)),
-              ),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: dashCombo<String>(
+      context,
+      id: _fieldTag(key, area: 'bulk_edit'),
+      controller: _c[key],
+      label: Text(label),
+      filterable: true,
+      textStyle: DashTokens.of(context).body,
+      entries: [
+        for (final o in options)
+          DropdownMenuEntry(
+            value: o,
+            label: o,
+            labelWidget: logTagMaterial(
+              '${_fieldTag(key, area: 'bulk_edit')}.option',
+              o,
+              Text(o),
+            ),
+          ),
+      ],
+    ),
+  );
 
   /// [min] and [max] bound a numeric field the server validates: typing
   /// outside the range has to say so here, because silently clamping it would

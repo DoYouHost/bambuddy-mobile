@@ -210,8 +210,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'spool_form.save');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'spool_form.save',
+      );
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -241,8 +245,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       return true;
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(mounted ? messenger : null, e, l10n,
-          action: 'spool_form.save_model_presets');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'spool_form.save_model_presets',
+      );
       return false;
     } on Object {
       if (mounted) setState(() => _saving = false);
@@ -263,8 +271,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
-    final overridesSupported =
-        ref.watch(presetOverridesSupportedProvider).orFalse;
+    final overridesSupported = ref
+        .watch(presetOverridesSupportedProvider)
+        .orFalse;
     final showOverrides = _showsPresetOverrides(overridesSupported);
     final stored = showOverrides && _isEdit
         ? ref.watch(spoolPresetOverridesProvider(widget.existing!.id))
@@ -394,8 +403,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _combo('location', l10n.inventoryFieldLocation, locations),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
-            if (showOverrides)
-              ..._presetOverridesSection(l10n, stored, models),
+            if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
 
             const SizedBox(height: 20),
             SizedBox(
@@ -463,14 +471,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             DropdownMenuEntry(
               value: o,
               label: o,
-              labelWidget:
-                  logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
+              labelWidget: logTagMaterial(
+                '${_fieldTag(key)}.option',
+                o,
+                Text(o),
+              ),
             ),
         ],
       ),
     );
   }
-
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -507,8 +517,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         !cores.any((c) => c.id == _coreWeightCatalogId)) {
       _coreWeightCatalogId = null;
     }
-    final selected =
-        cores.where((c) => c.id == _coreWeightCatalogId).firstOrNull;
+    final selected = cores
+        .where((c) => c.id == _coreWeightCatalogId)
+        .firstOrNull;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -561,8 +572,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         items: [
           DropdownMenuItem(
             value: null,
-            child: logTag('${_fieldTag('effect')}.none',
-                Text(l10n.inventoryEffectNone)),
+            child: logTag(
+              '${_fieldTag('effect')}.none',
+              Text(l10n.inventoryEffectNone),
+            ),
           ),
           for (final e in options)
             DropdownMenuItem(
@@ -582,13 +595,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final t = DashTokens.of(context);
     void setQty(int v) => setState(() => _quantity = v.clamp(1, _maxQuantity));
     Widget btn(IconData icon, VoidCallback? onTap) => IconButton(
-          onPressed: onTap,
-          icon: Icon(icon, color: t.textSecondary),
-          iconSize: 20,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          padding: EdgeInsets.zero,
-        ).tagged('spool_form.quantity_step');
+      onPressed: onTap,
+      icon: Icon(icon, color: t.textSecondary),
+      iconSize: 20,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+      padding: EdgeInsets.zero,
+    ).tagged('spool_form.quantity_step');
     return Tooltip(
       message: l10n.inventoryQuantityHint,
       child: Container(
@@ -600,7 +613,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            btn(Icons.remove, _quantity > 1 ? () => setQty(_quantity - 1) : null),
+            btn(
+              Icons.remove,
+              _quantity > 1 ? () => setQty(_quantity - 1) : null,
+            ),
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 24),
               child: Text(
@@ -655,7 +671,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       _slicerFilament = picked.id;
       _slicerFilamentName = picked.name;
       final mat = picked.filamentType?.trim();
-      if (_c['material']!.text.trim().isEmpty && mat != null && mat.isNotEmpty) {
+      if (_c['material']!.text.trim().isEmpty &&
+          mat != null &&
+          mat.isNotEmpty) {
         _c['material']!.text = mat;
         _materialMissing = false;
       }
@@ -752,9 +770,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       // that carries no preset is a different answer — "use none here", which
       // the server honours instead of falling back — so it is a value.
       placeholder: l10n.inventoryPrinterPresetDefault,
-      value: current == null
-          ? null
-          : chosen ?? l10n.inventorySlicerPresetNone,
+      value: current == null ? null : chosen ?? l10n.inventorySlicerPresetNone,
       prefixIcon: Icons.print_outlined,
       onTap: () => _pickOverridePreset(l10n, row),
       clear: (
@@ -906,7 +922,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             return null;
           },
         ),
-        ),
+      ),
     );
   }
 }
@@ -933,7 +949,6 @@ String? _trimmedField(Map<String, TextEditingController> c, String key) {
 /// has to round here rather than come out null — see [parseUserRoundedInt].
 int? _intField(Map<String, TextEditingController> c, String key) =>
     parseUserRoundedInt(c[key]!.text);
-
 
 /// Color picker: large preview + popular swatches from database + search.
 /// Tap color fills hex/name/gradient/effect in form (via [onPick]).
@@ -993,11 +1008,7 @@ class _ColorPicker extends ConsumerWidget {
             onChanged: onQuery,
           ),
           const SizedBox(height: 8),
-          if (q.isEmpty)
-            Text(
-              l10n.inventoryColorCommon,
-              style: t.microSoft,
-            ),
+          if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
           const SizedBox(height: 4),
           Wrap(
             spacing: 8,
@@ -1050,11 +1061,7 @@ class _ColorChip extends StatelessWidget {
             ),
           ),
           child: color == null
-              ? Icon(
-                  Icons.question_mark,
-                  size: 16,
-                  color: t.textTertiary,
-                )
+              ? Icon(Icons.question_mark, size: 16, color: t.textTertiary)
               : null,
         ),
       ).tagged('spool_form.color_swatch'),
@@ -1112,10 +1119,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.inventoryFieldSlicerPreset,
-                  style: t.display,
-                ),
+                Text(l10n.inventoryFieldSlicerPreset, style: t.display),
                 const SizedBox(height: 8),
                 DashSearchField(
                   id: 'spool_form.preset_search',
@@ -1153,8 +1157,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
           ),
           Expanded(
             child: async.when(
-              loading: () =>
-                  const DashLoading(),
+              loading: () => const DashLoading(),
               error: (_, _) => _message(
                 context,
                 controller,
@@ -1184,26 +1187,26 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                 return Material(
                   type: MaterialType.transparency,
                   child: ListView.builder(
-                  controller: controller,
-                  itemCount: items.length,
-                  itemBuilder: (context, i) {
-                    final p = items[i];
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.tune),
-                      title: Text(
-                        p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        p.filamentType == null || p.filamentType!.isEmpty
-                            ? p.source
-                            : '${p.filamentType} · ${p.source}',
-                      ),
-                      onTap: () => Navigator.of(context).pop(p),
-                    ).tagged('spool_form.preset_option');
-                  },
+                    controller: controller,
+                    itemCount: items.length,
+                    itemBuilder: (context, i) {
+                      final p = items[i];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.tune),
+                        title: Text(
+                          p.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          p.filamentType == null || p.filamentType!.isEmpty
+                              ? p.source
+                              : '${p.filamentType} · ${p.source}',
+                        ),
+                        onTap: () => Navigator.of(context).pop(p),
+                      ).tagged('spool_form.preset_option');
+                    },
                   ),
                 );
               },
@@ -1276,10 +1279,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.inventoryFieldEmptySpoolWeight,
-                  style: t.display,
-                ),
+                Text(l10n.inventoryFieldEmptySpoolWeight, style: t.display),
                 const SizedBox(height: 8),
                 DashSearchField(
                   id: 'spool_form.core_search',

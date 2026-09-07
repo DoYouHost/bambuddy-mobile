@@ -27,7 +27,10 @@ class PermissionCategory {
   factory PermissionCategory.fromJson(Map<String, dynamic> json) =>
       PermissionCategory(
         name: toStringOrNull(json['name']) ?? '',
-        permissions: parseJsonList(json['permissions'], PermissionInfo.fromJson),
+        permissions: parseJsonList(
+          json['permissions'],
+          PermissionInfo.fromJson,
+        ),
       );
 
   final String name;
@@ -44,8 +47,10 @@ class PermissionCatalog {
 
   factory PermissionCatalog.fromJson(Map<String, dynamic> json) =>
       PermissionCatalog(
-        categories:
-            parseJsonList(json['categories'], PermissionCategory.fromJson),
+        categories: parseJsonList(
+          json['categories'],
+          PermissionCategory.fromJson,
+        ),
         all: toStringList(json['all_permissions']),
       );
 
@@ -78,14 +83,17 @@ class PermissionCatalog {
     'WebSocket',
   };
 
-  bool _isEveryday(PermissionCategory c) =>
-      everydayCategories.contains(c.name);
+  bool _isEveryday(PermissionCategory c) => everydayCategories.contains(c.name);
 
   /// The categories a household group is usually made of.
-  List<PermissionCategory> get everyday =>
-      [for (final c in categories) if (_isEveryday(c)) c];
+  List<PermissionCategory> get everyday => [
+    for (final c in categories)
+      if (_isEveryday(c)) c,
+  ];
 
   /// The rest — administration of the server itself.
-  List<PermissionCategory> get advanced =>
-      [for (final c in categories) if (!_isEveryday(c)) c];
+  List<PermissionCategory> get advanced => [
+    for (final c in categories)
+      if (!_isEveryday(c)) c,
+  ];
 }

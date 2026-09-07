@@ -24,8 +24,12 @@ class LibraryStats {
     return LibraryStats(
       totalFiles: pick(['total_files', 'file_count', 'files']),
       totalFolders: pick(['total_folders', 'folder_count', 'folders']),
-      totalSizeBytes:
-          pick(['total_size', 'total_size_bytes', 'size_bytes', 'size']),
+      totalSizeBytes: pick([
+        'total_size',
+        'total_size_bytes',
+        'size_bytes',
+        'size',
+      ]),
       freeBytes: pick([
         'free_bytes',
         'free_space',

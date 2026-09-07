@@ -30,7 +30,8 @@ class PrinterDiagnosticResult {
 class DiagnosticCheck {
   const DiagnosticCheck({required this.id, required this.status});
 
-  factory DiagnosticCheck.fromJson(Map<String, dynamic> json) => DiagnosticCheck(
+  factory DiagnosticCheck.fromJson(Map<String, dynamic> json) =>
+      DiagnosticCheck(
         id: json['id']?.toString() ?? '',
         status: json['status']?.toString() ?? 'skip',
       );
