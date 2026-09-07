@@ -43,8 +43,10 @@
             android:theme="@style/WearLaunchTheme"
             tools:replace="android:theme"
             tools:node="merge">
-            <!-- Branded launch (Play's Wear quality check): the app icon on
-                 black from the first pixel to Flutter's first frame. The phone's
+            <!-- What Flutter puts behind its UI once the engine takes over, and
+                 the same style `WearLaunchTheme` names as `postSplashScreenTheme`
+                 — the two must agree, because Flutter swaps the window itself in
+                 `onCreate` whatever the splash library was told. The phone's
                  LaunchTheme/NormalTheme pair is white in the day variant and
                  carries no icon at all, so the watch gets its own pair rather
                  than an override of theirs — see res/values/styles.xml. -->

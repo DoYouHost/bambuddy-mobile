@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.text.format.DateFormat
@@ -43,6 +44,14 @@ class MainActivity : FlutterActivity() {
 
     /** The Dart caller waiting for the watch input activity to come back. */
     private var pendingWearText: MethodChannel.Result? = null
+
+    // Before super: FlutterActivity swaps the window to NormalTheme in its own onCreate,
+    // and the splash has to be installed while the launch theme is still the one applied.
+    // Does nothing in the phone flavor — see BrandedLaunch.kt in each flavor source set.
+    override fun onCreate(savedInstanceState: Bundle?) {
+        installBrandedLaunch()
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
