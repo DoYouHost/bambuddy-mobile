@@ -19,8 +19,11 @@ The last triaged server commit lives in the GitHub issue labelled
 `server-drift`, in a marker block in its body:
 
 ```sh
-gh issue list --label server-drift --state all --limit 1 --json number,state,body
+gh issue list --label server-drift --state all --limit 30 --json number,state,body
 ```
+
+The state is the newest of those whose body carries the marker — the label gets
+put on other issues by hand, and the newest labelled one is not always this.
 
 No issue means nothing has been triaged yet, and the baseline is a decision, not
 a guess — ask for the commit to start from rather than picking one.
@@ -46,8 +49,9 @@ believing a hit.
 
 ## Step 3 — two files
 
-**`.server-drift/open-items.md` — the checklist.** It replaces the issue body
-wholesale. The version standing before this run is at
+**`.server-drift/open-items.md` — the checklist.** Work still owed, and
+nothing else: `## Broken now`, `## Cheap win`, `## Feature`. It becomes the
+issue body. The version standing before this run is at
 `.server-drift/open-items-current.md`: start from it, strike off what is now
 done, append what this range added, and copy every surviving line
 **byte-for-byte**.
@@ -55,6 +59,13 @@ done, append what this range added, and copy every surviving line
 **`.server-drift/report.md` — what this range did to the checklist.** Posted as
 a comment and never edited again. It is a delta, never a copy: the items it adds
 are already above it in the body, so it counts them instead of repeating them.
+It also carries `## Watch only`, which is the one section that belongs in the
+comment rather than on the list — nothing there is work.
+
+The job lifts anything ticked out of the checklist and into that comment before
+it writes the body, so the list you are handed holds no ticked lines. That is
+mechanical and none of your business: do not re-add a ticked line, and do not
+tick a box yourself.
 
 So the checklist shrinks as work gets done, and nothing is lost by the
 shrinking — the comment from that week says what went and why. The record is
@@ -80,17 +91,17 @@ are the whole output.
 
 ## Watch only
 - `PATCH /archives/{id}` rejects a weight over 100 kg — nothing to change, but it is the answer if a 422 shows up in a report
-
-## Questions
-- Keep-warm settings are readable but we have no settings writer — build one, or leave them?
 ```
+
+The first three sections are the checklist. `## Watch only` is written the same
+way, but into the report.
 
 **One line per change: what moved, what it means for us, `file:line` when there
 is one, and a size.** No "what changed", no "why it matters", no "do", no "done
 when" — whoever picks a line up reads the code, and a paragraph explaining the
 code to them takes longer than the code. A line that cannot be understood
-without a caveat gets one short parenthetical; anything longer belongs under
-`## Questions` as one sentence.
+without a caveat gets one short parenthetical; anything longer belongs in the
+report, which has room for a sentence.
 
 Sizes are `XS` (a field and its test), `S` (a field plus one screen), `M` (a
 route, a form, l10n), `L` (a screen or a parked branch).
@@ -100,7 +111,7 @@ section. Anywhere else it is only worth writing when the answer is no: a cheap
 win that turns out to need a permission no key holds is not a cheap win, and the
 line says so where it would otherwise read as ten minutes' work.
 
-## The five sections, and what decides which one a line lands in
+## The four sections, and what decides which one a line lands in
 
 The point of the sections is that a person scanning the issue can tell, without
 reading a word of prose, what to do this week and what can wait.
@@ -165,9 +176,11 @@ there is no identity at all
 ([identifiedPermissionProvider](../../../lib/providers.dart) hides those screens
 anyway).
 
-**`## Watch only`** — nothing to do, and that is the finding. A validation rule,
-a migration that shifts stored numbers, a limit — the things that explain a
-future bug report. No checkbox: these are not work.
+**`## Watch only`** — nothing to do, and that is the finding. A validation
+rule, a migration that shifts stored numbers, a limit — the things that explain
+a future bug report. No checkbox: these are not work, which is why **this one
+goes in the report and not the checklist**: it had accumulated to six standing
+lines on a list of two open items before that was fixed.
 
 "Nothing to do" is a claim about **our** call sites, so every line here names
 where our code gets that data: the constant in `endpoints.dart`, or the model
@@ -176,8 +189,6 @@ states outright. A line that says "the app never did this itself" without a
 citation is how a server-side plug ranking got filed as harmless while
 `smart_plugs_providers.dart:46` was still picking the first visible plug and
 `endpoints.dart` had never heard of `/smart-plugs/by-printer/{id}`.
-
-**`## Questions`** — one sentence each, for what is not yours to decide.
 
 An empty section keeps its heading and says `- none`.
 
@@ -199,8 +210,8 @@ Where each kind of finding comes from in `facts.md`:
 | routes added → the gate and verdict on each line | the evidence behind that verdict; `no gate found` means read the route |
 | CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 
-The report carries the same sections and the same one-line entries, plus
-**Struck off**.
+The report carries the same one-line entries, in the three checklist sections
+it added to, plus `## Watch only` and **Struck off**.
 
 ## Rules that decide what goes in
 
@@ -208,15 +219,18 @@ The report carries the same sections and the same one-line entries, plus
   list is prose rather than one line per change, rewrite every entry into a
   checkbox line — keeping each item and its tick — and say in the report that
   you converted it. This is the one exception to copying lines byte-for-byte.
-- **A ticked box is the maintainer speaking.** Never untick one, never remove a
-  ticked line without saying so in the report, and never reword a line you are
-  carrying forward — a rewritten line reads as a new one and loses its tick.
+- **A ticked box is the maintainer speaking**, and the job has already acted on
+  it: the standing list reaches you with those lines gone. Never re-add one,
+  never tick a box yourself, and never reword a line you are carrying forward —
+  a rewritten line reads as a new one and loses its tick.
 - **Evidence or it stays on the list.** Never strike an item off without a
   `file:line` from our tree. A false "done" disappears and comes back as a bug
   months later; a false "to do" costs ten seconds of reading.
 - **Every removal is accounted for.** A line may leave `open-items.md` only
   through the report's *Struck off* section. A line that quietly differs between
-  the old body and the new one is a bug in the triage, not tidying.
+  the old body and the new one is a bug in the triage, not tidying. Ticked lines
+  are the exception, and not yours: the job lifts those out after you write the
+  file.
 - **"Broken now: none" is a claim, not a default.** It is only allowed with a
   sentence saying what was checked and found harmless — the gates that moved,
   the codes that appeared, the fields that changed shape. An empty section
