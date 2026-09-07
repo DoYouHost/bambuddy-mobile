@@ -873,15 +873,14 @@ final mediaTokenServiceProvider = Provider<MediaTokenService>(
 
 /// Picks the credential this server accepts on the media routes — see
 /// [MediaAuthService] for the three answers.
-final mediaAuthServiceProvider = Provider<MediaAuthService>((ref) {
-  final credentials = ref.watch(credentialsStoreProvider);
-  return MediaAuthService(
+final mediaAuthServiceProvider = Provider<MediaAuthService>(
+  (ref) => MediaAuthService(
     media: ref.watch(mediaTokenServiceProvider),
     camera: ref.watch(cameraTokenServiceProvider),
     authMode: ref.watch(serverProfileProvider)?.authMode ?? AuthMode.none,
-    readApiKey: credentials.readApiKey,
-  );
-});
+    credentials: ref.watch(credentialsStoreProvider),
+  ),
+);
 
 /// The credential every media URL is built with. Invalidate together with
 /// `ref.read(mediaAuthServiceProvider).invalidate()` after a 401 — see

@@ -11,8 +11,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../../providers.dart';
-import '../common/media_auth_image_recovery.dart';
+import '../common/media_image.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
@@ -42,8 +41,7 @@ class SkipObjectsScreen extends ConsumerStatefulWidget {
   ConsumerState<SkipObjectsScreen> createState() => _SkipObjectsScreenState();
 }
 
-class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
-    with MediaAuthImageRecovery {
+class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
   /// Object ids selected to skip, pending the batch confirmation.
   final _selected = <int>{};
 
@@ -124,7 +122,6 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                       printerId: widget.printerId,
                       coverUrl: status?.coverUrl,
                       data: data,
-                      recovery: this,
                       selected: _selected,
                       canSelect: canSelect,
                       onToggle: _toggleSelected,
@@ -358,7 +355,6 @@ class _PlatePreview extends ConsumerStatefulWidget {
     required this.printerId,
     required this.coverUrl,
     required this.data,
-    required this.recovery,
     required this.selected,
     required this.canSelect,
     required this.onToggle,
@@ -368,7 +364,6 @@ class _PlatePreview extends ConsumerStatefulWidget {
   final int printerId;
   final String? coverUrl;
   final PrintableObjects data;
-  final MediaAuthImageRecovery recovery;
 
   /// Object ids currently selected to skip — drawn as the marker's "selected"
   /// state on the plate.
@@ -404,7 +399,6 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     final t = DashTokens.of(context);
     final coverUrl = widget.coverUrl;
     final data = widget.data;
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
 
     // Build-plate grid under everything. The render draws its objects on a
     // transparent background, so without it there is nothing to tell where the
@@ -416,30 +410,15 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     );
     const noRender = SizedBox.expand();
 
-    // The top-down render, laid over the grid.
-    Widget background;
-    if (baseUrl == null || coverUrl == null) {
-      background = noRender;
-    } else {
-      background = ref
-          .watch(mediaAuthProvider)
-          .when(
-            loading: () => noRender,
-            error: (_, _) => noRender,
-            data: (auth) => Image.network(
-              auth.sign('$baseUrl$coverUrl?view=top'),
-              headers: auth.headers,
-              fit: BoxFit.contain,
-              gaplessPlayback: true,
-              errorBuilder: (_, error, _) {
-                widget.recovery.recoverMediaAuthOnError(error, auth);
-                return noRender;
-              },
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : noRender,
-            ),
+    // The top-down render, laid over the grid. The grid alone is a working
+    // screen, so every way of not having the render draws nothing extra.
+    final background = coverUrl == null
+        ? noRender
+        : MediaImage(
+            path: '$coverUrl?view=top',
+            fit: BoxFit.contain,
+            placeholder: (_) => noRender,
           );
-    }
 
     // Real footprints when the slicer's object-ID mask is available; badges
     // placed from each object's centre point when it isn't, which is all

@@ -5,6 +5,8 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers.dart';
+
 const _baseUrl = 'http://s.local:8000';
 const _mediaPath = '/api/v1/auth/media-token';
 
@@ -60,7 +62,7 @@ void main() {
         media: MediaTokenService(dio),
         camera: CameraTokenService(dio),
         authMode: authMode,
-        readApiKey: () async => apiKey,
+        credentials: InMemoryCredentialsStore()..apiKey = apiKey,
       );
 
   setUp(() {
@@ -208,6 +210,34 @@ void main() {
         mints.mediaStatus = 200;
 
         expect((await service.auth(forceRefresh: true)).queryToken, 'media2');
+      },
+    );
+
+    test(
+      'invalidate drops the camera token on the fallback path, where it is the '
+      'credential that just failed',
+      () async {
+        mints.mediaStatus = 404;
+        final service = serviceFor(AuthMode.jwt);
+        expect((await service.auth()).queryToken, 'cam1');
+
+        service.invalidate();
+
+        expect((await service.auth()).queryToken, 'cam2');
+      },
+    );
+
+    test(
+      'invalidate leaves the camera token alone on a server that has the mint '
+      '— there it belongs to the live view, which re-mints it itself',
+      () async {
+        final service = serviceFor(AuthMode.jwt);
+        await service.auth();
+
+        service.invalidate();
+        await service.auth();
+
+        expect(mints.cameraMints, 0);
       },
     );
 

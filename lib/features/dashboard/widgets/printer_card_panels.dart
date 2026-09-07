@@ -287,7 +287,7 @@ class _PrintPanel extends StatelessWidget {
 
 /// Cover thumbnail for the current print (fetched with the media credential).
 /// Placeholder instead of error — never crashes the card.
-class _CoverThumbnail extends ConsumerStatefulWidget {
+class _CoverThumbnail extends StatelessWidget {
   const _CoverThumbnail({required this.coverUrl});
 
   final String? coverUrl;
@@ -296,58 +296,32 @@ class _CoverThumbnail extends ConsumerStatefulWidget {
   static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
 
   @override
-  ConsumerState<_CoverThumbnail> createState() => _CoverThumbnailState();
-}
-
-class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
-    with MediaAuthImageRecovery {
-  @override
   Widget build(BuildContext context) {
-    Widget placeholder() => ClipRRect(
+    final placeholder = ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Image.asset(
-        _CoverThumbnail._placeholderAsset,
+        _placeholderAsset,
         key: const ValueKey('cover_placeholder'),
-        width: _CoverThumbnail._size,
-        height: _CoverThumbnail._size,
+        width: _size,
+        height: _size,
         fit: BoxFit.cover,
       ),
     );
 
-    final url = widget.coverUrl;
-    if (url == null || url.isEmpty) return placeholder();
+    final url = coverUrl;
+    if (url == null || url.isEmpty) return placeholder;
 
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (baseUrl == null) return placeholder();
-
-    return ref
-        .watch(mediaAuthProvider)
-        .when(
-          loading: placeholder,
-          error: (_, _) => placeholder(),
-          data: (auth) => ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              auth.sign('$baseUrl$url'),
-              headers: auth.headers,
-              key: const ValueKey('cover_network'),
-              width: _CoverThumbnail._size,
-              height: _CoverThumbnail._size,
-              cacheWidth:
-                  (_CoverThumbnail._size *
-                          MediaQuery.devicePixelRatioOf(context))
-                      .round(),
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              errorBuilder: (_, error, _) {
-                recoverMediaAuthOnError(error, auth);
-                return placeholder();
-              },
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : placeholder(),
-            ),
-          ),
-        );
+    return MediaImage(
+      path: url,
+      width: _size,
+      height: _size,
+      borderRadius: BorderRadius.circular(10),
+      imageKey: const ValueKey('cover_network'),
+      // The card's cover is a picture of the print, and a missing one is not
+      // news worth an icon of its own — the same plate outline stands in for
+      // "not loaded yet" and for "will not load".
+      placeholder: (_) => placeholder,
+    );
   }
 }
 

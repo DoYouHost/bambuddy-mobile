@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../auth/auth_headers.dart';
 import '../auth/credentials_store.dart';
 import '../demo/demo_http_adapter.dart';
 import '../diagnostics/http_probe.dart';
@@ -74,21 +75,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    switch (authMode) {
-      case AuthMode.none:
-        // Server requires no auth — never attach stale credentials.
-        break;
-      case AuthMode.jwt:
-        final jwt = await credentials.readJwt();
-        if (jwt != null) {
-          options.headers['Authorization'] = 'Bearer $jwt';
-        }
-      case AuthMode.apiKey:
-        final key = await credentials.readApiKey();
-        if (key != null) {
-          options.headers['X-API-Key'] = key;
-        }
-    }
+    options.headers.addAll(await authHeaders(authMode, credentials));
     handler.next(options);
   }
 

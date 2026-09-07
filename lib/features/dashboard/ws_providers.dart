@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
 import '../../core/api/ws_token.dart';
-import '../../core/auth/credentials_store.dart';
+import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
@@ -25,26 +25,6 @@ Uri wsUrlFor(String baseUrl) {
   final u = Uri.parse(baseUrl);
   final scheme = u.scheme == 'https' ? 'wss' : 'ws';
   return u.replace(scheme: scheme, path: '${u.path}${Endpoints.apiPrefix}/ws');
-}
-
-/// Auth headers for WS handshake — branches by [AuthMode] same as REST
-/// interceptor. Newer servers (GHSA-r2qv follow-up) instead require a `?token=`
-/// minted via [WsTokenService]; we still send headers so older header-only
-/// servers keep working. See [wsClientProvider].
-Future<Map<String, String>> wsAuthHeaders(
-  AuthMode mode,
-  CredentialsStore creds,
-) async {
-  switch (mode) {
-    case AuthMode.none:
-      return const {};
-    case AuthMode.jwt:
-      final jwt = await creds.readJwt();
-      return jwt == null ? const {} : {'Authorization': 'Bearer $jwt'};
-    case AuthMode.apiKey:
-      final key = await creds.readApiKey();
-      return key == null ? const {} : {'X-API-Key': key};
-  }
 }
 
 /// Mints the WS handshake token for the active profile (see [WsTokenService]).
@@ -75,7 +55,7 @@ final wsClientProvider = Provider<WsClient>((ref) {
   final wsToken = ref.watch(wsTokenServiceProvider);
   final client = WsClient(
     url: wsUrlFor(profile.baseUrl),
-    authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+    authHeaders: () => authHeaders(profile.authMode, creds),
     // `?token=` for the handshake (new server); null → header-only fallback.
     queryToken: wsToken.token,
     invalidateQueryToken: wsToken.invalidate,

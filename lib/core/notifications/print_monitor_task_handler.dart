@@ -6,8 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../../data/maintenance_repository.dart';
-import '../../features/dashboard/ws_providers.dart'
-    show wsUrlFor, wsAuthHeaders;
+import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
@@ -20,12 +19,11 @@ import 'notification_prefs.dart';
 import '../../data/archive_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
-import '../api/camera_token.dart';
 import '../api/media_auth.dart';
-import '../api/media_token.dart';
 import '../api/ws_client.dart';
 import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
+import '../auth/auth_headers.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
@@ -209,15 +207,18 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // below, instead of each independently rebuilding Dio + interceptors +
     // a keystore read via its own `buildBackgroundApiClient` call.
     final api = await buildBackgroundApiClient(prefs);
+    // One store for this isolate: the media credential, the socket and the
+    // proactive refresh all read the same keystore, and two instances would be
+    // two independent reads of it.
+    final creds = SecureCredentialsStore();
     // Print cover fetch for the widget: media credential resolved with the
     // authenticated Dio, image fetched with bare Dio carrying it explicitly.
     _mediaAuth = api == null
         ? null
-        : MediaAuthService(
-            media: MediaTokenService(api.dio),
-            camera: CameraTokenService(api.dio),
+        : MediaAuthService.forIsolate(
+            dio: api.dio,
             authMode: profile.authMode,
-            readApiKey: SecureCredentialsStore().readApiKey,
+            credentials: creds,
           );
     _coverDio = createBareDio();
     // Load notification preferences once at startup; UI changes take effect
@@ -248,7 +249,6 @@ class PrintMonitorTaskHandler extends TaskHandler {
       ),
     );
 
-    final creds = SecureCredentialsStore();
     // Shared by the socket below and the proactive refresh: both recover a
     // lapsed session the same way, and building two would mean two independent
     // silent re-logins racing against the server's failed-attempt budget.
@@ -266,7 +266,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
           )
         : WsClient(
             url: wsUrlFor(profile.baseUrl),
-            authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+            authHeaders: () => authHeaders(profile.authMode, creds),
             queryToken: wsToken?.token,
             invalidateQueryToken: wsToken?.invalidate,
             // Without this a handshake rejected for a lapsed JWT has nothing to

@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/theme/dash_theme.dart';
-import '../../providers.dart';
-import '../common/media_auth_image_recovery.dart';
+import '../common/media_image.dart';
 
 /// Project cover image. Authenticated with the media credential — the Bearer
 /// header does NOT work for this resource, same as [LibraryThumbnail] / archive
@@ -12,7 +11,7 @@ import '../common/media_auth_image_recovery.dart';
 ///
 /// [cacheBust] (e.g. the project `updated_at`) is appended to the URL so the
 /// image reloads after an upload/delete instead of serving the stale cache.
-class ProjectCoverImage extends ConsumerStatefulWidget {
+class ProjectCoverImage extends ConsumerWidget {
   const ProjectCoverImage({
     super.key,
     required this.projectId,
@@ -31,17 +30,9 @@ class ProjectCoverImage extends ConsumerStatefulWidget {
   final String? cacheBust;
 
   @override
-  ConsumerState<ProjectCoverImage> createState() => _ProjectCoverImageState();
-}
-
-class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
-    with MediaAuthImageRecovery {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final width = widget.width;
-    final height = widget.height;
-    final radius = widget.borderRadius ?? BorderRadius.circular(12);
+    final radius = borderRadius ?? BorderRadius.circular(12);
 
     Widget placeholder([IconData icon = Icons.folder_special_outlined]) =>
         Container(
@@ -59,47 +50,21 @@ class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
           ),
         );
 
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (!widget.hasCover || baseUrl == null) return placeholder();
+    if (!hasCover) return placeholder();
 
-    return ref
-        .watch(mediaAuthProvider)
-        .when(
-          loading: placeholder,
-          error: (_, _) => placeholder(Icons.broken_image_outlined),
-          data: (auth) {
-            final cacheBust = widget.cacheBust;
-            // Signed last, so the credential lands on whichever separator the
-            // cache-buster left free — it may be a header and add none at all.
-            final bust = cacheBust == null
-                ? ''
-                : '?v=${Uri.encodeQueryComponent(cacheBust)}';
-            return ClipRRect(
-              borderRadius: radius,
-              child: Image.network(
-                auth.sign(
-                  '$baseUrl${Endpoints.projectCoverImage(widget.projectId)}$bust',
-                ),
-                headers: auth.headers,
-                width: width,
-                height: height,
-                // Server serves a full-res cover — cap decode resolution for
-                // the tile (project lists/cards render many of these).
-                cacheWidth: (width * MediaQuery.devicePixelRatioOf(context))
-                    .round(),
-                cacheHeight: (height * MediaQuery.devicePixelRatioOf(context))
-                    .round(),
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-                errorBuilder: (_, error, _) {
-                  recoverMediaAuthOnError(error, auth);
-                  return placeholder();
-                },
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : placeholder(),
-              ),
-            );
-          },
-        );
+    final bust = cacheBust;
+    return MediaImage(
+      path:
+          '${Endpoints.projectCoverImage(projectId)}'
+          '${bust == null ? '' : '?v=${Uri.encodeQueryComponent(bust)}'}',
+      width: width,
+      height: height,
+      borderRadius: radius,
+      placeholder: (status) => placeholder(
+        status == MediaImageStatus.unauthenticated
+            ? Icons.broken_image_outlined
+            : Icons.folder_special_outlined,
+      ),
+    );
   }
 }

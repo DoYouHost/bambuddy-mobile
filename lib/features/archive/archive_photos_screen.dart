@@ -5,8 +5,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../providers.dart';
-import '../common/media_auth_image_recovery.dart';
+import '../common/media_image.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/state_views.dart';
@@ -128,53 +127,29 @@ class _PhotoPagerState extends State<_PhotoPager> {
 }
 
 /// One photo, pinch-zoomable. A lapsed media token fails the same way a
-/// missing file does, so [MediaAuthImageRecovery] re-mints once and the new
-/// URL reloads the image.
-class _Photo extends ConsumerStatefulWidget {
+/// missing file does, so [MediaImage] re-mints once and the new URL reloads
+/// the picture.
+class _Photo extends StatelessWidget {
   const _Photo({required this.archiveId, required this.filename});
 
   final int archiveId;
   final String filename;
 
   @override
-  ConsumerState<_Photo> createState() => _PhotoState();
-}
-
-class _PhotoState extends ConsumerState<_Photo> with MediaAuthImageRecovery {
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (baseUrl == null) {
-      return _message(l10n.archivePhotoFailed);
-    }
-
-    return ref
-        .watch(mediaAuthProvider)
-        .when(
-          loading: () => const DashLoading(),
-          error: (_, _) => _message(l10n.archivePhotoFailed),
-          data: (auth) => InteractiveViewer(
-            maxScale: 5,
-            child: Image.network(
-              auth.sign(
-                '$baseUrl'
-                '${Endpoints.archivePhoto(widget.archiveId, widget.filename)}',
-              ),
-              headers: auth.headers,
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-              gaplessPlayback: true,
-              errorBuilder: (_, error, _) {
-                recoverMediaAuthOnError(error, auth);
-                return _message(l10n.archivePhotoFailed);
-              },
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : const DashLoading(),
-            ),
-          ),
-        );
+    return InteractiveViewer(
+      maxScale: 5,
+      child: MediaImage(
+        path: Endpoints.archivePhoto(archiveId, filename),
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: (status) => status == MediaImageStatus.loading
+            ? const DashLoading()
+            : _message(l10n.archivePhotoFailed),
+      ),
+    );
   }
 
   Widget _message(String text) => Center(
