@@ -272,12 +272,26 @@ aab-show *paths:
 clean:
     flutter clean
 
-# ---- 4-release — writes to master and to GitHub ----
+# ---- 4-release — writes to the checked-out branch and to GitHub ----
 #
 # `ship` and `ship-dev` produce the same four artifacts in the same order; they
 # differ only in where the version comes from. Both build the Play bundles
 # *before* publishing the GitHub release, so a bundle that fails to build cannot
 # leave a published release with nothing to promote.
+
+# A release is cut from whatever is checked out: `_bump` commits here and
+# `release-publish` pushes here, so shipping off `dev` leaves master alone. One
+# definition for both, because a bump landing on a different branch than the
+# push would publish a release without its own version commit.
+[no-exit-message]
+_branch:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! branch=$(git symbolic-ref --short -q HEAD); then
+        echo "HEAD is detached — check out the branch you are releasing from." >&2
+        exit 1
+    fi
+    echo "$branch"
 
 # versionCode = (major*10000 + minor*100 + patch) * 20 + 2_000_000
 # (e.g. 1.2.3 → 2_204_060). The *20 opens 19 slots under each release for
@@ -309,7 +323,19 @@ clean:
 _bump ver:
     #!/usr/bin/env bash
     set -euo pipefail
-    git pull --rebase --autostash origin master
+    branch=$(just _branch)
+    # A branch that exists only here — the first release cut from it — has
+    # nothing to rebase onto, and `git pull` would fail on the missing ref.
+    # `--exit-code` says 2 for that and 128 for "could not reach origin": only
+    # the first is a reason to skip the rebase, and swallowing the second would
+    # build the release on a tree that never caught up with the remote.
+    rc=0
+    git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1 || rc=$?
+    case $rc in
+        0) git pull --rebase --autostash origin "$branch" ;;
+        2) echo "origin has no $branch yet — first release from this branch" ;;
+        *) echo "Cannot read origin (git ls-remote exited $rc)." >&2; exit 1 ;;
+    esac
     major=$(echo "{{ver}}" | cut -d. -f1)
     minor=$(echo "{{ver}}" | cut -d. -f2)
     patch=$(echo "{{ver}}" | cut -d. -f3)
@@ -375,8 +401,8 @@ ship ver:
 # `X.Y.Z-dev.N` pins N instead of counting it, as long as that slot is free.
 #
 # pubspec.yaml is not touched and nothing is committed: the version travels as a
-# build flag, so master never carries a `-dev` version and the release points at
-# a SHA. Obtainium hides prereleases by default, so a tester opts in with one
+# build flag, so the branch never carries a `-dev` version and the release
+# points at a SHA. Obtainium hides prereleases by default, so a tester opts in with one
 # switch and everyone else keeps seeing stable only.
 #
 # The Play bundles stay in build/dist/ for the internal testing track; pass
@@ -528,10 +554,12 @@ ship-dev target='' bundles='yes':
 release-publish ver:
     #!/usr/bin/env bash
     set -euo pipefail
+    branch=$(just _branch)
+    sha=$(git rev-parse HEAD)
     # Push the bump commit first; let GitHub create the tag together with the
     # release in one server-side call. This avoids the race where we push a tag
     # and immediately reference it before the server has indexed it.
-    git push origin HEAD:master
+    git push origin "HEAD:refs/heads/$branch"
     # Skip creating the release if it already exists (e.g. a previous run got
     # this far before failing), so the pipeline can be resumed safely.
     if gh release view "v{{ver}}" --repo {{repo}} >/dev/null 2>&1; then
@@ -539,7 +567,7 @@ release-publish ver:
     else
         # Empty notes on purpose: the Play/Obtainium changelog is written by hand
         # afterwards, and --generate-notes would fill it with raw commit subjects.
-        gh release create "v{{ver}}" --repo {{repo}} --target master \
+        gh release create "v{{ver}}" --repo {{repo}} --target "$sha" \
             --title "v{{ver}}" --notes ""
     fi
     just _upload-assets "v{{ver}}" {{apk}} {{wear_apk}}
