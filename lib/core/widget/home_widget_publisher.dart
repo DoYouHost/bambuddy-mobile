@@ -120,7 +120,8 @@ class HomeWidgetPublisher {
   ///
   /// [describeHms] — HMS error description from catalog (foreground: `HmsCatalog.instance`,
   /// background: isolate's local catalog). [fetchCover] — fetches print cover to file
-  /// (authenticated with camera token); differs per isolate, so injected.
+  /// (authenticated with the media credential); differs per isolate, so
+  /// injected.
   /// Both optional — without them, widget simply skips HMS error/thumbnail.
   static Future<void> publish(
     Map<int, PrinterStatus> statuses,

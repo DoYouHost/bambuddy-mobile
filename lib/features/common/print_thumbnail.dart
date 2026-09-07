@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
-import 'camera_token_image_recovery.dart';
+import 'media_auth_image_recovery.dart';
 
-/// Print thumbnail from archive (queue + archive). Auth via `?token=`
-/// (camera token) — auth header does NOT work for this resource, live-verified.
-/// Pattern identical to cover in printer_card. Placeholder instead of error —
-/// never crashes card.
+/// Print thumbnail from archive (queue + archive). Auth via the media
+/// credential — the Bearer header does NOT work for this resource,
+/// live-verified. Pattern identical to cover in printer_card. Placeholder
+/// instead of error — never crashes card.
 ///
 /// Rendered thumbnails have lots of empty margin around model, so we scale
 /// content ([zoom], default 140%) inside crop to "frame" the print and fill tile.
@@ -70,7 +70,7 @@ class PrintThumbnail extends ConsumerStatefulWidget {
 }
 
 class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
-    with CameraTokenImageRecovery {
+    with MediaAuthImageRecovery {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -104,16 +104,17 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
     }
 
     return ref
-        .watch(cameraTokenProvider)
+        .watch(mediaAuthProvider)
         .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
-          data: (token) => ClipRRect(
+          data: (auth) => ClipRRect(
             borderRadius: radius,
             child: Transform.scale(
               scale: zoom,
               child: Image.network(
-                '$baseUrl$path?token=$token',
+                auth.sign('$baseUrl$path'),
+                headers: auth.headers,
                 width: size,
                 height: size,
                 // Server serves full-res renders; without this the decoder
@@ -127,7 +128,7 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {
-                  recoverCameraTokenOnError(error, token);
+                  recoverMediaAuthOnError(error, auth);
                   return placeholder(Icons.broken_image_outlined);
                 },
                 loadingBuilder: (_, child, progress) =>

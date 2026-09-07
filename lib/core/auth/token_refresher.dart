@@ -16,7 +16,7 @@ typedef RefreshTimerFactory = Timer Function(Duration, void Function());
 ///
 /// Expiry-agnostic: both callbacks answer with a [DateTime], so the same
 /// machinery drives the login JWT (expiry parsed out of the token) and the
-/// camera token (a server-side TTL). The server issues no refresh token, so the
+/// image tokens (a server-side TTL). The server issues no refresh token, so the
 /// JWT path re-mints with the saved credentials — `AuthService.silentReLogin`.
 ///
 /// Clock and timer are injected, so this runs in the foreground-service isolate
@@ -171,4 +171,27 @@ ProactiveTokenRefresher jwtTokenRefresher({
   // `silentReLogin` clears the saved login only when the server rejected it,
   // so an empty store separates that from the network being in the way.
   canRetry: () async => await credentials.readRememberedLogin() != null,
+);
+
+/// The refresher for a `?token=` image credential (camera stream, media).
+///
+/// Both are server-side TTLs on a cached mint, and both need the same thing
+/// after a successful re-mint: tell the consumers, so the URL they built
+/// changes and the image reloads. [remint] throwing ends this round without
+/// ending the schedule — the reactive 401 recovery still covers it.
+ProactiveTokenRefresher imageTokenRefresher({
+  required Future<DateTime?> Function() readExpiry,
+  required Future<void> Function() remint,
+  required void Function() onRefreshed,
+}) => ProactiveTokenRefresher(
+  readExpiry: readExpiry,
+  refresh: () async {
+    try {
+      await remint();
+    } on Object {
+      return null;
+    }
+    onRefreshed();
+    return readExpiry();
+  },
 );

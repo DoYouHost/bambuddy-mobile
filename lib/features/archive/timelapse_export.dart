@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:gal/gal.dart';
 
+import '../../core/api/media_auth.dart';
 import '../../data/timelapse_repository.dart';
 import '../common/file_export.dart';
 
@@ -28,7 +29,7 @@ class TimelapseExport {
   /// mean a hundred megabytes pulled for nothing.
   Future<void> saveToGallery(
     int archiveId, {
-    required String token,
+    required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
   }) async {
@@ -38,7 +39,7 @@ class TimelapseExport {
     }
     final file = await _fetch(
       archiveId,
-      token: token,
+      auth: auth,
       name: name,
       onProgress: onProgress,
     );
@@ -47,13 +48,13 @@ class TimelapseExport {
 
   Future<void> share(
     int archiveId, {
-    required String token,
+    required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
   }) async {
     final file = await _fetch(
       archiveId,
-      token: token,
+      auth: auth,
       name: name,
       onProgress: onProgress,
     );
@@ -68,14 +69,14 @@ class TimelapseExport {
   /// filed in the gallery under the wrong extension is one nothing will open.
   Future<File> _fetch(
     int archiveId, {
-    required String token,
+    required MediaAuth auth,
     required String name,
     void Function(double? progress)? onProgress,
   }) => downloadToCacheFile(
     scratchName: 'timelapse-$archiveId.download',
     download: (savePath) => _repository.downloadTo(
       archiveId,
-      token: token,
+      auth: auth,
       savePath: savePath,
       // A server that streams without a length reports -1 as the total; the
       // bar goes indeterminate rather than jumping to a made-up fraction.

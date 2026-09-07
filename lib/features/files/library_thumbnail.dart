@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
-import '../common/camera_token_image_recovery.dart';
+import '../common/media_auth_image_recovery.dart';
 
-/// Library file thumbnail. Authenticated via `?token=` (camera token) —
-/// auth header does NOT work for this resource, same as archive thumbnail
+/// Library file thumbnail. Authenticated with the media credential — the
+/// Bearer header does NOT work for this resource, same as archive thumbnail
 /// (see `PrintThumbnail`). Placeholder instead of error.
 class LibraryThumbnail extends ConsumerStatefulWidget {
   const LibraryThumbnail({
@@ -30,7 +30,7 @@ class LibraryThumbnail extends ConsumerStatefulWidget {
 }
 
 class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
-    with CameraTokenImageRecovery {
+    with MediaAuthImageRecovery {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -53,16 +53,19 @@ class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
     if (!widget.hasThumbnail || baseUrl == null) return placeholder();
 
     return ref
-        .watch(cameraTokenProvider)
+        .watch(mediaAuthProvider)
         .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
-          data: (token) => ClipRRect(
+          data: (auth) => ClipRRect(
             borderRadius: radius,
             child: Transform.scale(
               scale: zoom,
               child: Image.network(
-                '$baseUrl${Endpoints.libraryFileThumbnail(widget.fileId)}?token=$token',
+                auth.sign(
+                  '$baseUrl${Endpoints.libraryFileThumbnail(widget.fileId)}',
+                ),
+                headers: auth.headers,
                 width: size,
                 height: size,
                 // Avoid decoding server's full-res render for a ~56dp tile —
@@ -73,7 +76,7 @@ class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {
-                  recoverCameraTokenOnError(error, token);
+                  recoverMediaAuthOnError(error, auth);
                   return placeholder();
                 },
                 loadingBuilder: (_, child, progress) =>

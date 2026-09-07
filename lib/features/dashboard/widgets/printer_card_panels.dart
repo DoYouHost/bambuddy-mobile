@@ -285,7 +285,7 @@ class _PrintPanel extends StatelessWidget {
   }
 }
 
-/// Cover thumbnail for the current print (fetched with the camera stream token).
+/// Cover thumbnail for the current print (fetched with the media credential).
 /// Placeholder instead of error — never crashes the card.
 class _CoverThumbnail extends ConsumerStatefulWidget {
   const _CoverThumbnail({required this.coverUrl});
@@ -300,7 +300,7 @@ class _CoverThumbnail extends ConsumerStatefulWidget {
 }
 
 class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
-    with CameraTokenImageRecovery {
+    with MediaAuthImageRecovery {
   @override
   Widget build(BuildContext context) {
     Widget placeholder() => ClipRRect(
@@ -321,14 +321,15 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
     if (baseUrl == null) return placeholder();
 
     return ref
-        .watch(cameraTokenProvider)
+        .watch(mediaAuthProvider)
         .when(
           loading: placeholder,
           error: (_, _) => placeholder(),
-          data: (token) => ClipRRect(
+          data: (auth) => ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
-              '$baseUrl$url?token=$token',
+              auth.sign('$baseUrl$url'),
+              headers: auth.headers,
               key: const ValueKey('cover_network'),
               width: _CoverThumbnail._size,
               height: _CoverThumbnail._size,
@@ -339,7 +340,7 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
               fit: BoxFit.cover,
               gaplessPlayback: true,
               errorBuilder: (_, error, _) {
-                recoverCameraTokenOnError(error, token);
+                recoverMediaAuthOnError(error, auth);
                 return placeholder();
               },
               loadingBuilder: (_, child, progress) =>

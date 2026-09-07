@@ -12,7 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../common/camera_token_image_recovery.dart';
+import '../common/media_auth_image_recovery.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
@@ -43,7 +43,7 @@ class SkipObjectsScreen extends ConsumerStatefulWidget {
 }
 
 class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
-    with CameraTokenImageRecovery {
+    with MediaAuthImageRecovery {
   /// Object ids selected to skip, pending the batch confirmation.
   final _selected = <int>{};
 
@@ -352,7 +352,7 @@ class _LayerWarning extends StatelessWidget {
 
 /// Top-down plate render with each object drawn over it: its real outline from
 /// the slicer's object-ID mask, or a badge at its plate position when there is
-/// no mask. Auth for both images is the camera stream token in `?token=`.
+/// no mask. Auth for both images is the media credential, not the header.
 class _PlatePreview extends ConsumerStatefulWidget {
   const _PlatePreview({
     required this.printerId,
@@ -368,7 +368,7 @@ class _PlatePreview extends ConsumerStatefulWidget {
   final int printerId;
   final String? coverUrl;
   final PrintableObjects data;
-  final CameraTokenImageRecovery recovery;
+  final MediaAuthImageRecovery recovery;
 
   /// Object ids currently selected to skip — drawn as the marker's "selected"
   /// state on the plate.
@@ -422,16 +422,17 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
       background = noRender;
     } else {
       background = ref
-          .watch(cameraTokenProvider)
+          .watch(mediaAuthProvider)
           .when(
             loading: () => noRender,
             error: (_, _) => noRender,
-            data: (token) => Image.network(
-              '$baseUrl$coverUrl?view=top&token=$token',
+            data: (auth) => Image.network(
+              auth.sign('$baseUrl$coverUrl?view=top'),
+              headers: auth.headers,
               fit: BoxFit.contain,
               gaplessPlayback: true,
               errorBuilder: (_, error, _) {
-                widget.recovery.recoverCameraTokenOnError(error, token);
+                widget.recovery.recoverMediaAuthOnError(error, auth);
                 return noRender;
               },
               loadingBuilder: (_, child, progress) =>

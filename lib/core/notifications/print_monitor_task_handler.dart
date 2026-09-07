@@ -21,6 +21,8 @@ import '../../data/archive_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
 import '../api/camera_token.dart';
+import '../api/media_auth.dart';
+import '../api/media_token.dart';
 import '../api/ws_client.dart';
 import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
@@ -79,7 +81,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   var _wsUp = false;
   // HMS catalog + cover fetch path for widget (separate from UI isolate).
   HmsCatalog? _hmsCatalog;
-  CameraTokenService? _cameraToken;
+  MediaAuthService? _mediaAuth;
   Dio? _coverDio;
   // This isolate's diagnostic stream, when the user is recording a bug report.
   // Null the rest of the time, which is why every use of it is `?.`.
@@ -207,9 +209,16 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // below, instead of each independently rebuilding Dio + interceptors +
     // a keystore read via its own `buildBackgroundApiClient` call.
     final api = await buildBackgroundApiClient(prefs);
-    // Print cover fetch for the widget: camera token minted with authenticated Dio,
-    // image fetched with bare Dio using `?token=`.
-    _cameraToken = api != null ? CameraTokenService(api.dio) : null;
+    // Print cover fetch for the widget: media credential resolved with the
+    // authenticated Dio, image fetched with bare Dio carrying it explicitly.
+    _mediaAuth = api == null
+        ? null
+        : MediaAuthService(
+            media: MediaTokenService(api.dio),
+            camera: CameraTokenService(api.dio),
+            authMode: profile.authMode,
+            readApiKey: SecureCredentialsStore().readApiKey,
+          );
     _coverDio = createBareDio();
     // Load notification preferences once at startup; UI changes take effect
     // on the next background entry (service restarts from scratch then).
@@ -433,41 +442,42 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
   }
 
-  /// Fetches the current print cover image to a file for the widget (authenticated with
-  /// camera token, cached by `cover_url` in [WidgetCoverCache]). Returns null if unavailable.
+  /// Fetches the current print cover image to a file for the widget
+  /// (authenticated with the media credential, cached by `cover_url` in
+  /// [WidgetCoverCache]). Returns null if unavailable.
   Future<String?> _fetchCover(String baseUrl, PrinterStatus picked) {
     final cover = picked.coverUrl;
-    final tokenSvc = _cameraToken;
+    final media = _mediaAuth;
     final dio = _coverDio;
-    if (cover == null || tokenSvc == null || dio == null) {
+    if (cover == null || media == null || dio == null) {
       return Future.value(null);
     }
     return WidgetCoverCache.fetch(
       baseUrl: baseUrl,
       coverPath: cover,
       dio: dio,
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 
   /// Downloads a finished print's photo to files the notification can carry.
-  /// Same auth shape as the cover above: camera token in `?token=`, bare Dio.
+  /// Same auth shape as the cover above: media credential, bare Dio.
   Future<AlertPicture?> _fetchFinishPhoto(
     String baseUrl,
     int archiveId,
     String filename,
   ) {
-    final tokenSvc = _cameraToken;
+    final media = _mediaAuth;
     final dio = _coverDio;
-    if (tokenSvc == null || dio == null) return Future.value(null);
+    if (media == null || dio == null) return Future.value(null);
     return FinishPhotoImage.store(
       baseUrl: baseUrl,
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 

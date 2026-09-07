@@ -57,6 +57,13 @@ abstract final class Endpoints {
   /// before accepting the connection.
   static const wsToken = '$apiPrefix/auth/ws-token';
 
+  /// Mint a short-lived media token (valid ~60 min). Required as `?token=` on
+  /// every image/video route the app loads outside Dio — thumbnails, covers,
+  /// plate renders, photos, timelapses — since server 1.2.5.5 (#3025) took
+  /// those off the camera stream token. **404 on older servers**, which still
+  /// want [cameraStreamToken] there; `MediaAuthService` picks between the two.
+  static const mediaToken = '$apiPrefix/auth/media-token';
+
   // Trailing slash required: server (FastAPI) has route at `/printers/`,
   // and `/printers` (without slash) returns 404 for authenticated requests.
   static const printers = '$apiPrefix/printers/';
@@ -112,8 +119,10 @@ abstract final class Endpoints {
   static String printerSensorHistory(int printerId) =>
       '$apiPrefix/printer-sensor-history/$printerId';
 
-  /// Mint camera stream token (valid ~60 min). Required as `?token=`
-  /// for print cover (`cover_url`) and — from M2 — for camera preview.
+  /// Mint camera stream token (valid ~60 min). Required as `?token=` on the
+  /// camera stream and snapshot routes, and — on servers older than 1.2.5.5 —
+  /// on every other `?token=` image route too; see [mediaToken]. Minting it
+  /// costs `camera:view`, which is why #3025 split the rest off.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';
 
   /// MJPEG camera stream (`multipart/x-mixed-replace; boundary=frame`).
@@ -390,8 +399,8 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/print/skip-objects';
 
   /// Current print cover image. Query `view=top` gives the top-down build-plate
-  /// render used for the skip-objects overlay. Auth via `?token=` (camera
-  /// stream token), NOT via header — same as [PrinterStatus.coverUrl].
+  /// render used for the skip-objects overlay. Auth via `?token=` ([mediaToken])
+  /// or `X-API-Key`, NOT the Bearer header — same as [PrinterStatus.coverUrl].
   static String printerCover(int printerId) =>
       '$apiPrefix/printers/$printerId/cover';
 
@@ -457,14 +466,14 @@ abstract final class Endpoints {
   /// what the single-cause wording used to claim unconditionally.
   static const archivesNo3mfWarning = '$apiPrefix/archives/no-3mf-warning';
 
-  /// Thumbnail authenticated via `?token=` (camera token), NOT via header
-  /// — see cover in printer_card.
+  /// Thumbnail authenticated via `?token=` ([mediaToken]), NOT via the Bearer
+  /// header — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
-  /// The archive's timelapse video, authenticated via `?token=` (camera token)
-  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the camera
-  /// stream token, not the auth header. 404 while the print has no video yet.
+  /// The archive's timelapse video, authenticated via `?token=` ([mediaToken])
+  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the media
+  /// token, not the Bearer header. 404 while the print has no video yet.
   ///
   /// Container is whatever the printer produced: MP4 from most models, AVI from
   /// a P1S until the server's background conversion catches up.
@@ -482,8 +491,9 @@ abstract final class Endpoints {
   static String archivePrinterMedia(int archiveId) =>
       '$apiPrefix/archives/$archiveId/printer-media';
 
-  /// One photo attached to the archive, authenticated via `?token=` (camera
-  /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
+  /// One photo attached to the archive, authenticated via `?token=`
+  /// ([mediaToken]) like [archiveThumbnail]. [filename] comes from
+  /// `Archive.photos` —
   /// `archives.py::get_photo` serves nothing that is not on that list.
   static String archivePhoto(int archiveId, String filename) {
     final name = Uri.encodeComponent(filename);
@@ -549,7 +559,7 @@ abstract final class Endpoints {
   /// does not: `has_gcode` and a per-plate `bed_type`.
   ///
   /// Each plate row carries its own `thumbnail_url` for
-  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` (camera token)
+  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` ([mediaToken])
   /// like [archiveThumbnail], and null when the 3MF has no render for that
   /// plate. That path is read from the row rather than rebuilt here: the archive
   /// and library routes spell it differently and the row knows which one it came
@@ -578,8 +588,9 @@ abstract final class Endpoints {
   /// points at untouched. Both arrived in server 0.2.4.6; older servers 405.
   static String printLogEntry(int entryId) => '$apiPrefix/print-log/$entryId';
 
-  /// Thumbnail authenticated via `?token=` (camera token), NOT via header —
-  /// same as [archiveThumbnail]. 404 once the file behind it is gone, which
+  /// Thumbnail authenticated via `?token=` ([mediaToken]), NOT via the Bearer
+  /// header — same as [archiveThumbnail]. 404 once the file behind it is gone,
+  /// which
   /// also clears `thumbnail_path` on the entry server-side.
   static String printLogThumbnail(int entryId) =>
       '$apiPrefix/print-log/$entryId/thumbnail';
@@ -991,7 +1002,7 @@ abstract final class Endpoints {
   //
   // Print files (3mf/gcode/stl…) organized in folder tree. Auth via header
   // (X-API-Key / Bearer) — except thumbnail, which (like archive cover)
-  // goes via `?token=` camera token.
+  // goes via `?token=` media token.
 
   /// File list. Query (all optional): `folder_id` (null = root level when
   /// `include_root=true`), `project_id`, `include_root` (default true).
@@ -1003,8 +1014,8 @@ abstract final class Endpoints {
   /// filename/folder_id/notes), `DELETE` (to trash).
   static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
 
-  /// File thumbnail — authenticated via `?token=` (camera token), NOT
-  /// header, similar to [archiveThumbnail].
+  /// File thumbnail — authenticated via `?token=` ([mediaToken]), NOT the
+  /// Bearer header, similar to [archiveThumbnail].
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
@@ -1253,7 +1264,7 @@ abstract final class Endpoints {
       '$apiPrefix/projects/$projectId/attachments/$filename';
 
   /// Cover image: `POST` multipart `{file}` (upload), `GET` (image — auth via
-  /// `?token=` camera token, NOT header), `DELETE`.
+  /// `?token=` [mediaToken], NOT the Bearer header), `DELETE`.
   static String projectCoverImage(int projectId) =>
       '$apiPrefix/projects/$projectId/cover-image';
 

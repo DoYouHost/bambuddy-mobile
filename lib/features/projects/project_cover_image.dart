@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../providers.dart';
-import '../common/camera_token_image_recovery.dart';
+import '../common/media_auth_image_recovery.dart';
 
-/// Project cover image. Authenticated via `?token=` (camera token) — the auth
+/// Project cover image. Authenticated with the media credential — the Bearer
 /// header does NOT work for this resource, same as [LibraryThumbnail] / archive
 /// cover. Shows a placeholder instead of an error so cards never crash.
 ///
@@ -35,7 +35,7 @@ class ProjectCoverImage extends ConsumerStatefulWidget {
 }
 
 class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
-    with CameraTokenImageRecovery {
+    with MediaAuthImageRecovery {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -63,19 +63,24 @@ class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
     if (!widget.hasCover || baseUrl == null) return placeholder();
 
     return ref
-        .watch(cameraTokenProvider)
+        .watch(mediaAuthProvider)
         .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
-          data: (token) {
+          data: (auth) {
             final cacheBust = widget.cacheBust;
+            // Signed last, so the credential lands on whichever separator the
+            // cache-buster left free — it may be a header and add none at all.
             final bust = cacheBust == null
                 ? ''
-                : '&v=${Uri.encodeQueryComponent(cacheBust)}';
+                : '?v=${Uri.encodeQueryComponent(cacheBust)}';
             return ClipRRect(
               borderRadius: radius,
               child: Image.network(
-                '$baseUrl${Endpoints.projectCoverImage(widget.projectId)}?token=$token$bust',
+                auth.sign(
+                  '$baseUrl${Endpoints.projectCoverImage(widget.projectId)}$bust',
+                ),
+                headers: auth.headers,
                 width: width,
                 height: height,
                 // Server serves a full-res cover — cap decode resolution for
@@ -87,7 +92,7 @@ class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, error, _) {
-                  recoverCameraTokenOnError(error, token);
+                  recoverMediaAuthOnError(error, auth);
                   return placeholder();
                 },
                 loadingBuilder: (_, child, progress) =>

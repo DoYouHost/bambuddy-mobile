@@ -188,19 +188,20 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     unawaited(MultiWidgetPublisher.publish(state, l10n).catchError((_) {}));
   }
 
-  /// Fetch cover of current print to file (auth via camera token). Raw Dio
-  /// + token from [cameraTokenServiceProvider]; cache by `cover_url` in [WidgetCoverCache].
+  /// Fetch cover of current print to file (auth via the media credential). Raw
+  /// Dio + [mediaAuthServiceProvider]; cache by `cover_url` in
+  /// [WidgetCoverCache].
   Future<String?> _fetchCover(PrinterStatus picked) {
     final profile = ref.read(serverProfileProvider);
     final cover = picked.coverUrl;
     if (profile == null || cover == null) return Future.value(null);
-    final tokenSvc = ref.read(cameraTokenServiceProvider);
+    final media = ref.read(mediaAuthServiceProvider);
     return WidgetCoverCache.fetch(
       baseUrl: profile.baseUrl,
       coverPath: cover,
       dio: ref.read(bareDioProvider),
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 

@@ -90,19 +90,16 @@ final objectPickMaskProvider = FutureProvider.autoDispose
       if (coverUrl == null) return null;
 
       final repo = ref.read(skipObjectsRepositoryProvider);
-      final tokens = ref.read(cameraTokenServiceProvider);
-      Future<Uint8List?> load({bool freshToken = false}) async =>
-          repo.fetchPickMask(
-            printerId,
-            await tokens.token(forceRefresh: freshToken),
-          );
+      final media = ref.read(mediaAuthServiceProvider);
+      Future<Uint8List?> load({bool freshToken = false}) async => repo
+          .fetchPickMask(printerId, await media.auth(forceRefresh: freshToken));
 
       try {
         Uint8List? png;
         try {
           png = await load();
         } on AuthException catch (e) {
-          // Same recovery as CameraTokenImageRecovery does for <img>-style loads:
+          // Same recovery as MediaAuthImageRecovery does for <img>-style loads:
           // an expired token is indistinguishable from a broken one until a fresh
           // one is tried.
           if (e.code != AppErrorCode.unauthorized) rethrow;

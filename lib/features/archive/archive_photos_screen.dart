@@ -6,7 +6,7 @@ import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/camera_token_image_recovery.dart';
+import '../common/media_auth_image_recovery.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/state_views.dart';
@@ -16,8 +16,8 @@ import 'archive_providers.dart';
 /// server takes off the camera the moment the print finishes.
 ///
 /// Like thumbnails and the timelapse, `GET /archives/{id}/photos/{name}` is
-/// gated on the camera stream token in `?token=` rather than on the auth
-/// header, so the URL is built here instead of going through the Dio client.
+/// gated on the media credential rather than on the Bearer header, so the URL
+/// is built here instead of going through the Dio client.
 ///
 /// The photo list is re-read from the server rather than carried in from the
 /// archive list: the finish photo is attached in a background task seconds to
@@ -127,8 +127,8 @@ class _PhotoPagerState extends State<_PhotoPager> {
   }
 }
 
-/// One photo, pinch-zoomable. A lapsed camera token fails the same way a
-/// missing file does, so [CameraTokenImageRecovery] re-mints once and the new
+/// One photo, pinch-zoomable. A lapsed media token fails the same way a
+/// missing file does, so [MediaAuthImageRecovery] re-mints once and the new
 /// URL reloads the image.
 class _Photo extends ConsumerStatefulWidget {
   const _Photo({required this.archiveId, required this.filename});
@@ -140,7 +140,7 @@ class _Photo extends ConsumerStatefulWidget {
   ConsumerState<_Photo> createState() => _PhotoState();
 }
 
-class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
+class _PhotoState extends ConsumerState<_Photo> with MediaAuthImageRecovery {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -150,21 +150,24 @@ class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
     }
 
     return ref
-        .watch(cameraTokenProvider)
+        .watch(mediaAuthProvider)
         .when(
           loading: () => const DashLoading(),
           error: (_, _) => _message(l10n.archivePhotoFailed),
-          data: (token) => InteractiveViewer(
+          data: (auth) => InteractiveViewer(
             maxScale: 5,
             child: Image.network(
-              '$baseUrl${Endpoints.archivePhoto(widget.archiveId, widget.filename)}'
-              '?token=$token',
+              auth.sign(
+                '$baseUrl'
+                '${Endpoints.archivePhoto(widget.archiveId, widget.filename)}',
+              ),
+              headers: auth.headers,
               fit: BoxFit.contain,
               width: double.infinity,
               height: double.infinity,
               gaplessPlayback: true,
               errorBuilder: (_, error, _) {
-                recoverCameraTokenOnError(error, token);
+                recoverMediaAuthOnError(error, auth);
                 return _message(l10n.archivePhotoFailed);
               },
               loadingBuilder: (_, child, progress) =>

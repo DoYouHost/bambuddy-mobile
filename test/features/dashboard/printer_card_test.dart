@@ -14,6 +14,7 @@ import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
+import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -346,7 +347,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
     ProviderScope(
       overrides: [
         fakeServerProfileOverride(),
-        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        mediaAuthOverride(),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
@@ -376,19 +377,25 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 
 /// Wraps the tree in a ProviderScope — the card now contains an interactive
 /// controls bar (`_ControlsActions`, ConsumerWidget), so every render of a
-/// card with a status needs a scope. Profile = no auth, camera token stubbed.
+/// card with a status needs a scope. Profile = no auth, media credential
+/// stubbed.
+///
+/// [media] is a parameter rather than something [extra] can add: the first
+/// override of a provider is the one the scope uses, so a second one for the
+/// same provider is silently ignored.
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
   InventoryBackend backend = InventoryBackend.native,
   bool apiKeySession = false,
+  MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
   overrides: [
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
     inventoryBackendProvider.overrideWith(() => _FixedBackendNotifier(backend)),
-    cameraTokenProvider.overrideWith((ref) async => 'tok'),
+    mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
@@ -402,11 +409,13 @@ Widget _scope(
 Widget _cardWithProviders(
   PrinterWithStatus item, {
   List<Override> extra = const [],
+  MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => _scope(
   Scaffold(
     body: SingleChildScrollView(child: PrinterCard(item: item)),
   ),
   extra: extra,
+  media: media,
 );
 
 /// A stable scope with a swappable item (same card key → State reuse,
@@ -421,7 +430,7 @@ Widget _cardSwap(
 }) => ProviderScope(
   overrides: [
     fakeServerProfileOverride(),
-    cameraTokenProvider.overrideWith((ref) async => 'tok'),
+    mediaAuthOverride(),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
@@ -1295,7 +1304,7 @@ void main() {
       return ProviderScope(
         overrides: [
           fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          mediaAuthOverride(),
           inertFirmwareOverride,
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
@@ -1927,6 +1936,17 @@ void main() {
     });
   });
 
+  /// The cover's [NetworkImage], unwrapped from the [ResizeImage] the card
+  /// puts around it to cap the decode resolution.
+  NetworkImage coverSource(WidgetTester tester) {
+    final image = tester.widget<Image>(
+      find.byKey(const ValueKey('cover_network')),
+    );
+    final provider = image.image;
+    return (provider is ResizeImage ? provider.imageProvider : provider)
+        as NetworkImage;
+  }
+
   group('_CoverThumbnail', () {
     testWidgets('printer with coverUrl: shows Image when token available', (
       tester,
@@ -1948,6 +1968,40 @@ void main() {
 
       // We attempt to load the cover (network image), not the placeholder.
       expect(find.byKey(const ValueKey('cover_network')), findsOneWidget);
+      expect(
+        coverSource(tester).url,
+        '$fakeServerBaseUrl/api/v1/printers/1/cover?token=tok',
+      );
+    });
+
+    testWidgets('an API key signs the cover with a header, not a token', (
+      tester,
+    ) async {
+      // The media routes refuse a token minted by an API key (it names no
+      // principal), so the credential has to reach them as a header instead —
+      // and an `Image.network` is the only place the app can attach one.
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C Warsztat'),
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          progress: 43,
+          remainingTime: 137,
+          coverUrl: '/api/v1/printers/1/cover',
+        ),
+      );
+
+      await tester.pumpWidget(
+        _cardWithProviders(
+          item,
+          media: const MediaAuth(headers: {'X-API-Key': 'bb_key'}),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final source = coverSource(tester);
+      expect(source.url, '$fakeServerBaseUrl/api/v1/printers/1/cover');
+      expect(source.headers, {'X-API-Key': 'bb_key'});
     });
 
     testWidgets(
@@ -2001,7 +2055,7 @@ void main() {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
       overrides: [
         fakeServerProfileOverride(),
-        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        mediaAuthOverride(),
         inertSmartPlugsOverride,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
@@ -2071,7 +2125,7 @@ void main() {
         ),
         overrides: [
           fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          mediaAuthOverride(),
           inertSmartPlugsOverride,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,

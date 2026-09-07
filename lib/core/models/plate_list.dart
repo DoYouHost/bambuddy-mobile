@@ -43,7 +43,7 @@ class PlateInfo {
 
   /// A path on **this** server, or null.
   ///
-  /// The value is fetched with the camera token in the query, so where it points
+  /// The value is fetched with the media token in the query, so where it points
   /// decides who gets to see that token. The server has no business naming
   /// another host here — it builds these as `/api/v1/…` — and an absolute URL
   /// or a protocol-relative `//host/…` would send the token off to whoever it

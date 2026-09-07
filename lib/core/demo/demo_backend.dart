@@ -253,6 +253,10 @@ class DemoBackend {
         if (at(1, 'ws-token') || at(1, 'me')) {
           return at(1, 'me') ? _ok(_demoUser) : _ok({'token': 'demo-ws-token'});
         }
+        // Served because this backend reports 1.2.6b1: a demo that 404'd here
+        // would exercise the pre-#3025 camera-token fallback instead of the
+        // path a current server takes.
+        if (at(1, 'media-token')) return _ok({'token': 'demo-media-token'});
         return _notFound();
 
       case 'updates':
