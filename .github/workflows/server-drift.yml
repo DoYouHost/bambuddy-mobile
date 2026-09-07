@@ -239,17 +239,77 @@ jobs:
           title="Server drift: ${to_sha:0:8}"
           number="${{ steps.state.outputs.issue_number }}"
 
-          # Body = the marker plus what is still owed, rewritten every run.
-          # Comment = what this range changed, including every item struck off,
-          # so the list can shrink without the reason for it being lost.
+          # The body is what is still owed and nothing else, so the run lifts
+          # out of the checklist everything that is not: a line the maintainer
+          # ticked, and `Watch only`, which is reference rather than work. They
+          # go into this run comment, which is never edited again.
+          #
+          # Mechanical here rather than asked of the triage, because the triage
+          # is a model: it kept every ticked line it was handed, and #31 had
+          # reached 15 of them standing over 2 open ones. An emptied section
+          # keeps its heading and says `- none`, so the shape a reader scans
+          # does not change with the week.
+          awk -v K=kept.md -v H=harvest.md '
+            function flush(   i) {
+              if (sec == "") return
+              if (!drop) {
+                print "## " sec > K
+                print "" > K
+                if (nk == 0) print "- none" > K
+                else for (i = 1; i <= nk; i++) print kbuf[i] > K
+                print "" > K
+              }
+              if (nh > 0) {
+                print "### " sec > H
+                for (i = 1; i <= nh; i++) print hbuf[i] > H
+                print "" > H
+              }
+              split("", kbuf); split("", hbuf); nk = 0; nh = 0
+            }
+            /^## / {
+              flush()
+              sec = $0; sub(/^## +/, "", sec)
+              drop = (sec == "Watch only" || sec == "Questions")
+              next
+            }
+            {
+              if ($0 ~ /^[ \t]*$/) next
+              if (sec == "") { print > K; next }
+              if (drop || $0 ~ /^- \[x\]/) hbuf[++nh] = $0
+              else kbuf[++nk] = $0
+            }
+            END { flush() }
+          ' "$items"
+
+          if [[ ! -s kept.md ]]; then
+            echo "::error::The split produced an empty checklist from $items."
+            exit 1
+          fi
+
           {
             echo "<!-- server-drift state, read by .github/workflows/server-drift.yml"
             echo "server_sha: $to_sha"
             echo "dev_sha: $dev_sha"
             echo "-->"
             echo
-            cat "$items"
+            cat kept.md
           } > body.md
+
+          # Comment = what this range changed, plus whatever the split lifted
+          # out, so the list can shrink without the reason for it being lost.
+          {
+            cat "$report"
+            if [[ -s harvest.md ]]; then
+              echo
+              echo "---"
+              echo
+              echo "## Lifted out of the checklist"
+              echo
+              echo "Ticked off, or reference rather than work. Kept here because the body is only what is still owed."
+              echo
+              cat harvest.md
+            fi
+          } > comment.md
 
           # An open issue is a debt still owed, so the run appends its record to
           # it; a closed one means that range was dealt with, and the next range
@@ -263,7 +323,7 @@ jobs:
             echo "opened $url"
           fi
 
-          gh issue comment "$number" --body-file "$report"
+          gh issue comment "$number" --body-file comment.md
 
       - name: Nothing moved
         if: steps.filter.outputs.drift == 'no'
