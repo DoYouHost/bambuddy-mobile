@@ -69,16 +69,15 @@ void main() {
         .allMatches(source)
         .map((m) => m.group(0)!)
         .firstWhere((t) => t.contains(pluginService));
-    return RegExp(r'android:foregroundServiceType="(\w+)"')
-        .firstMatch(tag)!
-        .group(1)!;
+    return RegExp(
+      r'android:foregroundServiceType="(\w+)"',
+    ).firstMatch(tag)!.group(1)!;
   }
 
   test('the manifest and the start call name the same service type', () {
-    final started = RegExp(r'ForegroundServiceTypes\.(\w+)')
-        .allMatches(monitor)
-        .map((m) => m.group(1)!)
-        .toSet();
+    final started = RegExp(
+      r'ForegroundServiceTypes\.(\w+)',
+    ).allMatches(monitor).map((m) => m.group(1)!).toSet();
 
     // A scan that found nothing would make the comparison vacuous.
     expect(started, isNotEmpty, reason: 'no service type in $monitorPath');
@@ -139,10 +138,11 @@ void main() {
     final enabled = RegExp(r'allowWakeLock:\s*true');
 
     var total = 0;
-    for (final file in Directory('lib')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'))) {
+    for (final file
+        in Directory('lib')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))) {
       final source = file.readAsStringSync();
       final count = construction.allMatches(source).length;
       total += count;
@@ -155,7 +155,8 @@ void main() {
       expect(
         disabled.allMatches(source).length,
         count,
-        reason: '${file.path} builds ForegroundTaskOptions without saying '
+        reason:
+            '${file.path} builds ForegroundTaskOptions without saying '
             'allowWakeLock: false, which the plugin reads as true',
       );
     }
