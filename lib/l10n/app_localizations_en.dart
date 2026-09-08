@@ -6533,6 +6533,131 @@ class AppLocalizationsEn extends AppLocalizations {
       'Users, API keys, settings, backups — everything the app itself has no screen for.';
 
   @override
+  String get serverSettingsMenu => 'Server settings';
+
+  @override
+  String get serverSettingsTitle => 'Server settings';
+
+  @override
+  String get serverSettingsQueueSubtitle =>
+      'Scheduling, preheat, and holding a bed warm between prints';
+
+  @override
+  String get serverSettingsMaintenanceSubtitle =>
+      'Task types and per-printer intervals';
+
+  @override
+  String get serverSettingsAdminSubtitle => 'Accounts, groups and API keys';
+
+  @override
+  String get serverSettingsCloudSubtitle =>
+      'The Bambu account the server downloads with';
+
+  @override
+  String get queueSettingsTitle => 'Queue and preheat';
+
+  @override
+  String get queueSettingsReadOnlyApiKey =>
+      'An API key can never write server settings. Sign in with an account to change these.';
+
+  @override
+  String get queueSettingsReadOnlyPermission =>
+      'Your account may read these settings but not change them.';
+
+  @override
+  String get queueSettingsQueueHeader => 'Queue';
+
+  @override
+  String get queueSettingsPlateClearTitle => 'Confirm the plate is clear';
+
+  @override
+  String get queueSettingsPlateClearDesc =>
+      'After a print the printer waits for someone to confirm the plate is empty.';
+
+  @override
+  String get queueSettingsShortestFirstTitle => 'Shortest job first';
+
+  @override
+  String get queueSettingsShortestFirstDesc =>
+      'Take the shortest waiting job rather than the one that has waited longest.';
+
+  @override
+  String queueSettingsMaxUploads(int count) {
+    return 'Files uploaded at the same time: $count';
+  }
+
+  @override
+  String get queueSettingsPreheatHeader => 'Preheat';
+
+  @override
+  String get queueSettingsPreheatTitle => 'Preheat before a job';
+
+  @override
+  String get queueSettingsPreheatDesc =>
+      'Warms the chamber before the file is sent. A single queued job can overrule it.';
+
+  @override
+  String queueSettingsPreheatMaxWait(String duration) {
+    return 'Chamber wait limit: $duration';
+  }
+
+  @override
+  String queueSettingsPreheatSoak(String duration) {
+    return 'Soak after reaching temperature: $duration';
+  }
+
+  @override
+  String get queueSettingsNoSoak => 'no soak';
+
+  @override
+  String get queueSettingsPreheatOffNote =>
+      'Preheat is off, so these two change nothing.';
+
+  @override
+  String get queueSettingsKeepWarmHeader => 'Keep warm';
+
+  @override
+  String get queueSettingsKeepWarmTitle => 'Hold the bed warm between prints';
+
+  @override
+  String get queueSettingsKeepWarmDesc =>
+      'Until someone takes the finished print off, the bed stays hot — so the next chamber-heated job does not start from cold. Skipped for PLA and PETG.';
+
+  @override
+  String queueSettingsKeepWarmTemp(int temp) {
+    return 'Bed temperature used to heat the chamber: $temp °C';
+  }
+
+  @override
+  String queueSettingsKeepWarmMax(String duration) {
+    return 'Longest the bed is held: $duration';
+  }
+
+  @override
+  String get queueSettingsMaxUploadsDesc =>
+      'Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.';
+
+  @override
+  String get queueSettingsPreheatMaxWaitDesc =>
+      'An X1C or P2S has no chamber heater — the chamber warms from the bed, which can take 15–30 minutes. After this the queue stops waiting and moves on to the soak.';
+
+  @override
+  String get queueSettingsPreheatSoakDesc =>
+      'Extra time at temperature after the chamber reaches it, or after the wait above runs out. Zero skips it.';
+
+  @override
+  String get queueSettingsKeepWarmTempDesc =>
+      '90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.';
+
+  @override
+  String get queueSettingsKeepWarmMaxDesc =>
+      'Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.';
+
+  @override
+  String get queueSettingsKeepWarmOffNote =>
+      'Keep-warm is off. The bed temperature above still applies to preheat.';
+
+  @override
   String get adminMenu => 'Administration';
 
   @override

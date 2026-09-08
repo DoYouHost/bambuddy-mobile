@@ -11042,6 +11042,204 @@ abstract class AppLocalizations {
   /// **'Users, API keys, settings, backups — everything the app itself has no screen for.'**
   String get groupsAdvancedHint;
 
+  /// No description provided for @serverSettingsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Server settings'**
+  String get serverSettingsMenu;
+
+  /// No description provided for @serverSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Server settings'**
+  String get serverSettingsTitle;
+
+  /// No description provided for @serverSettingsQueueSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduling, preheat, and holding a bed warm between prints'**
+  String get serverSettingsQueueSubtitle;
+
+  /// No description provided for @serverSettingsMaintenanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Task types and per-printer intervals'**
+  String get serverSettingsMaintenanceSubtitle;
+
+  /// No description provided for @serverSettingsAdminSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts, groups and API keys'**
+  String get serverSettingsAdminSubtitle;
+
+  /// No description provided for @serverSettingsCloudSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bambu account the server downloads with'**
+  String get serverSettingsCloudSubtitle;
+
+  /// No description provided for @queueSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue and preheat'**
+  String get queueSettingsTitle;
+
+  /// No description provided for @queueSettingsReadOnlyApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'An API key can never write server settings. Sign in with an account to change these.'**
+  String get queueSettingsReadOnlyApiKey;
+
+  /// No description provided for @queueSettingsReadOnlyPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account may read these settings but not change them.'**
+  String get queueSettingsReadOnlyPermission;
+
+  /// No description provided for @queueSettingsQueueHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get queueSettingsQueueHeader;
+
+  /// No description provided for @queueSettingsPlateClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the plate is clear'**
+  String get queueSettingsPlateClearTitle;
+
+  /// No description provided for @queueSettingsPlateClearDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'After a print the printer waits for someone to confirm the plate is empty.'**
+  String get queueSettingsPlateClearDesc;
+
+  /// No description provided for @queueSettingsShortestFirstTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest job first'**
+  String get queueSettingsShortestFirstTitle;
+
+  /// No description provided for @queueSettingsShortestFirstDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Take the shortest waiting job rather than the one that has waited longest.'**
+  String get queueSettingsShortestFirstDesc;
+
+  /// No description provided for @queueSettingsMaxUploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Files uploaded at the same time: {count}'**
+  String queueSettingsMaxUploads(int count);
+
+  /// No description provided for @queueSettingsPreheatHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat'**
+  String get queueSettingsPreheatHeader;
+
+  /// No description provided for @queueSettingsPreheatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat before a job'**
+  String get queueSettingsPreheatTitle;
+
+  /// No description provided for @queueSettingsPreheatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Warms the chamber before the file is sent. A single queued job can overrule it.'**
+  String get queueSettingsPreheatDesc;
+
+  /// No description provided for @queueSettingsPreheatMaxWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber wait limit: {duration}'**
+  String queueSettingsPreheatMaxWait(String duration);
+
+  /// No description provided for @queueSettingsPreheatSoak.
+  ///
+  /// In en, this message translates to:
+  /// **'Soak after reaching temperature: {duration}'**
+  String queueSettingsPreheatSoak(String duration);
+
+  /// No description provided for @queueSettingsNoSoak.
+  ///
+  /// In en, this message translates to:
+  /// **'no soak'**
+  String get queueSettingsNoSoak;
+
+  /// No description provided for @queueSettingsPreheatOffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat is off, so these two change nothing.'**
+  String get queueSettingsPreheatOffNote;
+
+  /// No description provided for @queueSettingsKeepWarmHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep warm'**
+  String get queueSettingsKeepWarmHeader;
+
+  /// No description provided for @queueSettingsKeepWarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the bed warm between prints'**
+  String get queueSettingsKeepWarmTitle;
+
+  /// No description provided for @queueSettingsKeepWarmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Until someone takes the finished print off, the bed stays hot — so the next chamber-heated job does not start from cold. Skipped for PLA and PETG.'**
+  String get queueSettingsKeepWarmDesc;
+
+  /// No description provided for @queueSettingsKeepWarmTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed temperature used to heat the chamber: {temp} °C'**
+  String queueSettingsKeepWarmTemp(int temp);
+
+  /// No description provided for @queueSettingsKeepWarmMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest the bed is held: {duration}'**
+  String queueSettingsKeepWarmMax(String duration);
+
+  /// No description provided for @queueSettingsMaxUploadsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.'**
+  String get queueSettingsMaxUploadsDesc;
+
+  /// No description provided for @queueSettingsPreheatMaxWaitDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An X1C or P2S has no chamber heater — the chamber warms from the bed, which can take 15–30 minutes. After this the queue stops waiting and moves on to the soak.'**
+  String get queueSettingsPreheatMaxWaitDesc;
+
+  /// No description provided for @queueSettingsPreheatSoakDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra time at temperature after the chamber reaches it, or after the wait above runs out. Zero skips it.'**
+  String get queueSettingsPreheatSoakDesc;
+
+  /// No description provided for @queueSettingsKeepWarmTempDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.'**
+  String get queueSettingsKeepWarmTempDesc;
+
+  /// No description provided for @queueSettingsKeepWarmMaxDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.'**
+  String get queueSettingsKeepWarmMaxDesc;
+
+  /// No description provided for @queueSettingsKeepWarmOffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep-warm is off. The bed temperature above still applies to preheat.'**
+  String get queueSettingsKeepWarmOffNote;
+
   /// No description provided for @adminMenu.
   ///
   /// In en, this message translates to:

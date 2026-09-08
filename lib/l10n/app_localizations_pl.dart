@@ -6626,6 +6626,132 @@ class AppLocalizationsPl extends AppLocalizations {
       'Użytkownicy, klucze API, ustawienia, kopie zapasowe — to, na co sama apka nie ma ekranów.';
 
   @override
+  String get serverSettingsMenu => 'Ustawienia serwera';
+
+  @override
+  String get serverSettingsTitle => 'Ustawienia serwera';
+
+  @override
+  String get serverSettingsQueueSubtitle =>
+      'Planowanie, nagrzewanie i trzymanie ciepłego stołu';
+
+  @override
+  String get serverSettingsMaintenanceSubtitle =>
+      'Typy zadań i interwały dla poszczególnych drukarek';
+
+  @override
+  String get serverSettingsAdminSubtitle => 'Konta, grupy i klucze API';
+
+  @override
+  String get serverSettingsCloudSubtitle =>
+      'Konto Bambu, z którego serwer pobiera modele';
+
+  @override
+  String get queueSettingsTitle => 'Kolejka i nagrzewanie';
+
+  @override
+  String get queueSettingsReadOnlyApiKey =>
+      'Klucz API nigdy nie zapisze ustawień serwera. Żeby je zmienić, zaloguj się kontem.';
+
+  @override
+  String get queueSettingsReadOnlyPermission =>
+      'Twoje konto może te ustawienia czytać, ale nie zmieniać.';
+
+  @override
+  String get queueSettingsQueueHeader => 'Kolejka';
+
+  @override
+  String get queueSettingsPlateClearTitle => 'Potwierdzenie pustego stołu';
+
+  @override
+  String get queueSettingsPlateClearDesc =>
+      'Po wydruku drukarka czeka, aż ktoś potwierdzi, że stół jest pusty.';
+
+  @override
+  String get queueSettingsShortestFirstTitle => 'Najkrótsze zadanie pierwsze';
+
+  @override
+  String get queueSettingsShortestFirstDesc =>
+      'Bierze najkrótsze czekające zadanie zamiast tego, które czeka najdłużej.';
+
+  @override
+  String queueSettingsMaxUploads(int count) {
+    return 'Pliki wysyłane równocześnie: $count';
+  }
+
+  @override
+  String get queueSettingsPreheatHeader => 'Nagrzewanie wstępne';
+
+  @override
+  String get queueSettingsPreheatTitle => 'Nagrzewaj przed zadaniem';
+
+  @override
+  String get queueSettingsPreheatDesc =>
+      'Rozgrzewa komorę, zanim plik pójdzie na drukarkę. Pojedyncze zadanie w kolejce może to nadpisać.';
+
+  @override
+  String queueSettingsPreheatMaxWait(String duration) {
+    return 'Limit czekania na komorę: $duration';
+  }
+
+  @override
+  String queueSettingsPreheatSoak(String duration) {
+    return 'Wygrzewanie po osiągnięciu temperatury: $duration';
+  }
+
+  @override
+  String get queueSettingsNoSoak => 'bez wygrzewania';
+
+  @override
+  String get queueSettingsPreheatOffNote =>
+      'Nagrzewanie jest wyłączone, więc te dwa ustawienia nic nie zmieniają.';
+
+  @override
+  String get queueSettingsKeepWarmHeader => 'Utrzymywanie ciepła';
+
+  @override
+  String get queueSettingsKeepWarmTitle =>
+      'Trzymaj stół ciepły między wydrukami';
+
+  @override
+  String get queueSettingsKeepWarmDesc =>
+      'Dopóki nikt nie zdejmie gotowego wydruku, stół zostaje gorący — kolejne zadanie z grzaną komorą nie startuje wtedy z zimnego. Przy PLA i PETG pomijane.';
+
+  @override
+  String queueSettingsKeepWarmTemp(int temp) {
+    return 'Temperatura stołu grzejącego komorę: $temp °C';
+  }
+
+  @override
+  String queueSettingsKeepWarmMax(String duration) {
+    return 'Maksymalny czas utrzymywania ciepła: $duration';
+  }
+
+  @override
+  String get queueSettingsMaxUploadsDesc =>
+      'Zanim zadanie z kolejki wystartuje, jego plik idzie na drukarkę przez FTP, co potrafi trwać minuty. To jest liczba takich transferów naraz — ma znaczenie dopiero przy kilku drukarkach.';
+
+  @override
+  String get queueSettingsPreheatMaxWaitDesc =>
+      'X1C i P2S nie mają grzałki komory — komora nagrzewa się od stołu, co potrafi zająć 15–30 minut. Po tym czasie kolejka przestaje czekać i przechodzi do wygrzewania.';
+
+  @override
+  String get queueSettingsPreheatSoakDesc =>
+      'Dodatkowy czas w temperaturze po osiągnięciu jej przez komorę albo po wyczerpaniu limitu powyżej. Zero pomija ten etap.';
+
+  @override
+  String get queueSettingsKeepWarmTempDesc =>
+      '90 podtrzymuje ciepło komory w zamkniętej drukarce i wyzwala dokupione grzałki komory, które zwykle załączają się przy stole 80. Wyższa temperatura stołu z pliku i tak wygrywa.';
+
+  @override
+  String get queueSettingsKeepWarmMaxDesc =>
+      'Ustaw tyle, ile realnie zajmuje Ci dojście do drukarki. Za krótko kosztuje tylko tyle, że kolejny wydruk grzeje od zera; bez limitu nieodebrany wydruk trzymałby stół gorący w nieskończoność.';
+
+  @override
+  String get queueSettingsKeepWarmOffNote =>
+      'Utrzymywanie ciepła jest wyłączone. Temperatura stołu powyżej działa też przy nagrzewaniu wstępnym.';
+
+  @override
   String get adminMenu => 'Administracja';
 
   @override

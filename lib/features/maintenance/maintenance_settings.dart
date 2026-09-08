@@ -9,6 +9,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/button_pair.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
@@ -65,25 +66,23 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
               _SectionHeader(
                 title: l10n.maintenanceTypesTitle,
                 subtitle: l10n.maintenanceTypesSubtitle,
-                trailing: Wrap(
-                  spacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: t.textPrimary,
-                        side: BorderSide(color: t.cardBorder),
-                      ),
-                      onPressed: () => _restoreDefaults(context, ref, l10n),
-                      icon: const Icon(Icons.restart_alt),
-                      label: Text(l10n.maintenanceRestoreDefaults),
-                    ).tagged('maintenance_settings.restore_defaults'),
-                    FilledButton.icon(
-                      style: dashPrimaryButtonStyle(t),
-                      onPressed: () => openTypeForm(context),
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.maintenanceAddType),
-                    ).tagged('maintenance_settings.add_type'),
-                  ],
+                trailing: ButtonPair(
+                  primaryLabel: l10n.maintenanceAddType,
+                  secondaryLabel: l10n.maintenanceRestoreDefaults,
+                  primaryStyle: dashPrimaryButtonStyle(t),
+                  secondaryStyle: _restoreButtonStyle(t),
+                  primary: FilledButton.icon(
+                    style: dashPrimaryButtonStyle(t),
+                    onPressed: () => openTypeForm(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.maintenanceAddType),
+                  ).tagged('maintenance_settings.add_type'),
+                  secondary: OutlinedButton.icon(
+                    style: _restoreButtonStyle(t),
+                    onPressed: () => _restoreDefaults(context, ref, l10n),
+                    icon: const Icon(Icons.restart_alt),
+                    label: Text(l10n.maintenanceRestoreDefaults),
+                  ).tagged('maintenance_settings.restore_defaults'),
                 ),
               ),
               const SizedBox(height: 8),
@@ -125,6 +124,13 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Quiet chrome for the destructive-ish action beside the primary one. Named
+  /// because [ButtonPair] measures the same style the button renders with.
+  ButtonStyle _restoreButtonStyle(DashTokens t) => OutlinedButton.styleFrom(
+    foregroundColor: t.textPrimary,
+    side: BorderSide(color: t.cardBorder),
+  );
 
   Future<void> _restoreDefaults(
     BuildContext context,

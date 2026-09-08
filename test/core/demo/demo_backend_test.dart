@@ -35,6 +35,7 @@ import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
@@ -454,7 +455,7 @@ void main() {
     });
 
     test('the copies ceiling comes from the server, not a built-in', () async {
-      final settings = await SlicerRepository(dio).serverSettings();
+      final settings = await ServerSettingsRepository(dio).fetch();
 
       expect(
         settings['pipeline_max_copies'],
@@ -860,7 +861,7 @@ void main() {
       final cloud = await CloudRepository(dio).status();
       expect(cloud.isAuthenticated, isFalse);
 
-      final settings = await SlicerRepository(dio).serverSettings();
+      final settings = await ServerSettingsRepository(dio).fetch();
       expect(settings['require_plate_clear'], isFalse);
       expect(
         settings['use_slicer_api'],

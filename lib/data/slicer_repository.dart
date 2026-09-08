@@ -50,19 +50,6 @@ class SlicerRepository {
   Future<bool> supportsLayoutOptions() async =>
       await _serverVersion?.supports(ServerFeature.sliceLayoutOptions) ?? false;
 
-  /// Raw server `AppSettings` map. Feature flags (e.g. `use_slicer_api`,
-  /// `require_plate_clear`) derive from this. Best-effort: a read failure
-  /// degrades to an empty map rather than throwing, so the rest of the app is
-  /// unaffected by an unexpected settings shape.
-  Future<Map<String, dynamic>> serverSettings() async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(Endpoints.appSettings);
-      return res.data ?? const {};
-    } on DioException {
-      return const {};
-    }
-  }
-
   /// GET /slicer/presets — printer/process/filament options across all tiers.
   Future<UnifiedPresets> presets({bool refresh = false}) => guard(() async {
     final res = await _dio.get<Map<String, dynamic>>(

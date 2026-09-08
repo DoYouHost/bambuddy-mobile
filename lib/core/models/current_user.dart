@@ -140,4 +140,14 @@ abstract final class Permissions {
   static const pipelinesRead = 'pipelines:read';
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
+
+  /// Writing the server's shared configuration (`PUT /settings/`). Reading it
+  /// needs `settings:read`, which every session already has — it rides on an
+  /// API key's `can_read_status` scope — so only the write is ever gated.
+  ///
+  /// **An API-key session never holds this**, on any server version: it is
+  /// outside the key scope allowlist and named on the explicit denylist
+  /// (`core/auth.py`), because rewriting settings reaches the stored SMTP,
+  /// LDAP and MQTT credentials.
+  static const settingsUpdate = 'settings:update';
 }

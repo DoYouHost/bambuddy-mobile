@@ -26,6 +26,8 @@ import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/settings/queue_settings_screen.dart';
+import 'features/settings/server_settings_screen.dart';
 import 'features/print_log/print_log_screen.dart';
 import 'features/projects/projects_screen.dart';
 import 'features/projects/project_detail_screen.dart';
@@ -95,8 +97,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const NotificationSettingsScreen(),
       ),
 
+      // Server settings — the hub, and the one form it owns outright. Full
+      // screens outside the shell (pushed from the drawer). The entries the hub
+      // points at keep the routes they had, so the pushes from MakerWorld and
+      // from the Maintenance gear go on working.
+      GoRoute(
+        path: '/settings/server',
+        builder: (_, _) => const ServerSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/queue',
+        builder: (_, _) => const QueueSettingsScreen(),
+      ),
+
       // Maintenance settings (types + per-printer overrides) — full screen
-      // outside shell (pushed from the Maintenance status screen's gear).
+      // outside shell (pushed from the Maintenance status screen's gear, and
+      // from the server settings hub).
       GoRoute(
         path: '/settings/maintenance',
         builder: (_, _) => const MaintenanceSettingsScreen(),

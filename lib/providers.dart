@@ -54,6 +54,7 @@ import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/scheduled_drying_repository.dart';
+import 'data/server_settings_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -738,10 +739,19 @@ final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
   (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// The server's shared configuration (`AppSettings`). Shares authenticated Dio.
+///
+/// Not `autoDispose`: it carries the 403 latch that tells the queue settings
+/// screen a write was refused, and that answer must survive leaving the screen
+/// to look at what it said.
+final serverSettingsRepositoryProvider = Provider<ServerSettingsRepository>(
+  (ref) => ServerSettingsRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags
 /// derive from this so we fetch `/settings` once.
 final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
-  (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
+  (ref) => ref.watch(serverSettingsRepositoryProvider).fetch(),
 );
 
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server

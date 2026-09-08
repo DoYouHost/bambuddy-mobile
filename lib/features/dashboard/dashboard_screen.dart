@@ -19,7 +19,6 @@ import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../common/dash_async.dart';
@@ -748,31 +747,22 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.notifications',
                 ),
-                // Administration — accounts, groups and API keys behind one
-                // entry. Only for an identity the server named and granted at
-                // least one of the three read permissions: a server with
-                // authentication off has nobody to show any of it to, and an
-                // API key is refused all three outright.
-                if (ref.watch(canOpenAdminProvider))
-                  _DrawerTile(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: l10n.adminMenu,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/admin');
-                    },
-                    id: 'drawer.admin',
-                  ),
-                const Divider(indent: 16, endIndent: 16, height: 16),
+                // Everything this app changes on the server, behind one entry:
+                // the queue scheduler, maintenance, the Bambu Cloud account and
+                // administration. Ungated — an API key and an anonymous session
+                // both have something to do in there, and the gate that would
+                // have hidden it (`canOpenAdminProvider`) is about accounts,
+                // not about settings.
                 _DrawerTile(
-                  icon: Icons.cloud_outlined,
-                  label: l10n.cloudAccountMenu,
+                  icon: Icons.dns_outlined,
+                  label: l10n.serverSettingsMenu,
                   onTap: () {
                     Navigator.pop(context);
-                    context.push('/settings/cloud');
+                    context.push('/settings/server');
                   },
-                  id: 'drawer.cloud',
+                  id: 'drawer.server_settings',
                 ),
+                const Divider(indent: 16, endIndent: 16, height: 16),
                 _DrawerTile(
                   icon: Icons.swap_horiz_rounded,
                   label: l10n.changeServer,
