@@ -1132,6 +1132,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
                         // No avatar: the app's chips say "on" with the
                         // theme's checkmark, and an icon sits in exactly that

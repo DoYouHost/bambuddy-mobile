@@ -389,6 +389,7 @@ class _StepSelector extends StatelessWidget {
         const Spacer(),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: [
             for (final p in presets)
               _PresetChip(

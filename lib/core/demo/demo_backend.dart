@@ -507,39 +507,11 @@ class DemoBackend {
         return _ok({'filament': _localPresets});
 
       case 'settings':
-        return _ok(const {
-          'require_plate_clear': false,
-          // On, so the slice form is reachable at all: it gates every Slice
-          // button in the app, and with it off the pipelines feature showed
-          // only its read-only half.
-          'use_slicer_api': true,
-          'currency': 'USD',
-          // Auto-print snippets, as the real server stores them: a JSON string
-          // keyed by printer model. Only the A1 mini has one, so demo shows both
-          // halves of the gate — the injection checkbox appears, and picking the
-          // X1C or the P1S says out loud that nothing would be injected.
-          'gcode_snippets':
-              '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
-              '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
-          // Drying presets as the real server stores them: a JSON string, not
-          // an object. Two rows differ from the built-in defaults (PETG 70 °C /
-          // 8 h) so demo shows the customisation actually reaching the sheet
-          // rather than the bundled table that would look identical.
-          'drying_presets':
-              '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
-              '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
-              '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
-          // The server's own drying automation, which the sheet reports and
-          // never offers to change — writing these is settings:update, denied
-          // to every API key.
-          'ambient_drying_enabled': true,
-          'queue_drying_enabled': true,
-          'print_drying_enabled': false,
-          // The ceiling the run form's copies stepper stops at. Deliberately
-          // not the server's own default of 50: a demo that agreed with the
-          // fallback would not show whether the setting is read at all.
-          'pipeline_max_copies': 12,
-        });
+        // The one settings writer in the app is the queue screen, and it sends
+        // a partial body — so the demo has to merge rather than replace, or a
+        // switch would take every other value on the screen down with it.
+        if (m == 'PUT' || m == 'PATCH') _settingsWrites.addAll(body);
+        return _ok({..._settings, ..._settingsWrites});
 
       case 'slice-jobs':
         return _sliceJobRoute(id(1));
@@ -573,6 +545,60 @@ class DemoBackend {
     }
     return (status: 401, body: {'detail': 'Incorrect username or password'});
   }
+
+  /// What `PUT /settings/` has been asked to change this session. Kept apart
+  /// from [_settings] so the fixture stays the const description of a server,
+  /// and a demo restart is a fresh one.
+  final Map<String, dynamic> _settingsWrites = {};
+
+  /// `GET /settings` — the server-wide configuration. Values are deliberately
+  /// not the server's own defaults where a screen reads them: a demo that
+  /// agreed with the fallback would not show whether the setting is read at all.
+  static const _settings = <String, dynamic>{
+    'require_plate_clear': false,
+    // On, so the slice form is reachable at all: it gates every Slice
+    // button in the app, and with it off the pipelines feature showed
+    // only its read-only half.
+    'use_slicer_api': true,
+    'currency': 'USD',
+    // Auto-print snippets, as the real server stores them: a JSON string
+    // keyed by printer model. Only the A1 mini has one, so demo shows both
+    // halves of the gate — the injection checkbox appears, and picking the
+    // X1C or the P1S says out loud that nothing would be injected.
+    'gcode_snippets':
+        '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
+        '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+    // Drying presets as the real server stores them: a JSON string, not
+    // an object. Two rows differ from the built-in defaults (PETG 70 °C /
+    // 8 h) so demo shows the customisation actually reaching the sheet
+    // rather than the bundled table that would look identical.
+    'drying_presets':
+        '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
+        '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+        '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+    // The server's own drying automation, which the sheet reports and
+    // never offers to change — writing these is settings:update, denied
+    // to every API key.
+    'ambient_drying_enabled': true,
+    'queue_drying_enabled': true,
+    'print_drying_enabled': false,
+    // The ceiling the run form's copies stepper stops at. Deliberately
+    // not the server's own default of 50: a demo that agreed with the
+    // fallback would not show whether the setting is read at all.
+    'pipeline_max_copies': 12,
+    // The queue settings screen, which is the app's only settings writer. Every
+    // one of these is off its server default so the screen visibly reads them
+    // rather than falling back — and the two masters are on, so the sliders
+    // they gate are live without a tap.
+    'queue_shortest_first': true,
+    'queue_max_concurrent_uploads': 2,
+    'preheat_enabled': true,
+    'preheat_max_wait_seconds': 1200,
+    'preheat_soak_seconds': 600,
+    'queue_keep_bed_warm': true,
+    'queue_keep_warm_bed_temp': 95,
+    'queue_keep_warm_max_minutes': 45,
+  };
 
   Map<String, dynamic> get _demoUser => {
     'id': 1,

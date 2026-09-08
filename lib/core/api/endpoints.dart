@@ -636,9 +636,30 @@ abstract final class Endpoints {
   /// is what [SlicerRepository] reads as "not supported here".
   static const slicerPresetValues = '$apiPrefix/slicer/preset-values';
 
-  /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
-  /// here to gate the slice UI; full settings management lives on the web.
+  /// Server-wide app settings (`AppSettings`), read. Most of the map is read as
+  /// feature flags scattered across the app (`use_slicer_api`,
+  /// `require_plate_clear`, the AMS thresholds); the queue settings screen is
+  /// the only place that edits any of it.
+  ///
+  /// The response always carries **every** field the server's schema knows,
+  /// defaulted where no row was ever written (`AppSettings(**settings_dict)`,
+  /// `api/routes/settings.py`). That is what makes a missing key a clean
+  /// statement about the server's age rather than about its configuration.
   static const appSettings = '$apiPrefix/settings';
+
+  /// The same settings, written — body `AppSettingsUpdate`, dumped with
+  /// `exclude_unset=True`, so a request carrying three keys changes three rows.
+  ///
+  /// **The trailing slash is load-bearing.** `PUT` is registered only as `"/"`
+  /// (`api/routes/settings.py`), unlike `GET` and `PATCH` which have both
+  /// spellings — without it FastAPI answers a redirect that Dio replays as a
+  /// GET, and the write silently does nothing.
+  ///
+  /// Unknown fields are dropped rather than refused: `AppSettingsUpdate` sets
+  /// no `model_config`, so pydantic's default `extra="ignore"` applies and an
+  /// older server answers **200 having written nothing**. Only send keys
+  /// [appSettings] answered with.
+  static const appSettingsUpdate = '$apiPrefix/settings/';
 
   // --- Slicer pipelines (reusable preset bundles + their runs) ---
 

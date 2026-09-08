@@ -20,3 +20,18 @@ String formatMinutes(AppLocalizations l10n, int minutes) {
 String formatSeconds(AppLocalizations l10n, int seconds) => seconds < 60
     ? l10n.durationSeconds(seconds)
     : formatMinutes(l10n, seconds ~/ 60);
+
+/// [formatSeconds] without the truncation, for a span the user is **setting**
+/// rather than reading back.
+///
+/// `formatSeconds` drops the leftover seconds, which is right for "how long did
+/// this print take" and wrong for a slider: at a 30-second step every other
+/// stop rendered the same text, so the control looked stuck while the value
+/// under it kept moving — and the number that reached the server was not the
+/// one on screen.
+String formatSecondsExact(AppLocalizations l10n, int seconds) {
+  final rest = seconds % 60;
+  if (seconds < 60) return l10n.durationSeconds(seconds);
+  if (rest == 0) return formatMinutes(l10n, seconds ~/ 60);
+  return '${formatMinutes(l10n, seconds ~/ 60)} ${l10n.durationSeconds(rest)}';
+}

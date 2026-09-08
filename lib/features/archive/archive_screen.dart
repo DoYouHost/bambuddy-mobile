@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
-import '../../core/format/text_measure.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/no_3mf_warning.dart';
@@ -20,6 +19,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
+import '../common/button_pair.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
@@ -1020,15 +1020,8 @@ class _ArchiveSheet extends StatelessWidget {
   }
 }
 
-/// The sheet's two primary actions, side by side — but only while both labels
-/// fit on one line. A wrapped label grows just its own button, leaving the pair
-/// mismatched and taller than the full-width buttons below it, so on narrow
-/// screens they stack full-width instead (which also unwraps the labels).
-///
-/// Whether a label fits depends on the locale, the user's text scale and the
-/// button padding this app's theme sets, so the width each button needs for a
-/// single-line label is measured from that resolved style rather than guessed
-/// from a breakpoint.
+/// The sheet's two primary actions. [ButtonPair] owns the measure-then-stack
+/// rule; this only names the buttons and their labels.
 class _SheetPrimaryActions extends StatelessWidget {
   const _SheetPrimaryActions({
     required this.onAddToQueue,
@@ -1038,92 +1031,29 @@ class _SheetPrimaryActions extends StatelessWidget {
   final VoidCallback onAddToQueue;
   final VoidCallback onReprint;
 
-  /// Icon box and icon-to-label gap of a Material `*.icon` button — the only
-  /// parts not exposed through [ButtonStyle].
-  static const double _iconWidth = 18;
-  static const double _iconGap = 8;
-
-  /// A label has to fit with room to spare, not by a hair — measurement and
-  /// rendering can round apart. Borderline pairs stack, which still looks
-  /// right; a wrapped one does not.
-  static const double _slack = 10;
-
-  static const double _gap = 12;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final addToQueue = logTag(
-      'archive.add_to_queue',
-      OutlinedButton.icon(
-        icon: const Icon(Icons.playlist_add),
-        label: Text(l10n.archiveAddToQueue),
-        onPressed: onAddToQueue,
+    return ButtonPair(
+      primaryLabel: l10n.archiveReprint,
+      secondaryLabel: l10n.archiveAddToQueue,
+      primary: logTag(
+        'archive.reprint',
+        FilledButton.icon(
+          icon: const Icon(Icons.print),
+          label: Text(l10n.archiveReprint),
+          onPressed: onReprint,
+        ),
+      ),
+      secondary: logTag(
+        'archive.add_to_queue',
+        OutlinedButton.icon(
+          icon: const Icon(Icons.playlist_add),
+          label: Text(l10n.archiveAddToQueue),
+          onPressed: onAddToQueue,
+        ),
       ),
     );
-    final reprint = logTag(
-      'archive.reprint',
-      FilledButton.icon(
-        icon: const Icon(Icons.print),
-        label: Text(l10n.archiveReprint),
-        onPressed: onReprint,
-      ),
-    );
-    final widthNeeded = [
-      _singleLineWidth(
-        context,
-        l10n.archiveReprint,
-        FilledButtonTheme.of(context).style,
-      ),
-      _singleLineWidth(
-        context,
-        l10n.archiveAddToQueue,
-        OutlinedButtonTheme.of(context).style,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final half = (constraints.maxWidth - _gap) / 2;
-        final fitsSideBySide = widthNeeded.every((w) => w + _slack <= half);
-        if (fitsSideBySide) {
-          return Row(
-            children: [
-              Expanded(child: reprint),
-              const SizedBox(width: _gap),
-              Expanded(child: addToQueue),
-            ],
-          );
-        }
-        return Column(
-          children: [
-            SizedBox(width: double.infinity, child: reprint),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: addToQueue),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Width the button needs to keep [label] on one line, taking the text style
-  /// and padding from [style] — the very [ButtonStyle] the button will render
-  /// with, so a theme tweak can't silently invalidate this.
-  double _singleLineWidth(
-    BuildContext context,
-    String label,
-    ButtonStyle? style,
-  ) {
-    const states = <WidgetState>{};
-    final theme = Theme.of(context);
-    final textStyle = (theme.textTheme.labelLarge ?? const TextStyle()).merge(
-      style?.textStyle?.resolve(states),
-    );
-    final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
-    return padding +
-        _iconWidth +
-        _iconGap +
-        textWidth(context, label, textStyle);
   }
 }
 

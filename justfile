@@ -49,6 +49,21 @@ default:
 test:
     flutter test
 
+# Spelling and grammar for the strings the user actually reads. Checks only what
+# this branch changed; `just l10n-check-all` sweeps both files. Set
+# LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and
+# keep the copy off someone else's server.
+# usage: just l10n-check [BASE_REF]
+[doc('spell-check the .arb strings this branch changed')]
+[group('1-develop')]
+l10n-check base='dev':
+    python3 tool/check_l10n_language.py --base {{base}}
+
+[doc('spell-check every .arb string, not only this branch')]
+[group('1-develop')]
+l10n-check-all:
+    python3 tool/check_l10n_language.py --all
+
 # Boots the AVD first if needed, then builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
 # usage: just run [AVD]
