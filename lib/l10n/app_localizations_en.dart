@@ -6565,6 +6565,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account may read these settings but not change them.';
 
   @override
+  String get queueSettingsUnavailable =>
+      'This server reports none of these settings. It is either older than they are, or they could not be read — pull down to try again.';
+
+  @override
   String get queueSettingsQueueHeader => 'Queue';
 
   @override

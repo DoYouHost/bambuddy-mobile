@@ -56,6 +56,10 @@ final queueSettingsProvider =
 class QueueSettingsController extends AsyncNotifier<QueueSettings> {
   /// The last block the server confirmed. [state] runs ahead of it during a
   /// drag and during a write, so a revert cannot read the value off [state].
+  ///
+  /// Refreshed from the **reply to the write**, not only from [build]: two
+  /// writes can be in flight at once, and a `_confirmed` frozen at the first
+  /// one's start reverts the second one's neighbour along with it.
   QueueSettings? _confirmed;
 
   @override
@@ -83,16 +87,30 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
     if (confirmed == null || !confirmed.known.contains(setting)) {
       return ActionOutcome.ok;
     }
+    // What to put back if this one write fails — read from the confirmed block
+    // rather than from [state], which a drag has already moved.
+    final previous = confirmed.values[setting];
     preview(setting, value);
     final outcome = await runAction(
-      () => ref
-          .read(serverSettingsRepositoryProvider)
-          .update(QueueSettings.patch(setting, value)),
+      () async {
+        final fresh = await ref
+            .read(serverSettingsRepositoryProvider)
+            .update(QueueSettings.patch(setting, value));
+        // The route answers with the whole of AppSettings, so this is the
+        // server's own word on every row, including one a concurrent write
+        // just changed.
+        _confirmed = QueueSettings.fromSettings(fresh);
+      },
       logId: 'queue_settings.${setting.key}',
       onSuccess: () async => ref.invalidate(serverSettingsProvider),
     );
     if (!outcome.isOk) {
-      state = AsyncValue.data(confirmed);
+      // Only this row goes back. Reverting the whole block would undo a
+      // neighbouring write that succeeded while this one was in flight.
+      final current = state.valueOrNull;
+      if (previous != null && current != null) {
+        state = AsyncValue.data(current.withValue(setting, previous));
+      }
       // Only a refusal moves the write latch — so the verdict is re-read here,
       // not on the success path, and a 403 closes the form.
       ref.invalidate(queueSettingsLockProvider);

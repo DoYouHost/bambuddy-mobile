@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -68,6 +70,14 @@ void main() {
     return repo;
   }
 
+  /// The switch belonging to the row titled [title].
+  Switch switchFor(WidgetTester tester, String title) => tester.widget<Switch>(
+    find.descendant(
+      of: find.ancestor(of: find.text(title), matching: find.byType(Row)),
+      matching: find.byType(Switch),
+    ),
+  );
+
   group('what the server has', () {
     testWidgets('a server that knows none of them shows no section at all', (
       tester,
@@ -84,8 +94,10 @@ void main() {
       );
       expect(find.byType(Switch), findsNothing);
       expect(find.byType(Slider), findsNothing);
-      // Empty, but rendered — not an error view.
-      expect(find.text(l10n.queueSettingsTitle), findsOneWidget);
+      // Not a blank grey page: a settings map that came back empty means
+      // either an old server or a read that failed, and the user is owed the
+      // sentence and a way to retry.
+      expect(find.text(l10n.queueSettingsUnavailable), findsOneWidget);
     });
 
     testWidgets('a modern server shows all three sections', (tester) async {
@@ -245,6 +257,82 @@ void main() {
     });
   });
 
+  group('one write does not undo another', () {
+    testWidgets('a failing write reverts only its own row', (tester) async {
+      final repo = await pumpScreen(tester, modernSettings(keepWarm: false));
+      // One write left hanging and another failing under it. The first is held
+      // open deliberately: letting it finish would refetch the settings and
+      // repair the state, hiding the very thing this asserts.
+      final holding = Completer<void>();
+      repo.gates['require_plate_clear'] = holding;
+      repo.failKey = 'queue_keep_bed_warm';
+
+      await tester.tap(find.text(l10n.queueSettingsPlateClearTitle));
+      await tester.pump();
+      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.pumpAndSettle();
+
+      expect(repo.writes, hasLength(2));
+      expect(
+        switchFor(tester, l10n.queueSettingsPlateClearTitle).value,
+        isTrue,
+        reason: 'its own write is still on its way; nothing reverted it',
+      );
+      expect(
+        switchFor(tester, l10n.queueSettingsKeepWarmTitle).value,
+        isFalse,
+        reason: 'the write that failed is the one that goes back',
+      );
+
+      holding.complete();
+      await tester.pumpAndSettle();
+    });
+  });
+
+  testWidgets('nothing is writable until the verdict is in', (tester) async {
+    // `permissionProvider` answers "yes" for an identity it does not know yet,
+    // so the lock resolves a frame late. Until it does the controls stay off:
+    // lighting them up invites a tap that can only end in a 403, and the lock
+    // banner then lands on top of it.
+    final repo = _FakeSettingsRepo(modernSettings());
+    final verdict = Completer<void>();
+    repo.verdict = verdict;
+    tester.view.physicalSize = const Size(1080, 5400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await pumpPhone(
+      tester,
+      const QueueSettingsScreen(),
+      overrides: [
+        fakeServerProfileOverride(authMode: AuthMode.jwt),
+        currentUserOverride(
+          const CurrentUser(id: 1, username: 'ola', isAdmin: true),
+        ),
+        serverSettingsRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    // The settings are in; the verdict is still out.
+    await tester.pumpAndSettle();
+
+    for (final s in tester.widgetList<Switch>(find.byType(Switch))) {
+      expect(s.onChanged, isNull, reason: 'unresolved is not writable');
+    }
+    expect(
+      find.text(l10n.queueSettingsReadOnlyPermission),
+      findsNothing,
+      reason: 'and no banner flashes up for a session that turns out allowed',
+    );
+
+    verdict.complete();
+    await tester.pumpAndSettle();
+    expect(
+      tester.widgetList<Switch>(find.byType(Switch)).first.onChanged,
+      isNotNull,
+      reason: 'the admin can write once the verdict lands',
+    );
+  });
+
   group('who may write', () {
     testWidgets('an API-key session reads the values and cannot change them', (
       tester,
@@ -318,6 +406,19 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   final AppApiException? failWith;
   bool _refused = false;
 
+  /// A write naming one of these keys waits for its completer. Held per key,
+  /// not one for all of them: the point of the test below is a write that is
+  /// still in flight while another one has already failed.
+  final Map<String, Completer<void>> gates = {};
+
+  /// A write naming this key is refused; every other one succeeds. Lets a test
+  /// fail exactly one of two writes that are in flight together.
+  String? failKey;
+
+  /// Holds the write verdict pending. In the app the wait is real — the lock
+  /// reads `/auth/me` — and the fake resolves instantly without this.
+  Completer<void>? verdict;
+
   /// The bodies `PUT /settings/` was given, in order.
   final List<Map<String, dynamic>> writes = [];
 
@@ -327,12 +428,21 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   @override
   Future<Map<String, dynamic>> update(Map<String, dynamic> changes) async {
     writes.add(changes);
-    final failure = failWith;
+    for (final key in changes.keys) {
+      final gate = gates[key];
+      if (gate != null) await gate.future;
+    }
+    final failure = changes.containsKey(failKey)
+        ? const ApiException(AppErrorCode.badResponse, statusCode: 500)
+        : failWith;
     if (failure == null) return _settings = {..._settings, ...changes};
     _refused |= failure.code == AppErrorCode.forbidden;
     throw failure;
   }
 
   @override
-  Future<bool> writable() async => !_refused;
+  Future<bool> writable() async {
+    await verdict?.future;
+    return !_refused;
+  }
 }

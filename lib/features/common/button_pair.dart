@@ -26,7 +26,6 @@ class ButtonPair extends StatelessWidget {
     required this.secondaryLabel,
     this.primaryStyle,
     this.secondaryStyle,
-    this.hasIcons = true,
   });
 
   /// The buttons as they will be rendered, already tagged for the log.
@@ -45,10 +44,13 @@ class ButtonPair extends StatelessWidget {
   final ButtonStyle? primaryStyle;
   final ButtonStyle? secondaryStyle;
 
-  /// Whether these are `*.icon` buttons, whose icon box and gap are the only
+  /// Icon box and icon-to-label gap of a Material `*.icon` button — the only
   /// parts of the width not exposed through [ButtonStyle].
-  final bool hasIcons;
-
+  ///
+  /// Both buttons are assumed to carry an icon, which both callers do. A
+  /// text-only one measures ~26 px wider than it is and stacks a pair that
+  /// would have fitted; make this per-button on the day one appears, rather
+  /// than carrying a flag nothing sets.
   static const double _iconWidth = 18;
   static const double _iconGap = 8;
 
@@ -70,8 +72,10 @@ class ButtonPair extends StatelessWidget {
           style?.textStyle?.resolve(states),
         );
     final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
-    final icon = hasIcons ? _iconWidth + _iconGap : 0;
-    return padding + icon + textWidth(context, label, textStyle);
+    return padding +
+        _iconWidth +
+        _iconGap +
+        textWidth(context, label, textStyle);
   }
 
   @override
@@ -91,6 +95,19 @@ class ButtonPair extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Unbounded width has no half to compare against, and both branches
+        // below would throw on it — `Expanded` and a `double.infinity` width
+        // alike. Side by side at their natural size is the answer there.
+        if (!constraints.hasBoundedWidth) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              primary,
+              const SizedBox(width: _gap),
+              secondary,
+            ],
+          );
+        }
         final half = (constraints.maxWidth - _gap) / 2;
         if (needed.every((w) => w + _slack <= half)) {
           return Row(

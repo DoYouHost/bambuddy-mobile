@@ -9,6 +9,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
+import '../common/state_views.dart';
 import '../common/inline_note.dart';
 import '../common/settings_rows.dart';
 import '../common/system_insets.dart';
@@ -32,44 +33,63 @@ class QueueSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final lock =
-        ref.watch(queueSettingsLockProvider).valueOrNull ??
-        QueueSettingsLock.none;
+    // Null while the verdict is still being worked out. Unresolved is *not*
+    // writable: defaulting to "yes" lit the controls for a second on a session
+    // that would only ever get a 403 out of them, and the lock banner then
+    // arrived on top of a tap the user had already made.
+    final lock = ref.watch(queueSettingsLockProvider).valueOrNull;
 
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.queueSettingsTitle),
-        body: dashAsync(
-          context,
-          ref.watch(queueSettingsProvider),
-          onRetry: () => ref.invalidate(serverSettingsProvider),
-          data: (settings) => ListView(
-            padding: withSystemNavInset(
-              context,
-              const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            ),
-            children: [
-              if (_lockReason(l10n, lock) case final reason?) ...[
-                InlineNote(
-                  reason,
-                  icon: Icons.lock_outline,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                ),
-                const SizedBox(height: 12),
-              ],
-              ..._sections(context, ref, settings, lock),
-            ],
+        // The settings are fetched once per session and shared with every
+        // feature gate in the app, so a change made on the web has no other way
+        // in — and a failed fetch degrades to an empty map, which without this
+        // left the screen blank with nothing to press.
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(serverSettingsProvider);
+            await ref.read(serverSettingsProvider.future);
+          },
+          child: dashAsync(
+            context,
+            ref.watch(queueSettingsProvider),
+            onRetry: () => ref.invalidate(serverSettingsProvider),
+            data: (settings) => settings.known.isEmpty
+                ? EmptyStateView(
+                    message: l10n.queueSettingsUnavailable,
+                    icon: Icons.tune,
+                  )
+                : ListView(
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    ),
+                    children: [
+                      if (_lockReason(l10n, lock) case final reason?) ...[
+                        InlineNote(
+                          reason,
+                          icon: Icons.lock_outline,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      ..._sections(context, ref, settings, lock),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  /// Why the rows below cannot be touched, or null when they can.
-  String? _lockReason(AppLocalizations l10n, QueueSettingsLock lock) =>
+  /// Why the rows below cannot be touched, or null when they can — and null
+  /// too while the verdict is pending, so a banner does not flash up and
+  /// disappear on a session that turns out to be allowed.
+  String? _lockReason(AppLocalizations l10n, QueueSettingsLock? lock) =>
       switch (lock) {
-        QueueSettingsLock.none => null,
+        null || QueueSettingsLock.none => null,
         QueueSettingsLock.apiKey => l10n.queueSettingsReadOnlyApiKey,
         QueueSettingsLock.permission => l10n.queueSettingsReadOnlyPermission,
       };
@@ -78,7 +98,7 @@ class QueueSettingsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     QueueSettings settings,
-    QueueSettingsLock lock,
+    QueueSettingsLock? lock,
   ) {
     final l10n = AppLocalizations.of(context);
     final writable = lock == QueueSettingsLock.none;
@@ -140,6 +160,7 @@ class QueueSettingsScreen extends ConsumerWidget {
               settings.number(QueueSetting.maxConcurrentUploads),
             ),
             subtitle: l10n.queueSettingsMaxUploadsDesc,
+            bubble: '${settings.number(QueueSetting.maxConcurrentUploads)}',
             enabled: writable,
             onChangeEnd: write,
           ),
@@ -158,36 +179,27 @@ class QueueSettingsScreen extends ConsumerWidget {
                   : null,
             ),
           if (has(QueueSetting.preheatMaxWaitSeconds))
-            _slider(
+            _durationSlider(
               ref,
               QueueSetting.preheatMaxWaitSeconds,
               settings,
+              l10n,
               tag: 'queue_settings.preheat_max_wait',
-              label: l10n.queueSettingsPreheatMaxWait(
-                formatSeconds(
-                  l10n,
-                  settings.number(QueueSetting.preheatMaxWaitSeconds),
-                ),
-              ),
+              label: l10n.queueSettingsPreheatMaxWait,
               subtitle: l10n.queueSettingsPreheatMaxWaitDesc,
-              step: 30,
               enabled: enabled(QueueSetting.preheatEnabled),
               onChangeEnd: write,
             ),
           if (has(QueueSetting.preheatSoakSeconds))
-            _slider(
+            _durationSlider(
               ref,
               QueueSetting.preheatSoakSeconds,
               settings,
+              l10n,
               tag: 'queue_settings.preheat_soak',
-              label: l10n.queueSettingsPreheatSoak(switch (settings.number(
-                QueueSetting.preheatSoakSeconds,
-              )) {
-                0 => l10n.queueSettingsNoSoak,
-                final seconds => formatSeconds(l10n, seconds),
-              }),
+              label: l10n.queueSettingsPreheatSoak,
               subtitle: l10n.queueSettingsPreheatSoakDesc,
-              step: 30,
+              zeroLabel: l10n.queueSettingsNoSoak,
               enabled: enabled(QueueSetting.preheatEnabled),
               onChangeEnd: write,
             ),
@@ -220,6 +232,7 @@ class QueueSettingsScreen extends ConsumerWidget {
                 settings.number(QueueSetting.keepWarmBedTemp),
               ),
               subtitle: l10n.queueSettingsKeepWarmTempDesc,
+              bubble: '${settings.number(QueueSetting.keepWarmBedTemp)} °C',
               // Not gated on the keep-warm switch: the same value is what
               // preheat falls back to when a chamber-heated job's slicer
               // metadata carries no bed temperature at all
@@ -241,6 +254,10 @@ class QueueSettingsScreen extends ConsumerWidget {
                 ),
               ),
               subtitle: l10n.queueSettingsKeepWarmMaxDesc,
+              bubble: formatMinutes(
+                l10n,
+                settings.number(QueueSetting.keepWarmMaxMinutes),
+              ),
               step: 5,
               enabled: enabled(QueueSetting.keepBedWarm),
               onChangeEnd: write,
@@ -266,6 +283,44 @@ class QueueSettingsScreen extends ConsumerWidget {
           const SizedBox(height: 20),
         ];
 
+  /// A slider over a span the server keeps in seconds.
+  ///
+  /// **Minute steps.** At the 30-second step this had, every other stop read
+  /// the same as the one before it — `formatSeconds` drops the leftover
+  /// seconds — so the label sat still while the value moved, and the number
+  /// reaching the server was not the one on screen. The label still spells a
+  /// remainder out ([formatSecondsExact]), because a value set on the web can
+  /// carry one and the row must not round it away in silence.
+  Widget _durationSlider(
+    WidgetRef ref,
+    QueueSetting setting,
+    QueueSettings settings,
+    AppLocalizations l10n, {
+    required String tag,
+    required String Function(String) label,
+    required String subtitle,
+    required bool enabled,
+    required Future<void> Function(QueueSetting, Object) onChangeEnd,
+    String? zeroLabel,
+  }) {
+    final seconds = settings.number(setting);
+    final spelled = seconds == 0 && zeroLabel != null
+        ? zeroLabel
+        : formatSecondsExact(l10n, seconds);
+    return _slider(
+      ref,
+      setting,
+      settings,
+      tag: tag,
+      label: label(spelled),
+      subtitle: subtitle,
+      bubble: spelled,
+      step: 60,
+      enabled: enabled,
+      onChangeEnd: onChangeEnd,
+    );
+  }
+
   Widget _slider(
     WidgetRef ref,
     QueueSetting setting,
@@ -275,11 +330,13 @@ class QueueSettingsScreen extends ConsumerWidget {
     required String subtitle,
     required bool enabled,
     required Future<void> Function(QueueSetting, Object) onChangeEnd,
+    String? bubble,
     int step = 1,
   }) => SettingsSlider(
     tag: tag,
     label: label,
     subtitle: subtitle,
+    bubble: bubble,
     value: settings.number(setting),
     min: setting.min!,
     max: setting.max!,

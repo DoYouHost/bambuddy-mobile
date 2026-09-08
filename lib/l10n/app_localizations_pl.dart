@@ -6658,6 +6658,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Twoje konto może te ustawienia czytać, ale nie zmieniać.';
 
   @override
+  String get queueSettingsUnavailable =>
+      'Ten serwer nie zgłasza żadnego z tych ustawień. Albo jest od nich starszy, albo nie udało się ich odczytać — pociągnij w dół, żeby spróbować ponownie.';
+
+  @override
   String get queueSettingsQueueHeader => 'Kolejka';
 
   @override

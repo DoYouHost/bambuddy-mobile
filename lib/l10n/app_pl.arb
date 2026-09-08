@@ -2077,6 +2077,7 @@
   "queueSettingsTitle": "Kolejka i nagrzewanie",
   "queueSettingsReadOnlyApiKey": "Klucz API nigdy nie zapisze ustawień serwera. Żeby je zmienić, zaloguj się kontem.",
   "queueSettingsReadOnlyPermission": "Twoje konto może te ustawienia czytać, ale nie zmieniać.",
+  "queueSettingsUnavailable": "Ten serwer nie zgłasza żadnego z tych ustawień. Albo jest od nich starszy, albo nie udało się ich odczytać — pociągnij w dół, żeby spróbować ponownie.",
   "queueSettingsQueueHeader": "Kolejka",
   "queueSettingsPlateClearTitle": "Potwierdzenie pustego stołu",
   "queueSettingsPlateClearDesc": "Po wydruku drukarka czeka, aż ktoś potwierdzi, że stół jest pusty.",

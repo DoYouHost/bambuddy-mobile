@@ -96,6 +96,14 @@ class SettingsSwitchRow extends StatelessWidget {
     final enabled = onChanged != null;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
+      // No `MergeSemantics` here, though the row looks like the case for it.
+      // `Semantics(identifier:)` merges the title and the sentence under it
+      // into the tappable node already; wrapping the lot in `MergeSemantics`
+      // moved the identifier onto a node of its own and left the label on
+      // another — the exact split `logTag` warns about, which costs the log the
+      // ability to say which row was pressed. The switch keeps a second node
+      // either way: that is `Switch`, not this row, and `SwitchListTile` reads
+      // identically (measured).
       child: logTag(
         tag,
         InkWell(
@@ -154,6 +162,7 @@ class SettingsSlider extends StatelessWidget {
     required this.enabled,
     required this.onChanged,
     this.subtitle,
+    this.bubble,
     this.step = 1,
     this.onChangeEnd,
   });
@@ -162,6 +171,11 @@ class SettingsSlider extends StatelessWidget {
   final String tag;
 
   final String label;
+
+  /// What the value indicator over the thumb reads while dragging. Defaults to
+  /// the bare number, which is only right when the number is the unit: a
+  /// duration slider showed `900` over a row that said `15min`.
+  final String? bubble;
 
   /// What the number actually changes. Null only where the label alone is the
   /// whole story.
@@ -227,7 +241,10 @@ class SettingsSlider extends StatelessWidget {
                 min: min.toDouble(),
                 max: max.toDouble(),
                 divisions: (max - min) ~/ step,
-                label: '$value',
+                label: bubble ?? '$value',
+                // The row's own words, so a screen reader says what is being
+                // set and not just a number floating on its own.
+                semanticFormatterCallback: (_) => label,
                 onChanged: enabled ? (v) => onChanged(_snap(v)) : null,
                 onChangeEnd: enabled && end != null
                     ? (v) => end(_snap(v))

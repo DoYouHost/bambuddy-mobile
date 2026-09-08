@@ -100,6 +100,37 @@ void main() {
     );
   });
 
+  testWidgets('unbounded width lays out without throwing', (tester) async {
+    // A Row of Expanded children, or a SizedBox of infinite width, both throw
+    // under an unbounded constraint. Neither branch may be reached there.
+    await pumpPhone(
+      tester,
+      Scaffold(
+        body: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ButtonPair(
+            primaryLabel: 'Add',
+            secondaryLabel: 'Restore',
+            primary: FilledButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add'),
+              onPressed: () {},
+            ),
+            secondary: OutlinedButton.icon(
+              icon: const Icon(Icons.restart_alt),
+              label: const Text('Restore'),
+              onPressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(rectOf(tester, 'Add').top, rectOf(tester, 'Restore').top);
+  });
+
   testWidgets('a long label stacks the pair at a width a short one fits', (
     tester,
   ) async {

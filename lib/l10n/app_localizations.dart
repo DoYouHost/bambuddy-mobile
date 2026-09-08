@@ -11096,6 +11096,12 @@ abstract class AppLocalizations {
   /// **'Your account may read these settings but not change them.'**
   String get queueSettingsReadOnlyPermission;
 
+  /// No description provided for @queueSettingsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This server reports none of these settings. It is either older than they are, or they could not be read — pull down to try again.'**
+  String get queueSettingsUnavailable;
+
   /// No description provided for @queueSettingsQueueHeader.
   ///
   /// In en, this message translates to:
