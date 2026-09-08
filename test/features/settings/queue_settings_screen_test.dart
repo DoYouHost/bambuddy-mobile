@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -48,11 +49,12 @@ void main() {
     AuthMode authMode = AuthMode.none,
     AppApiException? failWith,
     CurrentUser? user,
+    double viewHeight = 5400,
   }) async {
     // The default 800x600 window builds only the first section of the list,
     // and every gate this file is about sits further down it. A phone-shaped
     // window puts the whole screen on one page.
-    tester.view.physicalSize = const Size(1080, 5400);
+    tester.view.physicalSize = Size(1080, viewHeight);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
@@ -69,6 +71,13 @@ void main() {
     await tester.pumpAndSettle();
     return repo;
   }
+
+  /// The provider container behind the pumped screen.
+  ProviderContainer containerOf(WidgetTester tester) =>
+      ProviderScope.containerOf(
+        tester.element(find.byType(QueueSettingsScreen)),
+        listen: false,
+      );
 
   /// The switch belonging to the row titled [title].
   Switch switchFor(WidgetTester tester, String title) => tester.widget<Switch>(
@@ -152,11 +161,34 @@ void main() {
         findsNothing,
         reason: 'no preheat key answered, so no preheat row to write',
       );
+      expect(
+        find.text(l10n.queueSettingsKeepWarmOffNote),
+        findsOneWidget,
+        reason:
+            'the note is about the bed-temperature row, and this server '
+            'has that one',
+      );
       // The keep-warm section is there, minus the row the server lacks: the
       // bed temperature has a slider, the hold duration has none.
       expect(find.text(l10n.queueSettingsKeepWarmTitle), findsOneWidget);
       expect(find.byType(Slider), findsOneWidget);
     });
+  });
+
+  testWidgets('a note is not shown for rows the server does not have', (
+    tester,
+  ) async {
+    // The master switch without any of the rows under it: an explanation of
+    // why those rows are greyed explains nothing when there are none.
+    await pumpScreen(tester, const {
+      'preheat_enabled': false,
+      'queue_keep_bed_warm': false,
+    });
+
+    expect(find.text(l10n.queueSettingsPreheatTitle), findsOneWidget);
+    expect(find.text(l10n.queueSettingsPreheatOffNote), findsNothing);
+    expect(find.text(l10n.queueSettingsKeepWarmTitle), findsOneWidget);
+    expect(find.text(l10n.queueSettingsKeepWarmOffNote), findsNothing);
   });
 
   group('writing', () {
@@ -333,6 +365,81 @@ void main() {
     );
   });
 
+  group('after a write', () {
+    testWidgets('the reply is taken as the answer, with no second read', (
+      tester,
+    ) async {
+      final repo = await pumpScreen(tester, modernSettings(keepWarm: false));
+      final readsAfterLoad = repo.reads;
+
+      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.pumpAndSettle();
+
+      expect(repo.writes, hasLength(1));
+      expect(
+        repo.reads,
+        readsAfterLoad,
+        reason:
+            'PUT answers with the whole of AppSettings; asking again is a '
+            'request that can only agree, or fail',
+      );
+      expect(switchFor(tester, l10n.queueSettingsKeepWarmTitle).value, isTrue);
+    });
+
+    testWidgets('a read that fails afterwards cannot blank the screen', (
+      tester,
+    ) async {
+      final repo = await pumpScreen(tester, modernSettings(keepWarm: false));
+
+      await tester.tap(find.text(l10n.queueSettingsKeepWarmTitle));
+      await tester.pumpAndSettle();
+
+      // Whatever else asks for the settings next, a dropped answer must not
+      // take the rows away under a save that worked.
+      repo.readFails = true;
+      await containerOf(tester).read(serverSettingsProvider.notifier).refresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.queueSettingsUnavailable), findsNothing);
+      expect(switchFor(tester, l10n.queueSettingsKeepWarmTitle).value, isTrue);
+    });
+  });
+
+  testWidgets('pull-to-refresh re-asks whether this session may write', (
+    tester,
+  ) async {
+    // A 403 latches the form shut. The controls that would prove the
+    // permission came back are the ones being greyed, so without the refresh
+    // re-reading the verdict there is no way out short of restarting the app.
+    final repo = await pumpScreen(
+      tester,
+      modernSettings(keepWarm: false),
+      authMode: AuthMode.jwt,
+      user: const CurrentUser(id: 1, username: 'ola', isAdmin: true),
+      failWith: const AuthException(AppErrorCode.forbidden),
+      // Short enough that the list really overscrolls, which is what the
+      // refresh gesture needs.
+      viewHeight: 1500,
+    );
+
+    // The top row, because the short window this test needs to overscroll at
+    // all does not build the ones further down.
+    await tester.tap(find.text(l10n.queueSettingsPlateClearTitle));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.queueSettingsReadOnlyPermission), findsOneWidget);
+
+    repo.allowAgain();
+    await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.queueSettingsReadOnlyPermission), findsNothing);
+    expect(
+      switchFor(tester, l10n.queueSettingsPlateClearTitle).onChanged,
+      isNotNull,
+      reason: 'the form reopens without restarting the app',
+    );
+  });
+
   group('who may write', () {
     testWidgets('an API-key session reads the values and cannot change them', (
       tester,
@@ -403,7 +510,7 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   _FakeSettingsRepo(this._settings, {this.failWith}) : super(Dio());
 
   Map<String, dynamic> _settings;
-  final AppApiException? failWith;
+  AppApiException? failWith;
   bool _refused = false;
 
   /// A write naming one of these keys waits for its completer. Held per key,
@@ -419,11 +526,20 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   /// reads `/auth/me` — and the fake resolves instantly without this.
   Completer<void>? verdict;
 
+  /// How many times the settings were read. A save must not cause one.
+  int reads = 0;
+
+  /// The next read answers with nothing, as a failed one does.
+  bool readFails = false;
+
   /// The bodies `PUT /settings/` was given, in order.
   final List<Map<String, dynamic>> writes = [];
 
   @override
-  Future<Map<String, dynamic>> fetch() async => _settings;
+  Future<Map<String, dynamic>> fetch() async {
+    reads++;
+    return readFails ? const {} : _settings;
+  }
 
   @override
   Future<Map<String, dynamic>> update(Map<String, dynamic> changes) async {
@@ -444,5 +560,11 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   Future<bool> writable() async {
     await verdict?.future;
     return !_refused;
+  }
+
+  /// The permission an administrator just granted back.
+  void allowAgain() {
+    _refused = false;
+    failWith = null;
   }
 }

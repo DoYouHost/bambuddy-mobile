@@ -6708,7 +6708,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueSettingsPreheatOffNote =>
-      'Nagrzewanie jest wyłączone, więc te dwa ustawienia nic nie zmieniają.';
+      'Nagrzewanie jest wyłączone, więc poniższe ustawienia nic nie zmieniają.';
 
   @override
   String get queueSettingsKeepWarmHeader => 'Utrzymywanie ciepła';

@@ -6615,7 +6615,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsPreheatOffNote =>
-      'Preheat is off, so these two change nothing.';
+      'Preheat is off, so the settings below change nothing.';
 
   @override
   String get queueSettingsKeepWarmHeader => 'Keep warm';

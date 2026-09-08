@@ -126,7 +126,7 @@ void main() {
         printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
         // Money needs the server's currency, which otherwise means building an
         // API client — and there is no profile here to build one from.
-        serverSettingsProvider.overrideWith((ref) async => {'currency': 'PLN'}),
+        serverSettingsOverride(const {'currency': 'PLN'}),
         printersForPickerProvider.overrideWith(
           (ref) async => const [Printer(id: 3, name: 'P1S')],
         ),

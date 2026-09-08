@@ -11177,7 +11177,7 @@ abstract class AppLocalizations {
   /// No description provided for @queueSettingsPreheatOffNote.
   ///
   /// In en, this message translates to:
-  /// **'Preheat is off, so these two change nothing.'**
+  /// **'Preheat is off, so the settings below change nothing.'**
   String get queueSettingsPreheatOffNote;
 
   /// No description provided for @queueSettingsKeepWarmHeader.

@@ -2314,7 +2314,7 @@
   "queueSettingsPreheatSoak": "Soak after reaching temperature: {duration}",
   "@queueSettingsPreheatSoak": { "placeholders": { "duration": { "type": "String" } } },
   "queueSettingsNoSoak": "no soak",
-  "queueSettingsPreheatOffNote": "Preheat is off, so these two change nothing.",
+  "queueSettingsPreheatOffNote": "Preheat is off, so the settings below change nothing.",
   "queueSettingsKeepWarmHeader": "Keep warm",
   "queueSettingsKeepWarmTitle": "Hold the bed warm between prints",
   "queueSettingsKeepWarmDesc": "Until someone takes the finished print off, the bed stays hot — so the next chamber-heated job does not start from cold. Skipped for PLA and PETG.",

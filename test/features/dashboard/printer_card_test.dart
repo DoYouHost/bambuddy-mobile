@@ -2975,7 +2975,7 @@ void main() {
             scheduledDryingRepositoryProvider.overrideWithValue(
               _StubScheduledDrying(),
             ),
-            serverSettingsProvider.overrideWith((ref) async => settings),
+            serverSettingsOverride(settings),
           ],
         ),
       );
@@ -3081,13 +3081,11 @@ void main() {
             dryable(),
             extra: [
               scheduledDryingRepositoryProvider.overrideWithValue(repo),
-              serverSettingsProvider.overrideWith(
-                (ref) async => const {
-                  'drying_presets':
-                      '{"PETG":{"n3f":60,"n3s":72,'
-                      '"n3f_hours":8,"n3s_hours":6}}',
-                },
-              ),
+              serverSettingsOverride(const {
+                'drying_presets':
+                    '{"PETG":{"n3f":60,"n3s":72,'
+                    '"n3f_hours":8,"n3s_hours":6}}',
+              }),
             ],
           ),
         );

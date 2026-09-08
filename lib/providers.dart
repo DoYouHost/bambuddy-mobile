@@ -750,9 +750,38 @@ final serverSettingsRepositoryProvider = Provider<ServerSettingsRepository>(
 
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags
 /// derive from this so we fetch `/settings` once.
-final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
-  (ref) => ref.watch(serverSettingsRepositoryProvider).fetch(),
-);
+final serverSettingsProvider =
+    AsyncNotifierProvider<ServerSettingsNotifier, Map<String, dynamic>>(
+      ServerSettingsNotifier.new,
+    );
+
+class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
+  @override
+  Future<Map<String, dynamic>> build() =>
+      ref.watch(serverSettingsRepositoryProvider).fetch();
+
+  /// Takes the map a write answered with, instead of asking for it again.
+  ///
+  /// `PUT /settings/` replies with the whole of `AppSettings`, so a second
+  /// `GET` after every save is a request that can only confirm what is already
+  /// known — and one that can *fail*, which would drop every flag in the app
+  /// back to nothing right after a save had succeeded.
+  void adopt(Map<String, dynamic> settings) =>
+      state = AsyncValue.data(settings);
+
+  /// Re-reads the settings, keeping what is already known if the read fails.
+  ///
+  /// `fetch` degrades a failure to an empty map, and the route answers with the
+  /// full schema whenever it answers at all — so an empty map here can only
+  /// mean the read did not land, and letting it overwrite a good one turns a
+  /// dropped packet into a screen with nothing on it.
+  Future<void> refresh() async {
+    final fresh = await ref.read(serverSettingsRepositoryProvider).fetch();
+    if (fresh.isNotEmpty || (state.valueOrNull ?? const {}).isEmpty) {
+      state = AsyncValue.data(fresh);
+    }
+  }
+}
 
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
 /// answers **422** above it rather than clamping, so the stepper has to know.

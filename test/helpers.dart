@@ -524,6 +524,24 @@ Override fakeServerProfileOverride({AuthMode authMode = AuthMode.none}) =>
 Override mediaAuthOverride({String token = 'tok'}) =>
     mediaAuthProvider.overrideWith((ref) async => MediaAuth(queryToken: token));
 
+/// `serverSettingsProvider` answering with [settings] and never touching the
+/// network — what a screen that only reads a flag or the currency out of it
+/// wants, since building the real one needs an API client and a profile.
+Override serverSettingsOverride(Map<String, dynamic> settings) =>
+    serverSettingsProvider.overrideWith(() => _FixedServerSettings(settings));
+
+class _FixedServerSettings extends ServerSettingsNotifier {
+  _FixedServerSettings(this._settings);
+
+  final Map<String, dynamic> _settings;
+
+  @override
+  Future<Map<String, dynamic>> build() async => _settings;
+
+  @override
+  Future<void> refresh() async {}
+}
+
 class _FixedServerProfile extends ServerProfileNotifier {
   _FixedServerProfile(this._profile);
 

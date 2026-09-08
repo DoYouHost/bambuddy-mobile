@@ -91,19 +91,19 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
     // rather than from [state], which a drag has already moved.
     final previous = confirmed.values[setting];
     preview(setting, value);
-    final outcome = await runAction(
-      () async {
-        final fresh = await ref
-            .read(serverSettingsRepositoryProvider)
-            .update(QueueSettings.patch(setting, value));
-        // The route answers with the whole of AppSettings, so this is the
-        // server's own word on every row, including one a concurrent write
-        // just changed.
-        _confirmed = QueueSettings.fromSettings(fresh);
-      },
-      logId: 'queue_settings.${setting.key}',
-      onSuccess: () async => ref.invalidate(serverSettingsProvider),
-    );
+    final outcome = await runAction(() async {
+      final fresh = await ref
+          .read(serverSettingsRepositoryProvider)
+          .update(QueueSettings.patch(setting, value));
+      // The route answers with the whole of AppSettings, so this is the
+      // server's own word on every row, including one a concurrent write
+      // just changed. Handed straight to the provider the rest of the app
+      // reads: asking again would be a second request that can only agree —
+      // or fail, and drop every feature gate to nothing after a save that
+      // worked.
+      _confirmed = QueueSettings.fromSettings(fresh);
+      ref.read(serverSettingsProvider.notifier).adopt(fresh);
+    }, logId: 'queue_settings.${setting.key}');
     if (!outcome.isOk) {
       // Only this row goes back. Reverting the whole block would undo a
       // neighbouring write that succeeded while this one was in flight.

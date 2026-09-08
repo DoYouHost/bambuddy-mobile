@@ -49,8 +49,15 @@ class QueueSettingsScreen extends ConsumerWidget {
         // left the screen blank with nothing to press.
         body: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(serverSettingsProvider);
-            await ref.read(serverSettingsProvider.future);
+            // The repository too, not just the settings: it carries the latch
+            // a 403 closed, and that latch is what greys the form. Without a
+            // fresh one, a permission granted server-side after the refusal
+            // could never be picked up — the controls that would have proved
+            // it are the ones being greyed. `queueSettingsLockProvider`
+            // watches the repository, so it rebuilds off this and needs no
+            // invalidation of its own.
+            ref.invalidate(serverSettingsRepositoryProvider);
+            await ref.read(serverSettingsProvider.notifier).refresh();
           },
           child: dashAsync(
             context,
@@ -123,8 +130,16 @@ class QueueSettingsScreen extends ConsumerWidget {
     // right above them, but "why is this grey" has two possible answers on this
     // screen — the master, or the whole form being read-only — so the section
     // says which one applies to it.
-    Widget? mastered(QueueSetting master, String reason) =>
-        writable && has(master) && !settings.flag(master)
+    //
+    // [dependants] is what the note is actually about. An older server can
+    // answer the master and none of the rows under it, and a note explaining
+    // why rows that are not on screen are greyed explains nothing.
+    Widget? mastered(
+      QueueSetting master,
+      String reason,
+      List<QueueSetting> dependants,
+    ) =>
+        writable && has(master) && !settings.flag(master) && dependants.any(has)
         ? InlineNote(reason, icon: Icons.info_outline)
         : null;
 
@@ -207,6 +222,10 @@ class QueueSettingsScreen extends ConsumerWidget {
         note: mastered(
           QueueSetting.preheatEnabled,
           l10n.queueSettingsPreheatOffNote,
+          const [
+            QueueSetting.preheatMaxWaitSeconds,
+            QueueSetting.preheatSoakSeconds,
+          ],
         ),
       ),
       ..._section(
@@ -263,9 +282,13 @@ class QueueSettingsScreen extends ConsumerWidget {
               onChangeEnd: write,
             ),
         ],
+        // Only about the bed temperature, which is the row that keeps working
+        // with keep-warm off — so the note goes when that row does, whatever
+        // else the section still shows.
         note: mastered(
           QueueSetting.keepBedWarm,
           l10n.queueSettingsKeepWarmOffNote,
+          const [QueueSetting.keepWarmBedTemp],
         ),
       ),
     ];
@@ -291,6 +314,13 @@ class QueueSettingsScreen extends ConsumerWidget {
   /// reaching the server was not the one on screen. The label still spells a
   /// remainder out ([formatSecondsExact]), because a value set on the web can
   /// carry one and the row must not round it away in silence.
+  ///
+  /// The first touch then snaps such a value onto the minute grid — 930 s
+  /// reads "15min 30s" until it is dragged and "15min" or "16min" after.
+  /// Deliberate: the grid is what the control offers, the label never lies
+  /// about where the value actually is, and the alternative — a grid offset by
+  /// whatever odd number the row happened to hold — would make a round 15min
+  /// unreachable from this screen.
   Widget _durationSlider(
     WidgetRef ref,
     QueueSetting setting,

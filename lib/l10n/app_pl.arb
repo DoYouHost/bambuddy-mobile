@@ -2093,7 +2093,7 @@
   "queueSettingsPreheatSoak": "Wygrzewanie po osiągnięciu temperatury: {duration}",
   "@queueSettingsPreheatSoak": { "placeholders": { "duration": { "type": "String" } } },
   "queueSettingsNoSoak": "bez wygrzewania",
-  "queueSettingsPreheatOffNote": "Nagrzewanie jest wyłączone, więc te dwa ustawienia nic nie zmieniają.",
+  "queueSettingsPreheatOffNote": "Nagrzewanie jest wyłączone, więc poniższe ustawienia nic nie zmieniają.",
   "queueSettingsKeepWarmHeader": "Utrzymywanie ciepła",
   "queueSettingsKeepWarmTitle": "Trzymaj stół ciepły między wydrukami",
   "queueSettingsKeepWarmDesc": "Dopóki nikt nie zdejmie gotowego wydruku, stół zostaje gorący — kolejne zadanie z grzaną komorą nie startuje wtedy z zimnego. Przy PLA i PETG pomijane.",
