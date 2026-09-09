@@ -1207,64 +1207,41 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
     return logTag(
       'sheet.drying',
-      SafeArea(
-        top: false,
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: t.overlaySurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: t.subCardBorder)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: t.textTertiary.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+      FittedSheetSurface(
+        child: // Scrollable, and `Flexible` so a short sheet still ends where
+            // its content does: filament, two sliders, the start-time picker
+            // and the button are more than a 360×640 screen has room for at a
+            // large system text size, and a sheet that overflows hides its
+            // own Start button.
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(l10n.ctrlDry, style: t.titleLg),
+                        const Spacer(),
+                        Text(
+                          widget.amsLabel,
+                          style: t.body.copyWith(color: t.textSecondary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Above both bodies: it explains a running cycle nobody
+                    // started just as much as it explains one about to be.
+                    const _AutoDryingNote(),
+                    if (drying)
+                      ..._runningBody(t, l10n)
+                    else
+                      ..._setupBody(t, l10n),
+                  ],
                 ),
               ),
-              // Scrollable, and `Flexible` so a short sheet still ends where
-              // its content does: filament, two sliders, the start-time picker
-              // and the button are more than a 360×640 screen has room for at a
-              // large system text size, and a sheet that overflows hides its
-              // own Start button.
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Text(l10n.ctrlDry, style: t.titleLg),
-                          const Spacer(),
-                          Text(
-                            widget.amsLabel,
-                            style: t.body.copyWith(color: t.textSecondary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Above both bodies: it explains a running cycle nobody
-                      // started just as much as it explains one about to be.
-                      const _AutoDryingNote(),
-                      if (drying)
-                        ..._runningBody(t, l10n)
-                      else
-                        ..._setupBody(t, l10n),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   }

@@ -25,6 +25,7 @@ import '../common/inline_note.dart';
 import '../common/section_heading.dart';
 import '../files/printer_download_job.dart';
 import '../files/printer_selection_download.dart';
+import '../../data/streamed_download.dart';
 
 /// Whether this server can be asked what a print left on its printer.
 ///
@@ -294,7 +295,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   /// indeterminate rather than inventing a fraction.
   void _onProgress(int received, int total) {
     if (!mounted) return;
-    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    final next = transferPercentStep(received, total);
     if (next == _progress) return;
     setState(() => _progress = next);
   }

@@ -54,9 +54,7 @@ void main() {
     // The default 800x600 window builds only the first section of the list,
     // and every gate this file is about sits further down it. A phone-shaped
     // window puts the whole screen on one page.
-    tester.view.physicalSize = Size(1080, viewHeight);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+    usePhoneWindow(tester, dp: viewHeight / 3);
 
     final repo = _FakeSettingsRepo(settings, failWith: failWith);
     await pumpPhone(
@@ -329,8 +327,7 @@ void main() {
     final repo = _FakeSettingsRepo(modernSettings());
     final verdict = Completer<void>();
     repo.verdict = verdict;
-    tester.view.physicalSize = const Size(1080, 5400);
-    tester.view.devicePixelRatio = 3.0;
+    usePhoneWindow(tester, dp: 1800);
     addTearDown(tester.view.reset);
 
     await pumpPhone(

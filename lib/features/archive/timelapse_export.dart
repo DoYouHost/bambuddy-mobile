@@ -5,6 +5,7 @@ import 'package:gal/gal.dart';
 import '../../core/api/media_auth.dart';
 import '../../data/timelapse_repository.dart';
 import '../common/file_export.dart';
+import '../../data/streamed_download.dart';
 
 /// Saving a timelapse out of the app: to the gallery, or to whatever the share
 /// sheet offers.
@@ -81,7 +82,7 @@ class TimelapseExport {
       // A server that streams without a length reports -1 as the total; the
       // bar goes indeterminate rather than jumping to a made-up fraction.
       onProgress: (received, total) =>
-          onProgress?.call(total > 0 ? received / total : null),
+          onProgress?.call(transferFraction(received, total)),
     ),
     name: (contentType) =>
         exportFilename(name, timelapseExtension(contentType)),

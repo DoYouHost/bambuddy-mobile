@@ -111,3 +111,53 @@ class SheetSurface extends StatelessWidget {
     );
   }
 }
+
+/// The surface a sheet that is **as tall as its content** stands on: rounded
+/// top, a hairline, the drag handle, and nothing below it but [child].
+///
+/// The other half of [SheetSurface], and deliberately not the same widget. That
+/// one is for a `DraggableScrollableSheet` — it owns its own background colour,
+/// a lifted shadow and the navigation-bar inset, because it can be dragged to
+/// full height. This one sits on `t.overlaySurface` like the card it was opened
+/// from, takes its height from what is in it, and lets a plain `SafeArea` handle
+/// the bottom. Merging them would mean a flag on every one of those differences.
+///
+/// [child] goes straight into the surface's `Column`, so it can be a `Padding`
+/// (the usual case) or a `Flexible` around a scroll view, for content that may
+/// outgrow the screen and must not push its own buttons off it.
+class FittedSheetSurface extends StatelessWidget {
+  const FittedSheetSurface({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return SafeArea(
+      top: false,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: t.overlaySurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border(top: BorderSide(color: t.subCardBorder)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: t.textTertiary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}

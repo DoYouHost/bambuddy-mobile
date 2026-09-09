@@ -1038,11 +1038,23 @@ class _PresetPickerState extends State<_PresetPicker> {
                       style: theme.textTheme.titleMedium,
                     ),
                   ),
-                  Text(l10n.sliceShowAll, style: theme.textTheme.bodySmall),
-                  Switch(
-                    value: _showAll,
-                    onChanged: (v) => setState(() => _showAll = v),
-                  ).tagged('slice.show_all_presets'),
+                  // Merged, or the reader announces a bare "switch": the label
+                  // beside it is a separate node and nothing ties the two.
+                  MergeSemantics(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.sliceShowAll,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Switch(
+                          value: _showAll,
+                          onChanged: (v) => setState(() => _showAll = v),
+                        ).tagged('slice.show_all_presets'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

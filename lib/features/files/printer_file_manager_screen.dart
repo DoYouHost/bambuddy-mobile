@@ -24,6 +24,7 @@ import '../common/device_files.dart';
 import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
+import '../../data/streamed_download.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -314,7 +315,7 @@ class _PrinterFileManagerScreenState
   /// and then the bar stays indeterminate rather than inventing a fraction.
   void _onDownloadProgress(int received, int total) {
     if (!mounted) return;
-    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    final next = transferPercentStep(received, total);
     if (next == _downloadProgress) return;
     setState(() => _downloadProgress = next);
   }

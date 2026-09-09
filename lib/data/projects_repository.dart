@@ -9,6 +9,7 @@ import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/project.dart';
 import '../core/models/queue_item.dart';
+import 'streamed_download.dart';
 
 /// REST data source for projects (full web parity): list/CRUD, templates,
 /// import/export, archives, queue, BOM, attachments, cover image, timeline.
@@ -122,13 +123,10 @@ class ProjectsRepository {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.projectsImportFile,
       data: form,
-      options: Options(
-        sendTimeout: Duration.zero,
-        receiveTimeout: Duration.zero,
-      ),
+      options: uploadOptions(),
       onSendProgress: onProgress == null
           ? null
-          : (sent, total) => onProgress(total > 0 ? sent / total : null),
+          : (sent, total) => onProgress(transferFraction(sent, total)),
     );
     return ProjectResponse.fromJson(res.data ?? const {});
   });
@@ -239,13 +237,10 @@ class ProjectsRepository {
     await _dio.post<dynamic>(
       Endpoints.projectAttachments(id),
       data: form,
-      options: Options(
-        sendTimeout: Duration.zero,
-        receiveTimeout: Duration.zero,
-      ),
+      options: uploadOptions(),
       onSendProgress: onProgress == null
           ? null
-          : (sent, total) => onProgress(total > 0 ? sent / total : null),
+          : (sent, total) => onProgress(transferFraction(sent, total)),
     );
   });
 
@@ -278,10 +273,7 @@ class ProjectsRepository {
     await _dio.post<dynamic>(
       Endpoints.projectCoverImage(id),
       data: form,
-      options: Options(
-        sendTimeout: Duration.zero,
-        receiveTimeout: Duration.zero,
-      ),
+      options: uploadOptions(),
     );
   });
 

@@ -13,6 +13,7 @@ import '../core/models/library_tag.dart';
 import '../core/models/plate_list.dart';
 import '../core/models/trash_file.dart';
 import '../core/models/variant_group.dart';
+import 'streamed_download.dart';
 
 /// REST data source for file manager / library.
 ///
@@ -374,14 +375,10 @@ class LibraryRepository {
         Endpoints.libraryFiles,
         data: form,
         queryParameters: query,
-        // Upload can be large — disable send/receive timeout for this request.
-        options: Options(
-          sendTimeout: Duration.zero,
-          receiveTimeout: Duration.zero,
-        ),
+        options: uploadOptions(),
         onSendProgress: onProgress == null
             ? null
-            : (sent, total) => onProgress(total > 0 ? sent / total : null),
+            : (sent, total) => onProgress(transferFraction(sent, total)),
       );
     });
   }

@@ -921,3 +921,22 @@ class MemorySessionStore implements DiagnosticsSessionStore {
   @override
   Future<void> saveSession(String? session) async => _session = session;
 }
+
+/// Gives the test a phone-shaped window instead of the default 800×600.
+///
+/// The default is **wider than it is tall**, which is not a shape any screen in
+/// this app is designed for: a square preview claims the whole viewport and the
+/// list underneath it never builds, and a settings screen builds only its first
+/// section. Three test files had worked this out separately.
+///
+/// [dp] is the logical height, which is what a test actually reasons about —
+/// the pixel ratio is an implementation detail of the window. **A tap below
+/// 1200 dp of content silently misses**: `WidgetTester.tap` warns "would not
+/// hit test" on stdout and passes anyway, so a test that scrolls to a row far
+/// down the page must ask for the height it needs rather than assume it.
+void usePhoneWindow(WidgetTester tester, {double dp = 800}) {
+  const ratio = 3.0;
+  tester.view.physicalSize = Size(360 * ratio, dp * ratio);
+  tester.view.devicePixelRatio = ratio;
+  addTearDown(tester.view.reset);
+}

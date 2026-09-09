@@ -567,6 +567,39 @@ class PrinterStatus {
     return stage != null && stage > 0 && stage < 255;
   }
 
+  /// Whether this frame describes a job actually being laid down, as opposed to
+  /// a printer that is busy with something of its own.
+  ///
+  /// A layer counter of at least 1 and no named stage. The firmware ticks
+  /// `layer_num` through bed levelling, bed scanning and nozzle cleaning, so
+  /// the counter alone says "the printer is doing something", not "the print is
+  /// running" — [inNamedStage] is what separates the two. A frame with no
+  /// counter at all is taken as underway, because a printer mid-job that simply
+  /// omitted the field must not read as idle.
+  ///
+  /// Here rather than in the notification monitor because it is a question
+  /// about the frame, and the widget publisher and the watch ask it too.
+  bool get jobUnderway => (layerNum ?? 1) >= 1 && !inNamedStage;
+
+  /// Whether the layer counter is inside the window in which "the first layer
+  /// is done" is still news, on the terms bambuddy's own `on_layer_change`
+  /// uses (server #1837).
+  ///
+  /// Layer **2** is the first layer *done* — layer 1 is it being printed. The
+  /// window stops at **10**: a counter far past 2 belongs either to a print
+  /// joined halfway or to the job that has just ended, and neither is news.
+  ///
+  /// Deliberately says nothing about [inNamedStage]. Whether a printer in a
+  /// stage of its own has laid that layer down is a second question, and the
+  /// caller that asks it also has to record the frame it turned down.
+  bool get firstLayerInWindow {
+    final layer = layerNum;
+    return layer != null && layer >= 2 && layer <= firstLayerLayerCeiling;
+  }
+
+  /// Upper bound of [firstLayerInWindow], matching bambuddy's `[2, 10]`.
+  static const firstLayerLayerCeiling = 10;
+
   /// Whether "print" is printer built-in calibration (e.g. file
   /// `auto_cali_for_user_param.gcode`). No own cover, so UI doesn't show
   /// thumbnail — else would hang previous model preview (cover inherited before

@@ -62,6 +62,7 @@ import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
 import '../../../core/diagnostics/log_tag_material.dart';
+import '../../common/sheet_surface.dart';
 
 part 'printer_card_details.dart';
 part 'printer_card_scheduled_drying.dart';

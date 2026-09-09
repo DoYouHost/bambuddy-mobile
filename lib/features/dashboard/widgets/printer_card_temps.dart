@@ -709,164 +709,143 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final chamberGated = _reading.kind == _TempKind.chamber && showAirduct;
     final tempEnabled = !chamberGated || (_airductHeating ?? false);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: t.overlaySurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: t.subCardBorder)),
-        ),
+    return FittedSheetSurface(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.textTertiary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
+            Row(
+              children: [
+                Text(_reading.label(l10n), style: t.titleLg),
+                const Spacer(),
+                Text(
+                  _reading.actual == null
+                      ? '—'
+                      : '${_reading.actual!.toStringAsFixed(0)}°',
+                  style: t.monoTitle.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: t.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(_reading.label(l10n), style: t.titleLg),
-                      const Spacer(),
-                      Text(
-                        _reading.actual == null
-                            ? '—'
-                            : '${_reading.actual!.toStringAsFixed(0)}°',
-                        style: t.monoTitle.copyWith(
-                          fontWeight: FontWeight.w400,
-                          color: t.textSecondary,
+            if (showNozzleSwitch) ...[
+              const SizedBox(height: 12),
+              _nozzleSwitch(
+                t,
+                l10n,
+                isActive: isActiveNozzle,
+                busy: switching,
+                enabled: !widget.printing && !switching,
+              ),
+            ],
+            const SizedBox(height: 16),
+            // Dim + block the target editor when a chamber target can't
+            // take effect (airduct not in Heating).
+            Opacity(
+              opacity: tempEnabled ? 1 : 0.35,
+              child: IgnorePointer(
+                ignoring: !tempEnabled,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Text(
+                        _target == 0 ? l10n.ctrlOff : '$_target°',
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 44,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
                         ),
                       ),
-                    ],
-                  ),
-                  if (showNozzleSwitch) ...[
-                    const SizedBox(height: 12),
-                    _nozzleSwitch(
-                      t,
-                      l10n,
-                      isActive: isActiveNozzle,
-                      busy: switching,
-                      enabled: !widget.printing && !switching,
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  // Dim + block the target editor when a chamber target can't
-                  // take effect (airduct not in Heating).
-                  Opacity(
-                    opacity: tempEnabled ? 1 : 0.35,
-                    child: IgnorePointer(
-                      ignoring: !tempEnabled,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Center(
-                            child: Text(
-                              _target == 0 ? l10n.ctrlOff : '$_target°',
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 44,
-                                fontWeight: FontWeight.w700,
-                                color: accent,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _StepButton(
+                          icon: Icons.remove,
+                          id: 'temperature.step_down',
+                          onTap: () => _bump(-step),
+                        ),
+                        Expanded(
+                          // No `divisions`: tick marks would be far denser
+                          // on the wide nozzle range (0–300) than the bed
+                          // (0–120) and look inconsistent. The slider stays
+                          // smooth and the value snaps to `step` here.
+                          child: Slider(
+                            value: _target.clamp(0, max).toDouble(),
+                            max: max.toDouble(),
+                            activeColor: accent,
+                            onChanged: (v) => setState(
+                              () => _target = ((v / step).round() * step).clamp(
+                                0,
+                                max,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _StepButton(
-                                icon: Icons.remove,
-                                id: 'temperature.step_down',
-                                onTap: () => _bump(-step),
-                              ),
-                              Expanded(
-                                // No `divisions`: tick marks would be far denser
-                                // on the wide nozzle range (0–300) than the bed
-                                // (0–120) and look inconsistent. The slider stays
-                                // smooth and the value snaps to `step` here.
-                                child: Slider(
-                                  value: _target.clamp(0, max).toDouble(),
-                                  max: max.toDouble(),
-                                  activeColor: accent,
-                                  onChanged: (v) => setState(
-                                    () => _target = ((v / step).round() * step)
-                                        .clamp(0, max),
-                                  ),
-                                ).tagged('temperature.slider'),
-                              ),
-                              _StepButton(
-                                icon: Icons.add,
-                                id: 'temperature.step_up',
-                                onTap: () => _bump(step),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Quick-pick presets — tapping one moves the slider;
-                          // the change is committed with the Set button below.
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final p in _reading.presets(_chamberMax))
-                                _PresetChip(
-                                  label: '$p°',
-                                  id: 'temperature.preset',
-                                  selected: _target == p,
-                                  onTap: () => setState(() => _target = p),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                          ).tagged('temperature.slider'),
+                        ),
+                        _StepButton(
+                          icon: Icons.add,
+                          id: 'temperature.step_up',
+                          onTap: () => _bump(step),
+                        ),
+                      ],
                     ),
-                  ),
-                  if (showAirduct) ...[
                     const SizedBox(height: 12),
-                    _AirductToggle(
-                      heating: _airductHeating,
-                      onChanged: _busy ? null : _setAirduct,
+                    // Quick-pick presets — tapping one moves the slider;
+                    // the change is committed with the Set button below.
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final p in _reading.presets(_chamberMax))
+                          _PresetChip(
+                            label: '$p°',
+                            id: 'temperature.preset',
+                            selected: _target == p,
+                            onTap: () => setState(() => _target = p),
+                          ),
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlOff,
-                          id: 'temperature.off',
-                          onTap: _busy ? null : () => _apply(0),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlSet,
-                          id: 'temperature.set',
-                          filled: true,
-                          busy: _busy,
-                          onTap: (_busy || !tempEnabled)
-                              ? null
-                              : () => _apply(_target),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
+            ),
+            if (showAirduct) ...[
+              const SizedBox(height: 12),
+              _AirductToggle(
+                heating: _airductHeating,
+                onChanged: _busy ? null : _setAirduct,
+              ),
+            ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _SheetButton(
+                    label: l10n.ctrlOff,
+                    id: 'temperature.off',
+                    onTap: _busy ? null : () => _apply(0),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _SheetButton(
+                    label: l10n.ctrlSet,
+                    id: 'temperature.set',
+                    filled: true,
+                    busy: _busy,
+                    onTap: (_busy || !tempEnabled)
+                        ? null
+                        : () => _apply(_target),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

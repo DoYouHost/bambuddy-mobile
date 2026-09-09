@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 import 'media_image.dart';
+import 'thumbnail_box.dart';
 
 /// Print thumbnail from archive (queue + archive). Auth via the media
 /// credential — the Bearer header does NOT work for this resource,
@@ -67,18 +68,10 @@ class PrintThumbnail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final radius = BorderRadius.circular(size < 64 ? 8 : 10);
+    final radius = thumbnailRadius(size);
 
-    Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: radius,
-      ),
-      child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
-    );
+    Widget placeholder([IconData icon = Icons.image_outlined]) =>
+        ThumbnailPlaceholder(size: size, icon: icon);
 
     final entryId = printLogEntryId;
     final route =

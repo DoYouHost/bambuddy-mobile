@@ -49,3 +49,34 @@ Future<String?> streamDownload(
   );
   return res.headers.value(Headers.contentTypeHeader);
 });
+
+/// A transfer's progress as a fraction, or null when it cannot be known.
+///
+/// A server that sends no `Content-Length` reports `total` as `-1`, and Dio
+/// passes that straight through. Null is the answer the progress bar wants for
+/// it — an indeterminate bar, rather than a full one or a crash on a negative
+/// fraction. Every call site was writing the `total > 0` guard by hand, and one
+/// of them writing `>=` would have divided by zero.
+double? transferFraction(int done, int total) =>
+    total > 0 ? done / total : null;
+
+/// The same, rounded down to whole percent — for a bar that is rebuilt from
+/// `setState`.
+///
+/// A large download reports progress far more often than a screen can paint,
+/// and each report is a rebuild. Rounding to what the bar can actually show
+/// turns thousands of rebuilds into a hundred, and the caller drops the frame
+/// when this returns what it already had.
+double? transferPercentStep(int done, int total) {
+  final fraction = transferFraction(done, total);
+  return fraction == null ? null : (fraction * 100).floor() / 100;
+}
+
+/// Dio options for an upload: no send or receive deadline.
+///
+/// A multipart POST of a 3MF or a cover image runs as long as the user's
+/// upstream needs, and the client's ordinary timeouts describe a request that
+/// is *stuck*, not one that is big. Left in place they cancel a healthy upload
+/// on a slow connection, which reads to the user as the server refusing it.
+Options uploadOptions() =>
+    Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero);

@@ -85,9 +85,44 @@ const int _humidityRearmMargin = 3;
 const Duration _humidityAlertCooldown = Duration(hours: 1);
 
 /// Highest `layer_num` still worth announcing as "first layer done", matching
-/// bambuddy's own `2 <= layer_num <= 10` window. Above it the counter belongs to
-/// a print we joined halfway or to the one that just ended.
-const int _firstLayerLayerCeiling = 10;
+/// Something that may happen at most once per print.
+///
+/// Four of these were written by hand as bare `bool` fields, and each one has
+/// the same two halves: a latch, and — for the ones that explain a silence —
+/// exactly one record. `docs/logging-guide.md` requires that collapsing ("one
+/// record for a run, not one per frame") and a hand-written latch is where it
+/// gets forgotten: prep lasts minutes at roughly a frame a second.
+class OncePerPrint {
+  bool _fired = false;
+
+  /// Whether it has already happened during this print.
+  bool get fired => _fired;
+
+  /// Latches and runs [body] the first time; does nothing afterwards. Returns
+  /// whether this call was the one that fired.
+  bool claim([void Function()? body]) {
+    if (_fired) return false;
+    _fired = true;
+    body?.call();
+    return true;
+  }
+
+  void reset() => _fired = false;
+}
+
+/// The events this monitor allows itself once per print. Keyed by an enum so
+/// [_PrinterMemo.resetForNewPrint] clears a newly added one without anybody
+/// remembering to add a line — which is the failure this type exists to stop.
+enum PrintOnce {
+  /// The first-layer alert.
+  firstLayer,
+
+  /// The record for progress ignored during the prep phase.
+  prepProgressRecorded,
+
+  /// The record for a frame still describing the *previous* job.
+  previousJobRecorded,
+}
 
 /// Monitor state for one printer — tracks event edges between frames.
 class _PrinterMemo {
@@ -95,7 +130,14 @@ class _PrinterMemo {
     : offline = OfflineDebounce(timerFactory: timerFactory);
 
   bool printing = false;
-  bool firstLayerSent = false;
+
+  /// See [PrintOnce]; read through [once].
+  final Map<PrintOnce, OncePerPrint> _once = {
+    for (final event in PrintOnce.values) event: OncePerPrint(),
+  };
+
+  OncePerPrint once(PrintOnce event) => _once[event]!;
+
   final Set<int> milestonesSent = {};
 
   /// Whether this printer counts as offline, and the wait that keeps a flicker
@@ -127,29 +169,19 @@ class _PrinterMemo {
   final Map<int, DateTime> humidAlertedAt = {};
   bool awaitingBedCool = false;
 
-  /// Whether the prep-phase progress was already recorded as ignored for this
-  /// print — calibration reports a percentage on every frame, so without this
-  /// the record would repeat for the whole phase instead of once.
-  bool prepProgressLogged = false;
-
   /// What the frame that started this print said about the job — which, in the
   /// case that matters, is the job that had just ended. Null once a frame has
   /// brought something of its own. See [PrintMonitor._describesThisPrint].
   _JobFrame? previousJob;
 
-  /// Whether that wait has been recorded for this print. Same reason as
-  /// [prepProgressLogged]: the wait can span the whole pre-print sequence at
-  /// roughly a frame a second.
-  bool previousJobLogged = false;
-
   /// Reset print-specific state on starting a new print.
   void resetForNewPrint() {
-    firstLayerSent = false;
+    for (final once in _once.values) {
+      once.reset();
+    }
     milestonesSent.clear();
     awaitingBedCool = false;
-    prepProgressLogged = false;
     previousJob = null;
-    previousJobLogged = false;
   }
 }
 
@@ -320,7 +352,7 @@ class PrintMonitor {
   void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
     // Nothing job-scoped can be read off a frame that does not describe the job
-    // ([_jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
+    // ([PrinterStatus.jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
     // latch 25 and 50 as already sent and swallow both when the real print
     // reaches them — the mirror image of the burst the gate in step 4) prevents.
     // The dispatch race reaches priming too, through an isolate that restarts
@@ -330,7 +362,7 @@ class PrintMonitor {
     // as already printing, so no print-start edge follows and the new print's
     // first layer would go by in silence. So the frame is recorded as the one to
     // beat instead, exactly as the print-start edge does with it.
-    if (!_jobUnderway(status)) {
+    if (!status.jobUnderway) {
       memo.previousJob = _jobFrame(status);
     } else {
       // "First layer DONE" = printer is already on layer ≥ 2 (parity with
@@ -339,7 +371,7 @@ class PrintMonitor {
       // [_firstLayerDone]'s upper bound: that window is there to decide whether
       // an alert is *due*, while a baseline asks whether it is *spent*, and a
       // counter in the hundreds is the plainest yes there is.
-      if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
+      if ((status.layerNum ?? 0) >= 2) memo.once(PrintOnce.firstLayer).claim();
       if (status.progress != null) {
         final pct = status.progress!.round();
         for (final m in _milestones) {
@@ -479,10 +511,10 @@ class PrintMonitor {
     // frame could not settle is still owed on the next one. bambuddy holds its
     // own flag the same way (`_first_layer_notified`).
     if (isPrinting &&
-        !memo.firstLayerSent &&
+        !memo.once(PrintOnce.firstLayer).fired &&
         describesThisPrint &&
         _firstLayerDone(id, status)) {
-      memo.firstLayerSent = true;
+      memo.once(PrintOnce.firstLayer).claim();
       if (_on(NotifEvent.firstLayer)) {
         _alertFirstLayer(id, status);
       } else {
@@ -495,9 +527,9 @@ class PrintMonitor {
     }
 
     // 4) Progress milestones (once per print). Same latch-on-the-edge shape as
-    // the first layer above, plus the prep-phase gate — see [_jobUnderway].
+    // the first layer above, plus the prep-phase gate — see [PrinterStatus.jobUnderway].
     if (isPrinting && status.progress != null && describesThisPrint) {
-      if (!_jobUnderway(status)) {
+      if (!status.jobUnderway) {
         _recordPrepProgress(id, status, memo);
       } else {
         final pct = status.progress!.round();
@@ -565,9 +597,6 @@ class PrintMonitor {
   /// A frame without `layer_num` says nothing about the phase, so it counts as
   /// underway — a server that omits the field keeps the previous behaviour
   /// rather than going silent for the whole print.
-  static bool _jobUnderway(PrinterStatus status) =>
-      (status.layerNum ?? 1) >= 1 && !status.inNamedStage;
-
   /// Whether this frame says the first layer is behind us, on the terms
   /// bambuddy's own `on_layer_change` uses (server #1837):
   ///
@@ -587,16 +616,13 @@ class PrintMonitor {
   /// went by and nothing arrived" is otherwise indistinguishable from the alert
   /// being switched off.
   bool _firstLayerDone(int id, PrinterStatus status) {
-    final layer = status.layerNum;
-    if (layer == null || layer < 2 || layer > _firstLayerLayerCeiling) {
-      return false;
-    }
+    if (!status.firstLayerInWindow) return false;
     if (!status.inNamedStage) return true;
     NotifProbe.suppressed(
       NotifSkip.prepPhase,
       printerId: id,
       event: NotifEvent.firstLayer,
-      fields: {'layer': layer, 'stage': status.stgCur},
+      fields: {'layer': status.layerNum, 'stage': status.stgCur},
     );
     return false;
   }
@@ -623,21 +649,22 @@ class PrintMonitor {
       memo.previousJob = null;
       return true;
     }
-    if (!memo.previousJobLogged) {
-      memo.previousJobLogged = true;
-      // No `event`: this one reading gates both the first layer and the
-      // milestones, so naming either would describe a narrower decision than
-      // the one that was taken.
-      NotifProbe.suppressed(
-        NotifSkip.previousJob,
-        printerId: id,
-        fields: {
-          'layer': previous.layer,
-          'pct': previous.progress,
-          'stage': status.stgCur,
-        },
-      );
-    }
+    // No `event`: this one reading gates both the first layer and the
+    // milestones, so naming either would describe a narrower decision than the
+    // one that was taken.
+    memo
+        .once(PrintOnce.previousJobRecorded)
+        .claim(
+          () => NotifProbe.suppressed(
+            NotifSkip.previousJob,
+            printerId: id,
+            fields: {
+              'layer': previous.layer,
+              'pct': previous.progress,
+              'stage': status.stgCur,
+            },
+          ),
+        );
     return false;
   }
 
@@ -653,14 +680,19 @@ class PrintMonitor {
   /// and every frame in it carries a percentage, so recording each would bury the
   /// timeline; the first is the one that explains "the app went quiet at 60%".
   void _recordPrepProgress(int id, PrinterStatus status, _PrinterMemo memo) {
-    if (memo.prepProgressLogged) return;
-    memo.prepProgressLogged = true;
-    NotifProbe.suppressed(
-      NotifSkip.prepPhase,
-      printerId: id,
-      event: NotifEvent.milestones,
-      fields: {'pct': status.progress?.round(), 'stage': status.stgCurName},
-    );
+    memo
+        .once(PrintOnce.prepProgressRecorded)
+        .claim(
+          () => NotifProbe.suppressed(
+            NotifSkip.prepPhase,
+            printerId: id,
+            event: NotifEvent.milestones,
+            fields: {
+              'pct': status.progress?.round(),
+              'stage': status.stgCurName,
+            },
+          ),
+        );
   }
 
   void _processOffline(int id, PrinterStatus status, _PrinterMemo memo) {

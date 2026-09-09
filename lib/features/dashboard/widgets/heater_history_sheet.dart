@@ -306,18 +306,7 @@ class _Content extends StatelessWidget {
             dashArray: const [5, 5],
             dotData: const FlDotData(show: false),
           ),
-        LineChartBarData(
-          spots: values,
-          isCurved: true,
-          preventCurveOverShooting: true,
-          color: color,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            color: color.withValues(alpha: 0.15),
-          ),
-        ),
+        dashLineSeries(values, color),
       ],
     );
   }

@@ -18,6 +18,7 @@ import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
+import '../dashboard/widgets/history_chart_parts.dart';
 
 // ── Failure Analysis ────────────────────────────────────────────────────────
 
@@ -694,20 +695,7 @@ class _OverTimeChart extends StatelessWidget {
                 ),
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: spots,
-                isCurved: true,
-                preventCurveOverShooting: true,
-                color: color,
-                barWidth: 2,
-                dotData: const FlDotData(show: false),
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: color.withValues(alpha: 0.15),
-                ),
-              ),
-            ],
+            lineBarsData: [dashLineSeries(spots, color)],
           ),
         ),
       ),

@@ -135,73 +135,50 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 
     return logTag(
       'sheet.movement',
-      SafeArea(
-        top: false,
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: t.overlaySurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: t.subCardBorder)),
-          ),
+      FittedSheetSurface(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: t.textTertiary.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+              Row(
+                children: [
+                  Text(l10n.ctrlMove, style: t.titleLg),
+                  const Spacer(),
+                  _JogAction(
+                    icon: Icons.home_outlined,
+                    label: l10n.ctrlMoveHome,
+                    busy: _spin == 'home',
+                    enabled: !locked,
+                    onTap: _home,
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(l10n.ctrlMove, style: t.titleLg),
-                        const Spacer(),
-                        _JogAction(
-                          icon: Icons.home_outlined,
-                          label: l10n.ctrlMoveHome,
-                          busy: _spin == 'home',
-                          enabled: !locked,
-                          onTap: _home,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    _StepSelector(
-                      id: 'movement.step',
-                      label: l10n.ctrlMoveStep,
-                      presets: _stepPresets,
-                      value: _step,
-                      onChanged: (v) => setState(() => _step = v),
-                    ),
-                    const SizedBox(height: 18),
-                    _buildXyPad(t, locked),
-                    const SizedBox(height: 20),
-                    _buildZRow(t, l10n, locked),
-                    const SizedBox(height: 20),
-                    Divider(color: t.subCardBorder, height: 1),
-                    const SizedBox(height: 20),
-                    _StepSelector(
-                      id: 'movement.length',
-                      label: l10n.ctrlMoveLength,
-                      presets: _lengthPresets,
-                      value: _length,
-                      onChanged: (v) => setState(() => _length = v),
-                    ),
-                    const SizedBox(height: 14),
-                    _buildExtruderRow(t, l10n, locked),
-                  ],
-                ),
+              const SizedBox(height: 18),
+              _StepSelector(
+                id: 'movement.step',
+                label: l10n.ctrlMoveStep,
+                presets: _stepPresets,
+                value: _step,
+                onChanged: (v) => setState(() => _step = v),
               ),
+              const SizedBox(height: 18),
+              _buildXyPad(t, locked),
+              const SizedBox(height: 20),
+              _buildZRow(t, l10n, locked),
+              const SizedBox(height: 20),
+              Divider(color: t.subCardBorder, height: 1),
+              const SizedBox(height: 20),
+              _StepSelector(
+                id: 'movement.length',
+                label: l10n.ctrlMoveLength,
+                presets: _lengthPresets,
+                value: _length,
+                onChanged: (v) => setState(() => _length = v),
+              ),
+              const SizedBox(height: 14),
+              _buildExtruderRow(t, l10n, locked),
             ],
           ),
         ),
