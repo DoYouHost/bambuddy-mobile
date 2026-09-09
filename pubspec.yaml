@@ -15,23 +15,20 @@ dependencies:
   # Report transport, outbox and redaction, shared with lubelogger-mobile.
   # Pinned to a tag, the way the OpenTofu modules are: a moving ref would let a
   # change over there reach a release from here without a commit in this repo.
+  #
+  # Must be the same ref `app_diagnostics` names for its own copy: one package
+  # resolved from two refs fails version solving outright.
   app_report_client:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.1.1
+      ref: v0.2.0
       path: packages/app_report_client
   # The recording session, the log record and the probes, shared with
-  # lubelogger-mobile. Same repository and the same pinning rule as above, and
-  # both must name the *same* ref: two sources for one package is a resolution
-  # error, not a warning.
-  #
-  # TODO(release): `v0.1.1` predates this package and cannot serve it — the ref
-  # here and on `app_report_client` both move to the tag that adds it. Until
-  # then this resolves only through the git-excluded `pubspec_overrides.yaml`.
+  # lubelogger-mobile. Same repository, same pinning rule as above.
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.1.1
+      ref: v0.2.0
       path: packages/app_diagnostics
   clock: ^1.1.2
   collection: ^1.19.0

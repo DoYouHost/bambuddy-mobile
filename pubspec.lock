@@ -20,16 +20,20 @@ packages:
   app_diagnostics:
     dependency: "direct main"
     description:
-      path: "../DoYouHost.app-shared/packages/app_diagnostics"
-      relative: true
-    source: path
+      path: "packages/app_diagnostics"
+      ref: "v0.2.0"
+      resolved-ref: c771593b590354239cf64bc209ddf278bd857732
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
     version: "0.1.0"
   app_report_client:
     dependency: "direct main"
     description:
-      path: "../DoYouHost.app-shared/packages/app_report_client"
-      relative: true
-    source: path
+      path: "packages/app_report_client"
+      ref: "v0.2.0"
+      resolved-ref: c771593b590354239cf64bc209ddf278bd857732
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
     version: "0.1.1"
   archive:
     dependency: transitive
