@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Shared yes/no confirmation dialog. Replaces the near-identical per-screen

@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/api/action_failure.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 /// The one vocabulary every feature now answers actions in.
 ///
@@ -118,11 +118,11 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async =>
-            const SessionFacts(app: '0.12.1+1201000', flavor: 'mobile'),
-        resolveDirectory: () async => null,
+      recorder = testRecorder(
+        facts: const SessionFacts(
+          app: '0.12.1+1201000',
+          extra: {'flavor': 'mobile'},
+        ),
       );
       addTearDown(recorder.discard);
       await recorder.start();

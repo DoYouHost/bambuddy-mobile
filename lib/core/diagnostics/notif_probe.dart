@@ -1,7 +1,6 @@
 import '../notifications/notification_prefs.dart';
 import '../notifications/notification_service.dart';
-import 'diagnostic_recorder.dart';
-import 'log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 /// Why an alert the user might have expected did not go out. The names are wire
 /// values — the summarising Action groups by them, so renaming one breaks logs

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Shared single-line text prompt (new folder, rename, new tag…). Sibling of

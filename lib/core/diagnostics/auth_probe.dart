@@ -1,6 +1,5 @@
 import '../auth/two_factor.dart';
-import 'diagnostic_recorder.dart';
-import 'log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 /// Why a second-factor step failed, in terms that point at a fix. The names are
 /// wire values the summarising Action groups by.

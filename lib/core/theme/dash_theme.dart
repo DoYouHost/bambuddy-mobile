@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 /// Visual design tokens for the modernized "2a" screens (Printers, Queue,
 /// Archive, Maintenance, Filaments) and the shared bottom navigation.

@@ -1,5 +1,4 @@
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 // Shared tolerant JSON coercion helpers for `@JsonKey(fromJson: ...)` and
 // hand-written `fromJson` factories across the model layer.

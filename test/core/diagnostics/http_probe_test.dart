@@ -3,14 +3,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 ResponseBody _text(String body, int status) => ResponseBody.fromString(
   body,
@@ -41,9 +40,15 @@ void main() {
   Future<void> useRecorder({Map<String, String> secrets = const {}}) async {
     SharedPreferences.setMockInitialValues({});
     recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async =>
-          SessionFacts(app: '0.11.2+1102', flavor: 'mobile', secrets: secrets),
+      sessions: MemorySessionStore(),
+      redactor: bambuddyRedactor,
+      sessionDuration: recordingLimit,
+      sessionBytes: recordingSizeLimit,
+      loadFacts: () async => SessionFacts(
+        app: '0.11.2+1102',
+        secrets: secrets,
+        extra: const {'flavor': 'mobile'},
+      ),
       resolveDirectory: () async => null,
     );
     addTearDown(recorder.discard);

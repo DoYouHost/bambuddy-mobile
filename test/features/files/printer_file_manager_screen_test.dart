@@ -2,14 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show CheckedState;
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/core/models/printer_file.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/features/common/dash_progress.dart';
 import 'package:bambuddy_mobile/features/files/printer_file_manager_screen.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
@@ -623,11 +621,11 @@ void main() {
       // What settles it is the state and the counts — and what must never be in
       // there is what the user called their models.
       SharedPreferences.setMockInitialValues({});
-      final recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async =>
-            const SessionFacts(app: '0.12.1+1201000', flavor: 'mobile'),
-        resolveDirectory: () async => null,
+      final recorder = testRecorder(
+        facts: const SessionFacts(
+          app: '0.12.1+1201000',
+          extra: {'flavor': 'mobile'},
+        ),
       );
       addTearDown(recorder.discard);
       await recorder.start();

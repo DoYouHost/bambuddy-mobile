@@ -1,6 +1,4 @@
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
-import '../diagnostics/log_path.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'api_exceptions.dart';
 
 /// Records a failure the user was meant to be told about.

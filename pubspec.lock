@@ -17,14 +17,19 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "13.0.0"
+  app_diagnostics:
+    dependency: "direct main"
+    description:
+      path: "../DoYouHost.app-shared/packages/app_diagnostics"
+      relative: true
+    source: path
+    version: "0.1.0"
   app_report_client:
     dependency: "direct main"
     description:
-      path: "packages/app_report_client"
-      ref: "v0.1.1"
-      resolved-ref: "1586d6049eca26da14d76751d6f6456ff5d28e52"
-      url: "https://github.com/DoYouHost/app-shared.git"
-    source: git
+      path: "../DoYouHost.app-shared/packages/app_report_client"
+      relative: true
+    source: path
     version: "0.1.1"
   archive:
     dependency: transitive

@@ -4,10 +4,8 @@ import 'dart:io' show WebSocketException;
 
 import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -477,11 +475,8 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async =>
-            const SessionFacts(app: '1.0+1', flavor: 'mobile'),
-        resolveDirectory: () async => null,
+      recorder = testRecorder(
+        facts: const SessionFacts(app: '1.0+1', extra: {'flavor': 'mobile'}),
       );
       // Recording starts OUTSIDE `fakeAsync`: `start()` waits on prefs via
       // a platform channel that the fake event loop won't finish.

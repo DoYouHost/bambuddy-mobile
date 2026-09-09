@@ -1,10 +1,8 @@
 import 'package:clock/clock.dart' as ambient;
 import '../api/ws_messages.dart';
 import '../models/printer_status.dart' show AmsTray, AmsUnit, HmsError;
-import 'diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'filament_material.dart';
-import 'log_event.dart';
-import 'log_store.dart';
 
 /// Why the socket went away. The names are wire values — the summarising Action
 /// groups by them, so renaming one breaks logs already attached to an issue.

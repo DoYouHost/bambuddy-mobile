@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
-import '../diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
@@ -12,6 +12,7 @@ import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import '../diagnostics/diagnostics_wiring.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
 /// The notification payload carries a comma-separated list of item IDs to reset.
@@ -135,7 +136,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    recording = await DiagnosticRecorder.startAction();
+    recording = await startActionRecording();
     NotifProbe.action(id: actionId, items: 1);
 
     final api = await buildBackgroundApiClient(prefs);
@@ -176,7 +177,7 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    recording = await DiagnosticRecorder.startAction();
+    recording = await startActionRecording();
     NotifProbe.action(id: maintenancePerformActionId, items: itemIds.length);
 
     final api = await buildBackgroundApiClient(prefs);

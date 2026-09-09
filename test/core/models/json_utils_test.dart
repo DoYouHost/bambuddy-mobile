@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/models/json_utils.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -15,11 +15,11 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async =>
-          const SessionFacts(app: '0.11.5+1105', flavor: 'mobile'),
-      resolveDirectory: () async => null,
+    recorder = testRecorder(
+      facts: const SessionFacts(
+        app: '0.11.5+1105',
+        extra: {'flavor': 'mobile'},
+      ),
     );
     addTearDown(recorder.discard);
   });

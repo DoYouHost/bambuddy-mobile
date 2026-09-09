@@ -1,3 +1,5 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -881,3 +883,41 @@ Archive testArchive({
   completedAt: completedAt,
   createdAt: createdAt,
 );
+
+/// A recorder wired the way the app wires one, for a test that only needs
+/// *something* recording so a probe has a store to write into.
+///
+/// Memory-only by default: most callers assert on what `stop()` returns, not on
+/// what reached the disk. Pass [directory] for the ones that do.
+///
+/// Exists because the five arguments below are the same five in every such
+/// test, and three of them (`redactor`, the two ceilings) are the app's answers
+/// rather than the test's — a test that picked its own would be asserting
+/// against a session bambuddy never records.
+DiagnosticRecorder testRecorder({
+  DiagnosticsSessionStore? sessions,
+  SessionFacts facts = const SessionFacts(
+    app: '0.12.1+1201000',
+    extra: {'flavor': 'mobile'},
+  ),
+  Future<Directory?> Function()? directory,
+}) => DiagnosticRecorder(
+  sessions: sessions ?? MemorySessionStore(),
+  redactor: bambuddyRedactor,
+  loadFacts: () async => facts,
+  sessionDuration: recordingLimit,
+  sessionBytes: recordingSizeLimit,
+  resolveDirectory: directory ?? () async => null,
+);
+
+/// The session id in memory. The real one is `SettingsSessionStore` over
+/// SharedPreferences; nothing in a test needs it to survive the process.
+class MemorySessionStore implements DiagnosticsSessionStore {
+  String? _session;
+
+  @override
+  String? loadSession() => _session;
+
+  @override
+  Future<void> saveSession(String? session) async => _session = session;
+}

@@ -1,9 +1,10 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:dio/dio.dart';
 
 import '../auth/auth_headers.dart';
 import '../auth/credentials_store.dart';
 import '../demo/demo_http_adapter.dart';
-import '../diagnostics/http_probe.dart';
+import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
@@ -19,7 +20,7 @@ Dio createBareDio() => Dio(
     receiveTimeout: const Duration(seconds: 15),
     sendTimeout: const Duration(seconds: 15),
   ),
-)..interceptors.add(HttpProbe());
+)..interceptors.add(HttpProbe(config: bambuddyHttpProbe));
 
 /// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {

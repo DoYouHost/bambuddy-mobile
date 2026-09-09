@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_client/app_report_client.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_controller.dart';
@@ -24,13 +21,13 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
 
 void main() {
   late SharedPreferences prefs;
 
   const facts = SessionFacts(
     app: '0.11.2+1102',
-    flavor: 'mobile',
     os: 'Android 15',
     locale: 'pl-PL',
   );
@@ -49,7 +46,10 @@ void main() {
     sessionFactsProvider.overrideWithValue(() async => facts),
     diagnosticRecorderProvider.overrideWith(
       (ref) => DiagnosticRecorder(
-        settings: ref.watch(settingsRepositoryProvider),
+        sessions: SettingsSessionStore(ref.watch(settingsRepositoryProvider)),
+        redactor: bambuddyRedactor,
+        sessionDuration: recordingLimit,
+        sessionBytes: recordingSizeLimit,
         loadFacts: () async => facts,
         resolveDirectory: () async => null,
       ),
@@ -815,7 +815,12 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           diagnosticRecorderProvider.overrideWith(
             (ref) => DiagnosticRecorder(
-              settings: ref.watch(settingsRepositoryProvider),
+              sessions: SettingsSessionStore(
+                ref.watch(settingsRepositoryProvider),
+              ),
+              redactor: bambuddyRedactor,
+              sessionDuration: recordingLimit,
+              sessionBytes: recordingSizeLimit,
               loadFacts: () async => facts,
               resolveDirectory: () async => dir,
             ),

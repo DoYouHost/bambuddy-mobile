@@ -4,11 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../notifications/background_api.dart';
 import 'wear_relay_handler.dart';
 import 'wear_rpc.dart';
+import '../diagnostics/diagnostics_wiring.dart';
 
 /// Channel the native listener service hands forwarded requests over.
 /// Mirrored in `WearRelayListenerService.kt`.
@@ -74,9 +74,7 @@ class WearRelayEngine {
     // started from the app, and an open app holds the claim that stops the
     // service forwarding anything here. So one "no" is final, and the warm
     // path stops paying a prefs reload per request for it.
-    final recording = _mayRecord
-        ? await DiagnosticRecorder.startAction()
-        : null;
+    final recording = _mayRecord ? await startActionRecording() : null;
     _mayRecord = recording != null;
     final started = DateTime.now();
     var outcome = _WakeOutcome.answered;

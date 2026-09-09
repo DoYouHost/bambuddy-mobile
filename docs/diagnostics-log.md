@@ -1,8 +1,16 @@
 # The diagnostic log
 
-What `lib/core/diagnostics/` records, what it refuses to record, and how the
-pieces fit. The individual files carry only the non-obvious "why" of their own
-code; the policy that binds them lives here.
+What the app records, what it refuses to record, and how the pieces fit. The
+individual files carry only the non-obvious "why" of their own code; the policy
+that binds them lives here.
+
+The machinery is the `app_diagnostics` package (session, record, file mirror,
+merge, summary, probes over taps, routes, requests, errors and lifecycle); what
+stays in `lib/core/diagnostics/` is everything only bambuddy can answer — the
+redaction vocabulary and ceilings (`report_config.dart`), the probes over its
+own socket and notifications, the filament tag, and the wiring that hands the
+package all of it (`diagnostics_wiring.dart`). **This policy governs both**: a
+rule below is not weakened by living in a package that another app also uses.
 
 A recording is attached to a bug report and uploaded to a **public, permanent
 GitHub issue**. Every rule below follows from that one fact.

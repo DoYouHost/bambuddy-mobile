@@ -5,9 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/diagnostics/log_store.dart' show recordingLimit;
-import '../../core/diagnostics/log_summary.dart';
-import '../../core/diagnostics/log_tag.dart';
+import '../../core/diagnostics/report_config.dart' show recordingLimit;
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_client/app_report_client.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';

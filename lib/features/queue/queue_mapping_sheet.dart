@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/slot_addressing.dart';
-import '../../core/diagnostics/log_tag.dart';
+import '../../core/diagnostics/log_tag_material.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';

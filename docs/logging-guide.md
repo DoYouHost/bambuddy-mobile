@@ -58,7 +58,8 @@ while the id moves. Hence the parameter on `logTag`. Nothing about the state
 reaches the log; the probe reads the identifier only. `MergeSemantics` is safe
 next to this — a merged node carries the identifier of the control inside it,
 and the probe stops at a merged subtree by design. Both facts are pinned in
-`interaction_probe_test.dart`.
+`interaction_probe_test.dart` — the one in `app_diagnostics`, which is where the
+probe now lives.
 
 **A shared widget must not tag itself.** A control used from several places takes
 its `id` as a **required parameter** from the call site; a tag written into its
@@ -80,11 +81,13 @@ Every request records method, reduced path, status and duration. A **content**
 endpoint also contributes its record count plus one record in full, because a
 200 hiding twenty rows and a 200 with nothing in it look identical otherwise.
 
-That list is `_sampledPaths` in `http_probe.dart` — an **allowlist**: forgetting
-an endpoint costs a diagnosis, forgetting one in a denylist costs a secret.
-`_neverSampled` (`token|api-keys`) is checked first and wins. Add your route when
-"the screen is empty / shows the wrong thing" is a question reports will ask
-about it.
+That list is `_sampledPaths` in `report_config.dart`, handed to the probe as
+`bambuddyHttpProbe` — an **allowlist**: forgetting an endpoint costs a
+diagnosis, forgetting one in a denylist costs a secret. `_neverSampled`
+(`token|api-keys`) is checked first and wins. Add your route when "the screen is
+empty / shows the wrong thing" is a question reports will ask about it. The
+probe itself is in `app_diagnostics` and samples nothing until an app hands it
+this config.
 
 If a route interpolates user text into the path, `loggablePath` masks the
 segment. Do not add a special case for it — the rule is measured against every
@@ -129,7 +132,9 @@ its own file:
   (`handleMaintenanceAction`, `handleHmsAction`, registered in three isolates)
   and the watch-relay engine (`wear_relay_engine.dart`, started by
   `WearRelayListenerService` when the app's process is dead). One guard, not
-  one per path: **call `DiagnosticRecorder.startAction()`** — it writes into
+  one per path: **call `startActionRecording()`** (`diagnostics_wiring.dart`,
+  which is where this app's settings, keystore, redactor and ceiling are named)
+  — it writes into
   the store that already exists where there is one, and otherwise opens a
   standalone `-act` stream for the caller to close. It cannot throw, which on
   these paths matters more than the record: the caller is carrying out the
@@ -198,10 +203,18 @@ read back from the file, which nothing evicts from.
 
 ## Test patterns already in the repo
 
+In **`app_diagnostics`**, for anything about the recorder itself:
 `log_store_test` (ceilings), `log_file_sink_test` (store + sink on a temp dir),
-`ws_probe_test` (recorder with `resolveDirectory: () async => null`),
 `background_recording_test` (background stream, rejected headers, clock run
-backwards), `log_merge_test` (`iso`, three-way merge), `redaction_lanes_test` and
-`log_redactor_test` (assertions against the **raw** JSONL that a model or printer
-name appears nowhere), `notif_probe_test` (suppression collapsing),
-`action_tag_vocabulary_test` (`action:` strings match real tags).
+backwards), `log_merge_test` (`iso`, three-way merge), `http_probe_test`
+(sampling rules as configuration).
+
+Here, for anything that is a question about *this* app: `ws_probe_test`
+(recorder with `resolveDirectory: () async => null`, plus the
+`WsSessionListener` that opens and flushes it), `start_action_test`,
+`redaction_lanes_test` and `log_redactor_test` (assertions against the **raw**
+JSONL that a model or printer name appears nowhere), `notif_probe_test`
+(suppression collapsing), `action_tag_vocabulary_test` (`action:` strings match
+real tags), `http_probe_test` (bambuddy's own routes and payloads),
+`log_wire_format_test` (the header keys the relay and every archived log
+expect).

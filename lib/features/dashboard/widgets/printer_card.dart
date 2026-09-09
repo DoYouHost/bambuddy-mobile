@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/ams/drying_presets.dart';
 import '../../../core/ams/slot_addressing.dart';
-import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
@@ -62,6 +61,7 @@ import 'ams_slot_config_sheet.dart';
 import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
+import '../../../core/diagnostics/log_tag_material.dart';
 
 part 'printer_card_details.dart';
 part 'printer_card_scheduled_drying.dart';

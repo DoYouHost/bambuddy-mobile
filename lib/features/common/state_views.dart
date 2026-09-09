@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 /// Shared "failed to load, tap to retry" view. Replaces the per-screen
 /// `_ErrorView` copies (queue, archive, maintenance, inventory, projects,

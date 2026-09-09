@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_store.dart' show recordingLimit;
-import '../../core/diagnostics/log_summary.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_client/app_report_client.dart';
 import '../../core/diagnostics/report_config.dart';
-import '../../core/diagnostics/session_facts.dart';
 import '../../providers.dart';
 
 enum BugReportPhase { idle, recording, review }

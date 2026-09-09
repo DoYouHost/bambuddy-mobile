@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io' show WebSocketException;
 
+import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 WsMessage _status(
   int id, {
@@ -58,13 +59,16 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async => SessionFacts(
-        app: '0.11.2+1102',
-        flavor: 'mobile',
-        secrets: const {host: '[HOST]'},
-      ),
+      sessions: MemorySessionStore(),
+      redactor: bambuddyRedactor,
+      sessionDuration: recordingLimit,
+      sessionBytes: recordingSizeLimit,
+      loadFacts: () async =>
+          SessionFacts(app: '0.11.2+1102', secrets: const {host: '[HOST]'}),
       resolveDirectory: () async => null,
+      // The snapshot at session start and the flush at session end are this
+      // listener's doing — the recorder has no idea a socket exists.
+      listeners: const [WsSessionListener()],
     );
     now = DateTime.utc(2026, 7, 26, 12);
     probe = WsProbe(clock: () => now);

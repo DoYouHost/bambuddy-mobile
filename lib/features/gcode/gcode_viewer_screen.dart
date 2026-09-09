@@ -7,8 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
-import '../../core/diagnostics/diagnostic_recorder.dart';
-import '../../core/diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';

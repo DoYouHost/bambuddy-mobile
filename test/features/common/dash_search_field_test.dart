@@ -1,8 +1,6 @@
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/interaction_probe.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/features/common/dash_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +17,6 @@ void main() {
         ts: DateTime.utc(2026, 7, 26, 12),
         session: 'test',
         app: '0.11.2+1102',
-        flavor: 'mobile',
       ),
     );
     probe = InteractionProbe(store: store);

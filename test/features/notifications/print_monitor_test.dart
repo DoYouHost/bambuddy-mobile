@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
@@ -16,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 PrinterStatus _status({
   int id = 1,
@@ -1278,9 +1277,12 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        sessions: MemorySessionStore(),
+        redactor: bambuddyRedactor,
+        sessionDuration: recordingLimit,
+        sessionBytes: recordingSizeLimit,
         loadFacts: () async =>
-            const SessionFacts(app: '0.11.3+1103', flavor: 'mobile'),
+            const SessionFacts(app: '0.11.3+1103', extra: {'flavor': 'mobile'}),
         // Memory instead of disk: we check the records, not a mirror on a file.
         resolveDirectory: () async => null,
       );

@@ -14,7 +14,8 @@ import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/auth/token_refresher.dart';
-import 'core/diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'core/diagnostics/diagnostics_wiring.dart';
 import 'core/diagnostics/report_config.dart';
 import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
@@ -197,8 +198,14 @@ final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
 /// two recorders would fight over it.
 final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
   (ref) => DiagnosticRecorder(
-    settings: ref.watch(settingsRepositoryProvider),
+    sessions: SettingsSessionStore(ref.watch(settingsRepositoryProvider)),
+    redactor: bambuddyRedactor,
     loadFacts: ref.watch(sessionFactsProvider),
+    sessionDuration: recordingLimit,
+    sessionBytes: recordingSizeLimit,
+    // The socket probe is bambuddy's own, so the recorder cannot know to open
+    // and flush it; it is handed over here instead.
+    listeners: const [WsSessionListener()],
   ),
 );
 

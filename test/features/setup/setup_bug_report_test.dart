@@ -1,5 +1,4 @@
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -9,11 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 void main() {
   late SharedPreferences prefs;
 
-  const facts = SessionFacts(app: '0.11.2+1102', flavor: 'mobile');
+  const facts = SessionFacts(app: '0.11.2+1102', extra: {'flavor': 'mobile'});
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -28,7 +29,12 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         diagnosticRecorderProvider.overrideWith(
           (ref) => DiagnosticRecorder(
-            settings: ref.watch(settingsRepositoryProvider),
+            sessions: SettingsSessionStore(
+              ref.watch(settingsRepositoryProvider),
+            ),
+            redactor: bambuddyRedactor,
+            sessionDuration: recordingLimit,
+            sessionBytes: recordingSizeLimit,
             loadFacts: () async => facts,
             resolveDirectory: () async => null,
           ),

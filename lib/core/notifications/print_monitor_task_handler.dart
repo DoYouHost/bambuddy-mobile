@@ -27,8 +27,7 @@ import '../auth/auth_headers.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../diagnostics/session_facts.dart';
 import '../demo/demo_ws.dart';
@@ -42,6 +41,8 @@ import '../widget/home_widget_publisher.dart';
 import '../widget/multi_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
+import '../diagnostics/diagnostics_wiring.dart';
+import '../diagnostics/report_config.dart';
 
 /// How often to poll REST for maintenance status. Operating hours only accumulate
 /// during printing, so infrequent checks suffice and don't burden the server.
@@ -112,8 +113,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // to be — are inside the recording. Cannot throw and cannot block for long by
     // construction; null when no recording is running, which is the normal case.
     _recording = await DiagnosticRecorder.startBackground(
-      settings: settings,
+      sessions: SettingsSessionStore(settings),
+      redactor: bambuddyRedactor,
+      sessionLimit: recordingLimit,
       stream: LogStream.fgs,
+      listeners: const [WsSessionListener()],
       // The header comes off disk, but the secrets cannot: an empty redactor would
       // let the user's own hostname through in the first socket error.
       loadSecrets: () => sessionSecrets(
@@ -534,8 +538,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
       if (wanted == null) return;
 
       _recording = await DiagnosticRecorder.startBackground(
-        settings: settings,
+        sessions: SettingsSessionStore(settings),
+        redactor: bambuddyRedactor,
+        sessionLimit: recordingLimit,
         stream: LogStream.fgs,
+        listeners: const [WsSessionListener()],
         loadSecrets: () => sessionSecrets(
           profile: settings.loadProfile(),
           credentials: SecureCredentialsStore(),

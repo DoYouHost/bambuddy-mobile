@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/ams/slot_addressing.dart';
-import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/user_number.dart';
@@ -45,6 +44,7 @@ import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
+import '../../core/diagnostics/log_tag_material.dart';
 
 part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
