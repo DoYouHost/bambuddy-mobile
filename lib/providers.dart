@@ -790,41 +790,64 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
   }
 }
 
+/// One value derived from the server's settings, for a caller that must be able
+/// to tell "not answered yet" from "answered, and the answer is no".
+///
+/// Use it for a **gate**: a flag that decides whether a control exists at all.
+/// Reading such a flag as `false` while `/settings` is still in flight puts the
+/// user in front of a screen missing a button the server does offer — and the
+/// fetch is lazy, so that window opens the first time a screen needs the flag,
+/// which is exactly when the user is looking at it.
+///
+/// The caller gets an `AsyncValue` and has to say what "not yet" looks like.
+/// Collapsing it with `.orFalse` is the bug this exists to stop.
+FutureProvider<T> serverGate<T>(T Function(Map<String, dynamic>) read) =>
+    FutureProvider<T>(
+      (ref) async => read(await ref.watch(serverSettingsProvider.future)),
+    );
+
+/// One value derived from the server's settings, resolved immediately against
+/// the fallback the server itself would have used.
+///
+/// Use it for a **value**, not a gate: a symbol, a limit, a set of presets.
+/// Nothing is hidden while the settings are in flight — the screen shows the
+/// default and swaps in the real answer when it lands — and a spinner in the
+/// middle of a price column or a stepper would be worse than the default it
+/// replaces.
+Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
+    Provider<T>(
+      (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
+    );
+
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
 /// answers **422** above it rather than clamping, so the stepper has to know.
 /// 50 is the server's own fallback for an unset or unparseable value
 /// (`routes/pipeline_runs.py::run_pipeline`).
-final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
-  final settings = await ref.watch(serverSettingsProvider.future);
+final pipelineMaxCopiesProvider = serverValue<int>((settings) {
   final parsed = settings.settingDouble('pipeline_max_copies', 50).toInt();
   return parsed > 0 ? parsed : 50;
 });
 
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
-final currencySymbolProvider = Provider<String>((ref) {
-  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
-      .settingString('currency');
+final currencySymbolProvider = serverValue<String>((settings) {
+  final code = settings.settingString('currency');
   return currencySymbol(code is String ? code : null);
 });
 
 /// Whether the scheduler requires per-printer plate-clear confirmation before
 /// starting queued prints. Gates the plate badge / "clear plate" button and the
 /// pre-start confirmation.
-final requirePlateClearProvider = FutureProvider<bool>(
-  (ref) async => (await ref.watch(
-    serverSettingsProvider.future,
-  )).settingBool('require_plate_clear'),
+final requirePlateClearProvider = serverGate<bool>(
+  (settings) => settings.settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
 /// Gates the print form's `gcode_injection` checkbox (see
 /// [gcodeSnippetModels]): without snippets the flag does nothing, so the web
 /// hides it too.
-final gcodeSnippetModelsProvider = FutureProvider<Set<String>>(
-  (ref) async => gcodeSnippetModels(
-    (await ref.watch(serverSettingsProvider.future))['gcode_snippets'],
-  ),
+final gcodeSnippetModelsProvider = serverGate<Set<String>>(
+  (settings) => gcodeSnippetModels(settings['gcode_snippets']),
 );
 
 /// MakerWorld integration (model import). Shares authenticated Dio.

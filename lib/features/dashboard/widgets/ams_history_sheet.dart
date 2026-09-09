@@ -52,8 +52,7 @@ const _defaultAmsThresholds = (
   tempFair: 35.0,
 );
 
-final amsThresholdsProvider = FutureProvider<AmsThresholds>((ref) async {
-  final s = await ref.watch(serverSettingsProvider.future);
+final amsThresholdsProvider = serverValue<AmsThresholds>((s) {
   return (
     humidityGood: s.settingDouble(
       'ams_humidity_good',
@@ -127,8 +126,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
       if (next.hasError) ref.invalidate(amsHistorySupportedProvider);
     });
     final async = ref.watch(amsHistoryDataProvider(query));
-    final thresholds =
-        ref.watch(amsThresholdsProvider).valueOrNull ?? _defaultAmsThresholds;
+    final thresholds = ref.watch(amsThresholdsProvider);
     final good = isHumidity ? thresholds.humidityGood : thresholds.tempGood;
     final fair = isHumidity ? thresholds.humidityFair : thresholds.tempFair;
 

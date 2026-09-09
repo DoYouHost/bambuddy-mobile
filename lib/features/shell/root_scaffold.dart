@@ -7,6 +7,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';
@@ -32,6 +33,16 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void initState() {
     super.initState();
     _reportVisibleTab();
+    // Starts `/settings` once for the whole shell. Every gate built on
+    // `serverGate` is a question a screen asks the moment it is opened, and the
+    // fetch is lazy — so without this the first visit to the file manager, an
+    // archive or the queue form spends its opening frames unable to say whether
+    // a control exists. Warmed here, the answer is in before any tab is reached.
+    //
+    // `read`, not `watch`: the provider is not `autoDispose`, so one read keeps
+    // it alive for the session, and watching would rebuild the whole tab shell
+    // every time a settings write lands.
+    ref.read(serverSettingsProvider);
   }
 
   @override

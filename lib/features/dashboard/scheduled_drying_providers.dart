@@ -67,14 +67,9 @@ List<ScheduledDrying> scheduledDryingsFor(
 /// `settings:read` rides on an API key's `can_read_status` scope, so a key
 /// without it gets a 403 and `serverSettingsProvider` answers `{}`. The sheet
 /// then offers what the server would have used anyway.
-final dryingPresetsProvider = Provider<Map<String, DryPreset>>(
-  (ref) => dryingPresetsFrom(
-    ref.watch(serverSettingsProvider).valueOrNull?['drying_presets'],
-  ),
+final dryingPresetsProvider = serverValue<Map<String, DryPreset>>(
+  (settings) => dryingPresetsFrom(settings['drying_presets']),
 );
 
 /// Whether the server dries on its own, and how. Read-only — see [AutoDrying].
-final autoDryingProvider = Provider<AutoDrying>(
-  (ref) =>
-      autoDryingFrom(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
-);
+final autoDryingProvider = serverValue<AutoDrying>(autoDryingFrom);
