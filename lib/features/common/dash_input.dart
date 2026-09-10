@@ -84,24 +84,39 @@ Widget dashCombo<T>(
   TextStyle? textStyle,
   InputDecorationTheme? decorationTheme,
   ValueChanged<T?>? onSelected,
-}) => DropdownMenu<T>(
-  key: fieldKey,
-  controller: controller,
-  initialSelection: initialSelection,
-  enabled: enabled,
-  label: label,
-  helperText: helperText,
-  errorText: errorText,
-  expandedInsets: EdgeInsets.zero,
-  menuHeight: menuHeight,
-  enableFilter: filterable,
-  requestFocusOnTap: filterable,
-  textStyle: textStyle,
-  inputDecorationTheme:
-      decorationTheme ?? dashInputTheme(DashTokens.of(context)),
-  onSelected: onSelected,
-  dropdownMenuEntries: entries,
-).tagged(id);
+}) {
+  final theme = decorationTheme ?? dashInputTheme(DashTokens.of(context));
+  return DropdownMenu<T>(
+    key: fieldKey,
+    controller: controller,
+    initialSelection: initialSelection,
+    enabled: enabled,
+    label: label,
+    helperText: helperText,
+    errorText: errorText,
+    expandedInsets: EdgeInsets.zero,
+    menuHeight: menuHeight,
+    enableFilter: filterable,
+    requestFocusOnTap: filterable,
+    textStyle: textStyle,
+    inputDecorationTheme: theme.suffixIconConstraints == null
+        ? theme.copyWith(suffixIconConstraints: _arrowBox)
+        : theme,
+    onSelected: onSelected,
+    dropdownMenuEntries: entries,
+  ).tagged(id);
+}
+
+/// How much room the menu's arrow may claim.
+///
+/// Flutter builds it as a bare [IconButton], which takes the full 48x48 tap
+/// target and pushes the field to 56 — while every text field in the app is a
+/// dense 48. In any form holding both, the select stood 8px taller than the
+/// field beside it. `suffixIconConstraints` is routed straight to that button
+/// (`dropdown_menu.dart`), and 40 is the largest box that still lets the field
+/// close to 48. The arrow keeps a 40x40 target of its own, and on a select
+/// that cannot be typed into the whole field opens the menu anyway.
+const _arrowBox = BoxConstraints.tightFor(width: 40, height: 40);
 
 /// A [dashCombo] whose first row means "no filter" — what every server-side
 /// filter picker needs, and the shape three screens had each written their own

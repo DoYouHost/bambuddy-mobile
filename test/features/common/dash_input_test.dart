@@ -276,5 +276,54 @@ void main() {
 
       expect(fieldText(tester), 'X1C');
     });
+
+    testWidgets('a select is exactly as tall as a field beside it', (
+      tester,
+    ) async {
+      // Forms put the two in one `Row`, so a difference of a few pixels reads
+      // as a rendering fault rather than as a style. The select used to run
+      // 56 against the field's dense 48: Flutter hands its arrow a bare
+      // `IconButton`, which claims the full 48x48 tap target and pushes the
+      // whole field out.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) {
+              final t = DashTokens.of(context);
+              return Scaffold(
+                body: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: dashCombo<String>(
+                        context,
+                        id: 'test.height',
+                        label: const Text('Typ'),
+                        initialSelection: 'a',
+                        entries: const [
+                          DropdownMenuEntry(value: 'a', label: 'A'),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '100',
+                        decoration: dashFieldDecoration(t, labelText: 'Ile'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        tester.getSize(find.byType(DropdownMenu<String>)).height,
+        tester.getSize(find.byType(TextFormField)).height,
+      );
+    });
   });
 }
