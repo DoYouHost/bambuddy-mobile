@@ -1201,7 +1201,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveNo3mfBodyNoStorage =>
-      'Drukarka nie widzi karty ani pendrive\'a w gniazdzie, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
+      'Drukarka nie widzi karty ani pendrive\'a w gnieździe, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
 
   @override
   String get archiveNo3mfDocs => 'Zobacz krok 4 instalacji';
