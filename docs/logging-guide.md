@@ -156,11 +156,25 @@ The verbs say who acted:
 
 | event | written by | means |
 |---|---|---|
-| `ui_start` | UI | the UI asked for the service; field `started` says whether the platform call reported success |
-| `ui_stop` | UI | the UI asked it to stop (app resumed) |
+| `ui_start` | UI | the app went to the background and asked for the service |
+| `ui_stop` | UI | a running service was stopped because the app resumed |
 | `ui_stop_survivor` | UI | a service that outlived the app it was started from was found running and stopped |
+| `ui_stop_disabled` | UI | a running service was stopped because the user switched background monitoring off |
 | `start` | service | the service's own start-up ran |
 | `no_profile`, `start_failed`, `frame_dropped`, `attach`, `notification_dismissed`, `destroy` | service | see `print_monitor_task_handler.dart` |
+
+`started` on `ui_start` is **not** a success flag. It mirrors
+`BackgroundMonitor.start`: `true` = this pause actually started the service,
+`false` = one was **already running**, which is the normal state after the user
+has swiped the app away once and means the service never re-ran its start-up
+and so knows nothing the app has decided since. A platform call that threw
+would produce no record at all, not `started: false`.
+
+The three `ui_stop*` verbs are written only when a service was really stopped,
+never for having asked: with background monitoring switched off the app asks on
+every resume, and recording the asking filled the lane with stops for a service
+that had never run. That the app was paused or resumed is already in the log as
+`lifecycle` in the `app` lane, so nothing is lost by staying quiet here.
 
 `ui_start` without a following `start` is the report worth opening: the UI asked
 and the service never came up.

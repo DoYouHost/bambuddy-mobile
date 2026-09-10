@@ -17,22 +17,25 @@ void main() {
   ).readAsStringSync();
 
   test('the UI files its half of the lifecycle in the service lane', () {
-    // The helper's body, whatever `dart format` does to its line breaks.
     final start = dashboard.indexOf('void _logBgService(');
     expect(start, isNot(-1), reason: 'the one UI-side writer is gone');
-    final body = dashboard.substring(start, dashboard.indexOf(';', start));
 
-    expect(body, contains('LogSource.fgs'));
-    expect(
-      body,
-      isNot(contains('LogSource.app')),
-      reason: 'the generic lane is what split this story in two',
+    // A window rather than "up to the first semicolon": an arrow body and a
+    // block body end differently, and the first `;` inside a block would cut
+    // the search short of the `add(...)` that matters.
+    final window = dashboard.substring(
+      start,
+      (start + 600).clamp(0, dashboard.length),
     );
+    final lane = RegExp(r'LogSource\.(\w+)').firstMatch(window);
+
+    expect(lane, isNotNull, reason: '_logBgService writes to no lane at all');
+    expect(lane!.group(1), 'fgs');
   });
 
   test('every UI-side lifecycle verb says the UI acted', () {
     final events = RegExp(
-      r"_logBgService\('([^']+)'",
+      _logCall,
     ).allMatches(dashboard).map((m) => m.group(1)!).toList();
 
     expect(events, isNotEmpty);
@@ -51,16 +54,24 @@ void main() {
   test('the retired spelling is gone from the sources', () {
     // Renamed 2026-09-10. Reports filed before that date still carry
     // `bg_service`; nothing written from here may spell it again, or the lane
-    // splits back in two. The literal, not the word — the rename is explained
-    // in prose where it happened, and that prose is the point.
+    // splits back in two. The literal in either quote Dart accepts — the
+    // rename is explained in prose where it happened, and that prose has to
+    // stay readable.
+    final literal = RegExp(_quoted('bg_service'));
     final offenders = Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
-        .where((f) => f.readAsStringSync().contains("'bg_service'"))
+        .where((f) => literal.hasMatch(f.readAsStringSync()))
         .map((f) => f.path)
         .toList();
 
     expect(offenders, isEmpty);
   });
 }
+
+/// A single-quoted or double-quoted Dart string holding exactly [value].
+String _quoted(String value) => "'$value'|\"$value\"";
+
+/// A `_logBgService('verb')` call, in either quote.
+const _logCall = '_logBgService\\(\\s*[\'"]([^\'"]+)[\'"]';

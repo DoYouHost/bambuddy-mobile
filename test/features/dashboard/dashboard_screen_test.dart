@@ -88,7 +88,12 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   @override
   Future<bool> start() async => true;
   @override
-  Future<void> stop() async => stops++;
+  Future<bool> stop() async {
+    stops++;
+    // What the real one answers: whether there was a service to stop.
+    return running;
+  }
+
   @override
   Future<bool> isRunning() async => running;
   @override
@@ -391,6 +396,73 @@ void main() {
 
     // Returning resumed polling; without this its timers outlive the widget tree.
     await drive(toBackground);
+  });
+
+  group('the service lane in the log', () {
+    /// One record per thing that actually happened to the service. The verb
+    /// `ui_stop` used to be written for having *asked*, and the app asks on
+    /// every resume whether or not monitoring is on — so a user with the
+    /// feature switched off collected a stop per foreground/background cycle
+    /// for a service that had never run.
+    Future<String> resumeWith(WidgetTester tester, bool running) async {
+      final recorder = testRecorder();
+      addTearDown(recorder.discard);
+      await recorder.start();
+
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(
+            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+          ),
+          extra: [
+            backgroundMonitorProvider.overrideWithValue(
+              _FakeBackgroundMonitor(running: running),
+            ),
+            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // AppLifecycleListener recognises transitions, not states.
+      Future<void> drive(List<AppLifecycleState> states) async {
+        for (final state in states) {
+          tester.binding.handleAppLifecycleStateChanged(state);
+        }
+        await tester.pumpAndSettle();
+      }
+
+      const toBackground = [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ];
+
+      await drive(toBackground);
+      await drive(const [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]);
+
+      final raw = await recorder.stop();
+      // Resuming restarted polling; parked again so its timers do not outlive
+      // the widget tree. After the recording, so the second pause adds nothing
+      // to what is asserted.
+      await drive(toBackground);
+      return raw;
+    }
+
+    // The exact field, not the bare word: `ui_stop_survivor` contains it.
+    const stopRecord = '"evt":"ui_stop"';
+
+    testWidgets('a resume that stopped nothing writes no stop', (tester) async {
+      expect(await resumeWith(tester, false), isNot(contains(stopRecord)));
+    });
+
+    testWidgets('a resume that really stopped one writes it', (tester) async {
+      expect(await resumeWith(tester, true), contains(stopRecord));
+    });
   });
 
   group('rejected-password warning', () {

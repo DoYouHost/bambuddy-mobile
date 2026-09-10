@@ -79,8 +79,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // write. The service's own stream gives up silently in several
               // cases (no writable directory, a session past its five minutes, a
               // platform read that failed), and each of them looks exactly like
-              // an app that was never backgrounded. `started` separates those
-              // from the case below, where nothing was ever asked to start.
+              // an app that was never backgrounded. `started` false is not one
+              // of those: it means the service was already running (see
+              // `BackgroundMonitor.start`), which is the case below.
               _logBgService('ui_start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
@@ -110,11 +111,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
-        _logBgService('ui_stop');
         // Take the watch relay and the finish-photo search back only once the
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
-          ref.read(backgroundMonitorProvider).stop().then((_) {
+          ref.read(backgroundMonitorProvider).stop().then((stopped) {
+            // Only when there was something to stop. With background
+            // monitoring switched off the app still asks on every resume, and
+            // logging the asking filed a stop for a service that had never
+            // run — once per foreground/background cycle. That the app was
+            // resumed at all is already recorded: `lifecycle` in the `app`
+            // lane.
+            if (stopped) _logBgService('ui_stop');
             unawaited(ref.read(wearRelayHandlerProvider).start());
             ref.read(finishPhotoNotifierProvider)?.start();
           }),
@@ -334,7 +341,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     await ref.read(bgMonitoringEnabledProvider.notifier).set(enabled);
     // Disabling takes effect immediately if service is running; enabling
     // takes effect at next background transition (FGS not needed in foreground).
-    if (!enabled) await ref.read(backgroundMonitorProvider).stop();
+    // Its own verb: a service that ends here ends because the user switched it
+    // off, which is the one explanation the service's own `destroy` cannot
+    // carry.
+    if (!enabled && await ref.read(backgroundMonitorProvider).stop()) {
+      _logBgService('ui_stop_disabled');
+    }
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }

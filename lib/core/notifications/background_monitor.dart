@@ -30,7 +30,12 @@ abstract class BackgroundMonitor {
   Future<bool> start();
 
   /// Stops monitoring in the background (idempotent).
-  Future<void> stop();
+  ///
+  /// Returns whether it actually stopped something, the mirror of [start]:
+  /// false means nothing was running. Callers log against this rather than
+  /// against having asked, so a stop only reaches the record when a service
+  /// really ended.
+  Future<bool> stop();
 
   /// Whether monitoring is currently running.
   Future<bool> isRunning();
@@ -71,9 +76,10 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
       FlutterForegroundTask.sendDataToTask(what.message);
 
   @override
-  Future<void> stop() async {
-    if (!await FlutterForegroundTask.isRunningService) return;
+  Future<bool> stop() async {
+    if (!await FlutterForegroundTask.isRunningService) return false;
     await FlutterForegroundTask.stopService();
+    return true;
   }
 
   @override
