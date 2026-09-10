@@ -182,6 +182,45 @@ void main() {
     });
   });
 
+  group('settledGate', () {
+    final gate = serverGate<bool>((s) => s['flag'] == true);
+
+    test('answers at once when the gate already knows', () async {
+      // The common case behind the shell's warm-up: by the time a queue item
+      // is started, `/settings` has long since answered.
+      final container = containerWith();
+      answer.complete({'flag': true});
+      await container.read(serverSettingsProvider.future);
+
+      expect(await settledGate(container, gate), isTrue);
+    });
+
+    test('waits for the answer rather than reading the gate as off', () async {
+      // The reason this exists: the caller runs once, outside a build, so
+      // there is no rebuild to correct a premature "no".
+      final container = containerWith();
+      bool? answered;
+      unawaited(settledGate(container, gate).then((v) => answered = v));
+
+      await pumpEventQueue();
+      expect(answered, isNull, reason: 'nothing has answered yet');
+
+      answer.complete({'flag': true});
+      await pumpEventQueue();
+
+      expect(answered, isTrue);
+    });
+
+    test('hands on an error instead of answering', () async {
+      final container = ProviderContainer(
+        overrides: [serverSettingsProvider.overrideWith(_FailingSettings.new)],
+      );
+      addTearDown(container.dispose);
+
+      await expectLater(settledGate(container, gate), throwsStateError);
+    });
+  });
+
   test('a settings write reaches both shapes at once', () async {
     // `adopt` takes the map a `PUT /settings/` answered with instead of asking
     // again, so it is the write path every flag in the app updates through.

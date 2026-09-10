@@ -120,7 +120,7 @@ void main() {
     late _MutableQueueNotifier queue;
     late _HeldCommands commands;
 
-    Widget screen() {
+    Widget screen({AsyncValue<bool> gate = const AsyncValue.data(true)}) {
       queue = _MutableQueueNotifier([pending]);
       commands = _HeldCommands();
       return ProviderScope(
@@ -130,7 +130,7 @@ void main() {
           printerCommandsRepositoryProvider.overrideWithValue(commands),
           // The scheduler gates on the plate, and this printer's is dirty —
           // the branch that sends a request before the start does.
-          requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
+          requirePlateClearProvider.overrideWithValue(gate),
           printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
           // The mapping sheet with nothing to map: one confirm button.
           filamentRequirementsProvider.overrideWith(
@@ -160,6 +160,35 @@ void main() {
       await tester.pumpAndSettle();
       expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
     }
+
+    testWidgets('a failure nobody predicted still reaches the user', (
+      tester,
+    ) async {
+      // A settings read that broke outright: no step in the flow words this
+      // one, so without the net the user picks a printer, maps the AMS, and
+      // then nothing happens at all — no print and no explanation.
+      await tester.pumpWidget(
+        screen(
+          gate: AsyncValue.error(StateError('unreadable'), StackTrace.empty),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+      expect(queue.started, isEmpty, reason: 'nothing reached the server');
+      expect(
+        tester.takeException(),
+        isStateError,
+        reason: 'still reported, so a bug report keeps what actually broke',
+      );
+    });
 
     testWidgets('the print still starts when the row goes mid-request', (
       tester,

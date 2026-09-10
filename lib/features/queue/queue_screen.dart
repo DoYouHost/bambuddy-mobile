@@ -720,6 +720,12 @@ class _QueueActions extends ConsumerWidget {
 /// assign a printer if the item has none, then the filament-mapping screen
 /// (pre-filled, not enforced), then start. Aborts silently if the user backs
 /// out of either step.
+/// Starts [item], and makes sure a failure is something the user can see.
+///
+/// The flow runs from a button callback, so anything that escapes it goes to
+/// the zone: the print does not start, and the user — who has just picked a
+/// printer and mapped the AMS — is told nothing at all. Every step inside words
+/// its own refusals; this is the net under the ones nobody predicted.
 Future<void> _startQueueItem(
   BuildContext context,
   WidgetRef ref,
@@ -730,7 +736,36 @@ Future<void> _startQueueItem(
   // requests, and the row that started it can be gone before any of those come
   // back: the list rebuilds on every WS refresh, and a removed item shrinks it.
   // See [detachFrom].
-  final (:providers, :messenger) = detachFrom(context);
+  final handles = detachFrom(context);
+  try {
+    await _sendQueuedPrint(context, ref, item, l10n, handles);
+  } on AppApiException catch (error) {
+    showApiFailure(handles.messenger, error, l10n, action: 'queue.start');
+  } on Object catch (error, stack) {
+    handles.messenger.snack(l10n.connectFailed);
+    // Reported rather than swallowed: `ErrorProbe` writes the `err/uncaught`
+    // record a bug report about this is read from, and it is the only thing
+    // that says *what* failed. Catching without this would trade a silent
+    // failure for an unexplainable one, and take the debug console with it.
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'bambuddy queue',
+        context: ErrorDescription('starting a queued print'),
+      ),
+    );
+  }
+}
+
+Future<void> _sendQueuedPrint(
+  BuildContext context,
+  WidgetRef ref,
+  QueueItem item,
+  AppLocalizations l10n,
+  DetachedHandles handles,
+) async {
+  final (:providers, :messenger) = handles;
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);

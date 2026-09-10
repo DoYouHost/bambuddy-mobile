@@ -24,6 +24,48 @@ extension AsyncFlag on AsyncValue<bool> {
   bool get orFalse => valueOrNull ?? false;
 }
 
+/// Nothing has answered yet — no reply from the server, and no failure either.
+///
+/// The third state [AsyncFlag.orFalse] folds away. A failure is deliberately
+/// **not** it: that is a settled "no", or a control would sit disabled for the
+/// rest of the session saying nothing about why.
+extension AsyncUnanswered<T> on AsyncValue<T> {
+  bool get isUnanswered => !hasValue && !hasError;
+}
+
+/// What a control should do about the answers it depends on.
+enum ControlOffer {
+  /// One of them settled on "no". The control does not belong on this screen.
+  hidden,
+
+  /// On screen but not pressable: nothing has said "no", and something has not
+  /// answered yet. A button the user is waiting to press reads better greyed
+  /// out for a moment than absent and then suddenly there — which is what
+  /// [AsyncFlag.orFalse] gives, and why it is the wrong reader here.
+  pending,
+
+  /// Every answer is in and every one of them is yes.
+  offered,
+}
+
+/// Folds the answers a control is gated on into what it should do about them.
+///
+/// A settled "no" wins over a missing answer: a server that says the feature
+/// is off is not going to change its mind a frame later, while the control
+/// would otherwise flash up disabled on every screen that shows it.
+///
+/// Only for a widget that **watches** its answers — a control that cannot
+/// rebuild would sit greyed for as long as it is on screen.
+ControlOffer controlOffer(Iterable<AsyncValue<bool>> answers) {
+  var waiting = false;
+  for (final answer in answers) {
+    if (answer.orFalse) continue;
+    if (!answer.isUnanswered) return ControlOffer.hidden;
+    waiting = true;
+  }
+  return waiting ? ControlOffer.pending : ControlOffer.offered;
+}
+
 /// A screen's three states, with the two every screen words identically already
 /// written: the spinner while the data is on its way, and "could not load it,
 /// try again" when the server said no.

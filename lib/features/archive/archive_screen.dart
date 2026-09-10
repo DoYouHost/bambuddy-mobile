@@ -1059,8 +1059,9 @@ class _SheetPrimaryActions extends StatelessWidget {
 
 /// Slice button shown only when the slicer sidecar is enabled AND this archive
 /// is actually re-sliceable (retains a source/model — plain gcode.3mf prints
-/// are not). Renders nothing otherwise, so the sheet is unchanged for the
-/// common case.
+/// are not). Either settled "no" renders nothing, so the sheet is unchanged for
+/// the common case; while one of them is still on its way the button is there
+/// and disabled, because this is what the user opened the entry to press.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
     required this.archive,
@@ -1074,10 +1075,13 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).orFalse;
-    if (!enabled) return const SizedBox.shrink();
-    final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
-    if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    final offer = controlOffer([
+      ref.watch(slicerEnabledProvider),
+      ref
+          .watch(archiveCapabilitiesProvider(archive.id))
+          .whenData((caps) => caps.sliceable),
+    ]);
+    if (offer == ControlOffer.hidden) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
@@ -1091,7 +1095,7 @@ class _SliceArchiveButton extends ConsumerWidget {
             child: OutlinedButton.icon(
               icon: const Icon(Icons.layers_outlined),
               label: Text(l10n.sliceAction),
-              onPressed: onSlice,
+              onPressed: offer == ControlOffer.pending ? null : onSlice,
             ).tagged('archive.slice'),
           ),
           if (canRunPipeline) ...[

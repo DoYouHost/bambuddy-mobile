@@ -30,15 +30,26 @@ bool plateClearPending(
   required bool Function() gateEnabled,
 }) => status?.awaitingPlateClear == true && gateEnabled();
 
-/// Watches both halves, so the control appears and withdraws on its own.
-bool plateClearOffered(WidgetRef ref, PrinterStatus? status) {
-  final pending = plateClearPending(
-    status,
-    gateEnabled: () => ref.watch(requirePlateClearProvider).orFalse,
-  );
-  if (!pending) return false;
-  return status?.connected == true || ref.watch(offlinePlateClearProvider);
+/// Whether the plate-clear control belongs on this screen, and whether it can
+/// be pressed yet.
+///
+/// Reads `awaitingPlateClear` before it watches anything: a card whose plate is
+/// clean must not subscribe every printer on the dashboard to the settings
+/// fetch, which is the same reason [plateClearPending] takes a callback.
+ControlOffer plateClearOffer(WidgetRef ref, PrinterStatus? status) {
+  if (status?.awaitingPlateClear != true) return ControlOffer.hidden;
+  final offer = controlOffer([ref.watch(requirePlateClearProvider)]);
+  if (offer == ControlOffer.hidden) return ControlOffer.hidden;
+  if (status?.connected != true && !ref.watch(offlinePlateClearProvider)) {
+    return ControlOffer.hidden;
+  }
+  return offer;
 }
+
+/// [plateClearOffer] for a caller with no disabled state to render — the watch,
+/// whose action list is built from plain callbacks.
+bool plateClearOffered(WidgetRef ref, PrinterStatus? status) =>
+    plateClearOffer(ref, status) == ControlOffer.offered;
 
 /// The server's words rather than an exception: the phone has the status code
 /// and the detail, the watch's relay forwards the detail alone. Follows
