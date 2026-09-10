@@ -391,6 +391,7 @@
   "archiveNo3mfDocs": "Zobacz krok 4 instalacji",
   "archiveNo3mfDocsWhy": "Dlaczego tak się dzieje",
   "archiveNo3mfDismiss": "Zamknij tę informację",
+  "archiveNotSliceable": "Ten wydruk nie ma pliku źródłowego ani modelu, więc nie da się go pociąć ponownie.",
   "archiveDelete": "Usuń",
   "archiveDeleteTitle": "Usunąć wydruk?",
   "archiveDeleteBody": "Usuń „{name}” z archiwum.",

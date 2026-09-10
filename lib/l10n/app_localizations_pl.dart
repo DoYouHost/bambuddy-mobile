@@ -1213,6 +1213,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveNo3mfDismiss => 'Zamknij tę informację';
 
   @override
+  String get archiveNotSliceable =>
+      'Ten wydruk nie ma pliku źródłowego ani modelu, więc nie da się go pociąć ponownie.';
+
+  @override
   String get archiveDelete => 'Usuń';
 
   @override

@@ -2132,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'Dismiss this notice'**
   String get archiveNo3mfDismiss;
 
+  /// No description provided for @archiveNotSliceable.
+  ///
+  /// In en, this message translates to:
+  /// **'This print has no source file or model, so it cannot be re-sliced.'**
+  String get archiveNotSliceable;
+
   /// No description provided for @archiveDelete.
   ///
   /// In en, this message translates to:

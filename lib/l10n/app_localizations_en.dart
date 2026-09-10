@@ -1192,6 +1192,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveNo3mfDismiss => 'Dismiss this notice';
 
   @override
+  String get archiveNotSliceable =>
+      'This print has no source file or model, so it cannot be re-sliced.';
+
+  @override
   String get archiveDelete => 'Delete';
 
   @override

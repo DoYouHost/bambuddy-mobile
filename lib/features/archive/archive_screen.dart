@@ -25,6 +25,7 @@ import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
@@ -1057,11 +1058,15 @@ class _SheetPrimaryActions extends StatelessWidget {
   }
 }
 
-/// Slice button shown only when the slicer sidecar is enabled AND this archive
-/// is actually re-sliceable (retains a source/model — plain gcode.3mf prints
-/// are not). Either settled "no" renders nothing, so the sheet is unchanged for
-/// the common case; while one of them is still on its way the button is there
-/// and disabled, because this is what the user opened the entry to press.
+/// Slice and run-pipeline buttons, and the two answers behind them.
+///
+/// The sidecar flag decides whether the section exists at all — a server with
+/// no slicer has no such feature, and nothing is drawn. Whether *this* archive
+/// can be re-sliced (it keeps a source or a model; plain gcode.3mf prints do
+/// not) only **disables** the buttons, and says why underneath: showing them
+/// and then collapsing the row a moment later is a flicker the user has to
+/// interpret, while a disabled button with a reason answers the question they
+/// opened the entry with.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
     required this.archive,
@@ -1075,13 +1080,17 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final offer = controlOffer([
-      ref.watch(slicerEnabledProvider),
-      ref
-          .watch(archiveCapabilitiesProvider(archive.id))
-          .whenData((caps) => caps.sliceable),
-    ]);
-    if (offer == ControlOffer.hidden) return const SizedBox.shrink();
+    final sidecar = controlOffer([() => ref.watch(slicerEnabledProvider)]);
+    if (sidecar == ControlOffer.hidden) return const SizedBox.shrink();
+    // Asked only once the sidecar is not ruled out: this is a request per entry
+    // the user opens, and a server with no slicer must never send it. Null is
+    // "not answered yet", which disables without a reason to give.
+    final sliceable = sidecar == ControlOffer.offered
+        ? ref
+              .watch(archiveCapabilitiesProvider(archive.id))
+              .valueOrNull
+              ?.sliceable
+        : null;
     final l10n = AppLocalizations.of(context);
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
@@ -1095,7 +1104,7 @@ class _SliceArchiveButton extends ConsumerWidget {
             child: OutlinedButton.icon(
               icon: const Icon(Icons.layers_outlined),
               label: Text(l10n.sliceAction),
-              onPressed: offer == ControlOffer.pending ? null : onSlice,
+              onPressed: sliceable == true ? onSlice : null,
             ).tagged('archive.slice'),
           ),
           if (canRunPipeline) ...[
@@ -1105,10 +1114,19 @@ class _SliceArchiveButton extends ConsumerWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.account_tree_outlined),
                 label: Text(l10n.pipelineRun),
-                onPressed: onRunPipeline,
+                // Re-slices the same source, so it needs exactly what the
+                // slice button needs.
+                onPressed: sliceable == true ? onRunPipeline : null,
               ).tagged('archive.run_pipeline'),
             ),
           ],
+          // Only for the settled "no". While the answer is on its way the
+          // buttons are disabled with nothing to say yet, and a note that
+          // appeared and left would be the flicker moved one row down.
+          ?inlineNote(
+            sliceable == false ? l10n.archiveNotSliceable : null,
+            icon: Icons.info_outline,
+          ),
         ],
       ),
     );

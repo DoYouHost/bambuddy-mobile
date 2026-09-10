@@ -443,6 +443,7 @@
   "archiveNo3mfDocs": "See install step 4",
   "archiveNo3mfDocsWhy": "Why this happens",
   "archiveNo3mfDismiss": "Dismiss this notice",
+  "archiveNotSliceable": "This print has no source file or model, so it cannot be re-sliced.",
   "@archiveNo3mfDismiss": {"description": "Tooltip and accessible name of the banner's close button."},
   "archiveDelete": "Delete",
   "archiveDeleteTitle": "Delete print?",

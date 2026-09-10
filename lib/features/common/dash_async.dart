@@ -50,20 +50,24 @@ enum ControlOffer {
 
 /// Folds the answers a control is gated on into what it should do about them.
 ///
-/// A settled "no" wins over a missing answer: a server that says the feature
-/// is off is not going to change its mind a frame later, while the control
-/// would otherwise flash up disabled on every screen that shows it.
+/// Callbacks rather than values, and read **in order, only as far as needed**:
+/// the first answer that is not already "yes" decides, and nothing after it is
+/// read at all. A list of values would evaluate every `ref.watch` in it before
+/// this function ever ran, which is how a control the server has already ruled
+/// out ends up subscribing to — and firing — the request behind the next
+/// answer. Order them cheapest-first: a session-wide flag before anything that
+/// costs a round trip of its own.
 ///
+/// A settled "no" hides the control; an answer still on its way disables it.
 /// Only for a widget that **watches** its answers — a control that cannot
 /// rebuild would sit greyed for as long as it is on screen.
-ControlOffer controlOffer(Iterable<AsyncValue<bool>> answers) {
-  var waiting = false;
-  for (final answer in answers) {
+ControlOffer controlOffer(Iterable<AsyncValue<bool> Function()> answers) {
+  for (final read in answers) {
+    final answer = read();
     if (answer.orFalse) continue;
-    if (!answer.isUnanswered) return ControlOffer.hidden;
-    waiting = true;
+    return answer.isUnanswered ? ControlOffer.pending : ControlOffer.hidden;
   }
-  return waiting ? ControlOffer.pending : ControlOffer.offered;
+  return ControlOffer.offered;
 }
 
 /// A screen's three states, with the two every screen words identically already
