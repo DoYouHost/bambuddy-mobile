@@ -55,11 +55,20 @@ const printLogStatuses = <String>[
 /// Whether a run in this status is counted as a failure by the server's
 /// Failure Analysis (`FailureAnalysisService`: `status.in_(['failed',
 /// 'aborted'])`), and by the archive list's "hide failed" filter, which hides
-/// exactly the rows this analysis counts.
+/// exactly the rows that analysis counts.
 ///
 /// This is also what makes a failure cause visible or invisible: the widget
 /// groups by `failure_reason` **within** these statuses only, so a cause set
-/// on a completed or cancelled run is stored and then never shown anywhere.
+/// on a completed or cancelled run is stored and then never shown anywhere —
+/// which is what the classify sheet warns about before the write.
+///
+/// Case-sensitive **because it is a mirror**, not a reading of our own: the
+/// server compares the column literally, and everything that writes it writes
+/// a lowercase literal (`main.py` `write_log_entry`, `"status": "aborted"`;
+/// `PATCH /print-log/{id}` refuses anything outside `_STATUS_KEYS`). Matching
+/// `Failed` here would promise the user a cause the server will never group,
+/// and hide a row its own analysis counts as fine. Unlike
+/// [printRunIsSuccess], which answers a question the app asks for itself.
 bool printRunIsFailure(String? status) =>
     status == 'failed' || status == 'aborted';
 
@@ -67,6 +76,10 @@ bool printRunIsFailure(String? status) =>
 /// a failure, a cancellation, a status this build has never heard of — is not
 /// a success, which is what keeps a new server-side status out of the success
 /// count until someone has decided what it means.
+///
+/// The app's own counting rule rather than a mirror of a server query, so it
+/// stays as forgiving as it has always been: being generous about the casing
+/// can only ever move a finished print into the count it belongs in.
 bool printRunIsSuccess(String? status) => status?.toLowerCase() == 'completed';
 
 /// The run facts both shapes carry, and the answers derived from them.

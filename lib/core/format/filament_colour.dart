@@ -7,6 +7,10 @@
 /// both readings live here instead of being re-derived per screen.
 library;
 
+/// Hoisted out of [sixHexDigits]: the statistics call it once per archived
+/// run, and a `RegExp(...)` in the body recompiles the pattern every time.
+final _sixHexDigits = RegExp(r'^[0-9A-F]{6}$');
+
 /// Six upper-case hex digits from any of the spellings a colour arrives in
 /// (`#RRGGBB`, `RRGGBB`, `RRGGBBAA`), or null when it is not a colour at all.
 ///
@@ -17,7 +21,7 @@ String? sixHexDigits(String? raw) {
   final hex = raw?.trim().replaceFirst('#', '');
   if (hex == null || hex.length < 6) return null;
   final rgb = hex.substring(0, 6).toUpperCase();
-  return RegExp(r'^[0-9A-F]{6}$').hasMatch(rgb) ? rgb : null;
+  return _sixHexDigits.hasMatch(rgb) ? rgb : null;
 }
 
 /// The colour tokens of a print, in the order the server listed them, kept

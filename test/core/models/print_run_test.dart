@@ -40,6 +40,20 @@ void main() {
       expect(printRunIsSuccess('failed'), isFalse);
       expect(printRunIsSuccess(null), isFalse);
     });
+
+    test('failure is spelled the way the server spells it, and only that', () {
+      // Deliberately *not* symmetric with the tolerance above, and not an
+      // oversight: this predicate predicts a server-side query
+      // (`status.in_(['failed', 'aborted'])`) that compares literally, and
+      // every writer of the column writes a lowercase literal. Matching
+      // `Failed` would promise a failure cause the server will never group,
+      // and hide a row the same server counts as fine.
+      expect(printRunIsFailure('Failed'), isFalse);
+      expect(printRunIsFailure('ABORTED'), isFalse);
+      // No contradictory pair comes out of it: an oddly cased status is
+      // simply "other" to both halves, exactly as the server treats it.
+      expect(printRunIsSuccess('Failed'), isFalse);
+    });
   });
 
   group('both shapes of the same run agree', () {
