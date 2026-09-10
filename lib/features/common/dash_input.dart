@@ -35,6 +35,11 @@ InputDecoration dashDecoration(
 /// its own text field internally and takes no [InputDecoration]. Read off
 /// [dashFieldDecoration] rather than restated, which is how the two drifted
 /// apart the last time.
+///
+/// One thing deliberately absent: `suffixIconConstraints`. It exists to box a
+/// select's arrow ([dashCombo] applies it), and this theme is the chrome of a
+/// field — a text field's own suffix icon is a real button whose tap target
+/// nothing here should be shrinking.
 InputDecorationTheme dashInputTheme(DashTokens t) {
   final d = dashFieldDecoration(t);
   return InputDecorationTheme(
@@ -113,9 +118,15 @@ Widget dashCombo<T>(
 /// target and pushes the field to 56 — while every text field in the app is a
 /// dense 48. In any form holding both, the select stood 8px taller than the
 /// field beside it. `suffixIconConstraints` is routed straight to that button
-/// (`dropdown_menu.dart`), and 40 is the largest box that still lets the field
-/// close to 48. The arrow keeps a 40x40 target of its own, and on a select
-/// that cannot be typed into the whole field opens the menu anyway.
+/// (`dropdown_menu.dart`).
+///
+/// 40 is a ceiling rather than a preference: that button is wrapped in a
+/// `Padding(all: 4)` the caller cannot reach, so 40 + 8 is the most a 48-tall
+/// field has room for. It is under the 48dp target an accessibility audit
+/// looks for, and the reason that costs nothing here is that the arrow is a
+/// duplicate affordance — the field's own `onTap` opens the menu whenever the
+/// select is enabled (`dropdown_menu.dart`, the inner `TextField`), filterable
+/// or not, so the real target is the whole 48-tall field.
 const _arrowBox = BoxConstraints.tightFor(width: 40, height: 40);
 
 /// A [dashCombo] whose first row means "no filter" — what every server-side

@@ -325,5 +325,99 @@ void main() {
         tester.getSize(find.byType(TextFormField)).height,
       );
     });
+
+    testWidgets('a caller\'s own chrome gets the arrow boxed too', (
+      tester,
+    ) async {
+      // The maintenance type form passes its own theme, because that screen is
+      // still plain Material and one restyled field would read as a fault. It
+      // must not pay for that with the 8px the shared theme no longer costs.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: dashCombo<String>(
+                      context,
+                      id: 'test.raw',
+                      label: const Text('Typ'),
+                      initialSelection: 'a',
+                      decorationTheme: const InputDecorationTheme(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      entries: const [
+                        DropdownMenuEntry(value: 'a', label: 'A'),
+                      ],
+                    ),
+                  ),
+                  const Expanded(
+                    // Keyed, not found by type: a `DropdownMenu` builds a
+                    // `TextField` of its own, so `find.byType` would hand the
+                    // comparison the select's own field and pass whatever
+                    // happened.
+                    child: TextField(
+                      key: Key('neighbour'),
+                      decoration: InputDecoration(
+                        labelText: 'Ile',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        tester.getSize(find.byType(DropdownMenu<String>)).height,
+        tester.getSize(find.byKey(const Key('neighbour'))).height,
+      );
+    });
+
+    testWidgets('a caller that boxes the arrow itself is left alone', (
+      tester,
+    ) async {
+      // The default is a floor under a known Flutter default, not a house
+      // style: a caller who has measured its own screen keeps what it asked
+      // for.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: dashCombo<String>(
+                context,
+                id: 'test.own_arrow',
+                initialSelection: 'a',
+                decorationTheme: const InputDecorationTheme(
+                  border: OutlineInputBorder(),
+                  suffixIconConstraints: BoxConstraints.tightFor(
+                    width: 56,
+                    height: 56,
+                  ),
+                ),
+                entries: const [DropdownMenuEntry(value: 'a', label: 'A')],
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      final menu = tester.widget<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
+      expect(
+        menu.inputDecorationTheme?.suffixIconConstraints,
+        const BoxConstraints.tightFor(width: 56, height: 56),
+      );
+    });
   });
 }
