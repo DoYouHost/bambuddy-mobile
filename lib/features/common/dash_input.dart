@@ -35,6 +35,11 @@ InputDecoration dashDecoration(
 /// its own text field internally and takes no [InputDecoration]. Read off
 /// [dashFieldDecoration] rather than restated, which is how the two drifted
 /// apart the last time.
+///
+/// One thing deliberately absent: `suffixIconConstraints`. It exists to box a
+/// select's arrow ([dashCombo] applies it), and this theme is the chrome of a
+/// field — a text field's own suffix icon is a real button whose tap target
+/// nothing here should be shrinking.
 InputDecorationTheme dashInputTheme(DashTokens t) {
   final d = dashFieldDecoration(t);
   return InputDecorationTheme(
@@ -58,9 +63,9 @@ InputDecorationTheme dashInputTheme(DashTokens t) {
 /// field itself.
 ///
 /// Every select belongs here rather than in a `DropdownButtonFormField`, whose
-/// full-screen overlay is the old Material look. Eight of those are still in
-/// the app — projects, inventory, maintenance — so this says where a select
-/// goes, not that nothing is left to move.
+/// full-screen overlay is the old Material look. There are none of those left;
+/// the last seven — projects, inventory, maintenance — came across on
+/// 2026-09-10.
 ///
 /// Rows carry their own ids: the menu opens in a route of its own, so [id]
 /// never reaches them (the trap is written up in docs/logging-guide.md).
@@ -84,24 +89,45 @@ Widget dashCombo<T>(
   TextStyle? textStyle,
   InputDecorationTheme? decorationTheme,
   ValueChanged<T?>? onSelected,
-}) => DropdownMenu<T>(
-  key: fieldKey,
-  controller: controller,
-  initialSelection: initialSelection,
-  enabled: enabled,
-  label: label,
-  helperText: helperText,
-  errorText: errorText,
-  expandedInsets: EdgeInsets.zero,
-  menuHeight: menuHeight,
-  enableFilter: filterable,
-  requestFocusOnTap: filterable,
-  textStyle: textStyle,
-  inputDecorationTheme:
-      decorationTheme ?? dashInputTheme(DashTokens.of(context)),
-  onSelected: onSelected,
-  dropdownMenuEntries: entries,
-).tagged(id);
+}) {
+  final theme = decorationTheme ?? dashInputTheme(DashTokens.of(context));
+  return DropdownMenu<T>(
+    key: fieldKey,
+    controller: controller,
+    initialSelection: initialSelection,
+    enabled: enabled,
+    label: label,
+    helperText: helperText,
+    errorText: errorText,
+    expandedInsets: EdgeInsets.zero,
+    menuHeight: menuHeight,
+    enableFilter: filterable,
+    requestFocusOnTap: filterable,
+    textStyle: textStyle,
+    inputDecorationTheme: theme.suffixIconConstraints == null
+        ? theme.copyWith(suffixIconConstraints: _arrowBox)
+        : theme,
+    onSelected: onSelected,
+    dropdownMenuEntries: entries,
+  ).tagged(id);
+}
+
+/// How much room the menu's arrow may claim.
+///
+/// Flutter builds it as a bare [IconButton], which takes the full 48x48 tap
+/// target and pushes the field to 56 — while every text field in the app is a
+/// dense 48. In any form holding both, the select stood 8px taller than the
+/// field beside it. `suffixIconConstraints` is routed straight to that button
+/// (`dropdown_menu.dart`).
+///
+/// 40 is a ceiling rather than a preference: that button is wrapped in a
+/// `Padding(all: 4)` the caller cannot reach, so 40 + 8 is the most a 48-tall
+/// field has room for. It is under the 48dp target an accessibility audit
+/// looks for, and the reason that costs nothing here is that the arrow is a
+/// duplicate affordance — the field's own `onTap` opens the menu whenever the
+/// select is enabled (`dropdown_menu.dart`, the inner `TextField`), filterable
+/// or not, so the real target is the whole 48-tall field.
+const _arrowBox = BoxConstraints.tightFor(width: 40, height: 40);
 
 /// A [dashCombo] whose first row means "no filter" — what every server-side
 /// filter picker needs, and the shape three screens had each written their own

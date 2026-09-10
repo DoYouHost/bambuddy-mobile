@@ -230,4 +230,194 @@ void main() {
       expect(ids, containsAll(['test.filter.any', 'test.filter.option']));
     });
   });
+
+  group('dashCombo shows what is selected', () {
+    /// What every converted select leans on: the field displays the *label* of
+    /// `initialSelection`, so a form opened on an existing row reads as filled
+    /// in rather than blank.
+    Future<void> pump(WidgetTester tester, {int? selection}) =>
+        tester.pumpWidget(
+          plApp(
+            Builder(
+              builder: (context) => Scaffold(
+                body: dashCombo<int>(
+                  context,
+                  id: 'test.combo',
+                  initialSelection: selection,
+                  entries: const [
+                    DropdownMenuEntry(value: 3, label: 'P1S'),
+                    DropdownMenuEntry(value: 4, label: 'X1C'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+    testWidgets('an existing value names itself in the field', (tester) async {
+      await pump(tester, selection: 4);
+
+      expect(fieldText(tester), 'X1C');
+    });
+
+    testWidgets('a selection no longer among the entries leaves the old text', (
+      tester,
+    ) async {
+      // Not a defect to fix here — Flutter re-seeds the field only when the
+      // new selection is found (`DropdownMenu.didUpdateWidget`). It is why the
+      // AMS unit picker in the assign sheet carries a `ValueKey`: switching
+      // printer changes the valid range, and without a fresh element the field
+      // would keep naming the previous printer's unit.
+      await pump(tester, selection: 4);
+      await pump(tester, selection: 9);
+
+      expect(fieldText(tester), 'X1C');
+    });
+
+    testWidgets('a select is exactly as tall as a field beside it', (
+      tester,
+    ) async {
+      // Forms put the two in one `Row`, so a difference of a few pixels reads
+      // as a rendering fault rather than as a style. The select used to run
+      // 56 against the field's dense 48: Flutter hands its arrow a bare
+      // `IconButton`, which claims the full 48x48 tap target and pushes the
+      // whole field out.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) {
+              final t = DashTokens.of(context);
+              return Scaffold(
+                body: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: dashCombo<String>(
+                        context,
+                        id: 'test.height',
+                        label: const Text('Typ'),
+                        initialSelection: 'a',
+                        entries: const [
+                          DropdownMenuEntry(value: 'a', label: 'A'),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '100',
+                        decoration: dashFieldDecoration(t, labelText: 'Ile'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        tester.getSize(find.byType(DropdownMenu<String>)).height,
+        tester.getSize(find.byType(TextFormField)).height,
+      );
+    });
+
+    testWidgets('a caller\'s own chrome gets the arrow boxed too', (
+      tester,
+    ) async {
+      // The maintenance type form passes its own theme, because that screen is
+      // still plain Material and one restyled field would read as a fault. It
+      // must not pay for that with the 8px the shared theme no longer costs.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: dashCombo<String>(
+                      context,
+                      id: 'test.raw',
+                      label: const Text('Typ'),
+                      initialSelection: 'a',
+                      decorationTheme: const InputDecorationTheme(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      entries: const [
+                        DropdownMenuEntry(value: 'a', label: 'A'),
+                      ],
+                    ),
+                  ),
+                  const Expanded(
+                    // Keyed, not found by type: a `DropdownMenu` builds a
+                    // `TextField` of its own, so `find.byType` would hand the
+                    // comparison the select's own field and pass whatever
+                    // happened.
+                    child: TextField(
+                      key: Key('neighbour'),
+                      decoration: InputDecoration(
+                        labelText: 'Ile',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        tester.getSize(find.byType(DropdownMenu<String>)).height,
+        tester.getSize(find.byKey(const Key('neighbour'))).height,
+      );
+    });
+
+    testWidgets('a caller that boxes the arrow itself is left alone', (
+      tester,
+    ) async {
+      // The default is a floor under a known Flutter default, not a house
+      // style: a caller who has measured its own screen keeps what it asked
+      // for.
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: dashCombo<String>(
+                context,
+                id: 'test.own_arrow',
+                initialSelection: 'a',
+                decorationTheme: const InputDecorationTheme(
+                  border: OutlineInputBorder(),
+                  suffixIconConstraints: BoxConstraints.tightFor(
+                    width: 56,
+                    height: 56,
+                  ),
+                ),
+                entries: const [DropdownMenuEntry(value: 'a', label: 'A')],
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      final menu = tester.widget<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
+      expect(
+        menu.inputDecorationTheme?.suffixIconConstraints,
+        const BoxConstraints.tightFor(width: 56, height: 56),
+      );
+    });
+  });
 }
