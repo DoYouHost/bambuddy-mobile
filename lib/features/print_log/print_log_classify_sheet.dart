@@ -5,6 +5,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/print_log_entry.dart';
+import '../../core/models/print_run.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -284,7 +285,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
             const SizedBox(height: 10),
 
             Text(
-              printLogStatusIsFailure(_status)
+              printRunIsFailure(_status)
                   ? l10n.printLogCountsAsFailure
                   : l10n.printLogNotCountedAsFailure,
               style: t.label,

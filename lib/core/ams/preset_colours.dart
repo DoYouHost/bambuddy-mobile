@@ -7,6 +7,7 @@
 /// the preset's own name — the web does the same in `ConfigureAmsSlotModal`.
 library;
 
+import '../format/filament_colour.dart';
 import '../models/inventory_reference.dart';
 import 'filament_naming.dart';
 
@@ -47,17 +48,4 @@ List<ColorEntry> presetColours(List<ColorEntry> catalogue, String presetName) {
     byColour.putIfAbsent(hex, () => entry);
   }
   return byColour.values.toList();
-}
-
-/// Six upper-case hex digits from any of the spellings a colour arrives in
-/// (`#RRGGBB`, `RRGGBB`, `RRGGBBAA`), or null when it is not a colour at all.
-///
-/// The alpha is dropped rather than kept: the catalogue writes `#RRGGBB` and
-/// the printer writes `RRGGBBAA`, and the two have to compare equal — while a
-/// slot's `00` alpha means *empty*, which must never become a picked colour.
-String? sixHexDigits(String? raw) {
-  final hex = raw?.trim().replaceFirst('#', '');
-  if (hex == null || hex.length < 6) return null;
-  final rgb = hex.substring(0, 6).toUpperCase();
-  return RegExp(r'^[0-9A-F]{6}$').hasMatch(rgb) ? rgb : null;
 }

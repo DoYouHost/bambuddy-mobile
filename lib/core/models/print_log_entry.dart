@@ -1,55 +1,9 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 
 import 'json_utils.dart';
+import 'print_run.dart';
 
 part 'print_log_entry.g.dart';
-
-/// The failure causes `PATCH /print-log/{id}` accepts, in the server's order.
-///
-/// These are i18n keys, not labels — render them through
-/// `failureReasonLabel`, never directly. The server validates writes against
-/// this exact list (`print_log.py::_FAILURE_REASON_KEYS`) and 400s on anything
-/// else, so the picker must not offer a value that is not here. Clearing the
-/// classification is `''`, which is not part of the list because it is an
-/// action rather than a cause.
-const printLogFailureReasons = <String>[
-  'adhesionFailure',
-  'spaghettiDetached',
-  'layerShift',
-  'cloggedNozzle',
-  'filamentRunout',
-  'warping',
-  'stringing',
-  'underExtrusion',
-  'powerFailure',
-  'userCancelled',
-  'other',
-];
-
-/// The statuses `PATCH /print-log/{id}` accepts
-/// (`print_log.py::_STATUS_KEYS`).
-///
-/// Deliberately missing `aborted`, which archives do use and which
-/// [printLogStatusIsFailure] still counts: a row that carries it keeps it as
-/// long as the field is left unsent, and cannot be given it back once
-/// something else has been written. See [PrintLogEntry.status].
-const printLogStatuses = <String>[
-  'completed',
-  'failed',
-  'stopped',
-  'cancelled',
-  'skipped',
-];
-
-/// Whether a run in this status is counted as a failure by the server's
-/// Failure Analysis (`FailureAnalysisService`: `status.in_(['failed',
-/// 'aborted'])`).
-///
-/// This is what makes a failure cause visible or invisible: the widget groups
-/// by `failure_reason` **within** these statuses only, so a cause set on a
-/// completed or cancelled run is stored and then never shown anywhere.
-bool printLogStatusIsFailure(String? status) =>
-    status == 'failed' || status == 'aborted';
 
 /// One run from `GET /print-log/` — the table that outlives the archives it
 /// points at, so a run whose archive was deleted is still here with
@@ -69,7 +23,7 @@ bool printLogStatusIsFailure(String? status) =>
 /// failure cause travels — the hand-written version needed a separate
 /// `clearFailureReason` flag to say the same thing.
 @CopyWith(skipFields: true)
-class PrintLogEntry {
+class PrintLogEntry with PrintRun {
   const PrintLogEntry({
     required this.id,
     required this.status,
@@ -132,8 +86,10 @@ class PrintLogEntry {
   /// One of [printLogStatuses], or a value outside it — `aborted` on rows
   /// written by the archive side, `unknown` when the field failed to parse.
   /// Never assume it is in the vocabulary.
+  @override
   final String status;
 
+  @override
   final DateTime? startedAt;
   final DateTime? completedAt;
 
@@ -143,6 +99,7 @@ class PrintLogEntry {
   final String? filamentType;
 
   /// `#RRGGBB`, sometimes a multi-colour list: `#AABBCC,#112233`.
+  @override
   final String? filamentColor;
 
   final double? filamentUsedGrams;
@@ -171,6 +128,7 @@ class PrintLogEntry {
   final int? createdById;
   final String? createdByUsername;
 
+  @override
   final DateTime createdAt;
 
   /// The run's own archive is gone (or it never had one — a queue-skipped run).
@@ -178,14 +136,10 @@ class PrintLogEntry {
 
   bool get hasThumbnail => thumbnailPath != null;
 
-  /// Whether Failure Analysis counts this run as a failure. See
-  /// [printLogStatusIsFailure].
-  bool get countsAsFailure => printLogStatusIsFailure(status);
-
-  /// The date the list is ordered and grouped by, matching the server's own
-  /// `date` column: `started_at` when the run started, `created_at` for the
-  /// ones that never did.
-  DateTime get displayDate => startedAt ?? createdAt;
+  /// The measured duration under the name [PrintRun] gives it — the same
+  /// column `GET /archives/slim` calls `actual_time_seconds`.
+  @override
+  int? get runSeconds => durationSeconds;
 }
 
 /// One page of `GET /print-log/`: the rows asked for, plus how many rows the

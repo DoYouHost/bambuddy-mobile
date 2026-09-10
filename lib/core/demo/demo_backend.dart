@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../models/json_utils.dart';
+import '../models/print_run.dart';
 import 'demo_config.dart';
 
 /// Result of a routed demo request: HTTP status + JSON-encodable body.
@@ -2612,30 +2613,12 @@ class DemoBackend {
     return null;
   }
 
-  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
-  /// refuses what the real server refuses, or the editor would look like it
-  /// accepts anything.
-  static const _printLogReasons = {
-    '',
-    'adhesionFailure',
-    'spaghettiDetached',
-    'layerShift',
-    'cloggedNozzle',
-    'filamentRunout',
-    'warping',
-    'stringing',
-    'underExtrusion',
-    'powerFailure',
-    'userCancelled',
-    'other',
-  };
-  static const _printLogStatuses = {
-    'completed',
-    'failed',
-    'stopped',
-    'cancelled',
-    'skipped',
-  };
+  /// The demo refuses what the real server refuses, or the editor would look
+  /// like it accepts anything. Both lists are the ones the app itself offers
+  /// (`print_run.dart`), so the demo cannot drift into accepting a value the
+  /// picker no longer shows. `''` is extra here and only here: clearing the
+  /// cause is an action, not a cause, so it is not part of the vocabulary.
+  static final _printLogReasons = {'', ...printLogFailureReasons};
 
   DemoResult? _printLogRoute(
     String m,
@@ -2684,7 +2667,7 @@ class DemoBackend {
       }
       if (body['status'] != null) {
         final status = '${body['status']}';
-        if (!_printLogStatuses.contains(status)) {
+        if (!printLogStatuses.contains(status)) {
           return (status: 400, body: {'detail': "Unknown status: '$status'"});
         }
         entry['status'] = status;
