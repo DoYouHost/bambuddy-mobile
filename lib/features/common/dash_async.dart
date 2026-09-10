@@ -22,6 +22,14 @@ import 'state_views.dart';
 /// the other side of the question, in `ObservedCapability.whenUnknown`.
 extension AsyncFlag on AsyncValue<bool> {
   bool get orFalse => valueOrNull ?? false;
+
+  /// [orFalse] for a control that would rather be disabled than missing while
+  /// the server has not answered. See [ControlOffer].
+  ControlOffer get offer => orFalse
+      ? ControlOffer.offered
+      : isUnanswered
+      ? ControlOffer.pending
+      : ControlOffer.hidden;
 }
 
 /// Nothing has answered yet — no reply from the server, and no failure either.
@@ -33,41 +41,24 @@ extension AsyncUnanswered<T> on AsyncValue<T> {
   bool get isUnanswered => !hasValue && !hasError;
 }
 
-/// What a control should do about the answers it depends on.
+/// What a control should do about an answer it is gated on.
 enum ControlOffer {
-  /// One of them settled on "no". The control does not belong on this screen.
+  /// The answer settled on "no". The control does not belong on this screen.
   hidden,
 
-  /// On screen but not pressable: nothing has said "no", and something has not
-  /// answered yet. A button the user is waiting to press reads better greyed
-  /// out for a moment than absent and then suddenly there — which is what
-  /// [AsyncFlag.orFalse] gives, and why it is the wrong reader here.
+  /// On screen but not pressable, because nothing has answered yet. A button
+  /// the user is waiting to press reads better greyed out for a moment than
+  /// absent and then suddenly there — which is what [AsyncFlag.orFalse] would
+  /// give, and why it is the wrong reader for one.
+  ///
+  /// Only for a widget that **watches** the answer; one that cannot rebuild
+  /// would sit greyed for as long as it is on screen. And only while there is
+  /// nothing to say: a control left disabled for good owes the user a line
+  /// saying why, next to it.
   pending,
 
-  /// Every answer is in and every one of them is yes.
+  /// The answer is in, and it is yes.
   offered,
-}
-
-/// Folds the answers a control is gated on into what it should do about them.
-///
-/// Callbacks rather than values, and read **in order, only as far as needed**:
-/// the first answer that is not already "yes" decides, and nothing after it is
-/// read at all. A list of values would evaluate every `ref.watch` in it before
-/// this function ever ran, which is how a control the server has already ruled
-/// out ends up subscribing to — and firing — the request behind the next
-/// answer. Order them cheapest-first: a session-wide flag before anything that
-/// costs a round trip of its own.
-///
-/// A settled "no" hides the control; an answer still on its way disables it.
-/// Only for a widget that **watches** its answers — a control that cannot
-/// rebuild would sit greyed for as long as it is on screen.
-ControlOffer controlOffer(Iterable<AsyncValue<bool> Function()> answers) {
-  for (final read in answers) {
-    final answer = read();
-    if (answer.orFalse) continue;
-    return answer.isUnanswered ? ControlOffer.pending : ControlOffer.hidden;
-  }
-  return ControlOffer.offered;
 }
 
 /// A screen's three states, with the two every screen words identically already

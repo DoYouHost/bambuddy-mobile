@@ -387,7 +387,7 @@
   "archiveNo3mfTitleInternal": "Część ostatnich wydruków została w pamięci wewnętrznej drukarki",
   "archiveNo3mfBodyInternal": "Bambu Studio wysłało pocięty plik do pamięci wewnętrznej drukarki, a nie na kartę — przez FTP nie ma tam czego czytać. W H2 i P2S przycisk Drukuj zawsze robi to tak, więc włączanie ustawienia w slicerze nic nie zmieni. Takie wydruki i tak trafiają do archiwum z nazwą i czasem, tylko bez miniatury i danych ze slicera. Żeby archiwum było pełne, zaczynaj wydruk z Bambuddy albo tnij w OrcaSlicerze — w obu przypadkach z kartą lub pendrivem w drukarce.",
   "archiveNo3mfTitleNoStorage": "Część ostatnich wydruków nie mogła się zarchiwizować — brak nośnika w drukarce",
-  "archiveNo3mfBodyNoStorage": "Drukarka nie widzi karty ani pendrive'a w gniazdzie, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.",
+  "archiveNo3mfBodyNoStorage": "Drukarka nie widzi karty ani pendrive'a w gnieździe, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.",
   "archiveNo3mfDocs": "Zobacz krok 4 instalacji",
   "archiveNo3mfDocsWhy": "Dlaczego tak się dzieje",
   "archiveNo3mfDismiss": "Zamknij tę informację",

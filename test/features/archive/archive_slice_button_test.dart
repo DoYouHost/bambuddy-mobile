@@ -29,12 +29,16 @@ void main() {
   );
 
   /// Opens the print's sheet, which is where the button lives.
+  var capabilityReads = 0;
+
   Future<void> openSheet(
     WidgetTester tester, {
     required AsyncValue<bool> sidecar,
     Completer<ArchiveCapabilities>? capabilities,
     bool sliceable = true,
+    bool failing = false,
   }) async {
+    capabilityReads = 0;
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await pumpPhone(
@@ -49,13 +53,14 @@ void main() {
         // Its own routes are a separate question; this keeps the second button
         // out of the way.
         canRunPipelinesProvider.overrideWith((ref) async => false),
-        archiveCapabilitiesProvider(archive.id).overrideWith(
-          (ref) =>
-              capabilities?.future ??
+        archiveCapabilitiesProvider(archive.id).overrideWith((ref) {
+          capabilityReads++;
+          if (failing) throw StateError('capabilities unreachable');
+          return capabilities?.future ??
               Future.value(
                 ArchiveCapabilities(hasSource: sliceable, hasGcode: true),
-              ),
-        ),
+              );
+        }),
       ],
     );
     await tester.pumpAndSettle();
@@ -95,13 +100,49 @@ void main() {
     expect(find.textContaining('nie da się go pociąć'), findsOneWidget);
   });
 
-  testWidgets('a server with no slicer draws none of it', (tester) async {
+  testWidgets('a server with no slicer draws none of it, and is not asked', (
+    tester,
+  ) async {
     // Not a disabled button: the feature does not exist on this server, so
-    // advertising it on every entry would be noise.
+    // advertising it on every entry would be noise. And asking what this entry
+    // can do is a request of its own — one such a server must never receive.
     await openSheet(tester, sidecar: const AsyncValue.data(false));
 
     expect(sliceButton(), findsNothing);
     expect(find.textContaining('nie da się go pociąć'), findsNothing);
+    expect(capabilityReads, 0);
+  });
+
+  testWidgets('an unsettled sidecar flag holds the second question back', (
+    tester,
+  ) async {
+    // The early return covers a server that said no. This covers the moment
+    // before it has said anything: sending the per-entry request then would be
+    // asking on a guess, and the answer is thrown away if the flag comes back
+    // false.
+    await openSheet(tester, sidecar: const AsyncValue<bool>.loading());
+
+    expect(sliceButton(), findsOneWidget);
+    expect(enabled(tester), isFalse);
+    expect(capabilityReads, 0);
+  });
+
+  testWidgets('a read that failed is explained, not silently dead', (
+    tester,
+  ) async {
+    // The rule the disabled state is held to: a control that stays greyed owes
+    // the user a line saying why. Without one this is a button that does
+    // nothing, for ever, with no way to tell what went wrong.
+    await openSheet(
+      tester,
+      sidecar: const AsyncValue.data(true),
+      failing: true,
+    );
+
+    expect(sliceButton(), findsOneWidget);
+    expect(enabled(tester), isFalse);
+    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('while the answer is on its way it is disabled and silent', (

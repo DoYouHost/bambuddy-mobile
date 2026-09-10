@@ -38,7 +38,7 @@ bool plateClearPending(
 /// fetch, which is the same reason [plateClearPending] takes a callback.
 ControlOffer plateClearOffer(WidgetRef ref, PrinterStatus? status) {
   if (status?.awaitingPlateClear != true) return ControlOffer.hidden;
-  final offer = controlOffer([() => ref.watch(requirePlateClearProvider)]);
+  final offer = ref.watch(requirePlateClearProvider).offer;
   if (offer == ControlOffer.hidden) return ControlOffer.hidden;
   if (status?.connected != true && !ref.watch(offlinePlateClearProvider)) {
     return ControlOffer.hidden;

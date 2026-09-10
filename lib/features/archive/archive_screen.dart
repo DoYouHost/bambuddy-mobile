@@ -1066,7 +1066,8 @@ class _SheetPrimaryActions extends StatelessWidget {
 /// not) only **disables** the buttons, and says why underneath: showing them
 /// and then collapsing the row a moment later is a flicker the user has to
 /// interpret, while a disabled button with a reason answers the question they
-/// opened the entry with.
+/// opened the entry with. A read that failed is disabled and explained too —
+/// silently dead is the one thing it must never be.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
     required this.archive,
@@ -1080,18 +1081,22 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sidecar = controlOffer([() => ref.watch(slicerEnabledProvider)]);
+    final sidecar = ref.watch(slicerEnabledProvider).offer;
     if (sidecar == ControlOffer.hidden) return const SizedBox.shrink();
     // Asked only once the sidecar is not ruled out: this is a request per entry
-    // the user opens, and a server with no slicer must never send it. Null is
-    // "not answered yet", which disables without a reason to give.
-    final sliceable = sidecar == ControlOffer.offered
-        ? ref
-              .watch(archiveCapabilitiesProvider(archive.id))
-              .valueOrNull
-              ?.sliceable
+    // the user opens, and a server with no slicer must never send it.
+    final caps = sidecar == ControlOffer.offered
+        ? ref.watch(archiveCapabilitiesProvider(archive.id))
         : null;
+    final sliceable = caps?.valueOrNull?.sliceable;
     final l10n = AppLocalizations.of(context);
+    // The buttons are disabled in three ways, and two of them owe the user a
+    // line. Silence belongs only to the answer that is still on its way.
+    final reason = switch (caps) {
+      null => null,
+      final answer when answer.hasError => l10n.connectFailed,
+      _ => sliceable == false ? l10n.archiveNotSliceable : null,
+    };
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
     final canRunPipeline = ref.watch(canRunPipelinesProvider).orFalse;
@@ -1120,13 +1125,7 @@ class _SliceArchiveButton extends ConsumerWidget {
               ).tagged('archive.run_pipeline'),
             ),
           ],
-          // Only for the settled "no". While the answer is on its way the
-          // buttons are disabled with nothing to say yet, and a note that
-          // appeared and left would be the flicker moved one row down.
-          ?inlineNote(
-            sliceable == false ? l10n.archiveNotSliceable : null,
-            icon: Icons.info_outline,
-          ),
+          ?inlineNote(reason, icon: Icons.info_outline),
         ],
       ),
     );
