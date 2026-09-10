@@ -88,26 +88,28 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               style: theme.textTheme.labelLarge,
             ),
             const SizedBox(height: 6),
-            DropdownButtonFormField<int>(
-              initialValue: _printerId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
+            // The label stays above the field rather than moving inside it:
+            // the segmented buttons below cannot carry one, and a single field
+            // labelled differently from its neighbours reads as a mistake.
+            dashCombo<int>(
+              context,
+              id: 'spool_assign.printer',
+              initialSelection: _printerId,
+              onSelected: (v) => setState(() => _printerId = v),
+              entries: [
                 for (final p in roster)
-                  DropdownMenuItem(
+                  DropdownMenuEntry(
                     value: p.printer.id,
+                    label: p.printer.name,
                     // One id for every row: the printer's name is the user's
                     // own text, and the field's tag does not reach the popup.
-                    child: logTag(
+                    labelWidget: logTag(
                       'spool_assign.printer_option',
                       Text(p.printer.name),
                     ),
                   ),
               ],
-              onChanged: (v) => setState(() => _printerId = v),
-            ).tagged('spool_assign.printer'),
+            ),
             const SizedBox(height: 16),
 
             SegmentedButton<bool>(
@@ -146,11 +148,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                 children: [
                   Expanded(
                     child: _NumberDropdown(
-                      // `_NumberDropdown` wraps `DropdownButtonFormField`,
-                      // whose `initialValue` only seeds state on first build —
-                      // force a fresh element when the printer (and thus the
-                      // valid unit range) changes, or the field would keep
-                      // showing the previous printer's selection.
+                      // A `DropdownMenu` re-seeds its field from
+                      // `initialSelection` only when the new value is among
+                      // its entries (`didUpdateWidget`) — and switching
+                      // printer is exactly when it is not, because the valid
+                      // unit range changed with it. A fresh element is what
+                      // stops the field naming the previous printer's unit.
                       key: ValueKey(_printerId),
                       id: 'spool_assign.unit',
                       label: l10n.inventoryAssignUnit,
@@ -262,24 +265,23 @@ class _NumberDropdown extends StatelessWidget {
       children: [
         Text(label, style: theme.textTheme.labelLarge),
         const SizedBox(height: 6),
-        DropdownButtonFormField<int>(
-          initialValue: value,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            isDense: true,
-          ),
-          items: [
+        dashCombo<int>(
+          context,
+          id: id,
+          initialSelection: value,
+          onSelected: (v) => v == null ? null : onChanged(v),
+          entries: [
             for (final e in items.entries)
-              DropdownMenuItem(
+              DropdownMenuEntry(
                 value: e.key,
+                label: e.value,
                 // Named by value, not shared across the options: which AMS unit
                 // and slot the user picked is the whole point of the record, and
                 // a slot number is the printer's, not the user's.
-                child: logTag('$id.${e.key}', Text(e.value)),
+                labelWidget: logTag('$id.${e.key}', Text(e.value)),
               ),
           ],
-          onChanged: (v) => v == null ? null : onChanged(v),
-        ).tagged(id),
+        ),
       ],
     );
   }

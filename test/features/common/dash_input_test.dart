@@ -230,4 +230,51 @@ void main() {
       expect(ids, containsAll(['test.filter.any', 'test.filter.option']));
     });
   });
+
+  group('dashCombo shows what is selected', () {
+    /// What every converted select leans on: the field displays the *label* of
+    /// `initialSelection`, so a form opened on an existing row reads as filled
+    /// in rather than blank.
+    Future<void> pump(WidgetTester tester, {int? selection}) =>
+        tester.pumpWidget(
+          plApp(
+            Builder(
+              builder: (context) => Scaffold(
+                body: dashCombo<int>(
+                  context,
+                  id: 'test.combo',
+                  initialSelection: selection,
+                  entries: const [
+                    DropdownMenuEntry(value: 3, label: 'P1S'),
+                    DropdownMenuEntry(value: 4, label: 'X1C'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+    testWidgets('an existing value names itself in the field', (tester) async {
+      await pump(tester, selection: 4);
+
+      expect(fieldText(tester), 'X1C');
+    });
+
+    testWidgets('a selection no longer among the entries leaves the old text', (
+      tester,
+    ) async {
+      // Not a defect to fix here — Flutter re-seeds the field only when the
+      // new selection is found (`DropdownMenu.didUpdateWidget`). It is why the
+      // AMS unit picker in the assign sheet carries a `ValueKey`: switching
+      // printer changes the valid range, and without a fresh element the field
+      // would keep naming the previous printer's unit.
+      await pump(tester, selection: 4);
+      await pump(tester, selection: 9);
+
+      expect(fieldText(tester), 'X1C');
+    });
+  });
 }

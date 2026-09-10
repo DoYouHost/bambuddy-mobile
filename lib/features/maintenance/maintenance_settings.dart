@@ -12,6 +12,7 @@ import '../../l10n/error_messages.dart';
 import '../common/button_pair.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
+import '../common/dash_input.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -485,32 +486,42 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _intervalType,
-                    decoration: InputDecoration(
-                      labelText: l10n.maintenanceFieldIntervalType,
-                      border: const OutlineInputBorder(),
+                  // Keeps this form's own chrome rather than taking the app's:
+                  // every other field here is still plain Material, and one
+                  // restyled field beside them reads as a rendering fault. The
+                  // convention this satisfies is the widget — an anchored menu
+                  // instead of the old full-screen overlay; restyling the form
+                  // is its own change.
+                  child: dashCombo<String>(
+                    context,
+                    id: 'maintenance_type_form.interval_type',
+                    label: Text(l10n.maintenanceFieldIntervalType),
+                    initialSelection: _intervalType,
+                    decorationTheme: const InputDecorationTheme(
+                      border: OutlineInputBorder(),
                       isDense: true,
                     ),
-                    items: [
-                      DropdownMenuItem(
+                    onSelected: (v) =>
+                        setState(() => _intervalType = v ?? 'hours'),
+                    entries: [
+                      DropdownMenuEntry(
                         value: 'hours',
-                        child: logTag(
+                        label: l10n.maintenanceIntervalHours,
+                        labelWidget: logTag(
                           'maintenance_type_form.interval_type.hours',
                           Text(l10n.maintenanceIntervalHours),
                         ),
                       ),
-                      DropdownMenuItem(
+                      DropdownMenuEntry(
                         value: 'days',
-                        child: logTag(
+                        label: l10n.maintenanceIntervalDays,
+                        labelWidget: logTag(
                           'maintenance_type_form.interval_type.days',
                           Text(l10n.maintenanceIntervalDays),
                         ),
                       ),
                     ],
-                    onChanged: (v) =>
-                        setState(() => _intervalType = v ?? 'hours'),
-                  ).tagged('maintenance_type_form.interval_type'),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 SizedBox(

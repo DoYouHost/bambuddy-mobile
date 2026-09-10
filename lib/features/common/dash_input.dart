@@ -58,9 +58,9 @@ InputDecorationTheme dashInputTheme(DashTokens t) {
 /// field itself.
 ///
 /// Every select belongs here rather than in a `DropdownButtonFormField`, whose
-/// full-screen overlay is the old Material look. Eight of those are still in
-/// the app — projects, inventory, maintenance — so this says where a select
-/// goes, not that nothing is left to move.
+/// full-screen overlay is the old Material look. There are none of those left;
+/// the last seven — projects, inventory, maintenance — came across on
+/// 2026-09-10.
 ///
 /// Rows carry their own ids: the menu opens in a route of its own, so [id]
 /// never reaches them (the trap is written up in docs/logging-guide.md).

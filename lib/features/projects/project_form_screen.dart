@@ -13,6 +13,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_input.dart';
 import '../common/dash_snack.dart';
 import '../common/system_insets.dart';
 import 'project_common.dart';
@@ -147,57 +148,51 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _status,
-                        style: fieldStyle,
-                        dropdownColor: t.isDark
-                            ? const Color(0xFF141A13)
-                            : Colors.white,
-                        decoration: dashFieldDecoration(
-                          t,
-                          labelText: l10n.projectStatus,
-                        ),
-                        items: [
+                      child: dashCombo<String>(
+                        context,
+                        id: 'project_form.status',
+                        label: Text(l10n.projectStatus),
+                        initialSelection: _status,
+                        textStyle: fieldStyle,
+                        onSelected: (v) =>
+                            setState(() => _status = v ?? _status),
+                        entries: [
                           // Named per value — a fixed server-side list, and
                           // which status was set is the record.
                           for (final s in projectStatusValues)
-                            DropdownMenuItem(
+                            DropdownMenuEntry(
                               value: s,
-                              child: logTag(
+                              label: projectStatusLabel(l10n, s),
+                              labelWidget: logTag(
                                 'project_form.status.$s',
                                 Text(projectStatusLabel(l10n, s)),
                               ),
                             ),
                         ],
-                        onChanged: (v) =>
-                            setState(() => _status = v ?? _status),
-                      ).tagged('project_form.status'),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _priority,
-                        style: fieldStyle,
-                        dropdownColor: t.isDark
-                            ? const Color(0xFF141A13)
-                            : Colors.white,
-                        decoration: dashFieldDecoration(
-                          t,
-                          labelText: l10n.projectPriority,
-                        ),
-                        items: [
+                      child: dashCombo<String>(
+                        context,
+                        id: 'project_form.priority',
+                        label: Text(l10n.projectPriority),
+                        initialSelection: _priority,
+                        textStyle: fieldStyle,
+                        onSelected: (v) =>
+                            setState(() => _priority = v ?? _priority),
+                        entries: [
                           for (final s in projectPriorityValues)
-                            DropdownMenuItem(
+                            DropdownMenuEntry(
                               value: s,
-                              child: logTag(
+                              label: projectPriorityLabel(l10n, s),
+                              labelWidget: logTag(
                                 'project_form.priority.$s',
                                 Text(projectPriorityLabel(l10n, s)),
                               ),
                             ),
                         ],
-                        onChanged: (v) =>
-                            setState(() => _priority = v ?? _priority),
-                      ).tagged('project_form.priority'),
+                      ),
                     ),
                   ],
                 ),
@@ -356,30 +351,34 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     final options = projects.where((p) => p.id != widget.existing?.id).toList();
     final parentId = _parentId;
     // `projects` is status-filtered (and may still be loading) — the current
-    // parent can be absent from `options` (e.g. it's archived/completed while
-    // the active filter is "active"). Inject a synthetic entry so the
-    // dropdown's value always matches one of `items`, else DropdownButton
-    // asserts "exactly zero or one item with [value]" and the sheet crashes.
+    // parent can be absent from `options` (e.g. it is archived while the
+    // active filter is "active"). It still gets a row of its own: without one
+    // the field renders empty while `_parentId` quietly keeps the parent, so
+    // the form would show "no parent" and then save the old one.
     final missingParent =
         parentId != null && !options.any((p) => p.id == parentId);
-    return DropdownButtonFormField<int?>(
-      initialValue: _parentId,
-      style: fieldStyle,
-      dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-      decoration: dashFieldDecoration(t, labelText: l10n.projectParent),
-      items: [
-        DropdownMenuItem(
+    return dashCombo<int?>(
+      context,
+      id: 'project_form.parent',
+      label: Text(l10n.projectParent),
+      initialSelection: _parentId,
+      textStyle: fieldStyle,
+      onSelected: (v) => setState(() => _parentId = v),
+      entries: [
+        DropdownMenuEntry(
           value: null,
-          child: logTag(
+          label: l10n.projectParentNone,
+          labelWidget: logTag(
             'project_form.parent_none',
             Text(l10n.projectParentNone),
           ),
         ),
         if (missingParent)
-          DropdownMenuItem(
+          DropdownMenuEntry(
             value: parentId,
+            label: widget.existing?.parentName ?? '#$parentId',
             // One id for every project row: the name is the user's own text.
-            child: logTag(
+            labelWidget: logTag(
               'project_form.parent_option',
               Text(
                 widget.existing?.parentName ?? '#$parentId',
@@ -388,13 +387,13 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             ),
           ),
         for (final p in options)
-          DropdownMenuItem(
+          DropdownMenuEntry(
             value: p.id,
-            child: logTag('project_form.parent_option', Text(p.name)),
+            label: p.name,
+            labelWidget: logTag('project_form.parent_option', Text(p.name)),
           ),
       ],
-      onChanged: (v) => setState(() => _parentId = v),
-    ).tagged('project_form.parent');
+    );
   }
 
   Future<void> _pickDueDate() async {

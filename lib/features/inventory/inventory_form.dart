@@ -563,28 +563,30 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final options = <String>{..._effectOptions, ?_effectType};
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: DropdownButtonFormField<String?>(
-        initialValue: _effectType,
-        isExpanded: true,
-        style: t.body,
-        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-        decoration: dashDecoration(t, labelText: l10n.inventoryFieldEffect),
-        items: [
-          DropdownMenuItem(
+      child: dashCombo<String?>(
+        context,
+        id: _fieldTag('effect'),
+        label: Text(l10n.inventoryFieldEffect),
+        initialSelection: _effectType,
+        textStyle: t.body,
+        onSelected: (v) => setState(() => _effectType = v),
+        entries: [
+          DropdownMenuEntry(
             value: null,
-            child: logTag(
+            label: l10n.inventoryEffectNone,
+            labelWidget: logTag(
               '${_fieldTag('effect')}.none',
               Text(l10n.inventoryEffectNone),
             ),
           ),
           for (final e in options)
-            DropdownMenuItem(
+            DropdownMenuEntry(
               value: e,
-              child: logTag('${_fieldTag('effect')}.option', Text(e)),
+              label: e,
+              labelWidget: logTag('${_fieldTag('effect')}.option', Text(e)),
             ),
         ],
-        onChanged: (v) => setState(() => _effectType = v),
-      ).tagged(_fieldTag('effect')),
+      ),
     );
   }
 
