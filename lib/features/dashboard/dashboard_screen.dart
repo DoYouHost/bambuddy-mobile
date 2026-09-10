@@ -81,7 +81,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // platform read that failed), and each of them looks exactly like
               // an app that was never backgrounded. `started` separates those
               // from the case below, where nothing was ever asked to start.
-              _logBgService('start', started: started);
+              _logBgService('ui_start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
               // user has swiped the app away once. (The clock format is synced
@@ -110,7 +110,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
-        _logBgService('stop');
+        _logBgService('ui_stop');
         // Take the watch relay and the finish-photo search back only once the
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
@@ -152,7 +152,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _takeOverFromSurvivingService() async {
     final monitor = ref.read(backgroundMonitorProvider);
     if (!await monitor.isRunning()) return;
-    _logBgService('stop_survivor');
+    _logBgService('ui_stop_survivor');
     await monitor.stop();
   }
 
@@ -204,12 +204,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Hands the background service's lifecycle to the log from the UI side, where
   /// there is always a buffer to write into.
-  void _logBgService(String action, {bool? started}) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'bg_service',
-        fields: {'action': action, 'started': started},
-      );
+  ///
+  /// `LogSource.fgs` even though the UI isolate writes it: the source names the
+  /// **subsystem**, not the writer, and a reader who filters the service's lane
+  /// has to see the half of its lifecycle only this side can report. These used
+  /// to file as `app`/`bg_service` with the verb in a field, which split one
+  /// story across two lanes and two grammars.
+  ///
+  /// The `ui_` verbs stay distinct from the service's own `start` / `destroy`:
+  /// "the UI asked" and "the service's start-up ran" are different moments, and
+  /// a report carrying the first without the second is exactly the interesting
+  /// one.
+  void _logBgService(String event, {bool? started}) => DiagnosticRecorder.active
+      ?.add(LogSource.fgs, event, fields: {'started': started});
 
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);

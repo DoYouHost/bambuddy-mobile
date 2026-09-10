@@ -147,6 +147,30 @@ through a channel that swallows a Dart exception and reports success, so a
 recorder that throws leaves a service that says "monitoring" and monitors
 nothing.
 
+### The service's lifecycle is one lane, written from two isolates
+
+`LogSource` names the **subsystem, not the writer**, so everything about the
+foreground service files under `fgs` — including the three moments only the UI
+can report, because they happen before the service exists or after it is gone.
+The verbs say who acted:
+
+| event | written by | means |
+|---|---|---|
+| `ui_start` | UI | the UI asked for the service; field `started` says whether the platform call reported success |
+| `ui_stop` | UI | the UI asked it to stop (app resumed) |
+| `ui_stop_survivor` | UI | a service that outlived the app it was started from was found running and stopped |
+| `start` | service | the service's own start-up ran |
+| `no_profile`, `start_failed`, `frame_dropped`, `attach`, `notification_dismissed`, `destroy` | service | see `print_monitor_task_handler.dart` |
+
+`ui_start` without a following `start` is the report worth opening: the UI asked
+and the service never came up.
+
+**Renamed on 2026-09-10.** These three used to file as `app` / `bg_service`
+with the verb in an `action` field (`start`, `stop`, `stop_survivor`), which put
+half the service's lifecycle in the generic lane under a second grammar. A bug
+report filed before that date carries the old spelling and no amount of grepping
+the new one will find it — search `bg_service` for anything older.
+
 ## 5. Two traps in the navigation lane
 
 Both are covered by tests; both were live bugs first.
