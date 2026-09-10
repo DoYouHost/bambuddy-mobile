@@ -16,10 +16,8 @@ typedef OwnedFilament = ({String name, String material, String? color});
 
 /// Whether server-side slicing is enabled (`use_slicer_api`). Gates every slice
 /// button in the app. Cached for the session — the setting rarely changes.
-final slicerEnabledProvider = FutureProvider<bool>(
-  (ref) async => (await ref.watch(
-    serverSettingsProvider.future,
-  )).settingBool('use_slicer_api'),
+final slicerEnabledProvider = serverGate<bool>(
+  (settings) => settings.settingBool('use_slicer_api'),
 );
 
 /// Preset options for the slice modal. Kept alive while a sheet is open; the

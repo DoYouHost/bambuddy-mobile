@@ -50,9 +50,8 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (!plateClearOffered(ref, widget.status)) {
-      return const SizedBox.shrink();
-    }
+    final offer = plateClearOffer(ref, widget.status);
+    if (offer == ControlOffer.hidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
@@ -87,7 +86,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               tooltip: l10n.plateClearAction,
               color: t.accentBlue,
               borderColor: t.accentBlue.withValues(alpha: 0.5),
-              onPressed: _busy ? null : _clear,
+              onPressed: _busy || offer == ControlOffer.pending ? null : _clear,
             ),
           ],
         ),

@@ -22,6 +22,43 @@ import 'state_views.dart';
 /// the other side of the question, in `ObservedCapability.whenUnknown`.
 extension AsyncFlag on AsyncValue<bool> {
   bool get orFalse => valueOrNull ?? false;
+
+  /// [orFalse] for a control that would rather be disabled than missing while
+  /// the server has not answered. See [ControlOffer].
+  ControlOffer get offer => orFalse
+      ? ControlOffer.offered
+      : isUnanswered
+      ? ControlOffer.pending
+      : ControlOffer.hidden;
+}
+
+/// Nothing has answered yet — no reply from the server, and no failure either.
+///
+/// The third state [AsyncFlag.orFalse] folds away. A failure is deliberately
+/// **not** it: that is a settled "no", or a control would sit disabled for the
+/// rest of the session saying nothing about why.
+extension AsyncUnanswered<T> on AsyncValue<T> {
+  bool get isUnanswered => !hasValue && !hasError;
+}
+
+/// What a control should do about an answer it is gated on.
+enum ControlOffer {
+  /// The answer settled on "no". The control does not belong on this screen.
+  hidden,
+
+  /// On screen but not pressable, because nothing has answered yet. A button
+  /// the user is waiting to press reads better greyed out for a moment than
+  /// absent and then suddenly there — which is what [AsyncFlag.orFalse] would
+  /// give, and why it is the wrong reader for one.
+  ///
+  /// Only for a widget that **watches** the answer; one that cannot rebuild
+  /// would sit greyed for as long as it is on screen. And only while there is
+  /// nothing to say: a control left disabled for good owes the user a line
+  /// saying why, next to it.
+  pending,
+
+  /// The answer is in, and it is yes.
+  offered,
 }
 
 /// A screen's three states, with the two every screen words identically already

@@ -25,6 +25,7 @@ import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
@@ -1057,10 +1058,16 @@ class _SheetPrimaryActions extends StatelessWidget {
   }
 }
 
-/// Slice button shown only when the slicer sidecar is enabled AND this archive
-/// is actually re-sliceable (retains a source/model — plain gcode.3mf prints
-/// are not). Renders nothing otherwise, so the sheet is unchanged for the
-/// common case.
+/// Slice and run-pipeline buttons, and the two answers behind them.
+///
+/// The sidecar flag decides whether the section exists at all — a server with
+/// no slicer has no such feature, and nothing is drawn. Whether *this* archive
+/// can be re-sliced (it keeps a source or a model; plain gcode.3mf prints do
+/// not) only **disables** the buttons, and says why underneath: showing them
+/// and then collapsing the row a moment later is a flicker the user has to
+/// interpret, while a disabled button with a reason answers the question they
+/// opened the entry with. A read that failed is disabled and explained too —
+/// silently dead is the one thing it must never be.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
     required this.archive,
@@ -1074,11 +1081,22 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).orFalse;
-    if (!enabled) return const SizedBox.shrink();
-    final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
-    if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    final sidecar = ref.watch(slicerEnabledProvider).offer;
+    if (sidecar == ControlOffer.hidden) return const SizedBox.shrink();
+    // Asked only once the sidecar is not ruled out: this is a request per entry
+    // the user opens, and a server with no slicer must never send it.
+    final caps = sidecar == ControlOffer.offered
+        ? ref.watch(archiveCapabilitiesProvider(archive.id))
+        : null;
+    final sliceable = caps?.valueOrNull?.sliceable;
     final l10n = AppLocalizations.of(context);
+    // The buttons are disabled in three ways, and two of them owe the user a
+    // line. Silence belongs only to the answer that is still on its way.
+    final reason = switch (caps) {
+      null => null,
+      final answer when answer.hasError => l10n.connectFailed,
+      _ => sliceable == false ? l10n.archiveNotSliceable : null,
+    };
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
     final canRunPipeline = ref.watch(canRunPipelinesProvider).orFalse;
@@ -1091,7 +1109,7 @@ class _SliceArchiveButton extends ConsumerWidget {
             child: OutlinedButton.icon(
               icon: const Icon(Icons.layers_outlined),
               label: Text(l10n.sliceAction),
-              onPressed: onSlice,
+              onPressed: sliceable == true ? onSlice : null,
             ).tagged('archive.slice'),
           ),
           if (canRunPipeline) ...[
@@ -1101,10 +1119,13 @@ class _SliceArchiveButton extends ConsumerWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.account_tree_outlined),
                 label: Text(l10n.pipelineRun),
-                onPressed: onRunPipeline,
+                // Re-slices the same source, so it needs exactly what the
+                // slice button needs.
+                onPressed: sliceable == true ? onRunPipeline : null,
               ).tagged('archive.run_pipeline'),
             ),
           ],
+          ?inlineNote(reason, icon: Icons.info_outline),
         ],
       ),
     );

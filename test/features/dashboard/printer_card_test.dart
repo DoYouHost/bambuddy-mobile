@@ -2564,7 +2564,7 @@ void main() {
         ),
       ),
       extra: [
-        requirePlateClearProvider.overrideWith((ref) async => true),
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
         printerCommandsRepositoryProvider.overrideWithValue(commands),
         printerStatusesProvider.overrideWith(_InertStatuses.new),
       ],
@@ -2650,7 +2650,7 @@ void main() {
             ),
           ),
           extra: [
-            requirePlateClearProvider.overrideWith((ref) async => true),
+            requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
             printerCommandsRepositoryProvider.overrideWithValue(commands),
           ],
         ),
@@ -2680,7 +2680,9 @@ void main() {
           _cardWithProviders(
             awaitingOffline,
             extra: [
-              requirePlateClearProvider.overrideWith((ref) async => false),
+              requirePlateClearProvider.overrideWithValue(
+                AsyncValue.data(false),
+              ),
               printerCommandsRepositoryProvider.overrideWithValue(commands),
             ],
           ),

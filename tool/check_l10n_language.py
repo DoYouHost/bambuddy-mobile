@@ -70,6 +70,10 @@ KNOWN_WORDS = {
     'X1C', 'X1E', 'P1S', 'P1P', 'P2S', 'H2C', 'H2D', 'H2S', 'X2D',
     'AMS', 'HMS', 'FTP', 'FTPS', 'API', 'QR', 'JWT', 'LDAP', 'MQTT', 'OIDC',
     'REST', 'CIDR', 'PDF', 'BOM', '°C', 'Wi-Fi', 'G-code', 'Orca', 'Avery',
+    # Units and file extensions as they appear mid-sentence: "6 h", ".gcode.3mf".
+    'h', 'gcode',
+    # Brands and licences the copy names outright, and the US paper size.
+    'Dymo', 'Affero', 'Keystore', 'Letter',
 }
 
 # English terms the Polish copy quotes verbatim, plus loanwords the app uses on
@@ -81,6 +85,12 @@ KNOWN_JARGON = {
     'ekstrudera', 'ekstruderami', 'zakolejkowana', 'warping', 'runout',
     'toolpath', 'colour', 'colours', 'https', 'http', 'scope', 'yml',
     'files', 'external', 'storage', 'Device', 'nozzle', 'hotend', 'firmware',
+    # Labels of other products the copy quotes, so the reader can find them
+    # there: bambuddy's own web UI, Home Assistant, the server's group names.
+    'Settings', 'Assistant', 'Workflow', 'Administrators',
+    # Plural of the app's own coinage, and two ordinary Polish words the
+    # dictionary wants to split: "Podprojekty", "Szac. koszt".
+    'timelapses', 'podprojekty', 'szac',
 }
 
 # ICU placeholders, replaced so the checker sees a sentence rather than braces.
@@ -203,19 +213,45 @@ def key_at(index: list[tuple[int, str]], offset: int) -> str:
     return found
 
 
+KNOWN_LOWER = {word.lower() for word in KNOWN_WORDS | KNOWN_JARGON}
+
+
 def interesting(match: dict) -> bool:
     context = match['context']
     word = context['text'][context['offset']:context['offset'] + context['length']]
     rule = match['rule']['id']
     if rule in IGNORED_RULES or rule.startswith(IGNORED_RULE_PREFIXES):
         return False
-    if word in KNOWN_WORDS or word in KNOWN_JARGON:
+    # Case-insensitively: a term is the same term at the start of a sentence or
+    # on a button as it is mid-phrase, and listing both spellings of every one
+    # of them is how the list goes stale.
+    if word.lower() in KNOWN_LOWER:
         return False
-    if match['rule']['id'].startswith('MORFOLOGIK'):
-        # The dictionary rule fires on every identifier, unit and English term
-        # the app quotes. Only a plain lowercase Polish-looking word is a
-        # candidate for a real typo.
-        return word.isalpha() and word.islower() and word.isascii() is False
+    if rule.startswith('MORFOLOGIK'):
+        # The dictionary rule also fires on identifiers, units and product
+        # names, which is what `KNOWN_WORDS` and `KNOWN_JARGON` above are for:
+        # a word that is not in either and is a plain lowercase run of letters
+        # is a typo, in both languages.
+        #
+        # This used to add `and not word.isascii()`, meaning to keep the
+        # Polish file quiet about the English terms it quotes. Every English
+        # word is ASCII, so on `app_en.arb` it switched spelling off outright
+        # — `sorce`, `fille` and `cannnot` all came back clean — and on the
+        # Polish side it lost every typo written without its diacritics.
+        #
+        # Title case counts as a word: it is how every sentence and every
+        # button label starts, so leaving it out hid a typo in the most
+        # prominent copy in the app. All caps still does not — that is the
+        # acronyms (`AMS`, `HMS`, `FTP`), where a dictionary has no opinion.
+        #
+        # Per token, because the rule reports a compound suggestion across the
+        # words it spans: a misspelt first word comes back as "Thiss print",
+        # and asking whether *that* is alphabetic drops it on the space.
+        tokens = word.split()
+        return bool(tokens) and all(
+            token.isalpha() and (token.islower() or token.istitle())
+            for token in tokens
+        )
     return True
 
 

@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/features/common/dash_async.dart';
 import 'package:bambuddy_mobile/features/common/plate_clear.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -155,15 +156,15 @@ void main() {
   });
 
   group('plateClearOffered', () {
-    Future<bool> offered(
+    Future<ControlOffer> offer(
       WidgetTester tester, {
       required PrinterStatus? status,
-      required bool gateOn,
+      required AsyncValue<bool> gate,
       bool serverRefused = false,
     }) async {
-      late bool result;
+      late ControlOffer result;
       final container = containerWith([
-        requirePlateClearProvider.overrideWith((_) async => gateOn),
+        requirePlateClearProvider.overrideWithValue(gate),
       ]);
       if (serverRefused) {
         recordPlateClearRefusal(
@@ -171,14 +172,12 @@ void main() {
           'Printer not connected',
         );
       }
-      // The future provider has to have settled, or the gate reads as absent.
-      await container.read(requirePlateClearProvider.future);
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
           child: Consumer(
             builder: (context, ref, _) {
-              result = plateClearOffered(ref, status);
+              result = plateClearOffer(ref, status);
               return const SizedBox();
             },
           ),
@@ -186,6 +185,20 @@ void main() {
       );
       return result;
     }
+
+    Future<bool> offered(
+      WidgetTester tester, {
+      required PrinterStatus? status,
+      required bool gateOn,
+      bool serverRefused = false,
+    }) async =>
+        await offer(
+          tester,
+          status: status,
+          gate: AsyncValue.data(gateOn),
+          serverRefused: serverRefused,
+        ) ==
+        ControlOffer.offered;
 
     const dirty = PrinterStatus(
       id: 1,
@@ -241,6 +254,46 @@ void main() {
       tester,
     ) async {
       expect(await offered(tester, status: dirty, gateOn: false), isFalse);
+    });
+
+    testWidgets('the control waits on screen while the settings are unread', (
+      tester,
+    ) async {
+      // A cold start: the plate is waiting and nothing has said yet whether
+      // this server gates on it. Withdrawing the button here takes away the
+      // one the user came to the card for.
+      expect(
+        await offer(tester, status: dirty, gate: const AsyncValue.loading()),
+        ControlOffer.pending,
+      );
+    });
+
+    testWidgets('a settings read that failed is a settled no, not a wait', (
+      tester,
+    ) async {
+      // Otherwise the button sits greyed for the rest of the session with
+      // nothing on the card to say why, and no way to retry it.
+      expect(
+        await offer(
+          tester,
+          status: dirty,
+          gate: AsyncValue.error(StateError('unreadable'), StackTrace.empty),
+        ),
+        ControlOffer.hidden,
+      );
+    });
+
+    testWidgets('a clean plate stays hidden even before the settings land', (
+      tester,
+    ) async {
+      expect(
+        await offer(
+          tester,
+          status: const PrinterStatus(id: 1, connected: true),
+          gate: const AsyncValue.loading(),
+        ),
+        ControlOffer.hidden,
+      );
     });
   });
 }

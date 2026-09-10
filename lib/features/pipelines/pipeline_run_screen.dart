@@ -54,7 +54,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
-    final maxCopies = ref.watch(pipelineMaxCopiesProvider).valueOrNull ?? 50;
+    final maxCopies = ref.watch(pipelineMaxCopiesProvider);
     final report = _report;
 
     // Force is only offered once the server has actually refused: a blind

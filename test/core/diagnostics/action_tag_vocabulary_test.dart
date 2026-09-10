@@ -24,6 +24,9 @@ void main() {
         'fetching the candidates, before the picker sheet exists',
     'queue.plate_clear':
         'the scheduler gate inside the start flow, not a button of its own',
+    'queue.start':
+        'the net under the whole start flow, which two different controls '
+        'begin — `queue.start_next` and `queue.action.start`',
     'project.link_folder': 'the section action, which carries no id of its own',
     'project.attachment_upload': 'likewise',
     'pipeline_run.check':
