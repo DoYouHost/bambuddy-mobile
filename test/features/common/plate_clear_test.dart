@@ -163,7 +163,7 @@ void main() {
     }) async {
       late bool result;
       final container = containerWith([
-        requirePlateClearProvider.overrideWith((_) async => gateOn),
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(gateOn)),
       ]);
       if (serverRefused) {
         recordPlateClearRefusal(
@@ -171,8 +171,6 @@ void main() {
           'Printer not connected',
         );
       }
-      // The future provider has to have settled, or the gate reads as absent.
-      await container.read(requirePlateClearProvider.future);
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,

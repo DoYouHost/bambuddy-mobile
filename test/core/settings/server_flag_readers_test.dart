@@ -13,6 +13,30 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// A **value** picks a number, a symbol or a set of presets. There the server's
 /// own default is a better thing to show than nothing, so it resolves at once.
+/// Answers a fresh [Completer] on every build, so a test can hold the second
+/// read open and look at what the readers report meanwhile.
+class _RefetchingSettings extends ServerSettingsNotifier {
+  final answers = <Completer<Map<String, dynamic>>>[];
+
+  @override
+  Future<Map<String, dynamic>> build() {
+    final next = Completer<Map<String, dynamic>>();
+    answers.add(next);
+    return next.future;
+  }
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _FailingSettings extends ServerSettingsNotifier {
+  @override
+  Future<Map<String, dynamic>> build() async => throw StateError('unreadable');
+
+  @override
+  Future<void> refresh() async {}
+}
+
 class _SlowSettings extends ServerSettingsNotifier {
   _SlowSettings(this._answer);
 
@@ -62,8 +86,64 @@ void main() {
       final container = containerWith();
       answer.complete({'flag': true});
 
-      expect(await container.read(gate.future), isTrue);
+      await container.read(serverSettingsProvider.future);
+
+      expect(container.read(gate).valueOrNull, isTrue);
     });
+
+    test('answers in the same build once the settings are known', () async {
+      // The screen that opens second, when `/settings` is long since in. An
+      // `async` body would still report one loading frame here, and a caller
+      // collapsing that with `.orFalse` would blink the control out — the gate
+      // inventing the "don't know" it exists to prevent.
+      final container = containerWith();
+      answer.complete({'flag': true});
+      await container.read(serverSettingsProvider.future);
+
+      final first = container.read(gate);
+
+      expect(first.isLoading, isFalse);
+      expect(first.valueOrNull, isTrue);
+    });
+
+    test('keeps the answer it has while a fresh read is in flight', () async {
+      // "Change server" and a settings write both re-run the fetch. Dropping
+      // back to "don't know" for its duration would withdraw a control the
+      // user is looking at.
+      final settings = _RefetchingSettings();
+      final container = ProviderContainer(
+        overrides: [serverSettingsProvider.overrideWith(() => settings)],
+      );
+      addTearDown(container.dispose);
+      container.listen(gate, (_, _) {});
+      settings.answers.first.complete({'flag': true});
+      await container.read(serverSettingsProvider.future);
+
+      container.invalidate(serverSettingsProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(settings.answers, hasLength(2), reason: 'the refetch has started');
+      expect(container.read(gate).valueOrNull, isTrue);
+    });
+
+    test(
+      'a read that throws reaches the caller as an error, not as off',
+      () async {
+        // `fetch` degrades network failures itself, so only a real defect gets
+        // here — and it must not look like a server that answered "no".
+        final container = ProviderContainer(
+          overrides: [
+            serverSettingsProvider.overrideWith(_FailingSettings.new),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        expect(container.read(serverSettingsProvider.future), throwsStateError);
+        await pumpEventQueue();
+        expect(container.read(gate).hasError, isTrue);
+        expect(container.read(gate).valueOrNull, isNull);
+      },
+    );
 
     test('a server that says nothing is a real "off", not a pending one', () {
       // `fetch` degrades every failure to an empty map, so the gate always
@@ -71,7 +151,12 @@ void main() {
       final container = containerWith();
       answer.complete(const {});
 
-      expect(container.read(gate.future), completion(isFalse));
+      expect(
+        container
+            .read(serverSettingsProvider.future)
+            .then((_) => container.read(gate).valueOrNull),
+        completion(isFalse),
+      );
     });
   });
 
@@ -95,5 +180,24 @@ void main() {
 
       expect(container.read(value), 7);
     });
+  });
+
+  test('a settings write reaches both shapes at once', () async {
+    // `adopt` takes the map a `PUT /settings/` answered with instead of asking
+    // again, so it is the write path every flag in the app updates through.
+    final container = containerWith();
+    final gate = serverGate<bool>((s) => s['flag'] == true);
+    final value = serverValue<int>((s) => (s['limit'] as num?)?.toInt() ?? 50);
+    answer.complete(const {});
+    await container.read(serverSettingsProvider.future);
+
+    container.read(serverSettingsProvider.notifier).adopt({
+      'flag': true,
+      'limit': 7,
+    });
+    await Future<void>.delayed(Duration.zero);
+
+    expect(container.read(gate).valueOrNull, isTrue);
+    expect(container.read(value), 7);
   });
 }

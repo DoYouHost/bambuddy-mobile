@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_report_client/app_report_client.dart';
@@ -795,16 +797,51 @@ class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
 ///
 /// Use it for a **gate**: a flag that decides whether a control exists at all.
 /// Reading such a flag as `false` while `/settings` is still in flight puts the
-/// user in front of a screen missing a button the server does offer — and the
-/// fetch is lazy, so that window opens the first time a screen needs the flag,
-/// which is exactly when the user is looking at it.
+/// user in front of a screen missing a button the server does offer.
 ///
-/// The caller gets an `AsyncValue` and has to say what "not yet" looks like.
-/// Collapsing it with `.orFalse` is the bug this exists to stop.
-FutureProvider<T> serverGate<T>(T Function(Map<String, dynamic>) read) =>
-    FutureProvider<T>(
-      (ref) async => read(await ref.watch(serverSettingsProvider.future)),
+/// Derived synchronously, and that is the point: a `FutureProvider` reports a
+/// loading frame for every future it is handed, including one that is already
+/// complete — so a gate built on `async` invented the "don't know" it exists to
+/// prevent, once per screen, after the answer had long since arrived. Here the
+/// gate is whatever the settings are right now, so a caller collapsing it with
+/// `.orFalse` blinks nothing out. It also keeps the last answer up while a
+/// refetch is in flight, and hands on an error rather than reading as "off".
+///
+/// A caller outside a build wants [settledGate], not this.
+Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
+    Provider<AsyncValue<T>>(
+      (ref) => ref.watch(serverSettingsProvider).whenData(read),
     );
+
+/// The settled answer of [gate], for a caller running outside a build.
+///
+/// A widget re-reads a gate when the settings land, because it rebuilds. Code
+/// that runs once — a queue item deciding whether to ask about the plate before
+/// it starts — gets no second look, so it waits for the answer here instead.
+///
+/// Waits on the gate rather than on `/settings` behind it, so overriding the
+/// gate is enough to decide what this answers.
+Future<T> settledGate<T>(
+  ProviderContainer providers,
+  ProviderListenable<AsyncValue<T>> gate,
+) {
+  final settled = Completer<T>();
+  void offer(AsyncValue<T> answer) {
+    if (settled.isCompleted) return;
+    if (answer.hasError) {
+      settled.completeError(answer.error!, answer.stackTrace);
+    } else if (answer.hasValue) {
+      settled.complete(answer.requireValue);
+    }
+  }
+
+  final subscription = providers.listen<AsyncValue<T>>(
+    gate,
+    (_, answer) => offer(answer),
+    fireImmediately: true,
+  );
+  return settled.future.whenComplete(subscription.close);
+}
 
 /// One value derived from the server's settings, resolved immediately against
 /// the fallback the server itself would have used.

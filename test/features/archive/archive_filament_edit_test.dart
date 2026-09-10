@@ -493,7 +493,7 @@ void main() {
         archiveListOverride([archive]),
         no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
         sharedPreferencesProvider.overrideWithValue(prefs),
-        slicerEnabledProvider.overrideWith((ref) async => false),
+        slicerEnabledProvider.overrideWithValue(AsyncValue.data(false)),
         noServerProfileOverride,
       ],
     );

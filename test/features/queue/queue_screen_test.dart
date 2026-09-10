@@ -130,7 +130,7 @@ void main() {
           printerCommandsRepositoryProvider.overrideWithValue(commands),
           // The scheduler gates on the plate, and this printer's is dirty —
           // the branch that sends a request before the start does.
-          requirePlateClearProvider.overrideWith((ref) async => true),
+          requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
           printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
           // The mapping sheet with nothing to map: one confirm button.
           filamentRequirementsProvider.overrideWith(

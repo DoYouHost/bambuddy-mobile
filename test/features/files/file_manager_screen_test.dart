@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -63,7 +64,7 @@ void main() {
         ),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
-        slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
+        slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
         canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
       ],
     );
@@ -125,7 +126,7 @@ void main() {
             (ref) async => const LibraryStats(),
           ),
           libraryTagsProvider.overrideWith((ref) async => const []),
-          slicerEnabledProvider.overrideWith((ref) async => true),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
           canRunPipelinesProvider.overrideWith((ref) => gate.future),
         ],
       );

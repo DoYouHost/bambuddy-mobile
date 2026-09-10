@@ -816,7 +816,7 @@ Future<bool> _awaitingPlateClear(
   ProviderContainer providers,
   int printerId,
 ) async {
-  final gateEnabled = await providers.read(requirePlateClearProvider.future);
+  final gateEnabled = await settledGate(providers, requirePlateClearProvider);
   if (!gateEnabled) return false;
   final cached = providers.read(printerStatusesProvider)[printerId];
   if (cached != null) {

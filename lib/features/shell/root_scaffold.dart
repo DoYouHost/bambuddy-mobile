@@ -39,10 +39,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     // archive or the queue form spends its opening frames unable to say whether
     // a control exists. Warmed here, the answer is in before any tab is reached.
     //
-    // `read`, not `watch`: the provider is not `autoDispose`, so one read keeps
-    // it alive for the session, and watching would rebuild the whole tab shell
-    // every time a settings write lands.
-    ref.read(serverSettingsProvider);
+    // A subscription rather than a `read`: "change server" rebuilds the client
+    // the settings are fetched through, and an unlistened provider is only
+    // marked stale by that — it refetches on the next read, which is the cold
+    // first screen all over again. A listener makes the rebuild eager. It is
+    // `listenManual` rather than `watch` so the whole tab shell does not
+    // rebuild every time a settings write lands.
+    ref.listenManual(serverSettingsProvider, (_, _) {});
   }
 
   @override
