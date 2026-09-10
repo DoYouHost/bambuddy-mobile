@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/no_3mf_warning.dart';
+import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 
@@ -119,9 +120,7 @@ List<Archive> applyArchiveFilters(
       if (!matches) return false;
     }
     if (filters.favoritesOnly && !a.isFavorite) return false;
-    if (filters.hideFailed && (a.status == 'failed' || a.status == 'aborted')) {
-      return false;
-    }
+    if (filters.hideFailed && printRunIsFailure(a.status)) return false;
     // Keep the original of each duplicate group (sequence 0), drop the copies.
     if (filters.hideDuplicates &&
         a.duplicateCount > 0 &&

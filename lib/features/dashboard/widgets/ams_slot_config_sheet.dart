@@ -11,6 +11,7 @@ import '../../../core/ams/printer_model_match.dart';
 import '../../../core/ams/slot_configuration.dart';
 import '../../../core/api/action_outcome.dart';
 import '../../../core/diagnostics/log_tag_material.dart';
+import '../../../core/format/filament_colour.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
 import '../../../core/models/k_profile.dart';

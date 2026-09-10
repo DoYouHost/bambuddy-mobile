@@ -147,6 +147,44 @@ through a channel that swallows a Dart exception and reports success, so a
 recorder that throws leaves a service that says "monitoring" and monitors
 nothing.
 
+### The service's lifecycle is one lane, written from two isolates
+
+`LogSource` names the **subsystem, not the writer**, so everything about the
+foreground service files under `fgs` — including the three moments only the UI
+can report, because they happen before the service exists or after it is gone.
+The verbs say who acted:
+
+| event | written by | means |
+|---|---|---|
+| `ui_start` | UI | the app went to the background and asked for the service |
+| `ui_stop` | UI | a running service was stopped because the app resumed |
+| `ui_stop_survivor` | UI | a service that outlived the app it was started from was found running and stopped |
+| `ui_stop_disabled` | UI | a running service was stopped because the user switched background monitoring off |
+| `start` | service | the service's own start-up ran |
+| `no_profile`, `start_failed`, `frame_dropped`, `attach`, `notification_dismissed`, `destroy` | service | see `print_monitor_task_handler.dart` |
+
+`started` on `ui_start` is **not** a success flag. It mirrors
+`BackgroundMonitor.start`: `true` = this pause actually started the service,
+`false` = one was **already running**, which is the normal state after the user
+has swiped the app away once and means the service never re-ran its start-up
+and so knows nothing the app has decided since. A platform call that threw
+would produce no record at all, not `started: false`.
+
+The three `ui_stop*` verbs are written only when a service was really stopped,
+never for having asked: with background monitoring switched off the app asks on
+every resume, and recording the asking filled the lane with stops for a service
+that had never run. That the app was paused or resumed is already in the log as
+`lifecycle` in the `app` lane, so nothing is lost by staying quiet here.
+
+`ui_start` without a following `start` is the report worth opening: the UI asked
+and the service never came up.
+
+**Renamed on 2026-09-10.** These three used to file as `app` / `bg_service`
+with the verb in an `action` field (`start`, `stop`, `stop_survivor`), which put
+half the service's lifecycle in the generic lane under a second grammar. A bug
+report filed before that date carries the old spelling and no amount of grepping
+the new one will find it — search `bg_service` for anything older.
+
 ## 5. Two traps in the navigation lane
 
 Both are covered by tests; both were live bugs first.

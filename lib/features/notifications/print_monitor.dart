@@ -14,11 +14,12 @@ import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/printers/offline_debounce.dart';
+import '../../core/time/timer_factory.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so
 /// tests can control time instead of waiting out a window.
-export '../../core/printers/offline_debounce.dart' show TimerFactory;
+export '../../core/time/timer_factory.dart' show TimerFactory;
 
 /// Room reserved per event type. The offsets added to a base are server row ids
 /// (a printer, a maintenance task), which grow without bound and are never

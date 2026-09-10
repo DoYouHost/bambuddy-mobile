@@ -1,12 +1,20 @@
 import 'json_utils.dart';
+import 'print_run.dart';
 
-/// Lightweight archive entry from `GET /archives/slim` — one row per print event,
-/// without heavy fields (thumbnails, gcode, etc.). Used for client-side rich
-/// statistics (heatmaps, records, color distribution, consumption over time,
-/// histograms) not provided by `/archives/stats`.
+/// One print run as `GET /archives/slim` describes it: the row of
+/// `print_log_entries` the log screen also reads, minus everything the
+/// statistics do not aggregate and plus the slicer's estimate joined from the
+/// archive (`archives.py::list_archives_slim`). It feeds the widgets
+/// `/archives/stats` does not compute — heatmap, records, colour
+/// distribution, consumption over time, histograms.
 ///
-/// Defensive parsing: all fields except [status]/[createdAt] may be null.
-class ArchiveSlim {
+/// The same run reaches the log screen as [PrintLogEntry]; the rules both
+/// shapes answer with live in [PrintRun].
+///
+/// Defensive parsing: all fields except [status]/[createdAt] may be null, and
+/// each one is coerced rather than cast — the payload is assembled per row
+/// from a query, so a single odd value must not take the whole listing down.
+class ArchiveSlim with PrintRun {
   const ArchiveSlim({
     required this.status,
     required this.createdAt,
@@ -26,17 +34,17 @@ class ArchiveSlim {
   });
 
   factory ArchiveSlim.fromJson(Map<String, dynamic> json) => ArchiveSlim(
-    status: (json['status'] as String?) ?? 'unknown',
+    status: toStringOrNull(json['status']) ?? 'unknown',
     createdAt:
         dateTimeFromJson(json['created_at']) ??
         DateTime.fromMillisecondsSinceEpoch(0),
     printerId: toIntOrNull(json['printer_id']),
-    printName: json['print_name'] as String?,
+    printName: toStringOrNull(json['print_name']),
     printTimeSeconds: toIntOrNull(json['print_time_seconds']),
     actualTimeSeconds: toIntOrNull(json['actual_time_seconds']),
     filamentUsedGrams: toDoubleOrNull(json['filament_used_grams']),
-    filamentType: json['filament_type'] as String?,
-    filamentColor: json['filament_color'] as String?,
+    filamentType: toStringOrNull(json['filament_type']),
+    filamentColor: toStringOrNull(json['filament_color']),
     startedAt: dateTimeFromJson(json['started_at']),
     completedAt: dateTimeFromJson(json['completed_at']),
     cost: toDoubleOrNull(json['cost']),
@@ -45,7 +53,9 @@ class ArchiveSlim {
     quantity: toIntOrNull(json['quantity']) ?? 1,
   );
 
+  @override
   final String status;
+  @override
   final DateTime createdAt;
   final int? printerId;
   final String? printName;
@@ -60,8 +70,10 @@ class ArchiveSlim {
   final String? filamentType;
 
   /// Filament color — `#RRGGBB`, sometimes multi-color: `#AABBCC,#112233`.
+  @override
   final String? filamentColor;
 
+  @override
   final DateTime? startedAt;
   final DateTime? completedAt;
   final double? cost;
@@ -76,20 +88,13 @@ class ArchiveSlim {
 
   final int quantity;
 
-  /// Print success = status "completed" (others are failures/other).
-  bool get isSuccess => status.toLowerCase() == 'completed';
+  /// The measured duration under the name [PrintRun] gives it — the same
+  /// column `GET /print-log/` calls `duration_seconds`.
+  @override
+  int? get runSeconds => actualTimeSeconds;
 
-  /// Time for stats: prefer actual, fall back to estimated.
+  /// Time for stats: prefer what the run measured, fall back to what the
+  /// slicer estimated. Only this shape can offer the fallback — the estimate
+  /// lives on the archive, and `/print-log/` does not join it.
   int? get effectiveSeconds => actualTimeSeconds ?? printTimeSeconds;
-
-  /// Dominant color (first segment for multi-color filament), normalized to
-  /// `#RRGGBB` uppercase. Null if missing or invalid.
-  String? get primaryColor {
-    final raw = filamentColor?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    final first = raw.split(',').first.trim();
-    final hex = first.startsWith('#') ? first.substring(1) : first;
-    if (hex.length < 6) return null;
-    return '#${hex.substring(0, 6).toUpperCase()}';
-  }
 }

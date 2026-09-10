@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/auth/token_refresher.dart';
+import 'package:bambuddy_mobile/core/time/timer_factory.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -8,7 +9,7 @@ void main() {
   final t0 = DateTime.utc(2026, 1, 1, 12);
 
   late List<FakeTimer> timers;
-  RefreshTimerFactory factory() => (d, cb) {
+  TimerFactory factory() => (d, cb) {
     final t = FakeTimer(d, cb);
     timers.add(t);
     return t;

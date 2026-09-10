@@ -1,6 +1,7 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../format/filament_colour.dart';
 import 'json_utils.dart';
 
 part 'archive.g.dart';
@@ -201,13 +202,6 @@ class Archive {
   }
 
   /// Filament colors as a list of hex tokens (a print can use several).
-  /// Empty when no color is recorded. Values are kept verbatim (may include a
-  /// leading `#`); callers normalize as needed.
-  List<String> get filamentColors =>
-      filamentColor
-          ?.split(',')
-          .map((c) => c.trim())
-          .where((c) => c.isNotEmpty)
-          .toList() ??
-      const [];
+  /// See [filamentColourTokens] for why they stay verbatim.
+  List<String> get filamentColors => filamentColourTokens(filamentColor);
 }

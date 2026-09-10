@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
+import 'package:bambuddy_mobile/core/models/print_run.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A fully populated run — every field set to something distinguishable, so a
@@ -94,7 +95,7 @@ void main() {
     test('`aborted` from the archive side counts as a failure', () {
       // It is outside the PATCH vocabulary but inside what the server's failure
       // analysis groups, which is why the two lists are not one.
-      expect(printLogStatusIsFailure('aborted'), isTrue);
+      expect(printRunIsFailure('aborted'), isTrue);
       expect(printLogStatuses.contains('aborted'), isFalse);
     });
   });

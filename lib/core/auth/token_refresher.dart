@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:clock/clock.dart' as ambient;
 
 import '../diagnostics/auth_probe.dart';
+import '../time/timer_factory.dart';
 import 'auth_service.dart';
 import 'credentials_store.dart';
 import 'jwt.dart';
-
-/// Injectable so tests can drive the schedule without waiting clock hours.
-typedef RefreshTimerFactory = Timer Function(Duration, void Function());
 
 /// Re-mints a token just *before* it expires, rather than waiting for a 401 —
 /// which kills the request or WS handshake that hit it and shows as a brief
@@ -30,7 +28,7 @@ class ProactiveTokenRefresher {
     this.fallbackDelay = const Duration(hours: 2),
     Future<bool> Function()? canRetry,
     DateTime Function()? clock,
-    RefreshTimerFactory? timerFactory,
+    TimerFactory? timerFactory,
   }) : // An initializing formal would need a private parameter name, so the
        // lint cannot be satisfied while the fields stay private.
        // ignore: prefer_initializing_formals
@@ -65,7 +63,7 @@ class ProactiveTokenRefresher {
   final Future<bool> Function()? _canRetry;
 
   final DateTime Function() _now;
-  final RefreshTimerFactory _timerFactory;
+  final TimerFactory _timerFactory;
 
   Timer? _timer;
   bool _running = false;

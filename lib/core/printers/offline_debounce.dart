@@ -1,8 +1,6 @@
 import 'dart:async';
 
-/// Timer factory — injectable so tests can control time instead of waiting out
-/// the window.
-typedef TimerFactory = Timer Function(Duration, void Function());
+import '../time/timer_factory.dart';
 
 /// The rule the printer card and the offline alert both follow: a
 /// `connected:false` frame is not an offline printer yet.
