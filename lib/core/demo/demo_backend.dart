@@ -3667,11 +3667,11 @@ class DemoBackend {
   /// the demo used the run's for both. Same rule as [_printLogReasons]: the
   /// demo decides with the constant the screens decide with, or it drifts into
   /// a state no screen can show.
-  static bool _runFinished(Object? status) =>
-      PipelineRunStatus.parse(status as String?).isTerminal;
+  static bool _runFinished(String? status) =>
+      PipelineRunStatus.parse(status).isTerminal;
 
-  static bool _jobFinished(Object? status) =>
-      PipelineJobStatus.parse(status as String?).isTerminal;
+  static bool _jobFinished(String? status) =>
+      PipelineJobStatus.parse(status).isTerminal;
 
   /// `/pipeline-runs` — the dashboard's list with its four filters, one run,
   /// cancel, retry-failed and the history purge.

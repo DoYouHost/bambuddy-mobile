@@ -604,7 +604,7 @@ class PrinterStatus {
   /// stage of its own has laid that layer down is a second question, and the
   /// caller that asks it also has to record the frame it turned down.
   bool get firstLayerInWindow =>
-      firstLayerPassed && layerNum! <= firstLayerLayerCeiling;
+      firstLayerPassed && (layerNum ?? 0) <= firstLayerLayerCeiling;
 
   /// Upper bound of [firstLayerInWindow], matching bambuddy's `[2, 10]`.
   static const firstLayerLayerCeiling = 10;
