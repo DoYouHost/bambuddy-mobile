@@ -21,9 +21,44 @@ void main() {
     });
 
     test('login embeds a user the app can decode', () async {
-      // The login body carries `user`; AuthService reads it to avoid a second
-      // round trip, so a change in its shape breaks sign-in before any screen
-      // is reached.
+      // AuthService reads `user` straight out of the login answer to avoid a
+      // second round trip, so a change in its shape breaks sign-in before any
+      // screen is reached.
+      final body = await rawLogin();
+
+      expect(
+        body['user'],
+        isA<Map<String, dynamic>>(),
+        reason:
+            'login no longer embeds `user`; AuthService would sign in '
+            'with no account details and every screen keyed on them would '
+            'render empty',
+      );
+
+      final user = CurrentUser.fromJson(body['user'] as Map<String, dynamic>);
+      expect(user.username, isNotEmpty);
+    });
+
+    test(
+      'a completed login says so twice, and the app checks the right one',
+      () async {
+        // AuthService tests `requires_2fa` BEFORE `access_token`, because a
+        // server asking for a second factor also answers 200 — with a token-shaped
+        // field that is not a session. Both halves have to keep arriving or that
+        // ordering protects nothing.
+        final body = await rawLogin();
+
+        expect(
+          body['requires_2fa'],
+          isFalse,
+          reason: 'this account was seeded without a second factor',
+        );
+        expect(body['access_token'], isA<String>());
+      },
+    );
+
+    test('/auth/me decodes into CurrentUser', () async {
+      // The same account, fetched the way the app refreshes it mid-session.
       final res = await dio.get<Map<String, dynamic>>(Endpoints.authMe);
 
       final body = res.data;

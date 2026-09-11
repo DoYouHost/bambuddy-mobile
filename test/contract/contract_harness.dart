@@ -38,6 +38,17 @@ String? get _password => Platform.environment['BAMBUDDY_CONTRACT_PASS'];
 /// The server under test, without a trailing slash.
 String get contractBaseUrl => _baseUrl!.replaceAll(RegExp(r'/+$'), '');
 
+/// The raw body of `POST /auth/login`, for the tests that are about that
+/// answer's shape rather than about being signed in.
+Future<Map<String, dynamic>> rawLogin() async {
+  final dio = createBareDio()..options.baseUrl = contractBaseUrl;
+  final res = await dio.post<Map<String, dynamic>>(
+    Endpoints.authLogin,
+    data: {'username': _username, 'password': _password},
+  );
+  return res.data ?? const {};
+}
+
 /// A Dio carrying a freshly minted JWT.
 ///
 /// Deliberately built on [createBareDio] — the same timeouts and the same

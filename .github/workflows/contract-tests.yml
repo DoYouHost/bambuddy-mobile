@@ -132,6 +132,13 @@ jobs:
           BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
           BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
           BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+          # NOT decoration, and not cosmetic either: the runner is UTC, where a
+          # naive timestamp read as local and the same one read as UTC are the
+          # same instant — so the timestamp contract would pass no matter which
+          # the app did. Measured: with TZ unset the parser swapped for a naive
+          # DateTime.parse still went green; at this offset it fails by two
+          # hours. Any zone but UTC will do; this one matches the server's.
+          TZ: Europe/Warsaw
         run: flutter test test/contract --reporter expanded
 
       - name: Server log on failure
