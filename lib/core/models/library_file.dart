@@ -56,7 +56,6 @@ class LibraryFile {
   /// with token — this field only checks "does it exist".
   final String? thumbnailPath;
 
-  /// Print count for this file.
   final int printCount;
 
   /// Duplicate count (same hash elsewhere in library).
@@ -106,7 +105,6 @@ class LibraryFile {
   /// [variantGroupId] being set.
   bool get hasVariants => variantCount > 1;
 
-  /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
 
   /// Tag names in catalog order, for the one-line summary under an action row.

@@ -75,7 +75,6 @@ class Archive {
   @JsonKey(fromJson: toIntOrNull)
   final int? plateId;
 
-  /// Thumbnail path for the print.
   final String? thumbnailPath;
 
   /// Server-side path of the recorded timelapse, or null when the print has
@@ -83,7 +82,6 @@ class Archive {
   /// `Endpoints.archiveTimelapse`, never from this path.
   final String? timelapsePath;
 
-  /// Whether a timelapse video exists for this print.
   bool get hasTimelapse => (timelapsePath ?? '').isNotEmpty;
 
   /// Filenames of the photos attached to the print — the shot the server
@@ -93,7 +91,6 @@ class Archive {
   @JsonKey(fromJson: toStringList)
   final List<String> photos;
 
-  /// Whether the print has at least one photo.
   bool get hasPhotos => photos.isNotEmpty;
 
   /// Print time in seconds.
@@ -154,7 +151,6 @@ class Archive {
   /// Link to model on MakerWorld, if imported from there.
   final String? makerworldUrl;
 
-  /// Total layer count for the print.
   final int? totalLayers;
 
   /// Layer height in mm.
@@ -166,7 +162,6 @@ class Archive {
   /// Printer model this file was sliced for (e.g. "X2D").
   final String? slicedForModel;
 
-  /// Print quantity.
   final int? quantity;
 
   /// File size in bytes (for size sorting).
@@ -181,7 +176,6 @@ class Archive {
   @JsonKey(defaultValue: 0)
   final int duplicateSequence;
 
-  /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
 
   /// Copy with a flipped/overridden favorite flag — for optimistic UI updates

@@ -280,6 +280,22 @@ PreferredSizeWidget dashAppBar(
   );
 }
 
+/// The confirming action of a form's [dashAppBar] — "Save", "Create".
+///
+/// The green ink is the app theme's [TextButtonThemeData] default, so nothing
+/// here restates it. What the call sites did share is the [busy] latch: while a
+/// submit is in flight the button goes dead, which is the only thing stopping a
+/// second tap from posting the form twice.
+Widget dashSaveAction({
+  required String id,
+  required String label,
+  required bool busy,
+  required VoidCallback onPressed,
+}) => TextButton(
+  onPressed: busy ? null : onPressed,
+  child: Text(label),
+).tagged(id);
+
 /// Small rounded status pill (e.g. "3 w kolejce", "1 PILNE"). Tinted with an
 /// accent; used in screen headers.
 class DashPill extends StatelessWidget {

@@ -71,21 +71,21 @@ class SectionCard extends StatelessWidget {
 }
 
 /// Green "ghost" action button used in a [SectionCard] header (link folder,
-/// upload attachment, add BOM item).
-Widget _dashAction({
-  required BuildContext context,
+/// upload attachment, add BOM item, edit the notes).
+///
+/// [id] comes from the call site: the three header actions of this file share
+/// one name in the diagnostic log and the notes action has its own, and both
+/// are wire values that recorded logs are already correlated against.
+Widget sectionCardAction({
+  required String id,
   required IconData icon,
   required String label,
   required VoidCallback onPressed,
-}) {
-  final t = DashTokens.of(context);
-  return TextButton.icon(
-    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-    icon: Icon(icon, size: 18),
-    label: Text(label),
-    onPressed: onPressed,
-  ).tagged('project.section_action');
-}
+}) => TextButton.icon(
+  icon: Icon(icon, size: 18),
+  label: Text(label),
+  onPressed: onPressed,
+).tagged(id);
 
 Widget _emptyHint(BuildContext context, String text) {
   final t = DashTokens.of(context);
@@ -111,8 +111,8 @@ class ProjectFilesSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.folder_open_outlined,
       title: l10n.projectTabFiles,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.create_new_folder_outlined,
         label: l10n.projectLinkFolder,
         onPressed: () => _linkFolder(context, ref),
@@ -352,8 +352,8 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.attach_file,
       title: l10n.projectTabAttachments,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.upload_file,
         label: l10n.projectAttachmentUpload,
         onPressed: () => _upload(context, ref),
@@ -487,8 +487,8 @@ class ProjectBomSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.shopping_cart_outlined,
       title: l10n.projectTabBom,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.add,
         label: l10n.bomAdd,
         onPressed: () => _editItem(context, ref, null),

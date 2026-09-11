@@ -80,11 +80,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           context,
           title: widget.isEdit ? l10n.groupsEditTitle : l10n.groupsCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('group_form.save'),
+            dashSaveAction(
+              id: 'group_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

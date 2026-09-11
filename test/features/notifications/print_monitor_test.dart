@@ -1399,7 +1399,7 @@ void main() {
       expect(skips.single['pct'], 60);
     });
 
-    test('nowy wydruk uzbraja zatrzaski ponownie', () async {
+    test('a new print arms the latches again', () async {
       final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
@@ -1417,7 +1417,7 @@ void main() {
       expect(skips, hasLength(2));
     });
 
-    test('nazwa pliku ani drukarki nie trafia do logu', () async {
+    test('neither the file name nor the printer name reaches the log', () async {
       final fake = RecordingNotifications();
       final m = logged(fake, hmsDescribe: describeAll);
       final jsonl = await raw(() {

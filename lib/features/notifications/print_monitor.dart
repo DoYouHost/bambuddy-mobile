@@ -261,6 +261,30 @@ class PrintMonitor {
   /// out of memory.
   DateTime? _lastFrameAt;
 
+  /// Posts [alert], or records the one line that says why it was not posted.
+  ///
+  /// One decision, not two: an alert that never arrives has to leave a trace,
+  /// or a report cannot tell a switched-off preference from a lost event. Ten
+  /// call sites wrote the pair by hand — ten chances to write only the half
+  /// that alerts. [fields] rides on the record only.
+  void _alertOrRecordOff(
+    int id,
+    NotifEvent event,
+    void Function() alert, {
+    Map<String, Object?> fields = const {},
+  }) {
+    if (_on(event)) {
+      alert();
+      return;
+    }
+    NotifProbe.suppressed(
+      _offReason,
+      printerId: id,
+      event: event,
+      fields: fields,
+    );
+  }
+
   bool _on(NotifEvent e) => _prefs.isOn(e);
 
   /// Which switch silenced an alert. `isOn` collapses the per-type checkbox and
@@ -331,15 +355,11 @@ class PrintMonitor {
   /// Only correct source for this alert — see comment at step 5) in [_processPrinter].
   /// Printer name from frame (status may not be known), with fallback to list title.
   void onPlateNotEmpty(int printerId, String? printerName) {
-    if (!_on(NotifEvent.plateNotEmpty)) {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: printerId,
-        event: NotifEvent.plateNotEmpty,
-      );
-      return;
-    }
-    _alertPlate(printerId, printerName);
+    _alertOrRecordOff(
+      printerId,
+      NotifEvent.plateNotEmpty,
+      () => _alertPlate(printerId, printerName),
+    );
   }
 
   /// Baseline state from first observed frame — record "what's already here" so
@@ -366,13 +386,10 @@ class PrintMonitor {
     if (!status.jobUnderway) {
       memo.previousJob = _jobFrame(status);
     } else {
-      // "First layer DONE" = printer is already on layer ≥ 2 (parity with
-      // bambuddy: `on_first_layer_complete` fires at layer_num ≥ 2). If we prime
-      // after completion, just record it — no alert. Deliberately without
-      // [_firstLayerDone]'s upper bound: that window is there to decide whether
-      // an alert is *due*, while a baseline asks whether it is *spent*, and a
-      // counter in the hundreds is the plainest yes there is.
-      if ((status.layerNum ?? 0) >= 2) memo.once(PrintOnce.firstLayer).claim();
+      // If we prime after the first layer, just record it — no alert. The
+      // baseline reading, deliberately without the window's ceiling; the two
+      // are one pair in [PrinterStatus.firstLayerPassed].
+      if (status.firstLayerPassed) memo.once(PrintOnce.firstLayer).claim();
       if (status.progress != null) {
         final pct = status.progress!.round();
         for (final m in _milestones) {
@@ -433,15 +450,11 @@ class PrintMonitor {
       // This frame's job numbers are the previous print's until the printer
       // says otherwise — see [_describesThisPrint].
       memo.previousJob = _jobFrame(status);
-      if (_on(NotifEvent.printStarted)) {
-        _alertStarted(id, status);
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.printStarted,
-        );
-      }
+      _alertOrRecordOff(
+        id,
+        NotifEvent.printStarted,
+        () => _alertStarted(id, status),
+      );
     }
 
     // 2) Print end (edge printing → not-printing): success / error.
@@ -451,28 +464,20 @@ class PrintMonitor {
         case 'FINISH':
         case 'FINISHED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFinished)) {
-            _alertFinished(id, status);
-          } else {
-            NotifProbe.suppressed(
-              _offReason,
-              printerId: id,
-              event: NotifEvent.printFinished,
-            );
-          }
+          _alertOrRecordOff(
+            id,
+            NotifEvent.printFinished,
+            () => _alertFinished(id, status),
+          );
           // Maintenance reminder independent of print finish prefs.
           _onPrintEnded?.call(id);
         case 'FAILED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFailed)) {
-            _alertFailed(id, status);
-          } else {
-            NotifProbe.suppressed(
-              _offReason,
-              printerId: id,
-              event: NotifEvent.printFailed,
-            );
-          }
+          _alertOrRecordOff(
+            id,
+            NotifEvent.printFailed,
+            () => _alertFailed(id, status),
+          );
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
       }
@@ -516,15 +521,11 @@ class PrintMonitor {
         describesThisPrint &&
         _firstLayerDone(id, status)) {
       memo.once(PrintOnce.firstLayer).claim();
-      if (_on(NotifEvent.firstLayer)) {
-        _alertFirstLayer(id, status);
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.firstLayer,
-        );
-      }
+      _alertOrRecordOff(
+        id,
+        NotifEvent.firstLayer,
+        () => _alertFirstLayer(id, status),
+      );
     }
 
     // 4) Progress milestones (once per print). Same latch-on-the-edge shape as
@@ -534,21 +535,16 @@ class PrintMonitor {
         _recordPrepProgress(id, status, memo);
       } else {
         final pct = status.progress!.round();
-        final on = _on(NotifEvent.milestones);
         for (final m in _milestones) {
           // `add` is false when the threshold was already crossed — the same guard
           // as the old `!contains(m)`, with the latch now on the edge.
           if (pct >= m && memo.milestonesSent.add(m)) {
-            if (on) {
-              _alertMilestone(id, status, m);
-            } else {
-              NotifProbe.suppressed(
-                _offReason,
-                printerId: id,
-                event: NotifEvent.milestones,
-                fields: {'pct': m},
-              );
-            }
+            _alertOrRecordOff(
+              id,
+              NotifEvent.milestones,
+              () => _alertMilestone(id, status, m),
+              fields: {'pct': m},
+            );
           }
         }
       }
@@ -700,15 +696,11 @@ class PrintMonitor {
     memo.offline.observe(
       status.connected,
       onSustained: () {
-        if (_on(NotifEvent.printerOffline)) {
-          _alertOffline(id, status);
-        } else {
-          NotifProbe.suppressed(
-            _offReason,
-            printerId: id,
-            event: NotifEvent.printerOffline,
-          );
-        }
+        _alertOrRecordOff(
+          id,
+          NotifEvent.printerOffline,
+          () => _alertOffline(id, status),
+        );
       },
       // The alert the wait was holding back never happened, which answers both
       // "the offline alert came fifteen seconds late" and "it never came at
@@ -844,15 +836,11 @@ class PrintMonitor {
       }
     }
     if (!triggered) return;
-    if (_on(NotifEvent.lowFilament)) {
-      _alertLowFilament(id, status, triggeredRemain ?? threshold);
-    } else {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: id,
-        event: NotifEvent.lowFilament,
-      );
-    }
+    _alertOrRecordOff(
+      id,
+      NotifEvent.lowFilament,
+      () => _alertLowFilament(id, status, triggeredRemain ?? threshold),
+    );
   }
 
   void _processHumidity(int id, PrinterStatus status, _PrinterMemo memo) {
@@ -901,16 +889,16 @@ class PrintMonitor {
         memo.humidAnnounced.remove(key);
       }
     }
-    if (value == null) return;
-    if (_on(NotifEvent.amsHumidity)) {
-      _alertHumidity(id, status, value, isHt ?? false);
-    } else {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: id,
-        event: NotifEvent.amsHumidity,
-      );
-    }
+    // Read out of the mutable locals: a closure cannot keep the promotion the
+    // null check just made.
+    final worst = value;
+    final worstIsHt = isHt ?? false;
+    if (worst == null) return;
+    _alertOrRecordOff(
+      id,
+      NotifEvent.amsHumidity,
+      () => _alertHumidity(id, status, worst, worstIsHt),
+    );
   }
 
   void _processBedCooled(int id, PrinterStatus status, _PrinterMemo memo) {
@@ -919,15 +907,11 @@ class PrintMonitor {
     if (bed == null) return;
     if (bed < _prefs.bedCooledTemp) {
       memo.awaitingBedCool = false;
-      if (_on(NotifEvent.bedCooled)) {
-        _alertBedCooled(id, status, bed.round());
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.bedCooled,
-        );
-      }
+      _alertOrRecordOff(
+        id,
+        NotifEvent.bedCooled,
+        () => _alertBedCooled(id, status, bed.round()),
+      );
     }
   }
 

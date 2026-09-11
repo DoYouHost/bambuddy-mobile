@@ -374,9 +374,6 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                 child: logTag(
                   'makerworld.toggle_plates',
                   TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: t.accentGreenInk,
-                    ),
                     onPressed: () => setState(() => _expanded = !_expanded),
                     icon: Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
@@ -431,10 +428,17 @@ class _PlateRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (imported)
+            // A state, not an action, so the button is permanently disabled —
+            // and the ink has to be handed over as the *disabled* colour. A
+            // plain `foregroundColor` resolves to null in that state and the
+            // label falls through to Material's grey, which is what this row
+            // actually showed.
             TextButton.icon(
               onPressed: null,
               style: TextButton.styleFrom(
-                foregroundColor: t.accentGreenInk.withValues(alpha: 0.6),
+                disabledForegroundColor: t.accentGreenInk.withValues(
+                  alpha: 0.6,
+                ),
               ),
               icon: const Icon(Icons.check_circle, size: 18),
               label: Text(l10n.mwInLibrary),

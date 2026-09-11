@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_run.dart';
@@ -108,9 +109,9 @@ List<Archive> applyArchiveFilters(
       return false;
     }
     // Material is stored as a comma+space list for multi-material prints.
-    if (filters.material != null) {
-      final types = a.filamentType?.split(', ') ?? const [];
-      if (!types.contains(filters.material)) return false;
+    if (filters.material != null &&
+        !filamentTypeTokens(a.filamentType).contains(filters.material)) {
+      return false;
     }
     if (filters.colors.isNotEmpty) {
       final archiveColors = a.filamentColors;

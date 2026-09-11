@@ -45,6 +45,24 @@ void main() {
     });
   });
 
+  group('filamentTypeTokens', () {
+    test('a multi-material list splits however the server spelled it', () {
+      expect(filamentTypeTokens('PLA, PETG'), ['PLA', 'PETG']);
+      expect(filamentTypeTokens('PLA,PETG'), ['PLA', 'PETG']);
+      expect(filamentTypeTokens('PLA, PETG '), ['PLA', 'PETG']);
+    });
+
+    test('a single material is one token', () {
+      expect(filamentTypeTokens('PETG'), ['PETG']);
+    });
+
+    test('nothing recorded is an empty list, not a token', () {
+      expect(filamentTypeTokens(null), isEmpty);
+      expect(filamentTypeTokens(''), isEmpty);
+      expect(filamentTypeTokens(' , '), isEmpty);
+    });
+  });
+
   group('primaryFilamentColour', () {
     test('the first token stands for the print, normalized', () {
       expect(primaryFilamentColour('#aabbcc,#112233'), '#AABBCC');

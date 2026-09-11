@@ -53,9 +53,7 @@ void main() {
   Future<void> pumpSetup(WidgetTester tester) async {
     // The setup card is taller than the default 800×600 test surface once the
     // auth section unfolds, and an off-screen button cannot be tapped.
-    tester.view.physicalSize = const Size(1000, 2400);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    usePhoneWindow(tester, dp: 2400);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,

@@ -634,7 +634,6 @@ class _PrinterFileManagerScreenState
           'printer_files.select_all',
           TextButton(
             onPressed: _toggleSelectAll,
-            style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
             child: Text(allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll),
           ),
         ),
@@ -874,9 +873,6 @@ class _PrinterFileManagerScreenState
                 'printer_files.download',
                 TextButton.icon(
                   onPressed: _download,
-                  style: TextButton.styleFrom(
-                    foregroundColor: t.accentGreenInk,
-                  ),
                   icon: const Icon(Icons.download),
                   label: Text(l10n.pfmDownload),
                 ),

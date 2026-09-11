@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../models/json_utils.dart';
+import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
 import 'demo_config.dart';
 
@@ -3661,12 +3662,16 @@ class DemoBackend {
   /// The source every seeded run was sliced from.
   static const _pipelineSourceFileId = 6;
 
-  static const _terminalRunStatuses = {
-    'completed',
-    'failed',
-    'cancelled',
-    'partial_failure',
-  };
+  /// Finished, as the app's own model reads it (`pipeline_run.dart`) — a run
+  /// and one copy of it answer the question with different vocabularies, and
+  /// the demo used the run's for both. Same rule as [_printLogReasons]: the
+  /// demo decides with the constant the screens decide with, or it drifts into
+  /// a state no screen can show.
+  static bool _runFinished(String? status) =>
+      PipelineRunStatus.parse(status).isTerminal;
+
+  static bool _jobFinished(String? status) =>
+      PipelineJobStatus.parse(status).isTerminal;
 
   /// `/pipeline-runs` — the dashboard's list with its four filters, one run,
   /// cancel, retry-failed and the history purge.
@@ -3707,9 +3712,7 @@ class DemoBackend {
 
     if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
       final before = _pipelineRuns.length;
-      _pipelineRuns.removeWhere(
-        (r) => _terminalRunStatuses.contains(r['status']),
-      );
+      _pipelineRuns.removeWhere((r) => _runFinished(r['status']));
       return _ok({'deleted': before - _pipelineRuns.length});
     }
 
@@ -3723,12 +3726,12 @@ class DemoBackend {
     if (s.length == 3 && m == 'POST' && s[2] == 'cancel') {
       // Idempotent: a run already finished comes back untouched rather than
       // refused, which is what lets the button be pressed twice safely.
-      if (_terminalRunStatuses.contains(run['status'])) return _ok(run);
+      if (_runFinished(run['status'])) return _ok(run);
       run['status'] = 'cancelled';
       run['completed_at'] = _iso(DateTime.now());
       run['error_message'] ??= 'Cancelled by operator';
       for (final job in (run['jobs'] as List)) {
-        if (job is Map && !_terminalRunStatuses.contains(job['status'])) {
+        if (job is Map && !_jobFinished(job['status'])) {
           job['status'] = 'cancelled';
         }
       }

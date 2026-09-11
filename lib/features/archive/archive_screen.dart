@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/no_3mf_warning.dart';
@@ -1392,9 +1393,8 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         ref.watch(printersForPickerProvider).valueOrNull ?? const [];
 
     final materials = <String>{
-      for (final a in archives)
-        ...?a.filamentType?.split(', ').map((m) => m.trim()),
-    }..removeWhere((m) => m.isEmpty);
+      for (final a in archives) ...filamentTypeTokens(a.filamentType),
+    };
     final sortedMaterials = materials.toList()..sort();
 
     final colors = <String>{for (final a in archives) ...a.filamentColors};

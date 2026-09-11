@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/filament_colour.dart';
 import '../../core/format/user_number.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
@@ -888,11 +889,15 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           (slotId: r.slotId, type: r.type ?? '', color: r.color ?? ''),
       ];
     }
-    final types = (it.filamentType ?? '')
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
+    // Paired by position, knowing the colour list can be the shorter of the
+    // two: the server joins every type but drops a filament whose colour is
+    // empty (`main.py::_extract_filament_data_from_mqtt`, where the `if f[1]`
+    // sits on the colour join alone). A slot with no RFID tag therefore
+    // shifts every colour after it by one, and neither string says where the
+    // gap was, so this cannot be repaired here — only server-side. Shifted
+    // but present is the decision: refusing to pair would blank the rows that
+    // are right today.
+    final types = filamentTypeTokens(it.filamentType);
     final colors = (it.filamentColor ?? '')
         .split(',')
         .map((s) => s.trim())
