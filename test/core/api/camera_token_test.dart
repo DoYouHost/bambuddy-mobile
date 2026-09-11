@@ -128,6 +128,18 @@ void main() {
       },
     );
 
+    test('a refused route surfaces with the status the server sent', () async {
+      // A bambuddy without the route answers a POST with 405 (the SPA
+      // catch-all is GET-only), so reporting a flat 404 here would put a
+      // status the server never sent into the log the bug report carries.
+      adapter.onPost(_tokenPath, (server) => server.reply(405, {}));
+
+      await expectLater(
+        service.token(),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 405)),
+      );
+    });
+
     test('a network error → AppApiException', () async {
       adapter.onPost(
         _tokenPath,

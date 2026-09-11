@@ -20,7 +20,10 @@ class CameraTokenService extends CachedTokenService {
   Future<String> token({bool forceRefresh = false}) async {
     final token = await cachedToken(forceRefresh: forceRefresh);
     if (token == null) {
-      throw const ApiException(AppErrorCode.badResponse, statusCode: 404);
+      throw ApiException(
+        AppErrorCode.badResponse,
+        statusCode: routeAbsentStatus,
+      );
     }
     return token;
   }

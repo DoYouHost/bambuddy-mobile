@@ -18,6 +18,7 @@ abstract class CachedTokenService {
   String? _token;
   DateTime? _expiresAt;
   bool _routeAbsent = false;
+  int? _routeAbsentStatus;
 
   /// Lets a proactive refresher schedule a re-mint ahead of the lapse.
   DateTime? get expiresAt => _expiresAt;
@@ -33,13 +34,21 @@ abstract class CachedTokenService {
   /// a server that gains the route while the app runs is picked up.
   bool get routeAbsent => _routeAbsent;
 
+  /// What the mint actually refused with when [routeAbsent] latched. A subclass
+  /// that turns the absence back into an error reports the server's own status
+  /// instead of assuming which of the two it was.
+  int? get routeAbsentStatus => _routeAbsentStatus;
+
   Future<String?>? _pending;
 
   /// `null` when the route is not on this server, which each subclass reads
   /// differently — an older build for `WsTokenService` and `MediaTokenService`,
   /// an error for `CameraTokenService`.
   Future<String?> cachedToken({bool forceRefresh = false}) async {
-    if (forceRefresh) _routeAbsent = false;
+    if (forceRefresh) {
+      _routeAbsent = false;
+      _routeAbsentStatus = null;
+    }
     if (_routeAbsent) return null;
 
     final cached = _token;
@@ -76,8 +85,10 @@ abstract class CachedTokenService {
     try {
       res = await _dio.post<Map<String, dynamic>>(_endpoint);
     } on DioException catch (e) {
-      if (_routeMissing(e.response?.statusCode)) {
+      final status = e.response?.statusCode;
+      if (_routeMissing(status)) {
         _routeAbsent = true;
+        _routeAbsentStatus = status;
         return null;
       }
       throw mapDioException(e);
@@ -99,5 +110,6 @@ abstract class CachedTokenService {
     _token = null;
     _expiresAt = null;
     _routeAbsent = false;
+    _routeAbsentStatus = null;
   }
 }
