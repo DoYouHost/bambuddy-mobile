@@ -73,8 +73,12 @@ jobs:
         id: server
         run: |
           set -euo pipefail
-          gateway="$(ip route | awk '/^default/ {print $3; exit}')"
-          [ -n "$gateway" ] || { echo "no default route — cannot place the server"; exit 1; }
+          # Asking Docker, not `ip`: the runner image carries no iproute2, and
+          # the bridge's own gateway is the better question anyway — it is the
+          # address the published port lands on AND this container's route to
+          # it, so the two cannot drift apart.
+          gateway="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
+          [ -n "$gateway" ] || { echo "bridge network reports no gateway"; exit 1; }
           echo "gateway=$gateway" >> "$GITHUB_OUTPUT"
 
           name="bambuddy-ci-${GITHUB_RUN_ID}"
