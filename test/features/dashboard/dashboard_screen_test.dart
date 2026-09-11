@@ -301,11 +301,13 @@ void main() {
 
     await openDrawer(tester);
 
+    // `.first` outside the descendant finder: inside `matching` it would pick
+    // the first Image of the whole tree and only then ask whether it is in the
+    // drawer — a cover thumbnail on a card behind it would fail the lookup.
     final icon = tester.widget<Image>(
-      find.descendant(
-        of: find.byType(Drawer),
-        matching: find.byType(Image).first,
-      ),
+      find
+          .descendant(of: find.byType(Drawer), matching: find.byType(Image))
+          .first,
     );
     // 52 dp of tile at this ratio. The asset behind it is the 1024x1024
     // launcher source, which is what used to be decoded and held in the cache.

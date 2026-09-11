@@ -46,6 +46,11 @@ class AboutScreen extends StatelessWidget {
                     'assets/icon/icon.png',
                     width: 88,
                     height: 88,
+                    // Same 1024x1024 launcher source as the drawer header —
+                    // and a second cache entry, since the resized provider is
+                    // keyed apart from the plain one.
+                    cacheWidth: (88 * MediaQuery.devicePixelRatioOf(context))
+                        .round(),
                     errorBuilder: (_, _, _) =>
                         Icon(Icons.print, size: 88, color: t.textPrimary),
                   ),
