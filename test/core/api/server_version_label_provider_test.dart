@@ -105,6 +105,39 @@ void main() {
     expect(reads(), 2, reason: 'one failure, one success, then the cache');
   });
 
+  test('an answer already had is there without a loading frame', () async {
+    // The other failure this provider has to avoid: disposed on every close,
+    // reopening the drawer starts at `AsyncLoading` again and the line reads
+    // "Server …" for a frame in front of an answer the service already holds.
+    // A success keeps its link, so the second opening has nothing to wait for.
+    final (dio, reads) = flakyServer();
+    final container = ProviderContainer(
+      overrides: [
+        fakeServerProfileOverride(),
+        serverVersionServiceProvider.overrideWithValue(
+          ServerVersionService(dio),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await openAndCloseDrawer(container); // fails, spends the first read
+    await withClock(
+      Clock.fixed(clock.now().add(const Duration(minutes: 6))),
+      () async => expect(await openAndCloseDrawer(container), '1.2.6'),
+    );
+
+    final reopened = container.listen(serverVersionLabelProvider, (_, _) {});
+    addTearDown(reopened.close);
+
+    expect(
+      container.read(serverVersionLabelProvider),
+      isA<AsyncData<String?>>().having((v) => v.value, 'value', '1.2.6'),
+      reason: 'the answer is there on the first frame, not after one',
+    );
+    expect(reads(), 2);
+  });
+
   test('no server configured is not a version read', () async {
     // The router keeps every screen that shows this behind a profile, but the
     // provider is read from three of them now and `apiClientProvider` throws

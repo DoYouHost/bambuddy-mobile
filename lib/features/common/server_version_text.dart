@@ -19,8 +19,12 @@ String serverVersionText(AppLocalizations l10n, AsyncValue<String?> version) {
   // keeps it too. Matching on the state first would blank a version we still
   // know — and this one cannot go stale while it is displayed, because a
   // server changing version has restarted and dropped the connection.
-  final known = version.valueOrNull;
-  if (known != null) return l10n.serverVersionLabel(known);
+  // Blank counts as not knowing: `Server ` with the answer missing off the end
+  // is worse than saying so. Trimmed rather than merely non-empty, which is
+  // the same contract `toStringOrNull` applies where these strings are read —
+  // three screens hand this whatever they were given.
+  final known = version.valueOrNull?.trim();
+  if (known != null && known.isNotEmpty) return l10n.serverVersionLabel(known);
   // Nothing known yet and still asking: the label with an ellipsis rather than
   // "unknown", which would be a wrong answer for as long as the request is out.
   if (version.isLoading) return l10n.serverVersionLabel('…');

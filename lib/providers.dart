@@ -608,16 +608,36 @@ final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
 /// but a screen is a weaker guarantee than a check, and this one is read from
 /// three of them now.
 ///
-/// `autoDispose` is what keeps [ServerVersionService]'s retry reachable. A
-/// kept provider caches its first answer for the life of the container, so a
-/// drawer opened once in a lift would have shown "unknown" until the app was
-/// killed — the service's five-minute window would tick by with nobody left to
-/// ask. Disposed with the drawer, the next opening asks again; the service is
-/// the one holding the cache, so asking again costs a request only when it is
-/// actually due.
+/// `autoDispose` **with a link kept on success** — the two halves answer two
+/// different failures, and either one alone reintroduces the other.
+///
+/// Kept unconditionally, the provider caches its first answer for the life of
+/// the container: a drawer opened once in a lift showed "unknown" until the app
+/// was killed, and [ServerVersionService]'s five-minute window ticked by with
+/// nobody left to ask. Disposed unconditionally, every reopening of the drawer
+/// starts at [AsyncLoading] again — one frame of "Server …" in front of an
+/// answer the service already has in hand, which is the same flash
+/// [appVersionProvider] exists to avoid.
+///
+/// So: an answer is kept, an unknown is released. The version cannot change
+/// without the server restarting and dropping the connection, so there is
+/// nothing for the kept one to go stale against — and the released one puts the
+/// service's retry back within reach of the next opening.
 final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
+  // Synchronous on purpose: with no server configured there is nothing to wait
+  // for, and handing back a future would put a loading frame in front of an
+  // answer that is already known.
   if (ref.watch(serverProfileProvider) == null) return null;
-  return ref.watch(serverVersionServiceProvider).reportedVersion();
+  // Taken here rather than after the await: `keepAlive` belongs to the build,
+  // and the provider may be disposed while the read is in flight — closing a
+  // link afterwards is safe, taking one is not.
+  final keep = ref.keepAlive();
+  return ref.watch(serverVersionServiceProvider).reportedVersion().then((
+    version,
+  ) {
+    if (version == null) keep.close();
+    return version;
+  });
 });
 
 /// Print queue (M5). Shares authenticated Dio.

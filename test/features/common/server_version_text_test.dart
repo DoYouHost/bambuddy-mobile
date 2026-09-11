@@ -44,9 +44,13 @@ void main() {
 
   test('every way of not knowing lands on the same sentence', () {
     // An older bambuddy with no /updates/version route answers null; a read
-    // that threw arrives as an error. One fact to the reader, one sentence.
+    // that threw arrives as an error; a blank is a server that sent the field
+    // with nothing in it, which would otherwise print as "Server " with the
+    // answer missing off the end.
     for (final unknown in <AsyncValue<String?>>[
       const AsyncData(null),
+      const AsyncData(''),
+      const AsyncData('   '),
       AsyncError(Exception('unreachable'), StackTrace.empty),
     ]) {
       expect(

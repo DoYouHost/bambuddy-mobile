@@ -151,16 +151,23 @@ List<Override> _overrides(DashboardState state) => [
   ),
 ];
 
-Widget _app(DashboardState state, {List<Override> extra = const []}) =>
-    ProviderScope(
-      overrides: [..._overrides(state), ...extra],
-      child: MaterialApp(
-        locale: const Locale('pl'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const DashboardScreen(),
-      ),
-    );
+Widget _app(
+  DashboardState state, {
+  List<Override> extra = const [],
+  TextScaler textScaler = TextScaler.noScaling,
+}) => ProviderScope(
+  overrides: [..._overrides(state), ...extra],
+  child: MaterialApp(
+    locale: const Locale('pl'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+      child: child!,
+    ),
+    home: const DashboardScreen(),
+  ),
+);
 
 /// Same dashboard, but reachable through a router — for the paths that navigate
 /// away (`context.go('/setup')`).
@@ -236,11 +243,16 @@ void main() {
   group('the drawer footer names both versions', () {
     /// Opens the drawer of a dashboard whose server version read answers
     /// [version] — `null` being "the server never told us".
-    Future<void> openDrawer(WidgetTester tester, {String? version}) async {
+    Future<void> openDrawer(
+      WidgetTester tester, {
+      String? version,
+      TextScaler textScaler = TextScaler.noScaling,
+    }) async {
       await tester.pumpWidget(
         _app(
           const DashboardState(),
           extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+          textScaler: textScaler,
         ),
       );
       tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
@@ -264,6 +276,23 @@ void main() {
       // answers to two different questions.
       expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
       expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    });
+
+    testWidgets('a daily build at double text size still fits', (tester) async {
+      // Deliberately no `maxLines`/`overflow` on the phone, unlike the watch:
+      // the footer sits above an `Expanded` list, so a wrapped line takes its
+      // room from the list rather than overflowing — and truncating would cost
+      // the build number, which is the half a report is filed with. This is
+      // what makes "it wraps, it does not overflow" a checked claim: the test
+      // framework turns any RenderFlex overflow into a failure.
+      await openDrawer(
+        tester,
+        version: '1.2.6b1-daily.20260729',
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(find.text('Serwer 1.2.6b1-daily.20260729'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('an older server that has no version route', (tester) async {

@@ -149,10 +149,16 @@ class _VersionLabel extends ConsumerWidget {
           l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…'),
           style: t.monoLabel,
         ),
-        Text(
-          serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
-          style: t.monoLabel,
-        ),
+        // Nothing at all rather than "server version unknown" when no server
+        // has been added yet: on a fresh install that line reads as a failed
+        // connection to a server the user has not named. The drawer needs no
+        // such guard — it is the dashboard's, and the dashboard is behind a
+        // profile by construction.
+        if (ref.watch(serverProfileProvider) != null)
+          Text(
+            serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+            style: t.monoLabel,
+          ),
       ],
     );
   }

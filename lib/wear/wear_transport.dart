@@ -426,6 +426,23 @@ class HybridWearTransport implements WearTransport {
   Future<T> _run<T>(
     WearRpcAction action,
     Future<T> Function(WearTransport t) op,
+  ) async => (await _attempt(action, op)).result;
+
+  /// [_run] plus **which side actually served it**, returned rather than left
+  /// for the caller to read off [lastMode].
+  ///
+  /// [lastMode] is shared instance state that every call writes, and the fleet
+  /// poll writes it on every tick for as long as a screen is up. Reading it
+  /// back to learn what *this* call did was correct only because no suspension
+  /// point sits between the write and the read — an invisible property, held by
+  /// nobody, that the next edit to this method would quietly spend. Returning
+  /// the answer costs a record and needs no such argument.
+  ///
+  /// [lastMode] stays what it always was: the fleet poll's cadence signal,
+  /// written here and read there.
+  Future<({T result, WearTransportMode servedBy})> _attempt<T>(
+    WearRpcAction action,
+    Future<T> Function(WearTransport t) op,
   ) async {
     final relay = _relay;
     if (relay == null) {
@@ -433,12 +450,12 @@ class HybridWearTransport implements WearTransport {
       // required argument — the constructors are what make this total.
       final result = await op(_rest!);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
     try {
       final result = await op(relay);
       lastMode = WearTransportMode.relay;
-      return result;
+      return (result: result, servedBy: WearTransportMode.relay);
     } on Exception catch (e) {
       final canFallback =
           e is WearRelayUnreachable ||
@@ -447,7 +464,7 @@ class HybridWearTransport implements WearTransport {
       if (!canFallback || rest == null) rethrow;
       final result = await op(rest);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
   }
 
@@ -471,20 +488,22 @@ class HybridWearTransport implements WearTransport {
   /// and can only turn "I don't know" into an answer.
   @override
   Future<String?> getServerVersion() async {
-    final relayed = await _run(
+    final (:result, :servedBy) = await _attempt(
       WearRpcAction.getServerVersion,
       (t) => t.getServerVersion(),
     );
     final rest = _rest;
-    if (relayed != null || rest == null) return relayed;
-    // Already served by REST — `_run` fell back, and there is no third path.
-    if (lastMode == WearTransportMode.rest) return null;
+    // Nothing to add: the phone answered, there is no second path, or this
+    // call was already the one down it.
+    if (result != null || rest == null || servedBy == WearTransportMode.rest) {
+      return result;
+    }
     try {
-      final own = await rest.getServerVersion();
-      if (own != null) lastMode = WearTransportMode.rest;
-      return own;
+      return await rest.getServerVersion();
     } on Object {
-      // Our own connection is no better than the phone's. Unknown stands.
+      // Our own connection is no better than the phone's. Unknown stands, and
+      // [lastMode] is left alone — the fleet poll's cadence is not this
+      // screen's business.
       return null;
     }
   }

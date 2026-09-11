@@ -49,4 +49,20 @@ void main() {
 
     expect(find.text('Nieznana wersja serwera'), findsOneWidget);
   });
+
+  testWidgets('a fresh install names no server at all', (tester) async {
+    // "Server version unknown" under the app's own version reads as a failed
+    // connection to a server the user has not added yet. Nothing is the honest
+    // line here, and the app version above it still answers what About is for.
+    await pumpPhone(
+      tester,
+      const AboutScreen(),
+      overrides: [noServerProfileOverride],
+    );
+    await settle(tester);
+
+    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
+    expect(find.text('Nieznana wersja serwera'), findsNothing);
+    expect(find.textContaining('Serwer'), findsNothing);
+  });
 }
