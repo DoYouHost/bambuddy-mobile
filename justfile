@@ -1,9 +1,9 @@
 # Recipe naming: a bare verb is earned by the ones typed weekly and safe to run
 # twice (test, run, build, ship); a variant appends only what differs from the
-# silent defaults — phone, APK, stable channel, this machine (build-wear-aab,
-# run-remote). Machines and objects read <subject>-<verb> (emu-boot,
-# release-publish). Anything irreversible on GitHub is purge-<deepest thing lost>,
-# so `just purge<TAB>` enumerates every no-undo command and nothing else.
+# silent defaults — phone, APK, stable channel (build-wear-aab, ship-dev).
+# Machines and objects read <subject>-<verb> (emu-boot, release-publish).
+# Anything irreversible on GitHub is purge-<deepest thing lost>, so
+# `just purge<TAB>` enumerates every no-undo command and nothing else.
 #
 # The listed description is the [doc] attribute, not the comment above it: just
 # shows only the LAST comment line, which is how half this file used to advertise
@@ -22,10 +22,6 @@ aab := "build/dist/app-mobile-release.aab"
 wear_aab := "build/dist/app-wear-release.aab"
 repo := "DoYouHost/bambuddy-mobile"
 
-# Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
-emu_host := "192.168.2.208"
-emu := emu_host + ":5555"
-emu_web := "http://" + emu_host + ":8000"
 emulator_bin := "$HOME/Android/Sdk/emulator/emulator"
 # Default local AVD (Pixel 7, API 35). Every local recipe takes an `avd=`
 # argument, so `just emu-list` shows the alternatives (e.g. small360, a 360dp
@@ -82,24 +78,6 @@ run-wear avd=wear_avd: (emu-boot avd)
     #!/usr/bin/env bash
     set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor wear --target lib/wear/main_wear.dart
-
-[doc('run the app on the shared LAN emulator')]
-[group('1-develop')]
-run-remote: emu-connect
-    flutter run -d {{emu}} --flavor mobile
-
-# usage: just test-integration [AVD]
-[doc('run integration tests on a local AVD')]
-[group('1-develop')]
-test-integration avd=avd: (emu-boot avd)
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flutter test integration_test/ --flavor mobile -d "$(just _emu-serial {{avd}})"
-
-[doc('run integration tests on the shared LAN emulator')]
-[group('1-develop')]
-test-integration-remote: emu-connect
-    flutter test integration_test/ --flavor mobile
 
 # ---- 2-emulator — boots the emulator and puts its screen on your desk ----
 
@@ -161,34 +139,6 @@ emu-list:
             printf '  %-16s stopped\n' "$name"
         fi
     done
-
-[doc('adb connect to the shared LAN emulator')]
-[group('2-emulator')]
-emu-connect:
-    adb connect {{emu}}
-
-# ws-scrcpy deep-link skips the device list (MSE player, fixed scrcpy port 8886,
-# stable across restarts). URL is single-quoted so the shell keeps the &/#/%.
-# A dedicated --user-data-dir forces a separate Chrome instance so --window-size
-# is actually honored (a window in an already-running Chrome ignores size flags).
-[doc('open the shared emulator screen in a browser window')]
-[group('2-emulator')]
-emu-view:
-    flatpak run com.google.Chrome \
-      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
-      --window-size=500,1000 \
-      --app='{{emu_web}}/#!action=stream&udid=android-emulator%3A5555&player=mse&ws=ws%3A%2F%2F{{emu_host}}%3A8000%2F%3Faction%3Dproxy-adb%26remote%3Dtcp%253A8886%26udid%3Dandroid-emulator%253A5555' \
-      >/dev/null 2>&1 &
-
-# Opens the device list in emu-view's own Chrome profile so that "Fit to screen"
-# + Save persists there (localStorage, per player=mse). Configure -> keep Fit to
-# screen ON -> Save, and `just emu-view` picks it up afterwards.
-[doc('one-time Chrome profile setup that emu-view reuses')]
-[group('2-emulator')]
-emu-view-setup:
-    flatpak run com.google.Chrome \
-      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
-      --app='{{emu_web}}' >/dev/null 2>&1 &
 
 # ---- 3-build — produces the bytes that get published ----
 #
