@@ -59,9 +59,14 @@ def _request(url: str, *, method: str = "GET", token: str | None = None,
         req.add_header("Content-Type", "application/json")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req, timeout=timeout) as res:
-        raw = res.read()
-    return json.loads(raw) if raw else {}
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as res:
+            raw = res.read()
+        return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        print(f"HTTPError {e.code} for {method} {url}: {error_body}", file=sys.stderr)
+        raise
 
 
 def wait_for_health(base: str, attempts: int = 60) -> None:
@@ -107,14 +112,20 @@ def add_printer(base: str, token: str, broker_ip: str) -> int:
 
 def publish_report(container: str, payload: dict) -> None:
     """Publish one retained report as the printer would."""
-    subprocess.run(
-        ["docker", "exec", container, "mosquitto_pub",
-         "-h", "localhost", "-p", "8883", "--insecure",
-         "--cafile", "/mosquitto/certs/server.crt",
-         "-t", f"device/{SERIAL}/report", "-r",
-         "-m", json.dumps(payload)],
-        check=True, capture_output=True,
-    )
+    try:
+        subprocess.run(
+            ["docker", "exec", container, "mosquitto_pub",
+             "-h", "localhost", "-p", "8883", "--insecure",
+             "--cafile", "/mosquitto/certs/server.crt",
+             "-t", f"device/{SERIAL}/report", "-r",
+             "-m", json.dumps(payload)],
+            check=True, capture_output=True,
+        )
+    except subprocess.CalledProcessError as e:
+        err = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
+        out = e.stdout.decode("utf-8", errors="replace") if e.stdout else ""
+        print(f"publish_report failed (exit {e.returncode}):\nStdout: {out}\nStderr: {err}", file=sys.stderr)
+        raise
 
 
 def printing_report() -> dict:
@@ -217,8 +228,26 @@ def upload_3mf(base: str, token: str, path: Path) -> int:
         f"{base}/api/v1/library/files", data=body, method="POST")
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
     req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req, timeout=60) as res:
-        return int(json.loads(res.read())["id"])
+    try:
+        with urllib.request.urlopen(req, timeout=60) as res:
+            return int(json.loads(res.read())["id"])
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        print(f"HTTPError {e.code} uploading 3MF: {error_body}", file=sys.stderr)
+        raise
+
+
+def wait_for_printer_status(base: str, token: str, printer_id: int, attempts: int = 30) -> None:
+    """Wait until the printer status reports RUNNING and AMS data has been ingested."""
+    for _ in range(attempts):
+        try:
+            status = _request(f"{base}/api/v1/printers/{printer_id}/status", token=token)
+            if status.get("state") == "RUNNING" and status.get("ams_exists"):
+                return
+        except (urllib.error.URLError, OSError, TimeoutError):
+            pass
+        time.sleep(1)
+    raise SystemExit(f"printer {printer_id} status never reached RUNNING state with AMS")
 
 
 def main() -> int:
@@ -241,6 +270,9 @@ def main() -> int:
 
     publish_report(args.broker_container, printing_report())
     print("status and AMS published (retained)")
+
+    wait_for_printer_status(base, token, printer_id)
+    print("printer status confirmed RUNNING with AMS")
 
     path = Path("/tmp/contract-probe.3mf")
     build_3mf(path)

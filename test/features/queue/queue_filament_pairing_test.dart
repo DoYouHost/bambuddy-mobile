@@ -1,5 +1,7 @@
+import 'package:bambuddy_mobile/core/models/available_filament.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -23,6 +25,7 @@ void main() {
     WidgetTester tester, {
     required String? type,
     required String? color,
+    List<AvailableFilament> availableFilaments = const [],
   }) async {
     await tester.pumpWidget(
       queueFormScreen(
@@ -42,6 +45,7 @@ void main() {
           filamentColor: color,
         ),
         mode: QueueEditMode.edit,
+        availableFilaments: availableFilaments,
       ),
     );
     await settle(tester);
@@ -49,22 +53,117 @@ void main() {
 
   setUp(setUpQueueForm);
 
-  testWidgets('a colour with no matching type still gets its slot', (
-    tester,
-  ) async {
-    // The regression: bounding the loop by the type list rendered a two-colour
-    // print as one filament, and the second colour was not shown anywhere.
-    await pumpItem(tester, type: 'PLA', color: '#FF0000,#00FF00');
+  testWidgets(
+    'single-material multi-color print gives all slots the deduplicated material',
+    (tester) async {
+      // The server-side archive extractor (services/archive.py) deduplicates
+      // the type list independently from colors. If a multi-color print uses
+      // one material across all slots, types collapses to 1 while colors has
+      // every slot. Every slot must share that deduplicated type.
+      await pumpItem(tester, type: 'PLA', color: '#FF0000,#00FF00');
 
-    expect(find.text(slot(1, 'PLA')), findsOneWidget);
-    expect(
-      find.text(slot(2, '—')),
-      findsOneWidget,
-      reason:
-          'the second colour lost its row; a slot the print uses is missing '
-          'from the override list entirely',
-    );
-  });
+      expect(find.text(slot(1, 'PLA')), findsOneWidget);
+      expect(find.text(slot(2, 'PLA')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'saving a force color match on deduplicated slot carries the correct type',
+    (tester) async {
+      await pumpItem(tester, type: 'PLA', color: '#FF0000,#00FF00');
+
+      // Scroll down to make slot 2 visible
+      await tester.drag(find.byType(ListView), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Checkboxes: slot 1, slot 2. Tap slot 2 force color match.
+      final checkboxes = find.byType(Checkbox);
+      await tester.tap(checkboxes.at(1));
+      await tester.pumpAndSettle();
+
+      await submitQueueForm(tester, edit: true);
+
+      final overrides = capturedBody?['filament_overrides'] as List<dynamic>?;
+      expect(overrides, isNotNull);
+      expect(overrides!.length, 1);
+      expect(overrides.first, {
+        'slot_id': 2,
+        'type': 'PLA',
+        'color': '#00FF00',
+        'color_name': '#00FF00',
+        'force_color_match': true,
+      });
+    },
+  );
+
+  testWidgets(
+    'multi-material print with more colours than types shows em dash for unknown slot',
+    (tester) async {
+      await pumpItem(
+        tester,
+        type: 'PLA,PETG',
+        color: '#FF0000,#00FF00,#0000FF',
+      );
+
+      expect(find.text(slot(1, 'PLA')), findsOneWidget);
+      expect(find.text(slot(2, 'PETG')), findsOneWidget);
+      expect(find.text(slot(3, '—')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'slot with unknown material disables force color match until a spool is chosen',
+    (tester) async {
+      await pumpItem(
+        tester,
+        type: 'PLA,PETG',
+        color: '#FF0000,#00FF00,#0000FF',
+      );
+
+      // Checkboxes are ordered by slot
+      final checkboxes = tester.widgetList<Checkbox>(find.byType(Checkbox));
+      expect(checkboxes.length, 3);
+      // Slots 1 and 2 have known types: active checkboxes
+      expect(checkboxes.elementAt(0).onChanged, isNotNull);
+      expect(checkboxes.elementAt(1).onChanged, isNotNull);
+      // Slot 3 has unknown type and no override selected yet: disabled checkbox
+      expect(checkboxes.elementAt(2).onChanged, isNull);
+    },
+  );
+
+  testWidgets(
+    'slot with unknown material offers all available filaments and enables force checkbox once selected',
+    (tester) async {
+      await pumpItem(
+        tester,
+        type: 'PLA,PETG',
+        color: '#FF0000,#00FF00,#0000FF',
+        availableFilaments: const [
+          AvailableFilament(type: 'ABS', color: '#112233'),
+        ],
+      );
+
+      // Initially slot 3 has disabled checkbox
+      var checkboxes = tester.widgetList<Checkbox>(find.byType(Checkbox));
+      expect(checkboxes.elementAt(2).onChanged, isNull);
+
+      // Scroll slot 3 into view and tap dropdown field
+      final slot3Dropdown = find.text('${formL10n.queueEditOriginal}: —');
+      await tester.ensureVisible(slot3Dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(slot3Dropdown);
+      await tester.pumpAndSettle();
+
+      // Should show ABS option in the dropdown list
+      expect(find.text('ABS'), findsOneWidget);
+      await tester.tap(find.text('ABS'));
+      await tester.pumpAndSettle();
+
+      // Now slot 3 has an override selected, checkbox must be enabled
+      checkboxes = tester.widgetList<Checkbox>(find.byType(Checkbox));
+      expect(checkboxes.elementAt(2).onChanged, isNotNull);
+    },
+  );
 
   testWidgets('a type with no matching colour still gets its slot', (
     tester,
