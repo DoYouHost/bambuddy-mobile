@@ -23,6 +23,7 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/platform/app_version.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/server_settings.dart';
@@ -585,6 +586,17 @@ final heaterHistoryRepositoryProvider = Provider<HeaterHistoryRepository>(
 final serverVersionServiceProvider = Provider<ServerVersionService>(
   (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
 );
+
+/// This app's own build, as `version+buildNumber`.
+///
+/// A provider rather than a future held in each widget's `State`, which is how
+/// three screens did it: `PackageInfo.fromPlatform` hands back a fresh future
+/// on every call, so a `FutureBuilder` given one re-enters `waiting` and
+/// flashes its placeholder — and a `State` only avoids that for as long as the
+/// widget lives, which for the drawer footer is one opening of the drawer.
+/// Cached in the container, the answer is there synchronously from the second
+/// read on and nothing flashes at all.
+final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
 
 /// The connected server's version string, for the drawer footer. `null` is
 /// "nobody knows": a server too old to serve `/updates/version`, one that is

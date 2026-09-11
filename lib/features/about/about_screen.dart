@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/platform/app_version.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../common/dash_snack.dart';
 import '../common/system_insets.dart';
 
@@ -119,42 +121,28 @@ class AboutScreen extends StatelessWidget {
   }
 
   Future<void> _showLicenses(BuildContext context) async {
-    final info = await PackageInfo.fromPlatform();
+    final version = await readAppVersion();
     if (!context.mounted) return;
     showLicensePage(
       context: context,
       applicationName: 'Bambuddy',
-      applicationVersion: '${info.version}+${info.buildNumber}',
+      applicationVersion: version,
       applicationLegalese: '© DoYouHost · AGPL-3.0',
     );
   }
 }
 
-/// Version read from package metadata (pubspec → buildName+buildNumber).
-class _VersionLabel extends StatefulWidget {
+/// The running build, as `readAppVersion` spells it everywhere else.
+class _VersionLabel extends ConsumerWidget {
   const _VersionLabel();
 
   @override
-  State<_VersionLabel> createState() => _VersionLabelState();
-}
-
-class _VersionLabelState extends State<_VersionLabel> {
-  // Created once in initState — a plain call in build() would kick off a
-  // brand-new platform-channel future (and a "…" flash) on every rebuild.
-  late final Future<PackageInfo> _future = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return FutureBuilder<PackageInfo>(
-      future: _future,
-      builder: (context, snap) {
-        final v = snap.hasData
-            ? '${snap.data!.version}+${snap.data!.buildNumber}'
-            : '…';
-        return Text(l10n.aboutVersion(v), style: t.monoLabel);
-      },
+    return Text(
+      l10n.aboutVersion(ref.watch(appVersionProvider).value ?? '…'),
+      style: t.monoLabel,
     );
   }
 }

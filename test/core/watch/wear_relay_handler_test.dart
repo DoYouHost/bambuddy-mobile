@@ -288,6 +288,45 @@ void main() {
     expect(reads, 1);
   });
 
+  test(
+    'getServerVersion: a server switch is not answered from the old one',
+    () async {
+      // The provider hands the handler a *callback*, and deliberately reads
+      // rather than watches the profile so a server change does not tear the
+      // listener down — which means the client under it is swapped while this
+      // object lives. Caching the service without checking that would keep
+      // answering with the version of a server the phone left.
+      final other = testDio();
+      DioAdapter(dio: other).onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '0.2.4.9', 'repo': 'x/y'}),
+      );
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '1.2.6', 'repo': 'x/y'}),
+      );
+      var current = dio;
+      final handler = WearRelayHandler(watch: watch, dio: () => current);
+      await handler.start();
+
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+      current = other;
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+
+      final answers = [
+        for (final sent in watch.sent)
+          WearRpcResponse.decode(sent)!.data?['version'],
+      ];
+      expect(answers, ['1.2.6', '0.2.4.9']);
+    },
+  );
+
   test('no profile → phone-unconfigured', () async {
     final handler = WearRelayHandler(watch: watch, dio: () => null);
 

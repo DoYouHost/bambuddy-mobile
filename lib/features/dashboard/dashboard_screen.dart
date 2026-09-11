@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -27,6 +26,7 @@ import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
@@ -850,25 +850,14 @@ class _AppDrawer extends ConsumerWidget {
 }
 
 /// Drawer footer: this app's version over the connected server's.
-///
-/// A `StatefulWidget` for the same reason the About screen's label is one —
-/// `PackageInfo.fromPlatform()` in `build` starts a fresh platform-channel
-/// future on every rebuild, and the drawer rebuilds whenever the version read
-/// resolves.
-class _DrawerVersions extends StatefulWidget {
+class _DrawerVersions extends ConsumerWidget {
   const _DrawerVersions();
 
   @override
-  State<_DrawerVersions> createState() => _DrawerVersionsState();
-}
-
-class _DrawerVersionsState extends State<_DrawerVersions> {
-  late final Future<PackageInfo> _app = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final app = ref.watch(appVersionProvider).value;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -881,27 +870,13 @@ class _DrawerVersionsState extends State<_DrawerVersions> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FutureBuilder<PackageInfo>(
-                future: _app,
-                builder: (context, snap) => Text(
-                  snap.hasData
-                      ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
-                      : 'Bambuddy',
-                  style: t.labelSoft,
-                ),
+              Text(
+                app == null ? 'Bambuddy' : 'Bambuddy v$app',
+                style: t.labelSoft,
               ),
-              Consumer(
-                builder: (context, ref, _) {
-                  final version = ref.watch(serverVersionLabelProvider);
-                  return Text(switch (version) {
-                    // A read that threw and one that answered 404 land on
-                    // the same wording: to the reader they are one fact, and
-                    // a drawer footer is not where the difference is useful.
-                    AsyncData(:final value?) => l10n.serverVersionLabel(value),
-                    AsyncLoading() => l10n.serverVersionLabel('…'),
-                    _ => l10n.serverVersionUnknown,
-                  }, style: t.labelSoft);
-                },
+              Text(
+                serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+                style: t.labelSoft,
               ),
             ],
           ),

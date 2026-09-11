@@ -223,6 +223,55 @@ void main() {
       }
     });
 
+    test('every method carries the action whose policy it wants', () async {
+      // The action argument feeds exactly one expression in `_run` —
+      // `mayRepeatOverRest` — so a method handed the wrong one is not a
+      // cosmetic slip: it decides whether a timed-out call is run a second
+      // time over REST. One table rather than nine near-identical tests,
+      // because what is being pinned is one rule applied nine times.
+      final methods =
+          <(String, WearRpcAction, Future<void> Function(WearTransport))>[
+            ('getFleet', WearRpcAction.getFleet, (t) => t.getFleet()),
+            (
+              'getServerVersion',
+              WearRpcAction.getServerVersion,
+              (t) => t.getServerVersion(),
+            ),
+            ('pause:1', WearRpcAction.pause, (t) => t.pause(1)),
+            ('resume:1', WearRpcAction.resume, (t) => t.resume(1)),
+            ('stop:1', WearRpcAction.stop, (t) => t.stop(1)),
+            ('clearPlate:1', WearRpcAction.clearPlate, (t) => t.clearPlate(1)),
+            ('startNext:1', WearRpcAction.startNext, (t) => t.startNext(1)),
+            (
+              'clearHmsErrors:1',
+              WearRpcAction.hmsClear,
+              (t) => t.clearHmsErrors(1),
+            ),
+            (
+              'executeHmsAction:1:0500:reload:',
+              WearRpcAction.hmsAction,
+              (t) =>
+                  t.executeHmsAction(1, printError: '0500', action: 'reload'),
+            ),
+          ];
+
+      for (final (name, action, call) in methods) {
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(error: WearRelayTimeout()),
+          rest: rest,
+        );
+
+        await call(hybrid).catchError((_) {});
+
+        expect(
+          rest.calls,
+          action.mayRepeatOverRest ? [name] : isEmpty,
+          reason: name,
+        );
+      }
+    });
+
     test('a silent old phone hands the version read to REST', () async {
       // The whole reason the new action is classified as a read: a phone that
       // cannot decode it answers nothing, and a watch with a profile of its

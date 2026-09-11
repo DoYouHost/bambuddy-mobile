@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
+import '../../features/common/server_version_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
@@ -138,43 +138,16 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
 
 /// Footer: this app's version over the connected server's — the two numbers a
 /// bug report starts with, on the one watch screen that is not a control.
-///
-/// Stateful only to hold the [PackageInfo] future: built in `build` it would
-/// start a fresh platform-channel call on every rebuild, and the server line
-/// resolving is itself a rebuild.
-class _WearVersions extends ConsumerStatefulWidget {
+class _WearVersions extends ConsumerWidget {
   const _WearVersions();
 
   @override
-  ConsumerState<_WearVersions> createState() => _WearVersionsState();
-}
-
-class _WearVersionsState extends ConsumerState<_WearVersions> {
-  late final Future<PackageInfo> _app = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final server = ref.watch(wearServerVersionProvider);
     return Column(
       children: [
-        FutureBuilder<PackageInfo>(
-          future: _app,
-          builder: (context, snap) => _line(
-            l10n.wearAppVersion(
-              snap.hasData
-                  ? '${snap.data!.version}+${snap.data!.buildNumber}'
-                  : '…',
-            ),
-          ),
-        ),
-        _line(switch (server) {
-          AsyncData(:final value?) => l10n.serverVersionLabel(value),
-          AsyncLoading() => l10n.serverVersionLabel('…'),
-          // The provider swallows every failure, so this is the unknown case
-          // as much as an answered "no version" is.
-          _ => l10n.serverVersionUnknown,
-        }),
+        _line(l10n.wearAppVersion(ref.watch(appVersionProvider).value ?? '…')),
+        _line(serverVersionText(l10n, ref.watch(wearServerVersionProvider))),
       ],
     );
   }
