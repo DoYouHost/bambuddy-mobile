@@ -692,122 +692,130 @@ class _AppDrawer extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _DrawerTile(
-                  icon: Icons.folder_outlined,
-                  label: l10n.fileManagerMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/files');
-                  },
-                  id: 'drawer.files',
-                ),
-                _DrawerTile(
-                  icon: Icons.travel_explore_rounded,
-                  label: l10n.makerworldMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/makerworld');
-                  },
-                  id: 'drawer.makerworld',
-                ),
-                _DrawerTile(
-                  icon: Icons.qr_code_2_rounded,
-                  label: l10n.swatchCodesMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/swatches');
-                  },
-                  id: 'drawer.swatches',
-                ),
-                _DrawerTile(
-                  icon: Icons.folder_special_outlined,
-                  label: l10n.projectsMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/projects');
-                  },
-                  id: 'drawer.projects',
-                ),
-                _DrawerTile(
-                  icon: Icons.bar_chart_rounded,
-                  label: l10n.menuStatistics,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/stats');
-                  },
-                  id: 'drawer.stats',
-                ),
-                // Absent until a call has proved the routes are there and this
-                // session may read them: an older server 404s, and an API key
-                // was refused every pipeline permission before server 1.2.5.3.
-                // Probed rather than versioned — the routes predate the
-                // renumbering to 1.2.5, so no threshold reads both schemes.
-                if (ref.watch(pipelinesSupportedProvider).orFalse)
+            // No stretch: on Impeller every stretch start allocates an offscreen
+            // copy of the list (a ~30 ms frame), and this list overflows so
+            // little that nearly every swipe starts one.
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(overscroll: false),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
                   _DrawerTile(
-                    icon: Icons.account_tree_outlined,
-                    label: l10n.pipelinesMenu,
+                    icon: Icons.folder_outlined,
+                    label: l10n.fileManagerMenu,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/pipelines');
+                      context.push('/files');
                     },
-                    id: 'drawer.pipelines',
+                    id: 'drawer.files',
                   ),
-                _DrawerTile(
-                  icon: Icons.tune_rounded,
-                  label: l10n.notifEventsMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/settings/notifications');
-                  },
-                  id: 'drawer.notifications',
-                ),
-                // Everything this app changes on the server, behind one entry:
-                // the queue scheduler, maintenance, the Bambu Cloud account and
-                // administration. Ungated — an API key and an anonymous session
-                // both have something to do in there, and the gate that would
-                // have hidden it (`canOpenAdminProvider`) is about accounts,
-                // not about settings.
-                _DrawerTile(
-                  icon: Icons.dns_outlined,
-                  label: l10n.serverSettingsMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/settings/server');
-                  },
-                  id: 'drawer.server_settings',
-                ),
-                const Divider(indent: 16, endIndent: 16, height: 16),
-                _DrawerTile(
-                  icon: Icons.swap_horiz_rounded,
-                  label: l10n.changeServer,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmChangeServer(context, ref, l10n);
-                  },
-                  id: 'drawer.change_server',
-                ),
-                _DrawerTile(
-                  icon: Icons.bug_report_outlined,
-                  label: l10n.bugReportMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(bugReportRoute);
-                  },
-                  id: 'drawer.bug_report',
-                ),
-                _DrawerTile(
-                  icon: Icons.info_outline_rounded,
-                  label: l10n.aboutMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/about');
-                  },
-                  id: 'drawer.about',
-                ),
-              ],
+                  _DrawerTile(
+                    icon: Icons.travel_explore_rounded,
+                    label: l10n.makerworldMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/makerworld');
+                    },
+                    id: 'drawer.makerworld',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.qr_code_2_rounded,
+                    label: l10n.swatchCodesMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/swatches');
+                    },
+                    id: 'drawer.swatches',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.folder_special_outlined,
+                    label: l10n.projectsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/projects');
+                    },
+                    id: 'drawer.projects',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.bar_chart_rounded,
+                    label: l10n.menuStatistics,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/stats');
+                    },
+                    id: 'drawer.stats',
+                  ),
+                  // Absent until a call has proved the routes are there and this
+                  // session may read them: an older server 404s, and an API key
+                  // was refused every pipeline permission before server 1.2.5.3.
+                  // Probed rather than versioned — the routes predate the
+                  // renumbering to 1.2.5, so no threshold reads both schemes.
+                  if (ref.watch(pipelinesSupportedProvider).orFalse)
+                    _DrawerTile(
+                      icon: Icons.account_tree_outlined,
+                      label: l10n.pipelinesMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/pipelines');
+                      },
+                      id: 'drawer.pipelines',
+                    ),
+                  _DrawerTile(
+                    icon: Icons.tune_rounded,
+                    label: l10n.notifEventsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/settings/notifications');
+                    },
+                    id: 'drawer.notifications',
+                  ),
+                  // Everything this app changes on the server, behind one entry:
+                  // the queue scheduler, maintenance, the Bambu Cloud account and
+                  // administration. Ungated — an API key and an anonymous session
+                  // both have something to do in there, and the gate that would
+                  // have hidden it (`canOpenAdminProvider`) is about accounts,
+                  // not about settings.
+                  _DrawerTile(
+                    icon: Icons.dns_outlined,
+                    label: l10n.serverSettingsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/settings/server');
+                    },
+                    id: 'drawer.server_settings',
+                  ),
+                  const Divider(indent: 16, endIndent: 16, height: 16),
+                  _DrawerTile(
+                    icon: Icons.swap_horiz_rounded,
+                    label: l10n.changeServer,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmChangeServer(context, ref, l10n);
+                    },
+                    id: 'drawer.change_server',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.bug_report_outlined,
+                    label: l10n.bugReportMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(bugReportRoute);
+                    },
+                    id: 'drawer.bug_report',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.info_outline_rounded,
+                    label: l10n.aboutMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/about');
+                    },
+                    id: 'drawer.about',
+                  ),
+                ],
+              ),
             ),
           ),
           // Footer with both versions — this app's, read from package

@@ -206,7 +206,7 @@ void main() {
   });
 
   testWidgets(
-    'pad pollingu pokazuje baner NAD ostatnimi danymi, nie zamiast nich',
+    'a failed poll shows the banner above the last data, not instead of it',
     (tester) async {
       await tester.pumpWidget(
         _app(
@@ -240,27 +240,56 @@ void main() {
     expect(find.byType(ConnectionBanner), findsNothing);
   });
 
-  group('the drawer footer names both versions', () {
-    /// Opens the drawer of a dashboard whose server version read answers
-    /// [version] — `null` being "the server never told us".
-    Future<void> openDrawer(
-      WidgetTester tester, {
-      String? version,
-      TextScaler textScaler = TextScaler.noScaling,
-    }) async {
-      await tester.pumpWidget(
-        _app(
-          const DashboardState(),
-          extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
-          textScaler: textScaler,
-        ),
-      );
-      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-      // `settle`, not `pumpAndSettle`: the dashboard keeps an animation
-      // running, so waiting for a still frame never returns.
-      await settle(tester);
-    }
+  /// Opens the drawer of a dashboard whose server version read answers
+  /// [version] — `null` being "the server never told us".
+  Future<void> openDrawer(
+    WidgetTester tester, {
+    DashboardState state = const DashboardState(),
+    String? version,
+    TextScaler textScaler = TextScaler.noScaling,
+  }) async {
+    await tester.pumpWidget(
+      _app(
+        state,
+        extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+        textScaler: textScaler,
+      ),
+    );
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    // `settle`, not `pumpAndSettle`: the dashboard keeps an animation
+    // running, so waiting for a still frame never returns.
+    await settle(tester);
+  }
 
+  testWidgets('the drawer list does not stretch, the printer list still does', (
+    tester,
+  ) async {
+    await openDrawer(
+      tester,
+      state: const DashboardState(
+        printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+      ),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byType(StretchingOverscrollIndicator),
+      ),
+      findsNothing,
+    );
+    // Proves the lookup above can find one at all: the switch is the drawer's
+    // alone, not an app-wide change of overscroll look.
+    expect(
+      find.descendant(
+        of: find.byType(RefreshIndicator),
+        matching: find.byType(StretchingOverscrollIndicator),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  group('the drawer footer names both versions', () {
     testWidgets('the server version the app is talking to', (tester) async {
       PackageInfo.setMockInitialValues(
         appName: 'bambuddy',
