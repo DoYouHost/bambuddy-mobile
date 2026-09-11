@@ -5996,11 +5996,11 @@ abstract class AppLocalizations {
   /// **'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.'**
   String get aboutTagline;
 
-  /// No description provided for @aboutVersion.
+  /// This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}'**
-  String aboutVersion(String version);
+  /// **'App {version}'**
+  String appVersionLabel(String version);
 
   /// Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.
   ///
@@ -9379,12 +9379,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current server'**
   String get wearCurrentServer;
-
-  /// Watch settings footer: this app's own version. Shorter than the phone's wording because a watch line holds about twelve characters.
-  ///
-  /// In en, this message translates to:
-  /// **'App {version}'**
-  String wearAppVersion(String version);
 
   /// Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for.
   ///

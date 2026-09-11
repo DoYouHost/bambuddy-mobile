@@ -603,11 +603,22 @@ final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
 /// unreachable, or a reply this build's parser made nothing of — the screen
 /// says so rather than guessing a number.
 ///
-/// Only ever read behind a configured profile: [apiClientProvider] throws
-/// without one, and the drawer that shows this lives inside the dashboard.
-final serverVersionLabelProvider = FutureProvider<String?>(
-  (ref) => ref.watch(serverVersionServiceProvider).reportedVersion(),
-);
+/// Answers `null` with no profile rather than letting [apiClientProvider] throw
+/// on the way: the router keeps every screen that shows this behind a profile,
+/// but a screen is a weaker guarantee than a check, and this one is read from
+/// three of them now.
+///
+/// `autoDispose` is what keeps [ServerVersionService]'s retry reachable. A
+/// kept provider caches its first answer for the life of the container, so a
+/// drawer opened once in a lift would have shown "unknown" until the app was
+/// killed — the service's five-minute window would tick by with nobody left to
+/// ask. Disposed with the drawer, the next opening asks again; the service is
+/// the one holding the cache, so asking again costs a request only when it is
+/// actually due.
+final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
+  if (ref.watch(serverProfileProvider) == null) return null;
+  return ref.watch(serverVersionServiceProvider).reportedVersion();
+});
 
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(

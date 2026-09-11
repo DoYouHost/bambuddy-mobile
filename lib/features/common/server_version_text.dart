@@ -13,11 +13,16 @@ import '../../l10n/app_localizations.dart';
 /// watch's RPC action stays silent, a server may be unreachable this second —
 /// three different causes, one sentence, and no footer is the place to sort
 /// them out.
-String serverVersionText(AppLocalizations l10n, AsyncValue<String?> version) =>
-    switch (version) {
-      AsyncData(:final value?) => l10n.serverVersionLabel(value),
-      // Still asking: the label with an ellipsis rather than "unknown", which
-      // would be a wrong answer for as long as the request is in flight.
-      AsyncLoading() => l10n.serverVersionLabel('…'),
-      _ => l10n.serverVersionUnknown,
-    };
+String serverVersionText(AppLocalizations l10n, AsyncValue<String?> version) {
+  // `valueOrNull` before the state, not a `switch` on the state: a refresh
+  // arrives as `AsyncLoading` carrying the previous value, and an `AsyncError`
+  // keeps it too. Matching on the state first would blank a version we still
+  // know — and this one cannot go stale while it is displayed, because a
+  // server changing version has restarted and dropped the connection.
+  final known = version.valueOrNull;
+  if (known != null) return l10n.serverVersionLabel(known);
+  // Nothing known yet and still asking: the label with an ellipsis rather than
+  // "unknown", which would be a wrong answer for as long as the request is out.
+  if (version.isLoading) return l10n.serverVersionLabel('…');
+  return l10n.serverVersionUnknown;
+}

@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
+import '../common/server_version_text.dart';
 import '../common/system_insets.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
@@ -132,7 +133,9 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-/// The running build, as `readAppVersion` spells it everywhere else.
+/// This build over the connected server's, in the wording the drawer footer and
+/// the watch use — this is the screen someone opens *to read a version off*, and
+/// it was the only one of the three that never named the server at all.
 class _VersionLabel extends ConsumerWidget {
   const _VersionLabel();
 
@@ -140,9 +143,17 @@ class _VersionLabel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return Text(
-      l10n.aboutVersion(ref.watch(appVersionProvider).value ?? '…'),
-      style: t.monoLabel,
+    return Column(
+      children: [
+        Text(
+          l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…'),
+          style: t.monoLabel,
+        ),
+        Text(
+          serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+          style: t.monoLabel,
+        ),
+      ],
     );
   }
 }

@@ -455,9 +455,39 @@ class HybridWearTransport implements WearTransport {
   Future<WearFleet> getFleet() =>
       _run(WearRpcAction.getFleet, (t) => t.getFleet());
 
+  /// The one call that does not take the relay's answer as final.
+  ///
+  /// The phone reports "no version" for two different things: a server that
+  /// really has no `/updates/version` route, and a server it could not reach
+  /// at all — `ServerVersionService` swallows the difference by design, so the
+  /// reply is an `ok`, and an `ok` is precisely what takes the relay's own
+  /// fallback out of play. A phone in a dead spot would therefore talk a watch
+  /// that has its own connection out of using it.
+  ///
+  /// So an unknown from the phone is worth a second opinion, where there is a
+  /// second path to ask down. Nothing else works this way, and nothing else
+  /// may: this is a read whose answer is a constant for the life of the
+  /// connection and is cached on both sides, so asking twice costs one request
+  /// and can only turn "I don't know" into an answer.
   @override
-  Future<String?> getServerVersion() =>
-      _run(WearRpcAction.getServerVersion, (t) => t.getServerVersion());
+  Future<String?> getServerVersion() async {
+    final relayed = await _run(
+      WearRpcAction.getServerVersion,
+      (t) => t.getServerVersion(),
+    );
+    final rest = _rest;
+    if (relayed != null || rest == null) return relayed;
+    // Already served by REST — `_run` fell back, and there is no third path.
+    if (lastMode == WearTransportMode.rest) return null;
+    try {
+      final own = await rest.getServerVersion();
+      if (own != null) lastMode = WearTransportMode.rest;
+      return own;
+    } on Object {
+      // Our own connection is no better than the phone's. Unknown stands.
+      return null;
+    }
+  }
 
   @override
   Future<void> pause(int printerId) =>

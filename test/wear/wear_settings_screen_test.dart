@@ -225,4 +225,29 @@ void main() {
     await revealOnWatch(tester, find.text('Nieznana wersja serwera'));
     expect(find.text('Nieznana wersja serwera'), findsOneWidget);
   });
+
+  testWidgets('the longest version there is stays on the glass', (
+    tester,
+  ) async {
+    // A daily build is the longest string this footer can ever be handed.
+    //
+    // Deliberately NOT an assertion about ellipsis: a widget test renders in
+    // the test font, whose digits are a full em wide, while the watch renders
+    // in the platform font at a bit over half that — measured here, the
+    // unbreakable run `0.14.0+2028000` comes to 143.5 dp against a 141.8 dp
+    // viewport in the test font and around 80 dp on the device. Pinning pixels
+    // would be pinning a font the app never uses. What does carry over is the
+    // geometry: the line has to sit inside the circle, which is the failure
+    // that actually cut a Pause button's ends once.
+    await pumpSettings(tester, serverVersion: '1.2.6b1-daily.20260729');
+    await tester.pumpAndSettle();
+
+    for (final line in [
+      'Aplikacja 0.14.0+2028000',
+      'Serwer 1.2.6b1-daily.20260729',
+    ]) {
+      await revealOnWatch(tester, find.text(line));
+      expectOnGlass(tester, find.text(line), reason: line);
+    }
+  });
 }

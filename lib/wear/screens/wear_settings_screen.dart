@@ -146,19 +146,24 @@ class _WearVersions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
-        _line(l10n.wearAppVersion(ref.watch(appVersionProvider).value ?? '…')),
+        _line(l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…')),
         _line(serverVersionText(l10n, ref.watch(wearServerVersionProvider))),
       ],
     );
   }
 
-  /// Two lines because a watch face has room for about twenty characters at
-  /// this size and `app 0.14.0+2028000` is longer than that; ellipsizing would
-  /// cut the build number, which is the half a report is filed with.
+  /// Three lines, not two. The round-safe viewport is 141.8 dp on the smallest
+  /// face and the watch renders in the platform font, where both of these fit
+  /// on one line at the default text size — but a user who has turned system
+  /// text up wraps them, and `Serwer 1.2.6b1-daily.20260729` then needs three:
+  /// `Serwer`, `1.2.6b1-`, `daily.20260729`, the hyphen being the only break
+  /// the string offers. A third line costs 14 dp at the bottom of a scroll
+  /// view; ellipsizing costs the build number, which is the half a report is
+  /// filed with.
   static Widget _line(String text) => Text(
     text,
     textAlign: TextAlign.center,
-    maxLines: 2,
+    maxLines: 3,
     overflow: TextOverflow.ellipsis,
     style: WearText.fine,
   );

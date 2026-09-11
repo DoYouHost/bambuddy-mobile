@@ -850,6 +850,14 @@ class _AppDrawer extends ConsumerWidget {
 }
 
 /// Drawer footer: this app's version over the connected server's.
+///
+/// Both lines are one phrasing (`App x` / `Server y`) rather than the
+/// `Bambuddy v0.14.0` this used to carry over the unprefixed server line: two
+/// lines answering the same question read as answering different ones when one
+/// of them is spelled differently. The `v` is gone rather than copied onto the
+/// server line — `ServerVersion` strips a leading `v` because the server
+/// sometimes sends one itself, so that line would have read `Server v v1.2.6`.
+/// The name is not repeated either; the drawer header carries it already.
 class _DrawerVersions extends ConsumerWidget {
   const _DrawerVersions();
 
@@ -863,17 +871,14 @@ class _DrawerVersions extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Icon(Icons.print_rounded, size: 14, color: t.textTertiary),
+          child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
         ),
         const SizedBox(width: 6),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                app == null ? 'Bambuddy' : 'Bambuddy v$app',
-                style: t.labelSoft,
-              ),
+              Text(l10n.appVersionLabel(app ?? '…'), style: t.labelSoft),
               Text(
                 serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
                 style: t.labelSoft,

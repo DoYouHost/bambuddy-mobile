@@ -20,6 +20,28 @@ void main() {
     expect(serverVersionText(l10n, const AsyncLoading()), 'Server …');
   });
 
+  group('a version already known survives the next read', () {
+    // Riverpod carries the previous value into both states, and the version
+    // cannot go stale while it is on screen: a server that changed version has
+    // restarted, which drops the connection under us anyway.
+    test('a refresh keeps it rather than blanking to an ellipsis', () {
+      final refreshing = const AsyncLoading<String?>().copyWithPrevious(
+        const AsyncData<String?>('1.2.6'),
+      );
+
+      expect(serverVersionText(l10n, refreshing), 'Server 1.2.6');
+    });
+
+    test('a failed refresh keeps it rather than forgetting it', () {
+      final failed = AsyncError<String?>(
+        Exception('unreachable'),
+        StackTrace.empty,
+      ).copyWithPrevious(const AsyncData<String?>('1.2.6'));
+
+      expect(serverVersionText(l10n, failed), 'Server 1.2.6');
+    });
+  });
+
   test('every way of not knowing lands on the same sentence', () {
     // An older bambuddy with no /updates/version route answers null; a read
     // that threw arrives as an error. One fact to the reader, one sentence.

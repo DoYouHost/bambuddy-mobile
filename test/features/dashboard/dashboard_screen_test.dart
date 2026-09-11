@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
@@ -249,8 +250,19 @@ void main() {
     }
 
     testWidgets('the server version the app is talking to', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'bambuddy',
+        packageName: 'page.codeberg.morganmlgman.bambuddy_mobile',
+        version: '0.14.0',
+        buildNumber: '2028000',
+        buildSignature: '',
+      );
       await openDrawer(tester, version: '1.2.6b1');
 
+      // One phrasing for the pair. The app line used to read `Bambuddy
+      // v0.14.0+2028000` over an unprefixed `Serwer 1.2.6`, which read as two
+      // answers to two different questions.
+      expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
       expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
     });
 

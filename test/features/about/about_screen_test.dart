@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/features/about/about_screen.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -15,13 +16,37 @@ void main() {
     );
   });
 
-  testWidgets('the version comes off the shared reader', (tester) async {
-    // The screen had its own `PackageInfo` future in a `State`; it now reads
-    // the same provider the two footers do, and this is the only test that
-    // would notice the About screen being left behind.
-    await pumpPhone(tester, const AboutScreen());
+  testWidgets('names both versions, in the wording the other two use', (
+    tester,
+  ) async {
+    // The screen someone opens to read a version off was the only one of the
+    // three that never named the server, and it called the app's own build a
+    // third thing ("Wersja") after the drawer's and the watch's two.
+    await pumpPhone(
+      tester,
+      const AboutScreen(),
+      overrides: [
+        fakeServerProfileOverride(),
+        serverVersionLabelProvider.overrideWith((ref) => '1.2.6b1'),
+      ],
+    );
     await settle(tester);
 
-    expect(find.text('Wersja 0.14.0+2028000'), findsOneWidget);
+    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
+    expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+  });
+
+  testWidgets('an older server leaves the line, not a gap', (tester) async {
+    await pumpPhone(
+      tester,
+      const AboutScreen(),
+      overrides: [
+        fakeServerProfileOverride(),
+        serverVersionLabelProvider.overrideWith((ref) => null),
+      ],
+    );
+    await settle(tester);
+
+    expect(find.text('Nieznana wersja serwera'), findsOneWidget);
   });
 }

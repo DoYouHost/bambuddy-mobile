@@ -86,7 +86,10 @@ final wearServerVersionProvider = FutureProvider.autoDispose<String?>((
   ref,
 ) async {
   try {
-    return await ref.read(wearTransportProvider).getServerVersion();
+    // Watched, not read: the transport is rebuilt when the profile changes,
+    // and an answer obtained through the previous one is about the previous
+    // server.
+    return await ref.watch(wearTransportProvider).getServerVersion();
   } on Object {
     return null;
   }

@@ -272,6 +272,69 @@ void main() {
       }
     });
 
+    group('an unknown version from the phone gets a second opinion', () {
+      test('a phone in a dead spot does not settle it for us', () async {
+        // The phone answers `ok` with no version both when the server has no
+        // such route and when it could not reach the server at all, and an
+        // `ok` is what takes the ordinary fallback out of play. A watch with
+        // its own connection must not be talked out of using it.
+        final rest = FakeWearTransport(serverVersion: '1.2.6');
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), '1.2.6');
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('a phone that answered is believed, and asked once', () async {
+        final rest = FakeWearTransport(serverVersion: '9.9.9');
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(serverVersion: '1.2.6'),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), '1.2.6');
+        expect(rest.calls, isEmpty, reason: 'the relay already answered');
+      });
+
+      test('REST that already served is not asked twice', () async {
+        // `_run` fell back on its own; there is no third path to try.
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(error: WearRelayTimeout()),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), isNull);
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('demo asks its own backend exactly once', () async {
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport.restOnly(rest);
+
+        expect(await hybrid.getServerVersion(), isNull);
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('a relay-only watch has nowhere else to ask', () async {
+        final hybrid = HybridWearTransport(relay: FakeWearTransport());
+
+        expect(await hybrid.getServerVersion(), isNull);
+      });
+
+      test('our own connection failing leaves the unknown standing', () async {
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(),
+          rest: FakeWearTransport(error: WearRelayUnreachable()),
+        );
+
+        expect(await hybrid.getServerVersion(), isNull);
+      });
+    });
+
     test('a silent old phone hands the version read to REST', () async {
       // The whole reason the new action is classified as a read: a phone that
       // cannot decode it answers nothing, and a watch with a profile of its

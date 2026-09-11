@@ -1303,8 +1303,11 @@
   "aboutMenu": "About",
   "aboutTitle": "About",
   "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
-  "aboutVersion": "Version {version}",
-  "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
+  "appVersionLabel": "App {version}",
+  "@appVersionLabel": {
+    "description": "This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.",
+    "placeholders": { "version": { "type": "String" } }
+  },
   "serverVersionLabel": "Server {version}",
   "@serverVersionLabel": {
     "description": "Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.",
@@ -1975,11 +1978,6 @@
   "wearAuthNone": "No sign-in",
   "wearFromPhoneWaiting": "The phone offers a different server.",
   "wearCurrentServer": "Current server",
-  "wearAppVersion": "App {version}",
-  "@wearAppVersion": {
-    "description": "Watch settings footer: this app's own version. Shorter than the phone's wording because a watch line holds about twelve characters.",
-    "placeholders": { "version": { "type": "String" } }
-  },
   "wearOk": "OK",
   "@wearOk": {
     "description": "Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for."

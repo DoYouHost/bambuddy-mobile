@@ -156,7 +156,11 @@ void main() {
       );
     });
 
-    test('a version sent as a number is read, not dropped', () async {
+    test('a version that is not text is unknown, not a crash', () async {
+      // Deliberately not stringified: `2` is not a version anyone can act on,
+      // and printing it would put a number in the footer that matches no
+      // release. Unknown is the honest answer; what matters is that the read
+      // does not throw on the way to it.
       adapter.onGet(
         '/api/v1/updates/version',
         (server) => server.reply(200, {'version': 2, 'repo': 'x/y'}),
