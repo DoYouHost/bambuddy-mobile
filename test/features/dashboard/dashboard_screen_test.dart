@@ -261,33 +261,37 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('the drawer list does not stretch, the printer list still does', (
-    tester,
-  ) async {
-    await openDrawer(
-      tester,
-      state: const DashboardState(
-        printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
-      ),
-    );
+  testWidgets(
+    'the drawer list does not stretch, the printer list still does',
+    (tester) async {
+      await openDrawer(
+        tester,
+        state: const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+      );
 
-    expect(
-      find.descendant(
-        of: find.byType(Drawer),
-        matching: find.byType(StretchingOverscrollIndicator),
-      ),
-      findsNothing,
-    );
-    // Proves the lookup above can find one at all: the switch is the drawer's
-    // alone, not an app-wide change of overscroll look.
-    expect(
-      find.descendant(
-        of: find.byType(RefreshIndicator),
-        matching: find.byType(StretchingOverscrollIndicator),
-      ),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsNothing,
+      );
+      // Proves the lookup above can find one at all: the switch is the drawer's
+      // alone, not an app-wide change of overscroll look.
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsOneWidget,
+      );
+    },
+    // Stretch is Android's overscroll look; on any other platform neither
+    // assertion would say anything about it.
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
 
   group('the drawer footer names both versions', () {
     testWidgets('the server version the app is talking to', (tester) async {
