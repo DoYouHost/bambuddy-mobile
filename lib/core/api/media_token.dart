@@ -6,6 +6,9 @@ import 'endpoints.dart';
 /// Mints the token an `<img>`/video element carries in `?token=`, having no way
 /// to send a header. `null` on a server predating #3025 — see
 /// [MediaAuthService], which decides what to send instead.
+///
+/// That server answers the mint with 405, not 404; `CachedTokenService` reads
+/// both as absence and says why.
 class MediaTokenService extends CachedTokenService {
   MediaTokenService(Dio dio) : super(dio, Endpoints.mediaToken);
 

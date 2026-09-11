@@ -74,6 +74,18 @@ void main() {
     expect(await service.token(forceRefresh: true), 'tok2');
   });
 
+  test('405 is an absence too — that is what bambuddy answers', () async {
+    // The SPA catch-all is GET-only (`@app.get("/{full_path:path}")`), so a
+    // POST to a mint the server does not have matches its path but not its
+    // method: Starlette replies 405 and never reaches its own 404. Reading
+    // only 404 here is what left every media request without a credential on
+    // a pre-#3025 server.
+    mint.status = 405;
+
+    expect(await service.token(), isNull);
+    expect(service.routeAbsent, isTrue);
+  });
+
   test('a route that answers is not marked absent', () async {
     mint.status = 200;
 

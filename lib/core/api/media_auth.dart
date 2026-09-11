@@ -59,7 +59,8 @@ class MediaAuth {
 /// instead: the token it mints names no principal, and the route refuses it for
 /// exactly that reason (`core/auth.py::_user_from_media_token`). A server older
 /// than #3025 gets the camera stream token, the only thing it accepts here —
-/// recognised by the mint answering 404, never by the version it reports.
+/// recognised by the mint refusing the route (404/405, see
+/// `CachedTokenService`), never by the version it reports.
 class MediaAuthService {
   MediaAuthService({
     required MediaTokenService media,
@@ -97,8 +98,8 @@ class MediaAuthService {
   }
 
   Future<MediaAuth> auth({bool forceRefresh = false}) async {
-    // Answers null without a request once the mint has 404'd, and probes again
-    // on a forced refresh — [CachedTokenService.routeAbsent].
+    // Answers null without a request once the mint has refused the route, and
+    // probes again on a forced refresh — [CachedTokenService.routeAbsent].
     final token = await _media.token(forceRefresh: forceRefresh);
     if (token != null) {
       if (_authMode != AuthMode.apiKey) return MediaAuth(queryToken: token);

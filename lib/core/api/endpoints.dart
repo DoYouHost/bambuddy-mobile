@@ -60,8 +60,9 @@ abstract final class Endpoints {
   /// Mint a short-lived media token (valid ~60 min). Required as `?token=` on
   /// every image/video route the app loads outside Dio — thumbnails, covers,
   /// plate renders, photos, timelapses — since server 1.2.5.5 (#3025) took
-  /// those off the camera stream token. **404 on older servers**, which still
-  /// want [cameraStreamToken] there; `MediaAuthService` picks between the two.
+  /// those off the camera stream token. **Refused on older servers** (405 from
+  /// the SPA catch-all, not 404), which still want [cameraStreamToken] there;
+  /// `MediaAuthService` picks between the two.
   static const mediaToken = '$apiPrefix/auth/media-token';
 
   // Trailing slash required: server (FastAPI) has route at `/printers/`,

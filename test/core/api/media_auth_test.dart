@@ -151,6 +151,17 @@ void main() {
       },
     );
 
+    test(
+      '405 falls back as well — it is how bambuddy refuses the route',
+      () async {
+        mints.mediaStatus = 405;
+
+        final auth = await serviceFor(AuthMode.jwt).auth();
+
+        expect(auth.queryToken, 'cam1');
+      },
+    );
+
     test('the missing mint is asked for once, not per image', () async {
       mints.mediaStatus = 404;
       final service = serviceFor(AuthMode.jwt);

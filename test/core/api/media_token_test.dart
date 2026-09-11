@@ -32,6 +32,15 @@ void main() {
     expect(await service.token(), isNull);
   });
 
+  test(
+    '405 is the same verdict — the answer an old server really gives',
+    () async {
+      adapter.onPost(_tokenPath, (server) => server.reply(405, {}));
+
+      expect(await service.token(), isNull);
+    },
+  );
+
   test('a 200 without a token field is malformed, not an old server', () async {
     adapter.onPost(_tokenPath, (server) => server.reply(200, {}));
 

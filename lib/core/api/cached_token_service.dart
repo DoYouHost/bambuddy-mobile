@@ -23,7 +23,8 @@ abstract class CachedTokenService {
   DateTime? get expiresAt => _expiresAt;
 
   /// Whether the last mint found no such route on this server, so [cachedToken]
-  /// now answers `null` without asking again.
+  /// now answers `null` without asking again — see [_routeMissing] for what
+  /// "no such route" looks like on the wire.
   ///
   /// Remembering the absence is the point: a token this old a server does not
   /// have is asked for once per *use*, not once per session — a page of
@@ -61,12 +62,21 @@ abstract class CachedTokenService {
     }
   }
 
+  /// A mint this server does not have. 404 is the obvious answer; **405 is the
+  /// one bambuddy actually gives**, and missing it is what broke every
+  /// thumbnail on a pre-#3025 server: the SPA catch-all (`main.py::serve_spa`)
+  /// is declared `@app.get("/{full_path:path}")`, so an unknown
+  /// `POST /api/v1/auth/…` matches its path but not its method —
+  /// Starlette answers such a partial match with 405 and never reaches its own
+  /// 404 (`starlette/routing.py`, `Match.PARTIAL`).
+  static bool _routeMissing(int? status) => status == 404 || status == 405;
+
   Future<String?> _mint() async {
     final Response<Map<String, dynamic>> res;
     try {
       res = await _dio.post<Map<String, dynamic>>(_endpoint);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
+      if (_routeMissing(e.response?.statusCode)) {
         _routeAbsent = true;
         return null;
       }

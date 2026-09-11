@@ -14,9 +14,9 @@ import 'endpoints.dart';
 class CameraTokenService extends CachedTokenService {
   CameraTokenService(Dio dio) : super(dio, Endpoints.cameraStreamToken);
 
-  /// Unlike `WsTokenService`, a 404 here means an unexpectedly old server —
-  /// camera tokens have always been required — so it surfaces as an API error
-  /// instead of degrading silently.
+  /// Unlike `WsTokenService`, a missing route here means an unexpectedly old
+  /// server — camera tokens have always been required — so it surfaces as an
+  /// API error instead of degrading silently.
   Future<String> token({bool forceRefresh = false}) async {
     final token = await cachedToken(forceRefresh: forceRefresh);
     if (token == null) {
