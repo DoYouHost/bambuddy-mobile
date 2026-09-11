@@ -23,6 +23,9 @@ const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
+  /// Side of the app icon at the top.
+  static const _iconSize = 88.0;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -44,15 +47,19 @@ class AboutScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
                     'assets/icon/icon.png',
-                    width: 88,
-                    height: 88,
+                    width: _iconSize,
+                    height: _iconSize,
                     // Same 1024x1024 launcher source as the drawer header —
                     // and a second cache entry, since the resized provider is
                     // keyed apart from the plain one.
-                    cacheWidth: (88 * MediaQuery.devicePixelRatioOf(context))
-                        .round(),
-                    errorBuilder: (_, _, _) =>
-                        Icon(Icons.print, size: 88, color: t.textPrimary),
+                    cacheWidth:
+                        (_iconSize * MediaQuery.devicePixelRatioOf(context))
+                            .round(),
+                    errorBuilder: (_, _, _) => Icon(
+                      Icons.print,
+                      size: _iconSize,
+                      color: t.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
