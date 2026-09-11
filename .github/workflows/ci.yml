@@ -13,13 +13,11 @@ name: CI
 on:
   pull_request:
     branches: [master]
-    # Docs, the Pages site and store copy can't break the build; skipping them
-    # keeps both runners free for changes that can.
-    paths-ignore:
-      - "site/**"
-      - "docs/**"
-      - "store-assets/**"
-      - "**/*.md"
+    # No paths-ignore here, deliberately — see "Does this change need a build?"
+    # below, which holds the same list. A `paths-ignore` decides whether the
+    # workflow RUNS, and a workflow that does not run reports no check at all;
+    # once "analyze · test · build" became a required status on master that left
+    # a docs-only PR waiting forever on a check that could never arrive.
   workflow_dispatch:
 
 # A force-push should not leave the previous run burning a runner for a commit
@@ -30,6 +28,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Reading which files a pull request touches, for the path filter below.
+  pull-requests: read
 
 jobs:
   check:
@@ -41,32 +41,104 @@ jobs:
         with:
           fetch-depth: 1
 
+      # The list that used to be `paths-ignore`. Deciding it here instead keeps
+      # the check reported: steps skipped by `if:` still land in a job that
+      # succeeds, which is what a required status needs to see. Anything this
+      # cannot determine — a non-PR event, an API that will not answer, a pull
+      # request larger than the pages read — falls through to building, because
+      # the expensive mistake is skipping a change that breaks the app.
+      - name: Does this change need a build?
+        id: relevant
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "not a pull request — building"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files"
+          files=""
+          for page in 1 2 3 4 5; do
+            batch="$(curl -fsS --max-time 20 \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "${api}?per_page=100&page=${page}" | jq -r '.[].filename')" || {
+                echo "could not list changed files — building"
+                echo "run=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              }
+            [ -z "${batch}" ] && break
+            files="${files}${batch}"$'\n'
+            [ "$(printf '%s' "${batch}" | wc -l)" -lt 99 ] && break
+            if [ "${page}" -eq 5 ]; then
+              echo "more changed files than we read — building"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          if [ -z "${files//[[:space:]]/}" ]; then
+            echo "no files reported — building"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # `case` globs span slashes, so site/* covers site/a/b and *.md covers
+          # any depth — the same reach the old "site/**" / "**/*.md" had.
+          needs_build=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              site/*|docs/*|store-assets/*|*.md) ;;
+              *) needs_build=true; echo "needs a build: $f" ;;
+            esac
+          done <<< "${files}"
+
+          if [ "${needs_build}" = true ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "only docs, site or store copy changed — nothing to build"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # Which SDK actually ran matters when a failure reproduces nowhere else.
       - name: Toolchain
+        if: steps.relevant.outputs.run == 'true'
         run: flutter --version
 
       # --enforce-lockfile, so a stale lock fails here instead of quietly
       # resolving something else. Committing the lock only guarantees a
       # reproducible build while pub is actually made to honour it.
       - name: Dependencies
+        if: steps.relevant.outputs.run == 'true'
         run: flutter pub get --enforce-lockfile
 
       # Style is not a judgement call any more: `dart format` is the whole of
       # it, so a diff carries only the change it is about. Fix a red run with
       # `dart format lib test tool`, never by hand.
       - name: Format
+        if: steps.relevant.outputs.run == 'true'
         run: dart format --output=none --set-exit-if-changed lib test tool
 
       - name: Analyze
+        if: steps.relevant.outputs.run == 'true'
         run: flutter analyze
 
       - name: Test
+        if: steps.relevant.outputs.run == 'true'
         run: flutter test
 
       - name: Compile check (mobile)
+        if: steps.relevant.outputs.run == 'true'
         run: flutter build apk --debug --flavor mobile --target-platform android-arm64
 
       - name: Compile check (wear)
+        if: steps.relevant.outputs.run == 'true'
         run: |
           flutter build apk --debug --flavor wear \
             --target lib/wear/main_wear.dart --target-platform android-arm64
