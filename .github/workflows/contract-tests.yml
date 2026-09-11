@@ -113,7 +113,7 @@ jobs:
       # reporting a job, one uploaded file and one queued item.
       - name: Seed
         run: |
-          python3 tool/ci/seed_bambuddy.py \
+          bash tool/ci/seed_bambuddy.sh \
             --base-url "${{ steps.server.outputs.base }}" \
             --broker-ip "${{ steps.server.outputs.broker_ip }}" \
             --broker-container "${{ steps.server.outputs.broker }}" \
