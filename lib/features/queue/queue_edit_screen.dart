@@ -889,24 +889,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           (slotId: r.slotId, type: r.type ?? '', color: r.color ?? ''),
       ];
     }
-    // Paired by position, knowing the colour list can be the shorter of the
-    // two: the server joins every type but drops a filament whose colour is
-    // empty (`main.py::_extract_filament_data_from_mqtt`, where the `if f[1]`
-    // sits on the colour join alone). A slot with no RFID tag therefore
-    // shifts every colour after it by one, and neither string says where the
-    // gap was, so this cannot be repaired here — only server-side. Shifted
-    // but present is the decision: refusing to pair would blank the rows that
-    // are right today.
+    // Paired by position, and the two strings diverge in BOTH directions —
+    // which is why the loop runs to the longer of them rather than to either
+    // one. Three mechanisms, all server-side and none repairable here, because
+    // neither string says which slot a token belonged to:
+    //
+    //   - Colours shorter. The MQTT fallback joins every type but skips a
+    //     filament whose colour is empty (`_extract_filament_data_from_mqtt`
+    //     in main.py, where the `if f[1]` sits on the colour join alone), so a
+    //     slot with no RFID tag shifts every colour after it by one.
+    //   - Colours longer. The archive extractor deduplicates BOTH lists
+    //     independently (`services/archive.py`, reading slice_info.config's
+    //     `<filament type= color= used_g=>`), so two slots of one material in
+    //     two colours collapse to one type while both colours survive. It is
+    //     the duplicate value, not the field, that decides which list shortens.
+    //     Measured on a live server: over 35 populated values the type string
+    //     never once repeated a material.
+    //   - Either, at length. The columns cap at 50 characters for the types
+    //     and 200 for the colours, so a print with enough filaments loses the
+    //     tail of one list before the other.
+    //
+    // Bounding the loop by the type list used to drop the surplus colour
+    // outright — a two-colour print rendered as one filament. A row with no
+    // type is not a guess: `_overrideRow` renders it as an em dash, which says
+    // "a slot is here and we cannot name its material", where the colour
+    // simply vanishing said nothing at all.
     final types = filamentTypeTokens(it.filamentType);
-    final colors = (it.filamentColor ?? '')
-        .split(',')
-        .map((s) => s.trim())
-        .toList();
+    final colors = filamentColourTokens(it.filamentColor);
+    final slots = types.length > colors.length ? types.length : colors.length;
     return [
-      for (var i = 0; i < types.length; i++)
+      for (var i = 0; i < slots; i++)
         (
           slotId: i + 1,
-          type: types[i],
+          type: i < types.length ? types[i] : '',
           color: i < colors.length ? colors[i] : '',
         ),
     ];
