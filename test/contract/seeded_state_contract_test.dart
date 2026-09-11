@@ -1,4 +1,6 @@
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:dio/dio.dart';
@@ -19,11 +21,13 @@ void main() {
     late Dio dio;
     late PrintersRepository printers;
     late QueueRepository queue;
+    late LibraryRepository library;
 
     setUpAll(() async {
       dio = await authenticatedDio();
       printers = PrintersRepository(dio);
       queue = QueueRepository(dio);
+      library = LibraryRepository(dio);
     });
 
     test('the seeded printer decodes, and it is the seeded one', () async {
@@ -54,6 +58,26 @@ void main() {
         closeTo(42, 0.01),
         reason: 'mc_percent is no longer what the app reads as progress',
       );
+    });
+
+    test('PrinterStatus decodes live AMS units and trays', () async {
+      final all = await printers.fetchPrinters();
+      final status = await printers.fetchStatus(all.first.id);
+
+      expect(status, isNotNull, reason: 'the server has no status to give');
+      expect(status!.ams, isNotNull, reason: 'AMS payload did not make it');
+
+      final trays = status.ams!
+          .expand((u) => u.trays ?? const <AmsTray>[])
+          .toList();
+      expect(trays.length, 2);
+
+      // The seed payload wrote RRGGBBAA with a full alpha byte; if that
+      // vanished or shifted into a 6-char hex somewhere on the wire, the
+      // app's color parser would misread it.
+      expect(trays.first.trayColor, matches(RegExp(r'^[0-9A-Fa-f]{8}$')));
+      expect(trays.map((t) => t.trayColor).toSet().length, 2);
+      expect(trays.map((t) => t.trayType).toSet(), {'PLA'});
     });
 
     test('AMS trays survive the trip from the wire', () async {
@@ -120,5 +144,121 @@ void main() {
             'be reconsidered — do not just relax this',
       );
     });
+
+    test(
+      'seeded queue item decodes metadata linked to printer and library file',
+      () async {
+        final items = await queue.fetch();
+        final printersList = await printers.fetchPrinters();
+        final files = await library.listFiles();
+
+        expect(items, isNotEmpty, reason: 'no queue item found');
+        final item = items.first;
+        final printer = printersList.first;
+        final file = files.firstWhere((f) => f.filename == 'contract-probe.3mf');
+
+        expect(item.printerId, printer.id);
+        expect(item.printerName, printer.name);
+        expect(item.libraryFileId, file.id);
+        expect(item.libraryFileName, file.filename);
+        expect(item.status, QueueItemStatusKind.pending);
+      },
+    );
+
+    test(
+      'a running job decodes extended telemetry into PrinterStatus',
+      () async {
+        final all = await printers.fetchPrinters();
+        final status = await printers.fetchStatus(all.first.id);
+
+        expect(status, isNotNull, reason: 'the server has no status to give');
+        expect(status!.currentPrint, 'contract-probe.3mf');
+        expect(status.temperatures?['nozzle'], closeTo(215.0, 0.1));
+        expect(status.temperatures?['bed'], closeTo(60.0, 0.1));
+        expect(status.layerNum, 30);
+        expect(status.totalLayers, 120);
+      },
+    );
+
+    test('the seeded library file decodes into LibraryFile', () async {
+      final files = await library.listFiles();
+
+      expect(files, isNotEmpty, reason: 'no library files found');
+      final file = files.firstWhere(
+        (f) => f.filename == 'contract-probe.3mf',
+        orElse: () => throw StateError(
+          'contract-probe.3mf missing from library: '
+          '${files.map((f) => f.filename).toList()}',
+        ),
+      );
+      expect(file.fileSize, greaterThan(0));
+    });
+
+    test('library file plates endpoint decodes through PlateList', () async {
+      final files = await library.listFiles();
+      final file = files.firstWhere((f) => f.filename == 'contract-probe.3mf');
+
+      final plateList = await library.plates(file.id);
+      expect(plateList.plates, isNotEmpty);
+      expect(plateList.plates.first.index, 1);
+    });
+
+    test(
+      'queue item options update round-trips through PATCH /api/v1/queue/{id}',
+      () async {
+        final items = await queue.fetch();
+        expect(items, isNotEmpty, reason: 'no queue item to update');
+        final item = items.first;
+
+        await queue.updateItem(
+          item.id,
+          manualStart: true,
+          timelapse: true,
+        );
+
+        final updated = (await queue.fetch()).firstWhere(
+          (it) => it.id == item.id,
+        );
+        expect(updated.manualStart, isTrue);
+        expect(updated.timelapse, isTrue);
+      },
+    );
+
+    test(
+      'queue item filament overrides round-trip in model-based mode',
+      () async {
+        final items = await queue.fetch();
+        expect(items, isNotEmpty, reason: 'no queue item to update');
+        final item = items.first;
+
+        final overrides = [
+          {
+            'slot_id': 1,
+            'type': 'PLA',
+            'color': '#00FF00',
+            'color_name': '#00FF00',
+            'force_color_match': true,
+          },
+        ];
+
+        await queue.updateItem(
+          item.id,
+          printerId: null,
+          targetModel: 'X1C',
+          filamentOverrides: overrides,
+        );
+
+        final updated = (await queue.fetch()).firstWhere(
+          (it) => it.id == item.id,
+        );
+        expect(updated.printerId, isNull);
+        expect(updated.targetModel, 'X1C');
+        expect(updated.filamentOverrides, isNotNull);
+        expect(updated.filamentOverrides!.length, 1);
+        expect(updated.filamentOverrides!.first['slot_id'], 1);
+        expect(updated.filamentOverrides!.first['type'], 'PLA');
+        expect(updated.filamentOverrides!.first['force_color_match'], isTrue);
+      },
+    );
   });
 }

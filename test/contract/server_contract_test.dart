@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -100,5 +101,68 @@ void main() {
             'slash in Endpoints.printers may no longer be load-bearing',
       );
     });
+
+    test('/auth/status answers public auth flags', () async {
+      // Connect flow probes auth/status to determine whether the server
+      // requires authentication or initial admin setup.
+      final unauthedDio = Dio(BaseOptions(baseUrl: contractBaseUrl));
+      final res = await unauthedDio.get<Map<String, dynamic>>(
+        Endpoints.authStatus,
+      );
+
+      expect(res.statusCode, 200);
+      expect(res.data?['auth_enabled'], isA<bool>());
+      expect(res.data?['requires_setup'], isA<bool>());
+    });
+
+    test('/updates/version answers unauthenticated and decodes', () async {
+      // Version must be readable before authentication — ServerVersionService
+      // probes this on connect to determine whether the server supports tri-state
+      // calibrations and other feature flags.
+      final unauthedDio = Dio(BaseOptions(baseUrl: contractBaseUrl));
+      final service = ServerVersionService(unauthedDio);
+      final version = await service.current();
+
+      expect(version, isNotNull, reason: 'server version could not be parsed');
+      expect(version!.raw, isNotEmpty);
+      expect(await service.reportedVersion(), isNotEmpty);
+    });
+
+    test(
+      'POST /auth/ws-token mints a valid websocket handshake token',
+      () async {
+        // The WebSocket upgrade cannot carry HTTP headers from browsers, so
+        // WebSocketClient mints a short-lived token to supply in ?token=.
+        final res = await dio.post<Map<String, dynamic>>(Endpoints.wsToken);
+
+        expect(res.statusCode, 200);
+        expect(res.data?['token'], isA<String>());
+        expect((res.data?['token'] as String).isNotEmpty, isTrue);
+      },
+    );
+
+    test('POST /auth/media-token mints a valid media token', () async {
+      // Elements loading images/videos (?token=) outside of Dio use this
+      // short-lived media token on newer servers.
+      final res = await dio.post<Map<String, dynamic>>(Endpoints.mediaToken);
+
+      expect(res.statusCode, 200);
+      expect(res.data?['token'], isA<String>());
+      expect((res.data?['token'] as String).isNotEmpty, isTrue);
+    });
+
+    test(
+      'POST /printers/camera/stream-token mints a valid camera token',
+      () async {
+        // MJPEG camera feeds and snapshots require this stream token.
+        final res = await dio.post<Map<String, dynamic>>(
+          Endpoints.cameraStreamToken,
+        );
+
+        expect(res.statusCode, 200);
+        expect(res.data?['token'], isA<String>());
+        expect((res.data?['token'] as String).isNotEmpty, isTrue);
+      },
+    );
   });
 }
