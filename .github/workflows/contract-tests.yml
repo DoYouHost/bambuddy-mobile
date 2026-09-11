@@ -69,57 +69,54 @@ jobs:
       # "localhost" is not shared. Publishing on the bridge gateway is what both
       # sides can name: the job reaches its own default route, and nothing on
       # the LAN can reach the port.
-      - name: Start bambuddy
+      # Two containers, both siblings of this job on the docker bridge. The
+      # server is published on the bridge gateway because "localhost" is not
+      # shared between siblings; nothing on the LAN can reach that address.
+      - name: Start bambuddy and the stand-in printer
         id: server
         run: |
           set -euo pipefail
-          # Asking Docker, not `ip`: the runner image carries no iproute2, and
-          # the bridge's own gateway is the better question anyway — it is the
-          # address the published port lands on AND this container's route to
-          # it, so the two cannot drift apart.
           gateway="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
           [ -n "$gateway" ] || { echo "bridge network reports no gateway"; exit 1; }
-          echo "gateway=$gateway" >> "$GITHUB_OUTPUT"
 
-          name="bambuddy-ci-${GITHUB_RUN_ID}"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
+          certs="$RUNNER_TEMP/fake-printer-certs"
+          mkdir -p "$certs"
+          # Self-signed is not a shortcut: BambuMQTTClient sets CERT_NONE and
+          # check_hostname = False because Bambu printers ship exactly this.
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 \
+            -keyout "$certs/server.key" -out "$certs/server.crt" \
+            -subj "/CN=fake-bambu" >/dev/null 2>&1
+          chmod -R a+rX "$certs"
+
+          broker="fake-printer-${GITHUB_RUN_ID}"
+          server="bambuddy-ci-${GITHUB_RUN_ID}"
+          echo "broker=$broker" >> "$GITHUB_OUTPUT"
+          echo "name=$server" >> "$GITHUB_OUTPUT"
+
+          docker run -d --rm --name "$broker" \
+            -v "$PWD/tool/ci/mosquitto.conf":/mosquitto/config/mosquitto.conf:ro \
+            -v "$certs":/mosquitto/certs:ro \
+            eclipse-mosquitto:2
 
           docker pull --quiet "$BAMBUDDY_IMAGE"
-          docker run -d --rm \
-            --name "$name" \
+          docker run -d --rm --name "$server" \
             -p "${gateway}:8000:8000" \
-            -e "DATA_DIR=/app/data" \
-            -e "TZ=Europe/Warsaw" \
+            -e "DATA_DIR=/app/data" -e "TZ=Europe/Warsaw" \
             "$BAMBUDDY_IMAGE"
 
+          broker_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$broker")"
+          echo "broker_ip=$broker_ip" >> "$GITHUB_OUTPUT"
           echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for health
+      # Waits for /health itself, then walks the server up to one printer
+      # reporting a job, one uploaded file and one queued item.
+      - name: Seed
         run: |
-          set -euo pipefail
-          base="${{ steps.server.outputs.base }}"
-          for _ in $(seq 1 60); do
-            if curl -fsS --max-time 3 "${base}/health" >/dev/null 2>&1; then
-              echo "up: $base"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "server did not answer /health within 120s"
-          docker logs "${{ steps.server.outputs.name }}" 2>&1 | tail -50
-          exit 1
-
-      # One shot, and only on a virgin instance: /auth/setup answers 403 once
-      # auth is configured (backend/app/api/routes/auth.py:258).
-      - name: Seed admin
-        run: |
-          set -euo pipefail
-          curl -fsS --max-time 10 \
-            -X POST "${{ steps.server.outputs.base }}/api/v1/auth/setup" \
-            -H 'Content-Type: application/json' \
-            -d "{\"auth_enabled\":true,\"admin_username\":\"${ADMIN_USER}\",\"admin_password\":\"${ADMIN_PASS}\"}" \
-            | head -c 400
-          echo
+          python3 tool/ci/seed_bambuddy.py \
+            --base-url "${{ steps.server.outputs.base }}" \
+            --broker-ip "${{ steps.server.outputs.broker_ip }}" \
+            --broker-container "${{ steps.server.outputs.broker }}" \
+            --admin-user "$ADMIN_USER" --admin-pass "$ADMIN_PASS"
 
       - name: Dependencies
         run: flutter pub get --enforce-lockfile
@@ -132,14 +129,29 @@ jobs:
           BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
           BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
           BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+          # NOT decoration, and not cosmetic either: the runner is UTC, where a
+          # naive timestamp read as local and the same one read as UTC are the
+          # same instant — so the timestamp contract would pass no matter which
+          # the app did. Measured: with TZ unset the parser swapped for a naive
+          # DateTime.parse still went green; at this offset it fails by two
+          # hours. Any zone but UTC will do; this one matches the server's.
+          TZ: Europe/Warsaw
         run: flutter test test/contract --reporter expanded
 
-      - name: Server log on failure
+      - name: Logs on failure
         if: failure()
-        run: docker logs "${{ steps.server.outputs.name }}" 2>&1 | tail -200
+        run: |
+          echo "::group::bambuddy"
+          docker logs "${{ steps.server.outputs.name }}" 2>&1 | tail -200
+          echo "::endgroup::"
+          echo "::group::stand-in printer"
+          docker logs "${{ steps.server.outputs.broker }}" 2>&1 | tail -50
+          echo "::endgroup::"
 
       # --rm covers the ordinary exit; this covers a cancelled job, and the
       # runner wrapper sweeps whatever survives even that before the next job.
       - name: Tear down
         if: always()
-        run: docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
+        run: |
+          docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
+          docker rm -f "${{ steps.server.outputs.broker }}" >/dev/null 2>&1 || true

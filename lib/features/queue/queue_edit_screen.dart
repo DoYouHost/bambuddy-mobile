@@ -889,24 +889,43 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           (slotId: r.slotId, type: r.type ?? '', color: r.color ?? ''),
       ];
     }
-    // Paired by position, knowing the colour list can be the shorter of the
-    // two: the server joins every type but drops a filament whose colour is
-    // empty (`main.py::_extract_filament_data_from_mqtt`, where the `if f[1]`
-    // sits on the colour join alone). A slot with no RFID tag therefore
-    // shifts every colour after it by one, and neither string says where the
-    // gap was, so this cannot be repaired here — only server-side. Shifted
-    // but present is the decision: refusing to pair would blank the rows that
-    // are right today.
+    // Paired by position, and the two strings diverge in BOTH directions —
+    // which is why the loop runs to the longer of them rather than to either
+    // one. Three mechanisms, all server-side and none repairable here, because
+    // neither string says which slot a token belonged to:
+    //
+    //   - Colours shorter. The MQTT fallback joins every type but skips a
+    //     filament whose colour is empty (`_extract_filament_data_from_mqtt`
+    //     in main.py, where the `if f[1]` sits on the colour join alone), so a
+    //     slot with no RFID tag shifts every colour after it by one.
+    //   - Colours longer. The archive extractor deduplicates BOTH lists
+    //     independently (`services/archive.py`, reading slice_info.config's
+    //     `<filament type= color= used_g=>`), so two slots of one material in
+    //     two colours collapse to one type while both colours survive. It is
+    //     the duplicate value, not the field, that decides which list shortens.
+    //     Measured on a live server: over 35 populated values the type string
+    //     never once repeated a material.
+    //   - Either, at length. The columns cap at 50 characters for the types
+    //     and 200 for the colours, so a print with enough filaments loses the
+    //     tail of one list before the other.
+    //
+    // Bounding the loop by the type list used to drop the surplus colour
+    // outright — a two-colour print rendered as one filament. A row with no
+    // type is not a guess: `_overrideRow` renders it as an em dash, which says
+    // "a slot is here and we cannot name its material", where the colour
+    // simply vanishing said nothing at all.
     final types = filamentTypeTokens(it.filamentType);
-    final colors = (it.filamentColor ?? '')
-        .split(',')
-        .map((s) => s.trim())
-        .toList();
+    final colors = filamentColourTokens(it.filamentColor);
+    final slots = types.length > colors.length ? types.length : colors.length;
+    // When the archive parser (archive.py) deduplicates identical materials across
+    // slots, a single-material multi-color print yields 1 type and multiple colors.
+    // In that case, every slot shares that single material.
+    final singleType = types.length == 1 ? types.first : null;
     return [
-      for (var i = 0; i < types.length; i++)
+      for (var i = 0; i < slots; i++)
         (
           slotId: i + 1,
-          type: types[i],
+          type: singleType ?? (i < types.length ? types[i] : ''),
           color: i < colors.length ? colors[i] : '',
         ),
     ];
@@ -949,12 +968,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     List<AvailableFilament> available,
   ) {
     // Same-material options only (uppercase compare — good enough without the
-    // full canonical grouping the web does for CF families).
+    // full canonical grouping the web does for CF families). If the slot material
+    // is unknown (e.g. multi-material print where types diverged), allow picking
+    // from any available spool rather than presenting an empty list.
     final canon = req.type.trim().toUpperCase();
-    final compatible = [
-      for (final f in available)
-        if (f.type.trim().toUpperCase() == canon) f,
-    ];
+    final compatible = req.type.isEmpty
+        ? available
+        : [
+            for (final f in available)
+              if (f.type.trim().toUpperCase() == canon) f,
+          ];
     final override = _overrides[req.slotId];
     final selected = override == null
         ? null
@@ -985,6 +1008,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() {
               if (v == null) {
                 _overrides.remove(req.slotId);
+                if (req.type.isEmpty) {
+                  _forceColorMatch.remove(req.slotId);
+                }
               } else {
                 final parts = v.split('|');
                 _overrides[req.slotId] = (
@@ -999,13 +1025,15 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             icon: Icons.palette_outlined,
             label: l10n.queueEditForceColorMatch,
             value: _forceColorMatch[req.slotId] ?? false,
-            onChanged: (v) => setState(() {
-              if (v) {
-                _forceColorMatch[req.slotId] = true;
-              } else {
-                _forceColorMatch.remove(req.slotId);
-              }
-            }),
+            onChanged: (req.type.isEmpty && override == null)
+                ? null
+                : (v) => setState(() {
+                    if (v) {
+                      _forceColorMatch[req.slotId] = true;
+                    } else {
+                      _forceColorMatch.remove(req.slotId);
+                    }
+                  }),
           ),
         ],
       ),
@@ -1025,6 +1053,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       if (ov == null && !force) continue;
       final type = ov?.type ?? r.type;
       final color = ov?.color ?? r.color;
+      // Backend scheduler matches slots by canonical_filament_type(o['type']).
+      // An empty type can never match any loaded spool and causes the job to
+      // stall indefinitely waiting for filament.
+      if (type.isEmpty) continue;
       entries.add({
         'slot_id': r.slotId,
         'type': type,
@@ -1764,14 +1796,15 @@ class _CheckRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final enabled = onChanged != null;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
-      onTap: () => onChanged(!value),
+      onTap: enabled ? () => onChanged!(!value) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
@@ -1779,11 +1812,22 @@ class _CheckRow extends StatelessWidget {
             Checkbox(
               value: value,
               activeColor: t.accentGreen,
-              onChanged: (v) => onChanged(v ?? false),
+              onChanged: onChanged == null ? null : (v) => onChanged!(v ?? false),
             ),
-            Icon(icon, size: 18, color: t.textSecondary),
+            Icon(
+              icon,
+              size: 18,
+              color: enabled ? t.textSecondary : t.textTertiary,
+            ),
             const SizedBox(width: 10),
-            Expanded(child: Text(label, style: t.body)),
+            Expanded(
+              child: Text(
+                label,
+                style: enabled
+                    ? t.body
+                    : t.body.copyWith(color: t.textTertiary),
+              ),
+            ),
           ],
         ),
       ),

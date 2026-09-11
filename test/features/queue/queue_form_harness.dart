@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/available_filament.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
@@ -131,6 +132,7 @@ Widget queueFormScreen(
   List<Printer> printers = const [printerX2D],
   List<FilamentRequirement> requirements = const [],
   List<NozzleRackSlot>? nozzleRack,
+  List<AvailableFilament> availableFilaments = const [],
 }) => ProviderScope(
   overrides: [
     noServerProfileOverride,
@@ -145,6 +147,9 @@ Widget queueFormScreen(
     filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
     printerStatusOnceProvider.overrideWith(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
+    ),
+    availableFilamentsProvider.overrideWith(
+      (ref, arg) => availableFilaments,
     ),
   ],
   child: plApp(
