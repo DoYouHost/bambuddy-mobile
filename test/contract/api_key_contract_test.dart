@@ -153,5 +153,78 @@ void main() {
             'are generous',
       );
     });
+
+    test('a key with readStatus reads printers and queue listings', () async {
+      final created = await mint('contract probe: read status', {
+        ApiKeyScope.readStatus,
+      });
+      final client = clientFor(created.key);
+
+      final printersRes = await client.get<dynamic>(Endpoints.printers);
+      expect(printersRes.statusCode, 200);
+
+      final queueRes = await client.get<dynamic>(Endpoints.queue);
+      expect(queueRes.statusCode, 200);
+    });
+
+    test(
+      'a key without queue scope is refused from queue mutations with 403',
+      () async {
+        final created = await mint('contract probe: queue refusal', {
+          ApiKeyScope.readStatus,
+        });
+        final client = clientFor(created.key);
+
+        final res = await client.post<dynamic>(
+          Endpoints.queue,
+          data: {'printer_id': 1, 'library_file_id': 1},
+        );
+        expect(
+          res.statusCode,
+          403,
+          reason:
+              'queue mutation without can_queue scope must be refused with 403',
+        );
+      },
+    );
+
+    test(
+      'a key without controlPrinter is refused printer commands with 403',
+      () async {
+        final withoutControl = await mint('contract probe: control no', {
+          ApiKeyScope.readStatus,
+        });
+        final refused = await clientFor(withoutControl.key).post<dynamic>(
+          Endpoints.printPause(1),
+        );
+        expect(
+          refused.statusCode,
+          403,
+          reason: 'printer command without can_control_printer must be 403',
+        );
+      },
+    );
+
+    test(
+      'a key cannot access admin routes like /api-keys/ and is refused with 403',
+      () async {
+        final created = await mint('contract probe: admin refusal', {
+          ApiKeyScope.readStatus,
+          ApiKeyScope.queue,
+          ApiKeyScope.controlPrinter,
+          ApiKeyScope.manageLibrary,
+          ApiKeyScope.manageInventory,
+        });
+        final client = clientFor(created.key);
+
+        final res = await client.get<dynamic>(Endpoints.apiKeys);
+        expect(
+          res.statusCode,
+          403,
+          reason:
+              'administrative /api-keys/ route must fail closed for API keys',
+        );
+      },
+    );
   });
 }
