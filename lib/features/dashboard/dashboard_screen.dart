@@ -602,10 +602,17 @@ class _AppDrawer extends ConsumerWidget {
 
   final String? profileLabel;
 
+  /// Side of the app icon in the header.
+  static const _iconSize = 52.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    // The asset is the 1024x1024 launcher source, so without this it decodes at
+    // full size for a 52 dp tile. Width alone, as in `MediaImage`.
+    final iconDecodeWidth = (_iconSize * MediaQuery.devicePixelRatioOf(context))
+        .round();
     return Drawer(
       backgroundColor: t.overlaySurface,
       child: Column(
@@ -662,8 +669,9 @@ class _AppDrawer extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(15),
                               child: Image.asset(
                                 'assets/icon/icon.png',
-                                width: 52,
-                                height: 52,
+                                width: _iconSize,
+                                height: _iconSize,
+                                cacheWidth: iconDecodeWidth,
                                 fit: BoxFit.cover,
                               ),
                             ),

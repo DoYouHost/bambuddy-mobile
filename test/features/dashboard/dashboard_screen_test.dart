@@ -293,6 +293,25 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
+  testWidgets('the drawer icon decodes to its tile, not to 1024 px', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await openDrawer(tester);
+
+    final icon = tester.widget<Image>(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byType(Image).first,
+      ),
+    );
+    // 52 dp of tile at this ratio. The asset behind it is the 1024x1024
+    // launcher source, which is what used to be decoded and held in the cache.
+    expect((icon.image as ResizeImage).width, 156);
+  });
+
   group('the drawer footer names both versions', () {
     testWidgets('the server version the app is talking to', (tester) async {
       PackageInfo.setMockInitialValues(
