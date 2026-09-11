@@ -93,10 +93,11 @@ jobs:
           echo "broker=$broker" >> "$GITHUB_OUTPUT"
           echo "name=$server" >> "$GITHUB_OUTPUT"
 
-          docker run -d --rm --name "$broker" \
-            -v "$PWD/tool/ci/mosquitto.conf":/mosquitto/config/mosquitto.conf:ro \
-            -v "$certs":/mosquitto/certs:ro \
-            eclipse-mosquitto:2
+          docker pull --quiet eclipse-mosquitto:2
+          docker create --rm --name "$broker" eclipse-mosquitto:2
+          docker cp tool/ci/mosquitto.conf "$broker":/mosquitto/config/mosquitto.conf
+          docker cp "$certs" "$broker":/mosquitto/certs
+          docker start "$broker"
 
           docker pull --quiet "$BAMBUDDY_IMAGE"
           docker run -d --rm --name "$server" \

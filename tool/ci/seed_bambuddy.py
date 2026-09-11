@@ -211,6 +211,7 @@ def build_3mf(path: Path) -> None:
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
         z.writestr("Metadata/slice_info.config", slice_info)
+        z.writestr("Metadata/plate_1.gcode", "; gcode\n")
 
 
 def upload_3mf(base: str, token: str, path: Path) -> int:

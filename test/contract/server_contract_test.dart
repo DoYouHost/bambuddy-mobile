@@ -151,27 +151,33 @@ void main() {
       },
     );
 
-    test('POST /auth/media-token mints a valid media token', () async {
+    test('POST /auth/media-token mints a valid media token if supported', () async {
       // Elements loading images/videos (?token=) outside of Dio use this
-      // short-lived media token on newer servers.
-      final res = await dio.post<Map<String, dynamic>>(Endpoints.mediaToken);
-
-      expect(res.statusCode, 200);
-      expect(res.data?['token'], isA<String>());
-      expect((res.data?['token'] as String).isNotEmpty, isTrue);
-    });
-
-    test(
-      'POST /printers/camera/stream-token mints a valid camera token',
-      () async {
-        // MJPEG camera feeds and snapshots require this stream token.
-        final res = await dio.post<Map<String, dynamic>>(
-          Endpoints.cameraStreamToken,
-        );
-
+      // short-lived media token on newer servers (older servers answer 405/404).
+      try {
+        final res = await dio.post<Map<String, dynamic>>(Endpoints.mediaToken);
         expect(res.statusCode, 200);
         expect(res.data?['token'], isA<String>());
         expect((res.data?['token'] as String).isNotEmpty, isTrue);
+      } on DioException catch (e) {
+        expect(e.response?.statusCode, anyOf(404, 405));
+      }
+    });
+
+    test(
+      'POST /printers/camera/stream-token mints a valid camera token if supported',
+      () async {
+        // MJPEG camera feeds and snapshots require this stream token.
+        try {
+          final res = await dio.post<Map<String, dynamic>>(
+            Endpoints.cameraStreamToken,
+          );
+          expect(res.statusCode, 200);
+          expect(res.data?['token'], isA<String>());
+          expect((res.data?['token'] as String).isNotEmpty, isTrue);
+        } on DioException catch (e) {
+          expect(e.response?.statusCode, anyOf(404, 405));
+        }
       },
     );
   });

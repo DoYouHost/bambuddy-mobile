@@ -29,7 +29,7 @@ void main() {
         expect(item.id, greaterThan(0));
         expect(item.position, greaterThanOrEqualTo(0));
         expect(item.status, isNotNull);
-        expect(item.status, isNot(equals(QueueItemStatusKind.unknown)));
+        expect(item.statusKind, isNot(equals(QueueItemStatusKind.unknown)));
       }
     });
 
@@ -39,7 +39,7 @@ void main() {
       expect(active, isA<List<QueueItem>>());
       for (final item in active) {
         expect(
-          item.status,
+          item.statusKind,
           anyOf(QueueItemStatusKind.pending, QueueItemStatusKind.printing),
         );
       }

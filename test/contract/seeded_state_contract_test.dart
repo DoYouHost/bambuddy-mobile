@@ -161,7 +161,7 @@ void main() {
         expect(item.printerName, printer.name);
         expect(item.libraryFileId, file.id);
         expect(item.libraryFileName, file.filename);
-        expect(item.status, QueueItemStatusKind.pending);
+        expect(item.statusKind, QueueItemStatusKind.pending);
       },
     );
 
