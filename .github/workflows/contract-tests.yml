@@ -1,0 +1,141 @@
+name: Contract tests
+
+# Does our parsing still match what the server actually sends?
+#
+# `flutter test` answers a different question. Its mocked transport replays
+# fixtures we wrote ourselves, so a suite can be green while the wire has moved
+# underneath it — which is how the queue's filament colours and the http/https
+# redirect both shipped. This job puts a real bambuddy behind the real Dio
+# client and parses real responses with the real models.
+#
+# Runs on [self-hosted, ci-docker], which is the ONE runner whose jobs are
+# handed the Docker daemon (TofuSadurkiV2/ci_runner_docker). A job there can
+# create a privileged container, i.e. own that host — so note what is missing
+# from the triggers below:
+#
+#   there is no `pull_request`, and that is deliberate.
+#
+# This repository is public. A fork PR is code written by a stranger, and
+# letting it reach a runner with the Docker socket hands that stranger the box.
+# Branch pushes and manual dispatch only; the org runner group is additionally
+# restricted to this workflow file, so even a matching `runs-on` elsewhere gets
+# no runner.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev, master]
+    paths:
+      - "lib/core/**"
+      - "lib/data/**"
+      - "test/contract/**"
+      - ".github/workflows/contract-tests.yml"
+  # The server moves ~100 commits a fortnight, so most breakage arrives without
+  # a commit of ours to hang it on. server-drift.yml reads that as a diff; this
+  # catches the half that a diff cannot judge.
+  schedule:
+    - cron: "23 4 * * *"
+
+concurrency:
+  group: contract-tests
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BAMBUDDY_IMAGE: ghcr.io/maziggy/bambuddy:latest
+  ADMIN_USER: ci-admin
+  # Server-side rule (backend/app/schemas/auth.py::_validate_password_complexity):
+  # upper, lower, digit, special, >= 8. Not a secret — the instance is created
+  # empty for this run and destroyed with it.
+  ADMIN_PASS: CiTest!2026x
+
+jobs:
+  contract:
+    name: parse real server responses
+    runs-on: [self-hosted, ci-docker]
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Toolchain
+        run: flutter --version
+
+      # The server runs as a SIBLING container, not inside this job, so
+      # "localhost" is not shared. Publishing on the bridge gateway is what both
+      # sides can name: the job reaches its own default route, and nothing on
+      # the LAN can reach the port.
+      - name: Start bambuddy
+        id: server
+        run: |
+          set -euo pipefail
+          gateway="$(ip route | awk '/^default/ {print $3; exit}')"
+          [ -n "$gateway" ] || { echo "no default route — cannot place the server"; exit 1; }
+          echo "gateway=$gateway" >> "$GITHUB_OUTPUT"
+
+          name="bambuddy-ci-${GITHUB_RUN_ID}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+          docker pull --quiet "$BAMBUDDY_IMAGE"
+          docker run -d --rm \
+            --name "$name" \
+            -p "${gateway}:8000:8000" \
+            -e "DATA_DIR=/app/data" \
+            -e "TZ=Europe/Warsaw" \
+            "$BAMBUDDY_IMAGE"
+
+          echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for health
+        run: |
+          set -euo pipefail
+          base="${{ steps.server.outputs.base }}"
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 3 "${base}/health" >/dev/null 2>&1; then
+              echo "up: $base"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "server did not answer /health within 120s"
+          docker logs "${{ steps.server.outputs.name }}" 2>&1 | tail -50
+          exit 1
+
+      # One shot, and only on a virgin instance: /auth/setup answers 403 once
+      # auth is configured (backend/app/api/routes/auth.py:258).
+      - name: Seed admin
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 10 \
+            -X POST "${{ steps.server.outputs.base }}/api/v1/auth/setup" \
+            -H 'Content-Type: application/json' \
+            -d "{\"auth_enabled\":true,\"admin_username\":\"${ADMIN_USER}\",\"admin_password\":\"${ADMIN_PASS}\"}" \
+            | head -c 400
+          echo
+
+      - name: Dependencies
+        run: flutter pub get --enforce-lockfile
+
+      # test/contract/ is skipped by `flutter test` everywhere else — the guard
+      # is the absence of this variable, so `just test` on a laptop stays green
+      # without a server.
+      - name: Contract tests
+        env:
+          BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
+          BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
+          BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+        run: flutter test test/contract --reporter expanded
+
+      - name: Server log on failure
+        if: failure()
+        run: docker logs "${{ steps.server.outputs.name }}" 2>&1 | tail -200
+
+      # --rm covers the ordinary exit; this covers a cancelled job, and the
+      # runner wrapper sweeps whatever survives even that before the next job.
+      - name: Tear down
+        if: always()
+        run: docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
