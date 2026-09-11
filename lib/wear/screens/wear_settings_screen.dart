@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
@@ -96,6 +97,8 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               style: WearText.fine,
             ),
           ],
+          const SizedBox(height: 14),
+          const _WearVersions(),
         ],
       ),
     );
@@ -131,4 +134,59 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     // replaces with setup now that there is no profile.
     await run(profiles.clear, onDone: () => Navigator.of(context).pop());
   }
+}
+
+/// Footer: this app's version over the connected server's — the two numbers a
+/// bug report starts with, on the one watch screen that is not a control.
+///
+/// Stateful only to hold the [PackageInfo] future: built in `build` it would
+/// start a fresh platform-channel call on every rebuild, and the server line
+/// resolving is itself a rebuild.
+class _WearVersions extends ConsumerStatefulWidget {
+  const _WearVersions();
+
+  @override
+  ConsumerState<_WearVersions> createState() => _WearVersionsState();
+}
+
+class _WearVersionsState extends ConsumerState<_WearVersions> {
+  late final Future<PackageInfo> _app = PackageInfo.fromPlatform();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final server = ref.watch(wearServerVersionProvider);
+    return Column(
+      children: [
+        FutureBuilder<PackageInfo>(
+          future: _app,
+          builder: (context, snap) => _line(
+            l10n.wearAppVersion(
+              snap.hasData
+                  ? '${snap.data!.version}+${snap.data!.buildNumber}'
+                  : '…',
+            ),
+          ),
+        ),
+        _line(switch (server) {
+          AsyncData(:final value?) => l10n.serverVersionLabel(value),
+          AsyncLoading() => l10n.serverVersionLabel('…'),
+          // The provider swallows every failure, so this is the unknown case
+          // as much as an answered "no version" is.
+          _ => l10n.serverVersionUnknown,
+        }),
+      ],
+    );
+  }
+
+  /// Two lines because a watch face has room for about twenty characters at
+  /// this size and `app 0.14.0+2028000` is longer than that; ellipsizing would
+  /// cut the build number, which is the half a report is filed with.
+  static Widget _line(String text) => Text(
+    text,
+    textAlign: TextAlign.center,
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: WearText.fine,
+  );
 }

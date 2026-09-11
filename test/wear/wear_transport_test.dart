@@ -55,6 +55,34 @@ void main() {
       expect(fleet.queuePending, isNull);
     });
 
+    test('getServerVersion round-trip', () async {
+      watch.autoRespond = (req) => WearRpcResponse.ok(req['id'] as String, {
+        'version': '1.2.6b1',
+      }).encode();
+
+      expect(await relay.getServerVersion(), '1.2.6b1');
+      expect(watch.sent.single['action'], 'getServerVersion');
+    });
+
+    test('a phone that read no version → null, not an error', () async {
+      // The phone answers ok with nothing in it when its server has no version
+      // route; that is an answer the footer can print, not a failure.
+      watch.autoRespond = (req) =>
+          WearRpcResponse.ok(req['id'] as String, const {}).encode();
+
+      expect(await relay.getServerVersion(), isNull);
+    });
+
+    test('a phone too old for the action never replies', () async {
+      // It cannot decode an action it does not know, so it stays silent and
+      // the watch's own timeout is what ends the wait — the same fallback path
+      // every read has.
+      await expectLater(
+        relay.getServerVersion(),
+        throwsA(isA<WearRelayTimeout>()),
+      );
+    });
+
     test('command sends printerId and resolves on ok', () async {
       watch.autoRespond = (req) =>
           WearRpcResponse.ok(req['id'] as String).encode();
@@ -193,6 +221,20 @@ void main() {
         expect(rest.calls, ['getFleet'], reason: '$error');
         expect(hybrid.lastMode, WearTransportMode.rest);
       }
+    });
+
+    test('a silent old phone hands the version read to REST', () async {
+      // The whole reason the new action is classified as a read: a phone that
+      // cannot decode it answers nothing, and a watch with a profile of its
+      // own asks the server itself instead of showing "unknown".
+      final rest = FakeWearTransport(serverVersion: '1.2.6');
+      final hybrid = HybridWearTransport(
+        relay: FakeWearTransport(error: WearRelayTimeout()),
+        rest: rest,
+      );
+
+      expect(await hybrid.getServerVersion(), '1.2.6');
+      expect(rest.calls, ['getServerVersion']);
     });
 
     test(

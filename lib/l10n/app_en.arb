@@ -1305,6 +1305,15 @@
   "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
   "aboutVersion": "Version {version}",
   "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
+  "serverVersionLabel": "Server {version}",
+  "@serverVersionLabel": {
+    "description": "Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.",
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "serverVersionUnknown": "Server version unknown",
+  "@serverVersionUnknown": {
+    "description": "Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now."
+  },
   "aboutLicenseHeader": "License",
   "aboutLicenseBody": "Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.",
   "aboutViewLicense": "Read the AGPL-3.0 license",
@@ -1966,6 +1975,11 @@
   "wearAuthNone": "No sign-in",
   "wearFromPhoneWaiting": "The phone offers a different server.",
   "wearCurrentServer": "Current server",
+  "wearAppVersion": "App {version}",
+  "@wearAppVersion": {
+    "description": "Watch settings footer: this app's own version. Shorter than the phone's wording because a watch line holds about twelve characters.",
+    "placeholders": { "version": { "type": "String" } }
+  },
   "wearOk": "OK",
   "@wearOk": {
     "description": "Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for."

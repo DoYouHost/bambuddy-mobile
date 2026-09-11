@@ -232,6 +232,39 @@ void main() {
     expect(find.byType(ConnectionBanner), findsNothing);
   });
 
+  group('the drawer footer names both versions', () {
+    /// Opens the drawer of a dashboard whose server version read answers
+    /// [version] — `null` being "the server never told us".
+    Future<void> openDrawer(WidgetTester tester, {String? version}) async {
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+        ),
+      );
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      // `settle`, not `pumpAndSettle`: the dashboard keeps an animation
+      // running, so waiting for a still frame never returns.
+      await settle(tester);
+    }
+
+    testWidgets('the server version the app is talking to', (tester) async {
+      await openDrawer(tester, version: '1.2.6b1');
+
+      expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    });
+
+    testWidgets('an older server that has no version route', (tester) async {
+      // `/updates/version` answering 404 is not an error worth a red line —
+      // the footer says the number is unknown and the drawer is otherwise the
+      // drawer.
+      await openDrawer(tester);
+
+      expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+      expect(find.textContaining('Serwer '), findsNothing);
+    });
+  });
+
   testWidgets('the search box filters the list by name', (tester) async {
     await tester.pumpWidget(
       _app(

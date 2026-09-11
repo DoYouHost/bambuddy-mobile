@@ -19,6 +19,13 @@ enum WearRpcAction {
   /// Printers + statuses. Response `data`: `{"printers": [{"printer": {...},
   /// "status": {...}|absent}]}` — raw server JSON under both keys.
   getFleet,
+
+  /// The connected server's version, for the watch's settings footer.
+  /// Response `data`: `{"version": "1.2.6b1"}`, the key absent when the phone
+  /// could not read one. A phone older than this action never decodes the
+  /// request and stays silent, which the watch reads as "unknown" after its
+  /// timeout — see [WearRpcRequest.decode].
+  getServerVersion,
   pause,
   resume,
   stop,
@@ -57,6 +64,7 @@ extension WearRpcActionRetry on WearRpcAction {
   /// rather than separately in each place that asks.
   WearRpcRetry get retry => switch (this) {
     WearRpcAction.getFleet => WearRpcRetry.read,
+    WearRpcAction.getServerVersion => WearRpcRetry.read,
     WearRpcAction.pause => WearRpcRetry.idempotent,
     WearRpcAction.resume => WearRpcRetry.idempotent,
     WearRpcAction.stop => WearRpcRetry.idempotent,
@@ -185,7 +193,8 @@ class WearRpcRequest {
   /// [wearRpcWakeAwareVersion].
   final int version;
 
-  /// Required for every action except [WearRpcAction.getFleet].
+  /// Required for every action except [WearRpcAction.getFleet] and
+  /// [WearRpcAction.getServerVersion].
   final int? printerId;
 
   /// The fault's `full_code`, carried through untouched: the firmware matches

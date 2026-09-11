@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
+import '../models/json_utils.dart';
 import 'endpoints.dart';
 import 'server_version.dart';
 
@@ -23,12 +24,23 @@ class ServerVersionService {
   static const _retryAfter = Duration(minutes: 5);
 
   ServerVersion? _version;
+
+  /// What the server answered, verbatim, even when [ServerVersion.tryParse]
+  /// made nothing of it. Displaying a numbering scheme this build has never
+  /// seen beats displaying nothing, and the capability table stays out of it —
+  /// that one keeps reading [_version], which such an answer leaves null.
+  String? _rawVersion;
+
   DateTime? _failedAt;
   Future<ServerVersion?>? _pending;
 
   /// For callers on a synchronous path, a `build`. `null` means "not read yet",
   /// which is not "old server" — prefer [current] wherever an await is possible.
   ServerVersion? get cached => _version;
+
+  /// [reportedVersion] for a synchronous path; `null` also means "not read
+  /// yet". See [_rawVersion] for why this is not `cached?.raw`.
+  String? get cachedRaw => _rawVersion;
 
   /// Concurrent callers share one in-flight request.
   Future<ServerVersion?> current() async {
@@ -66,21 +78,32 @@ class ServerVersionService {
   Future<int> chamberMaxTargetC() async =>
       (await current())?.chamberMaxTargetC ?? 60;
 
-  Future<String?> reportedVersion() async => (await current())?.raw;
+  /// The server's own version string, for the bug-report header and the two
+  /// screens that show it. `null` until a read succeeds, and after one that
+  /// could not reach the server at all.
+  Future<String?> reportedVersion() async {
+    await current();
+    return _rawVersion;
+  }
 
   Future<ServerVersion?> _read() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.updatesVersion,
       );
-      final parsed = ServerVersion.tryParse(res.data?['version'] as String?);
+      final raw = toStringOrNull(res.data?['version']);
+      final parsed = ServerVersion.tryParse(raw);
       if (parsed == null) {
+        // Still worth showing: only the version→capability comparison needs
+        // the parse to have worked.
+        _rawVersion = raw;
         // Reached the server but got a proxy's error page, or a numbering
         // scheme from the future. Retry later rather than never.
         _failedAt = clock.now();
         return null;
       }
       _version = parsed;
+      _rawVersion = raw;
       _failedAt = null;
       return parsed;
     } on Object {

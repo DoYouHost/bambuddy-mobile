@@ -225,6 +225,69 @@ void main() {
     expect(res.ok, isTrue);
   });
 
+  test('getServerVersion: the server\'s own string, verbatim', () async {
+    adapter.onGet(
+      '/api/v1/updates/version',
+      (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'maziggy/bambuddy'}),
+    );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.getServerVersion),
+    );
+
+    expect(res.ok, isTrue);
+    expect(res.data!['version'], '1.2.6b1');
+  });
+
+  test('getServerVersion: a server without the route answers empty', () async {
+    // An older bambuddy is not a failed request — the watch is told "nobody
+    // knows", which is a footer line, not an error.
+    adapter.onGet('/api/v1/updates/version', (s) => s.reply(404, null));
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.getServerVersion),
+    );
+
+    expect(res.ok, isTrue);
+    expect(res.data?['version'], isNull);
+  });
+
+  test('getServerVersion: asked twice, the server is read once', () async {
+    // The watch polls; the version does not move without a restart that drops
+    // the connection anyway, so a cached service is the point of holding one.
+    var reads = 0;
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          reads++;
+          handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'version': '1.2.6', 'repo': 'x/y'},
+            ),
+          );
+        },
+      ),
+    );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+    await handler.start();
+
+    for (var i = 0; i < 2; i++) {
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+    }
+
+    expect(watch.sent, hasLength(2));
+    expect(reads, 1);
+  });
+
   test('no profile → phone-unconfigured', () async {
     final handler = WearRelayHandler(watch: watch, dio: () => null);
 

@@ -1111,6 +1111,9 @@
   "aboutTagline": "Natywny klient Android dla bambuddy — self-hostowanego menedżera drukarek Bambu Lab.",
   "aboutVersion": "Wersja {version}",
   "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
+  "serverVersionLabel": "Serwer {version}",
+  "@serverVersionLabel": { "placeholders": { "version": { "type": "String" } } },
+  "serverVersionUnknown": "Nieznana wersja serwera",
   "aboutLicenseHeader": "Licencja",
   "aboutLicenseBody": "Bambuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.",
   "aboutViewLicense": "Przeczytaj licencję AGPL-3.0",
@@ -1753,6 +1756,8 @@
   "wearAuthNone": "Bez logowania",
   "wearFromPhoneWaiting": "Telefon proponuje inny serwer.",
   "wearCurrentServer": "Obecny serwer",
+  "wearAppVersion": "Aplikacja {version}",
+  "@wearAppVersion": { "placeholders": { "version": { "type": "String" } } },
   "wearOk": "OK",
 
   "commonOn": "Wł.",

@@ -586,6 +586,17 @@ final serverVersionServiceProvider = Provider<ServerVersionService>(
   (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
 );
 
+/// The connected server's version string, for the drawer footer. `null` is
+/// "nobody knows": a server too old to serve `/updates/version`, one that is
+/// unreachable, or a reply this build's parser made nothing of — the screen
+/// says so rather than guessing a number.
+///
+/// Only ever read behind a configured profile: [apiClientProvider] throws
+/// without one, and the drawer that shows this lives inside the dashboard.
+final serverVersionLabelProvider = FutureProvider<String?>(
+  (ref) => ref.watch(serverVersionServiceProvider).reportedVersion(),
+);
+
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
   (ref) => QueueRepository(

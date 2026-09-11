@@ -3555,6 +3555,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String serverVersionLabel(String version) {
+    return 'Server $version';
+  }
+
+  @override
+  String get serverVersionUnknown => 'Server version unknown';
+
+  @override
   String get aboutLicenseHeader => 'License';
 
   @override
@@ -5513,6 +5521,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wearCurrentServer => 'Current server';
+
+  @override
+  String wearAppVersion(String version) {
+    return 'App $version';
+  }
 
   @override
   String get wearOk => 'OK';

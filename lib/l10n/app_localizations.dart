@@ -6002,6 +6002,18 @@ abstract class AppLocalizations {
   /// **'Version {version}'**
   String aboutVersion(String version);
 
+  /// Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Server {version}'**
+  String serverVersionLabel(String version);
+
+  /// Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version unknown'**
+  String get serverVersionUnknown;
+
   /// No description provided for @aboutLicenseHeader.
   ///
   /// In en, this message translates to:
@@ -9367,6 +9379,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current server'**
   String get wearCurrentServer;
+
+  /// Watch settings footer: this app's own version. Shorter than the phone's wording because a watch line holds about twelve characters.
+  ///
+  /// In en, this message translates to:
+  /// **'App {version}'**
+  String wearAppVersion(String version);
 
   /// Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for.
   ///

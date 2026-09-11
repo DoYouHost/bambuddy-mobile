@@ -9,6 +9,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 import '../core/models/queue_item.dart';
+import '../core/api/server_version_service.dart';
 import '../core/watch/wear_rpc.dart';
 import '../data/printer_commands_repository.dart';
 import '../data/printers_repository.dart';
@@ -62,6 +63,13 @@ class WearFleet {
 /// only ever talk to this.
 abstract interface class WearTransport {
   Future<WearFleet> getFleet();
+
+  /// The connected server's version string, `null` when nobody could read one
+  /// — a server too old for the route, a phone too old for the action, or a
+  /// reply that never came. The settings screen says "unknown" rather than
+  /// guessing.
+  Future<String?> getServerVersion();
+
   Future<void> pause(int printerId);
   Future<void> resume(int printerId);
   Future<void> stop(int printerId);
@@ -216,6 +224,13 @@ class RelayTransport implements WearTransport {
   }
 
   @override
+  Future<String?> getServerVersion() async {
+    final data = await _call(WearRpcAction.getServerVersion);
+    final version = data?['version'];
+    return version is String && version.isNotEmpty ? version : null;
+  }
+
+  @override
   Future<void> pause(int printerId) =>
       _call(WearRpcAction.pause, printerId: printerId);
 
@@ -301,13 +316,16 @@ class RestTransport implements WearTransport {
     required PrintersRepository printers,
     required PrinterCommandsRepository commands,
     required QueueRepository queue,
+    required ServerVersionService serverVersion,
   }) : _printers = printers,
        _commands = commands,
-       _queue = queue;
+       _queue = queue,
+       _serverVersion = serverVersion;
 
   final PrintersRepository _printers;
   final PrinterCommandsRepository _commands;
   final QueueRepository _queue;
+  final ServerVersionService _serverVersion;
 
   @override
   Future<WearFleet> getFleet() async {
@@ -327,6 +345,9 @@ class RestTransport implements WearTransport {
     }
     return WearFleet(printers: await printers, queuePending: pending);
   }
+
+  @override
+  Future<String?> getServerVersion() => _serverVersion.reportedVersion();
 
   @override
   Future<void> pause(int printerId) => _commands.pause(printerId);
@@ -433,6 +454,10 @@ class HybridWearTransport implements WearTransport {
   @override
   Future<WearFleet> getFleet() =>
       _run(WearRpcAction.getFleet, (t) => t.getFleet());
+
+  @override
+  Future<String?> getServerVersion() =>
+      _run(WearRpcAction.getServerVersion, (t) => t.getServerVersion());
 
   @override
   Future<void> pause(int printerId) =>

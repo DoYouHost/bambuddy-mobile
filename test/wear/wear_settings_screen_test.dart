@@ -9,6 +9,7 @@ import 'package:bambuddy_mobile/wear/widgets/wear_confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../helpers.dart';
 
@@ -49,11 +50,19 @@ void main() {
   setUp(() {
     profile = _FakeProfile();
     sync = FakeWatchConfigSync();
+    PackageInfo.setMockInitialValues(
+      appName: 'bambuddy',
+      packageName: 'page.codeberg.morganmlgman.bambuddy_mobile',
+      version: '0.14.0',
+      buildNumber: '2028000',
+      buildSignature: '',
+    );
   });
 
   Future<ProviderContainer> pumpSettings(
     WidgetTester tester, {
     WatchConfig? offered,
+    String? serverVersion,
   }) async {
     final container = await pumpWear(
       tester,
@@ -61,6 +70,10 @@ void main() {
       overrides: [
         serverProfileProvider.overrideWith(() => profile),
         watchConfigSyncProvider.overrideWithValue(sync),
+        // Without this the footer would reach for the phone over a Data Layer
+        // that is not there, and the screen's own tests would wait out its
+        // timeout.
+        wearServerVersionProvider.overrideWith((ref) => serverVersion),
       ],
     );
     if (offered != null) {
@@ -189,5 +202,27 @@ void main() {
 
     expect(find.text('Telefon proponuje inny serwer.'), findsNothing);
     expect(find.text('Użyj tego serwera'), findsNothing);
+  });
+
+  testWidgets('the footer carries both versions', (tester) async {
+    // The two numbers every report starts with, on the watch's one screen
+    // that is not a control.
+    await pumpSettings(tester, serverVersion: '1.2.6b1');
+    await tester.pumpAndSettle();
+
+    await revealOnWatch(tester, find.text('Aplikacja 0.14.0+2028000'));
+    expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
+    await revealOnWatch(tester, find.text('Serwer 1.2.6b1'));
+    expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+  });
+
+  testWidgets('a phone or server that answers nothing says so', (tester) async {
+    // An older phone cannot decode the action and stays silent; an older
+    // server has no version route. Both are one sentence to the reader.
+    await pumpSettings(tester);
+    await tester.pumpAndSettle();
+
+    await revealOnWatch(tester, find.text('Nieznana wersja serwera'));
+    expect(find.text('Nieznana wersja serwera'), findsOneWidget);
   });
 }
