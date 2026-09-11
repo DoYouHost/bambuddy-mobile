@@ -163,6 +163,15 @@ do not stay silent because it was not part of the task.
   genitive: "Limit czekania na komorę: 20min", not "Czekaj na komorę najwyżej:".
   **A slider also needs a sentence saying what its number changes** — a switch
   reads on/off, but "4" on its own tells nobody anything.
+- **`lib/core/models/` is over the comment-ratio threshold on purpose.** The
+  whole directory was gone through once (2026-09-11) and what came out as
+  restatement was fourteen lines; it still measures ~29%. What is left is the
+  wire contract — which key the server sends, what `null` means in it, which
+  unit the number is in, which server file to check — and that description
+  exists nowhere else in this repo, while the code it sits above is a const
+  constructor plus a `fromJson`. Judge a model comment by "does this say
+  anything the declaration does not", never by the 20% in the `comment-ratio`
+  skill.
 - **`dart format` is the style, and CI enforces it** (`dart format
   --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
   test tool` before pushing and never hand-tune spacing to fight it. The whole

@@ -132,21 +132,6 @@ class _FakeRepo implements AmsSlotConfigRepository {
 }
 
 void main() {
-  // A phone, not the 800x600 default: the sheet is 75% of the window with a
-  // pinned action bar, so on the default surface almost no list rows are built
-  // and the tests would be measuring the test window rather than the sheet.
-  setUp(() {
-    final view = TestWidgetsFlutterBinding.ensureInitialized()
-        .platformDispatcher
-        .implicitView!;
-    view.physicalSize = const Size(1080, 2400);
-    view.devicePixelRatio = 3.0;
-    addTearDown(() {
-      view.resetPhysicalSize();
-      view.resetDevicePixelRatio();
-    });
-  });
-
   const target = AmsSlotTarget(
     printerId: 1,
     amsId: 0,
@@ -165,8 +150,14 @@ void main() {
     _FakeRepo? repo,
     AmsSlotTarget? slot,
     List<ColorEntry>? colours,
+    AuthMode authMode = AuthMode.jwt,
   }) async {
     final fake = repo ?? _FakeRepo();
+    // A phone, not the 800x600 default: the sheet is 75% of the window with a
+    // pinned action bar, so on the default surface almost no list rows are
+    // built and the tests would be measuring the test window rather than the
+    // sheet.
+    usePhoneWindow(tester);
     await pumpPhone(
       tester,
       Scaffold(
@@ -182,7 +173,7 @@ void main() {
         ),
       ),
       overrides: [
-        fakeServerProfileOverride(),
+        fakeServerProfileOverride(authMode: authMode),
         amsSlotConfigRepositoryProvider.overrideWithValue(fake),
         colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
       ],
@@ -391,28 +382,7 @@ void main() {
     // was created with (`core/auth.py`, `_APIKEY_DENIED_PERMISSIONS`), so the
     // PUT is a guaranteed 403 — and a warning after every single save that the
     // user cannot act on.
-    final repo = _FakeRepo();
-    await pumpPhone(
-      tester,
-      Scaffold(
-        body: Builder(
-          builder: (context) => TextButton(
-            onPressed: () => showModalBottomSheet<void>(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => const AmsSlotConfigSheet(target: target),
-            ),
-            child: const Text('open'),
-          ),
-        ),
-      ),
-      overrides: [
-        fakeServerProfileOverride(authMode: AuthMode.apiKey),
-        amsSlotConfigRepositoryProvider.overrideWithValue(repo),
-      ],
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    final repo = await openSheet(tester, authMode: AuthMode.apiKey);
 
     await tapVisible(tester, find.text('Generic PLA'));
     await tapVisible(tester, find.text('Zapisz w drukarce'));
@@ -523,44 +493,22 @@ void main() {
     Future<_FakeRepo> openWith(
       WidgetTester tester, {
       required String? printerModel,
-    }) async {
-      final repo = _FakeRepo()
+    }) => openSheet(
+      tester,
+      repo: _FakeRepo()
         ..cloudPresets = [
           cloud('GFSB99', 'Bambu ABS @BBL X1C'),
           cloud('GFSB98', 'Bambu ASA @BBL A1'),
           cloud('GFSB97', 'Bambu ABS @BBL H2C 0.2 nozzle'),
-        ];
-      await pumpPhone(
-        tester,
-        Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => AmsSlotConfigSheet(
-                  target: AmsSlotTarget(
-                    printerId: 1,
-                    amsId: 0,
-                    trayId: 2,
-                    label: 'AMS 1 · 3',
-                    printerModel: printerModel,
-                  ),
-                ),
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-        overrides: [
-          fakeServerProfileOverride(),
-          amsSlotConfigRepositoryProvider.overrideWithValue(repo),
         ],
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-      return repo;
-    }
+      slot: AmsSlotTarget(
+        printerId: 1,
+        amsId: 0,
+        trayId: 2,
+        label: 'AMS 1 · 3',
+        printerModel: printerModel,
+      ),
+    );
 
     testWidgets('hides presets that name another printer', (tester) async {
       await openWith(tester, printerModel: 'X1C');

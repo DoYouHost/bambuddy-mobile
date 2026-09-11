@@ -46,10 +46,8 @@ class ArchiveStats {
   /// Total print count in the period.
   final int totalPrints;
 
-  /// Successful prints.
   final int successfulPrints;
 
-  /// Failed prints.
   final int failedPrints;
 
   /// User/system-cancelled prints (stopped/cancelled/skipped) — distinct from
@@ -87,7 +85,6 @@ class ArchiveStats {
   /// Total energy in kWh.
   final double totalEnergyKwh;
 
-  /// Total energy cost.
   final double totalEnergyCost;
 
   /// Energy data still "warming up" (server still collecting measurements) —

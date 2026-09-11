@@ -58,7 +58,6 @@ class PrintableObjects {
   final bool isPrinting;
   final List<double>? bboxAll;
 
-  /// Objects still being printed (not yet skipped).
   int get activeCount => objects.where((o) => !o.skipped).length;
 
   factory PrintableObjects.fromJson(Map<String, dynamic> json) {

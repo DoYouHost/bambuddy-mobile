@@ -105,11 +105,12 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           context,
           title: widget.isEdit ? l10n.projectEdit : l10n.projectCreate,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.projectSave),
-            ).tagged('project_form.save'),
+            dashSaveAction(
+              id: 'project_form.save',
+              label: l10n.projectSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

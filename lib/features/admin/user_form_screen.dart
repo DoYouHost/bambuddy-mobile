@@ -90,11 +90,12 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           context,
           title: widget.isEdit ? l10n.usersEditTitle : l10n.usersCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('user_form.save'),
+            dashSaveAction(
+              id: 'user_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

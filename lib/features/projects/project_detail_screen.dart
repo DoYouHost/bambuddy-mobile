@@ -499,12 +499,12 @@ class _NotesSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.notes_outlined,
       title: l10n.projectNotes,
-      action: TextButton.icon(
-        style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-        icon: const Icon(Icons.edit_outlined, size: 18),
-        label: Text(l10n.projectEdit),
+      action: sectionCardAction(
+        id: 'project.edit_notes',
+        icon: Icons.edit_outlined,
+        label: l10n.projectEdit,
         onPressed: () => _editNotes(context, ref),
-      ).tagged('project.edit_notes'),
+      ),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(

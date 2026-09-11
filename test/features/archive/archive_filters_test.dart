@@ -85,6 +85,22 @@ void main() {
       expect(_ids(out), [1]);
     });
 
+    // The chip the filter sheet hands out is collected from this very field,
+    // so a row whose list is spelled with a stray space or without the space
+    // after the comma has to match the chip it produced.
+    test('material filter takes the separator as the server spelled it', () {
+      final list = [
+        _a(1, filamentType: 'PLA, PETG '),
+        _a(2, filamentType: 'PLA,PETG'),
+        _a(3, filamentType: 'ABS'),
+      ];
+
+      expect(
+        _ids(applyArchiveFilters(list, const ArchiveFilters(material: 'PETG'))),
+        [1, 2],
+      );
+    });
+
     test('color filter OR: any matching', () {
       final list = [
         _a(1, filamentColor: '#FF0000,#00FF00'),

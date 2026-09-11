@@ -208,6 +208,5 @@ class MakerWorldRecentImport {
   final String? sourceUrl;
   final String? createdAt;
 
-  /// Whether server has thumbnail for file (for `LibraryThumbnail`).
   bool get hasThumbnail => thumbnailPath != null && thumbnailPath!.isNotEmpty;
 }

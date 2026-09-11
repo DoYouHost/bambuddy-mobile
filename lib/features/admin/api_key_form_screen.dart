@@ -80,11 +80,12 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
               ? l10n.apiKeysEditTitle
               : l10n.apiKeysCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('api_key_form.save'),
+            dashSaveAction(
+              id: 'api_key_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

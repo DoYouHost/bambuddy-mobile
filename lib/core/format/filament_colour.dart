@@ -1,11 +1,22 @@
-/// Reading the colour a print recorded: the server's `filament_color`, a hex
-/// token for a single-material print and a comma-separated list for a
-/// multi-material one (`#AABBCC,#112233`).
+/// Reading the filament a print recorded: the server's `filament_color` and
+/// `filament_type`, a single token for a single-material print and a
+/// comma-separated list for a multi-material one (`#AABBCC,#112233`,
+/// `PLA, PETG`).
 ///
 /// What callers want out of it differs — the archive filter compares tokens
 /// verbatim, the statistics bucket by one normalized colour — which is why
-/// both readings live here instead of being re-derived per screen.
+/// every reading lives here instead of being re-derived per screen.
 library;
+
+/// One comma-separated server list, trimmed, with the empty pieces dropped.
+///
+/// Split on the comma and trim afterwards, never on `', '`: the server writes
+/// the space for materials and omits it for colours, and a field that has both
+/// spellings in it (`'PLA,PETG '`) comes back as one long token from the
+/// two-character separator.
+List<String> _commaTokens(String? raw) =>
+    raw?.split(',').map((c) => c.trim()).where((c) => c.isNotEmpty).toList() ??
+    const [];
 
 /// Hoisted out of [sixHexDigits]: the statistics call it once per archived
 /// run, and a `RegExp(...)` in the body recompiles the pattern every time.
@@ -30,9 +41,17 @@ String? sixHexDigits(String? raw) {
 /// Verbatim on purpose: the archive colour filter compares these against the
 /// values it collected from the same field, so normalizing here would make a
 /// chosen swatch stop matching the rows it was collected from.
-List<String> filamentColourTokens(String? raw) =>
-    raw?.split(',').map((c) => c.trim()).where((c) => c.isNotEmpty).toList() ??
-    const [];
+List<String> filamentColourTokens(String? raw) => _commaTokens(raw);
+
+/// The material names of a print, in the order the server listed them
+/// (`PLA, PETG` -> `['PLA', 'PETG']`).
+///
+/// The archive collects its material chips from this and then filters rows
+/// with it, so the two sides have to tokenize the same way: the collecting
+/// side trimmed and the filtering side did not, which let a `'PLA, PETG '`
+/// row hand out a chip that then matched nothing — not even the row it came
+/// from.
+List<String> filamentTypeTokens(String? raw) => _commaTokens(raw);
 
 /// The one colour that stands for a print — the first token, normalized to
 /// `#RRGGBB` — or null when the field is empty or holds something that is not

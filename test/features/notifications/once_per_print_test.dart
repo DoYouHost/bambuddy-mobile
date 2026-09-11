@@ -74,6 +74,21 @@ void main() {
       expect(frame().firstLayerInWindow, isFalse);
     });
 
+    // The baseline reading, for a monitor that wakes up mid-print: spent, not
+    // due. Each case of the pair separately, because the two lanes drifted
+    // apart once already.
+    test('the baseline reading has the same floor as the window', () {
+      expect(frame(layer: 1).firstLayerPassed, isFalse);
+      expect(frame(layer: 2).firstLayerPassed, isTrue);
+      expect(frame().firstLayerPassed, isFalse);
+    });
+
+    test('the baseline reading has no ceiling — the window is the ceiling', () {
+      expect(frame(layer: 11).firstLayerPassed, isTrue);
+      expect(frame(layer: 400).firstLayerPassed, isTrue);
+      expect(frame(layer: 400).firstLayerInWindow, isFalse);
+    });
+
     test('the window says nothing about the stage', () {
       // Deliberately: whether a printer in a stage of its own laid that layer
       // down is a second question, and its caller also has to record the frame

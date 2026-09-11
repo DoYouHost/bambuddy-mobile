@@ -151,7 +151,6 @@ class PrinterStatus {
   @JsonKey(fromJson: toIntOrNull)
   final int? speedLevel;
 
-  /// Whether chamber light is on.
   final bool? chamberLight;
 
   /// Chamber airduct mode: 0 = cooling, 1 = heating. Other values → null
@@ -581,21 +580,31 @@ class PrinterStatus {
   /// about the frame, and the widget publisher and the watch ask it too.
   bool get jobUnderway => (layerNum ?? 1) >= 1 && !inNamedStage;
 
+  /// Whether the first layer is behind this frame at all: layer **2** or
+  /// beyond, no upper bound. Layer 1 is it being printed.
+  ///
+  /// The baseline half of a pair with [firstLayerInWindow] — a monitor waking
+  /// up mid-print asks whether the alert is already **spent**, one watching
+  /// asks whether it is **due**. Both lanes spelled `layer >= 2` out for
+  /// themselves once, and the stage condition then reached only one of them:
+  /// an isolate restarting mid-dispatch swallowed a new print's alert for a
+  /// release. One floor in one place.
+  bool get firstLayerPassed => (layerNum ?? 0) >= 2;
+
   /// Whether the layer counter is inside the window in which "the first layer
   /// is done" is still news, on the terms bambuddy's own `on_layer_change`
   /// uses (server #1837).
   ///
-  /// Layer **2** is the first layer *done* — layer 1 is it being printed. The
-  /// window stops at **10**: a counter far past 2 belongs either to a print
-  /// joined halfway or to the job that has just ended, and neither is news.
+  /// [firstLayerPassed] plus the ceiling of **10**: a counter far past 2
+  /// belongs either to a print joined halfway or to the job that has just
+  /// ended, and neither is news. The ceiling is the whole of the difference
+  /// between the two readings.
   ///
   /// Deliberately says nothing about [inNamedStage]. Whether a printer in a
   /// stage of its own has laid that layer down is a second question, and the
   /// caller that asks it also has to record the frame it turned down.
-  bool get firstLayerInWindow {
-    final layer = layerNum;
-    return layer != null && layer >= 2 && layer <= firstLayerLayerCeiling;
-  }
+  bool get firstLayerInWindow =>
+      firstLayerPassed && layerNum! <= firstLayerLayerCeiling;
 
   /// Upper bound of [firstLayerInWindow], matching bambuddy's `[2, 10]`.
   static const firstLayerLayerCeiling = 10;
