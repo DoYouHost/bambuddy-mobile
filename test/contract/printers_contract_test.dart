@@ -7,10 +7,12 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_diagnostic.dart';
 import 'package:bambuddy_mobile/core/models/printer_file.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/data/scheduled_drying_repository.dart';
 import 'package:bambuddy_mobile/data/skip_objects_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,6 +143,12 @@ void main() {
         // 400 when printer MQTT is disconnected in mock environments
         expect(e.response?.statusCode, anyOf(200, 204, 400));
       }
+    });
+
+    test('GET /scheduled-dryings decodes if supported', () async {
+      final dryingRepo = ScheduledDryingRepository(dio);
+      final dryings = await dryingRepo.list();
+      expect(dryings, isA<List<ScheduledDrying>>());
     });
   });
 }

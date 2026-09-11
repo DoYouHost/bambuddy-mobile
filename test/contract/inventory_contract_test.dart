@@ -1,7 +1,9 @@
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_reference.dart';
+import 'package:bambuddy_mobile/core/models/location_sensor.dart';
 import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -121,6 +123,12 @@ void main() {
       createdSpoolIds.remove(created.id);
       final finalList = await repo.fetchSpools(includeArchived: true);
       expect(finalList.any((s) => s.id == created.id), isFalse);
+    });
+
+    test('GET /location-ha-sensors/ decodes into LocationSensorBinding list', () async {
+      final sensorsRepo = LocationSensorsRepository(dio);
+      final bindings = await sensorsRepo.listBindings();
+      expect(bindings, isA<List<LocationSensorBinding>>());
     });
   });
 }

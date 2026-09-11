@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
+import 'package:bambuddy_mobile/core/models/trash_file.dart';
+import 'package:bambuddy_mobile/core/models/variant_group.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -130,6 +132,15 @@ void main() {
         final plate = plateList.plates.first;
         expect(plate.index, greaterThanOrEqualTo(1));
       }
+
+      // Variant group for probe file (null or VariantGroup)
+      final group = await library.variantGroupForFile(probeFile.id);
+      expect(group, anyOf(isNull, isA<VariantGroup>()));
+    });
+
+    test('GET /library/trash decodes into TrashFile list', () async {
+      final trash = await library.listTrash();
+      expect(trash, isA<List<TrashFile>>());
     });
   });
 }

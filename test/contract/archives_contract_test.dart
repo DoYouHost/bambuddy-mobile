@@ -8,9 +8,11 @@ import 'package:bambuddy_mobile/core/models/failure_analysis.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
+import 'package:bambuddy_mobile/core/models/timelapse.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
+import 'package:bambuddy_mobile/data/timelapse_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -55,6 +57,12 @@ void main() {
 
         final plates = await archiveRepo.plates(a.id);
         expect(plates, isA<PlateList>());
+
+        if (a.timelapsePath != null) {
+          final timelapseRepo = TimelapseRepository(dio);
+          final info = await timelapseRepo.info(a.id);
+          expect(info, isA<TimelapseInfo>());
+        }
       }
     });
 

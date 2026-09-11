@@ -115,6 +115,16 @@ void main() {
       expect(res.data?['requires_setup'], isA<bool>());
     });
 
+    test('GET /auth/advanced-auth/status answers public advanced auth status', () async {
+      final unauthedDio = Dio(BaseOptions(baseUrl: contractBaseUrl));
+      final res = await unauthedDio.get<Map<String, dynamic>>(
+        Endpoints.advancedAuthStatus,
+      );
+
+      expect(res.statusCode, 200);
+      expect(res.data?['advanced_auth_enabled'], isA<bool>());
+    });
+
     test('/updates/version answers unauthenticated and decodes', () async {
       // Version must be readable before authentication — ServerVersionService
       // probes this on connect to determine whether the server supports tri-state
