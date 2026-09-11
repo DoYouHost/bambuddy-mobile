@@ -23,6 +23,7 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/platform/app_version.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/server_settings.dart';
@@ -585,6 +586,59 @@ final heaterHistoryRepositoryProvider = Provider<HeaterHistoryRepository>(
 final serverVersionServiceProvider = Provider<ServerVersionService>(
   (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
 );
+
+/// This app's own build, as `version+buildNumber`.
+///
+/// A provider rather than a future held in each widget's `State`, which is how
+/// three screens did it: `PackageInfo.fromPlatform` hands back a fresh future
+/// on every call, so a `FutureBuilder` given one re-enters `waiting` and
+/// flashes its placeholder — and a `State` only avoids that for as long as the
+/// widget lives, which for the drawer footer is one opening of the drawer.
+/// Cached in the container, the answer is there synchronously from the second
+/// read on and nothing flashes at all.
+final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
+
+/// The connected server's version string, for the drawer footer. `null` is
+/// "nobody knows": a server too old to serve `/updates/version`, one that is
+/// unreachable, or a reply this build's parser made nothing of — the screen
+/// says so rather than guessing a number.
+///
+/// Answers `null` with no profile rather than letting [apiClientProvider] throw
+/// on the way: the router keeps every screen that shows this behind a profile,
+/// but a screen is a weaker guarantee than a check, and this one is read from
+/// three of them now.
+///
+/// `autoDispose` **with a link kept on success** — the two halves answer two
+/// different failures, and either one alone reintroduces the other.
+///
+/// Kept unconditionally, the provider caches its first answer for the life of
+/// the container: a drawer opened once in a lift showed "unknown" until the app
+/// was killed, and [ServerVersionService]'s five-minute window ticked by with
+/// nobody left to ask. Disposed unconditionally, every reopening of the drawer
+/// starts at [AsyncLoading] again — one frame of "Server …" in front of an
+/// answer the service already has in hand, which is the same flash
+/// [appVersionProvider] exists to avoid.
+///
+/// So: an answer is kept, an unknown is released. The version cannot change
+/// without the server restarting and dropping the connection, so there is
+/// nothing for the kept one to go stale against — and the released one puts the
+/// service's retry back within reach of the next opening.
+final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
+  // Synchronous on purpose: with no server configured there is nothing to wait
+  // for, and handing back a future would put a loading frame in front of an
+  // answer that is already known.
+  if (ref.watch(serverProfileProvider) == null) return null;
+  // Taken here rather than after the await: `keepAlive` belongs to the build,
+  // and the provider may be disposed while the read is in flight — closing a
+  // link afterwards is safe, taking one is not.
+  final keep = ref.keepAlive();
+  return ref.watch(serverVersionServiceProvider).reportedVersion().then((
+    version,
+  ) {
+    if (version == null) keep.close();
+    return version;
+  });
+});
 
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(

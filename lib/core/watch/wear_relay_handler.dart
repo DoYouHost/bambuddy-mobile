@@ -11,6 +11,7 @@ import '../../data/printer_commands_repository.dart';
 import '../../data/queue_repository.dart';
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
+import '../api/server_version_service.dart';
 import '../models/json_utils.dart';
 import '../models/queue_item.dart';
 import 'wear_relay_claim.dart';
@@ -65,6 +66,21 @@ class WearRelayHandler {
   final void Function(int printerId)? _plateGateAcknowledged;
 
   StreamSubscription<Map<String, dynamic>>? _sub;
+
+  /// Cached per Dio, because the service caches a successful read forever and
+  /// a new one per request would re-fetch on every watch poll. Keyed on the
+  /// client rather than kept once: [_dio] hands back a different one after the
+  /// user switches servers, and that answer must not carry over.
+  ServerVersionService? _serverVersion;
+  Dio? _serverVersionFor;
+
+  ServerVersionService _versionServiceFor(Dio dio) {
+    if (!identical(_serverVersionFor, dio)) {
+      _serverVersion = ServerVersionService(dio);
+      _serverVersionFor = dio;
+    }
+    return _serverVersion!;
+  }
 
   /// The tail of the start/stop chain — see [_sequenced].
   Future<void> _pending = Future<void>.value();
@@ -145,6 +161,12 @@ class WearRelayHandler {
     if (req.action == WearRpcAction.getFleet) {
       return WearRpcResponse.ok(req.id, await _fleet(dio));
     }
+    if (req.action == WearRpcAction.getServerVersion) {
+      // The service never throws: an old server's 404 and an unreachable one
+      // both arrive as null, and the key is then simply absent.
+      final version = await _versionServiceFor(dio).reportedVersion();
+      return WearRpcResponse.ok(req.id, {'version': ?version});
+    }
     final printerId = req.printerId;
     if (printerId == null) {
       return WearRpcResponse.failure(req.id, 'bad-request');
@@ -180,6 +202,7 @@ class WearRelayHandler {
           jobId: req.jobId,
         );
       case WearRpcAction.getFleet:
+      case WearRpcAction.getServerVersion:
         throw StateError('unreachable'); // handled above
     }
     return WearRpcResponse.ok(req.id);

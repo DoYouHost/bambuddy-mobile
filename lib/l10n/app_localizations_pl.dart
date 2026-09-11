@@ -3604,9 +3604,17 @@ class AppLocalizationsPl extends AppLocalizations {
       'Natywny klient Android dla bambuddy — self-hostowanego menedżera drukarek Bambu Lab.';
 
   @override
-  String aboutVersion(String version) {
-    return 'Wersja $version';
+  String appVersionLabel(String version) {
+    return 'Aplikacja $version';
   }
+
+  @override
+  String serverVersionLabel(String version) {
+    return 'Serwer $version';
+  }
+
+  @override
+  String get serverVersionUnknown => 'Nieznana wersja serwera';
 
   @override
   String get aboutLicenseHeader => 'Licencja';

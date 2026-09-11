@@ -57,6 +57,7 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
     printers: ref.watch(printersRepositoryProvider),
     commands: ref.watch(printerCommandsRepositoryProvider),
     queue: ref.watch(queueRepositoryProvider),
+    serverVersion: ref.watch(serverVersionServiceProvider),
   );
   // Demo runs entirely in this process (the API client swaps in the fake
   // backend), so there is nothing for the phone to answer — and asking it would
@@ -71,6 +72,27 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
     relay: relay,
     rest: profile == null ? null : rest(),
   );
+});
+
+/// The connected server's version, for the settings footer. `autoDispose`
+/// because only that screen asks and the answer cannot change without the
+/// server restarting — which drops the session anyway.
+///
+/// Never fails: the phone being out of reach, a phone too old to know the
+/// action (it stays silent, and the watch's timeout is what ends the wait), a
+/// server too old for the route — all of it is one answer to the reader, and a
+/// footer is not the place to explain which of them it was.
+final wearServerVersionProvider = FutureProvider.autoDispose<String?>((
+  ref,
+) async {
+  try {
+    // Watched, not read: the transport is rebuilt when the profile changes,
+    // and an answer obtained through the previous one is about the previous
+    // server.
+    return await ref.watch(wearTransportProvider).getServerVersion();
+  } on Object {
+    return null;
+  }
 });
 
 /// Fleet of printers with status, polled through [wearTransportProvider].

@@ -53,6 +53,7 @@ void main() {
     expect((await service.current())?.raw, '1.2.5.1');
     expect(await service.supports(ServerFeature.triStateCalibration), isTrue);
     expect(await service.reportedVersion(), '1.2.5.1');
+    expect(service.cachedRaw, '1.2.5.1');
   });
 
   test('an older server: no tri-state', () async {
@@ -139,6 +140,35 @@ void main() {
       expect(await service.current(), isNull);
     });
 
+    test('a version this build cannot parse is still reported', () async {
+      // What the capability table can compare and what a screen can print are
+      // two questions: a numbering scheme from the future answers the second
+      // one perfectly well, and telling the user nothing would be worse than
+      // telling them what the server said.
+      replyVersion('nightly-2026-09-11');
+
+      expect(await service.current(), isNull);
+      expect(await service.reportedVersion(), 'nightly-2026-09-11');
+      expect(
+        await service.supports(ServerFeature.triStateCalibration),
+        isFalse,
+        reason: 'unparseable still gates as the older contract',
+      );
+    });
+
+    test('a version that is not text is unknown, not a crash', () async {
+      // Deliberately not stringified: `2` is not a version anyone can act on,
+      // and printing it would put a number in the footer that matches no
+      // release. Unknown is the honest answer; what matters is that the read
+      // does not throw on the way to it.
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (server) => server.reply(200, {'version': 2, 'repo': 'x/y'}),
+      );
+
+      expect(await service.reportedVersion(), isNull);
+    });
+
     test('body without a version field', () async {
       adapter.onGet(
         '/api/v1/updates/version',
@@ -146,6 +176,7 @@ void main() {
       );
 
       expect(await service.current(), isNull);
+      expect(await service.reportedVersion(), isNull);
     });
 
     test('a failed read is not remembered permanently', () async {

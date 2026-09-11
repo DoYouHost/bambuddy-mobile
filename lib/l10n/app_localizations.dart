@@ -5996,11 +5996,23 @@ abstract class AppLocalizations {
   /// **'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.'**
   String get aboutTagline;
 
-  /// No description provided for @aboutVersion.
+  /// This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}'**
-  String aboutVersion(String version);
+  /// **'App {version}'**
+  String appVersionLabel(String version);
+
+  /// Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Server {version}'**
+  String serverVersionLabel(String version);
+
+  /// Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version unknown'**
+  String get serverVersionUnknown;
 
   /// No description provided for @aboutLicenseHeader.
   ///

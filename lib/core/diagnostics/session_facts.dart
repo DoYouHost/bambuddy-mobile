@@ -3,9 +3,9 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/services.dart' show appFlavor;
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/credentials_store.dart';
+import '../platform/app_version.dart';
 import '../settings/server_profile.dart';
 
 /// The exact values a session's redactor must never let through.
@@ -50,14 +50,14 @@ Future<SessionFacts> loadSessionFacts({
   required CredentialsStore credentials,
   Future<String?> Function()? readServerVersion,
 }) async {
-  final info = await PackageInfo.fromPlatform();
+  final app = await readAppVersion();
   final secrets = await sessionSecrets(
     profile: profile,
     credentials: credentials,
   );
 
   return SessionFacts(
-    app: '${info.version}+${info.buildNumber}',
+    app: app,
     os: Platform.operatingSystemVersion,
     locale: PlatformDispatcher.instance.locale.toLanguageTag(),
     server: readServerVersion == null

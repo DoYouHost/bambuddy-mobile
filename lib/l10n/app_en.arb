@@ -1303,8 +1303,20 @@
   "aboutMenu": "About",
   "aboutTitle": "About",
   "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
-  "aboutVersion": "Version {version}",
-  "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
+  "appVersionLabel": "App {version}",
+  "@appVersionLabel": {
+    "description": "This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.",
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "serverVersionLabel": "Server {version}",
+  "@serverVersionLabel": {
+    "description": "Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.",
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "serverVersionUnknown": "Server version unknown",
+  "@serverVersionUnknown": {
+    "description": "Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now."
+  },
   "aboutLicenseHeader": "License",
   "aboutLicenseBody": "Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.",
   "aboutViewLicense": "Read the AGPL-3.0 license",

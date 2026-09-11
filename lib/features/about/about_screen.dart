@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/platform/app_version.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../common/dash_snack.dart';
+import '../common/server_version_text.dart';
 import '../common/system_insets.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
@@ -119,42 +122,44 @@ class AboutScreen extends StatelessWidget {
   }
 
   Future<void> _showLicenses(BuildContext context) async {
-    final info = await PackageInfo.fromPlatform();
+    final version = await readAppVersion();
     if (!context.mounted) return;
     showLicensePage(
       context: context,
       applicationName: 'Bambuddy',
-      applicationVersion: '${info.version}+${info.buildNumber}',
+      applicationVersion: version,
       applicationLegalese: '© DoYouHost · AGPL-3.0',
     );
   }
 }
 
-/// Version read from package metadata (pubspec → buildName+buildNumber).
-class _VersionLabel extends StatefulWidget {
+/// This build over the connected server's, in the wording the drawer footer and
+/// the watch use — this is the screen someone opens *to read a version off*, and
+/// it was the only one of the three that never named the server at all.
+class _VersionLabel extends ConsumerWidget {
   const _VersionLabel();
 
   @override
-  State<_VersionLabel> createState() => _VersionLabelState();
-}
-
-class _VersionLabelState extends State<_VersionLabel> {
-  // Created once in initState — a plain call in build() would kick off a
-  // brand-new platform-channel future (and a "…" flash) on every rebuild.
-  late final Future<PackageInfo> _future = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return FutureBuilder<PackageInfo>(
-      future: _future,
-      builder: (context, snap) {
-        final v = snap.hasData
-            ? '${snap.data!.version}+${snap.data!.buildNumber}'
-            : '…';
-        return Text(l10n.aboutVersion(v), style: t.monoLabel);
-      },
+    return Column(
+      children: [
+        Text(
+          l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…'),
+          style: t.monoLabel,
+        ),
+        // Nothing at all rather than "server version unknown" when no server
+        // has been added yet: on a fresh install that line reads as a failed
+        // connection to a server the user has not named. The drawer needs no
+        // such guard — it is the dashboard's, and the dashboard is behind a
+        // profile by construction.
+        if (ref.watch(serverProfileProvider) != null)
+          Text(
+            serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+            style: t.monoLabel,
+          ),
+      ],
     );
   }
 }

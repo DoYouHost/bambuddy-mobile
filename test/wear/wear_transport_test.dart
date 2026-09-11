@@ -55,6 +55,34 @@ void main() {
       expect(fleet.queuePending, isNull);
     });
 
+    test('getServerVersion round-trip', () async {
+      watch.autoRespond = (req) => WearRpcResponse.ok(req['id'] as String, {
+        'version': '1.2.6b1',
+      }).encode();
+
+      expect(await relay.getServerVersion(), '1.2.6b1');
+      expect(watch.sent.single['action'], 'getServerVersion');
+    });
+
+    test('a phone that read no version → null, not an error', () async {
+      // The phone answers ok with nothing in it when its server has no version
+      // route; that is an answer the footer can print, not a failure.
+      watch.autoRespond = (req) =>
+          WearRpcResponse.ok(req['id'] as String, const {}).encode();
+
+      expect(await relay.getServerVersion(), isNull);
+    });
+
+    test('a phone too old for the action never replies', () async {
+      // It cannot decode an action it does not know, so it stays silent and
+      // the watch's own timeout is what ends the wait — the same fallback path
+      // every read has.
+      await expectLater(
+        relay.getServerVersion(),
+        throwsA(isA<WearRelayTimeout>()),
+      );
+    });
+
     test('command sends printerId and resolves on ok', () async {
       watch.autoRespond = (req) =>
           WearRpcResponse.ok(req['id'] as String).encode();
@@ -193,6 +221,132 @@ void main() {
         expect(rest.calls, ['getFleet'], reason: '$error');
         expect(hybrid.lastMode, WearTransportMode.rest);
       }
+    });
+
+    test('every method carries the action whose policy it wants', () async {
+      // The action argument feeds exactly one expression in `_run` —
+      // `mayRepeatOverRest` — so a method handed the wrong one is not a
+      // cosmetic slip: it decides whether a timed-out call is run a second
+      // time over REST. One table rather than nine near-identical tests,
+      // because what is being pinned is one rule applied nine times.
+      final methods =
+          <(String, WearRpcAction, Future<void> Function(WearTransport))>[
+            ('getFleet', WearRpcAction.getFleet, (t) => t.getFleet()),
+            (
+              'getServerVersion',
+              WearRpcAction.getServerVersion,
+              (t) => t.getServerVersion(),
+            ),
+            ('pause:1', WearRpcAction.pause, (t) => t.pause(1)),
+            ('resume:1', WearRpcAction.resume, (t) => t.resume(1)),
+            ('stop:1', WearRpcAction.stop, (t) => t.stop(1)),
+            ('clearPlate:1', WearRpcAction.clearPlate, (t) => t.clearPlate(1)),
+            ('startNext:1', WearRpcAction.startNext, (t) => t.startNext(1)),
+            (
+              'clearHmsErrors:1',
+              WearRpcAction.hmsClear,
+              (t) => t.clearHmsErrors(1),
+            ),
+            (
+              'executeHmsAction:1:0500:reload:',
+              WearRpcAction.hmsAction,
+              (t) =>
+                  t.executeHmsAction(1, printError: '0500', action: 'reload'),
+            ),
+          ];
+
+      for (final (name, action, call) in methods) {
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(error: WearRelayTimeout()),
+          rest: rest,
+        );
+
+        await call(hybrid).catchError((_) {});
+
+        expect(
+          rest.calls,
+          action.mayRepeatOverRest ? [name] : isEmpty,
+          reason: name,
+        );
+      }
+    });
+
+    group('an unknown version from the phone gets a second opinion', () {
+      test('a phone in a dead spot does not settle it for us', () async {
+        // The phone answers `ok` with no version both when the server has no
+        // such route and when it could not reach the server at all, and an
+        // `ok` is what takes the ordinary fallback out of play. A watch with
+        // its own connection must not be talked out of using it.
+        final rest = FakeWearTransport(serverVersion: '1.2.6');
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), '1.2.6');
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('a phone that answered is believed, and asked once', () async {
+        final rest = FakeWearTransport(serverVersion: '9.9.9');
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(serverVersion: '1.2.6'),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), '1.2.6');
+        expect(rest.calls, isEmpty, reason: 'the relay already answered');
+      });
+
+      test('REST that already served is not asked twice', () async {
+        // `_run` fell back on its own; there is no third path to try.
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(error: WearRelayTimeout()),
+          rest: rest,
+        );
+
+        expect(await hybrid.getServerVersion(), isNull);
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('demo asks its own backend exactly once', () async {
+        final rest = FakeWearTransport();
+        final hybrid = HybridWearTransport.restOnly(rest);
+
+        expect(await hybrid.getServerVersion(), isNull);
+        expect(rest.calls, ['getServerVersion']);
+      });
+
+      test('a relay-only watch has nowhere else to ask', () async {
+        final hybrid = HybridWearTransport(relay: FakeWearTransport());
+
+        expect(await hybrid.getServerVersion(), isNull);
+      });
+
+      test('our own connection failing leaves the unknown standing', () async {
+        final hybrid = HybridWearTransport(
+          relay: FakeWearTransport(),
+          rest: FakeWearTransport(error: WearRelayUnreachable()),
+        );
+
+        expect(await hybrid.getServerVersion(), isNull);
+      });
+    });
+
+    test('a silent old phone hands the version read to REST', () async {
+      // The whole reason the new action is classified as a read: a phone that
+      // cannot decode it answers nothing, and a watch with a profile of its
+      // own asks the server itself instead of showing "unknown".
+      final rest = FakeWearTransport(serverVersion: '1.2.6');
+      final hybrid = HybridWearTransport(
+        relay: FakeWearTransport(error: WearRelayTimeout()),
+        rest: rest,
+      );
+
+      expect(await hybrid.getServerVersion(), '1.2.6');
+      expect(rest.calls, ['getServerVersion']);
     });
 
     test(

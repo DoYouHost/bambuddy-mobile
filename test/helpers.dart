@@ -584,7 +584,11 @@ class _FixedArchiveList extends ArchiveNotifier {
 /// happened to think of. Assert the whole list, not a `contains`, and that
 /// property holds.
 class FakeWearTransport implements WearTransport {
-  FakeWearTransport({this.fleet = const WearFleet(printers: []), this.error});
+  FakeWearTransport({
+    this.fleet = const WearFleet(printers: []),
+    this.error,
+    this.serverVersion,
+  });
 
   /// What every `getFleet` answers.
   final WearFleet fleet;
@@ -592,17 +596,21 @@ class FakeWearTransport implements WearTransport {
   /// Thrown by every call when set — the phone refusing, or out of reach.
   final Exception? error;
 
-  /// Every call in order, oldest first — [getFleet] included, which is what the
+  /// What every `getServerVersion` answers; `null` is the unknown a phone too
+  /// old for the action leaves behind.
+  final String? serverVersion;
+
+  /// Every call in order, oldest first — the reads included, which is what the
   /// transport's own tests are about.
   final List<String> calls = [];
 
-  /// The commands only, without the fleet polls a screen runs on mount and
-  /// again after every action. This is what a screen test means by "what did
-  /// the watch send", and it still shows a stray command rather than swallowing
+  /// The commands only, without the reads a screen runs on mount and again
+  /// after every action. This is what a screen test means by "what did the
+  /// watch send", and it still shows a stray command rather than swallowing
   /// it.
   List<String> get commands => [
     for (final call in calls)
-      if (call != 'getFleet') call,
+      if (call != 'getFleet' && call != 'getServerVersion') call,
   ];
 
   Future<T> _log<T>(String call, T value) {
@@ -614,6 +622,9 @@ class FakeWearTransport implements WearTransport {
 
   @override
   Future<WearFleet> getFleet() => _log('getFleet', fleet);
+
+  @override
+  Future<String?> getServerVersion() => _log('getServerVersion', serverVersion);
 
   @override
   Future<void> pause(int printerId) => _log('pause:$printerId', null);

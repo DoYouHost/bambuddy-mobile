@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
@@ -150,16 +151,23 @@ List<Override> _overrides(DashboardState state) => [
   ),
 ];
 
-Widget _app(DashboardState state, {List<Override> extra = const []}) =>
-    ProviderScope(
-      overrides: [..._overrides(state), ...extra],
-      child: MaterialApp(
-        locale: const Locale('pl'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const DashboardScreen(),
-      ),
-    );
+Widget _app(
+  DashboardState state, {
+  List<Override> extra = const [],
+  TextScaler textScaler = TextScaler.noScaling,
+}) => ProviderScope(
+  overrides: [..._overrides(state), ...extra],
+  child: MaterialApp(
+    locale: const Locale('pl'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+      child: child!,
+    ),
+    home: const DashboardScreen(),
+  ),
+);
 
 /// Same dashboard, but reachable through a router — for the paths that navigate
 /// away (`context.go('/setup')`).
@@ -230,6 +238,72 @@ void main() {
     expect(find.textContaining('Serwer nieosiągalny'), findsOneWidget);
     expect(find.text('Spróbuj ponownie'), findsOneWidget);
     expect(find.byType(ConnectionBanner), findsNothing);
+  });
+
+  group('the drawer footer names both versions', () {
+    /// Opens the drawer of a dashboard whose server version read answers
+    /// [version] — `null` being "the server never told us".
+    Future<void> openDrawer(
+      WidgetTester tester, {
+      String? version,
+      TextScaler textScaler = TextScaler.noScaling,
+    }) async {
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+          textScaler: textScaler,
+        ),
+      );
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      // `settle`, not `pumpAndSettle`: the dashboard keeps an animation
+      // running, so waiting for a still frame never returns.
+      await settle(tester);
+    }
+
+    testWidgets('the server version the app is talking to', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'bambuddy',
+        packageName: 'page.codeberg.morganmlgman.bambuddy_mobile',
+        version: '0.14.0',
+        buildNumber: '2028000',
+        buildSignature: '',
+      );
+      await openDrawer(tester, version: '1.2.6b1');
+
+      // One phrasing for the pair. The app line used to read `Bambuddy
+      // v0.14.0+2028000` over an unprefixed `Serwer 1.2.6`, which read as two
+      // answers to two different questions.
+      expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
+      expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    });
+
+    testWidgets('a daily build at double text size still fits', (tester) async {
+      // Deliberately no `maxLines`/`overflow` on the phone, unlike the watch:
+      // the footer sits above an `Expanded` list, so a wrapped line takes its
+      // room from the list rather than overflowing — and truncating would cost
+      // the build number, which is the half a report is filed with. This is
+      // what makes "it wraps, it does not overflow" a checked claim: the test
+      // framework turns any RenderFlex overflow into a failure.
+      await openDrawer(
+        tester,
+        version: '1.2.6b1-daily.20260729',
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(find.text('Serwer 1.2.6b1-daily.20260729'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an older server that has no version route', (tester) async {
+      // `/updates/version` answering 404 is not an error worth a red line —
+      // the footer says the number is unknown and the drawer is otherwise the
+      // drawer.
+      await openDrawer(tester);
+
+      expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+      expect(find.textContaining('Serwer '), findsNothing);
+    });
   });
 
   testWidgets('the search box filters the list by name', (tester) async {

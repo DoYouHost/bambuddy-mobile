@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -27,6 +26,7 @@ import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
@@ -810,27 +810,14 @@ class _AppDrawer extends ConsumerWidget {
               ],
             ),
           ),
-          // Footer with version — read from package metadata (like About screen).
+          // Footer with both versions — this app's, read from package
+          // metadata (like the About screen), and the server's.
           const Divider(height: 1),
-          SafeArea(
+          const SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              child: Row(
-                children: [
-                  Icon(Icons.print_rounded, size: 14, color: t.textTertiary),
-                  const SizedBox(width: 6),
-                  FutureBuilder<PackageInfo>(
-                    future: PackageInfo.fromPlatform(),
-                    builder: (context, snap) => Text(
-                      snap.hasData
-                          ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
-                          : 'Bambuddy',
-                      style: t.labelSoft,
-                    ),
-                  ),
-                ],
-              ),
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: _DrawerVersions(),
             ),
           ),
         ],
@@ -859,6 +846,48 @@ class _AppDrawer extends ConsumerWidget {
     if (confirmed) {
       await profiles.clear();
     }
+  }
+}
+
+/// Drawer footer: this app's version over the connected server's.
+///
+/// Both lines are one phrasing (`App x` / `Server y`) rather than the
+/// `Bambuddy v0.14.0` this used to carry over the unprefixed server line: two
+/// lines answering the same question read as answering different ones when one
+/// of them is spelled differently. The `v` is gone rather than copied onto the
+/// server line — `ServerVersion` strips a leading `v` because the server
+/// sometimes sends one itself, so that line would have read `Server v v1.2.6`.
+/// The name is not repeated either; the drawer header carries it already.
+class _DrawerVersions extends ConsumerWidget {
+  const _DrawerVersions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final app = ref.watch(appVersionProvider).value;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.appVersionLabel(app ?? '…'), style: t.labelSoft),
+              Text(
+                serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+                style: t.labelSoft,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

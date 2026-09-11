@@ -9,6 +9,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 import '../core/models/queue_item.dart';
+import '../core/api/server_version_service.dart';
 import '../core/watch/wear_rpc.dart';
 import '../data/printer_commands_repository.dart';
 import '../data/printers_repository.dart';
@@ -62,6 +63,13 @@ class WearFleet {
 /// only ever talk to this.
 abstract interface class WearTransport {
   Future<WearFleet> getFleet();
+
+  /// The connected server's version string, `null` when nobody could read one
+  /// — a server too old for the route, a phone too old for the action, or a
+  /// reply that never came. The settings screen says "unknown" rather than
+  /// guessing.
+  Future<String?> getServerVersion();
+
   Future<void> pause(int printerId);
   Future<void> resume(int printerId);
   Future<void> stop(int printerId);
@@ -216,6 +224,13 @@ class RelayTransport implements WearTransport {
   }
 
   @override
+  Future<String?> getServerVersion() async {
+    final data = await _call(WearRpcAction.getServerVersion);
+    final version = data?['version'];
+    return version is String && version.isNotEmpty ? version : null;
+  }
+
+  @override
   Future<void> pause(int printerId) =>
       _call(WearRpcAction.pause, printerId: printerId);
 
@@ -301,13 +316,16 @@ class RestTransport implements WearTransport {
     required PrintersRepository printers,
     required PrinterCommandsRepository commands,
     required QueueRepository queue,
+    required ServerVersionService serverVersion,
   }) : _printers = printers,
        _commands = commands,
-       _queue = queue;
+       _queue = queue,
+       _serverVersion = serverVersion;
 
   final PrintersRepository _printers;
   final PrinterCommandsRepository _commands;
   final QueueRepository _queue;
+  final ServerVersionService _serverVersion;
 
   @override
   Future<WearFleet> getFleet() async {
@@ -327,6 +345,9 @@ class RestTransport implements WearTransport {
     }
     return WearFleet(printers: await printers, queuePending: pending);
   }
+
+  @override
+  Future<String?> getServerVersion() => _serverVersion.reportedVersion();
 
   @override
   Future<void> pause(int printerId) => _commands.pause(printerId);
@@ -405,6 +426,23 @@ class HybridWearTransport implements WearTransport {
   Future<T> _run<T>(
     WearRpcAction action,
     Future<T> Function(WearTransport t) op,
+  ) async => (await _attempt(action, op)).result;
+
+  /// [_run] plus **which side actually served it**, returned rather than left
+  /// for the caller to read off [lastMode].
+  ///
+  /// [lastMode] is shared instance state that every call writes, and the fleet
+  /// poll writes it on every tick for as long as a screen is up. Reading it
+  /// back to learn what *this* call did was correct only because no suspension
+  /// point sits between the write and the read — an invisible property, held by
+  /// nobody, that the next edit to this method would quietly spend. Returning
+  /// the answer costs a record and needs no such argument.
+  ///
+  /// [lastMode] stays what it always was: the fleet poll's cadence signal,
+  /// written here and read there.
+  Future<({T result, WearTransportMode servedBy})> _attempt<T>(
+    WearRpcAction action,
+    Future<T> Function(WearTransport t) op,
   ) async {
     final relay = _relay;
     if (relay == null) {
@@ -412,12 +450,12 @@ class HybridWearTransport implements WearTransport {
       // required argument — the constructors are what make this total.
       final result = await op(_rest!);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
     try {
       final result = await op(relay);
       lastMode = WearTransportMode.relay;
-      return result;
+      return (result: result, servedBy: WearTransportMode.relay);
     } on Exception catch (e) {
       final canFallback =
           e is WearRelayUnreachable ||
@@ -426,13 +464,49 @@ class HybridWearTransport implements WearTransport {
       if (!canFallback || rest == null) rethrow;
       final result = await op(rest);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
   }
 
   @override
   Future<WearFleet> getFleet() =>
       _run(WearRpcAction.getFleet, (t) => t.getFleet());
+
+  /// The one call that does not take the relay's answer as final.
+  ///
+  /// The phone reports "no version" for two different things: a server that
+  /// really has no `/updates/version` route, and a server it could not reach
+  /// at all — `ServerVersionService` swallows the difference by design, so the
+  /// reply is an `ok`, and an `ok` is precisely what takes the relay's own
+  /// fallback out of play. A phone in a dead spot would therefore talk a watch
+  /// that has its own connection out of using it.
+  ///
+  /// So an unknown from the phone is worth a second opinion, where there is a
+  /// second path to ask down. Nothing else works this way, and nothing else
+  /// may: this is a read whose answer is a constant for the life of the
+  /// connection and is cached on both sides, so asking twice costs one request
+  /// and can only turn "I don't know" into an answer.
+  @override
+  Future<String?> getServerVersion() async {
+    final (:result, :servedBy) = await _attempt(
+      WearRpcAction.getServerVersion,
+      (t) => t.getServerVersion(),
+    );
+    final rest = _rest;
+    // Nothing to add: the phone answered, there is no second path, or this
+    // call was already the one down it.
+    if (result != null || rest == null || servedBy == WearTransportMode.rest) {
+      return result;
+    }
+    try {
+      return await rest.getServerVersion();
+    } on Object {
+      // Our own connection is no better than the phone's. Unknown stands, and
+      // [lastMode] is left alone — the fleet poll's cadence is not this
+      // screen's business.
+      return null;
+    }
+  }
 
   @override
   Future<void> pause(int printerId) =>
