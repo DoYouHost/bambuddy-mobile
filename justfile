@@ -60,6 +60,13 @@ l10n-check base='dev':
 l10n-check-all:
     python3 tool/check_l10n_language.py --all
 
+# Compare .arb files against the English template: find missing, outdated or mismatched keys.
+# usage: just l10n-status [*ARGS]
+[doc('check translation status and missing keys against app_en.arb')]
+[group('1-develop')]
+l10n-status *args:
+    python3 tool/check_l10n_sync.py {{args}}
+
 # Boots the AVD first if needed, then builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
 # usage: just run [AVD]

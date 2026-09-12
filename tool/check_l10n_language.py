@@ -33,6 +33,9 @@ ENDPOINT = os.environ.get(
 FILES = (
     ('lib/l10n/app_pl.arb', 'pl-PL', 'many'),
     ('lib/l10n/app_en.arb', 'en-US', 'other'),
+    ('lib/l10n/app_de.arb', 'de-DE', 'other'),
+    ('lib/l10n/app_fr.arb', 'fr-FR', 'other'),
+    ('lib/l10n/app_es.arb', 'es-ES', 'other'),
 )
 
 # Rules this app's own copy overrules, each checked against the existing
@@ -61,6 +64,12 @@ IGNORED_RULE_PREFIXES = (
     'ENGLISH_WORD_REPEAT_BEGINNING',
     'EN_REPEATEDWORDS',
     'PL_WORD_REPEAT',
+    'DE_WORD_REPEAT',
+    'GERMAN_WORD_REPEAT_BEGINNING',
+    'ES_WORD_REPEAT',
+    'SPANISH_WORD_REPEAT_BEGINNING',
+    'FR_WORD_REPEAT',
+    'FRENCH_WORD_REPEAT_BEGINNING',
 )
 
 # Product names, materials and protocol names are in neither dictionary.
@@ -227,7 +236,11 @@ def interesting(match: dict) -> bool:
     # of them is how the list goes stale.
     if word.lower() in KNOWN_LOWER:
         return False
-    if rule.startswith('MORFOLOGIK'):
+    if (
+        rule.startswith(('MORFOLOGIK', 'GERMAN_SPELLER', 'FRENCH_SPELLER', 'SPANISH_SPELLER'))
+        or rule.endswith('_SPELLER_RULE')
+        or 'SPELLER' in rule
+    ):
         # The dictionary rule also fires on identifiers, units and product
         # names, which is what `KNOWN_WORDS` and `KNOWN_JARGON` above are for:
         # a word that is not in either and is a plain lowercase run of letters
@@ -279,10 +292,33 @@ def main() -> int:
         action='store_true',
         help='check every string, not only the ones this branch changed',
     )
+    parser.add_argument(
+        '--lang',
+        help='comma-separated list of languages to check (e.g. de, fr, es, pl, en)',
+    )
     args = parser.parse_args()
 
-    findings = 0
+    files_to_check: list[tuple[str, str, str]] = []
     for path, language, arm in FILES:
+        lang_code = os.path.basename(path).replace('app_', '').replace('.arb', '')
+        if args.lang:
+            targets = [t.strip().lower() for t in args.lang.split(',')]
+            if lang_code not in targets and language.lower() not in targets:
+                continue
+            if not os.path.exists(path):
+                print(f"Warning: {path} not found on disk, skipping.", file=sys.stderr)
+                continue
+        else:
+            if not os.path.exists(path):
+                continue
+        files_to_check.append((path, language, arm))
+
+    if not files_to_check:
+        print('No translation files found to check.')
+        return 0
+
+    findings = 0
+    for path, language, arm in files_to_check:
         current = strings(path, arm)
         if args.all:
             entries = list(current.items())
