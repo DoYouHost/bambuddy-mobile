@@ -2247,5 +2247,12 @@
   "failureReasonPowerFailure": "Corte de corriente",
   "failureReasonUserCancelled": "Cancelada por el usuario",
   "failureReasonOther": "Otro",
-  "failureReasonUnknown": "Desconocido"
+  "failureReasonUnknown": "Desconocido",
+  "appSettingsMenu": "Ajustes de la app",
+  "appSettingsTitle": "Ajustes de la app",
+  "appSettingsNotificationsSubtitle": "Qué eventos envían una notificación y con qué umbrales",
+  "collapsePrinterCardsTitle": "Tarjetas de impresora contraídas",
+  "collapsePrinterCardsDesc": "Las tarjetas se abren mostrando solo el nombre, el estado y el progreso de impresión. Cualquier tarjeta se puede seguir expandiendo.",
+  "printerCardExpand": "Expandir tarjeta",
+  "printerCardCollapse": "Contraer tarjeta"
 }

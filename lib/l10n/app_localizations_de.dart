@@ -7176,4 +7176,27 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Unbekannt';
+
+  @override
+  String get appSettingsMenu => 'App-Einstellungen';
+
+  @override
+  String get appSettingsTitle => 'App-Einstellungen';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Eingeklappte Druckerkarten';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Karten zeigen beim Öffnen nur Name, Status und Druckfortschritt. Jede Karte lässt sich weiterhin ausklappen.';
+
+  @override
+  String get printerCardExpand => 'Karte ausklappen';
+
+  @override
+  String get printerCardCollapse => 'Karte einklappen';
 }

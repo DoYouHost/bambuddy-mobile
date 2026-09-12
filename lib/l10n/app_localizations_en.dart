@@ -7114,4 +7114,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Unknown';
+
+  @override
+  String get appSettingsMenu => 'App settings';
+
+  @override
+  String get appSettingsTitle => 'App settings';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Which events send a notification, and at what thresholds';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Collapsed printer cards';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Cards open showing only the name, status and print progress. Any card can still be expanded.';
+
+  @override
+  String get printerCardExpand => 'Expand card';
+
+  @override
+  String get printerCardCollapse => 'Collapse card';
 }

@@ -7259,4 +7259,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Inconnu';
+
+  @override
+  String get appSettingsMenu => 'Paramètres de l\'application';
+
+  @override
+  String get appSettingsTitle => 'Paramètres de l\'application';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Quels événements envoient une notification, et à partir de quels seuils';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Cartes d\'imprimante réduites';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Les cartes s\'ouvrent en n\'affichant que le nom, l\'état et la progression de l\'impression. Chaque carte peut toujours être développée.';
+
+  @override
+  String get printerCardExpand => 'Développer la carte';
+
+  @override
+  String get printerCardCollapse => 'Réduire la carte';
 }

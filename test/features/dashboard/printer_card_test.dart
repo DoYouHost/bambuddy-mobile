@@ -3297,4 +3297,255 @@ void main() {
       expect(commands.calls, contains('startDrying:3:1:45:12:PLA'));
     });
   });
+
+  group('collapsed card', () {
+    // The fault icon only appears for a code the catalog can describe, and it
+    // resolves through the real asset like the panel does.
+    setUpAll(() => HmsCatalog.instance.load(const Locale('pl')));
+
+    final printing = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+
+    Widget card(
+      PrinterWithStatus item, {
+      ValueChanged<bool>? onCollapsedChanged,
+      List<Override> extra = const [],
+    }) => _scope(
+      Scaffold(
+        body: SingleChildScrollView(
+          child: PrinterCard(
+            item: item,
+            collapsed: true,
+            onCollapsedChanged: onCollapsedChanged ?? (_) {},
+          ),
+        ),
+      ),
+      extra: extra,
+    );
+
+    testWidgets(
+      'a printing card keeps name, status and progress, nothing else',
+      (tester) async {
+        await tester.pumpWidget(card(printing));
+
+        expect(find.text('X1C Warsztat'), findsOneWidget);
+        expect(find.text('RUNNING'), findsOneWidget);
+        expect(find.text('43%'), findsOneWidget);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(find.text('benchy.3mf'), findsNothing);
+        expect(find.text('DYSZA'), findsNothing);
+        expect(find.text('Szczegóły'), findsNothing);
+        expect(find.byTooltip('Pliki na drukarce'), findsNothing);
+      },
+    );
+
+    testWidgets('expanding and collapsing again is one button in one corner', (
+      tester,
+    ) async {
+      var collapsed = true;
+      final asked = <bool>[];
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setState) => PrinterCard(
+                  item: printing,
+                  collapsed: collapsed,
+                  onCollapsedChanged: (value) {
+                    asked.add(value);
+                    setState(() => collapsed = value);
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final corner = tester.getTopRight(find.byTooltip('Rozwiń kartę'));
+      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.pump();
+
+      expect(asked, [false]);
+      expect(find.text('DYSZA'), findsOneWidget);
+      expect(find.byTooltip('Rozwiń kartę'), findsNothing);
+      expect(
+        tester.getTopRight(find.byTooltip('Zwiń kartę')).dx,
+        closeTo(corner.dx, 4),
+        reason:
+            'the collapsed card pads 16 at the sides, the full one 20 — the '
+            'button may move that much, never to another part of the card',
+      );
+
+      await tester.tap(find.byTooltip('Zwiń kartę'));
+      await tester.pump();
+
+      expect(asked, [false, true]);
+      expect(find.text('DYSZA'), findsNothing);
+    });
+
+    testWidgets('a card nobody can toggle offers no button in either look', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_cardWithProviders(printing));
+
+      expect(find.byTooltip('Zwiń kartę'), findsNothing);
+      expect(find.byTooltip('Rozwiń kartę'), findsNothing);
+    });
+
+    testWidgets('a print still preparing shows no percentage', (tester) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 2, name: 'P1S'),
+        status: PrinterStatus(
+          id: 2,
+          connected: true,
+          state: 'PREPARE',
+          progress: 0,
+          stgCurName: 'Auto bed leveling',
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('0%'), findsNothing);
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .value,
+        isNull,
+      );
+    });
+
+    testWidgets('an idle printer has no progress bar', (tester) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 3, name: 'A1 mini'),
+        status: PrinterStatus(id: 3, connected: true, state: 'IDLE'),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('IDLE'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.byIcon(Icons.print_outlined), findsOneWidget);
+    });
+
+    testWidgets('an offline printer collapses to its name and OFFLINE', (
+      tester,
+    ) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 4, name: 'X1C Hala'),
+        status: PrinterStatus(
+          id: 4,
+          connected: false,
+          state: 'RUNNING',
+          progress: 40,
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('RUNNING'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWidgets('an active fault takes the place of the printer glyph', (
+      tester,
+    ) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 9, name: 'X2D Warsztat'),
+        status: const PrinterStatus(
+          id: 9,
+          connected: true,
+          state: 'PAUSE',
+          progress: 40,
+          hmsErrors: [_runout],
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.byTooltip('1 błąd'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.print_outlined), findsNothing);
+      expect(find.textContaining('Skończył się filament'), findsNothing);
+    });
+
+    group('a plate waiting to be cleared', () {
+      List<Override> gate() => [
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
+        printerStatusesProvider.overrideWith(_InertStatuses.new),
+      ];
+
+      testWidgets('is flagged in place of the glyph, offline too', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 4, name: 'X2D-3DP'),
+          status: PrinterStatus(
+            id: 4,
+            connected: false,
+            awaitingPlateClear: true,
+          ),
+        );
+        await tester.pumpWidget(card(item, extra: gate()));
+        await tester.pumpAndSettle();
+
+        expect(find.text('OFFLINE'), findsOneWidget);
+        expect(find.byTooltip('Płyta niewyczyszczona'), findsOneWidget);
+        expect(find.byIcon(Icons.layers_clear_outlined), findsOneWidget);
+        // The acknowledgement itself stays behind the expand button.
+        expect(find.byTooltip('Oznacz płytę jako pustą'), findsNothing);
+      });
+
+      testWidgets('gives way to a fault when both apply', (tester) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 5, name: 'A1 mini'),
+          status: PrinterStatus(
+            id: 5,
+            connected: true,
+            state: 'FINISH',
+            awaitingPlateClear: true,
+            hmsErrors: [_runout],
+          ),
+        );
+        await tester.pumpWidget(card(item, extra: gate()));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.layers_clear_outlined), findsNothing);
+      });
+
+      testWidgets('is not flagged while the server does not gate on it', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 5, name: 'A1 mini'),
+          status: PrinterStatus(
+            id: 5,
+            connected: true,
+            state: 'FINISH',
+            awaitingPlateClear: true,
+          ),
+        );
+        await tester.pumpWidget(
+          card(
+            item,
+            extra: [
+              requirePlateClearProvider.overrideWithValue(
+                AsyncValue.data(false),
+              ),
+              printerStatusesProvider.overrideWith(_InertStatuses.new),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.print_outlined), findsOneWidget);
+      });
+    });
+  });
 }

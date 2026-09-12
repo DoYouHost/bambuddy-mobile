@@ -70,11 +70,25 @@ part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
 part 'printer_card_movement.dart';
+part 'printer_card_collapsed.dart';
 
 class PrinterCard extends StatefulWidget {
-  const PrinterCard({super.key, required this.item, this.inTouchSince});
+  const PrinterCard({
+    super.key,
+    required this.item,
+    this.inTouchSince,
+    this.collapsed = false,
+    this.onCollapsedChanged,
+  });
 
   final PrinterWithStatus item;
+
+  /// Whether the card shows only its name, status and print progress.
+  final bool collapsed;
+
+  /// Asked to collapse (`true`) or expand the card. Without it the card offers
+  /// no toggle and stays as [collapsed] says.
+  final ValueChanged<bool>? onCollapsedChanged;
 
   /// When the app last (re)gained contact with the server
   /// (`PrinterStatusesNotifier.inTouchSince`), or `null` while it has none.
@@ -161,6 +175,25 @@ class _PrinterCardState extends State<PrinterCard> {
     final connected = status?.connected ?? false;
     final printerId = widget.item.printer.id;
     final name = widget.item.printer.name;
+    final onCollapsedChanged = widget.onCollapsedChanged;
+
+    if (widget.collapsed) {
+      return _CollapsedCard(
+        name: name,
+        status: status,
+        offline: _offline,
+        onExpand: onCollapsedChanged == null
+            ? null
+            : () => onCollapsedChanged(false),
+      );
+    }
+
+    final collapseButton = onCollapsedChanged == null
+        ? null
+        : _CollapseToggleButton(
+            collapsed: false,
+            onPressed: () => onCollapsedChanged(true),
+          );
 
     // Printer unavailable (no status or disconnected): card collapses to
     // header-only with an OFFLINE chip. Don't show stale temperatures/controls —
@@ -191,6 +224,10 @@ class _PrinterCardState extends State<PrinterCard> {
                 _SmartPlugButton(printerId: printerId, printing: false),
                 const SizedBox(width: 8),
                 _StateChip(label: l10n.statusOffline, offline: true),
+                if (collapseButton != null) ...[
+                  const SizedBox(width: 8),
+                  collapseButton,
+                ],
               ],
             ),
             // The one thing that survives the collapse besides the plug, and for
@@ -262,12 +299,18 @@ class _PrinterCardState extends State<PrinterCard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _StateChip(
-                    label: status == null
-                        ? l10n.statusUnavailable
-                        : (status.state ??
-                              (connected ? l10n.online : l10n.offline)),
-                    offline: !connected,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _StateChip(
+                        label: _stateChipLabel(l10n, status),
+                        offline: !connected,
+                      ),
+                      if (collapseButton != null) ...[
+                        const SizedBox(width: 8),
+                        collapseButton,
+                      ],
+                    ],
                   ),
                   if (connected) ...[
                     const SizedBox(height: 10),
@@ -352,10 +395,15 @@ class _PrinterCardState extends State<PrinterCard> {
 /// Outer card container in the modernized visual language: translucent gradient
 /// fill, hairline border, generous radius. Holds the whole printer card.
 class _CardShell extends StatelessWidget {
-  const _CardShell({required this.tokens, required this.child});
+  const _CardShell({
+    required this.tokens,
+    required this.child,
+    this.padding = const EdgeInsets.all(20),
+  });
 
   final DashTokens tokens;
   final Widget child;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
@@ -365,7 +413,7 @@ class _CardShell extends StatelessWidget {
       'dashboard.printer_card',
       Container(
         margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-        padding: const EdgeInsets.all(20),
+        padding: padding,
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
           borderRadius: BorderRadius.circular(26),
@@ -378,25 +426,45 @@ class _CardShell extends StatelessWidget {
 }
 
 /// Rounded green-tinted square holding the printer glyph (design header icon).
+///
+/// [tint] swaps both the glyph and its colour for something the collapsed card
+/// has to flag in that spot — a fault, a plate waiting to be cleared.
 class _IconSquare extends StatelessWidget {
-  const _IconSquare({required this.tokens, this.offline = false});
+  const _IconSquare({
+    required this.tokens,
+    this.offline = false,
+    this.icon = Icons.print_outlined,
+    this.tint,
+  });
 
   final DashTokens tokens;
   final bool offline;
+  final IconData icon;
+  final Color? tint;
 
   @override
   Widget build(BuildContext context) {
-    final color = offline ? tokens.textTertiary : tokens.accentGreenInk;
+    final tint = this.tint;
+    final Color color;
+    final Color fill;
+    if (tint != null) {
+      color = tint;
+      fill = tint.withValues(alpha: 0.14);
+    } else if (offline) {
+      color = tokens.textTertiary;
+      fill = tokens.textTertiary.withValues(alpha: 0.10);
+    } else {
+      color = tokens.accentGreenInk;
+      fill = tokens.accentGreen.withValues(alpha: 0.14);
+    }
     return Container(
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: (offline ? tokens.textTertiary : tokens.accentGreen).withValues(
-          alpha: offline ? 0.10 : 0.14,
-        ),
+        color: fill,
         borderRadius: BorderRadius.circular(11),
       ),
-      child: Icon(Icons.print_outlined, size: 18, color: color),
+      child: Icon(icon, size: 18, color: color),
     );
   }
 }

@@ -27,6 +27,7 @@ class SettingsRepository {
   static const _clock24hKey = 'clock_24h';
   static const _wearRelayClaimKey = 'wear_relay_claim';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
+  static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
 
   final SharedPreferences _prefs;
 
@@ -123,6 +124,14 @@ class SettingsRepository {
   bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
 
   Future<void> saveNo3mfDismissed() => _prefs.setBool(_no3mfDismissedKey, true);
+
+  /// Whether dashboard printer cards open collapsed. Absent reads as expanded,
+  /// the only look installs had before the setting existed.
+  bool loadPrinterCardsCollapsed() =>
+      _prefs.getBool(_printerCardsCollapsedKey) ?? false;
+
+  Future<void> savePrinterCardsCollapsed(bool collapsed) =>
+      _prefs.setBool(_printerCardsCollapsedKey, collapsed);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.

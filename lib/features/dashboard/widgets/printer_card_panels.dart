@@ -196,10 +196,8 @@ class _PrintPanel extends StatelessWidget {
         ),
     ];
 
-    // Prep phase (heating, auto bed leveling): show stage name
-    // and indeterminate bar instead of confusing 0%.
-    final stage = status.stgCurName?.trim();
-    final showStage = status.isPreparing && stage != null && stage.isNotEmpty;
+    final stage = _preparingStage(status);
+    final showStage = stage != null;
 
     final nameBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,21 +252,7 @@ class _PrintPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: showStage
-                        ? null
-                        : (progress == null
-                              ? null
-                              : (progress / 100).clamp(0.0, 1.0)),
-                    minHeight: 6,
-                    backgroundColor: t.gaugeTrack,
-                    valueColor: AlwaysStoppedAnimation(t.accentGreen),
-                  ),
-                ),
-              ),
+              Expanded(child: _PrintProgressBar(status: status, height: 6)),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: 10),
                 Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
@@ -280,6 +264,39 @@ class _PrintPanel extends StatelessWidget {
             PrintMetaRow(items: meta),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// The stage a print is still preparing through (heating, bed levelling), or
+/// `null` once it prints. While there is one, the bar runs indeterminate and no
+/// percentage is shown — a 0% there reads as a stalled job.
+String? _preparingStage(PrinterStatus status) {
+  final stage = status.stgCurName?.trim();
+  return status.isPreparing && stage != null && stage.isNotEmpty ? stage : null;
+}
+
+/// The print's progress bar, shared by the print panel and the collapsed card.
+class _PrintProgressBar extends StatelessWidget {
+  const _PrintProgressBar({required this.status, required this.height});
+
+  final PrinterStatus status;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final progress = status.progress;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: LinearProgressIndicator(
+        value: _preparingStage(status) != null || progress == null
+            ? null
+            : (progress / 100).clamp(0.0, 1.0),
+        minHeight: height,
+        backgroundColor: t.gaugeTrack,
+        valueColor: AlwaysStoppedAnimation(t.accentGreen),
       ),
     );
   }

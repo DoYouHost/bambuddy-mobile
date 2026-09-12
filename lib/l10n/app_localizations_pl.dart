@@ -7213,4 +7213,27 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Nieznana';
+
+  @override
+  String get appSettingsMenu => 'Ustawienia aplikacji';
+
+  @override
+  String get appSettingsTitle => 'Ustawienia aplikacji';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Które zdarzenia wysyłają powiadomienie i przy jakich progach';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Zwinięte karty drukarek';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Karty otwierają się z samą nazwą, statusem i postępem wydruku. Każdą nadal można rozwinąć.';
+
+  @override
+  String get printerCardExpand => 'Rozwiń kartę';
+
+  @override
+  String get printerCardCollapse => 'Zwiń kartę';
 }

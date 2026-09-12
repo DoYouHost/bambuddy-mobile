@@ -2251,5 +2251,12 @@
   "failureReasonPowerFailure": "Zanik zasilania",
   "failureReasonUserCancelled": "Anulowany przez użytkownika",
   "failureReasonOther": "Inna",
-  "failureReasonUnknown": "Nieznana"
+  "failureReasonUnknown": "Nieznana",
+  "appSettingsMenu": "Ustawienia aplikacji",
+  "appSettingsTitle": "Ustawienia aplikacji",
+  "appSettingsNotificationsSubtitle": "Które zdarzenia wysyłają powiadomienie i przy jakich progach",
+  "collapsePrinterCardsTitle": "Zwinięte karty drukarek",
+  "collapsePrinterCardsDesc": "Karty otwierają się z samą nazwą, statusem i postępem wydruku. Każdą nadal można rozwinąć.",
+  "printerCardExpand": "Rozwiń kartę",
+  "printerCardCollapse": "Zwiń kartę"
 }
