@@ -33,6 +33,9 @@ ENDPOINT = os.environ.get(
 FILES = (
     ('lib/l10n/app_pl.arb', 'pl-PL', 'many'),
     ('lib/l10n/app_en.arb', 'en-US', 'other'),
+    ('lib/l10n/app_de.arb', 'de-DE', 'other'),
+    ('lib/l10n/app_fr.arb', 'fr-FR', 'other'),
+    ('lib/l10n/app_es.arb', 'es-ES', 'other'),
 )
 
 # Rules this app's own copy overrules, each checked against the existing
@@ -51,6 +54,46 @@ IGNORED_RULES = {
     'UPPERCASE_SENTENCE_START',
     'COMMA_PARENTHESIS_WHITESPACE',
     'NIETYPOWA_KOMBINACJA_DUZYCH_I_MALYCH_LITER',
+    # German UI conventions: no non-breaking space required before ellipsis, units or in abbreviations
+    'AUSLASSUNGSPUNKTE_LEERZEICHEN',
+    'EINHEIT_LEERZEICHEN',
+    'ABKUERZUNG_LEERZEICHEN',
+    # False positive on "das Log in einer Datei"
+    'LOG_IN',
+    # Input field hint text ending with period
+    'FRAGEZEICHEN_STATT_PUNKT',
+    # Spanish UI conventions: units spacing and capitalized short labels
+    'SPACE_UNITIES',
+    'MAYUSCULAS_INICIO_FRASE',
+    # French, each one checked against every hit in app_fr.arb:
+    #   NOMBRES_EN_LETTRES*  the copy writes digits ("code à 6 chiffres"), and
+    #                        every placeholder resolves to one
+    #   POINT, POINTS_2      a UI label takes no full stop (as BRAK_KROPKI)
+    #   TIRET                the A–Z sort labels use an en dash in every locale
+    #   DETERMINER_SENT_END  a label ending in a placeholder ("Chargée dans {slot}")
+    #   HEURES, ESPACE_UNITES  compact durations ("5h 30min"), as bambuddy's own
+    #                        French UI writes them
+    #   FRENCH_WHITESPACE    fires only on host:port in the address hint
+    #   MOTS_INCOMP          "du slicer": the noun is not in the dictionary
+    #   PAS_DE_TRAIT_UNION   "auto-hébergé", spelled as in bambuddy's French UI
+    #   PREP_VERBECONJUGUE   the all-caps "PERMISSIONS" section header
+    #   CONFUSION_SENT_S_EN, ON_ONT  the Bambu Studio label quoted in English
+    #                        ("Store sent files on external storage")
+    'NOMBRES_EN_LETTRES',
+    'NOMBRES_EN_LETTRES_2',
+    'NOMBRES_EN_LETTRES_2_IMPROVED',
+    'POINT',
+    'POINTS_2',
+    'TIRET',
+    'DETERMINER_SENT_END',
+    'HEURES',
+    'ESPACE_UNITES',
+    'FRENCH_WHITESPACE',
+    'MOTS_INCOMP',
+    'PAS_DE_TRAIT_UNION',
+    'PREP_VERBECONJUGUE',
+    'CONFUSION_SENT_S_EN',
+    'ON_ONT',
 }
 
 # Rules that judge a sentence against the ones before it. Unrelated labels are
@@ -61,6 +104,15 @@ IGNORED_RULE_PREFIXES = (
     'ENGLISH_WORD_REPEAT_BEGINNING',
     'EN_REPEATEDWORDS',
     'PL_WORD_REPEAT',
+    'DE_WORD_REPEAT',
+    'GERMAN_WORD_REPEAT_BEGINNING',
+    'ES_WORD_REPEAT',
+    'ES_REPEATEDWORDS',
+    'SPANISH_WORD_REPEAT_BEGINNING',
+    'FR_WORD_REPEAT',
+    'FR_REPEATEDWORDS',
+    'FRENCH_WORD_REPEAT_BEGINNING',
+    'REP_',
 )
 
 # Product names, materials and protocol names are in neither dictionary.
@@ -74,6 +126,9 @@ KNOWN_WORDS = {
     'h', 'gcode',
     # Brands and licences the copy names outright, and the US paper size.
     'Dymo', 'Affero', 'Keystore', 'Letter',
+    # Additional brands, products, technical terms and UI acronyms
+    'Lab', 'Studio', 'Cloud', 'Brother', 'Authenticator', 'Ludicrous',
+    'US', 'Aux', 'Temp', 'Z', 'hash', 'hex', 'proxy', 'relay', 'robin', 'Keys', 'code',
 }
 
 # English terms the Polish copy quotes verbatim, plus loanwords the app uses on
@@ -91,11 +146,23 @@ KNOWN_JARGON = {
     # Plural of the app's own coinage, and two ordinary Polish words the
     # dictionary wants to split: "Podprojekty", "Szac. koszt".
     'timelapses', 'podprojekty', 'szac',
+    # Spanish technical and domain terms
+    'preajuste', 'preajustes', 'desagrupar', 'desagrupadas', 'desasignar',
+    'desasignada', 'deseleccionar', 'extruir', 'extruido', 'subextrusión',
+    'multiplaca', 'stringing', 'est',
+    # French: the Docker setting the copy quotes, and bambuddy's own French
+    # word for unassigning a spool.
+    'host', 'désassigner', 'désassignée',
 }
 
 # ICU placeholders, replaced so the checker sees a sentence rather than braces.
 PLACEHOLDER = re.compile(r'\{(\w+)\}')
-PLACEHOLDER_VALUES = {'duration': '20 min'}
+PLACEHOLDER_VALUES = {
+    'duration': '20 min',
+    'time': '14:00',
+    'code': 'PLA-01',
+    'size': '500 MB',
+}
 
 # What an unnamed placeholder becomes. A numeral rather than a letter: half of
 # these count something, and Polish numeral agreement ("5 szpul") is a rule the
@@ -227,7 +294,11 @@ def interesting(match: dict) -> bool:
     # of them is how the list goes stale.
     if word.lower() in KNOWN_LOWER:
         return False
-    if rule.startswith('MORFOLOGIK'):
+    if (
+        rule.startswith(('MORFOLOGIK', 'GERMAN_SPELLER', 'FRENCH_SPELLER', 'SPANISH_SPELLER', 'FR_SPELLING_RULE'))
+        or rule.endswith('_SPELLER_RULE')
+        or 'SPELLER' in rule
+    ):
         # The dictionary rule also fires on identifiers, units and product
         # names, which is what `KNOWN_WORDS` and `KNOWN_JARGON` above are for:
         # a word that is not in either and is a plain lowercase run of letters
@@ -279,10 +350,33 @@ def main() -> int:
         action='store_true',
         help='check every string, not only the ones this branch changed',
     )
+    parser.add_argument(
+        '--lang',
+        help='comma-separated list of languages to check (e.g. de, fr, es, pl, en)',
+    )
     args = parser.parse_args()
 
-    findings = 0
+    files_to_check: list[tuple[str, str, str]] = []
     for path, language, arm in FILES:
+        lang_code = os.path.basename(path).replace('app_', '').replace('.arb', '')
+        if args.lang:
+            targets = [t.strip().lower() for t in args.lang.split(',')]
+            if lang_code not in targets and language.lower() not in targets:
+                continue
+            if not os.path.exists(path):
+                print(f"Warning: {path} not found on disk, skipping.", file=sys.stderr)
+                continue
+        else:
+            if not os.path.exists(path):
+                continue
+        files_to_check.append((path, language, arm))
+
+    if not files_to_check:
+        print('No translation files found to check.')
+        return 0
+
+    findings = 0
+    for path, language, arm in files_to_check:
         current = strings(path, arm)
         if args.all:
             entries = list(current.items())
