@@ -7189,4 +7189,27 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Desconocido';
+
+  @override
+  String get appSettingsMenu => 'Ajustes de la app';
+
+  @override
+  String get appSettingsTitle => 'Ajustes de la app';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Qué eventos envían una notificación y con qué umbrales';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Tarjetas de impresora contraídas';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Las tarjetas se abren mostrando solo el nombre, el estado y el progreso de impresión. Cualquier tarjeta se puede seguir expandiendo.';
+
+  @override
+  String get printerCardExpand => 'Expandir tarjeta';
+
+  @override
+  String get printerCardCollapse => 'Contraer tarjeta';
 }

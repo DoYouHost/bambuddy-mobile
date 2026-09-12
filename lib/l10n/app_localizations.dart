@@ -12043,6 +12043,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown'**
   String get failureReasonUnknown;
+
+  /// No description provided for @appSettingsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get appSettingsMenu;
+
+  /// No description provided for @appSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get appSettingsTitle;
+
+  /// No description provided for @appSettingsNotificationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which events send a notification, and at what thresholds'**
+  String get appSettingsNotificationsSubtitle;
+
+  /// No description provided for @collapsePrinterCardsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapsed printer cards'**
+  String get collapsePrinterCardsTitle;
+
+  /// No description provided for @collapsePrinterCardsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards open showing only the name, status and print progress. Any card can still be expanded.'**
+  String get collapsePrinterCardsDesc;
+
+  /// No description provided for @printerCardExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand card'**
+  String get printerCardExpand;
+
+  /// No description provided for @printerCardCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse card'**
+  String get printerCardCollapse;
 }
 
 class _AppLocalizationsDelegate

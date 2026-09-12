@@ -2247,5 +2247,12 @@
   "failureReasonPowerFailure": "Stromausfall",
   "failureReasonUserCancelled": "Vom Benutzer abgebrochen",
   "failureReasonOther": "Sonstiges",
-  "failureReasonUnknown": "Unbekannt"
+  "failureReasonUnknown": "Unbekannt",
+  "appSettingsMenu": "App-Einstellungen",
+  "appSettingsTitle": "App-Einstellungen",
+  "appSettingsNotificationsSubtitle": "Welche Ereignisse eine Benachrichtigung senden und ab welchen Schwellenwerten",
+  "collapsePrinterCardsTitle": "Eingeklappte Druckerkarten",
+  "collapsePrinterCardsDesc": "Karten zeigen beim Öffnen nur Name, Status und Druckfortschritt. Jede Karte lässt sich weiterhin ausklappen.",
+  "printerCardExpand": "Karte ausklappen",
+  "printerCardCollapse": "Karte einklappen"
 }

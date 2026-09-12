@@ -277,6 +277,14 @@ List<HeaterKindOption> _heaterKindOptions(
       (kind: r.raw, label: r.label(l10n)),
 ];
 
+/// What the status pill says for a printer the card does not show as offline:
+/// the server's own state, or a word for its absence.
+String _stateChipLabel(AppLocalizations l10n, PrinterStatus? status) {
+  if (status == null) return l10n.statusUnavailable;
+  return status.state ??
+      ((status.connected ?? false) ? l10n.online : l10n.offline);
+}
+
 /// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
 /// green; offline → red tinted with a vivid border.
 ///
@@ -316,6 +324,9 @@ class _StateChip extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
         style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
       ),
     );

@@ -28,6 +28,7 @@ import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
+import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
 import 'scheduled_drying_providers.dart';
@@ -373,6 +374,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
     final filters = ref.watch(dashboardFiltersProvider);
+    final collapse = ref.watch(printerCardCollapseProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
 
@@ -452,7 +454,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 message: l10n.wsReconnecting,
                 tone: BannerTone.info,
               ),
-            Expanded(child: _body(context, state, statuses, filters, l10n)),
+            Expanded(
+              child: _body(context, state, statuses, filters, collapse, l10n),
+            ),
           ],
         ),
       ),
@@ -469,6 +473,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     DashboardState state,
     Map<int, PrinterStatus> statuses,
     DashboardFilters filters,
+    PrinterCardCollapse collapse,
     AppLocalizations l10n,
   ) {
     if (state.loading) {
@@ -579,13 +584,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.only(bottom: 6),
               sliver: SliverList.builder(
                 itemCount: filtered.length,
-                itemBuilder: (_, i) => PrinterCard(
-                  key: ValueKey(filtered[i].printer.id),
-                  item: filtered[i],
-                  inTouchSince: ref
-                      .read(printerStatusesProvider.notifier)
-                      .inTouchSince,
-                ),
+                itemBuilder: (_, i) {
+                  final id = filtered[i].printer.id;
+                  return PrinterCard(
+                    key: ValueKey(id),
+                    item: filtered[i],
+                    inTouchSince: ref
+                        .read(printerStatusesProvider.notifier)
+                        .inTouchSince,
+                    collapsed: collapse.isCollapsed(id),
+                    onCollapsedChanged: (collapsed) => ref
+                        .read(printerCardCollapseProvider.notifier)
+                        .set(id, collapsed),
+                  );
+                },
               ),
             ),
         ],
@@ -771,13 +783,13 @@ class _AppDrawer extends ConsumerWidget {
                       id: 'drawer.pipelines',
                     ),
                   _DrawerTile(
-                    icon: Icons.tune_rounded,
-                    label: l10n.notifEventsMenu,
+                    icon: Icons.settings_outlined,
+                    label: l10n.appSettingsMenu,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/settings/notifications');
+                      context.push('/settings/app');
                     },
-                    id: 'drawer.notifications',
+                    id: 'drawer.app_settings',
                   ),
                   // Everything this app changes on the server, behind one entry:
                   // the queue scheduler, maintenance, the Bambu Cloud account and

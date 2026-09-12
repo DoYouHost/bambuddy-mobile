@@ -27,6 +27,7 @@ import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
+import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
 import 'features/print_log/print_log_screen.dart';
 import 'features/projects/projects_screen.dart';
@@ -91,7 +92,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const AddPrinterScreen(),
       ),
 
-      // Notification settings — full screen outside shell (pushed from dashboard).
+      // App settings — this phone's own preferences, pushed from the drawer.
+      GoRoute(
+        path: '/settings/app',
+        builder: (_, _) => const AppSettingsScreen(),
+      ),
+
+      // Notification settings — full screen outside shell (pushed from the
+      // dashboard's bell and from app settings).
       GoRoute(
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),

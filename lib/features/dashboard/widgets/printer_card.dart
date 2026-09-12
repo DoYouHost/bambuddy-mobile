@@ -11,6 +11,7 @@ import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
+import '../../../core/format/text_measure.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
@@ -70,11 +71,25 @@ part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
 part 'printer_card_movement.dart';
+part 'printer_card_collapsed.dart';
 
 class PrinterCard extends StatefulWidget {
-  const PrinterCard({super.key, required this.item, this.inTouchSince});
+  const PrinterCard({
+    super.key,
+    required this.item,
+    this.inTouchSince,
+    this.collapsed = false,
+    this.onCollapsedChanged,
+  });
 
   final PrinterWithStatus item;
+
+  /// Whether the card shows only its name, status and print progress.
+  final bool collapsed;
+
+  /// Asked to collapse (`true`) or expand the card. Without it the card offers
+  /// no toggle and stays as [collapsed] says.
+  final ValueChanged<bool>? onCollapsedChanged;
 
   /// When the app last (re)gained contact with the server
   /// (`PrinterStatusesNotifier.inTouchSince`), or `null` while it has none.
@@ -161,6 +176,25 @@ class _PrinterCardState extends State<PrinterCard> {
     final connected = status?.connected ?? false;
     final printerId = widget.item.printer.id;
     final name = widget.item.printer.name;
+    final onCollapsedChanged = widget.onCollapsedChanged;
+
+    if (widget.collapsed) {
+      return _CollapsedCard(
+        name: name,
+        status: status,
+        offline: _offline,
+        onExpand: onCollapsedChanged == null
+            ? null
+            : () => onCollapsedChanged(false),
+      );
+    }
+
+    final collapseButton = onCollapsedChanged == null
+        ? null
+        : _CollapseToggleButton(
+            collapsed: false,
+            onPressed: () => onCollapsedChanged(true),
+          );
 
     // Printer unavailable (no status or disconnected): card collapses to
     // header-only with an OFFLINE chip. Don't show stale temperatures/controls —
@@ -172,26 +206,18 @@ class _PrinterCardState extends State<PrinterCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                _IconSquare(tokens: t, offline: true),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _NameText(name: name, tokens: t),
-                      _TotalPrintTimeLine(printerId: printerId),
-                    ],
-                  ),
-                ),
-                // Smart plug stays controllable even when OFFLINE — the only way to
-                // remotely power the printer back on. Auto-hides if none assigned.
-                _SmartPlugButton(printerId: printerId, printing: false),
-                const SizedBox(width: 8),
-                _StateChip(label: l10n.statusOffline, offline: true),
-              ],
+            _HeaderLine(
+              leading: _IconSquare(tokens: t, offline: true),
+              name: name,
+              // Smart plug stays controllable even when OFFLINE — the only way to
+              // remotely power the printer back on. Auto-hides if none assigned.
+              beforeStatus: _SmartPlugButton(
+                printerId: printerId,
+                printing: false,
+              ),
+              status: _StateChip(label: l10n.statusOffline, offline: true),
+              toggle: collapseButton,
+              belowName: _TotalPrintTimeLine(printerId: printerId),
             ),
             // The one thing that survives the collapse besides the plug, and for
             // the same reason: releasing the plate-clear gate is the only way to
@@ -234,8 +260,17 @@ class _PrinterCardState extends State<PrinterCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: icon + name + firmware/hours (left), status pill + action
-          // icons (right).
+          // Header: icon + name and status pill (first line), firmware/hours
+          // and action icons under it.
+          _HeaderLine(
+            leading: _IconSquare(tokens: t, offline: !connected),
+            name: name,
+            status: _StateChip(
+              label: _stateChipLabel(l10n, status),
+              offline: !connected,
+            ),
+            toggle: collapseButton,
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -244,41 +279,20 @@ class _PrinterCardState extends State<PrinterCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        _IconSquare(tokens: t, offline: !connected),
-                        const SizedBox(width: 9),
-                        Flexible(
-                          child: _NameText(name: name, tokens: t),
-                        ),
-                      ],
-                    ),
                     _FirmwareLine(printerId: printerId),
                     _TotalPrintTimeLine(printerId: printerId),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _StateChip(
-                    label: status == null
-                        ? l10n.statusUnavailable
-                        : (status.state ??
-                              (connected ? l10n.online : l10n.offline)),
-                    offline: !connected,
+              if (connected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 10, top: 10),
+                  child: _HeaderActions(
+                    printerId: printerId,
+                    printerName: name,
+                    printing: printing,
                   ),
-                  if (connected) ...[
-                    const SizedBox(height: 10),
-                    _HeaderActions(
-                      printerId: printerId,
-                      printerName: name,
-                      printing: printing,
-                    ),
-                  ],
-                ],
-              ),
+                ),
             ],
           ),
           if (status != null)
@@ -351,6 +365,9 @@ class _PrinterCardState extends State<PrinterCard> {
 
 /// Outer card container in the modernized visual language: translucent gradient
 /// fill, hairline border, generous radius. Holds the whole printer card.
+///
+/// One padding for the collapsed and the full card: with two, the chip and the
+/// toggle button jumped a few pixels on every tap, which read as a glitch.
 class _CardShell extends StatelessWidget {
   const _CardShell({required this.tokens, required this.child});
 
@@ -365,7 +382,7 @@ class _CardShell extends StatelessWidget {
       'dashboard.printer_card',
       Container(
         margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
           borderRadius: BorderRadius.circular(26),
@@ -378,25 +395,176 @@ class _CardShell extends StatelessWidget {
 }
 
 /// Rounded green-tinted square holding the printer glyph (design header icon).
+///
+/// [tint] swaps both the glyph and its colour for something the collapsed card
+/// has to flag in that spot — a fault, a plate waiting to be cleared.
 class _IconSquare extends StatelessWidget {
-  const _IconSquare({required this.tokens, this.offline = false});
+  const _IconSquare({
+    required this.tokens,
+    this.offline = false,
+    this.icon = Icons.print_outlined,
+    this.tint,
+  });
 
   final DashTokens tokens;
   final bool offline;
+  final IconData icon;
+  final Color? tint;
 
   @override
   Widget build(BuildContext context) {
-    final color = offline ? tokens.textTertiary : tokens.accentGreenInk;
+    final tint = this.tint;
+    final Color color;
+    final Color fill;
+    if (tint != null) {
+      color = tint;
+      fill = tint.withValues(alpha: 0.14);
+    } else if (offline) {
+      color = tokens.textTertiary;
+      fill = tokens.textTertiary.withValues(alpha: 0.10);
+    } else {
+      color = tokens.accentGreenInk;
+      fill = tokens.accentGreen.withValues(alpha: 0.14);
+    }
     return Container(
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: (offline ? tokens.textTertiary : tokens.accentGreen).withValues(
-          alpha: offline ? 0.10 : 0.14,
-        ),
+        color: fill,
         borderRadius: BorderRadius.circular(11),
       ),
-      child: Icon(Icons.print_outlined, size: 18, color: color),
+      child: Icon(icon, size: 18, color: color),
+    );
+  }
+}
+
+/// The card's first line, built the same way in the collapsed, full and offline
+/// looks so that nothing on it moves when the card is toggled: the glyph, the
+/// name centred on the glyph's line, and the status and buttons on the right.
+///
+/// [belowName] sits under the name without touching that line, which is what
+/// lets the collapsed progress bar exist without pushing the name up.
+///
+/// The right-hand group never takes the name below [_minNameWidth] either: past
+/// that point the status label ellipsizes, while the buttons keep their size.
+/// Only the largest text sizes reach it — "DESCONECTADA" beside a plug button
+/// on a 360 dp phone.
+///
+/// [afterName] is dropped rather than squeezed once it would leave the name
+/// less than [_minNameWidth]: at the largest system text size on a 360 dp phone
+/// the two do not fit side by side, and the bar under the name still shows the
+/// progress the percentage spells out.
+class _HeaderLine extends StatelessWidget {
+  const _HeaderLine({
+    required this.leading,
+    required this.name,
+    required this.status,
+    this.beforeStatus,
+    this.toggle,
+    this.afterName,
+    this.belowName,
+  });
+
+  final Widget leading;
+  final String name;
+  final Widget status;
+  final Widget? beforeStatus;
+  final Widget? toggle;
+  final String? afterName;
+  final Widget? belowName;
+
+  /// The glyph square and the header buttons.
+  static const _lineHeight = 34.0;
+
+  static const _minNameWidth = 48.0;
+  static const _afterNameGap = 8.0;
+  static const _leadingGap = 9.0;
+  static const _trailingGap = 10.0;
+  static const _buttonGap = 8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    // A minimum rather than a fixed height: at a large system text size the
+    // name is taller than the glyph, and a fixed line would overflow.
+    Widget line(Widget child) => ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _lineHeight),
+      child: child,
+    );
+    final belowName = this.belowName;
+    final beforeStatus = this.beforeStatus;
+    final toggle = this.toggle;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final trailingMaxWidth =
+            (constraints.maxWidth -
+                    _lineHeight -
+                    _leadingGap -
+                    _trailingGap -
+                    _minNameWidth)
+                .clamp(0.0, double.infinity);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            leading,
+            const SizedBox(width: _leadingGap),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  line(
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final afterName = this.afterName;
+                        final showAfterName =
+                            afterName != null &&
+                            constraints.maxWidth -
+                                    textWidth(context, afterName, t.monoValue) -
+                                    _afterNameGap >=
+                                _minNameWidth;
+                        return Row(
+                          children: [
+                            Flexible(
+                              child: _NameText(name: name, tokens: t),
+                            ),
+                            if (showAfterName) ...[
+                              const SizedBox(width: _afterNameGap),
+                              Text(afterName, style: t.monoValue),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  ?belowName,
+                ],
+              ),
+            ),
+            const SizedBox(width: _trailingGap),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: trailingMaxWidth,
+                minHeight: _lineHeight,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (beforeStatus != null) ...[
+                    beforeStatus,
+                    const SizedBox(width: _buttonGap),
+                  ],
+                  Flexible(child: status),
+                  if (toggle != null) ...[
+                    const SizedBox(width: _buttonGap),
+                    toggle,
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

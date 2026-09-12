@@ -360,6 +360,56 @@ void main() {
     });
   });
 
+  testWidgets('the drawer leads to app settings, not to notifications', (
+    tester,
+  ) async {
+    await openDrawer(tester);
+
+    expect(find.text('Ustawienia aplikacji'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('Zdarzenia powiadomień'),
+      ),
+      findsNothing,
+      reason: 'the entry moved into app settings',
+    );
+  });
+
+  testWidgets('a card toggled by hand keeps it after leaving the list', (
+    tester,
+  ) async {
+    // The list builds lazily, so a card that leaves it is disposed — here by
+    // the search, on a phone by scrolling — and has to come back as it was.
+    await _prefs.setBool('printer_cards_collapsed', true);
+    addTearDown(() => _prefs.remove('printer_cards_collapsed'));
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [
+            PrinterWithStatus(printer: Printer(id: 1, name: 'X1C Warsztat')),
+            PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini')),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Rozwiń kartę'), findsNWidgets(2));
+
+    await tester.tap(find.byTooltip('Rozwiń kartę').first);
+    await tester.pump();
+    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'mini');
+    await tester.pumpAndSettle();
+    expect(find.text('X1C Warsztat'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+    expect(find.byTooltip('Rozwiń kartę'), findsOneWidget);
+  });
+
   testWidgets('the search box filters the list by name', (tester) async {
     await tester.pumpWidget(
       _app(

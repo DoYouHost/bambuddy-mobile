@@ -2482,5 +2482,12 @@
   "failureReasonPowerFailure": "Power failure",
   "failureReasonUserCancelled": "Cancelled by the user",
   "failureReasonOther": "Other",
-  "failureReasonUnknown": "Unknown"
+  "failureReasonUnknown": "Unknown",
+  "appSettingsMenu": "App settings",
+  "appSettingsTitle": "App settings",
+  "appSettingsNotificationsSubtitle": "Which events send a notification, and at what thresholds",
+  "collapsePrinterCardsTitle": "Collapsed printer cards",
+  "collapsePrinterCardsDesc": "Cards open showing only the name, status and print progress. Any card can still be expanded.",
+  "printerCardExpand": "Expand card",
+  "printerCardCollapse": "Collapse card"
 }
