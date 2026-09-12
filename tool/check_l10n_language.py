@@ -65,6 +65,35 @@ IGNORED_RULES = {
     # Spanish UI conventions: units spacing and capitalized short labels
     'SPACE_UNITIES',
     'MAYUSCULAS_INICIO_FRASE',
+    # French, each one checked against every hit in app_fr.arb:
+    #   NOMBRES_EN_LETTRES*  the copy writes digits ("code à 6 chiffres"), and
+    #                        every placeholder resolves to one
+    #   POINT, POINTS_2      a UI label takes no full stop (as BRAK_KROPKI)
+    #   TIRET                the A–Z sort labels use an en dash in every locale
+    #   DETERMINER_SENT_END  a label ending in a placeholder ("Chargée dans {slot}")
+    #   HEURES, ESPACE_UNITES  compact durations ("5h 30min"), as bambuddy's own
+    #                        French UI writes them
+    #   FRENCH_WHITESPACE    fires only on host:port in the address hint
+    #   MOTS_INCOMP          "du slicer": the noun is not in the dictionary
+    #   PAS_DE_TRAIT_UNION   "auto-hébergé", spelled as in bambuddy's French UI
+    #   PREP_VERBECONJUGUE   the all-caps "PERMISSIONS" section header
+    #   CONFUSION_SENT_S_EN, ON_ONT  the Bambu Studio label quoted in English
+    #                        ("Store sent files on external storage")
+    'NOMBRES_EN_LETTRES',
+    'NOMBRES_EN_LETTRES_2',
+    'NOMBRES_EN_LETTRES_2_IMPROVED',
+    'POINT',
+    'POINTS_2',
+    'TIRET',
+    'DETERMINER_SENT_END',
+    'HEURES',
+    'ESPACE_UNITES',
+    'FRENCH_WHITESPACE',
+    'MOTS_INCOMP',
+    'PAS_DE_TRAIT_UNION',
+    'PREP_VERBECONJUGUE',
+    'CONFUSION_SENT_S_EN',
+    'ON_ONT',
 }
 
 # Rules that judge a sentence against the ones before it. Unrelated labels are
@@ -81,6 +110,7 @@ IGNORED_RULE_PREFIXES = (
     'ES_REPEATEDWORDS',
     'SPANISH_WORD_REPEAT_BEGINNING',
     'FR_WORD_REPEAT',
+    'FR_REPEATEDWORDS',
     'FRENCH_WORD_REPEAT_BEGINNING',
     'REP_',
 )
@@ -120,6 +150,9 @@ KNOWN_JARGON = {
     'preajuste', 'preajustes', 'desagrupar', 'desagrupadas', 'desasignar',
     'desasignada', 'deseleccionar', 'extruir', 'extruido', 'subextrusión',
     'multiplaca', 'stringing', 'est',
+    # French: the Docker setting the copy quotes, and bambuddy's own French
+    # word for unassigning a spool.
+    'host', 'désassigner', 'désassignée',
 }
 
 # ICU placeholders, replaced so the checker sees a sentence rather than braces.
@@ -129,7 +162,6 @@ PLACEHOLDER_VALUES = {
     'time': '14:00',
     'code': 'PLA-01',
     'size': '500 MB',
-    'status': 'Activo',
 }
 
 # What an unnamed placeholder becomes. A numeral rather than a letter: half of
@@ -263,7 +295,7 @@ def interesting(match: dict) -> bool:
     if word.lower() in KNOWN_LOWER:
         return False
     if (
-        rule.startswith(('MORFOLOGIK', 'GERMAN_SPELLER', 'FRENCH_SPELLER', 'SPANISH_SPELLER'))
+        rule.startswith(('MORFOLOGIK', 'GERMAN_SPELLER', 'FRENCH_SPELLER', 'SPANISH_SPELLER', 'FR_SPELLING_RULE'))
         or rule.endswith('_SPELLER_RULE')
         or 'SPELLER' in rule
     ):

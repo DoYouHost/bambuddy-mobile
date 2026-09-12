@@ -20,6 +20,7 @@ void main() {
     'lib/l10n/app_pl.arb',
     'lib/l10n/app_de.arb',
     'lib/l10n/app_es.arb',
+    'lib/l10n/app_fr.arb',
   ];
 
   /// Top-level keys in the order they are written, `@`-entries included.
@@ -58,7 +59,11 @@ void main() {
       final name = path.split('/').last;
       final target = stringsOf(path);
       expect(en.difference(target), isEmpty, reason: 'missing from $name');
-      expect(target.difference(en), isEmpty, reason: 'extra in $name not in English');
+      expect(
+        target.difference(en),
+        isEmpty,
+        reason: 'extra in $name not in English',
+      );
     }
   });
 }
