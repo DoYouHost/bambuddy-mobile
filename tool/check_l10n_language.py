@@ -62,6 +62,9 @@ IGNORED_RULES = {
     'LOG_IN',
     # Input field hint text ending with period
     'FRAGEZEICHEN_STATT_PUNKT',
+    # Spanish UI conventions: units spacing and capitalized short labels
+    'SPACE_UNITIES',
+    'MAYUSCULAS_INICIO_FRASE',
 }
 
 # Rules that judge a sentence against the ones before it. Unrelated labels are
@@ -75,9 +78,11 @@ IGNORED_RULE_PREFIXES = (
     'DE_WORD_REPEAT',
     'GERMAN_WORD_REPEAT_BEGINNING',
     'ES_WORD_REPEAT',
+    'ES_REPEATEDWORDS',
     'SPANISH_WORD_REPEAT_BEGINNING',
     'FR_WORD_REPEAT',
     'FRENCH_WORD_REPEAT_BEGINNING',
+    'REP_',
 )
 
 # Product names, materials and protocol names are in neither dictionary.
@@ -91,6 +96,9 @@ KNOWN_WORDS = {
     'h', 'gcode',
     # Brands and licences the copy names outright, and the US paper size.
     'Dymo', 'Affero', 'Keystore', 'Letter',
+    # Additional brands, products, technical terms and UI acronyms
+    'Lab', 'Studio', 'Cloud', 'Brother', 'Authenticator', 'Ludicrous',
+    'US', 'Aux', 'Temp', 'Z', 'hash', 'hex', 'proxy', 'relay', 'robin', 'Keys', 'code',
 }
 
 # English terms the Polish copy quotes verbatim, plus loanwords the app uses on
@@ -108,11 +116,21 @@ KNOWN_JARGON = {
     # Plural of the app's own coinage, and two ordinary Polish words the
     # dictionary wants to split: "Podprojekty", "Szac. koszt".
     'timelapses', 'podprojekty', 'szac',
+    # Spanish technical and domain terms
+    'preajuste', 'preajustes', 'desagrupar', 'desagrupadas', 'desasignar',
+    'desasignada', 'deseleccionar', 'extruir', 'extruido', 'subextrusión',
+    'multiplaca', 'stringing', 'est',
 }
 
 # ICU placeholders, replaced so the checker sees a sentence rather than braces.
 PLACEHOLDER = re.compile(r'\{(\w+)\}')
-PLACEHOLDER_VALUES = {'duration': '20 min'}
+PLACEHOLDER_VALUES = {
+    'duration': '20 min',
+    'time': '14:00',
+    'code': 'PLA-01',
+    'size': '500 MB',
+    'status': 'Activo',
+}
 
 # What an unnamed placeholder becomes. A numeral rather than a letter: half of
 # these count something, and Polish numeral agreement ("5 szpul") is a rule the
