@@ -307,7 +307,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get ctrlFanPart => 'Ventilador de capa';
+  String get ctrlFanPart => 'Ventilador de refrigeración de piezas';
 
   @override
   String get ctrlFanAux => 'Ventilador auxiliar';
@@ -322,7 +322,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlFanExhaust => 'Ventilador de escape';
 
   @override
-  String get ctrlFanPartShort => 'Capa';
+  String get ctrlFanPartShort => 'Piezas';
 
   @override
   String get ctrlFanAuxShort => 'Aux';
@@ -632,10 +632,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get speedStandard => 'Estándar';
 
   @override
-  String get speedSport => 'Sport';
+  String get speedSport => 'Deportivo';
 
   @override
-  String get speedLudicrous => 'Ludicrous';
+  String get speedLudicrous => 'Absurdo';
 
   @override
   String get smartPlugOn => 'Encendido';
@@ -684,7 +684,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get queueEmpty => 'La cola está vacía';
 
   @override
-  String get queueAmsFromSlicer => 'AMS del slicer';
+  String get queueAmsFromSlicer => 'AMS del laminador';
 
   @override
   String queueAnyOfModels(String models) {
@@ -788,7 +788,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get archiveSortDateDesc => 'Más recientes primero';
 
   @override
-  String get archiveSortDateAsc => 'Más antiguos primero';
+  String get archiveSortDateAsc => 'Más antiguas primero';
 
   @override
   String get archiveSortNameAsc => 'Nombre A–Z';
@@ -800,7 +800,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get archiveSortSizeDesc => 'Más grandes primero';
 
   @override
-  String get archiveSortSizeAsc => 'Más pequeños primero';
+  String get archiveSortSizeAsc => 'Más pequeñas primero';
 
   @override
   String get archiveFilterFileType => 'Archivos';
@@ -1359,7 +1359,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get externalSpool => 'Bobina externa';
 
   @override
-  String get traySlotEmpty => 'Vacío';
+  String get traySlotEmpty => 'Vacía';
 
   @override
   String get amsSlotFilament => 'Filamento';
@@ -1371,7 +1371,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get amsUnload => 'Descargar';
 
   @override
-  String get amsRfidReread => 'Releer etiqueta';
+  String get amsRfidReread => 'Releer etiqueta RFID';
 
   @override
   String get amsLoadStarted => 'Cargando filamento…';
@@ -1380,7 +1380,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get amsUnloadStarted => 'Descargando filamento…';
 
   @override
-  String get amsRfidRereadStarted => 'Releyendo la etiqueta…';
+  String get amsRfidRereadStarted => 'Releyendo la etiqueta RFID…';
 
   @override
   String amsFeedTitle(String slot) {
@@ -1413,7 +1413,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get amsSlotConfigTitle => 'Configuración de ranura';
 
   @override
-  String get amsSlotConfigSearch => 'Buscar ajustes predefinidos';
+  String get amsSlotConfigSearch => 'Buscar preajustes';
 
   @override
   String get amsSlotConfigColour => 'Color';
@@ -1426,19 +1426,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get amsSlotConfigNameNotSaved =>
-      'Ranura configurada, pero no se pudo guardar el nombre del ajuste predefinido';
+      'Ranura configurada, pero no se pudo guardar el nombre del preajuste';
 
   @override
   String get amsSlotConfigEmpty =>
-      'No hay ajustes predefinidos de filamento disponibles';
+      'No hay ningún preajuste de filamento disponible';
 
   @override
   String get amsSlotConfigNoMatch =>
-      'Ningún ajuste predefinido coincide con la búsqueda';
+      'Ningún preajuste coincide con la búsqueda';
 
   @override
   String get amsSlotConfigCloudHint =>
-      'Inicia sesión en Bambu Cloud para elegir entre tus propios ajustes predefinidos.';
+      'Inicia sesión en Bambu Cloud para elegir entre tus propios preajustes.';
 
   @override
   String get amsSlotConfigCloudAction => 'Iniciar sesión';
@@ -1464,7 +1464,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get amsSlotConfigModelUnknown =>
-      'Modelo de impresora desconocido — mostrando todos los ajustes predefinidos';
+      'Modelo de impresora desconocido — mostrando todos los preajustes';
 
   @override
   String get amsSlotConfigCurrent => 'Configurado actualmente';
@@ -1512,7 +1512,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get amsSlotResetConfirmMessage =>
-      'La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué ajuste predefinido era.';
+      'La impresora olvidará el filamento configurado aquí y bambuddy olvidará qué preajuste era.';
 
   @override
   String get amsSlotResetStarted => 'Restableciendo la ranura…';
@@ -1623,10 +1623,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statusUnavailable => 'estado no disponible';
 
   @override
-  String get statusOffline => 'OFFLINE';
+  String get statusOffline => 'DESCONECTADA';
 
   @override
-  String get online => 'en línea';
+  String get online => 'conectada';
 
   @override
   String get offline => 'desconectada';
@@ -1744,7 +1744,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get apiKeyExplain =>
-      'Una clave API no caduca y tiene permisos limitados — crea una en el servidor: Settings → API Keys.';
+      'Una clave API no caduca y tiene permisos limitados — crea una en el servidor: Ajustes → Claves API.';
 
   @override
   String get apiKeyLabel => 'Clave API';
@@ -1754,7 +1754,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginExplain =>
-      'Una sesión de inicio de sesión caduca tras 24 h. Marca “Recordarme” para que la aplicación vuelva a iniciar sesión automáticamente.';
+      'Una sesión caduca tras 24 h. Marca “Recordarme” para que la aplicación vuelva a iniciar sesión automáticamente.';
 
   @override
   String get usernameLabel => 'Usuario o correo electrónico';
@@ -1817,17 +1817,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get twoFactorSessionNote =>
-      'La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave de API no caduca y omite este paso.';
+      'La aplicación no puede renovar una sesión con 2FA por sí misma, por lo que volverá a solicitarlo cuando esta expire. Una clave API no caduca y omite este paso.';
 
   @override
   String get tryDemo => 'Probar la demo';
 
   @override
-  String get scanApiKeyTitle => 'Escanear clave de API';
+  String get scanApiKeyTitle => 'Escanear clave API';
 
   @override
-  String get scanApiKeyHint =>
-      'Apunta la cámara al código QR de la clave de API';
+  String get scanApiKeyHint => 'Apunta la cámara al código QR de la clave API';
 
   @override
   String get cameraPermissionTitle => 'Se necesita acceso a la cámara';
@@ -1840,7 +1839,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errMissingUrl => 'Introduce la dirección del servidor';
 
   @override
-  String get errMissingApiKey => 'Introduce la clave de API';
+  String get errMissingApiKey => 'Introduce la clave API';
 
   @override
   String get errMissingCredentials => 'Introduce el usuario y la contraseña';
@@ -1865,7 +1864,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errApiKeyOwnerDisabled =>
-      'La cuenta propietaria de esta clave de API ha sido desactivada o eliminada — la clave seguirá siendo rechazada hasta que se restaure la cuenta.';
+      'La cuenta propietaria de esta clave API ha sido desactivada o eliminada — la clave seguirá siendo rechazada hasta que se restaure la cuenta.';
 
   @override
   String errBadResponse(int code) {
@@ -1887,7 +1886,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errTwoFactorUnsupported =>
-      'La cuenta requiere 2FA — no es compatible en esta versión. Usa una clave de API (Ajustes → Claves de API en el servidor).';
+      'La cuenta requiere 2FA — no es compatible en esta versión. Usa una clave API (Ajustes → Claves API en el servidor).';
 
   @override
   String get errTwoFactorCodeRejected =>
@@ -1910,11 +1909,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errApiKeyRejected =>
-      'Clave de API rechazada — comprueba la clave y su alcance (se requiere can_read_status)';
+      'Clave API rechazada — comprueba la clave y su alcance (se requiere can_read_status)';
 
   @override
   String get errTooManyAttempts =>
-      'Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave de API.';
+      'Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave API.';
 
   @override
   String get errSlotTagUnreadable =>
@@ -2335,10 +2334,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventorySearchHint => 'Buscar material, marca, color…';
 
   @override
-  String get inventoryShowArchived => 'Mostrar archivados';
+  String get inventoryShowArchived => 'Mostrar archivadas';
 
   @override
-  String get inventoryArchived => 'Archivado';
+  String get inventoryArchived => 'Archivada';
 
   @override
   String get inventoryLowStock => 'Bajo';
@@ -2350,10 +2349,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryFilterStatus => 'Estado';
 
   @override
-  String get inventoryStatusActive => 'Activo';
+  String get inventoryStatusActive => 'Activas';
 
   @override
-  String get inventoryStatusArchived => 'Archivado';
+  String get inventoryStatusArchived => 'Archivadas';
 
   @override
   String get inventoryFilterStock => 'Stock';
@@ -2496,29 +2495,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryResetUsage => 'Restablecer uso';
 
   @override
-  String get inventoryFieldSlicerPreset => 'Perfil de laminador';
+  String get inventoryFieldSlicerPreset => 'Preajuste del laminador';
 
   @override
   String get inventorySlicerPresetHint =>
-      'Perfil de impresión con el que se añade esta bobina';
+      'Preajuste de impresión con el que se añade esta bobina';
 
   @override
-  String get inventorySlicerPresetNone => 'Sin perfil';
+  String get inventorySlicerPresetNone => 'Sin preajuste';
 
   @override
-  String get inventorySlicerPresetSearch => 'Buscar perfiles…';
+  String get inventorySlicerPresetSearch => 'Buscar preajustes…';
 
   @override
   String get inventorySlicerPresetUnavailable =>
-      'No hay perfiles de laminador disponibles. Habilita el laminado en el servidor (y conecta Bambu Cloud para obtener perfiles de la nube).';
+      'No hay ningún preajuste del laminador disponible. Habilita el laminado en el servidor (y conecta Bambu Cloud para obtener preajustes de la nube).';
 
   @override
   String get inventorySectionPrinterPresets =>
-      'Perfiles por modelo de impresora';
+      'Preajustes por modelo de impresora';
 
   @override
   String get inventoryPrinterPresetsHint =>
-      'La opción elegida aquí tiene prioridad sobre el perfil de la bobina.';
+      'La opción elegida aquí tiene prioridad sobre el preajuste de la bobina.';
 
   @override
   String get inventoryPrinterPresetDefault => 'Igual que en la bobina';
@@ -2534,7 +2533,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryPrinterPresetsSaveFailed =>
-      'Bobina guardada, pero sus perfiles por modelo no.';
+      'Bobina guardada, pero sus preajustes por modelo no.';
 
   @override
   String get inventoryFieldMaterial => 'Material';
@@ -2770,14 +2769,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryFromSlotHint =>
-      'Registra la bobina etiquetada que la impresora notifica en esta ranura';
+      'Registra la bobina con etiqueta RFID que la impresora notifica en esta ranura';
 
   @override
   String get inventoryFromSlotDone => 'Bobina añadida y asignada a la ranura';
 
   @override
   String get inventoryFromSlotNoTag =>
-      'La impresora ya no notifica una bobina etiquetada en esta ranura';
+      'La impresora ya no notifica una bobina con etiqueta RFID en esta ranura';
 
   @override
   String get inventoryFromSlotOffline =>
@@ -2798,7 +2797,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Apunta con la cámara al código QR de la bobina';
 
   @override
-  String get inventoryScanPermissionTitle => 'Acceso a la cámara necesario';
+  String get inventoryScanPermissionTitle => 'Se necesita acceso a la cámara';
 
   @override
   String get inventoryScanPermissionBody =>
@@ -3802,7 +3801,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String fmUploaded(String name) {
-    return 'Subido $name';
+    return 'Archivo subido: $name';
   }
 
   @override
@@ -3837,7 +3836,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String fmStatsFree(String size) {
-    return '$size libre';
+    return '$size libres';
   }
 
   @override
@@ -4022,7 +4021,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mwAlreadyInLibrary => 'Ya está en tu biblioteca';
 
   @override
-  String get mwViewInFiles => 'Ver en el administrador de archivos';
+  String get mwViewInFiles => 'Ver en el gestor de archivos';
 
   @override
   String get mwRecentImports => 'Importaciones recientes';
@@ -4699,7 +4698,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sliceAsDesignedHint =>
-      'Los ajustes del diseñador en lugar de los perfiles anteriores.';
+      'Los ajustes del diseñador en lugar de los preajustes anteriores.';
 
   @override
   String get sliceAsDesignedInactive => 'No se usa — el archivo decide';
@@ -4921,7 +4920,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Guarda uno desde el formulario de laminado: impresora, proceso, filamentos y placa en un paquete que puedes aplicar con un solo toque.';
 
   @override
-  String get pipelineProfiles => 'Perfiles';
+  String get pipelineProfiles => 'Preajustes';
 
   @override
   String pipelineFilamentsCount(int count) {
@@ -5250,19 +5249,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pipelineStatusInProgress => 'Imprimiendo';
 
   @override
-  String get pipelineStatusCompleted => 'Completado';
+  String get pipelineStatusCompleted => 'Completada';
 
   @override
-  String get pipelineStatusFailed => 'Fallido';
+  String get pipelineStatusFailed => 'Fallida';
 
   @override
-  String get pipelineStatusPartial => 'Parcialmente fallido';
+  String get pipelineStatusPartial => 'Parcialmente fallida';
 
   @override
-  String get pipelineStatusCancelled => 'Cancelado';
+  String get pipelineStatusCancelled => 'Cancelada';
 
   @override
-  String get pipelineStatusUnknown => 'Desconocido';
+  String get pipelineStatusUnknown => 'Desconocida';
 
   @override
   String pipelineJobCopy(int n) {
@@ -5282,16 +5281,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pipelineJobPrinting => 'Imprimiendo';
 
   @override
-  String get pipelineJobCompleted => 'Completado';
+  String get pipelineJobCompleted => 'Completada';
 
   @override
-  String get pipelineJobFailed => 'Fallido';
+  String get pipelineJobFailed => 'Fallida';
 
   @override
-  String get pipelineJobCancelled => 'Cancelado';
+  String get pipelineJobCancelled => 'Cancelada';
 
   @override
-  String get pipelineJobUnknown => 'Desconocido';
+  String get pipelineJobUnknown => 'Desconocida';
 
   @override
   String get queueFilamentMapping => 'Mapeo de filamentos';
@@ -5347,7 +5346,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este servidor solo libera la placa mientras la impresora está conectada. Actualiza bambuddy para hacerlo con una impresora apagada.';
 
   @override
-  String get pfmTitle => 'Administrador de archivos';
+  String get pfmTitle => 'Gestor de archivos';
 
   @override
   String get pfmTooltip => 'Archivos en la impresora';
@@ -5515,7 +5514,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get wearPlateNeedsOnline =>
-      'El servidor requiere la impresora en línea';
+      'El servidor requiere la impresora conectada';
 
   @override
   String get wearStarted => 'Iniciado';
@@ -5745,7 +5744,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueEditPreheatDesc =>
-      'Calienta la cama y la cámara antes de iniciar esta impresión. Por defecto usa el interruptor global Ajustes → Workflow.';
+      'Calienta la cama y la cámara antes de iniciar esta impresión. Por defecto usa el interruptor global Ajustes → Flujo de trabajo.';
 
   @override
   String get queuePreheatInherit => 'Heredar';
@@ -5882,10 +5881,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bugReportStepRecord => 'Iniciar grabación';
 
   @override
-  String get bugReportStepReproduce => 'Reproduce el problema';
+  String get bugReportStepReproduce => 'Reproducir el problema';
 
   @override
-  String get bugReportStepFinish => 'Vuelve y finaliza';
+  String get bugReportStepFinish => 'Volver y finalizar';
 
   @override
   String get bugReportLogScreens => 'Pantallas que abres y botones que pulsas';
@@ -5906,7 +5905,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Versión de la app y del servidor, tu teléfono, tu idioma';
 
   @override
-  String get bugReportLogNoKey => 'Tu clave de API o contraseña';
+  String get bugReportLogNoKey => 'Tu clave API o contraseña';
 
   @override
   String get bugReportLogNoTyping => 'El texto que escribes';
@@ -6024,7 +6023,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bugReportDiscardBodyQueued =>
-      'El registro se eliminará del teléfono y se cancelará el reporte en cola.';
+      'El registro se eliminará del teléfono y se cancelará el informe en cola.';
 
   @override
   String bugReportLimit(int minutes) {
@@ -6059,7 +6058,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bugReportDestinationFile => 'Guardar en un archivo';
 
   @override
-  String get bugReportDestinationIssue => 'Reportar en GitHub';
+  String get bugReportDestinationIssue => 'Publicar en GitHub';
 
   @override
   String get bugReportDestinationFileBody =>
@@ -6081,7 +6080,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Explica qué salió mal — un registro sin descripción es prácticamente inservible.';
 
   @override
-  String get bugReportSend => 'Reportar';
+  String get bugReportSend => 'Enviar';
 
   @override
   String get bugReportSending => 'Enviando…';
@@ -6093,7 +6092,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bugReportSendWaitingBody =>
-      'El relay espacia los reportes. Puedes salir de esta pantalla — se enviará por sí solo.';
+      'El relay espacia los informes. Puedes salir de esta pantalla — se enviará por sí solo.';
 
   @override
   String get bugReportSent => 'Reporte enviado';
@@ -6110,11 +6109,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bugReportSendFailedNotYet =>
-      'El relay no acepta reportes en este momento. Inténtalo de nuevo más tarde o guarda el registro en un archivo.';
+      'El relay no acepta informes en este momento. Inténtalo de nuevo más tarde o guarda el registro en un archivo.';
 
   @override
   String get bugReportSendFailedRefused =>
-      'El relay denegó este reporte. Guarda el registro en un archivo y adjúntalo tú mismo.';
+      'El relay denegó este informe. Guarda el registro en un archivo y adjúntalo tú mismo.';
 
   @override
   String get bugReportSendFailedDuplicate => 'Esto ya ha sido reportado.';
@@ -6125,14 +6124,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bugReportSendFailedRejected =>
-      'El relay rechazó este reporte. Guarda el registro en un archivo y adjúntalo tú mismo.';
+      'El relay rechazó este informe. Guarda el registro en un archivo y adjúntalo tú mismo.';
 
   @override
   String get bugReportSendFailedDemo =>
-      'El modo demo no publica reportes. Guarda el registro en un archivo en su lugar.';
+      'El modo demo no publica informes. Guarda el registro en un archivo en su lugar.';
 
   @override
-  String get bugReportKindQuestion => '¿Qué deseas reportar?';
+  String get bugReportKindQuestion => '¿Qué quieres notificar?';
 
   @override
   String get bugReportKindBug => 'Error';
@@ -6407,7 +6406,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get usersDeleteBody =>
-      'Se eliminarán la cuenta, sus claves de API y su estado de inicio de sesión. Esta acción no se puede deshacer.';
+      'Se eliminarán la cuenta, sus claves API y su estado de inicio de sesión. Esta acción no se puede deshacer.';
 
   @override
   String usersDeleteOwnsCount(int count) {
@@ -6613,7 +6612,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get groupsAdvancedHint =>
-      'Usuarios, claves de API, ajustes, copias de seguridad — todo para lo que la propia aplicación no tiene pantalla.';
+      'Usuarios, claves API, ajustes, copias de seguridad — todo para lo que la propia aplicación no tiene pantalla.';
 
   @override
   String get serverSettingsMenu => 'Ajustes del servidor';
@@ -6630,7 +6629,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tipos de tareas e intervalos por impresora';
 
   @override
-  String get serverSettingsAdminSubtitle => 'Cuentas, grupos y claves de API';
+  String get serverSettingsAdminSubtitle => 'Cuentas, grupos y claves API';
 
   @override
   String get serverSettingsCloudSubtitle =>
@@ -6641,7 +6640,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueSettingsReadOnlyApiKey =>
-      'Una clave de API nunca puede modificar los ajustes del servidor. Inicia sesión con una cuenta para cambiarlos.';
+      'Una clave API nunca puede modificar los ajustes del servidor. Inicia sesión con una cuenta para cambiarlos.';
 
   @override
   String get queueSettingsReadOnlyPermission =>
@@ -6770,7 +6769,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Credenciales para todo lo que no sea esta aplicación';
 
   @override
-  String get apiKeysTitle => 'Claves de API';
+  String get apiKeysTitle => 'Claves API';
 
   @override
   String get apiKeysEmpty => 'No se han emitido claves.';
@@ -6779,7 +6778,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get apiKeysCreate => 'Nueva clave';
 
   @override
-  String get apiKeysCreateTitle => 'Nueva clave de API';
+  String get apiKeysCreateTitle => 'Nueva clave API';
 
   @override
   String get apiKeysEditTitle => 'Editar clave';
@@ -7035,22 +7034,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get printLogSortAscending => 'Ascendente';
 
   @override
-  String get printLogStatusCompleted => 'Completado';
+  String get printLogStatusCompleted => 'Completada';
 
   @override
-  String get printLogStatusFailed => 'Fallido';
+  String get printLogStatusFailed => 'Fallida';
 
   @override
-  String get printLogStatusStopped => 'Detenido';
+  String get printLogStatusStopped => 'Detenida';
 
   @override
-  String get printLogStatusCancelled => 'Cancelado';
+  String get printLogStatusCancelled => 'Cancelada';
 
   @override
-  String get printLogStatusSkipped => 'Omitido';
+  String get printLogStatusSkipped => 'Omitida';
 
   @override
-  String get printLogStatusAborted => 'Abortado';
+  String get printLogStatusAborted => 'Abortada';
 
   @override
   String printLogEnergy(String value) {
@@ -7061,10 +7060,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get printLogClassifyTitle => 'Clasificar esta impresión';
 
   @override
-  String get printLogDetailStarted => 'Iniciado';
+  String get printLogDetailStarted => 'Inicio';
 
   @override
-  String get printLogDetailFinished => 'Finalizado';
+  String get printLogDetailFinished => 'Fin';
 
   @override
   String get printLogDetailDuration => 'Duración';
@@ -7183,7 +7182,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get failureReasonPowerFailure => 'Corte de corriente';
 
   @override
-  String get failureReasonUserCancelled => 'Cancelado por el usuario';
+  String get failureReasonUserCancelled => 'Cancelada por el usuario';
 
   @override
   String get failureReasonOther => 'Otro';

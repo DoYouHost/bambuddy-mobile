@@ -300,7 +300,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tempBed => 'Druckbett';
 
   @override
-  String get tempChamber => 'Bauraum';
+  String get tempChamber => 'Kammer';
 
   @override
   String tempNozzleNumbered(String n) {
@@ -317,7 +317,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlFanAux2 => 'Linker Zusatzlüfter';
 
   @override
-  String get ctrlFanChamber => 'Gehäuselüfter';
+  String get ctrlFanChamber => 'Kammerlüfter';
 
   @override
   String get ctrlFanExhaust => 'Abluftlüfter';
@@ -332,7 +332,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlFanAux2Short => 'Zusatz L';
 
   @override
-  String get ctrlFanChamberShort => 'Gehäuse';
+  String get ctrlFanChamberShort => 'Kammer';
 
   @override
   String get ctrlFanExhaustShort => 'Abluft';
@@ -374,7 +374,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlDry => 'Trocknen';
 
   @override
-  String get ctrlDrying => 'Trocknen';
+  String get ctrlDrying => 'Trocknung läuft';
 
   @override
   String get ctrlDryStart => 'Starten';
@@ -481,7 +481,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMove => 'Bewegen';
 
   @override
-  String get ctrlMoveHome => 'Alle Achsen nullen';
+  String get ctrlMoveHome => 'Alle Achsen referenzieren';
 
   @override
   String get ctrlMoveHomeStarted => 'Referenzfahrt gestartet';
@@ -596,7 +596,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get skipObjectsMatchHint =>
-      'Das Druckerdisplay zeigt Objekt-IDs auf der Bauplatte';
+      'Das Druckerdisplay zeigt Objekt-IDs auf der Druckplatte';
 
   @override
   String skipObjectsCounter(int skipped, int total) {
@@ -637,7 +637,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get speedSport => 'Sport';
 
   @override
-  String get speedLudicrous => 'Ludicrous';
+  String get speedLudicrous => 'Verrückt';
 
   @override
   String get smartPlugOn => 'Ein';
@@ -810,7 +810,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get archiveFileTypeAll => 'Alle Dateien';
 
   @override
-  String get archiveFileTypeGcode => 'Geschnitten';
+  String get archiveFileTypeGcode => 'Geslict';
 
   @override
   String get archiveFileTypeSource => 'Quelle';
@@ -1151,10 +1151,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get gcodeFeatureWall => 'Wände';
 
   @override
-  String get gcodeFeatureSparseInfill => 'Spärliche Füllung';
+  String get gcodeFeatureSparseInfill => 'Füllung';
 
   @override
-  String get gcodeFeatureSolidInfill => 'Solide Füllung';
+  String get gcodeFeatureSolidInfill => 'Massive Füllung';
 
   @override
   String get gcodeFeatureSkirt => 'Skirt / Brim';
@@ -1172,7 +1172,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get gcodeFeatureIroning => 'Glätten';
 
   @override
-  String get gcodeFeaturePrimeTower => 'Spülturm';
+  String get gcodeFeaturePrimeTower => 'Reinigungsturm';
 
   @override
   String get archiveNo3mfTitle =>
@@ -1419,7 +1419,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get amsSlotConfigTitle => 'Slot-Konfiguration';
 
   @override
-  String get amsSlotConfigSearch => 'Voreinstellungen suchen';
+  String get amsSlotConfigSearch => 'Profile suchen';
 
   @override
   String get amsSlotConfigColour => 'Farbe';
@@ -1432,18 +1432,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get amsSlotConfigNameNotSaved =>
-      'Slot konfiguriert, aber der Name der Voreinstellung konnte nicht gespeichert werden';
+      'Slot konfiguriert, aber der Name des Profils konnte nicht gespeichert werden';
 
   @override
-  String get amsSlotConfigEmpty => 'Keine Filament-Voreinstellungen verfügbar';
+  String get amsSlotConfigEmpty => 'Keine Filamentprofile verfügbar';
 
   @override
-  String get amsSlotConfigNoMatch =>
-      'Keine Voreinstellung entspricht der Suche';
+  String get amsSlotConfigNoMatch => 'Kein Profil entspricht der Suche';
 
   @override
   String get amsSlotConfigCloudHint =>
-      'Melde dich bei Bambu Cloud an, um aus deinen eigenen Voreinstellungen zu wählen.';
+      'Melde dich bei Bambu Cloud an, um aus deinen eigenen Profilen zu wählen.';
 
   @override
   String get amsSlotConfigCloudAction => 'Anmelden';
@@ -1469,7 +1468,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get amsSlotConfigModelUnknown =>
-      'Druckermodell unbekannt – alle Voreinstellungen werden angezeigt';
+      'Druckermodell unbekannt – alle Profile werden angezeigt';
 
   @override
   String get amsSlotConfigCurrent => 'Aktuell eingestellt';
@@ -1517,7 +1516,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get amsSlotResetConfirmMessage =>
-      'Der Drucker vergisst das hier konfigurierte Filament und Bambuddy vergisst, welche Voreinstellung es war.';
+      'Der Drucker vergisst das hier konfigurierte Filament und Bambuddy vergisst, welches Profil es war.';
 
   @override
   String get amsSlotResetStarted => 'Slot wird zurückgesetzt…';
@@ -1750,7 +1749,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get apiKeyExplain =>
-      'Ein API-Schlüssel läuft nicht ab und hat begrenzte Berechtigungen – erstelle einen auf dem Server: Settings → „API-Keys“.';
+      'Ein API-Schlüssel läuft nicht ab und hat begrenzte Berechtigungen – erstelle einen auf dem Server: Einstellungen → API-Schlüssel.';
 
   @override
   String get apiKeyLabel => 'API-Schlüssel';
@@ -1895,7 +1894,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get errTwoFactorUnsupported =>
-      'Konto erfordert 2FA — in dieser Version nicht unterstützt. Verwende einen API-Schlüssel (Einstellungen → „API-Keys“ auf dem Server).';
+      'Konto erfordert 2FA — in dieser Version nicht unterstützt. Verwende einen API-Schlüssel (Einstellungen → API-Schlüssel auf dem Server).';
 
   @override
   String get errTwoFactorCodeRejected =>
@@ -1985,11 +1984,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get notifPlateTitle => 'Bauplatte nicht leer';
+  String get notifPlateTitle => 'Druckplatte nicht leer';
 
   @override
   String notifPlateBody(String printer) {
-    return 'Bei $printer muss die Bauplatte vor dem nächsten Auftrag geräumt werden';
+    return 'Bei $printer muss die Druckplatte vor dem nächsten Auftrag geräumt werden';
   }
 
   @override
@@ -2098,11 +2097,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notifEvtMilestonesDesc => 'Bei 25%, 50% und 75%';
 
   @override
-  String get notifEvtPlate => 'Bauplatte nicht leer';
+  String get notifEvtPlate => 'Druckplatte nicht leer';
 
   @override
   String get notifEvtPlateDesc =>
-      'Wenn die Bauplatte vor dem nächsten Auftrag geräumt werden muss';
+      'Wenn die Druckplatte vor dem nächsten Auftrag geräumt werden muss';
 
   @override
   String get notifEvtOffline => 'Drucker offline';
@@ -2780,7 +2779,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryFromSlotHint =>
-      'Die vom Drucker in diesem Slot gemeldete Tag-Spule erfassen';
+      'Die vom Drucker in diesem Slot gemeldete Spule mit RFID-Tag erfassen';
 
   @override
   String get inventoryFromSlotDone =>
@@ -2788,7 +2787,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryFromSlotNoTag =>
-      'Der Drucker meldet in diesem Slot keine Tag-Spule mehr';
+      'Der Drucker meldet in diesem Slot keine Spule mit RFID-Tag mehr';
 
   @override
   String get inventoryFromSlotOffline =>
@@ -3157,7 +3156,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String maintenanceOverdueBy(int hours) {
-    return 'Überfällig um $hours h';
+    return 'Seit $hours h überfällig';
   }
 
   @override
@@ -3899,7 +3898,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String fmTagDeleteConfirm(String name) {
-    return 'Tag „$name“ löschen? Die Dateien behalten alles andere – sie verlieren nur dieses Label.';
+    return 'Tag „$name“ löschen? Die Dateien behalten alles andere – sie verlieren nur diesen Tag.';
   }
 
   @override
@@ -4025,17 +4024,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get mwLoginRequired =>
-      'Melde dich bei deinem Bambu Cloud-Konto an, um MakerWorld-Modelle herunterzuladen.';
+      'Melde dich bei deinem Bambu-Cloud-Konto an, um MakerWorld-Modelle herunterzuladen.';
 
   @override
-  String get cloudAccountMenu => 'Bambu Cloud-Konto';
+  String get cloudAccountMenu => 'Bambu-Cloud-Konto';
 
   @override
   String get cloudAccountTitle => 'Bambu Cloud';
 
   @override
   String get cloudCredsNote =>
-      'Melde dich mit deinem Bambu Lab-Konto an. Diese Zugangsdaten werden nur zum Herunterladen von Modellen von MakerWorld verwendet.';
+      'Melde dich mit deinem Bambu-Lab-Konto an. Diese Zugangsdaten werden nur zum Herunterladen von Modellen von MakerWorld verwendet.';
 
   @override
   String get cloudEmail => 'E-Mail';
@@ -4647,10 +4646,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceProcess => 'Prozess / Qualität';
 
   @override
-  String get sliceBedType => 'Bauplatte';
+  String get sliceBedType => 'Druckplatte';
 
   @override
-  String get sliceBedDefault => 'Standard (aus Preset)';
+  String get sliceBedDefault => 'Standard (aus Profil)';
 
   @override
   String get sliceFilament => 'Filament';
@@ -4672,7 +4671,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get sliceAutoArrangeHint =>
-      'Platziert die Objekte erneut auf der Bauplatte.';
+      'Platziert die Objekte erneut auf der Druckplatte.';
 
   @override
   String sliceDesignedFor(String printer) {
@@ -4694,17 +4693,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht verwendet — die Datei entscheidet';
 
   @override
-  String get sliceFilamentUnused => 'Auf dieser Bauplatte nicht verwendet';
+  String get sliceFilamentUnused => 'Auf dieser Druckplatte nicht verwendet';
 
   @override
   String get processSettingsTitle => 'Prozesseinstellungen';
 
   @override
   String get sliceProcessSettingsNeedsProcess =>
-      'Zuerst ein Prozess-Preset auswählen';
+      'Zuerst ein Prozessprofil auswählen';
 
   @override
-  String get sliceProcessSettingsUnchanged => 'Preset unverändert verwenden';
+  String get sliceProcessSettingsUnchanged => 'Profil unverändert verwenden';
 
   @override
   String sliceProcessSettingsChanged(int count) {
@@ -4728,7 +4727,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Einstellungen entsprechen dieser Suche.';
 
   @override
-  String get processSettingsRevert => 'Auf Preset-Wert zurücksetzen';
+  String get processSettingsRevert => 'Auf Profilwert zurücksetzen';
 
   @override
   String processSettingsRevertAll(int count) {
@@ -4746,23 +4745,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get processSettingsUnavailable =>
-      'Dieser Server kann keine Prozesseinstellungen für das ausgewählte Preset abrufen.';
+      'Dieser Server kann keine Prozesseinstellungen für das ausgewählte Profil abrufen.';
 
   @override
   String get processSettingsDefaultsOutdatedSidecar =>
-      'Slicer-Standardwerte werden angezeigt: Dein Slicer-Sidecar ist älter als diese Funktion und kann die Werte eines Presets nicht auslesen. Aktualisiere das Sidecar-Image, um sie zu sehen. Alles, was du nicht änderst, verwendet weiterhin das Preset.';
+      'Slicer-Standardwerte werden angezeigt: Dein Slicer-Sidecar ist älter als diese Funktion und kann die Werte eines Profils nicht auslesen. Aktualisiere das Sidecar-Image, um sie zu sehen. Alles, was du nicht änderst, verwendet weiterhin das Profil.';
 
   @override
   String get processSettingsDefaultsNotConfigured =>
-      'Slicer-Standardwerte werden angezeigt: Es ist kein Slicer-Sidecar konfiguriert, daher können die Werte eines Presets nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Preset.';
+      'Slicer-Standardwerte werden angezeigt: Es ist kein Slicer-Sidecar konfiguriert, daher können die Werte eines Profils nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Profil.';
 
   @override
   String get processSettingsDefaultsSidecarUnavailable =>
-      'Slicer-Standardwerte werden angezeigt: Das Slicer-Sidecar hat nicht geantwortet, daher können die Werte eines Presets nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Preset.';
+      'Slicer-Standardwerte werden angezeigt: Das Slicer-Sidecar hat nicht geantwortet, daher können die Werte eines Profils nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Profil.';
 
   @override
   String get processSettingsDefaultsUnavailable =>
-      'Slicer-Standardwerte werden angezeigt: Die Werte des ausgewählten Presets konnten nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Preset.';
+      'Slicer-Standardwerte werden angezeigt: Die Werte des ausgewählten Profils konnten nicht ausgelesen werden. Alles, was du nicht änderst, verwendet weiterhin das Profil.';
 
   @override
   String get processSettingsFilamentDefault =>
@@ -4788,14 +4787,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sliceShowAll => 'Alle';
 
   @override
-  String get sliceSearchHint => 'Presets suchen';
+  String get sliceSearchHint => 'Profile suchen';
 
   @override
   String get sliceOwnedEmpty =>
-      'Keine passenden Presets für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
+      'Keine passenden Profile für deinen Drucker und deine Filamente. Aktiviere „Alle“, um den gesamten Katalog zu durchsuchen.';
 
   @override
-  String get sliceNoPresets => 'Keine Presets verfügbar';
+  String get sliceNoPresets => 'Keine Profile verfügbar';
 
   @override
   String get sliceInProgress => 'Wird geslict…';
@@ -4855,7 +4854,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get sliceTierLocal => 'Lokales Preset';
+  String get sliceTierLocal => 'Lokales Profil';
 
   @override
   String get sliceTierCloud => 'Bambu Cloud';
@@ -4894,7 +4893,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pipelineSaveHint =>
-      'Drucker, Prozess, Filamente und Bauplatte von oben unter einem Namen, den du auf die nächste Datei anwenden kannst.';
+      'Drucker, Prozess, Filamente und Druckplatte von oben unter einem Namen, den du auf die nächste Datei anwenden kannst.';
 
   @override
   String get pipelinesMenu => 'Pipelines';
@@ -4907,7 +4906,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pipelinesEmptyHint =>
-      'Speichere eine aus dem Slicing-Formular — Drucker, Prozess, Filamente und Bauplatte als Paket, das du mit einem Fingertipp anwenden kannst.';
+      'Speichere eine aus dem Slicing-Formular — Drucker, Prozess, Filamente und Druckplatte als Paket, das du mit einem Fingertipp anwenden kannst.';
 
   @override
   String get pipelineProfiles => 'Profile';
@@ -4929,7 +4928,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get pipelineBed => 'Bauplatte';
+  String get pipelineBed => 'Druckplatte';
 
   @override
   String get pipelinePresetGone => 'Nicht mehr im Katalog vorhanden';
@@ -5071,7 +5070,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pipelineIssueFilamentUnverified =>
-      'Dieses Filament-Preset kann von hier aus nicht geprüft werden — am besten selbst kontrollieren.';
+      'Dieses Filamentprofil kann von hier aus nicht geprüft werden — am besten selbst kontrollieren.';
 
   @override
   String get pipelineIssueNoClassMatches =>
@@ -5309,27 +5308,27 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mappingSaved => 'Filament-Zuordnung gespeichert';
 
   @override
-  String get plateClearTitle => 'Ist die Bauplatte frei?';
+  String get plateClearTitle => 'Ist die Druckplatte frei?';
 
   @override
   String get plateClearBody =>
-      'Stelle sicher, dass die Bauplatte leer ist, bevor du diesen Druck startest.';
+      'Stelle sicher, dass die Druckplatte leer ist, bevor du diesen Druck startest.';
 
   @override
-  String get plateClearConfirm => 'Bauplatte ist frei';
+  String get plateClearConfirm => 'Druckplatte ist frei';
 
   @override
-  String get plateClearAction => 'Bauplatte als frei markieren';
+  String get plateClearAction => 'Druckplatte als frei markieren';
 
   @override
-  String get plateClearBadge => 'Bauplatte nicht frei';
+  String get plateClearBadge => 'Druckplatte nicht frei';
 
   @override
-  String get plateClearedSnack => 'Bauplatte als frei markiert';
+  String get plateClearedSnack => 'Druckplatte als frei markiert';
 
   @override
   String get plateClearNeedsOnline =>
-      'Dieser Server gibt die Bauplatte nur frei, solange der Drucker verbunden ist. Aktualisiere bambuddy, um dies bei einem ausgeschalteten Drucker zu tun.';
+      'Dieser Server gibt die Druckplatte nur frei, solange der Drucker verbunden ist. Aktualisiere bambuddy, um dies bei einem ausgeschalteten Drucker zu tun.';
 
   @override
   String get pfmTitle => 'Dateimanager';
@@ -5656,21 +5655,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String queueEditPlateSelected(int plate) {
-    return 'Platte $plate';
+    return 'Druckplatte $plate';
   }
 
   @override
   String queueEditPlateNamed(int plate, String name) {
-    return 'Platte $plate · $name';
+    return 'Druckplatte $plate · $name';
   }
 
   @override
   String queueEditPlateFixed(int plate) {
-    return 'Dieser Auftrag druckt Platte $plate';
+    return 'Dieser Auftrag druckt Druckplatte $plate';
   }
 
   @override
-  String get queuePlatePickTitle => 'Welche Platte?';
+  String get queuePlatePickTitle => 'Welche Druckplatte?';
 
   @override
   String queuePlateObjects(int count) {
@@ -6644,11 +6643,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueSettingsQueueHeader => 'Warteschlange';
 
   @override
-  String get queueSettingsPlateClearTitle => 'Freie Bauplatte bestätigen';
+  String get queueSettingsPlateClearTitle => 'Freie Druckplatte bestätigen';
 
   @override
   String get queueSettingsPlateClearDesc =>
-      'Nach einem Druck wartet der Drucker darauf, dass jemand bestätigt, dass die Bauplatte frei ist.';
+      'Nach einem Druck wartet der Drucker darauf, dass jemand bestätigt, dass die Druckplatte frei ist.';
 
   @override
   String get queueSettingsShortestFirstTitle => 'Kürzester Druckauftrag zuerst';
@@ -6670,11 +6669,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsPreheatDesc =>
-      'Wärmt den Bauraum vor dem Senden der Datei auf. Ein einzelner Auftrag in der Warteschlange kann dies überschreiben.';
+      'Wärmt die Kammer vor dem Senden der Datei auf. Ein einzelner Auftrag in der Warteschlange kann dies überschreiben.';
 
   @override
   String queueSettingsPreheatMaxWait(String duration) {
-    return 'Maximale Wartezeit für Bauraum: $duration';
+    return 'Maximale Wartezeit für die Kammer: $duration';
   }
 
   @override
@@ -6698,11 +6697,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsKeepWarmDesc =>
-      'Bis der fertige Druck abgenommen wird, bleibt das Druckbett heiß – so startet der nächste Auftrag mit beheiztem Bauraum nicht im kalten Zustand. Bei PLA und PETG übersprungen.';
+      'Bis der fertige Druck abgenommen wird, bleibt das Druckbett heiß – so startet der nächste Auftrag mit beheizter Kammer nicht im kalten Zustand. Bei PLA und PETG übersprungen.';
 
   @override
   String queueSettingsKeepWarmTemp(int temp) {
-    return 'Druckbetttemperatur zum Heizen des Bauraums: $temp °C';
+    return 'Druckbetttemperatur zum Heizen der Kammer: $temp °C';
   }
 
   @override
@@ -6716,19 +6715,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsPreheatMaxWaitDesc =>
-      'Ein X1C oder P2S hat keine aktive Bauraumheizung – der Bauraum wird über das Druckbett erwärmt, was 15–30 Minuten dauern kann. Danach wartet die Warteschlange nicht länger und geht zur Haltezeit über.';
+      'Ein X1C oder P2S hat keine aktive Kammerheizung – die Kammer wird über das Druckbett erwärmt, was 15–30 Minuten dauern kann. Danach wartet die Warteschlange nicht länger und geht zur Haltezeit über.';
 
   @override
   String get queueSettingsPreheatSoakDesc =>
-      'Zusätzliche Zeit auf Temperatur, nachdem der Bauraum diese erreicht hat oder die Wartezeit oben abgelaufen ist. Bei 0 wird dieser Schritt übersprungen.';
+      'Zusätzliche Zeit auf Temperatur, nachdem die Kammer diese erreicht hat oder die Wartezeit oben abgelaufen ist. Bei 0 wird dieser Schritt übersprungen.';
 
   @override
   String get queueSettingsKeepWarmTempDesc =>
-      '90 hält die Bauraumwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Bauraumheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
+      '90 hält die Kammerwärme in einem geschlossenen Drucker aufrecht und aktiviert nachgerüstete Kammerheizungen, die meist bei 80 °C Betttemperatur einschalten. Eine höhere Betttemperatur aus der Datei hat immer Vorrang.';
 
   @override
   String get queueSettingsKeepWarmMaxDesc =>
-      'Stelle hier die Zeit ein, die du realistisch benötigst, um den Drucker zu erreichen. Ein zu kurzer Wert führt nur dazu, dass der nächste Druck von Grund auf neu aufheizen muss; ohne Begrenzung würde eine nicht abgeräumte Bauplatte das Druckbett dauerhaft heiß halten.';
+      'Stelle hier die Zeit ein, die du realistisch benötigst, um den Drucker zu erreichen. Ein zu kurzer Wert führt nur dazu, dass der nächste Druck von Grund auf neu aufheizen muss; ohne Begrenzung würde eine nicht abgeräumte Druckplatte das Druckbett dauerhaft heiß halten.';
 
   @override
   String get queueSettingsKeepWarmOffNote =>

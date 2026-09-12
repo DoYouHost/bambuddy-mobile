@@ -647,7 +647,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get speedSport => 'Sport';
 
   @override
-  String get speedLudicrous => 'Ludicrous';
+  String get speedLudicrous => 'Insensé';
 
   @override
   String get smartPlugOn => 'Allumée';
