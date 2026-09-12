@@ -137,7 +137,10 @@ jobs:
           # DateTime.parse still went green; at this offset it fails by two
           # hours. Any zone but UTC will do; this one matches the server's.
           TZ: Europe/Warsaw
-        run: flutter test test/contract --reporter expanded
+        # One file at a time: they all write to the same server, and SQLite
+        # hands a deleted row's id to the next insert — a lifecycle test that
+        # checked "id gone" read another file's new row (run 34723538872).
+        run: flutter test test/contract --concurrency=1 --reporter expanded
 
       - name: Logs on failure
         if: failure()

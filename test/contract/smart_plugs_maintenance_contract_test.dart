@@ -85,7 +85,9 @@ void main() {
       createdTypeIds.remove(created.id);
 
       final currentTypes = await maintRepo.fetchTypes();
-      expect(currentTypes.any((t) => t.id == created.id), isFalse);
+      // By name, not id: SQLite gives a deleted row's id to the next insert,
+      // so the id alone may already belong to someone else's type.
+      expect(currentTypes.any((t) => t.name == '$typeName-renamed'), isFalse);
     });
 
     test('POST /maintenance/types/restore-defaults restores system default types', () async {
