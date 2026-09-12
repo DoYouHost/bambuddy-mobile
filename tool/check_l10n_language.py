@@ -54,6 +54,14 @@ IGNORED_RULES = {
     'UPPERCASE_SENTENCE_START',
     'COMMA_PARENTHESIS_WHITESPACE',
     'NIETYPOWA_KOMBINACJA_DUZYCH_I_MALYCH_LITER',
+    # German UI conventions: no non-breaking space required before ellipsis, units or in abbreviations
+    'AUSLASSUNGSPUNKTE_LEERZEICHEN',
+    'EINHEIT_LEERZEICHEN',
+    'ABKUERZUNG_LEERZEICHEN',
+    # False positive on "das Log in einer Datei"
+    'LOG_IN',
+    # Input field hint text ending with period
+    'FRAGEZEICHEN_STATT_PUNKT',
 }
 
 # Rules that judge a sentence against the ones before it. Unrelated labels are

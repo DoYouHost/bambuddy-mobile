@@ -328,9 +328,12 @@ def write_arb_file(
                 meta_compact = {'placeholders': meta['placeholders']}
                 lines.append(f'  "{meta_key}": {json.dumps(meta_compact, ensure_ascii=False)},')
 
-    # Remove trailing comma from last line before closing bracket if applicable
-    if lines[-1].endswith(','):
-        lines[-1] = lines[-1][:-1]
+    # Remove trailing comma from last non-empty line before closing bracket
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip():
+            if lines[i].endswith(','):
+                lines[i] = lines[i][:-1]
+            break
 
     lines.append('}\n')
 

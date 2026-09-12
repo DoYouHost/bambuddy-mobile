@@ -15,7 +15,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// Read as text on purpose: `jsonDecode` collapses the duplicate before a test
 /// could see it.
 void main() {
-  final files = ['lib/l10n/app_en.arb', 'lib/l10n/app_pl.arb'];
+  final files = [
+    'lib/l10n/app_en.arb',
+    'lib/l10n/app_pl.arb',
+    'lib/l10n/app_de.arb',
+  ];
 
   /// Top-level keys in the order they are written, `@`-entries included.
   List<String> keysOf(String path) => RegExp(
@@ -40,7 +44,7 @@ void main() {
     });
   }
 
-  test('both languages carry the same strings', () {
+  test('all languages carry the same strings', () {
     // Not about duplicates, but the same class of silence: a key only one file
     // has is a screen that falls back to English without saying so.
     Set<String> stringsOf(String path) =>
@@ -49,8 +53,11 @@ void main() {
             .toSet();
 
     final en = stringsOf(files.first);
-    final pl = stringsOf(files.last);
-    expect(en.difference(pl), isEmpty, reason: 'missing from Polish');
-    expect(pl.difference(en), isEmpty, reason: 'missing from English');
+    for (final path in files.skip(1)) {
+      final name = path.split('/').last;
+      final target = stringsOf(path);
+      expect(en.difference(target), isEmpty, reason: 'missing from $name');
+      expect(target.difference(en), isEmpty, reason: 'extra in $name not in English');
+    }
   });
 }
