@@ -6,7 +6,10 @@ part of 'printer_card.dart';
 /// What the full card would show in a panel of its own — an active fault, a
 /// plate waiting to be cleared — takes the place of the printer glyph instead,
 /// in that panel's colour. It costs the name no width, which on a 360 dp screen
-/// it has little of beside the chip. A fault wins when both apply; the plate
+/// it has little of beside the chip.
+///
+/// The first line is the full card's own [_HeaderLine], so toggling moves
+/// nothing on it; the progress bar hangs under the name instead. A fault wins when both apply; the plate
 /// prompt is still there once the card is expanded.
 class _CollapsedCard extends ConsumerWidget {
   const _CollapsedCard({
@@ -38,44 +41,19 @@ class _CollapsedCard extends ConsumerWidget {
 
     return _CardShell(
       tokens: t,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          _leadIcon(context, ref, t, l10n),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        name,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
-                        style: t.titleLg.copyWith(letterSpacing: -0.3),
-                      ),
-                    ),
-                    if (showPercent) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        '${progress.toStringAsFixed(0)}%',
-                        style: t.monoValue,
-                      ),
-                    ],
-                  ],
-                ),
-                if (printing) ...[
-                  const SizedBox(height: 6),
-                  _PrintProgressBar(status: status!, height: 3),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 9),
+      child: _HeaderLine(
+        leading: _leadIcon(context, ref, t, l10n),
+        name: name,
+        afterName: showPercent
+            ? Text('${progress.toStringAsFixed(0)}%', style: t.monoValue)
+            : null,
+        belowName: printing
+            ? Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: _PrintProgressBar(status: status!, height: 3),
+              )
+            : null,
+        trailing: [
           _StateChip(
             label: offline ? l10n.statusOffline : _stateChipLabel(l10n, status),
             offline: offline || !connected,

@@ -205,20 +205,10 @@ class _PrinterCardState extends State<PrinterCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                _IconSquare(tokens: t, offline: true),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _NameText(name: name, tokens: t),
-                      _TotalPrintTimeLine(printerId: printerId),
-                    ],
-                  ),
-                ),
+            _HeaderLine(
+              leading: _IconSquare(tokens: t, offline: true),
+              name: name,
+              trailing: [
                 // Smart plug stays controllable even when OFFLINE — the only way to
                 // remotely power the printer back on. Auto-hides if none assigned.
                 _SmartPlugButton(printerId: printerId, printing: false),
@@ -229,6 +219,7 @@ class _PrinterCardState extends State<PrinterCard> {
                   collapseButton,
                 ],
               ],
+              belowName: _TotalPrintTimeLine(printerId: printerId),
             ),
             // The one thing that survives the collapse besides the plug, and for
             // the same reason: releasing the plate-clear gate is the only way to
@@ -271,8 +262,22 @@ class _PrinterCardState extends State<PrinterCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: icon + name + firmware/hours (left), status pill + action
-          // icons (right).
+          // Header: icon + name and status pill (first line), firmware/hours
+          // and action icons under it.
+          _HeaderLine(
+            leading: _IconSquare(tokens: t, offline: !connected),
+            name: name,
+            trailing: [
+              _StateChip(
+                label: _stateChipLabel(l10n, status),
+                offline: !connected,
+              ),
+              if (collapseButton != null) ...[
+                const SizedBox(width: 8),
+                collapseButton,
+              ],
+            ],
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -281,47 +286,20 @@ class _PrinterCardState extends State<PrinterCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        _IconSquare(tokens: t, offline: !connected),
-                        const SizedBox(width: 9),
-                        Flexible(
-                          child: _NameText(name: name, tokens: t),
-                        ),
-                      ],
-                    ),
                     _FirmwareLine(printerId: printerId),
                     _TotalPrintTimeLine(printerId: printerId),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _StateChip(
-                        label: _stateChipLabel(l10n, status),
-                        offline: !connected,
-                      ),
-                      if (collapseButton != null) ...[
-                        const SizedBox(width: 8),
-                        collapseButton,
-                      ],
-                    ],
+              if (connected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 10, top: 10),
+                  child: _HeaderActions(
+                    printerId: printerId,
+                    printerName: name,
+                    printing: printing,
                   ),
-                  if (connected) ...[
-                    const SizedBox(height: 10),
-                    _HeaderActions(
-                      printerId: printerId,
-                      printerName: name,
-                      printing: printing,
-                    ),
-                  ],
-                ],
-              ),
+                ),
             ],
           ),
           if (status != null)
@@ -394,16 +372,14 @@ class _PrinterCardState extends State<PrinterCard> {
 
 /// Outer card container in the modernized visual language: translucent gradient
 /// fill, hairline border, generous radius. Holds the whole printer card.
+///
+/// One padding for the collapsed and the full card: with two, the chip and the
+/// toggle button jumped a few pixels on every tap, which read as a glitch.
 class _CardShell extends StatelessWidget {
-  const _CardShell({
-    required this.tokens,
-    required this.child,
-    this.padding = const EdgeInsets.all(20),
-  });
+  const _CardShell({required this.tokens, required this.child});
 
   final DashTokens tokens;
   final Widget child;
-  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
@@ -413,7 +389,7 @@ class _CardShell extends StatelessWidget {
       'dashboard.printer_card',
       Container(
         margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-        padding: padding,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
           borderRadius: BorderRadius.circular(26),
@@ -465,6 +441,75 @@ class _IconSquare extends StatelessWidget {
         borderRadius: BorderRadius.circular(11),
       ),
       child: Icon(icon, size: 18, color: color),
+    );
+  }
+}
+
+/// The card's first line, built the same way in the collapsed, full and offline
+/// looks so that nothing on it moves when the card is toggled: the glyph, the
+/// name centred on the glyph's line, and the status and buttons on the right.
+///
+/// [belowName] sits under the name without touching that line, which is what
+/// lets the collapsed progress bar exist without pushing the name up.
+class _HeaderLine extends StatelessWidget {
+  const _HeaderLine({
+    required this.leading,
+    required this.name,
+    required this.trailing,
+    this.afterName,
+    this.belowName,
+  });
+
+  final Widget leading;
+  final String name;
+  final List<Widget> trailing;
+  final Widget? afterName;
+  final Widget? belowName;
+
+  /// The glyph square and the header buttons.
+  static const _lineHeight = 34.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    // A minimum rather than a fixed height: at a large system text size the
+    // name is taller than the glyph, and a fixed line would overflow.
+    Widget line(Widget child) => ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _lineHeight),
+      child: child,
+    );
+    final belowName = this.belowName;
+    final afterName = this.afterName;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        leading,
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              line(
+                Row(
+                  children: [
+                    Flexible(
+                      child: _NameText(name: name, tokens: t),
+                    ),
+                    if (afterName != null) ...[
+                      const SizedBox(width: 8),
+                      afterName,
+                    ],
+                  ],
+                ),
+              ),
+              ?belowName,
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        line(Row(mainAxisSize: MainAxisSize.min, children: trailing)),
+      ],
     );
   }
 }

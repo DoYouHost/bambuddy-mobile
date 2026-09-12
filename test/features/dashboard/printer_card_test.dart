@@ -3343,8 +3343,11 @@ void main() {
       },
     );
 
-    testWidgets('expanding and collapsing again is one button in one corner', (
-      tester,
+    /// A card the test can toggle through its own button, the way the
+    /// dashboard does.
+    Future<List<bool>> pumpToggleable(
+      WidgetTester tester,
+      PrinterWithStatus item,
     ) async {
       var collapsed = true;
       final asked = <bool>[];
@@ -3354,7 +3357,7 @@ void main() {
             body: SingleChildScrollView(
               child: StatefulBuilder(
                 builder: (context, setState) => PrinterCard(
-                  item: printing,
+                  item: item,
                   collapsed: collapsed,
                   onCollapsedChanged: (value) {
                     asked.add(value);
@@ -3366,20 +3369,58 @@ void main() {
           ),
         ),
       );
+      return asked;
+    }
 
-      final corner = tester.getTopRight(find.byTooltip('Rozwiń kartę'));
+    /// Where everything on the card's first line sits. The name's rectangle
+    /// covers its font as well: the same string in another size or weight
+    /// measures differently.
+    Map<String, Rect> firstLine(
+      WidgetTester tester, {
+      required String name,
+      required String chip,
+      required String button,
+    }) => {
+      'glyph': tester.getRect(find.byIcon(Icons.print_outlined)),
+      'name': tester.getRect(find.text(name)),
+      'chip': tester.getRect(find.text(chip)),
+      'button': tester.getRect(find.byTooltip(button)),
+    };
+
+    void expectSameLine(Map<String, Rect> before, Map<String, Rect> after) {
+      for (final part in before.keys) {
+        expect(
+          after[part],
+          rectMoreOrLessEquals(before[part]!),
+          reason: '$part moved when the card was toggled',
+        );
+      }
+    }
+
+    testWidgets('toggling a printing card moves nothing on its first line', (
+      tester,
+    ) async {
+      final asked = await pumpToggleable(tester, printing);
+      final collapsed = firstLine(
+        tester,
+        name: 'X1C Warsztat',
+        chip: 'RUNNING',
+        button: 'Rozwiń kartę',
+      );
+
       await tester.tap(find.byTooltip('Rozwiń kartę'));
       await tester.pump();
 
       expect(asked, [false]);
       expect(find.text('DYSZA'), findsOneWidget);
-      expect(find.byTooltip('Rozwiń kartę'), findsNothing);
-      expect(
-        tester.getTopRight(find.byTooltip('Zwiń kartę')).dx,
-        closeTo(corner.dx, 4),
-        reason:
-            'the collapsed card pads 16 at the sides, the full one 20 — the '
-            'button may move that much, never to another part of the card',
+      expectSameLine(
+        collapsed,
+        firstLine(
+          tester,
+          name: 'X1C Warsztat',
+          chip: 'RUNNING',
+          button: 'Zwiń kartę',
+        ),
       );
 
       await tester.tap(find.byTooltip('Zwiń kartę'));
@@ -3387,6 +3428,35 @@ void main() {
 
       expect(asked, [false, true]);
       expect(find.text('DYSZA'), findsNothing);
+    });
+
+    testWidgets('toggling an offline card moves nothing on its first line', (
+      tester,
+    ) async {
+      const offline = PrinterWithStatus(
+        printer: Printer(id: 4, name: 'X1C Hala'),
+        status: PrinterStatus(id: 4, connected: false),
+      );
+      await pumpToggleable(tester, offline);
+      final collapsed = firstLine(
+        tester,
+        name: 'X1C Hala',
+        chip: 'OFFLINE',
+        button: 'Rozwiń kartę',
+      );
+
+      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.pump();
+
+      expectSameLine(
+        collapsed,
+        firstLine(
+          tester,
+          name: 'X1C Hala',
+          chip: 'OFFLINE',
+          button: 'Zwiń kartę',
+        ),
+      );
     });
 
     testWidgets('a card nobody can toggle offers no button in either look', (
