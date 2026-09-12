@@ -11,6 +11,7 @@ import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
+import '../../../core/format/text_measure.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
@@ -208,17 +209,14 @@ class _PrinterCardState extends State<PrinterCard> {
             _HeaderLine(
               leading: _IconSquare(tokens: t, offline: true),
               name: name,
-              trailing: [
-                // Smart plug stays controllable even when OFFLINE — the only way to
-                // remotely power the printer back on. Auto-hides if none assigned.
-                _SmartPlugButton(printerId: printerId, printing: false),
-                const SizedBox(width: 8),
-                _StateChip(label: l10n.statusOffline, offline: true),
-                if (collapseButton != null) ...[
-                  const SizedBox(width: 8),
-                  collapseButton,
-                ],
-              ],
+              // Smart plug stays controllable even when OFFLINE — the only way to
+              // remotely power the printer back on. Auto-hides if none assigned.
+              beforeStatus: _SmartPlugButton(
+                printerId: printerId,
+                printing: false,
+              ),
+              status: _StateChip(label: l10n.statusOffline, offline: true),
+              toggle: collapseButton,
               belowName: _TotalPrintTimeLine(printerId: printerId),
             ),
             // The one thing that survives the collapse besides the plug, and for
@@ -267,16 +265,11 @@ class _PrinterCardState extends State<PrinterCard> {
           _HeaderLine(
             leading: _IconSquare(tokens: t, offline: !connected),
             name: name,
-            trailing: [
-              _StateChip(
-                label: _stateChipLabel(l10n, status),
-                offline: !connected,
-              ),
-              if (collapseButton != null) ...[
-                const SizedBox(width: 8),
-                collapseButton,
-              ],
-            ],
+            status: _StateChip(
+              label: _stateChipLabel(l10n, status),
+              offline: !connected,
+            ),
+            toggle: collapseButton,
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,23 +444,43 @@ class _IconSquare extends StatelessWidget {
 ///
 /// [belowName] sits under the name without touching that line, which is what
 /// lets the collapsed progress bar exist without pushing the name up.
+///
+/// The right-hand group never takes the name below [_minNameWidth] either: past
+/// that point the status label ellipsizes, while the buttons keep their size.
+/// Only the largest text sizes reach it — "DESCONECTADA" beside a plug button
+/// on a 360 dp phone.
+///
+/// [afterName] is dropped rather than squeezed once it would leave the name
+/// less than [_minNameWidth]: at the largest system text size on a 360 dp phone
+/// the two do not fit side by side, and the bar under the name still shows the
+/// progress the percentage spells out.
 class _HeaderLine extends StatelessWidget {
   const _HeaderLine({
     required this.leading,
     required this.name,
-    required this.trailing,
+    required this.status,
+    this.beforeStatus,
+    this.toggle,
     this.afterName,
     this.belowName,
   });
 
   final Widget leading;
   final String name;
-  final List<Widget> trailing;
-  final Widget? afterName;
+  final Widget status;
+  final Widget? beforeStatus;
+  final Widget? toggle;
+  final String? afterName;
   final Widget? belowName;
 
   /// The glyph square and the header buttons.
   static const _lineHeight = 34.0;
+
+  static const _minNameWidth = 48.0;
+  static const _afterNameGap = 8.0;
+  static const _leadingGap = 9.0;
+  static const _trailingGap = 10.0;
+  static const _buttonGap = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -479,37 +492,79 @@ class _HeaderLine extends StatelessWidget {
       child: child,
     );
     final belowName = this.belowName;
-    final afterName = this.afterName;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        leading,
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              line(
-                Row(
-                  children: [
-                    Flexible(
-                      child: _NameText(name: name, tokens: t),
+    final beforeStatus = this.beforeStatus;
+    final toggle = this.toggle;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final trailingMaxWidth =
+            (constraints.maxWidth -
+                    _lineHeight -
+                    _leadingGap -
+                    _trailingGap -
+                    _minNameWidth)
+                .clamp(0.0, double.infinity);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            leading,
+            const SizedBox(width: _leadingGap),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  line(
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final afterName = this.afterName;
+                        final showAfterName =
+                            afterName != null &&
+                            constraints.maxWidth -
+                                    textWidth(context, afterName, t.monoValue) -
+                                    _afterNameGap >=
+                                _minNameWidth;
+                        return Row(
+                          children: [
+                            Flexible(
+                              child: _NameText(name: name, tokens: t),
+                            ),
+                            if (showAfterName) ...[
+                              const SizedBox(width: _afterNameGap),
+                              Text(afterName, style: t.monoValue),
+                            ],
+                          ],
+                        );
+                      },
                     ),
-                    if (afterName != null) ...[
-                      const SizedBox(width: 8),
-                      afterName,
-                    ],
-                  ],
-                ),
+                  ),
+                  ?belowName,
+                ],
               ),
-              ?belowName,
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        line(Row(mainAxisSize: MainAxisSize.min, children: trailing)),
-      ],
+            ),
+            const SizedBox(width: _trailingGap),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: trailingMaxWidth,
+                minHeight: _lineHeight,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (beforeStatus != null) ...[
+                    beforeStatus,
+                    const SizedBox(width: _buttonGap),
+                  ],
+                  Flexible(child: status),
+                  if (toggle != null) ...[
+                    const SizedBox(width: _buttonGap),
+                    toggle,
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

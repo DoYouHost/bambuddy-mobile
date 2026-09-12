@@ -3459,6 +3459,85 @@ void main() {
       );
     });
 
+    group('at the largest text size on a 360 dp phone', () {
+      // Any overflow fails the test on its own. The test font is wider than
+      // Manrope, so a card that fits here fits on a device.
+      Future<void> pumpNarrow(
+        WidgetTester tester,
+        PrinterWithStatus item, {
+        required bool collapsed,
+        List<Override> extra = const [],
+      }) async {
+        tester.view.physicalSize = const Size(360, 2000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(2)),
+                child: Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      item: item,
+                      collapsed: collapsed,
+                      onCollapsedChanged: (_) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            extra: extra,
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('a printing card drops the percentage, not the layout', (
+        tester,
+      ) async {
+        await pumpNarrow(tester, printing, collapsed: true);
+
+        expect(find.text('43%'), findsNothing);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(find.text('X1C Warsztat'), findsOneWidget);
+      });
+
+      testWidgets('the chamber light row wraps its label', (tester) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+        );
+        await pumpNarrow(tester, item, collapsed: false);
+
+        expect(find.text('Światło komory'), findsOneWidget);
+      });
+
+      testWidgets('an offline card keeps plug, status and toggle on one line', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: false),
+        );
+        await pumpNarrow(
+          tester,
+          item,
+          collapsed: false,
+          extra: [
+            smartPlugsProvider.overrideWith(
+              () => _StubSmartPlugsNotifier(_plugState()),
+            ),
+          ],
+        );
+
+        expect(find.text('OFFLINE'), findsOneWidget);
+        expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+      });
+    });
+
     testWidgets('a card nobody can toggle offers no button in either look', (
       tester,
     ) async {

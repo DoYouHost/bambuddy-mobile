@@ -44,25 +44,20 @@ class _CollapsedCard extends ConsumerWidget {
       child: _HeaderLine(
         leading: _leadIcon(context, ref, t, l10n),
         name: name,
-        afterName: showPercent
-            ? Text('${progress.toStringAsFixed(0)}%', style: t.monoValue)
-            : null,
+        afterName: showPercent ? '${progress.toStringAsFixed(0)}%' : null,
         belowName: printing
             ? Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: _PrintProgressBar(status: status!, height: 3),
               )
             : null,
-        trailing: [
-          _StateChip(
-            label: offline ? l10n.statusOffline : _stateChipLabel(l10n, status),
-            offline: offline || !connected,
-          ),
-          if (onExpand != null) ...[
-            const SizedBox(width: 8),
-            _CollapseToggleButton(collapsed: true, onPressed: onExpand!),
-          ],
-        ],
+        status: _StateChip(
+          label: offline ? l10n.statusOffline : _stateChipLabel(l10n, status),
+          offline: offline || !connected,
+        ),
+        toggle: onExpand == null
+            ? null
+            : _CollapseToggleButton(collapsed: true, onPressed: onExpand!),
       ),
     );
   }

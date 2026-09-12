@@ -324,6 +324,9 @@ class _StateChip extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
         style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
       ),
     );
