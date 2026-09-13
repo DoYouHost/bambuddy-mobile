@@ -27,6 +27,17 @@ void main() {
     test('explicit http is preserved', () {
       expect(ServerProfile.normalizeBaseUrl('http://host'), 'http://host');
     });
+
+    test('a pasted API prefix is dropped, or every path would double it', () {
+      expect(
+        ServerProfile.normalizeBaseUrl('192.168.1.50:8000/api/v1/'),
+        'http://192.168.1.50:8000',
+      );
+      expect(
+        ServerProfile.normalizeBaseUrl('https://host/proxy/api/v1'),
+        'https://host/proxy',
+      );
+    });
   });
 
   group('displayName', () {

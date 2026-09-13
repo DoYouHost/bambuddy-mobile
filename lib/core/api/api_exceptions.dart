@@ -297,7 +297,9 @@ AppApiException mapDioException(DioException e) {
       method: method,
       path: path,
     ),
-    DioFailure.connectionError => NetworkException(
+    // A cancel maps as it always has. The one caller that cancels, the printer
+    // download job, reports it as a cancellation itself.
+    DioFailure.cancelled || DioFailure.unknown => NetworkException(
       AppErrorCode.connectionError,
       detail: e.message,
       method: method,

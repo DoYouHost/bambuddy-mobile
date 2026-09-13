@@ -5392,6 +5392,12 @@ class DemoBackend {
       }
     }
     if (s.length >= 2 && s[1] == 'templates') return _ok(const <Object>[]);
+    // An upload, like the library's. Left to the fallback it would be a 200
+    // with an empty body, which the import screen cannot parse and does not
+    // catch.
+    if (s.length >= 2 && s[1] == 'import' && m == 'POST') {
+      return (status: 501, body: {'detail': 'Upload unavailable in demo'});
+    }
     final pid = int.tryParse(s.length > 1 ? s[1] : '');
     final project = _projects.where((p) => p['id'] == pid).firstOrNull;
     if (project == null) return _fallback(m);

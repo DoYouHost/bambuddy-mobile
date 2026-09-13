@@ -48,11 +48,13 @@ class ServerProfile {
     if (label != null) 'label': label,
   };
 
-  /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`.
+  /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`
+  /// and a trailing `/api/v1`, which is what a URL copied out of the API docs
+  /// ends in and what every endpoint path already starts with.
   ///
   /// The `http://` default is intentional: local/self-hosted servers are often
   /// plain http, and a public https server redirects the probe so the caller
   /// adopts the reached URL via `baseUrlFromReached`. See setup flow.
   static String normalizeBaseUrl(String raw) =>
-      util.normalizeBaseUrl(raw, defaultScheme: 'http');
+      util.normalizeBaseUrl(raw, defaultScheme: 'http', apiPath: '/api/v1');
 }

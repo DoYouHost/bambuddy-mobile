@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app_util/app_util.dart';
+
 import '../models/printer_status.dart';
 
 /// Parsed frame off `/api/v1/ws`. Sealed, so the WS manager switches
@@ -103,7 +105,7 @@ WsMessage? parseWsMessage(String raw) {
   switch (type) {
     case 'printer_status':
       final data = decoded['data'];
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (data is! Map<String, dynamic> || printerId == null) {
         return WsUnknown(type);
       }
@@ -112,7 +114,7 @@ WsMessage? parseWsMessage(String raw) {
       final merged = <String, dynamic>{'id': printerId, ...data};
       return WsPrinterStatus(PrinterStatus.fromJson(merged), merged);
     case 'plate_not_empty':
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type);
       return WsPlateNotEmpty(
         printerId,
@@ -121,7 +123,7 @@ WsMessage? parseWsMessage(String raw) {
       );
     case 'print_start':
     case 'print_complete':
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type);
       return WsPrintEvent(printerId, completed: type == 'print_complete');
     case 'archive_updated':
@@ -129,7 +131,7 @@ WsMessage? parseWsMessage(String raw) {
       // the changed archive, not a printer-scoped event.
       final data = decoded['data'];
       if (data is! Map<String, dynamic>) return WsUnknown(type);
-      final archiveId = _toIntOrNull(data['id']);
+      final archiveId = toIntOrNull(data['id']);
       if (archiveId == null) return WsUnknown(type);
       final photo = data['photo_added'];
       return WsArchiveUpdated(
@@ -141,7 +143,7 @@ WsMessage? parseWsMessage(String raw) {
       // printer-scoped frames and `archive_updated`'s `data`.
       final run = decoded['run'];
       if (run is! Map<String, dynamic>) return WsUnknown(type);
-      if (_toIntOrNull(run['id']) == null) return WsUnknown(type);
+      if (toIntOrNull(run['id']) == null) return WsUnknown(type);
       return WsPipelineRunUpdated(run);
     case 'pong':
       return const WsPong();
@@ -149,9 +151,3 @@ WsMessage? parseWsMessage(String raw) {
       return WsUnknown(type);
   }
 }
-
-int? _toIntOrNull(Object? value) => switch (value) {
-  num n => n.toInt(),
-  String s => int.tryParse(s),
-  _ => null,
-};
