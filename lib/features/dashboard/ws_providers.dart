@@ -15,9 +15,9 @@ import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
+import '../../l10n/app_locale.dart';
 import '../../providers.dart';
 import '../maintenance/maintenance_providers.dart';
-import '../notifications/print_monitor.dart' show systemAppLocalizations;
 import '../queue/queue_providers.dart';
 
 /// Builds WS URL from profile baseUrl: http→ws, https→wss, path `…/api/v1/ws`.

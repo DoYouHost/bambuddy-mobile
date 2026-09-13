@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:ui' show PlatformDispatcher;
 
 import 'package:clock/clock.dart' as ambient;
-import 'package:flutter/widgets.dart' show Locale, basicLocaleListResolution;
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -15,6 +13,7 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/printers/offline_debounce.dart';
 import '../../core/time/timer_factory.dart';
+import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so
@@ -1190,18 +1189,3 @@ class PrintMonitor {
     return _formats().clockOnDay(now.add(Duration(minutes: minutes)), now: now);
   }
 }
-
-/// `lookupAppLocalizations` throws on an unsupported language, and the monitor
-/// (and background isolate) runs outside the widget tree, so there is no
-/// `BuildContext` for the usual `AppLocalizations.of`.
-AppLocalizations systemAppLocalizations() =>
-    lookupAppLocalizations(systemLocale());
-
-/// Also used by the HMS catalog.
-Locale systemLocale() => resolveAppLocale(PlatformDispatcher.instance.locales);
-
-/// The same resolution `MaterialApp` applies to `supportedLocales`, so a
-/// notification speaks the language of the screen it opens — including the
-/// second preferred system language and the `en` fallback.
-Locale resolveAppLocale(List<Locale> preferred) =>
-    basicLocaleListResolution(preferred, AppLocalizations.supportedLocales);

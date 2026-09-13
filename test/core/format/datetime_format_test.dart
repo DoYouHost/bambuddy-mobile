@@ -147,6 +147,45 @@ void main() {
     expect(_fmt(locale: 'pl').shortWeekdaysMondayFirst.first, 'pon.');
   });
 
+  group('the locale a bare isolate resolves', () {
+    test('month names follow the language the notification text uses', () {
+      // Italian first, Polish second: the notification text resolves to Polish,
+      // so its ETA date has to as well, instead of dropping to English.
+      final fmt = DateTimeFormats.outsideTree(const [
+        Locale('it', 'IT'),
+        Locale('pl', 'PL'),
+      ], true);
+
+      expect(
+        fmt.dateNamedMonth(_at),
+        DateTimeFormats.forTest(
+          locale: 'it_IT',
+          wordLocale: 'pl',
+        ).dateNamedMonth(_at),
+      );
+      expect(fmt.date(_at), _fmt(locale: 'it_IT').date(_at));
+    });
+
+    test('an untranslated language alone still spells English words', () {
+      final fmt = DateTimeFormats.outsideTree(const [Locale('it', 'IT')], true);
+
+      expect(
+        fmt.dateNamedMonth(_at),
+        DateTimeFormats.forTest(
+          locale: 'it_IT',
+          wordLocale: 'en',
+        ).dateNamedMonth(_at),
+      );
+    });
+
+    test('no reported locale formats as English', () {
+      expect(
+        DateTimeFormats.outsideTree(const [], true).dateNamedMonth(_at),
+        _fmt().dateNamedMonth(_at),
+      );
+    });
+  });
+
   group('the clock a bare isolate resolves', () {
     /// What `DateTimeFormats.system()` would spell with that answer, on a locale
     /// whose own convention is the opposite of a hardcoded 12-hour clock.

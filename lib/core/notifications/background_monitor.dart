@@ -1,7 +1,6 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
-import '../../features/notifications/print_monitor.dart'
-    show systemAppLocalizations;
+import '../../l10n/app_locale.dart';
 import 'background_sync.dart';
 import 'print_monitor_task_handler.dart';
 

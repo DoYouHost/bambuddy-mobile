@@ -17,6 +17,7 @@ import 'finish_photo_notifier.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
 import '../../data/archive_repository.dart';
+import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
 import '../api/media_auth.dart';

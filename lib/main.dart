@@ -7,7 +7,7 @@ import 'app.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/watch/wear_relay_engine.dart';
-import 'features/notifications/print_monitor.dart' show systemLocale;
+import 'l10n/app_locale.dart';
 import 'providers.dart';
 
 Future<void> main() async {
