@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/dash_text.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_snack.dart';

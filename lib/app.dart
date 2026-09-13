@@ -210,4 +210,5 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   }
 }
 
-ThemeData _theme(Brightness brightness) => buildDashThemeData(brightness);
+ThemeData _theme(Brightness brightness) =>
+    buildDashThemeData(brightness, brand: bambuddyBrand);

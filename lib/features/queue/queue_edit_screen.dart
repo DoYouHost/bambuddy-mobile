@@ -15,7 +15,6 @@ import '../../core/models/printer_status.dart';
 import '../../core/printers/nozzle_rack.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';

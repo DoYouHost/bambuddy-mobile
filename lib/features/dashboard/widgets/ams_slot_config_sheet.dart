@@ -15,7 +15,6 @@ import '../../../core/format/filament_colour.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
 import '../../../core/models/k_profile.dart';
-import '../../../core/theme/dash_text.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';

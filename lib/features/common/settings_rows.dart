@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// The three pieces a settings screen in this app is built from: a card that

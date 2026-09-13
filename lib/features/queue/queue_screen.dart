@@ -10,7 +10,6 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';

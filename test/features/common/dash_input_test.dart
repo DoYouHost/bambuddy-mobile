@@ -9,7 +9,10 @@ void main() {
   /// A `DropdownMenu` builds its own field, so it takes a theme instead of a
   /// decoration — and the two used to be written out separately and drift. They
   /// are now one source; this is the test that says so.
-  for (final tokens in [const DashTokens.dark(), const DashTokens.light()]) {
+  for (final tokens in [
+    const DashTokens.dark(bambuddyBrand),
+    const DashTokens.light(bambuddyBrand),
+  ]) {
     final name = tokens.isDark ? 'dark' : 'light';
 
     test('the dropdown theme carries the field chrome ($name)', () {

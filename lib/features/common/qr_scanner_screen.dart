@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Fixed dark tokens regardless of system theme: this screen is a full-screen
 /// camera overlay (always black chrome + light text for contrast on the live
 /// preview), so it doesn't follow light/dark system theme like other screens.
-const _kScanTokens = DashTokens.dark();
+const _kScanTokens = DashTokens.dark(bambuddyBrand);
 
 /// Full-screen QR code scanner, reusable across features. [extract] turns a raw
 /// barcode value into the result [T] to return via [Navigator.pop] (returning

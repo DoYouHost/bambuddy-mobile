@@ -27,7 +27,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildDashThemeData(brightness),
+        theme: buildDashThemeData(brightness, brand: bambuddyBrand),
         home: Scaffold(
           body: TextButton(
             style: style,
@@ -43,9 +43,7 @@ void main() {
   }
 
   for (final brightness in Brightness.values) {
-    final tokens = brightness == Brightness.dark
-        ? const DashTokens.dark()
-        : const DashTokens.light();
+    final tokens = DashTokens.resolve(brightness, bambuddyBrand);
 
     group('${brightness.name} theme', () {
       testWidgets('a bare TextButton is painted with accentGreenInk', (
@@ -83,7 +81,7 @@ void main() {
     testWidgets('goes dead while a submit is in flight', (tester) async {
       var taps = 0;
       Widget host(bool busy) => MaterialApp(
-        theme: buildDashThemeData(Brightness.dark),
+        theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
         home: Scaffold(
           body: dashSaveAction(
             id: 'user_form.save',
@@ -111,7 +109,7 @@ void main() {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(
         MaterialApp(
-          theme: buildDashThemeData(Brightness.dark),
+          theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
           home: Scaffold(
             body: dashSaveAction(
               id: 'group_form.save',

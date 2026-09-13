@@ -12,7 +12,6 @@ import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
-import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';

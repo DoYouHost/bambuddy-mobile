@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   Future<void> pump(WidgetTester tester, Widget child) => tester.pumpWidget(
     MaterialApp(
-      theme: buildDashThemeData(Brightness.dark),
+      theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
       home: Scaffold(body: FittedSheetSurface(child: child)),
     ),
   );
@@ -53,7 +53,7 @@ void main() {
     const inset = 48.0;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildDashThemeData(Brightness.dark),
+        theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
         home: MediaQuery(
           data: const MediaQueryData(
             padding: EdgeInsets.only(bottom: inset),

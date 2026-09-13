@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
-import '../../core/theme/dash_text.dart';
 
 /// A caveat under a control, or beside a result: what is about to happen is not
 /// what the control looks like it does, or part of an answer is missing and the

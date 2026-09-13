@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/diagnostics/report_config.dart' show recordingLimit;
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_client/app_report_client.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';

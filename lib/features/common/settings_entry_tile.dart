@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// A row on a hub screen: an icon in a green tile, a title, a line saying what

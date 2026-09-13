@@ -21,7 +21,6 @@ import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
 import '../../../core/settings/server_profile.dart';
-import '../../../core/theme/dash_text.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';

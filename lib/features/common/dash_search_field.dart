@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// Unified search field for list screens (inventory, archive, …): a rounded

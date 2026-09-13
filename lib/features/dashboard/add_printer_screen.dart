@@ -8,7 +8,6 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/discovery.dart';
 import '../../core/models/printer_create.dart';
 import '../../core/models/printer_diagnostic.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';

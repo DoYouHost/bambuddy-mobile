@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// Ink on [DashTokens.accentGreen] — the badge count has to stay readable on

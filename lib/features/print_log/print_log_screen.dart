@@ -8,7 +8,6 @@ import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/print_log_entry.dart';
 import '../../core/models/print_run.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/print_log_repository.dart';
 import '../../l10n/app_localizations.dart';

@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/report_config.dart'
     show recordingLimit, recordingSizeLimit;
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../router.dart';
