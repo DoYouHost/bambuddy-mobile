@@ -300,6 +300,43 @@ void main() {
     expect(alertById(fake, bandId(4)), isNull); // no repeat
   });
 
+  group('resolveAppLocale', () {
+    String lang(List<Locale> preferred) =>
+        resolveAppLocale(preferred).languageCode;
+
+    test('every translated language reaches the notifications', () {
+      for (final supported in AppLocalizations.supportedLocales) {
+        expect(lang([supported]), supported.languageCode);
+      }
+    });
+
+    test('a regional system locale resolves to its language', () {
+      expect(lang([const Locale('de', 'AT')]), 'de');
+      expect(lang([const Locale('fr', 'CA')]), 'fr');
+      expect(lang([const Locale('es', 'MX')]), 'es');
+    });
+
+    test('an untranslated first choice falls through to the next one', () {
+      expect(lang([const Locale('it', 'IT'), const Locale('pl', 'PL')]), 'pl');
+    });
+
+    test('an untranslated language falls back to English, not German', () {
+      expect(lang([const Locale('it', 'IT')]), 'en');
+      expect(lang([const Locale('cs')]), 'en');
+    });
+
+    test('no reported locale falls back to English', () {
+      expect(lang(const []), 'en');
+    });
+
+    test('the resolved locale always has a translation to look up', () {
+      expect(
+        () => lookupAppLocalizations(resolveAppLocale([const Locale('ja')])),
+        returnsNormally,
+      );
+    });
+  });
+
   group('a print sent while the previous one is still on the wire', () {
     // The report this group exists for: a print finished, the next was sent,
     // and seconds later the watch announced the FIRST one's first layer.

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:clock/clock.dart' as ambient;
-import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter/widgets.dart' show Locale, basicLocaleListResolution;
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -1191,14 +1191,17 @@ class PrintMonitor {
   }
 }
 
-/// System locale narrowed to supported ones (en/pl) — `lookupAppLocalizations`
-/// throws on unsupported language, and monitor (and background isolate) runs outside
-/// widget tree, so no `BuildContext` for normal `AppLocalizations.of`.
+/// `lookupAppLocalizations` throws on an unsupported language, and the monitor
+/// (and background isolate) runs outside the widget tree, so there is no
+/// `BuildContext` for the usual `AppLocalizations.of`.
 AppLocalizations systemAppLocalizations() =>
     lookupAppLocalizations(systemLocale());
 
-/// System locale narrowed to supported ones (en/pl) — also used by HMS catalog.
-Locale systemLocale() {
-  final lang = PlatformDispatcher.instance.locale.languageCode;
-  return lang == 'pl' ? const Locale('pl') : const Locale('en');
-}
+/// Also used by the HMS catalog.
+Locale systemLocale() => resolveAppLocale(PlatformDispatcher.instance.locales);
+
+/// The same resolution `MaterialApp` applies to `supportedLocales`, so a
+/// notification speaks the language of the screen it opens — including the
+/// second preferred system language and the `en` fallback.
+Locale resolveAppLocale(List<Locale> preferred) =>
+    basicLocaleListResolution(preferred, AppLocalizations.supportedLocales);
