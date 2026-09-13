@@ -751,7 +751,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               onPressed: busy ? null : () => _reset(l10n),
               icon: const Icon(Icons.layers_clear, size: 18),
               label: Text(l10n.amsSlotReset),
-              style: TextButton.styleFrom(foregroundColor: t.danger),
+              style: TextButton.styleFrom(foregroundColor: t.dangerInk),
             ).tagged('ams_slot_config.reset'),
           ],
         ),

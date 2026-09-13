@@ -449,7 +449,7 @@ class _PrintLogCard extends ConsumerWidget {
                                         ? t.accentGreen
                                         : t.textTertiary),
                               accentInk: entry.countsAsFailure
-                                  ? t.danger
+                                  ? t.dangerInk
                                   : (entry.status == 'completed'
                                         ? t.accentGreenInk
                                         : t.textTertiary),

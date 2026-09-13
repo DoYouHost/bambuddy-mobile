@@ -384,7 +384,7 @@ class _QueueCard extends ConsumerWidget {
           color: t.danger.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
         ),
-        child: Icon(Icons.delete_outline, color: t.danger),
+        child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
       // Dialog here only; actual delete in onDismissed (notifier removes from state) —
       // else Dismissible conflicts with list rebuild.

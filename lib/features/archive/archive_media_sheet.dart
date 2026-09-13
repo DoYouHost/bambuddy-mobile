@@ -451,7 +451,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       if (_loading)
         _Searching(label: l10n.archiveMediaSearching, t: t)
       else if (_error case final error?) ...[
-        Text(error, style: t.body.copyWith(color: t.danger)),
+        Text(error, style: t.body.copyWith(color: t.dangerInk)),
         // A search over five FTP listings fails for reasons that pass — the
         // printer busy, the phone's Wi-Fi dropping. Without this the only way
         // to try again is to dismiss the sheet and find the button again.

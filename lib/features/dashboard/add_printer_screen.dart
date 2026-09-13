@@ -399,7 +399,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           _error!,
-                          style: t.body.copyWith(color: t.danger),
+                          style: t.body.copyWith(color: t.dangerInk),
                         ),
                       ),
                     FilledButton(
@@ -518,7 +518,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
                 fontSize: 12,
-                color: t.danger,
+                color: t.dangerInk,
               ),
             ),
           ),
@@ -615,7 +615,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
                 fontSize: 12,
-                color: t.danger,
+                color: t.dangerInk,
               ),
             ),
           ),
@@ -635,8 +635,8 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   Widget _checkRow(DashTokens t, AppLocalizations l10n, DiagnosticCheck c) {
     final (icon, color) = switch (c.status) {
       'pass' => (Icons.check_circle, t.accentGreenInk),
-      'fail' => (Icons.cancel, t.danger),
-      'warn' => (Icons.warning_amber_rounded, const Color(0xFFE0A800)),
+      'fail' => (Icons.cancel, t.dangerInk),
+      'warn' => (Icons.warning_amber_rounded, t.warningInk),
       _ => (Icons.remove_circle_outline, t.textTertiary),
     };
     return Padding(
@@ -665,8 +665,8 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
 
   Color _overallColor(DashTokens t, String overall) => switch (overall) {
     'ok' => t.accentGreenInk,
-    'warnings' => const Color(0xFFE0A800),
-    _ => t.danger,
+    'warnings' => t.warningInk,
+    _ => t.dangerInk,
   };
 
   /// Localized title for a diagnostic check id; falls back to the raw id when a

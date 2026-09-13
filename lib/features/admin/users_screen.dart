@@ -173,6 +173,7 @@ class _UserCard extends ConsumerWidget {
                               DashPill(
                                 label: l10n.usersInactive,
                                 accent: t.danger,
+                                accentInk: t.dangerInk,
                                 icon: Icons.block,
                               ),
                             if (user.authSource != 'local')
@@ -356,7 +357,7 @@ class _SheetActions extends ConsumerWidget {
           Expanded(
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: t.danger,
+                foregroundColor: t.dangerInk,
                 side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
               ),
               onPressed: () => _delete(context, ref),

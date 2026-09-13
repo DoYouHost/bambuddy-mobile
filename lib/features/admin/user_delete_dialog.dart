@@ -83,10 +83,7 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
           child: Text(l10n.cancel),
         ).tagged('user_delete.cancel'),
         FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: t.danger,
-            foregroundColor: Colors.white,
-          ),
+          style: dashDangerButtonStyle(t),
           onPressed: () =>
               Navigator.of(context).pop((deleteItems: _deleteItems)),
           child: Text(l10n.usersDeleteConfirm),

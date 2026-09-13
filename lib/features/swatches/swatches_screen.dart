@@ -484,7 +484,7 @@ class _SwatchTile extends StatelessWidget {
                     'swatches.delete',
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: Icon(Icons.delete_outline_rounded, color: t.danger),
+                      icon: Icon(Icons.delete_outline_rounded, color: t.dangerInk),
                       onPressed: onDelete,
                     ),
                   ),

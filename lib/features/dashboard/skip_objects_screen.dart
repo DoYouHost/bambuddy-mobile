@@ -212,7 +212,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
             else
               FilledButton(
                 onPressed: canConfirm ? _confirmSkipSelected : null,
-                style: FilledButton.styleFrom(backgroundColor: t.danger),
+                style: dashDangerButtonStyle(t),
                 child: Text(l10n.skipObjectsSkip),
               ).tagged('skip_objects.skip'),
           ],
@@ -803,8 +803,10 @@ class _ObjectMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skipped = object.skipped;
+    // A skipped object's number sits on red, which takes the red and the label
+    // that read together; white on the lighter red did not reach 4.5:1.
     final bg = skipped
-        ? tokens.danger
+        ? tokens.dangerInk
         : (selected ? tokens.accentBlue : tokens.accentGreen);
     const fg = Colors.black;
     return Align(
@@ -841,7 +843,7 @@ class _ObjectMarker extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: skipped ? Colors.white : fg,
+                    color: skipped ? tokens.onDanger : fg,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
                 ),
@@ -905,7 +907,7 @@ class _ObjectTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final skipped = object.skipped;
     final accent = skipped
-        ? t.danger
+        ? t.dangerInk
         : (selected ? t.accentBlue : t.accentGreenInk);
     final accentBg =
         (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
@@ -971,7 +973,7 @@ class _ObjectTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
-                    color: skipped ? t.danger : t.textPrimary,
+                    color: skipped ? t.dangerInk : t.textPrimary,
                     decoration: skipped ? TextDecoration.lineThrough : null,
                   ),
                 ),
@@ -983,7 +985,7 @@ class _ObjectTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: t.danger,
+                    color: t.dangerInk,
                   ),
                 )
               else

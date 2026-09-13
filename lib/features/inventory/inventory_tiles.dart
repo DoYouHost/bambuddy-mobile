@@ -278,7 +278,7 @@ class _LowBadge extends StatelessWidget {
       ),
       child: Text(
         l10n.inventoryLowStock.toUpperCase(),
-        style: tokens.micro.copyWith(color: tokens.danger),
+        style: tokens.micro.copyWith(color: tokens.dangerInk),
       ),
     );
   }

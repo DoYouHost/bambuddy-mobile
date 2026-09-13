@@ -212,7 +212,7 @@ class _TrashTile extends StatelessWidget {
               ).tagged('trash.restore'),
               IconButton(
                 tooltip: l10n.fmHardDelete,
-                icon: Icon(Icons.delete_forever_outlined, color: t.danger),
+                icon: Icon(Icons.delete_forever_outlined, color: t.dangerInk),
                 onPressed: onDelete,
               ).tagged('trash.delete'),
             ],

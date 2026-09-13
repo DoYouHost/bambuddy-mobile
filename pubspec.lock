@@ -21,11 +21,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_diagnostics"
-      ref: "v0.2.0"
-      resolved-ref: c771593b590354239cf64bc209ddf278bd857732
+      ref: "v0.3.0"
+      resolved-ref: "39b1e7f8e18750cd25058c8bb51d7f95ff86c563"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.0"
+    version: "0.2.0"
   app_report_client:
     dependency: "direct main"
     description:
@@ -35,6 +35,13 @@ packages:
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
     version: "0.1.1"
+  app_report_ui:
+    dependency: "direct main"
+    description:
+      path: "../DoYouHost.app-shared/packages/app_report_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
   archive:
     dependency: transitive
     description:
@@ -246,12 +253,10 @@ packages:
   dash_ui:
     dependency: "direct main"
     description:
-      path: "packages/dash_ui"
-      ref: "v0.4.0"
-      resolved-ref: c663ae23850144239ce2d40945df1860f377ed13
-      url: "https://github.com/DoYouHost/app-shared.git"
-    source: git
-    version: "0.1.0"
+      path: "../DoYouHost.app-shared/packages/dash_ui"
+      relative: true
+    source: path
+    version: "0.2.0"
   dbus:
     dependency: transitive
     description:

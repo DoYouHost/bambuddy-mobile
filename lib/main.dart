@@ -9,6 +9,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/watch/wear_relay_engine.dart';
 import 'l10n/app_locale.dart';
 import 'providers.dart';
+import 'features/bug_report/report_wiring.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,7 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         notificationServiceProvider.overrideWithValue(notifications),
+        reportBindingsOverride,
       ],
       child: const BambuddyApp(),
     ),

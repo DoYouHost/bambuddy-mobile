@@ -387,7 +387,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                           onPressed: () => _download(context, ref, name),
                         ).tagged('project.attachment_download'),
                         IconButton(
-                          icon: Icon(Icons.delete_outline, color: t.danger),
+                          icon: Icon(Icons.delete_outline, color: t.dangerInk),
                           tooltip: l10n.projectAttachmentDelete,
                           onPressed: () => _delete(context, ref, name),
                         ).tagged('project.attachment_delete'),

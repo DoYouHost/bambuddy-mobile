@@ -580,7 +580,7 @@ class _InlineError extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 40, color: t.danger),
+          Icon(Icons.error_outline, size: 40, color: t.dangerInk),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
           const SizedBox(height: 12),

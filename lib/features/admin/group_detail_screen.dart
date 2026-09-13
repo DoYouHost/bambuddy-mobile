@@ -188,7 +188,7 @@ class _GroupMenu extends ConsumerWidget {
             value: 'delete',
             child: logTag(
               'group_detail.delete',
-              Text(l10n.groupsDelete, style: TextStyle(color: t.danger)),
+              Text(l10n.groupsDelete, style: TextStyle(color: t.dangerInk)),
             ),
           ),
       ],
@@ -323,7 +323,7 @@ class _MemberRow extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   l10n.usersInactive,
-                  style: t.micro.copyWith(color: t.danger),
+                  style: t.micro.copyWith(color: t.dangerInk),
                 ),
               ),
             if (onRemove != null)
@@ -331,7 +331,7 @@ class _MemberRow extends StatelessWidget {
                 icon: Icon(
                   Icons.person_remove_outlined,
                   size: 18,
-                  color: t.danger,
+                  color: t.dangerInk,
                 ),
                 tooltip: l10n.groupsRemoveMember,
                 onPressed: onRemove,

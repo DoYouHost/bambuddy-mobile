@@ -491,7 +491,7 @@ class _ActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = variant == _ActionPillVariant.destructive
-        ? tokens.danger
+        ? tokens.dangerInk
         : tokens.accentGreenInk;
     final fill = variant == _ActionPillVariant.primary
         ? tokens.accentGreen.withValues(alpha: 0.16)

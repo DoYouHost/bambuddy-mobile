@@ -146,7 +146,7 @@ class _ApiKeyCard extends ConsumerWidget {
                           icon: Icon(
                             Icons.delete_outline,
                             size: 20,
-                            color: t.danger,
+                            color: t.dangerInk,
                           ),
                           tooltip: l10n.apiKeysRevoke,
                           onPressed: () => _revoke(context, ref),
@@ -162,12 +162,14 @@ class _ApiKeyCard extends ConsumerWidget {
                         DashPill(
                           label: l10n.apiKeysDisabled,
                           accent: t.danger,
+                          accentInk: t.dangerInk,
                           icon: Icons.pause_circle_outline,
                         )
                       else if (expired)
                         DashPill(
                           label: l10n.apiKeysExpired,
                           accent: t.danger,
+                          accentInk: t.dangerInk,
                           icon: Icons.schedule,
                         ),
                       if (apiKey.expiresAt != null && !expired)

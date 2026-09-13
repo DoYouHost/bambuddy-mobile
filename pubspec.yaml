@@ -24,19 +24,33 @@ dependencies:
       ref: v0.2.0
       path: packages/app_report_client
   # The recording session, the log record and the probes, shared with
-  # lubelogger-mobile. Same repository, same pinning rule as above.
+  # lubelogger-mobile. Same repository, same pinning rule as above, and the
+  # same ref `app_report_ui` names for its own copy.
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.2.0
+      ref: v0.3.0
       path: packages/app_diagnostics
+  # The report screens — the guided flow, the recording bar and the review —
+  # shared with lubelogger-mobile.
+  #
+  # TODO(release): `v0.5.0` is the tag that adds this package and does not exist
+  # yet. Until it does, this resolves only through `pubspec_overrides.yaml`.
+  app_report_ui:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.5.0
+      path: packages/app_report_ui
   # The design system — tokens, type scale, chrome and the Material theme —
-  # shared with lubelogger-mobile. Independent of the two refs above: it depends
-  # on nothing else in that repository.
+  # shared with lubelogger-mobile. Must be the ref `app_report_ui` names for its
+  # own copy.
+  #
+  # TODO(release): `v0.5.0` adds `dangerInk` and does not exist yet; until it
+  # does, this resolves only through `pubspec_overrides.yaml`.
   dash_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.4.0
+      ref: v0.5.0
       path: packages/dash_ui
   clock: ^1.1.2
   collection: ^1.19.0

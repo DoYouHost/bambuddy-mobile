@@ -56,7 +56,7 @@ class FailureAnalysisCard extends ConsumerWidget {
           // Inks: this paints the rate itself, in monoDisplay.
           final rateColor = f.failureRate <= 5
               ? t.accentGreenInk
-              : (f.failureRate <= 15 ? t.accentOrangeInk : t.danger);
+              : (f.failureRate <= 15 ? t.accentOrangeInk : t.dangerInk);
           final reasons = f.failuresByReason.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
           return Column(

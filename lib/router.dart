@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart';
 import 'features/about/about_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/admin/api_keys_screen.dart';
@@ -13,8 +14,6 @@ import 'features/archive/archive_photos_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/archive/timelapse_editor_screen.dart';
 import 'features/archive/timelapse_screen.dart';
-import 'features/bug_report/bug_report_screen.dart';
-import 'features/bug_report/recording_banner.dart';
 import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/files/file_manager_screen.dart';

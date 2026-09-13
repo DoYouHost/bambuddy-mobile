@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/ws_client.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
@@ -16,7 +17,6 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
-import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';

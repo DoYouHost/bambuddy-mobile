@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/two_factor.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/demo/demo_config.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../bug_report/recording_banner.dart';
 import '../common/dash_progress.dart';
 import '../common/qr_scanner_screen.dart';
 import '../common/system_insets.dart';
@@ -192,7 +192,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       setupErrorText(l10n, state.error!),
-                      style: t.body.copyWith(color: t.danger),
+                      style: t.body.copyWith(color: t.dangerInk),
                     ),
                   ),
                 if (state.twoFactor case final challenge?)

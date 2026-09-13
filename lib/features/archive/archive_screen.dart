@@ -322,7 +322,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: t.danger.withValues(alpha: 0.4)),
         ),
-        child: Icon(Icons.delete_outline, color: t.danger),
+        child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
       confirmDismiss: (_) async {
         final purge = await _askDelete(archive);

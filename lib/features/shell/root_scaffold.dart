@@ -263,17 +263,17 @@ class _NavItem extends StatelessWidget {
                             minHeight: 15,
                           ),
                           decoration: BoxDecoration(
-                            color: tokens.danger,
+                            color: tokens.dangerInk,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
                               '$badge',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: DashTokens.fontUi,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: tokens.onDanger,
                                 height: 1.2,
                               ),
                             ),

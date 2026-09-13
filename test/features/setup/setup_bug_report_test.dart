@@ -1,5 +1,6 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
-import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
+import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/features/bug_report/report_wiring.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
@@ -39,6 +40,7 @@ void main() {
             resolveDirectory: () async => null,
           ),
         ),
+        reportBindingsOverride,
       ],
     );
     addTearDown(container.dispose);
@@ -48,7 +50,10 @@ void main() {
         container: container,
         child: MaterialApp.router(
           locale: const Locale('pl'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: [
+            ...AppLocalizations.localizationsDelegates,
+            ReportLocalizations.delegate,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
         ),
@@ -84,5 +89,17 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pumpAndSettle();
     expect(find.text('Rozpocznij nagrywanie'), findsOneWidget);
+  });
+
+  testWidgets('the consent card carries this app\'s own lines', (tester) async {
+    // The card is the shared package's; what it promises about the log is
+    // bambuddy's, and the background service is the part nobody expects.
+    final router = await pumpApp(tester);
+    router.go(bugReportRoute);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('usługa w tle'), findsOneWidget);
+    expect(find.text('Klucz API ani hasło'), findsOneWidget);
+    expect(find.text('Tekst, który wpisujesz'), findsOneWidget);
   });
 }

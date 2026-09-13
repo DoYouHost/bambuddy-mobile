@@ -881,7 +881,7 @@ class _PrinterFileManagerScreenState
                 'printer_files.delete',
                 TextButton.icon(
                   onPressed: _delete,
-                  style: TextButton.styleFrom(foregroundColor: t.danger),
+                  style: TextButton.styleFrom(foregroundColor: t.dangerInk),
                   icon: const Icon(Icons.delete_outline),
                   label: Text(l10n.pfmDelete),
                 ),
