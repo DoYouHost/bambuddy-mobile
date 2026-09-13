@@ -1,6 +1,6 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/format/text_measure.dart';
 import '../../../core/theme/dash_theme.dart';
 
 /// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.

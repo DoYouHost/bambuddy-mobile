@@ -1,4 +1,5 @@
-import '../models/json_utils.dart';
+import 'package:app_util/app_util.dart';
+
 import '../settings/server_settings.dart';
 
 /// Recommended drying temperature and duration for one filament type, in both

@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +8,6 @@ import 'package:printing/printing.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
-import '../../core/format/user_number.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';

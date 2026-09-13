@@ -1,8 +1,8 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
-import '../core/models/json_utils.dart';
 
 /// The server's own `AppSettings` — configuration every user of that server
 /// shares, as opposed to the preferences this phone keeps for itself.

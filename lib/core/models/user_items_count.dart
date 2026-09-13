@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// What an account owns — `GET /users/{id}/items-count`
 /// (`backend/app/api/routes/users.py::update_user`). Deleting the account asks

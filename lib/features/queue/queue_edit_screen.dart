@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
-import '../../core/format/user_number.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
@@ -27,7 +27,6 @@ import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
-import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -1811,7 +1810,9 @@ class _CheckRow extends StatelessWidget {
             Checkbox(
               value: value,
               activeColor: t.accentGreen,
-              onChanged: onChanged == null ? null : (v) => onChanged!(v ?? false),
+              onChanged: onChanged == null
+                  ? null
+                  : (v) => onChanged!(v ?? false),
             ),
             Icon(
               icon,

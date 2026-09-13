@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:app_util/app_util.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +13,6 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
-import '../common/hex_color.dart';
 import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';

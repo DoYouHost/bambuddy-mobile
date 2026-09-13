@@ -1,4 +1,5 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
+
 import '../settings/server_settings.dart';
 
 /// One editable server setting: where it lives on the wire, and what the server

@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// A group as `GET /groups/` sends it
 /// (`backend/app/schemas/group.py::GroupResponse`) — the list and the

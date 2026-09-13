@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -7,7 +8,6 @@ import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive_capabilities.dart';
 import '../core/models/filament_requirement.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/slice_job.dart';
 import '../core/models/slicer_preset.dart';
 

@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -5,7 +6,6 @@ import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';

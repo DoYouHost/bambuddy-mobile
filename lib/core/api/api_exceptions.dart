@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
-
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
+import 'package:dio/dio.dart';
 
 /// Error codes for the API/auth layer. The core layer is UI-independent:
 /// translation to text happens at display time (see
@@ -257,66 +257,51 @@ AppApiException mapDioException(DioException e) {
   // The same reduction `HttpProbe` records with: no host, no query, and no
   // segment the user named.
   final path = loggablePath(e.requestOptions.uri.path);
-  switch (e.type) {
-    case DioExceptionType.connectionTimeout:
-    case DioExceptionType.sendTimeout:
-    case DioExceptionType.receiveTimeout:
-    case DioExceptionType.connectionError:
-      return NetworkException(
-        AppErrorCode.serverUnreachable,
-        detail: e.message,
-        method: method,
-        path: path,
-      );
-    case DioExceptionType.badResponse:
-      final code = e.response?.statusCode;
-      if (code == 401) {
-        return AuthException(
-          AppErrorCode.unauthorized,
-          method: method,
-          path: path,
-        );
-      }
-      if (code == 403) {
-        // The only party that knows *which* permission is missing is the
-        // server, and it always says: "Missing required permissions: x" for a
-        // login, "API key does not have 'y' permission" for a key. Dropping
-        // that left every refusal looking identical, which from 1.2.6 also
-        // covers the owner-narrowing refusals that are new to existing keys.
-        return AuthException(
-          AppErrorCode.forbidden,
-          detail: serverDetailOf(e.response?.data),
-          method: method,
-          path: path,
-        );
-      }
-      if (code == 429) {
-        return ApiException(
-          AppErrorCode.tooManyAttempts,
-          statusCode: 429,
-          method: method,
-          path: path,
-        );
-      }
-      return ApiException(
-        AppErrorCode.badResponse,
-        statusCode: code,
-        method: method,
-        path: path,
-      );
-    case DioExceptionType.badCertificate:
-      return NetworkException(
-        AppErrorCode.badCertificate,
-        method: method,
-        path: path,
-      );
-    case DioExceptionType.cancel:
-    case DioExceptionType.unknown:
-      return NetworkException(
-        AppErrorCode.connectionError,
-        detail: e.message,
-        method: method,
-        path: path,
-      );
-  }
+  return switch (classifyDioException(e)) {
+    DioFailure.unreachable => NetworkException(
+      AppErrorCode.serverUnreachable,
+      detail: e.message,
+      method: method,
+      path: path,
+    ),
+    DioFailure.unauthorized => AuthException(
+      AppErrorCode.unauthorized,
+      method: method,
+      path: path,
+    ),
+    // The only party that knows *which* permission is missing is the server,
+    // and it always says: "Missing required permissions: x" for a login, "API
+    // key does not have 'y' permission" for a key. Dropping that left every
+    // refusal looking identical, which from 1.2.6 also covers the
+    // owner-narrowing refusals that are new to existing keys.
+    DioFailure.forbidden => AuthException(
+      AppErrorCode.forbidden,
+      detail: serverDetailOf(e.response?.data),
+      method: method,
+      path: path,
+    ),
+    DioFailure.tooManyRequests => ApiException(
+      AppErrorCode.tooManyAttempts,
+      statusCode: 429,
+      method: method,
+      path: path,
+    ),
+    DioFailure.badResponse => ApiException(
+      AppErrorCode.badResponse,
+      statusCode: e.response?.statusCode,
+      method: method,
+      path: path,
+    ),
+    DioFailure.badCertificate => NetworkException(
+      AppErrorCode.badCertificate,
+      method: method,
+      path: path,
+    ),
+    DioFailure.connectionError => NetworkException(
+      AppErrorCode.connectionError,
+      detail: e.message,
+      method: method,
+      path: path,
+    ),
+  };
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,6 @@ import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/format/duration_format.dart';
-import '../../../core/format/text_measure.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';

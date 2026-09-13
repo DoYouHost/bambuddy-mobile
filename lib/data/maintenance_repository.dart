@@ -1,8 +1,8 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/maintenance.dart';
 
 /// REST data source for printer maintenance (M7): status overview per printer,

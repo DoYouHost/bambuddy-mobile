@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -6,7 +7,6 @@ import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/calibration_option.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/queue_item.dart';
 
 /// Sentinel distinguishing "argument not passed" from an explicit `null` in

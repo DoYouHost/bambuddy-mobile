@@ -38,9 +38,20 @@ packages:
   app_report_ui:
     dependency: "direct main"
     description:
-      path: "../DoYouHost.app-shared/packages/app_report_ui"
-      relative: true
-    source: path
+      path: "packages/app_report_ui"
+      ref: "v0.5.0"
+      resolved-ref: d8a7d170ad6a4464ce2805e20612379fcfeecb56
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.1.0"
+  app_util:
+    dependency: "direct main"
+    description:
+      path: "packages/app_util"
+      ref: "v0.6.0"
+      resolved-ref: da391d026960956f200198d573d9df4407755280
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
     version: "0.1.0"
   archive:
     dependency: transitive
@@ -253,9 +264,11 @@ packages:
   dash_ui:
     dependency: "direct main"
     description:
-      path: "../DoYouHost.app-shared/packages/dash_ui"
-      relative: true
-    source: path
+      path: "packages/dash_ui"
+      ref: "v0.5.0"
+      resolved-ref: d8a7d170ad6a4464ce2805e20612379fcfeecb56
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
     version: "0.2.0"
   dbus:
     dependency: transitive
@@ -269,10 +282,10 @@ packages:
     dependency: "direct main"
     description:
       name: dio
-      sha256: aff32c08f92787a557dd5c0145ac91536481831a01b4648136373cddb0e64f8c
+      sha256: "852ec3b48cc431ac04fff978413c541502b67ffc3e26921e74e3d994694192c1"
       url: "https://pub.dev"
     source: hosted
-    version: "5.9.2"
+    version: "5.11.1"
   dio_web_adapter:
     dependency: transitive
     description:

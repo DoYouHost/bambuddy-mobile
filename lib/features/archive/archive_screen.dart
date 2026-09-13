@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,7 +30,6 @@ import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
 import '../common/state_views.dart';
 import '../projects/project_common.dart';
@@ -41,7 +41,6 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
-import '../common/hex_color.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).

@@ -1,10 +1,10 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../diagnostics/auth_probe.dart';
 import '../models/current_user.dart';
-import '../settings/server_profile.dart';
 import '../settings/sign_in_reason.dart';
 import 'credentials_store.dart';
 import 'two_factor.dart';
@@ -73,7 +73,7 @@ class AuthService {
       return (
         authEnabled: body['auth_enabled'] == true,
         requiresSetup: body['requires_setup'] == true,
-        baseUrl: ServerProfile.baseUrlFromReached(
+        baseUrl: baseUrlFromReached(
           res.realUri,
           requested: baseUrl,
           endpointSuffix: Endpoints.authStatus,
@@ -93,7 +93,7 @@ class AuthService {
       return (
         authEnabled: false,
         requiresSetup: false,
-        baseUrl: ServerProfile.baseUrlFromReached(
+        baseUrl: baseUrlFromReached(
           res.realUri,
           requested: baseUrl,
           endpointSuffix: Endpoints.printers,
@@ -105,7 +105,7 @@ class AuthService {
         return (
           authEnabled: true,
           requiresSetup: false,
-          baseUrl: ServerProfile.baseUrlFromReached(
+          baseUrl: baseUrlFromReached(
             e.response?.realUri,
             requested: baseUrl,
             endpointSuffix: Endpoints.printers,

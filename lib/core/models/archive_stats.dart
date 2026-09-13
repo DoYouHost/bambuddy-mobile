@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Archive statistics from `GET /archives/stats` (aggregate of `PrintLogEntry` —
 /// one row per print event, reprint adds new entry, #1378).

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +24,6 @@ import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../../core/models/slicer_pipeline.dart';
 import '../common/dash_sheet.dart';
-import '../common/hex_color.dart';
 import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../models/json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Reading the server's `AppSettings` map, which four features were each doing
 /// their own way.

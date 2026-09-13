@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One per-printer-model override of a spool's slicer preset
 /// (`GET/PUT /inventory/spools/{id}/filament-presets`, server 1.2.6).

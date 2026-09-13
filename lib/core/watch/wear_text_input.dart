@@ -1,6 +1,5 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
-
-import '../platform/platform_query.dart';
 
 /// Raised when the watch has no input activity to hand a request to. The caller
 /// should fall back to an editable field: a tap that does nothing at all is the

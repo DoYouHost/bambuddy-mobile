@@ -1,9 +1,9 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/pipeline_run.dart';
 import '../core/models/slicer_pipeline.dart';
 

@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// How far a server-side download preparation has got
 /// (`services/printer_media.py::PrinterFilesJobStatus.state`).

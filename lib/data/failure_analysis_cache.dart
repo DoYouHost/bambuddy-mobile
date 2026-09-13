@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:app_util/app_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models/failure_analysis.dart';
-import '../core/models/json_utils.dart';
 import '../features/stats/stats_providers.dart';
 
 /// Failure analysis cache entry: an aggregate plus the extent of coverage.

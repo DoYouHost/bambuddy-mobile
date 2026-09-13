@@ -5,7 +5,7 @@
 /// tolerate missing fields; UI degrades to name/placeholder.
 library;
 
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Integration status from `GET /makerworld/status`.
 class MakerWorldStatus {

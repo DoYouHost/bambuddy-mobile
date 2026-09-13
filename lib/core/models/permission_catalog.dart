@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One permission the server knows, with the label it wants shown
 /// (`backend/app/schemas/group.py::PermissionInfo`).

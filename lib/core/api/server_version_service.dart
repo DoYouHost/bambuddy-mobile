@@ -1,7 +1,7 @@
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
-import '../models/json_utils.dart';
 import 'endpoints.dart';
 import 'server_version.dart';
 

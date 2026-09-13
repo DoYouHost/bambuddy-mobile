@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -7,7 +8,6 @@ import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/printer_status.dart';
 import '../core/models/spool_label.dart';
 import '../core/models/spool_preset_override.dart';

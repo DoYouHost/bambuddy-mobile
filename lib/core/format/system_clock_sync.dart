@@ -1,11 +1,11 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../notifications/background_monitor.dart';
 import '../notifications/background_sync.dart';
-import '../platform/platform_query.dart';
 import '../settings/settings_repository.dart';
 import 'datetime_format.dart';
 

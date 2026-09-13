@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
-import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -51,7 +51,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// against drifting away from the real parsers.
 void main() {
   final dio = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
-    ..httpClientAdapter = DemoHttpClientAdapter(latency: Duration.zero);
+    ..httpClientAdapter = DemoHttpClientAdapter(
+      DemoBackend.instance.handle,
+      latency: Duration.zero,
+    );
 
   group('printers', () {
     test('list + statuses parse; simulated print is running', () async {

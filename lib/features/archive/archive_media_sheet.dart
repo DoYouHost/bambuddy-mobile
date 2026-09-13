@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,7 +20,6 @@ import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
-import '../common/format_bytes.dart';
 import '../common/inline_note.dart';
 import '../common/section_heading.dart';
 import '../files/printer_download_job.dart';

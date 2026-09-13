@@ -3,7 +3,7 @@
 /// Defensive parsing (tolerant types, unknown keys ignored), like other inventory models.
 library;
 
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// A storage-location catalog entry (`LocationResponse`) — the shelf, drawer or
 /// drybox a spool is put away in.

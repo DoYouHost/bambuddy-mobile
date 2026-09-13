@@ -1,9 +1,9 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../../core/format/user_number.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';

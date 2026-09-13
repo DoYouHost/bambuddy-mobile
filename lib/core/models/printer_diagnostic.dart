@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Result of a pre-save connection diagnostic (`POST /printers/diagnostic`).
 /// Defensive manual parsing — the check catalog evolves server-side, so unknown

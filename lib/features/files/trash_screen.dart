@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,7 +12,6 @@ import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
-import '../common/format_bytes.dart';
 import '../common/state_views.dart';
 import '../common/system_insets.dart';
 import 'file_manager_providers.dart';

@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// What a bound sensor is measuring, decided from Home Assistant's

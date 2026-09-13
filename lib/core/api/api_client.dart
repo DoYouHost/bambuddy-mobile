@@ -1,9 +1,10 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../auth/auth_headers.dart';
 import '../auth/credentials_store.dart';
-import '../demo/demo_http_adapter.dart';
+import '../demo/demo_backend.dart';
 import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
 
@@ -35,7 +36,9 @@ class ApiClient {
     // here covers every ApiClient construction site (providers, background
     // isolate, wear transport) with a single branch.
     if (profile.isDemo) {
-      this.dio.httpClientAdapter = DemoHttpClientAdapter();
+      this.dio.httpClientAdapter = DemoHttpClientAdapter(
+        DemoBackend.instance.handle,
+      );
     }
     this.dio.interceptors.add(
       AuthInterceptor(

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,7 +18,6 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_snack.dart';
-import '../common/format_bytes.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';

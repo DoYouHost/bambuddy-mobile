@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One printable object on the current build plate. [id] is the printer's
 /// `identify_id` (shown on the machine display), used as the value to skip.

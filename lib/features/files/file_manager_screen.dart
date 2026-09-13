@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +24,6 @@ import '../common/device_files.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';

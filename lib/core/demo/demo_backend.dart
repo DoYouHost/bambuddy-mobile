@@ -1,25 +1,12 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:app_util/app_util.dart';
+
 import '../models/json_utils.dart';
 import '../models/pipeline_run.dart';
 import '../models/print_run.dart';
 import 'demo_config.dart';
-
-/// Result of a routed demo request: HTTP status + JSON-encodable body.
-typedef DemoResult = ({int status, Object? body});
-
-/// A response that is a file rather than a document.
-///
-/// Carried as the result's `body` so every other route keeps its two-field
-/// shape; `DemoHttpClientAdapter` serves this one as bytes with its own content
-/// type instead of JSON-encoding it.
-class DemoFile {
-  const DemoFile(this.bytes, this.contentType);
-
-  final Uint8List bytes;
-  final String contentType;
-}
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///

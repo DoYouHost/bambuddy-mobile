@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One filament slot a model needs, from `.../filament-requirements`
 /// (`{filaments: [{slot_id, type, color, used_grams, used_meters,

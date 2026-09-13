@@ -1,9 +1,9 @@
+import 'package:app_util/app_util.dart';
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
-import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 

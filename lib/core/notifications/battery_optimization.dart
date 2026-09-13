@@ -1,8 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
-
-import '../platform/platform_query.dart';
 
 /// Bridge to the platform channel with [MainActivity] (Kotlin) for checking
 /// and requesting battery optimization exemption. This exemption unlocks

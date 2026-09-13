@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 

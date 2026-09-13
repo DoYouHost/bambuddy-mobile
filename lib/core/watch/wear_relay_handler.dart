@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
@@ -12,7 +13,6 @@ import '../../data/queue_repository.dart';
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../api/server_version_service.dart';
-import '../models/json_utils.dart';
 import '../models/queue_item.dart';
 import 'wear_relay_claim.dart';
 import 'wear_rpc.dart';
