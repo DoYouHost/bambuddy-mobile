@@ -5392,9 +5392,10 @@ class DemoBackend {
       }
     }
     if (s.length >= 2 && s[1] == 'templates') return _ok(const <Object>[]);
-    // An upload, like the library's. Left to the fallback it would be a 200
-    // with an empty body, which the import screen cannot parse and does not
-    // catch.
+    // Uploads are refused, like the library's. Left to the fallback they would
+    // be a 200 with an empty body: the import screen cannot parse that and does
+    // not catch the TypeError, and the attachment and cover screens would
+    // report a file saved that went nowhere.
     if (s.length >= 2 && s[1] == 'import' && m == 'POST') {
       return (status: 501, body: {'detail': 'Upload unavailable in demo'});
     }
@@ -5460,6 +5461,14 @@ class DemoBackend {
         case 'add-queue':
         case 'create-template':
           return _ok(const {'ok': true});
+        case 'attachments':
+        case 'cover-image':
+          if (m == 'POST') {
+            return (
+              status: 501,
+              body: {'detail': 'Upload unavailable in demo'},
+            );
+          }
       }
     }
     return _fallback(m);

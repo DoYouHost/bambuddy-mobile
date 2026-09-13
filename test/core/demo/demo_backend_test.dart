@@ -834,20 +834,36 @@ void main() {
       expect(await repo.timeline(1), isEmpty);
     });
 
-    test('an import is refused the way the screen expects', () async {
-      // The import screen catches AppApiException and nothing else. The route
-      // used to fall through to a 200 with an empty body, whose parse threw a
-      // TypeError straight past that catch.
-      final dir = await Directory.systemTemp.createTemp('demo_import');
+    test('uploads are refused the way the screens expect', () async {
+      // Each route used to fall through to a 200 with an empty body. The import
+      // screen's parse threw a TypeError past its AppApiException catch; the
+      // attachment and cover screens announced a file saved that went nowhere.
+      final dir = await Directory.systemTemp.createTemp('demo_upload');
       addTearDown(() => dir.delete(recursive: true));
-      final file = File('${dir.path}/project.zip')..writeAsBytesSync([0]);
+      final file = File('${dir.path}/upload.zip')..writeAsBytesSync([0]);
+      final repo = ProjectsRepository(dio);
 
-      await expectLater(
-        ProjectsRepository(
-          dio,
-        ).importFile(filePath: file.path, filename: 'project.zip'),
-        throwsA(isA<AppApiException>()),
-      );
+      final uploads = <String, Future<void> Function()>{
+        'import': () =>
+            repo.importFile(filePath: file.path, filename: 'upload.zip'),
+        'attachment': () => repo.uploadAttachment(
+          1,
+          filePath: file.path,
+          filename: 'upload.zip',
+        ),
+        'cover': () => repo.uploadCoverImage(
+          1,
+          filePath: file.path,
+          filename: 'cover.png',
+        ),
+      };
+      for (final MapEntry(:key, :value) in uploads.entries) {
+        await expectLater(
+          value(),
+          throwsA(isA<AppApiException>()),
+          reason: key,
+        );
+      }
     });
   });
 

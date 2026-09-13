@@ -98,9 +98,23 @@ void main() {
         await repo.delete(created.id);
         createdProjectIds.remove(created.id);
 
-        final remaining = await repo.list();
-        expect(remaining.any((p) => p.id == created.id), isFalse);
+        // Polled, not read once: `delete_project` returns before its session
+        // commits, so a list requested straight after the 200 can still hold
+        // the project (run 34784141474).
+        expect(await _goneWithin(() => repo.list(), created.id), isTrue);
       },
     );
   });
+}
+
+/// Whether a project with [id] drops out of [list] within a couple of seconds.
+Future<bool> _goneWithin(
+  Future<List<ProjectListResponse>> Function() list,
+  int id,
+) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    if (!(await list()).any((p) => p.id == id)) return true;
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+  }
+  return false;
 }

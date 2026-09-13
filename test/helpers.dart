@@ -1,4 +1,5 @@
 import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -89,7 +90,10 @@ final inertHistorySupportOverrides = [
 /// as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
   locale: const Locale('pl'),
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  localizationsDelegates: [
+    ...AppLocalizations.localizationsDelegates,
+    ReportLocalizations.delegate,
+  ],
   supportedLocales: AppLocalizations.supportedLocales,
   builder: builder,
   home: child,
