@@ -11,13 +11,18 @@ import '../../helpers.dart';
 
 void main() {
   group('CameraView', () {
-    testWidgets('renders demo unavailable banner when in demo mode', (tester) async {
+    testWidgets('renders demo unavailable banner when in demo mode', (
+      tester,
+    ) async {
       await pumpPhone(
         tester,
         const CameraView(printerId: 1, printerName: 'Demo X1C'),
         overrides: [
           serverProfileOverride(
-            const ServerProfile(baseUrl: 'http://demo', authMode: AuthMode.none),
+            const ServerProfile(
+              baseUrl: 'http://demo',
+              authMode: AuthMode.none,
+            ),
           ),
         ],
       );
@@ -27,7 +32,9 @@ void main() {
       expect(find.text('Demo X1C'), findsOneWidget);
     });
 
-    testWidgets('renders loading view while camera token is loading', (tester) async {
+    testWidgets('renders loading view while camera token is loading', (
+      tester,
+    ) async {
       final completer = Completer<String>();
 
       await pumpPhone(
@@ -44,13 +51,17 @@ void main() {
       expect(find.text('Lab P1S'), findsOneWidget);
     });
 
-    testWidgets('renders error view with retry button on token failure', (tester) async {
+    testWidgets('renders error view with retry button on token failure', (
+      tester,
+    ) async {
       await pumpPhone(
         tester,
         const CameraView(printerId: 1, printerName: 'Lab P1S'),
         overrides: [
           fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) => throw Exception('auth failure')),
+          cameraTokenProvider.overrideWith(
+            (ref) => throw Exception('auth failure'),
+          ),
         ],
       );
       await settle(tester);
@@ -60,24 +71,29 @@ void main() {
       expect(find.text('Lab P1S'), findsOneWidget);
     });
 
-    testWidgets('renders Mjpeg stream with minted token and printer stream URL', (tester) async {
-      await pumpPhone(
-        tester,
-        const CameraView(printerId: 7, printerName: 'Farm A1'),
-        overrides: [
-          fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) async => 'secret-stream-token'),
-        ],
-      );
-      await settle(tester);
+    testWidgets(
+      'renders Mjpeg stream with minted token and printer stream URL',
+      (tester) async {
+        await pumpPhone(
+          tester,
+          const CameraView(printerId: 7, printerName: 'Farm A1'),
+          overrides: [
+            fakeServerProfileOverride(),
+            cameraTokenProvider.overrideWith(
+              (ref) async => 'secret-stream-token',
+            ),
+          ],
+        );
+        await settle(tester);
 
-      final mjpegFinder = find.byType(Mjpeg);
-      expect(mjpegFinder, findsOneWidget);
+        final mjpegFinder = find.byType(Mjpeg);
+        expect(mjpegFinder, findsOneWidget);
 
-      final mjpeg = tester.widget<Mjpeg>(mjpegFinder);
-      expect(mjpeg.stream, contains('/api/v1/printers/7/camera/stream'));
-      expect(mjpeg.stream, contains('token=secret-stream-token'));
-      expect(mjpeg.isLive, isTrue);
-    });
+        final mjpeg = tester.widget<Mjpeg>(mjpegFinder);
+        expect(mjpeg.stream, contains('/api/v1/printers/7/camera/stream'));
+        expect(mjpeg.stream, contains('token=secret-stream-token'));
+        expect(mjpeg.isLive, isTrue);
+      },
+    );
   });
 }

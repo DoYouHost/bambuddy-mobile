@@ -4,11 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('ArchiveCapabilities', () {
     test('fromJson parses flags correctly', () {
-      final json = {
-        'has_model': true,
-        'has_gcode': true,
-        'has_source': false,
-      };
+      final json = {'has_model': true, 'has_gcode': true, 'has_source': false};
 
       final caps = ArchiveCapabilities.fromJson(json);
 
@@ -18,10 +14,13 @@ void main() {
       expect(caps.sliceable, isTrue);
     });
 
-    test('sliceable is true when hasSource is true even if hasModel is false', () {
-      const caps = ArchiveCapabilities(hasSource: true, hasModel: false);
-      expect(caps.sliceable, isTrue);
-    });
+    test(
+      'sliceable is true when hasSource is true even if hasModel is false',
+      () {
+        const caps = ArchiveCapabilities(hasSource: true, hasModel: false);
+        expect(caps.sliceable, isTrue);
+      },
+    );
 
     test('sliceable is false when neither hasSource nor hasModel is true', () {
       const caps = ArchiveCapabilities(hasGcode: true);

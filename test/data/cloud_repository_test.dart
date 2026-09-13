@@ -72,35 +72,38 @@ void main() {
       expect(result.message, 'Logged in successfully');
     });
 
-    test('login signals 2FA challenge with verification type and tfa_key', () async {
-      adapter.onPost(
-        Endpoints.cloudLogin,
-        (s) => s.reply(200, {
-          'success': false,
-          'needs_verification': true,
-          'verification_type': 'email',
-          'tfa_key': 'tfa-token-xyz',
-          'message': 'Check your inbox for code',
-        }),
-        data: {
-          'email': 'user@example.com',
-          'password': 'secretPassword',
-          'region': 'china',
-        },
-      );
+    test(
+      'login signals 2FA challenge with verification type and tfa_key',
+      () async {
+        adapter.onPost(
+          Endpoints.cloudLogin,
+          (s) => s.reply(200, {
+            'success': false,
+            'needs_verification': true,
+            'verification_type': 'email',
+            'tfa_key': 'tfa-token-xyz',
+            'message': 'Check your inbox for code',
+          }),
+          data: {
+            'email': 'user@example.com',
+            'password': 'secretPassword',
+            'region': 'china',
+          },
+        );
 
-      final result = await repo.login(
-        email: 'user@example.com',
-        password: 'secretPassword',
-        region: 'china',
-      );
+        final result = await repo.login(
+          email: 'user@example.com',
+          password: 'secretPassword',
+          region: 'china',
+        );
 
-      expect(result.success, isFalse);
-      expect(result.needsVerification, isTrue);
-      expect(result.verificationType, 'email');
-      expect(result.tfaKey, 'tfa-token-xyz');
-      expect(result.message, 'Check your inbox for code');
-    });
+        expect(result.success, isFalse);
+        expect(result.needsVerification, isTrue);
+        expect(result.verificationType, 'email');
+        expect(result.tfaKey, 'tfa-token-xyz');
+        expect(result.message, 'Check your inbox for code');
+      },
+    );
 
     test('verify sends 2FA code and tfaKey', () async {
       adapter.onPost(
@@ -143,10 +146,7 @@ void main() {
         (s) => s.reply(401, {'detail': 'Token expired'}),
       );
 
-      expect(
-        () => repo.status(),
-        throwsA(isA<AuthException>()),
-      );
+      expect(() => repo.status(), throwsA(isA<AuthException>()));
     });
 
     test('maps 500 DioException to ApiException', () async {
@@ -155,10 +155,7 @@ void main() {
         (s) => s.reply(500, {'detail': 'Server error'}),
       );
 
-      expect(
-        () => repo.logout(),
-        throwsA(isA<ApiException>()),
-      );
+      expect(() => repo.logout(), throwsA(isA<ApiException>()));
     });
   });
 }

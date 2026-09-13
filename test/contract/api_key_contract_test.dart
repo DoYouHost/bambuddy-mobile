@@ -194,9 +194,9 @@ void main() {
         final withoutControl = await mint('contract probe: control no', {
           ApiKeyScope.readStatus,
         });
-        final refused = await clientFor(withoutControl.key).post<dynamic>(
-          Endpoints.printPause(1),
-        );
+        final refused = await clientFor(
+          withoutControl.key,
+        ).post<dynamic>(Endpoints.printPause(1));
         expect(
           refused.statusCode,
           403,

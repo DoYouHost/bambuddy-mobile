@@ -80,15 +80,9 @@ void main() {
     });
 
     test('GroupCreateInput omits description when null', () {
-      const input = GroupCreateInput(
-        name: 'New Group',
-        permissions: [],
-      );
+      const input = GroupCreateInput(name: 'New Group', permissions: []);
 
-      expect(input.toJson(), {
-        'name': 'New Group',
-        'permissions': [],
-      });
+      expect(input.toJson(), {'name': 'New Group', 'permissions': []});
     });
 
     test('GroupUpdateInput omits unset fields and tracks isEmpty', () {

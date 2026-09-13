@@ -34,33 +34,43 @@ void main() {
     test('GET /users/ decodes user list into CurrentUser', () async {
       final list = await users.list();
 
-      expect(list, isNotEmpty, reason: 'seed creates at least the admin account');
+      expect(
+        list,
+        isNotEmpty,
+        reason: 'seed creates at least the admin account',
+      );
       final admin = list.first;
       expect(admin.id, greaterThanOrEqualTo(1));
       expect(admin.username, isNotEmpty);
       expect(admin.isAdmin, isTrue);
     });
 
-    test('GET /users/{id}/items-count decodes counts into UserItemsCount', () async {
-      final list = await users.list();
-      final admin = list.first;
+    test(
+      'GET /users/{id}/items-count decodes counts into UserItemsCount',
+      () async {
+        final list = await users.list();
+        final admin = list.first;
 
-      final count = await users.itemsCount(admin.id);
-      expect(count, isA<UserItemsCount>());
-      expect(count.archives, greaterThanOrEqualTo(0));
-      expect(count.queueItems, greaterThanOrEqualTo(0));
-      expect(count.libraryFiles, greaterThanOrEqualTo(0));
-    });
+        final count = await users.itemsCount(admin.id);
+        expect(count, isA<UserItemsCount>());
+        expect(count.archives, greaterThanOrEqualTo(0));
+        expect(count.queueItems, greaterThanOrEqualTo(0));
+        expect(count.libraryFiles, greaterThanOrEqualTo(0));
+      },
+    );
 
-    test('GET /groups/ decodes system and user groups into GroupSummary', () async {
-      final groupList = await groups.list();
+    test(
+      'GET /groups/ decodes system and user groups into GroupSummary',
+      () async {
+        final groupList = await groups.list();
 
-      expect(groupList, isA<List<GroupSummary>>());
-      for (final g in groupList) {
-        expect(g.id, greaterThan(0));
-        expect(g.name, isNotEmpty);
-      }
-    });
+        expect(groupList, isA<List<GroupSummary>>());
+        for (final g in groupList) {
+          expect(g.id, greaterThan(0));
+          expect(g.name, isNotEmpty);
+        }
+      },
+    );
 
     test('GET /groups/permissions decodes full PermissionCatalog', () async {
       final catalog = await groups.permissions();

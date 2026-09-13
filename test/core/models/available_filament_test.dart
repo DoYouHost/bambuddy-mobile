@@ -41,11 +41,7 @@ void main() {
         123,
         {'type': '', 'color': '#00FF00'},
         {'color': '#0000FF'},
-        {
-          'type': 'ABS',
-          'color': '#FFFFFF',
-          'tray_sub_brands': 'Bambu ABS',
-        },
+        {'type': 'ABS', 'color': '#FFFFFF', 'tray_sub_brands': 'Bambu ABS'},
       ];
 
       final result = AvailableFilament.parseList(list);

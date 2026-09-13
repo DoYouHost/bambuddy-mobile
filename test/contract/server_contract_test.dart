@@ -115,15 +115,18 @@ void main() {
       expect(res.data?['requires_setup'], isA<bool>());
     });
 
-    test('GET /auth/advanced-auth/status answers public advanced auth status', () async {
-      final unauthedDio = Dio(BaseOptions(baseUrl: contractBaseUrl));
-      final res = await unauthedDio.get<Map<String, dynamic>>(
-        Endpoints.advancedAuthStatus,
-      );
+    test(
+      'GET /auth/advanced-auth/status answers public advanced auth status',
+      () async {
+        final unauthedDio = Dio(BaseOptions(baseUrl: contractBaseUrl));
+        final res = await unauthedDio.get<Map<String, dynamic>>(
+          Endpoints.advancedAuthStatus,
+        );
 
-      expect(res.statusCode, 200);
-      expect(res.data?['advanced_auth_enabled'], isA<bool>());
-    });
+        expect(res.statusCode, 200);
+        expect(res.data?['advanced_auth_enabled'], isA<bool>());
+      },
+    );
 
     test('/updates/version answers unauthenticated and decodes', () async {
       // Version must be readable before authentication — ServerVersionService
@@ -151,18 +154,23 @@ void main() {
       },
     );
 
-    test('POST /auth/media-token mints a valid media token if supported', () async {
-      // Elements loading images/videos (?token=) outside of Dio use this
-      // short-lived media token on newer servers (older servers answer 405/404).
-      try {
-        final res = await dio.post<Map<String, dynamic>>(Endpoints.mediaToken);
-        expect(res.statusCode, 200);
-        expect(res.data?['token'], isA<String>());
-        expect((res.data?['token'] as String).isNotEmpty, isTrue);
-      } on DioException catch (e) {
-        expect(e.response?.statusCode, anyOf(404, 405));
-      }
-    });
+    test(
+      'POST /auth/media-token mints a valid media token if supported',
+      () async {
+        // Elements loading images/videos (?token=) outside of Dio use this
+        // short-lived media token on newer servers (older servers answer 405/404).
+        try {
+          final res = await dio.post<Map<String, dynamic>>(
+            Endpoints.mediaToken,
+          );
+          expect(res.statusCode, 200);
+          expect(res.data?['token'], isA<String>());
+          expect((res.data?['token'] as String).isNotEmpty, isTrue);
+        } on DioException catch (e) {
+          expect(e.response?.statusCode, anyOf(404, 405));
+        }
+      },
+    );
 
     test(
       'POST /printers/camera/stream-token mints a valid camera token if supported',

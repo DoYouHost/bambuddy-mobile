@@ -148,9 +148,7 @@ Widget queueFormScreen(
     printerStatusOnceProvider.overrideWith(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
     ),
-    availableFilamentsProvider.overrideWith(
-      (ref, arg) => availableFilaments,
-    ),
+    availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
   ],
   child: plApp(
     QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),

@@ -43,22 +43,25 @@ void main() {
       expect(profile.optionId, '|0|');
     });
 
-    test('optionId distinguishes profiles with different filamentId but same name and k', () {
-      const p1 = KProfile(
-        slotId: 1,
-        name: 'Generic PETG',
-        kValue: '0.035000',
-        filamentId: 'GFB00',
-      );
-      const p2 = KProfile(
-        slotId: 2,
-        name: 'Generic PETG',
-        kValue: '0.035000',
-        filamentId: 'GFB01',
-      );
+    test(
+      'optionId distinguishes profiles with different filamentId but same name and k',
+      () {
+        const p1 = KProfile(
+          slotId: 1,
+          name: 'Generic PETG',
+          kValue: '0.035000',
+          filamentId: 'GFB00',
+        );
+        const p2 = KProfile(
+          slotId: 2,
+          name: 'Generic PETG',
+          kValue: '0.035000',
+          filamentId: 'GFB01',
+        );
 
-      expect(p1.optionId, isNot(equals(p2.optionId)));
-    });
+        expect(p1.optionId, isNot(equals(p2.optionId)));
+      },
+    );
 
     test('optionId folds duplicate profiles across extruders', () {
       const pExtruder0 = KProfile(

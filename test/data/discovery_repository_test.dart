@@ -36,11 +36,7 @@ void main() {
     test('startScan initiates subnet scan and parses initial status', () async {
       adapter.onPost(
         Endpoints.discoveryScan,
-        (s) => s.reply(200, {
-          'running': true,
-          'scanned': 0,
-          'total': 254,
-        }),
+        (s) => s.reply(200, {'running': true, 'scanned': 0, 'total': 254}),
         data: {'subnet': '192.168.1.0/24', 'timeout': 1.5},
       );
 
@@ -53,11 +49,7 @@ void main() {
     test('scanStatus parses polling response', () async {
       adapter.onGet(
         Endpoints.discoveryScanStatus,
-        (s) => s.reply(200, {
-          'running': false,
-          'scanned': 254,
-          'total': 254,
-        }),
+        (s) => s.reply(200, {'running': false, 'scanned': 254, 'total': 254}),
       );
 
       final status = await repo.scanStatus();
@@ -143,10 +135,7 @@ void main() {
         (s) => s.reply(403, {'detail': 'Permission DISCOVERY_SCAN required'}),
       );
 
-      expect(
-        () => repo.info(),
-        throwsA(isA<AuthException>()),
-      );
+      expect(() => repo.info(), throwsA(isA<AuthException>()));
     });
   });
 }

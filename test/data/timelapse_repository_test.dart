@@ -65,29 +65,32 @@ void main() {
       expect(strip.timestamps, [0.0, 10.5]);
     });
 
-    test('process posts form data with replace save_mode and decodes result', () async {
-      adapter.onPost(
-        Endpoints.archiveTimelapseProcess(123),
-        (s) => s.reply(200, {
-          'status': 'completed',
-          'message': 'Render successful',
-          'output_path': '/timelapses/123_processed.mp4',
-        }),
-        data: Matchers.any,
-      );
+    test(
+      'process posts form data with replace save_mode and decodes result',
+      () async {
+        adapter.onPost(
+          Endpoints.archiveTimelapseProcess(123),
+          (s) => s.reply(200, {
+            'status': 'completed',
+            'message': 'Render successful',
+            'output_path': '/timelapses/123_processed.mp4',
+          }),
+          data: Matchers.any,
+        );
 
-      final result = await repo.process(
-        123,
-        trimStart: 2.0,
-        trimEnd: 120.0,
-        speed: 2.0,
-      );
+        final result = await repo.process(
+          123,
+          trimStart: 2.0,
+          trimEnd: 120.0,
+          speed: 2.0,
+        );
 
-      expect(result.ok, isTrue);
-      expect(result.status, 'completed');
-      expect(result.message, 'Render successful');
-      expect(result.outputPath, '/timelapses/123_processed.mp4');
-    });
+        expect(result.ok, isTrue);
+        expect(result.status, 'completed');
+        expect(result.message, 'Render successful');
+        expect(result.outputPath, '/timelapses/123_processed.mp4');
+      },
+    );
 
     test('handles 404 with ApiException via guard', () async {
       adapter.onGet(
@@ -95,10 +98,7 @@ void main() {
         (s) => s.reply(404, {'detail': 'Timelapse not found'}),
       );
 
-      expect(
-        () => repo.info(999),
-        throwsA(isA<ApiException>()),
-      );
+      expect(() => repo.info(999), throwsA(isA<ApiException>()));
     });
   });
 }

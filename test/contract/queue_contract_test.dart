@@ -52,10 +52,7 @@ void main() {
       final item = items.first;
 
       // Reorder with the current single ID preserves order
-      await expectLater(
-        queue.reorder([(id: item.id, position: 0)]),
-        completes,
-      );
+      await expectLater(queue.reorder([(id: item.id, position: 0)]), completes);
     });
   });
 }

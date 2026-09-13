@@ -306,7 +306,11 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                   'print_log.classify.delete',
                   TextButton.icon(
                     onPressed: _saving ? null : _delete,
-                    icon: Icon(Icons.delete_outline, size: 18, color: t.dangerInk),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: t.dangerInk,
+                    ),
                     label: Text(
                       l10n.printLogDelete,
                       style: TextStyle(color: t.dangerInk),

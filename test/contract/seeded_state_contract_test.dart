@@ -155,7 +155,9 @@ void main() {
         expect(items, isNotEmpty, reason: 'no queue item found');
         final item = items.first;
         final printer = printersList.first;
-        final file = files.firstWhere((f) => f.filename == 'contract-probe.3mf');
+        final file = files.firstWhere(
+          (f) => f.filename == 'contract-probe.3mf',
+        );
 
         expect(item.printerId, printer.id);
         expect(item.printerName, printer.name);
@@ -210,11 +212,7 @@ void main() {
         expect(items, isNotEmpty, reason: 'no queue item to update');
         final item = items.first;
 
-        await queue.updateItem(
-          item.id,
-          manualStart: true,
-          timelapse: true,
-        );
+        await queue.updateItem(item.id, manualStart: true, timelapse: true);
 
         final updated = (await queue.fetch()).firstWhere(
           (it) => it.id == item.id,

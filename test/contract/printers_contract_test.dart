@@ -59,91 +59,114 @@ void main() {
       expect(diag.checks, isA<List<DiagnosticCheck>>());
     });
 
-    test('GET /printers/available-filaments returns filaments for known model', () async {
-      final filaments = await printers.fetchAvailableFilaments('X1C');
+    test(
+      'GET /printers/available-filaments returns filaments for known model',
+      () async {
+        final filaments = await printers.fetchAvailableFilaments('X1C');
 
-      expect(filaments, isA<List<AvailableFilament>>());
-      for (final f in filaments) {
-        expect(f.type, isNotEmpty);
-        expect(f.color, isNotEmpty);
-      }
-    });
-
-    test('per-printer endpoints decode status, storage, sensors and objects', () async {
-      final list = await printers.fetchPrinters();
-      if (list.isEmpty) return;
-
-      final printer = list.first;
-
-      // 1. Status
-      final status = await printers.fetchStatus(printer.id);
-      expect(status, isA<PrinterStatus?>());
-      if (status != null) {
-        expect(status.state, isNotNull);
-        expect(status.temperatures, isA<Map<String, double>?>());
-      }
-
-      // 2. Storage
-      final storage = await filesRepo.fetchStorage(printer.id);
-      expect(storage, isA<PrinterStorage>());
-
-      // 3. AMS history
-      final ams = await amsHistory.fetch(printer.id, 0, hours: 1);
-      expect(ams, isA<AmsHistory>());
-      expect(ams.printerId, printer.id);
-
-      // 4. Heater history
-      final heaters = await heaterHistory.fetch(printer.id, hours: 1);
-      expect(heaters, isA<HeaterHistory>());
-      expect(heaters.printerId, printer.id);
-
-      // 5. Printable objects
-      final objects = await skipObjects.fetchObjects(printer.id);
-      expect(objects, isA<PrintableObjects>());
-    });
-
-    test('POST /printers/camera/stream-token or /auth/media-token returns usable token', () async {
-      // Either camera token or media token must succeed depending on server generation
-      var obtainedToken = false;
-      try {
-        final res = await dio.post<Map<String, dynamic>>(Endpoints.cameraStreamToken);
-        final token = res.data?['token'];
-        if (token is String && token.isNotEmpty) obtainedToken = true;
-      } on DioException catch (e) {
-        // Servers >= 1.2.5.5 prefer media-token or cameraStreamToken requires camera:view
-        if (e.response?.statusCode != 404 && e.response?.statusCode != 405) {
-          rethrow;
+        expect(filaments, isA<List<AvailableFilament>>());
+        for (final f in filaments) {
+          expect(f.type, isNotEmpty);
+          expect(f.color, isNotEmpty);
         }
-      }
+      },
+    );
 
-      if (!obtainedToken) {
+    test(
+      'per-printer endpoints decode status, storage, sensors and objects',
+      () async {
+        final list = await printers.fetchPrinters();
+        if (list.isEmpty) return;
+
+        final printer = list.first;
+
+        // 1. Status
+        final status = await printers.fetchStatus(printer.id);
+        expect(status, isA<PrinterStatus?>());
+        if (status != null) {
+          expect(status.state, isNotNull);
+          expect(status.temperatures, isA<Map<String, double>?>());
+        }
+
+        // 2. Storage
+        final storage = await filesRepo.fetchStorage(printer.id);
+        expect(storage, isA<PrinterStorage>());
+
+        // 3. AMS history
+        final ams = await amsHistory.fetch(printer.id, 0, hours: 1);
+        expect(ams, isA<AmsHistory>());
+        expect(ams.printerId, printer.id);
+
+        // 4. Heater history
+        final heaters = await heaterHistory.fetch(printer.id, hours: 1);
+        expect(heaters, isA<HeaterHistory>());
+        expect(heaters.printerId, printer.id);
+
+        // 5. Printable objects
+        final objects = await skipObjects.fetchObjects(printer.id);
+        expect(objects, isA<PrintableObjects>());
+      },
+    );
+
+    test(
+      'POST /printers/camera/stream-token or /auth/media-token returns usable token',
+      () async {
+        // Either camera token or media token must succeed depending on server generation
+        var obtainedToken = false;
         try {
-          final res = await dio.post<Map<String, dynamic>>(Endpoints.mediaToken);
+          final res = await dio.post<Map<String, dynamic>>(
+            Endpoints.cameraStreamToken,
+          );
           final token = res.data?['token'];
           if (token is String && token.isNotEmpty) obtainedToken = true;
         } on DioException catch (e) {
+          // Servers >= 1.2.5.5 prefer media-token or cameraStreamToken requires camera:view
           if (e.response?.statusCode != 404 && e.response?.statusCode != 405) {
             rethrow;
           }
         }
-      }
 
-      expect(obtainedToken, isTrue, reason: 'At least one media/camera stream token route must work');
-    });
+        if (!obtainedToken) {
+          try {
+            final res = await dio.post<Map<String, dynamic>>(
+              Endpoints.mediaToken,
+            );
+            final token = res.data?['token'];
+            if (token is String && token.isNotEmpty) obtainedToken = true;
+          } on DioException catch (e) {
+            if (e.response?.statusCode != 404 &&
+                e.response?.statusCode != 405) {
+              rethrow;
+            }
+          }
+        }
 
-    test('POST /printers/{id}/refresh-status asks printer to publish whole state', () async {
-      final list = await printers.fetchPrinters();
-      if (list.isEmpty) return;
+        expect(
+          obtainedToken,
+          isTrue,
+          reason: 'At least one media/camera stream token route must work',
+        );
+      },
+    );
 
-      final printer = list.first;
-      try {
-        final res = await dio.post<dynamic>(Endpoints.printerRefreshStatus(printer.id));
-        expect(res.statusCode, anyOf(200, 204));
-      } on DioException catch (e) {
-        // 400 when printer MQTT is disconnected in mock environments
-        expect(e.response?.statusCode, anyOf(200, 204, 400));
-      }
-    });
+    test(
+      'POST /printers/{id}/refresh-status asks printer to publish whole state',
+      () async {
+        final list = await printers.fetchPrinters();
+        if (list.isEmpty) return;
+
+        final printer = list.first;
+        try {
+          final res = await dio.post<dynamic>(
+            Endpoints.printerRefreshStatus(printer.id),
+          );
+          expect(res.statusCode, anyOf(200, 204));
+        } on DioException catch (e) {
+          // 400 when printer MQTT is disconnected in mock environments
+          expect(e.response?.statusCode, anyOf(200, 204, 400));
+        }
+      },
+    );
 
     test('GET /scheduled-dryings decodes if supported', () async {
       final dryingRepo = ScheduledDryingRepository(dio);

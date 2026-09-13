@@ -36,14 +36,17 @@ void main() {
       }
     });
 
-    test('GET /maintenance/overview decodes into List<PrinterMaintenanceOverview>', () async {
-      final overview = await maintRepo.fetchOverview();
-      expect(overview, isA<List<PrinterMaintenanceOverview>>());
-      for (final p in overview) {
-        expect(p.printerId, greaterThan(0));
-        expect(p.printerName, isNotEmpty);
-      }
-    });
+    test(
+      'GET /maintenance/overview decodes into List<PrinterMaintenanceOverview>',
+      () async {
+        final overview = await maintRepo.fetchOverview();
+        expect(overview, isA<List<PrinterMaintenanceOverview>>());
+        for (final p in overview) {
+          expect(p.printerId, greaterThan(0));
+          expect(p.printerName, isNotEmpty);
+        }
+      },
+    );
 
     test('GET /maintenance/types decodes into List<MaintenanceType>', () async {
       final types = await maintRepo.fetchTypes();
@@ -56,7 +59,8 @@ void main() {
     });
 
     test('maintenance type lifecycle: create, update and delete', () async {
-      final typeName = 'Contract-Maint-${DateTime.now().millisecondsSinceEpoch}';
+      final typeName =
+          'Contract-Maint-${DateTime.now().millisecondsSinceEpoch}';
       final draft = MaintenanceTypeDraft(
         name: typeName,
         description: 'Contract test maintenance task',
@@ -90,10 +94,13 @@ void main() {
       expect(currentTypes.any((t) => t.name == '$typeName-renamed'), isFalse);
     });
 
-    test('POST /maintenance/types/restore-defaults restores system default types', () async {
-      await maintRepo.restoreDefaults();
-      final types = await maintRepo.fetchTypes();
-      expect(types.any((t) => t.isSystem), isTrue);
-    });
+    test(
+      'POST /maintenance/types/restore-defaults restores system default types',
+      () async {
+        await maintRepo.restoreDefaults();
+        final types = await maintRepo.fetchTypes();
+        expect(types.any((t) => t.isSystem), isTrue);
+      },
+    );
   });
 }

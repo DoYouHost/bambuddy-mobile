@@ -32,39 +32,44 @@ void main() {
       logRepo = PrintLogRepository(dio);
     });
 
-    test('GET /archives/ and /archives/search decode into Archive models', () async {
-      final archives = await archiveRepo.list(limit: 10);
-      expect(archives, isA<List<Archive>>());
+    test(
+      'GET /archives/ and /archives/search decode into Archive models',
+      () async {
+        final archives = await archiveRepo.list(limit: 10);
+        expect(archives, isA<List<Archive>>());
 
-      final searchResults = await archiveRepo.search('test', limit: 5);
-      expect(searchResults, isA<List<Archive>>());
+        final searchResults = await archiveRepo.search('test', limit: 5);
+        expect(searchResults, isA<List<Archive>>());
 
-      if (archives.isNotEmpty) {
-        final a = archives.first;
-        expect(a.id, greaterThan(0));
-        expect(a.filename, isNotEmpty);
-        expect(a.status, isNotEmpty);
+        if (archives.isNotEmpty) {
+          final a = archives.first;
+          expect(a.id, greaterThan(0));
+          expect(a.filename, isNotEmpty);
+          expect(a.status, isNotEmpty);
 
-        final single = await archiveRepo.byId(a.id);
-        expect(single.id, a.id);
-        expect(single.filename, a.filename);
+          final single = await archiveRepo.byId(a.id);
+          expect(single.id, a.id);
+          expect(single.filename, a.filename);
 
-        final caps = await dio.get<Map<String, dynamic>>(
-          Endpoints.archiveCapabilities(a.id),
-        );
-        final parsedCaps = ArchiveCapabilities.fromJson(caps.data ?? const {});
-        expect(parsedCaps, isA<ArchiveCapabilities>());
+          final caps = await dio.get<Map<String, dynamic>>(
+            Endpoints.archiveCapabilities(a.id),
+          );
+          final parsedCaps = ArchiveCapabilities.fromJson(
+            caps.data ?? const {},
+          );
+          expect(parsedCaps, isA<ArchiveCapabilities>());
 
-        final plates = await archiveRepo.plates(a.id);
-        expect(plates, isA<PlateList>());
+          final plates = await archiveRepo.plates(a.id);
+          expect(plates, isA<PlateList>());
 
-        if (a.timelapsePath != null) {
-          final timelapseRepo = TimelapseRepository(dio);
-          final info = await timelapseRepo.info(a.id);
-          expect(info, isA<TimelapseInfo>());
+          if (a.timelapsePath != null) {
+            final timelapseRepo = TimelapseRepository(dio);
+            final info = await timelapseRepo.info(a.id);
+            expect(info, isA<TimelapseInfo>());
+          }
         }
-      }
-    });
+      },
+    );
 
     test('GET /archives/stats decodes into ArchiveStats', () async {
       final stats = await statsRepo.fetch();
@@ -83,38 +88,47 @@ void main() {
       }
     });
 
-    test('GET /archives/analysis/failures decodes into FailureAnalysis', () async {
-      final res = await dio.get<Map<String, dynamic>>(
-        Endpoints.archivesFailures,
-        queryParameters: {'days': 30},
-      );
-      final analysis = FailureAnalysis.fromJson(res.data ?? const {});
-      expect(analysis, isA<FailureAnalysis>());
-      expect(analysis.periodDays, greaterThanOrEqualTo(0));
-      expect(analysis.totalPrints, greaterThanOrEqualTo(0));
-      expect(analysis.failureRate, greaterThanOrEqualTo(0.0));
-    });
+    test(
+      'GET /archives/analysis/failures decodes into FailureAnalysis',
+      () async {
+        final res = await dio.get<Map<String, dynamic>>(
+          Endpoints.archivesFailures,
+          queryParameters: {'days': 30},
+        );
+        final analysis = FailureAnalysis.fromJson(res.data ?? const {});
+        expect(analysis, isA<FailureAnalysis>());
+        expect(analysis.periodDays, greaterThanOrEqualTo(0));
+        expect(analysis.totalPrints, greaterThanOrEqualTo(0));
+        expect(analysis.failureRate, greaterThanOrEqualTo(0.0));
+      },
+    );
 
-    test('GET /archives/purge/preview decodes into ArchivePurgePreview', () async {
-      final preview = await archiveRepo.purgePreview(olderThanDays: 90);
-      expect(preview, isA<ArchivePurgePreview>());
-      expect(preview.count, greaterThanOrEqualTo(0));
-      expect(preview.totalBytes, greaterThanOrEqualTo(0));
-    });
+    test(
+      'GET /archives/purge/preview decodes into ArchivePurgePreview',
+      () async {
+        final preview = await archiveRepo.purgePreview(olderThanDays: 90);
+        expect(preview, isA<ArchivePurgePreview>());
+        expect(preview.count, greaterThanOrEqualTo(0));
+        expect(preview.totalBytes, greaterThanOrEqualTo(0));
+      },
+    );
 
     test('GET /archives/no-3mf-warning decodes into No3mfWarning', () async {
       final warning = await archiveRepo.no3mfWarning();
       expect(warning, isA<No3mfWarning>());
     });
 
-    test('GET /print-log/ decodes into PrintLogPage and PrintLogEntry', () async {
-      final page = await logRepo.list(limit: 10);
-      expect(page.items, isA<List<PrintLogEntry>>());
-      expect(page.total, greaterThanOrEqualTo(0));
-      for (final entry in page.items) {
-        expect(entry.id, greaterThan(0));
-        expect(entry.status, isNotEmpty);
-      }
-    });
+    test(
+      'GET /print-log/ decodes into PrintLogPage and PrintLogEntry',
+      () async {
+        final page = await logRepo.list(limit: 10);
+        expect(page.items, isA<List<PrintLogEntry>>());
+        expect(page.total, greaterThanOrEqualTo(0));
+        for (final entry in page.items) {
+          expect(entry.id, greaterThan(0));
+          expect(entry.status, isNotEmpty);
+        }
+      },
+    );
   });
 }

@@ -38,7 +38,12 @@ void main() {
           {'slot_id': 1, 'type': 'PLA', 'color': '#FF0000'},
           'invalid_string',
           42,
-          {'slot_id': 2, 'type': 'PETG', 'color': '#0000FF', 'used_in_plate': false},
+          {
+            'slot_id': 2,
+            'type': 'PETG',
+            'color': '#0000FF',
+            'used_in_plate': false,
+          },
         ],
       };
 
@@ -56,7 +61,10 @@ void main() {
 
     test('parseList returns empty list on non-list filaments key', () {
       expect(FilamentRequirement.parseList({'filaments': null}), isEmpty);
-      expect(FilamentRequirement.parseList({'filaments': 'not a list'}), isEmpty);
+      expect(
+        FilamentRequirement.parseList({'filaments': 'not a list'}),
+        isEmpty,
+      );
       expect(FilamentRequirement.parseList(const {}), isEmpty);
     });
 
