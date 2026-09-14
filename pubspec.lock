@@ -39,11 +39,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_ui"
-      ref: "v0.9.0"
-      resolved-ref: "4fb72cd6e9a69ab456956e6fb8a39bdb32bb442e"
+      ref: "v0.10.0"
+      resolved-ref: "52e0641f0f12e0eef606cd17a388052c9875f309"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.1"
+    version: "0.1.2"
   app_util:
     dependency: "direct main"
     description:
@@ -265,20 +265,20 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/dash_kit"
-      ref: "v0.9.0"
-      resolved-ref: "4fb72cd6e9a69ab456956e6fb8a39bdb32bb442e"
+      ref: "v0.10.0"
+      resolved-ref: "52e0641f0f12e0eef606cd17a388052c9875f309"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.1"
+    version: "0.1.2"
   dash_ui:
     dependency: transitive
     description:
       path: "packages/dash_ui"
-      ref: "v0.9.0"
-      resolved-ref: "4fb72cd6e9a69ab456956e6fb8a39bdb32bb442e"
+      ref: "v0.10.0"
+      resolved-ref: "52e0641f0f12e0eef606cd17a388052c9875f309"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.3.0"
+    version: "0.3.1"
   dbus:
     dependency: transitive
     description:
