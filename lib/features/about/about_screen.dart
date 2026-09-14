@@ -7,9 +7,7 @@ import '../../core/platform/app_version.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_snack.dart';
 import '../common/server_version_text.dart';
-import '../common/system_insets.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).

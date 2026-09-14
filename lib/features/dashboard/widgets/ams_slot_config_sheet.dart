@@ -18,11 +18,8 @@ import '../../../core/models/k_profile.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
-import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
-import '../../common/dash_progress.dart';
-import '../../common/dash_snack.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, parseSpoolColor;

@@ -1,3 +1,4 @@
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,8 +6,6 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import 'dash_progress.dart';
-import 'state_views.dart';
 
 /// A capability the app has to ask the server for, read as a plain flag:
 /// **unresolved is off.**

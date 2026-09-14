@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
-import '../common/dash_progress.dart';
 
 /// Filmstrip, trim range and playhead in one control.
 ///

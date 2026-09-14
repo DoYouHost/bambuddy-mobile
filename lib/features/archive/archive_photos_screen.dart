@@ -7,8 +7,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/media_image.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/state_views.dart';
 import 'archive_providers.dart';
 
 /// Full-screen viewer for the photos of one print — in practice the shot the

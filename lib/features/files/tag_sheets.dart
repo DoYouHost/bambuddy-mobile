@@ -9,10 +9,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
 

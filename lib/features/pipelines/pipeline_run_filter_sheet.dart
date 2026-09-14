@@ -1,3 +1,4 @@
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +7,6 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/pipeline_run.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_input.dart';
-import '../common/dash_sheet.dart';
 import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
 

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,6 @@ import '../../../core/models/heater_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
-import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// One selectable sensor: the server's key plus the label the card already

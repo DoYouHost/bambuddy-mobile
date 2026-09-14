@@ -6,7 +6,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../admin/admin_screen.dart';
 import '../common/settings_entry_tile.dart';
-import '../common/system_insets.dart';
 
 /// One entry for everything this app can change **on the server** — the
 /// configuration every user of that server shares.

@@ -71,6 +71,9 @@ LogRedactor bambuddyRedactor({int maxStringLength = 2000}) => LogRedactor(
 /// `pla` would otherwise eat every control id and every material.
 final Map<String, RegExp> _ourKeys = {
   'id': RegExp(r'^\w+(\.\w+)*$'),
+  // The screen an error or empty view stood on, which `dash_kit` records: a
+  // server called `queue` would otherwise mask the name of that screen.
+  'surface': RegExp(r'^\w+(\.\w+)*$'),
   'mat': RegExp(r'^[A-Z0-9]+(-[A-Z0-9]+)*$'),
   'event': RegExp(r'^[a-zA-Z]+$'),
   'reason': RegExp(r'^[a-zA-Z]+$'),

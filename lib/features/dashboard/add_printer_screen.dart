@@ -13,8 +13,6 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_input.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_snack.dart';
 import 'providers.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series

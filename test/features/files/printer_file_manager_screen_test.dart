@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show CheckedState;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/core/models/printer_file.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
-import 'package:bambuddy_mobile/features/common/dash_progress.dart';
 import 'package:bambuddy_mobile/features/files/printer_file_manager_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';

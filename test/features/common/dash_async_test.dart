@@ -1,6 +1,6 @@
+import 'package:dash_kit/dash_kit.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/features/common/dash_async.dart';
-import 'package:bambuddy_mobile/features/common/dash_progress.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:flutter/material.dart';

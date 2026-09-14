@@ -1,3 +1,4 @@
+import 'package:dash_kit/dash_kit.dart';
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +12,6 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.

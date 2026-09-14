@@ -261,8 +261,17 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.9"
-  dash_ui:
+  dash_kit:
     dependency: "direct main"
+    description:
+      path: "packages/dash_kit"
+      ref: "v0.8.0"
+      resolved-ref: "79acd15dc16adf065cdd3b710b16b9cc292146c6"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.1.0"
+  dash_ui:
+    dependency: transitive
     description:
       path: "packages/dash_ui"
       ref: "v0.5.0"

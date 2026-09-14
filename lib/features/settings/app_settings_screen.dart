@@ -6,7 +6,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/settings_entry_tile.dart';
 import '../common/settings_rows.dart';
-import '../common/system_insets.dart';
 import '../dashboard/card_collapse_providers.dart';
 
 /// What this app does on this phone, as opposed to [ServerSettingsScreen],

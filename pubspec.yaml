@@ -38,14 +38,15 @@ dependencies:
       url: https://github.com/DoYouHost/app-shared.git
       ref: v0.5.0
       path: packages/app_report_ui
-  # The design system — tokens, type scale, chrome and the Material theme —
-  # shared with lubelogger-mobile. Must be the ref `app_report_ui` names for its
-  # own copy.
-  dash_ui:
+  # The design system and the widgets that name themselves in the diagnostic
+  # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
+  # is the only one named here; it pins `dash_ui` at the ref `app_report_ui`
+  # names for its own copy.
+  dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.5.0
-      path: packages/dash_ui
+      ref: v0.8.0
+      path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:

@@ -10,14 +10,12 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import 'print_log_providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
 /// is counted under.

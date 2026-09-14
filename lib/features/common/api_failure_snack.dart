@@ -1,10 +1,10 @@
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/api/action_failure.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import 'dash_snack.dart';
 
 /// For a screen that suppresses its own snack, so one import covers both doors.
 export '../../core/api/action_failure.dart' show recordActionFailure;

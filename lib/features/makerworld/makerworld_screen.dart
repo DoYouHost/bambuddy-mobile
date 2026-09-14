@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_snack.dart';
 import '../common/api_failure_snack.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
@@ -13,7 +11,6 @@ import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';

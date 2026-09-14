@@ -9,13 +9,9 @@ import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/section_heading.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;

@@ -1,4 +1,4 @@
-import 'package:bambuddy_mobile/features/common/dash_sheet.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:bambuddy_mobile/features/common/sheet_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

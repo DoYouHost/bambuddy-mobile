@@ -12,7 +12,6 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_snack.dart';
 import '../common/detached_flow.dart';
 import '../stats/stats_providers.dart';
 import 'archive_providers.dart';

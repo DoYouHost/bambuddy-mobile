@@ -709,7 +709,7 @@ void main() {
 
         await tester.pumpWidget(_app(state));
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(TextButton, 'Później'));
+        await tester.tap(find.widgetWithText(FilledButton, 'Później'));
         await tester.pumpAndSettle();
 
         expect(find.text('Zaloguj się ponownie'), findsNothing);
