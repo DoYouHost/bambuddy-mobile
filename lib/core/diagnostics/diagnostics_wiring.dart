@@ -11,20 +11,6 @@ import 'ws_probe.dart';
 /// bambuddy's side of the two ports `app_diagnostics` leaves open, plus the one
 /// entry point the package deliberately does not carry.
 
-/// The running session's id, kept where both isolates can read it.
-class SettingsSessionStore implements DiagnosticsSessionStore {
-  const SettingsSessionStore(this.settings);
-
-  final SettingsRepository settings;
-
-  @override
-  String? loadSession() => settings.loadDiagnosticsSession();
-
-  @override
-  Future<void> saveSession(String? session) =>
-      settings.saveDiagnosticsSession(session);
-}
-
 /// The WebSocket probe, told when a session opens and closes.
 ///
 /// Both moments matter here. `WsProbe` reports *changes*, so state left by the
@@ -69,7 +55,7 @@ Future<BackgroundRecording?> startActionRecording({
     if (DiagnosticRecorder.isRecording) return null;
     final settings = await openSettings();
     return await DiagnosticRecorder.startBackground(
-      sessions: SettingsSessionStore(settings),
+      sessions: settings.diagnosticsSessions,
       redactor: bambuddyRedactor,
       sessionLimit: recordingLimit,
       stream: LogStream.action,

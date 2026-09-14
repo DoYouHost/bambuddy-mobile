@@ -29,14 +29,14 @@ dependencies:
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.3.0
+      ref: v0.9.0
       path: packages/app_diagnostics
   # The report screens — the guided flow, the recording bar and the review —
   # shared with lubelogger-mobile.
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.5.0
+      ref: v0.9.0
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
@@ -45,14 +45,14 @@ dependencies:
   dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.8.0
+      ref: v0.9.0
       path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.7.1
+      ref: v0.9.0
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0

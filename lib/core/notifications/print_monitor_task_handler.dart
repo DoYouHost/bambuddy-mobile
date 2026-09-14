@@ -114,7 +114,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // to be — are inside the recording. Cannot throw and cannot block for long by
     // construction; null when no recording is running, which is the normal case.
     _recording = await DiagnosticRecorder.startBackground(
-      sessions: SettingsSessionStore(settings),
+      sessions: settings.diagnosticsSessions,
       redactor: bambuddyRedactor,
       sessionLimit: recordingLimit,
       stream: LogStream.fgs,
@@ -539,7 +539,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       if (wanted == null) return;
 
       _recording = await DiagnosticRecorder.startBackground(
-        sessions: SettingsSessionStore(settings),
+        sessions: settings.diagnosticsSessions,
         redactor: bambuddyRedactor,
         sessionLimit: recordingLimit,
         stream: LogStream.fgs,

@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 void main() {
@@ -30,9 +29,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         diagnosticRecorderProvider.overrideWith(
           (ref) => DiagnosticRecorder(
-            sessions: SettingsSessionStore(
-              ref.watch(settingsRepositoryProvider),
-            ),
+            sessions: ref.watch(settingsRepositoryProvider).diagnosticsSessions,
             redactor: bambuddyRedactor,
             sessionDuration: recordingLimit,
             sessionBytes: recordingSizeLimit,

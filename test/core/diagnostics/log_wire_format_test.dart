@@ -26,6 +26,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
+    // The uptime is in the header only once `main` has stamped the start.
+    AppStart.at = DateTime.now();
     PackageInfo.setMockInitialValues(
       appName: 'bambuddy',
       packageName: 'pl.bambuddy.mobile',
@@ -34,6 +36,8 @@ void main() {
       buildSignature: '',
     );
   });
+
+  tearDown(() => AppStart.at = null);
 
   test('the header carries exactly the keys it always carried', () async {
     final facts = await loadSessionFacts(
@@ -68,6 +72,12 @@ void main() {
       // The two that moved into `extra`, still flat and still spelled the same.
       'flavor',
       'auth',
+      // Added with app_diagnostics 0.3.0, which brought the device facts this
+      // header never carried. A reader that does not know them ignores them;
+      // the keys above are the ones that must not move.
+      'tz',
+      'screen',
+      'uptime_s',
     });
     expect(json['v'], 1, reason: 'a bump has to be registered on the relay');
     expect(json['app'], '0.14.0+2028000');

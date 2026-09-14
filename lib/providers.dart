@@ -23,7 +23,6 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
-import 'core/platform/app_version.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/server_settings.dart';
@@ -201,7 +200,7 @@ final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
 /// two recorders would fight over it.
 final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
   (ref) => DiagnosticRecorder(
-    sessions: SettingsSessionStore(ref.watch(settingsRepositoryProvider)),
+    sessions: ref.watch(settingsRepositoryProvider).diagnosticsSessions,
     redactor: bambuddyRedactor,
     loadFacts: ref.watch(sessionFactsProvider),
     sessionDuration: recordingLimit,

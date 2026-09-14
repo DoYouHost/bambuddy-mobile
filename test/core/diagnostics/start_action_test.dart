@@ -66,7 +66,7 @@ void main() {
     LogStream stream = LogStream.fgs,
     Map<String, String> secrets = const {},
   }) => DiagnosticRecorder.startBackground(
-    sessions: SettingsSessionStore(settings),
+    sessions: settings.diagnosticsSessions,
     redactor: bambuddyRedactor,
     sessionLimit: recordingLimit,
     stream: stream,

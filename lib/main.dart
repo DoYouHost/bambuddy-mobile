@@ -1,9 +1,11 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/theme/dash_theme.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/watch/wear_relay_engine.dart';
@@ -12,7 +14,11 @@ import 'providers.dart';
 import 'features/bug_report/report_wiring.dart';
 
 Future<void> main() async {
+  AppStart.at = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
+  // The OFL texts of the bundled faces, which dash_ui carries: a font shipped
+  // in the APK reaches the licence page no other way.
+  registerDashFontLicenses();
   final prefs = await SharedPreferences.getInstance();
   final notifications = LocalNotificationService();
   await notifications.init();
