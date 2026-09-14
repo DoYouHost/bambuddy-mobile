@@ -1,6 +1,12 @@
+import 'dart:convert';
+
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 /// What every status the server can answer with turns into. The auth flow reads
 /// these codes to decide what to tell the user, and the three that matter are
@@ -43,6 +49,8 @@ DioException _ofType(DioExceptionType type) => DioException(
 );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('mapDioException by status', () {
     test('401 → unauthorized, as an AuthException', () {
       final mapped = mapDioException(_badResponse(401));
@@ -413,6 +421,80 @@ void main() {
       expect(mapped.detail, 'rgba must be RRGGBBAA');
       expect(mapped.path, '/api/v1/inventory/spools');
     });
+  });
+
+  group('what a swallowed failure leaves behind', () {
+    late DiagnosticRecorder recorder;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      recorder = testRecorder();
+      addTearDown(recorder.discard);
+      await recorder.start();
+    });
+
+    Future<List<Map<String, dynamic>>> degraded() async {
+      final jsonl = await recorder.stop();
+      return [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, dynamic> row
+              when row['evt'] == 'degraded')
+            row,
+      ];
+    }
+
+    test('a dropped fetch names the call it dropped', () async {
+      expect(await guardOrNull<int>(() async => throw _badResponse(500)), null);
+
+      final rows = await degraded();
+      expect(rows, hasLength(1));
+      expect(rows.single['src'], 'http');
+      expect(rows.single['lvl'], 'warn');
+      expect(rows.single['cause'], 'badResponse');
+      expect(rows.single['status'], 500);
+      expect(rows.single['method'], 'GET');
+      expect(rows.single['path'], '/api/v1/auth/login');
+    });
+
+    test(
+      'a parse failure is recorded too — the probe never sees one',
+      () async {
+        // A `TypeError` off a response the parser could not read is the half of
+        // this that leaves no `http` record at all.
+        expect(await guardOrNull<int>(() async => throw TypeError()), isNull);
+
+        final rows = await degraded();
+        expect(rows, hasLength(1));
+        expect(rows.single['cause'], contains('Error'));
+        expect(rows.single['status'], isNull);
+      },
+    );
+
+    test(
+      'the 403 only the forbidden-tolerant guard swallows is recorded',
+      () async {
+        expect(
+          await guardOrNullAllowingForbidden<int>(
+            () async => throw _badResponse(403),
+          ),
+          isNull,
+        );
+
+        expect((await degraded()).single['cause'], 'forbidden');
+      },
+    );
+
+    test(
+      'an auth failure is not swallowed, so it is not logged here',
+      () async {
+        await expectLater(
+          guardOrNull<int>(() async => throw _badResponse(401)),
+          throwsA(isA<AuthException>()),
+        );
+
+        expect(await degraded(), isEmpty);
+      },
+    );
   });
 }
 

@@ -126,6 +126,19 @@ failed save indistinguishable from a successful one.
 Reading a report, the record says which control was touched, which call it made,
 that it reached the user, and how it was worded to them.
 
+## What nobody was told: `http degraded`
+
+The mirror image of `action_failed`. `guardOrNull` and
+`guardOrNullAllowingForbidden` swallow a failure on purpose — one unreachable
+printer must not empty the dashboard — and the screen then renders as though
+nothing had happened. The log used to render the same way: "the card shows no
+filament" arrived as a screenshot of a working app.
+
+The record carries the `cause` (the error code, or the exception's runtime type
+where nothing mapped), the `status`, and the `method` and `path` of the call
+that was dropped. A `TypeError` from a response the parser could not read never
+reaches `HttpProbe` at all, so for that half this record is the only trace.
+
 ## Repeats
 
 Three lanes collapse consecutive identical events into a count, for the same

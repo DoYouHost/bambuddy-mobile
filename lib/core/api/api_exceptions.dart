@@ -170,8 +170,10 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
   } on DioException catch (e) {
     final mapped = mapDioException(e);
     if (mapped is AuthException) throw mapped;
+    _logDegraded(mapped.code.name, mapped);
     return null;
-  } on Object {
+  } on Object catch (error) {
+    _logDegraded(error.runtimeType.toString(), null);
     return null;
   }
 }
@@ -193,11 +195,34 @@ Future<T?> guardOrNullAllowingForbidden<T>(Future<T?> Function() body) async {
     if (mapped is AuthException && mapped.code != AppErrorCode.forbidden) {
       throw mapped;
     }
+    _logDegraded(mapped.code.name, mapped);
     return null;
-  } on Object {
+  } on Object catch (error) {
+    _logDegraded(error.runtimeType.toString(), null);
     return null;
   }
 }
+
+/// The one failure this app makes invisible on purpose: the screen renders
+/// without the missing piece and says nothing, so "the dashboard shows no
+/// printer" reaches a report as a screenshot of a working app. The `http`
+/// record shows the failed request but not the decision to carry on without it
+/// — and a `TypeError` from a response the parser could not read never reaches
+/// the probe at all. Field list: `docs/diagnostics-log.md`.
+void _logDegraded(String cause, AppApiException? failure) =>
+    DiagnosticRecorder.active?.add(
+      LogSource.http,
+      'degraded',
+      lvl: LogLevel.warn,
+      fields: {
+        'cause': cause,
+        'status': failure?.statusCode,
+        // Which call the screen carried on without; with several in flight the
+        // surrounding `http` records cannot say.
+        'method': failure?.method,
+        'path': failure?.path == null ? null : loggablePath(failure!.path!),
+      },
+    );
 
 /// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
 /// enforcing rules the app deliberately does not re-implement — "Cannot delete
