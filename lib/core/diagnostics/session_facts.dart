@@ -31,8 +31,13 @@ Future<Map<String, String>> sessionSecrets({
   if (apiKey != null) secrets[apiKey] = '[APIKEY]';
   if (jwt != null) secrets[jwt] = '[JWT]';
 
-  final host = profile == null ? null : Uri.tryParse(profile.baseUrl)?.host;
-  if (host != null && host.isNotEmpty) secrets[host] = '[HOST]';
+  // Not in demo mode: the demo host is a constant shipped in the APK, there is
+  // nothing to protect, and registering it would mask that word everywhere it
+  // legitimately appears — `LogRedactor` replaces a known value as a substring.
+  if (profile != null && !profile.isDemo) {
+    final host = Uri.tryParse(profile.baseUrl)?.host;
+    if (host != null && host.isNotEmpty) secrets[host] = '[HOST]';
+  }
 
   return secrets;
 }
