@@ -264,6 +264,27 @@ void main() {
       });
     });
 
+    test('a re-login that throws still falls back to backoff', () {
+      fakeAsync((async) {
+        final (:client, :conns) = build(
+          refreshAuth: () async => throw StateError('keystore'),
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail(_rejected(401));
+        async.flushMicrotasks();
+        expect(client.state, WsConnectionState.waitingRetry);
+
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(conns, hasLength(2));
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
     test('a non-auth error (no connectivity) does not trigger re-login', () {
       fakeAsync((async) {
         var refreshCalls = 0;

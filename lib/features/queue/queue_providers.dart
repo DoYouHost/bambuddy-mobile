@@ -40,14 +40,15 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     return _activeSorted(all);
   }
 
+  static int _printingFirst(QueueItem i) =>
+      i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
+
   List<QueueItem> _activeSorted(List<QueueItem> items) {
     // Printing always on top (pinned, non-reorderable in UI), then rest by
     // `position` with `id` as tiebreaker: server defaults all to `position == 1`
     // until queue is arranged, so stable tiebreaker is needed or order is undefined.
-    int printingFirst(QueueItem i) =>
-        i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
     return items.where((i) => i.isActive).toList()..sort((a, b) {
-      final byPrinting = printingFirst(a).compareTo(printingFirst(b));
+      final byPrinting = _printingFirst(a).compareTo(_printingFirst(b));
       if (byPrinting != 0) return byPrinting;
       final byPos = a.position.compareTo(b.position);
       return byPos != 0 ? byPos : a.id.compareTo(b.id);
@@ -71,7 +72,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// `oldIndex`, so insert without additional correction. Send SEQUENTIAL positions
   /// 1..N in new order to server — "bulk update positions" endpoint expects target
   /// values, and all items default to `position == 1` (verified live, see reorder in
-  /// contract). Error → rollback to pre-drag state.
+  /// contract). Error → rollback to pre-drag order, see [_inOrderOf].
   Future<ActionOutcome> reorder(int oldIndex, int newIndex) async {
     final current = state.valueOrNull;
     // No rows are rendered while the queue is unloaded, so there was nothing
@@ -89,10 +90,33 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     try {
       await ref.read(queueRepositoryProvider).reorder(payload);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      state = AsyncValue.data(current); // rollback
+    } catch (e) {
+      final live = state.valueOrNull;
+      if (live != null) state = AsyncValue.data(_inOrderOf(current, live));
+      if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: 'queue.reorder');
     }
+  }
+
+  /// The rows as they are *now*, in the order [before] showed them — the
+  /// rollback for both optimistic edits. Putting [before] itself back would
+  /// also resurrect a row deleted, or finished by a refresh, while the request
+  /// was in the air.
+  ///
+  /// Not [_activeSorted]: a reorder that succeeded leaves the rows' `position`
+  /// fields as they were, so sorting by them would undo it.
+  List<QueueItem> _inOrderOf(List<QueueItem> before, List<QueueItem> rows) {
+    final slot = {for (final (i, item) in before.indexed) item.id: i};
+    // A row a refresh brought in has no old slot and keeps its order behind
+    // the known ones.
+    final rank = {
+      for (final (i, item) in rows.indexed)
+        item.id: slot[item.id] ?? before.length + i,
+    };
+    return [...rows]..sort((a, b) {
+      final byPrinting = _printingFirst(a).compareTo(_printingFirst(b));
+      return byPrinting != 0 ? byPrinting : rank[a.id]!.compareTo(rank[b.id]!);
+    });
   }
 
   /// Optimistic delete (swipe-to-delete). Error → restore item.
@@ -115,22 +139,19 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } catch (e) {
       // Any failure puts the row back; only a refusal is an answer.
-      if (index >= 0) _putBack(current[index]);
+      if (index >= 0) _putBack(current[index], current);
       if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: logId);
     }
   }
 
-  /// Rollback of one optimistic removal into the list as it is *now*, not the
-  /// snapshot from before the request: that one also undid rows removed and
-  /// polls landed in the meantime. Sorted again rather than put back at its old
-  /// index, which the rows around it may have moved away from — and a printing
-  /// row belongs on top whatever index it had.
-  void _putBack(QueueItem item) {
+  /// Rollback of one optimistic removal into the list as it is *now*, in the
+  /// order the swipe was made on — see [_inOrderOf].
+  void _putBack(QueueItem item, List<QueueItem> before) {
     final list = state.valueOrNull;
     // A refresh that landed meanwhile already holds the row the server kept.
     if (list == null || list.any((i) => i.id == item.id)) return;
-    state = AsyncValue.data(_activeSorted([...list, item]));
+    state = AsyncValue.data(_inOrderOf(before, [...list, item]));
   }
 
   /// Manually start item — triggers physical print. On success, fetch fresh list

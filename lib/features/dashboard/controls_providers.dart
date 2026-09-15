@@ -543,11 +543,14 @@ class ControlsNotifier extends Notifier<ControlsState> {
       _setPending(id, _withoutInFlight(state.pendingFor(id), action));
       if (clearKey != null) _scheduleClear(id, clearKey);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
+    } catch (e) {
       // Rollback: remove "in flight" and restore override to pre-action state.
+      // On any failure — a lock left behind keeps the button dead until the
+      // server profile changes.
       var rolled = _withoutInFlight(state.pendingFor(id), action);
       if (rollback != null) rolled = rollback(before, rolled);
       _setPending(id, rolled);
+      if (e is! AppApiException) rethrow;
 
       final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
       // One refusal answers for every route behind the same gate, and for none

@@ -11,11 +11,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Four pending rows, and every delete waits for the test to answer it.
+/// Four pending rows, and every write waits for the test to answer it.
 class _HeldDeletes extends QueueRepository {
   _HeldDeletes() : super(Dio());
 
   final deletes = <int, Completer<void>>{};
+  Completer<void>? reorders;
+
+  @override
+  Future<void> reorder(List<({int id, int position})> positions) =>
+      (reorders = Completer()).future;
 
   @override
   Future<List<QueueItem>> fetchActive() async => [
@@ -44,6 +49,8 @@ Future<(_HeldDeletes, ProviderContainer)> open() async {
   await container.read(queueProvider.future);
   return (repository, container);
 }
+
+const _refused = ApiException(AppErrorCode.badResponse, statusCode: 500);
 
 void main() {
   test('a failed delete does not bring back a row deleted meanwhile', () async {
@@ -86,6 +93,46 @@ void main() {
     repository.deletes[2]!.completeError(StateError('bug'));
 
     await expectLater(delete, throwsStateError);
+    expect(ids(container), [1, 2, 3, 4]);
+  });
+  test(
+    'a failed reorder restores the order, not a row deleted meanwhile',
+    () async {
+      final (repository, container) = await open();
+      final notifier = container.read(queueProvider.notifier);
+
+      final reorder = notifier.reorder(0, 2);
+      expect(ids(container), [2, 3, 1, 4]);
+      final delete = notifier.delete(3);
+      repository.deletes[3]!.complete();
+      await delete;
+      repository.reorders!.completeError(_refused);
+      await reorder;
+
+      expect(ids(container), [1, 2, 4]);
+    },
+  );
+
+  test('a failed delete keeps a reorder that already landed', () async {
+    final (repository, container) = await open();
+    final notifier = container.read(queueProvider.notifier);
+
+    final reorder = notifier.reorder(0, 2);
+    repository.reorders!.complete();
+    await reorder;
+    final delete = notifier.delete(3);
+    repository.deletes[3]!.completeError(_refused);
+    await delete;
+
+    expect(ids(container), [2, 3, 1, 4]);
+  });
+
+  test('an unexpected reorder failure still restores the order', () async {
+    final (repository, container) = await open();
+    final reorder = container.read(queueProvider.notifier).reorder(0, 2);
+    repository.reorders!.completeError(StateError('bug'));
+
+    await expectLater(reorder, throwsStateError);
     expect(ids(container), [1, 2, 3, 4]);
   });
 }

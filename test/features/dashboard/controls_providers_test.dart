@@ -163,6 +163,20 @@ void main() {
     expect(st.isRefused(ControlPermission.control), false);
   });
 
+  test('an unexpected failure still unlocks and rolls back', () async {
+    final fake = _FakeCommands()..error = StateError('bug');
+    final c = _container(fake);
+
+    await expectLater(
+      c.read(controlsProvider.notifier).setSpeed(1, 3),
+      throwsStateError,
+    );
+
+    final pending = c.read(controlsProvider).pendingFor(1);
+    expect(pending.speedLevel, isNull);
+    expect(pending.isBusy(ControlAction.speed), isFalse);
+  });
+
   test('403 → refusal and a sticky control block', () async {
     final fake = _FakeCommands()
       ..error = const AuthException(AppErrorCode.forbidden);

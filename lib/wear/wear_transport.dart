@@ -330,6 +330,10 @@ class RestTransport implements WearTransport {
   @override
   Future<WearFleet> getFleet() async {
     final printers = _printers.fetchAll();
+    // Its failure is delivered by the `await` below, but that comes after the
+    // queue fetch — a server that is down fails this one first, and an error
+    // with nobody listening yet is reported as uncaught on every poll.
+    printers.ignore();
     int? pending;
     try {
       // Filtered server-side (see the relay handler): the watch shows a count,

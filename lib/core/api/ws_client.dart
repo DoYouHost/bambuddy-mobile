@@ -345,7 +345,16 @@ class WsClient {
         !_authRefreshed &&
         _isAuthError(error)) {
       _authRefreshed = true;
-      final refreshed = await _refreshAuth();
+      bool refreshed;
+      try {
+        refreshed = await _refreshAuth();
+      } on Object {
+        // A keystore read that threw is a failed re-login like any other. Let
+        // out, it ended this attempt with no retry scheduled and `_running`
+        // still true, so nothing short of a suspend would ever dial again —
+        // and the background service never suspends.
+        refreshed = false;
+      }
       if (generation != _generation || !_running || _disposed) return;
       if (refreshed) {
         _backoff.reset();
