@@ -89,6 +89,12 @@ Future<ApiClient?> buildBackgroundApiClient(
   CredentialsStore? credentials,
   AuthService? auth,
 }) async {
+  // Both or neither: an [auth] given without its store would re-login through
+  // one store while the client read tokens from another.
+  assert(
+    (credentials == null) == (auth == null),
+    'pass credentials and auth together',
+  );
   final settings = SettingsRepository(prefs);
   final profile = settings.loadProfile();
   if (profile == null) return null;

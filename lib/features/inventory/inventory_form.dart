@@ -824,7 +824,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       valueStyle: t.monoValue,
       leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
       trailingIcon: Icons.colorize,
-      onTap: () => _openColorPicker(l10n),
+      onTap: _openColorPicker,
       // The row this shares with the colour-name field carries the spacing.
       padding: EdgeInsets.zero,
     );
@@ -833,7 +833,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Saves the picked colour as `RRGGBBAA` into `rgba`, keeping the existing
   /// alpha byte (usually `FF`): the wheel edits RGB only, so a spool's alpha is
   /// not lost.
-  Future<void> _openColorPicker(AppLocalizations l10n) async {
+  Future<void> _openColorPicker() async {
     final rawCurrent = _c['rgba']!.text.trim().replaceFirst('#', '');
     final alphaHex = rawCurrent.length == 8
         ? rawCurrent.substring(6, 8).toUpperCase()

@@ -1268,7 +1268,9 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
       if (mounted && request == _previewRequest) {
         setState(() => _preview = AsyncValue.data(preview));
       }
-    } on AppApiException catch (e, st) {
+    } catch (e, st) {
+      // Any failure, not only a refusal: anything else left the dialog on its
+      // loading bar for good, with the confirm button dead.
       if (mounted && request == _previewRequest) {
         setState(() => _preview = AsyncValue.error(e, st));
       }

@@ -22,9 +22,13 @@ class _HeldWrites extends ArchiveRepository {
   Future<void> delete(int archiveId, {bool purgeStats = false}) =>
       (deletes[archiveId] = Completer()).future;
 
+  int favoriteCalls = 0;
+
   @override
-  Future<Archive> toggleFavorite(int archiveId) =>
-      (favorites[archiveId] = Completer()).future;
+  Future<Archive> toggleFavorite(int archiveId) {
+    favoriteCalls++;
+    return (favorites[archiveId] = Completer()).future;
+  }
 }
 
 const _refused = ApiException(AppErrorCode.badResponse, statusCode: 500);
@@ -82,6 +86,40 @@ void main() {
       container.read(archiveProvider).requireValue.first.isFavorite,
       isFalse,
     );
+  });
+
+  test(
+    'a second tap on a star still waiting is not a second request',
+    () async {
+      final first = notifier().toggleFavorite(1);
+      expect(await notifier().toggleFavorite(1), isTrue);
+      expect(repository.favoriteCalls, 1);
+
+      repository.favorites[1]!.complete(_row(1));
+      expect(await first, isTrue);
+      // Settled, so the next tap goes out again.
+      unawaited(notifier().toggleFavorite(1));
+      expect(repository.favoriteCalls, 2);
+    },
+  );
+
+  test('an unexpected failure still rolls the row back', () async {
+    final delete = notifier().delete(2, purgeStats: false);
+    repository.deletes[2]!.completeError(StateError('bug'));
+
+    await expectLater(delete, throwsStateError);
+    expect(ids(), [1, 2, 3]);
+  });
+
+  test('a bulk delete drops each row as its delete lands', () async {
+    final bulk = notifier().deleteMany({1, 2}, purgeStats: false);
+    repository.deletes[1]!.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(ids(), [2, 3]);
+
+    repository.deletes[2]!.complete();
+    expect(await bulk, (ok: 2, failed: 0));
+    expect(ids(), [3]);
   });
 
   test('a bulk delete keeps what changed while it ran', () async {

@@ -29,36 +29,43 @@ class _HeldPreviews extends ArchiveRepository {
   }) => (pending[olderThanDays] = Completer()).future;
 }
 
+/// The archive screen with [repository] behind it, and its purge dialog open.
+Future<AppLocalizations> _openDialog(
+  WidgetTester tester,
+  _HeldPreviews repository,
+) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        archiveListOverride(const [
+          Archive(id: 1, filename: 'a.gcode.3mf', status: 'completed'),
+        ]),
+        no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        archiveRepositoryProvider.overrideWithValue(repository),
+        noServerProfileOverride,
+      ],
+      child: plApp(const ArchiveScreen()),
+    ),
+  );
+  await tester.pumpAndSettle();
+  final l10n = AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
+
+  await tester.tap(find.byType(PopupMenuButton<String>));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(l10n.archivePurgeOlder));
+  await tester.pump();
+  await tester.pump();
+  return l10n;
+}
+
 void main() {
   testWidgets('a late answer for an older threshold does not replace the '
       'newer preview', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
     final repository = _HeldPreviews();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          archiveListOverride(const [
-            Archive(id: 1, filename: 'a.gcode.3mf', status: 'completed'),
-          ]),
-          no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          archiveRepositoryProvider.overrideWithValue(repository),
-          noServerProfileOverride,
-        ],
-        child: plApp(const ArchiveScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final l10n = AppLocalizations.of(
-      tester.element(find.byType(ArchiveScreen)),
-    );
-
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.archivePurgeOlder));
-    await tester.pump();
-    await tester.pump();
+    final l10n = await _openDialog(tester, repository);
 
     // The dialog asked for its default threshold; switch before it answers.
     // `pumpAndSettle` would wait on the loading bar forever.
@@ -78,5 +85,18 @@ void main() {
 
     expect(find.textContaining('50'), findsOneWidget);
     expect(find.textContaining('3 '), findsNothing);
+  });
+
+  testWidgets('an unexpected failure shows the error, not an endless bar', (
+    tester,
+  ) async {
+    final repository = _HeldPreviews();
+    final l10n = await _openDialog(tester, repository);
+
+    repository.pending[90]!.completeError(StateError('bug'));
+    await tester.pump();
+
+    expect(find.text(l10n.archivePurgePreviewError), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 }

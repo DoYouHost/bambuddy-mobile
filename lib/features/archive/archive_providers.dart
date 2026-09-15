@@ -198,12 +198,21 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     );
   }
 
+  /// Archives whose favorite toggle is still waiting for the server.
+  final _favoriteInFlight = <int>{};
+
   /// Toggle an archive's favorite flag. Flips locally at once for instant
   /// feedback, then reconciles with the server's returned value; on error the
   /// flag goes back and `false` is returned.
+  ///
+  /// A second tap on the same star before the first answers is ignored. The
+  /// route toggles rather than sets, and two overlapping requests that both
+  /// fail roll back in whichever order they land — the star could end up
+  /// showing the opposite of what the server holds.
   Future<bool> toggleFavorite(int archiveId) async {
     final current = state.valueOrNull;
     if (current == null) return false;
+    if (!_favoriteInFlight.add(archiveId)) return true;
     final before = current.firstWhereOrNull((a) => a.id == archiveId);
 
     _patchRow(archiveId, (a) => a.withFavorite(!a.isFavorite));
@@ -213,13 +222,18 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
           .toggleFavorite(archiveId);
       replace(updated);
       return true;
-    } on AppApiException {
+    } catch (e) {
       // Just this row's flag: the list may have changed while the request was
-      // out, and a whole-list snapshot would undo that too.
+      // out, and a whole-list snapshot would undo that too. Rolled back on any
+      // failure, so an unexpected one does not leave a star the server never
+      // set; only a refusal is an answer, the rest goes on up.
       if (before != null) {
         _patchRow(archiveId, (a) => a.withFavorite(before.isFavorite));
       }
+      if (e is! AppApiException) rethrow;
       return false;
+    } finally {
+      _favoriteInFlight.remove(archiveId);
     }
   }
 
@@ -253,8 +267,10 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
           .read(archiveRepositoryProvider)
           .delete(archiveId, purgeStats: purgeStats);
       return true;
-    } on AppApiException {
+    } catch (e) {
+      // Any failure puts the row back; only a refusal is an answer.
       if (index >= 0) _putBack(current[index], index);
+      if (e is! AppApiException) rethrow;
       return false;
     }
   }
@@ -269,6 +285,15 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     state = AsyncValue.data([...list]..insert(min(index, list.length), row));
   }
 
+  void _removeRow(int archiveId) {
+    final list = state.valueOrNull;
+    if (list == null) return;
+    state = AsyncValue.data([
+      for (final a in list)
+        if (a.id != archiveId) a,
+    ]);
+  }
+
   /// Delete several prints (multi-select). No bulk-by-id endpoint exists, so
   /// each is deleted individually; successful ones are dropped from the list,
   /// failed ones are kept. Returns how many succeeded / failed.
@@ -280,23 +305,21 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     if (current == null) return (ok: 0, failed: ids.length);
 
     final repo = ref.read(archiveRepositoryProvider);
-    final deleted = <int>{};
+    var deleted = 0;
     var failed = 0;
     for (final id in ids) {
       try {
         await repo.delete(id, purgeStats: purgeStats);
-        deleted.add(id);
+        deleted++;
+        // Row by row, from the list as it is now: the deletes run one at a
+        // time, so the screen follows them instead of jumping at the end, and
+        // whatever changed in between survives.
+        _removeRow(id);
       } on AppApiException {
         failed++;
       }
     }
-    // From the list as it is after the loop, not from `current`: the deletes
-    // run one by one, and whatever changed during them has to survive.
-    state = AsyncValue.data([
-      for (final a in state.valueOrNull ?? current)
-        if (!deleted.contains(a.id)) a,
-    ]);
-    return (ok: deleted.length, failed: failed);
+    return (ok: deleted, failed: failed);
   }
 }
 

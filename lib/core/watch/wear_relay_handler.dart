@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../../data/printer_commands_repository.dart';
@@ -136,26 +137,44 @@ class WearRelayHandler {
     WearRpcResponse res;
     try {
       res = await _execute(req);
-    } on StateError catch (e) {
+    } on StateError catch (e, stack) {
       // startNext with nothing pending is a first-class outcome, not a crash.
-      // Any other StateError is a bug, and its message is no code the watch
-      // knows — it goes out as the generic one.
-      res = WearRpcResponse.failure(
-        req.id,
-        e.message == 'empty-queue' ? e.message : 'phone-error',
-      );
+      if (e.message == 'empty-queue') {
+        res = WearRpcResponse.failure(req.id, e.message);
+      } else {
+        res = _unexpected(req, e, stack);
+      }
     } on AppApiException catch (e) {
       // The code drives the watch's own wording; the detail is what the server
       // said, and on a 403 it is the only place the missing permission appears.
       res = WearRpcResponse.failure(req.id, e.code.name, reason: e.detail);
-    } catch (_) {
-      res = WearRpcResponse.failure(req.id, 'phone-error');
+    } catch (e, stack) {
+      res = _unexpected(req, e, stack);
     }
     try {
       await _watch.sendMessage(res.encode());
     } catch (_) {
       // Watch went out of reach mid-request; its timeout handles the rest.
     }
+  }
+
+  /// A bug on the phone: the watch gets the generic code, and the error with
+  /// its stack goes to `ErrorProbe` (`err/uncaught`) — the only place a report
+  /// about a dead watch button can find out what actually failed.
+  WearRpcResponse _unexpected(
+    WearRpcRequest req,
+    Object error,
+    StackTrace stack,
+  ) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'bambuddy wear relay',
+        context: ErrorDescription('answering ${req.action.name}'),
+      ),
+    );
+    return WearRpcResponse.failure(req.id, 'phone-error');
   }
 
   Future<WearRpcResponse> _execute(WearRpcRequest req) async {

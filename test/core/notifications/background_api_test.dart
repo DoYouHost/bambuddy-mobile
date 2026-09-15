@@ -55,4 +55,17 @@ void main() {
       expect(auth.reLogins, 1);
     },
   );
+
+  test('an AuthService without its store is refused', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await expectLater(
+      buildBackgroundApiClient(
+        prefs,
+        auth: _CountingAuth(InMemoryCredentialsStore()),
+      ),
+      throwsA(isA<AssertionError>()),
+    );
+  });
 }

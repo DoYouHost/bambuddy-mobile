@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/watch/wear_relay_claim.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -382,7 +383,12 @@ void main() {
 
   test('any other StateError is a phone-error, not a code', () async {
     // Only `empty-queue` is an outcome; a stray "Bad state" message used to
-    // reach the watch as if it were one.
+    // reach the watch as if it were one. And it is a bug, so it is reported
+    // with its stack rather than swallowed.
+    final reported = <FlutterErrorDetails>[];
+    final previous = FlutterError.onError;
+    FlutterError.onError = reported.add;
+    addTearDown(() => FlutterError.onError = previous);
     final handler = WearRelayHandler(
       watch: watch,
       dio: () => throw StateError('No element'),
@@ -395,6 +401,8 @@ void main() {
 
     expect(res.ok, isFalse);
     expect(res.error, 'phone-error');
+    expect(reported.single.exception, isA<StateError>());
+    expect(reported.single.stack, isNotNull);
   });
 
   test('hmsAction relays the fault verbatim to the server', () async {
