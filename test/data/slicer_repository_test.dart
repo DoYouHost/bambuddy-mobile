@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
@@ -50,6 +51,26 @@ void main() {
 
       expect(await repo.presetValues(preset), isNull);
       expect(await repo.supportsProcessOverrides(), isFalse);
+    });
+
+    test('a 404 outranks a version that says the route is there', () async {
+      // The observation is the whole point of the gate: a server reporting
+      // 1.2.6 whose route still 404s (a sidecar behind the API, a build with
+      // the feature off) must hide the panel, not collect edits nothing reads.
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '1.2.6', 'repo': 'x/y'}),
+      );
+      adapter.onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(404, {'detail': 'Not Found'}),
+        queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
+      );
+      final versioned = SlicerRepository(dio, ServerVersionService(dio));
+
+      expect(await versioned.supportsProcessOverrides(), isTrue);
+      expect(await versioned.presetValues(preset), isNull);
+      expect(await versioned.supportsProcessOverrides(), isFalse);
     });
 
     test('resolved:false is NOT missing support — the route answered', () async {

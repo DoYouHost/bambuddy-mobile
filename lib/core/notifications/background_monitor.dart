@@ -4,36 +4,29 @@ import '../../l10n/app_locale.dart';
 import 'background_sync.dart';
 import 'print_monitor_task_handler.dart';
 
-/// Mechanism for maintaining print monitoring when the app is not in the foreground.
-/// The abstraction intentionally doesn't know transport details — lifecycle code
-/// only calls [start]/[stop].
-///
-/// Future extension point: `PushMonitor implements BackgroundMonitor` could
-/// register the device for server-side notifications (ntfy/FCM) instead of
-/// holding a foreground service. Then swapping the implementation in
-/// `backgroundMonitorProvider` would work without changes to the rest of the app.
 /// The foreground service's own notification. Passed explicitly because the
-/// plugin otherwise picks 1000 for itself — which is where the print alert bands
-/// start, so an alert for the printer with that row id would have taken the
-/// service's notification over and the next service update would have wiped the
-/// alert. Kept below every band in [PrintMonitor].
+/// plugin otherwise picks 1000 — where the print alert bands start, so an alert
+/// for the printer with that row id would take the service's notification over
+/// and the next service update would wipe the alert. Kept below every band in
+/// [PrintMonitor].
 const int foregroundServiceNotificationId = 1;
 
+/// Keeping print monitoring alive while the app is not in the foreground.
+/// Knows no transport details on purpose — lifecycle code only calls
+/// [start]/[stop].
 abstract class BackgroundMonitor {
   /// Starts monitoring in the background (idempotent).
   ///
-  /// Returns whether it actually started something. False means monitoring was
-  /// already running — which matters more than it looks: a service left over from
-  /// before never runs its start-up code again, so anything the app decided since
-  /// then has not reached it.
+  /// Returns whether it actually started something. False means a service was
+  /// already running — and one left over from before never runs its start-up
+  /// code again, so anything the app decided since has not reached it.
   Future<bool> start();
 
   /// Stops monitoring in the background (idempotent).
   ///
-  /// Returns whether it actually stopped something, the mirror of [start]:
-  /// false means nothing was running. Callers log against this rather than
-  /// against having asked, so a stop only reaches the record when a service
-  /// really ended.
+  /// Returns whether it actually stopped something. Callers log against this
+  /// rather than against having asked, so a stop only reaches the record when a
+  /// service really ended.
   Future<bool> stop();
 
   /// Whether monitoring is currently running.
@@ -41,15 +34,12 @@ abstract class BackgroundMonitor {
 
   /// Tells a monitor that is already running to re-read [what] from preferences.
   ///
-  /// Why it is needed at all is [BackgroundSync]'s own doc. The first fact to
-  /// need it was the diagnostics session: without this, the background half of a
-  /// bug report is simply absent for anyone who has ever swiped the app away,
-  /// and absent looks exactly like "the service did nothing".
+  /// Why it is needed at all is [BackgroundSync]'s own doc.
   void sync(BackgroundSync what);
 }
 
-/// Implementation using `flutter_foreground_task`: hosts [PrintMonitorTaskHandler]
-/// in a separate isolate inside an actual Android foreground service.
+/// Hosts [PrintMonitorTaskHandler] in its own isolate inside a real Android
+/// foreground service.
 class ForegroundServiceMonitor implements BackgroundMonitor {
   @override
   Future<bool> start() async {
