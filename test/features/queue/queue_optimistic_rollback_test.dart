@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -19,14 +20,21 @@ class _HeldDeletes extends QueueRepository {
   Completer<void>? reorders;
 
   @override
-  Future<void> reorder(List<({int id, int position})> positions) =>
-      (reorders = Completer()).future;
+  Future<void> reorder(List<({int id, int position})> positions) {
+    reorderCalls++;
+    return (reorders = Completer()).future;
+  }
 
-  @override
-  Future<List<QueueItem>> fetchActive() async => [
+  /// What the server holds; a test changes it before a refresh.
+  var active = [
     for (final id in [1, 2, 3, 4])
       QueueItem(id: id, position: id, status: 'pending'),
   ];
+
+  @override
+  Future<List<QueueItem>> fetchActive() async => active;
+
+  int reorderCalls = 0;
 
   @override
   Future<void> delete(int itemId) => (deletes[itemId] = Completer()).future;
@@ -133,6 +141,64 @@ void main() {
     repository.reorders!.completeError(StateError('bug'));
 
     await expectLater(reorder, throwsStateError);
+    expect(ids(container), [1, 2, 3, 4]);
+  });
+  test(
+    'a failed delete keeps a reorder that landed while it was out',
+    () async {
+      final (repository, container) = await open();
+      final notifier = container.read(queueProvider.notifier);
+
+      final delete = notifier.delete(4);
+      final reorder = notifier.reorder(1, 0);
+      repository.reorders!.complete();
+      await reorder;
+      expect(ids(container), [2, 1, 3]);
+      repository.deletes[4]!.completeError(_refused);
+      await delete;
+
+      expect(ids(container), [2, 1, 3, 4]);
+    },
+  );
+
+  test('a row a refresh added keeps its place through a rollback', () async {
+    final (repository, container) = await open();
+    final notifier = container.read(queueProvider.notifier);
+
+    final reorder = notifier.reorder(0, 2);
+    // Added on the web UI at the front, and the server has no drag yet.
+    repository.active = [
+      const QueueItem(id: 9, position: 0, status: 'pending'),
+      ...repository.active,
+    ];
+    await notifier.refresh();
+    repository.reorders!.completeError(_refused);
+    await reorder;
+
+    expect(ids(container), [9, 1, 2, 3, 4]);
+  });
+
+  test('a drag while another is out is dropped, not sent', () async {
+    final (repository, container) = await open();
+    final notifier = container.read(queueProvider.notifier);
+
+    final first = notifier.reorder(0, 2);
+    expect(await notifier.reorder(3, 0), same(ActionOutcome.ok));
+    expect(repository.reorderCalls, 1);
+    expect(ids(container), [2, 3, 1, 4]);
+
+    repository.reorders!.completeError(_refused);
+    await first;
+    expect(ids(container), [1, 2, 3, 4]);
+  });
+
+  test('indices from a list that has since shrunk change nothing', () async {
+    final (repository, container) = await open();
+    final notifier = container.read(queueProvider.notifier);
+
+    expect(await notifier.reorder(4, 0), same(ActionOutcome.ok));
+    expect(await notifier.reorder(0, 4), same(ActionOutcome.ok));
+    expect(repository.reorderCalls, 0);
     expect(ids(container), [1, 2, 3, 4]);
   });
 }

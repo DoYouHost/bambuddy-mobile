@@ -12,16 +12,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _down = ApiException(AppErrorCode.connectionError);
 
-class _DownPrinters extends PrintersRepository {
-  _DownPrinters() : super(Dio());
+class _Printers extends PrintersRepository {
+  _Printers({this.down = false}) : super(Dio());
+
+  final bool down;
 
   @override
-  Future<List<PrinterWithStatus>> fetchAll() async => throw _down;
+  Future<List<PrinterWithStatus>> fetchAll() async => down ? throw _down : [];
 }
 
-/// Answers only when the test says so, so the printer list fails first.
-class _HeldQueue extends QueueRepository {
-  _HeldQueue() : super(Dio());
+/// Answers when the test says so.
+class _Queue extends QueueRepository {
+  _Queue() : super(Dio());
 
   final answer = Completer<List<QueueItem>>();
 
@@ -30,23 +32,27 @@ class _HeldQueue extends QueueRepository {
       answer.future;
 }
 
-void main() {
-  test('a printer list that fails before the queue answers is not reported as '
-      'uncaught', () async {
-    final queue = _HeldQueue();
-    final transport = RestTransport(
-      printers: _DownPrinters(),
+RestTransport _transport(PrintersRepository printers, QueueRepository queue) =>
+    RestTransport(
+      printers: printers,
       commands: PrinterCommandsRepository(Dio()),
       queue: queue,
       serverVersion: ServerVersionService(Dio()),
     );
 
-    final fleet = transport.getFleet();
-    // Lets the printer fetch fail while the queue is still out; an uncaught
-    // error here fails the test on its own.
-    await Future<void>.delayed(Duration.zero);
-    queue.answer.complete(const []);
+void main() {
+  test('a printer list that fails does not wait for the queue', () async {
+    // The queue never answers; an uncaught error would fail the test too.
+    final fleet = _transport(_Printers(down: true), _Queue()).getFleet();
 
     await expectLater(fleet, throwsA(same(_down)));
+  });
+
+  test('a queue that fails in any way only makes the count unknown', () async {
+    final queue = _Queue()..answer.completeError(TypeError());
+    final fleet = await _transport(_Printers(), queue).getFleet();
+
+    expect(fleet.printers, isEmpty);
+    expect(fleet.queuePending, isNull);
   });
 }

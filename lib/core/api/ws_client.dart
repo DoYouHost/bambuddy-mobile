@@ -5,6 +5,7 @@ import 'dart:io' show WebSocketException;
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../diagnostics/auth_probe.dart';
 import '../diagnostics/ws_probe.dart';
 import '../models/printer_status.dart';
 import 'ws_backoff.dart';
@@ -348,11 +349,13 @@ class WsClient {
       bool refreshed;
       try {
         refreshed = await _refreshAuth();
-      } on Object {
-        // A keystore read that threw is a failed re-login like any other. Let
-        // out, it ended this attempt with no retry scheduled and `_running`
-        // still true, so nothing short of a suspend would ever dial again —
-        // and the background service never suspends.
+      } on Object catch (e) {
+        // Let out, this ended the attempt with no retry scheduled, and the
+        // background service never suspends to start another. Unlike a refusal
+        // a throw (a keystore read) says nothing about the credentials, so the
+        // next attempt may log in again.
+        AuthProbe.refreshStepFailed(e);
+        _authRefreshed = false;
         refreshed = false;
       }
       if (generation != _generation || !_running || _disposed) return;

@@ -264,10 +264,14 @@ void main() {
       });
     });
 
-    test('a re-login that throws still falls back to backoff', () {
+    test('a re-login that throws backs off and may log in again', () {
       fakeAsync((async) {
+        var refreshCalls = 0;
         final (:client, :conns) = build(
-          refreshAuth: () async => throw StateError('keystore'),
+          refreshAuth: () async {
+            refreshCalls++;
+            throw StateError('keystore');
+          },
         );
         client.start();
         async.flushMicrotasks();
@@ -279,6 +283,11 @@ void main() {
         async.elapse(const Duration(seconds: 1));
         async.flushMicrotasks();
         expect(conns, hasLength(2));
+
+        // A throw is not a refusal, so the next rejection tries again.
+        conns[1].connectFail(_rejected(401));
+        async.flushMicrotasks();
+        expect(refreshCalls, 2);
 
         client.dispose();
         async.flushMicrotasks();

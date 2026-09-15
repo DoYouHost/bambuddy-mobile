@@ -329,25 +329,28 @@ class RestTransport implements WearTransport {
 
   @override
   Future<WearFleet> getFleet() async {
-    final printers = _printers.fetchAll();
-    // Its failure is delivered by the `await` below, but that comes after the
-    // queue fetch — a server that is down fails this one first, and an error
-    // with nobody listening yet is reported as uncaught on every poll.
-    printers.ignore();
-    int? pending;
+    // Both requests go out together. The printers are awaited first, so a
+    // server that is down fails the poll without waiting on the queue, and the
+    // count cannot throw, so nothing is left failing with nobody listening.
+    final pending = _pendingCount();
+    final printers = await _printers.fetchAll();
+    return WearFleet(printers: printers, queuePending: await pending);
+  }
+
+  /// Null when unknown: a broken queue endpoint — or a record that does not
+  /// parse — must not take the whole fleet down.
+  Future<int?> _pendingCount() async {
     try {
       // Filtered server-side (see the relay handler): the watch shows a count,
       // and unfiltered this endpoint answers with the whole print history. The
       // client-side filter stays as the guard for a server that ignores it.
       final items = await _queue.fetch(status: 'pending');
-      pending = items
+      return items
           .where((q) => q.statusKind == QueueItemStatusKind.pending)
           .length;
-    } on Exception {
-      // A broken queue endpoint shouldn't take the whole fleet down.
-      pending = null;
+    } catch (_) {
+      return null;
     }
-    return WearFleet(printers: await printers, queuePending: pending);
   }
 
   @override

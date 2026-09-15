@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -72,12 +74,25 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// `oldIndex`, so insert without additional correction. Send SEQUENTIAL positions
   /// 1..N in new order to server — "bulk update positions" endpoint expects target
   /// values, and all items default to `position == 1` (verified live, see reorder in
-  /// contract). Error → rollback to pre-drag order, see [_inOrderOf].
+  /// contract). Error → the dragged row goes back, see [_placedBack].
+  ///
+  /// One at a time: the payload is the whole list, so a second drag sent while
+  /// the first is out would carry the first one's order to the server even if
+  /// that one is refused. A drag meanwhile is dropped and the row snaps back.
   Future<ActionOutcome> reorder(int oldIndex, int newIndex) async {
     final current = state.valueOrNull;
     // No rows are rendered while the queue is unloaded, so there was nothing
-    // to drag: nothing was sent and there is nothing to report.
-    if (current == null || oldIndex == newIndex) return ActionOutcome.ok;
+    // to drag: nothing was sent and there is nothing to report. Indices past
+    // the end come from a list a poll shortened after it was drawn.
+    if (current == null ||
+        _reordering ||
+        oldIndex == newIndex ||
+        oldIndex < 0 ||
+        newIndex < 0 ||
+        oldIndex >= current.length ||
+        newIndex >= current.length) {
+      return ActionOutcome.ok;
+    }
 
     final list = [...current];
     final moved = list.removeAt(oldIndex);
@@ -87,36 +102,56 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     final payload = [
       for (var i = 0; i < list.length; i++) (id: list[i].id, position: i + 1),
     ];
+    _reordering = true;
     try {
       await ref.read(queueRepositoryProvider).reorder(payload);
       return ActionOutcome.ok;
     } catch (e) {
       final live = state.valueOrNull;
-      if (live != null) state = AsyncValue.data(_inOrderOf(current, live));
+      final row = live?.where((i) => i.id == moved.id).firstOrNull;
+      // Gone meanwhile (deleted, finished): there is no row left to move.
+      if (row != null) {
+        state = AsyncValue.data(_placedBack(row, current, live!));
+      }
       if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: 'queue.reorder');
+    } finally {
+      _reordering = false;
     }
   }
 
-  /// The rows as they are *now*, in the order [before] showed them — the
-  /// rollback for both optimistic edits. Putting [before] itself back would
-  /// also resurrect a row deleted, or finished by a refresh, while the request
-  /// was in the air.
+  bool _reordering = false;
+
+  /// [rows] with [item] moved to where [before] had it: just below the lowest
+  /// of the rows that stood above it there. Only that one row moves — the rest
+  /// keep the order they have *now*, so a delete, a reorder or a refresh that
+  /// landed while the request was out survives its rollback.
   ///
   /// Not [_activeSorted]: a reorder that succeeded leaves the rows' `position`
   /// fields as they were, so sorting by them would undo it.
-  List<QueueItem> _inOrderOf(List<QueueItem> before, List<QueueItem> rows) {
-    final slot = {for (final (i, item) in before.indexed) item.id: i};
-    // A row a refresh brought in has no old slot and keeps its order behind
-    // the known ones.
-    final rank = {
-      for (final (i, item) in rows.indexed)
-        item.id: slot[item.id] ?? before.length + i,
+  List<QueueItem> _placedBack(
+    QueueItem item,
+    List<QueueItem> before,
+    List<QueueItem> rows,
+  ) {
+    final out = [...rows]..removeWhere((i) => i.id == item.id);
+    final above = {
+      for (final i in before.takeWhile((i) => i.id != item.id)) i.id,
     };
-    return [...rows]..sort((a, b) {
-      final byPrinting = _printingFirst(a).compareTo(_printingFirst(b));
-      return byPrinting != 0 ? byPrinting : rank[a.id]!.compareTo(rank[b.id]!);
-    });
+    final lastAbove = out.lastIndexWhere((i) => above.contains(i.id));
+    // With nothing above it left, it goes in front of the first row that was
+    // below it, so a row the server added meanwhile keeps its place.
+    final known = {for (final i in before) i.id};
+    final firstBelow = out.indexWhere((i) => known.contains(i.id));
+    var at = lastAbove >= 0
+        ? lastAbove + 1
+        : (firstBelow >= 0 ? firstBelow : 0);
+    // Printing rows stay pinned on top whatever the rows around them did.
+    final pinned = out.takeWhile((i) => _printingFirst(i) == 0).length;
+    at = _printingFirst(item) == 0
+        ? math.min(at, pinned)
+        : math.max(at, pinned);
+    return out..insert(at, item);
   }
 
   /// Optimistic delete (swipe-to-delete). Error → restore item.
@@ -139,19 +174,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } catch (e) {
       // Any failure puts the row back; only a refusal is an answer.
-      if (index >= 0) _putBack(current[index], current);
+      final live = state.valueOrNull;
+      // A refresh that landed meanwhile already holds the row the server kept.
+      if (index >= 0 && live != null && !live.any((i) => i.id == itemId)) {
+        state = AsyncValue.data(_placedBack(current[index], current, live));
+      }
       if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: logId);
     }
-  }
-
-  /// Rollback of one optimistic removal into the list as it is *now*, in the
-  /// order the swipe was made on — see [_inOrderOf].
-  void _putBack(QueueItem item, List<QueueItem> before) {
-    final list = state.valueOrNull;
-    // A refresh that landed meanwhile already holds the row the server kept.
-    if (list == null || list.any((i) => i.id == item.id)) return;
-    state = AsyncValue.data(_inOrderOf(before, [...list, item]));
   }
 
   /// Manually start item — triggers physical print. On success, fetch fresh list
