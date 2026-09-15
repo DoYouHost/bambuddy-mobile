@@ -1269,7 +1269,7 @@ void main() {
     },
   );
 
-  // --- Tor diagnostyczny (src:notif) ---
+  // --- Diagnostic lane (src:notif) ---
 
   group('diagnostics', () {
     late DiagnosticRecorder recorder;
@@ -1291,7 +1291,7 @@ void main() {
     // Resets the `DiagnosticRecorder.active` static between tests.
     tearDown(() => recorder.discard());
 
-    /// Uruchamia nagrywanie, wykonuje [body] i zwraca surowy JSONL sesji.
+    /// Starts a recording, runs [body] and returns the session's raw JSONL.
     Future<String> raw(FutureOr<void> Function() body) async {
       await recorder.start();
       await body();
@@ -1541,27 +1541,24 @@ void main() {
       },
     );
 
-    test(
-      'koniec druku w nieznanym stanie: rekord ostrzegawczy bez alertu',
-      () async {
-        final fake = RecordingNotifications();
-        final ended = <int>[];
-        final m = logged(fake, onPrintEnded: ended.add);
-        final all = await rows(() {
-          m.update({1: _status(state: 'RUNNING', progress: 50)});
-          m.update({1: _status(state: 'IDLE', progress: 50)});
-        });
+    test('print end in an unknown state: a warning record, no alert', () async {
+      final fake = RecordingNotifications();
+      final ended = <int>[];
+      final m = logged(fake, onPrintEnded: ended.add);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 50)});
+        m.update({1: _status(state: 'IDLE', progress: 50)});
+      });
 
-        final end = only(all, 'print_end').single;
-        expect(end['state'], 'IDLE');
-        expect(end['lvl'], 'warn');
-        expect(only(all, 'posted'), isEmpty);
-        // The same branch eats the maintenance reminder — that is what the record says.
-        expect(ended, isEmpty);
-      },
-    );
+      final end = only(all, 'print_end').single;
+      expect(end['state'], 'IDLE');
+      expect(end['lvl'], 'warn');
+      expect(only(all, 'posted'), isEmpty);
+      // The same branch eats the maintenance reminder — that is what the record says.
+      expect(ended, isEmpty);
+    });
 
-    test('koniec druku w FINISH: rekord informacyjny obok alertu', () async {
+    test('print end in FINISH: an info record next to the alert', () async {
       final fake = RecordingNotifications();
       final ended = <int>[];
       final m = logged(fake, onPrintEnded: ended.add);
@@ -1572,7 +1569,7 @@ void main() {
 
       final end = only(all, 'print_end').single;
       expect(end['state'], 'FINISH');
-      expect(end.containsKey('lvl'), isFalse); // info nie jest wypisywane
+      expect(end.containsKey('lvl'), isFalse); // info is not written out
       expect(ended, [1]);
     });
 
@@ -1599,7 +1596,7 @@ void main() {
       'HMS: the reasons are kept apart, and a known code stays silent',
       () async {
         final fake = RecordingNotifications();
-        // Bez opisu w katalogu i z severity 1 → kod niedokumentowany.
+        // No catalog description and severity 1 → an undocumented code.
         final m = logged(fake, hmsDescribe: (_) => null);
         final all = await rows(() {
           m.update({1: _status(connected: true)});
@@ -1660,7 +1657,7 @@ void main() {
           m.update({1: _status(connected: true)});
           m.update({1: _status(connected: false)});
           m.update({1: _status(connected: true)}); // back before it fires
-          m.update({1: _status(connected: true)}); // bez timera → bez rekordu
+          m.update({1: _status(connected: true)}); // no timer → no record
         });
 
         final skips = only(all, 'suppressed');
@@ -1703,7 +1700,7 @@ void main() {
       });
 
       final prefs = only(all, 'prefs').single;
-      // Brak pola znaczy „nie odpowiedziano", nie „zabronione".
+      // A missing field means "no answer", not "denied".
       expect(prefs.containsKey('perm'), isFalse);
       expect(prefs.containsKey('chan_imp'), isFalse);
     });

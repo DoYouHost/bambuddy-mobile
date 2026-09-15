@@ -830,50 +830,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Color picker dialog. Starts from current color (or white), saves chosen hex
-  /// `RRGGBBAA` to `rgba` field on confirm. Preserves existing alpha byte (usually `FF`) —
-  /// picker edits RGB only, so we don't lose spool alpha (if ever non-full).
+  /// Saves the picked colour as `RRGGBBAA` into `rgba`, keeping the existing
+  /// alpha byte (usually `FF`): the wheel edits RGB only, so a spool's alpha is
+  /// not lost.
   Future<void> _openColorPicker(AppLocalizations l10n) async {
     final rawCurrent = _c['rgba']!.text.trim().replaceFirst('#', '');
     final alphaHex = rawCurrent.length == 8
         ? rawCurrent.substring(6, 8).toUpperCase()
         : 'FF';
-    var picked = parseSpoolColor(_c['rgba']!.text) ?? const Color(0xFFFFFFFF);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.inventoryColorPickTitle),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: picked,
-            onColorChanged: (c) => picked = c,
-            enableAlpha: false,
-            hexInputBar: true,
-            labelTypes: const [],
-            portraitOnly: true,
-            pickerAreaHeightPercent: 0.7,
-          ),
-        ),
-        actions: [
-          logTag(
-            'spool_color.cancel',
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'spool_color.confirm',
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.inventoryColorSelect),
-            ),
-          ),
-        ],
-      ),
+    final picked = await _pickSpoolColor(
+      context,
+      id: 'spool_color',
+      current: _c['rgba']!.text,
     );
-    if (confirmed == true && mounted) {
+    if (picked != null && mounted) {
       setState(() {
         _c['rgba']!.text = colorToHex(picked, enableAlpha: false) + alphaHex;
       });
@@ -1351,4 +1321,52 @@ class _FormSection extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The colour wheel both spool forms open, starting from [current] (or white).
+/// RGB only; `null` when cancelled. [id] names the two buttons
+/// (`<id>.cancel` / `<id>.confirm`) — each form keeps its own, since the ids are
+/// wire values in the diagnostic log.
+Future<Color?> _pickSpoolColor(
+  BuildContext context, {
+  required String id,
+  required String current,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  var picked = parseSpoolColor(current) ?? const Color(0xFFFFFFFF);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.inventoryColorPickTitle),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      content: SingleChildScrollView(
+        child: ColorPicker(
+          pickerColor: picked,
+          onColorChanged: (c) => picked = c,
+          enableAlpha: false,
+          hexInputBar: true,
+          labelTypes: const [],
+          portraitOnly: true,
+          pickerAreaHeightPercent: 0.7,
+        ),
+      ),
+      actions: [
+        logTag(
+          '$id.cancel',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+        ),
+        logTag(
+          '$id.confirm',
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.inventoryColorSelect),
+          ),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true ? picked : null;
 }

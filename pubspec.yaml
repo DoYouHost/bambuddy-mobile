@@ -1,5 +1,5 @@
 name: bambuddy_mobile
-description: "Natywna aplikacja Android dla bambuddy - self-hosted menedżera drukarek Bambu Lab."
+description: "Native Android app for bambuddy, the self-hosted Bambu Lab printer manager."
 publish_to: 'none'
 
 version: 0.14.1+2028020

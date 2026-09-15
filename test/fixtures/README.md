@@ -1,101 +1,107 @@
-# Fixture'y API
+# API fixtures
 
-> **TODO: zastąpić przechwyconymi JSON-ami z żywego serwera.**
+> **TODO: replace with JSON captured from a live server.**
 >
-> Te pliki są autorskie — odtworzone ze schematów Pydantic w kodzie
-> źródłowym bambuddy v0.2.4.6 (`backend/app/schemas/printer.py`,
-> `backend/app/api/routes/{auth,printers}.py`), bo sesja, w której
-> powstały, nie miała dostępu do żywego serwera. Plan (§5) wymaga
-> fixture'ów z PRAWDZIWEGO serwera — to jest tripwire na ruchliwość API.
+> These files are hand-written — reconstructed from the Pydantic schemas in the
+> bambuddy v0.2.4.6 source (`backend/app/schemas/printer.py`,
+> `backend/app/api/routes/{auth,printers}.py`), because the session that
+> created them had no live server to talk to. The plan (§5) asks for fixtures
+> from a REAL server — they are the tripwire for a moving API.
 >
-> Jak podmienić:
+> How to replace them:
 > ```sh
-> curl -s http://SERWER:8000/api/v1/printers | jq . > printers_list.json
-> curl -s http://SERWER:8000/api/v1/printers/1/status | jq . > printer_status_printing.json
-> curl -s http://SERWER:8000/api/v1/auth/status | jq . > auth_status_enabled.json
+> curl -s http://SERVER:8000/api/v1/printers | jq . > printers_list.json
+> curl -s http://SERVER:8000/api/v1/printers/1/status | jq . > printer_status_printing.json
+> curl -s http://SERVER:8000/api/v1/auth/status | jq . > auth_status_enabled.json
 > ```
 
-Pola `_unknown_*` w plikach są celowe — testują tolerancję parserów na
-nieznane klucze (nowe pola serwera nie mogą wywalać aplikacji).
+The `_unknown_*` fields in these files are deliberate — they test that the
+parsers tolerate unknown keys (a new server field must not crash the app).
 
-## Przechwycone z żywego serwera
+## Captured from a live server
 
-`queue_list.json` — odpowiedź `GET /api/v1/queue/` (2026-07-29), 11 rekordów
-wybranych z 163 tak, by pokryć kształty, których nie wymyśliliśmy sami:
-pozycja z pliku biblioteki, harmonogram, usunięte archiwum, brak mapowania AMS,
-nazwa nie-ASCII, szpula zewnętrzna (254/255), błąd z komunikatem drukarki,
-wielokolorowy `filament_color`, pozycja > 1. **Rekordy są niezmienione** — to
-jest sens fixture'a: jeśli serwer zmieni typ pola, testy na nim padną.
+`queue_list.json` — a `GET /api/v1/queue/` response (2026-07-29), 11 records
+picked out of 163 to cover shapes we would not have invented ourselves: an item
+from a library file, a schedule, a deleted archive, no AMS mapping, a non-ASCII
+name, an external spool (254/255), an error carrying the printer's message, a
+multi-colour `filament_color`, a position > 1. **The records are unmodified** —
+that is the point of the fixture: if the server changes a field's type, the
+tests on it fail.
 
-`queue_list_tristate.json` — **nie jest przechwycone.** Ta sama odpowiedź
-`GET /api/v1/queue/`, ale w kształcie bambuddy 1.2.5+, gdzie `bed_levelling`,
-`flow_cali` i `nozzle_offset_cali` to `"off"` / `"on"` / `"auto"` zamiast
-booleanów. Struktura wzięta z `queue_list.json` (nasz serwer jest starszy i tej
-postaci nie wyśle), a wartości trzech pól kalibracji — z rekordów, które podesłał
-tester z Discorda na serwerze 1.x.
-Trzymane osobno, żeby nie ruszać przechwyconego pliku: `queue_list.json` jest
-dowodem na to, co serwer naprawdę wysyła, i ma zostać niezmieniony.
+`queue_list_tristate.json` — **not captured.** The same `GET /api/v1/queue/`
+response, but in the bambuddy 1.2.5+ shape, where `bed_levelling`, `flow_cali`
+and `nozzle_offset_cali` are `"off"` / `"on"` / `"auto"` instead of booleans.
+The structure is taken from `queue_list.json` (our server is older and will not
+send this form), and the values of the three calibration fields from records a
+tester on Discord sent from a 1.x server.
+Kept separate so the captured file stays untouched: `queue_list.json` is the
+evidence of what the server really sends, and it has to stay as it is.
 
-### `captured/` — **poza repo, odtwarzasz u siebie**
+### `captured/` — **outside the repo, recreated locally**
 
-Zrzuty z żywego serwera przez
-[`tool/capture_fixtures.sh`](../../tool/capture_fixtures.sh) — po jednym pliku na
-endpoint, z którego apka rysuje ekran: drukarki i status, archiwum i statystyki,
-szpule, gniazdka, konserwacja, projekty, biblioteka, kolejka. Listy przycięte do
-8 rekordów. Sprawdza je [`test/data/captured_contract_test.dart`](../data/captured_contract_test.dart)
-— przez repozytoria, nie przez modele, bo tolerancyjne parsowanie listy (to,
-które po cichu wyrzuca zepsuty rekord) siedzi właśnie w repozytoriach.
+Snapshots of a live server taken by
+[`tool/capture_fixtures.sh`](../../tool/capture_fixtures.sh) — one file per
+endpoint the app draws a screen from: printers and status, archive and stats,
+spools, smart plugs, maintenance, projects, library, queue. Lists are trimmed to
+8 records. They are checked by [`test/data/captured_contract_test.dart`](../data/captured_contract_test.dart)
+— through the repositories, not the models, because the tolerant list parsing
+(the part that quietly drops a broken record) lives in the repositories.
 
-**Ten katalog jest w `.gitignore`.** Był kiedyś śledzony i to był błąd:
-`smart_plugs.json` niósł `ha_entity_id: "switch.szafa_biuro"`, a encje Home
-Assistant nazywa ich właściciel — ten jeden string mówi, w którym pokoju stoi
-drukarka. Poza sekretami zostają też nazwy projektów, wydruków i
-`created_by_username`, czyli tożsamość właściciela serwera. Scrubber maskuje
-sekrety, nie tożsamość, więc zrzuty zostają lokalnie.
+**This directory is in `.gitignore`.** It used to be tracked, and that was a
+mistake: `smart_plugs.json` carried `ha_entity_id: "switch.szafa_biuro"`, and
+Home Assistant entities are named by their owner — that one string says which
+room the printer stands in. Beyond secrets there are also project and print
+names and `created_by_username`, i.e. the identity of the server's owner. The
+scrubber masks secrets, not identity, so snapshots stay local.
 
-Co robi [`tool/scrub_fixtures.py`](../../tool/scrub_fixtures.py) — mimo że pliki
-nie idą do repo, bo zrzut i tak trafia do zgłoszeń i na zrzuty ekranu: adresy IP
-na `192.0.2.x` (zakres dokumentacyjny z RFC 5737), seriale Bambu na atrapy o tej
-samej długości (kształt zostaje parsowalny — dlatego atrapa, nie `[REDACTED]`),
-a pola, których **nazwa** mówi „prywatne", na `[REDACTED]`. Ta ostatnia lista
-jest trzymana w parytecie z `LogRedactor._secretKey`: fixture nie może być
-trzymany do niższego standardu niż log.
+What [`tool/scrub_fixtures.py`](../../tool/scrub_fixtures.py) does — even though
+the files do not go into the repo, because a snapshot still ends up in bug
+reports and screenshots: IP addresses become `192.0.2.x` (the RFC 5737
+documentation range), Bambu serials become dummies of the same length (the
+shape stays parseable — hence a dummy, not `[REDACTED]`), and fields whose
+**name** says "private" become `[REDACTED]`. That last list is kept in parity
+with the log redactor (`LogRedactor` in the `app_report_client` package, plus
+`_secretKey` in `lib/core/diagnostics/report_config.dart`): a fixture must not
+be held to a lower standard than the log.
 
-Nazwy plików, projektów i drukarek **zostają** — bez nich rekord przestaje być
-czytelny, a to one czynią z tych plików przechwycenie, a nie kolejny wymyślony
-kształt. Właśnie dlatego zrzut nie jedzie do repo.
+File, project and printer names **stay** — without them a record stops being
+readable, and they are what makes these files a capture rather than one more
+invented shape. That is exactly why the snapshot does not go into the repo.
 
-Bez zrzutu `captured_contract_test` i jeden test w `http_probe_test` **pomijają
-się z komunikatem** nazywającym komendę — nie przechodzą po cichu na pustym
-zbiorze. Zielony przebieg, który nic nie sprawdził, jest gorszy niż skip.
+Without a snapshot, `captured_contract_test` and one test in `http_probe_test`
+**skip with a message** naming the command — they do not pass silently on an
+empty set. A green run that checked nothing is worse than a skip.
 
-Jak odświeżyć:
+How to refresh:
 
 ```sh
-printf '%s' 'bb_twójklucz' > ~/.bambuddy-fixture-key && chmod 600 ~/.bambuddy-fixture-key
-tool/capture_fixtures.sh https://twój.serwer
+printf '%s' 'bb_yourkey' > ~/.bambuddy-fixture-key && chmod 600 ~/.bambuddy-fixture-key
+tool/capture_fixtures.sh https://your.server
 ```
 
-**Rób to z podłączoną drukarką.** Przy offline serwer oddaje status bez `ams`,
-ze `state:"unknown"`, i zrzut jest chudszy od tego, który nadpisuje — sprawdzone
-na własnej skórze. Skrypt pomija plik przy nie-200 (`continue`), więc pojedyncze
-niepowodzenie zostawia **stary** plik bez śladu w wyniku; po przebiegu warto
-zerknąć na `git status`, czy zmieniło się to, co miało.
+**Do it with a printer connected.** When it is offline the server returns a
+status without `ams`, with `state:"unknown"`, and the snapshot is thinner than
+the one it overwrites — learned the hard way. The script skips a file on a
+non-200 (`continue`), so a single failure leaves the **old** file with no trace
+in the output; after a run, check `git status` to see that what should have
+changed did.
 
-## `printer_status_hms.json` — jedyny przechwycony plik W repo
+## `printer_status_hms.json` — the one captured file IN the repo
 
-Leży **poza** `captured/` i jest śledzony, bo jest **nieodtwarzalny**. Trzyma trzy
-błędy HMS, jakie ta drukarka wtedy raportowała: jeden kod poza katalogiem i dwa
-dzielące skrócony kod przy różnym znaczeniu. Na tym stoi
-[`hms_catalog_assets_test.dart`](../core/notifications/hms_catalog_assets_test.dart),
-czyli reguła „nie pokazuj kodu, którego nie umiemy nazwać" — dziewięć testów.
+It lives **outside** `captured/` and is tracked, because it is
+**irreproducible**. It holds the three HMS errors that printer was reporting at
+the time: one code outside the catalog and two sharing a shortened code with
+different meanings. The rule "do not show a code we cannot name" in
+[`hms_catalog_assets_test.dart`](../core/notifications/hms_catalog_assets_test.dart)
+stands on it.
 
-Błędy HMS są **ulotne**: należą do zadania druku i ta drukarka przestała je
-zgłaszać w chwili ponownego połączenia. Późniejszy zrzut ma jeden błąd zamiast
-trzech i cały scenariusz paruje — sprawdzone przez odświeżenie, które wywaliło
-te dziewięć testów. Skoro nikt nie odtworzy tego payloadu, wyrzucenie go do
-gitignore skasowałoby tę ochronę dla wszystkich poza jedną maszyną.
+HMS errors are **transient**: they belong to a print job, and that printer
+stopped reporting them the moment it reconnected. A later snapshot has one error
+instead of three and the whole scenario evaporates — confirmed by a refresh that
+broke those tests. Since nobody can reproduce this payload, moving it to
+gitignore would remove that protection for everyone but one machine.
 
-Dlatego: zamrożony, ze starszym zestawem pól (sprzed 1.2.5.1) — nic w tym teście
-nie czyta pól dodanych w 1.2.5.1 — i przepuszczony przez scrubber jak każdy inny
-zrzut. **Nie odświeżaj go.** Aktualnego kształtu pilnuje `captured/printer_status.json`.
+Hence: frozen, with the older field set (from before 1.2.5.1) — nothing in that
+test reads fields added in 1.2.5.1 — and run through the scrubber like any other
+snapshot. **Do not refresh it.** `captured/printer_status.json` keeps watch over
+the current shape.

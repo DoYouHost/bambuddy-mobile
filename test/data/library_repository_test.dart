@@ -25,7 +25,7 @@ void main() {
         (s) => s.reply(200, [
           {'id': 1, 'name': 'zabawki', 'file_count': 3},
           'junk',
-          {'id': 2, 'name': 'petg'}, // brak file_count → 0
+          {'id': 2, 'name': 'petg'}, // no file_count → 0
         ]),
       );
 

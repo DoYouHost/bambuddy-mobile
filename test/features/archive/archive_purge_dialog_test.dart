@@ -62,7 +62,7 @@ void main() {
 
     // The dialog asked for its default threshold; switch before it answers.
     // `pumpAndSettle` would wait on the loading bar forever.
-    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.tap(find.byType(DropdownMenu<int>));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(find.text(l10n.archivePurgeDaysOption(365)).last);
     await tester.pump(const Duration(milliseconds: 500));

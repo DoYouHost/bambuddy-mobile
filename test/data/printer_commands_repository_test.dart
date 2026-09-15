@@ -47,7 +47,7 @@ void main() {
     await repo.setPrintSpeed(3, 3);
   });
 
-  test('403 → AuthException(forbidden) — brak can_control_printer', () async {
+  test('403 → AuthException(forbidden) — no can_control_printer', () async {
     adapter.onPost(
       '/api/v1/printers/1/print/pause',
       (s) => s.reply(403, {'detail': 'forbidden'}),
@@ -64,7 +64,7 @@ void main() {
     );
   });
 
-  test('401 → AuthException(unauthorized), nie mylone z 403', () async {
+  test('401 → AuthException(unauthorized), not confused with 403', () async {
     adapter.onPost(
       '/api/v1/printers/1/print/stop',
       (s) => s.reply(401, {'detail': 'unauthorized'}),

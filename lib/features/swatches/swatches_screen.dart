@@ -133,7 +133,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
     _snack(l10n.swatchImported(incoming.length));
   }
 
-  // --- Tworzenie / edycja / usuwanie ---
+  // --- Create / edit / delete ---
 
   /// Open create sheet (initial == null) or edit existing code.
   Future<void> _openForm({SwatchCode? initial}) async {

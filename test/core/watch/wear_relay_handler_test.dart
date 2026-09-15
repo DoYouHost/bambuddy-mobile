@@ -380,6 +380,23 @@ void main() {
     expect(res.error, 'empty-queue');
   });
 
+  test('any other StateError is a phone-error, not a code', () async {
+    // Only `empty-queue` is an outcome; a stray "Bad state" message used to
+    // reach the watch as if it were one.
+    final handler = WearRelayHandler(
+      watch: watch,
+      dio: () => throw StateError('No element'),
+    );
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.pause, printerId: 1),
+    );
+
+    expect(res.ok, isFalse);
+    expect(res.error, 'phone-error');
+  });
+
   test('hmsAction relays the fault verbatim to the server', () async {
     adapter.onPost(
       '/api/v1/printers/3/hms/execute-action',

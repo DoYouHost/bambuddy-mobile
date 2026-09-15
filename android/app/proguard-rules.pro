@@ -15,9 +15,9 @@
 # mobile_scanner plugin itself.
 -keep class dev.steenbakker.mobile_scanner.** { *; }
 
-# flutter_local_notifications: ActionBroadcastReceiver obsługuje tapnięcia
-# przycisków akcji w tle i (de)serializuje dane akcji przez Gson (refleksja).
-# R8 z obfuskacją rozjeżdża te modele → akcja „Oznacz wykonane" milczy w
-# release (działa w debug, gdzie R8 nie biegnie). Trzymamy klasy pluginu.
+# flutter_local_notifications: ActionBroadcastReceiver handles action-button
+# taps in the background and (de)serializes the action data with Gson
+# (reflection). R8 obfuscation breaks those models, so "Mark done" does nothing
+# in release (it works in debug, where R8 does not run). Keep the plugin classes.
 -keep class com.dexterous.** { *; }
 -dontwarn com.dexterous.**

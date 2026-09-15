@@ -22,6 +22,7 @@ import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
+import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
 import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
@@ -1286,32 +1287,28 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(l10n.archivePurgeOlderThan)),
-              logTag(
-                'archive_purge.days',
-                DropdownButton<int>(
-                  value: _days,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    setState(() => _days = v);
-                    _fetchPreview();
-                  },
-                  items: [
-                    for (final d in _dayOptions)
-                      DropdownMenuItem(
-                        value: d,
-                        // Named per value: "purged 30 days" and "purged
-                        // everything" are not the same report.
-                        child: logTag(
-                          'archive_purge.days.$d',
-                          Text(l10n.archivePurgeDaysOption(d)),
-                        ),
-                      ),
-                  ],
+          dashCombo<int>(
+            context,
+            id: 'archive_purge.days',
+            label: Text(l10n.archivePurgeOlderThan),
+            initialSelection: _days,
+            onSelected: (v) {
+              if (v == null || v == _days) return;
+              setState(() => _days = v);
+              _fetchPreview();
+            },
+            entries: [
+              for (final d in _dayOptions)
+                DropdownMenuEntry(
+                  value: d,
+                  label: l10n.archivePurgeDaysOption(d),
+                  // Named per value: "purged 30 days" and "purged everything"
+                  // are not the same report.
+                  labelWidget: logTag(
+                    'archive_purge.days.$d',
+                    Text(l10n.archivePurgeDaysOption(d)),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 8),

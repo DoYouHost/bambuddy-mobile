@@ -124,17 +124,20 @@ void main() {
     },
   );
 
-  test('purge: POST z older_than_days/purge_stats zwraca deleted', () async {
-    adapter.onPost(
-      '/api/v1/archives/purge',
-      (server) => server.reply(200, {'deleted': 7, 'purge_stats': true}),
-      data: {'older_than_days': 30, 'purge_stats': true},
-    );
+  test(
+    'purge: POST with older_than_days/purge_stats returns deleted',
+    () async {
+      adapter.onPost(
+        '/api/v1/archives/purge',
+        (server) => server.reply(200, {'deleted': 7, 'purge_stats': true}),
+        data: {'older_than_days': 30, 'purge_stats': true},
+      );
 
-    final deleted = await repo.purge(olderThanDays: 30, purgeStats: true);
+      final deleted = await repo.purge(olderThanDays: 30, purgeStats: true);
 
-    expect(deleted, 7);
-  });
+      expect(deleted, 7);
+    },
+  );
 
   // The archive's own weight is the file's estimate; the run aggregate is what
   // the runs drew. The fixture is a captured response, so it also pins that the

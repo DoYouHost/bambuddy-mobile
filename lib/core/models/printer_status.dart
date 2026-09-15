@@ -434,7 +434,10 @@ class PrinterStatus {
   /// only control that releases the gate on exactly the printers that need it —
   /// with Auto Power Off the end of every print is "gate up, printer off" —
   /// and made the queue's pre-start acknowledgement skip a printer that was
-  /// waiting (server #2864).
+  /// waiting (server #2864). Carrying it forward cannot resurrect a stale gate
+  /// on an older server either: those answer the status route for a
+  /// disconnected printer with an explicit `awaiting_plate_clear: false`, which
+  /// wins over the inherited value in [mergedWith] the same as any other field.
   ///
   /// Kept: identity/hardware
   /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`),
@@ -443,15 +446,6 @@ class PrinterStatus {
   /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
   /// outage doesn't re-alert on reconnect.
-  ///
-  /// `awaitingPlateClear` is kept for a different reason: it is not printer
-  /// telemetry at all but a Bambuddy-side gate the server persists, and with
-  /// Auto Power Off "finished, bed still full, printer switched off" is the
-  /// normal end state. Dropping it left the acknowledgement unreachable exactly
-  /// when it is needed. Carrying it forward cannot resurrect a stale gate on an
-  /// older server either: those answer the status route for a disconnected
-  /// printer with an explicit `awaiting_plate_clear: false`, which wins over the
-  /// inherited value in [mergedWith] the same as any other field.
   PrinterStatus _clearedIfOffline() {
     if (connected != false) return this;
     return PrinterStatus(

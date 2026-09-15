@@ -83,7 +83,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     final list = [...current];
     final moved = list.removeAt(oldIndex);
     list.insert(newIndex, moved);
-    state = AsyncValue.data(list); // optymistycznie
+    state = AsyncValue.data(list); // optimistic
 
     final payload = [
       for (var i = 0; i < list.length; i++) (id: list[i].id, position: i + 1),

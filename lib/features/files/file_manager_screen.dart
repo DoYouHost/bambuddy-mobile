@@ -225,7 +225,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     );
   }
 
-  // --- AppBar trybu zaznaczania ---
+  // --- Selection-mode app bar ---
 
   PreferredSizeWidget _selectionAppBar(FileManagerState s) {
     final l10n = _l10n;
@@ -1179,7 +1179,7 @@ class _FileTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
-  /// Etykieta folderu (pokazywana w wynikach wyszukiwania globalnego).
+  /// Folder label, shown in global search results.
   final String? folderLabel;
 
   @override

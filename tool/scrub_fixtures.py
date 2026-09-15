@@ -4,7 +4,7 @@
 A capture is worth having because it is the server's own JSON — but the server's
 own JSON carries the LAN it runs on and the serial of the printer it talks to,
 and a fixture lives in a public repository. Both are masked in a diagnostic log
-(`LogRedactor`), so leaving them in a fixture would be holding the fixture to a
+(`LogRedactor`, package `app_report_client`), so leaving them in a fixture would be holding the fixture to a
 lower standard than the log.
 
 What is replaced, in place and keeping the shape a parser sees:
@@ -14,7 +14,7 @@ What is replaced, in place and keeping the shape a parser sees:
 * Bambu serials -> the first three characters (which say the model, not the
   unit) plus a fixed tail of the same length.
 * Fields whose NAME says the value is private -> `[REDACTED]`. Keyed on the same
-  list as `LogRedactor._secretKey`, because a smart plug's `ha_entity_id` reads
+  list as the log redactor, because a smart plug's `ha_entity_id` reads
   `switch.szafa_biuro`: Home Assistant entities are named by their owner, so the
   string maps a home and says which room the printer stands in. That one shipped
   in this repository before anyone noticed, which is the whole argument for
@@ -44,7 +44,8 @@ IPV4 = re.compile(
 # then alphanumerics. Covers the printer (20P9…) and the AMS unit (19C0…).
 SERIAL = re.compile(r'\b(\d{2}[A-Z])[0-9A-Z]{12}\b')
 
-# Parity with `LogRedactor._secretKey` (lib/core/diagnostics/log_redactor.dart).
+# Parity with the log redactor: `LogRedactor`'s own list (package
+# `app_report_client`) plus `_secretKey` in lib/core/diagnostics/report_config.dart.
 # When one list grows the other has to, or the fixture is held to a lower
 # standard than the log — which is the thing this file exists to prevent.
 #

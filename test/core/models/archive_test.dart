@@ -104,7 +104,7 @@ void main() {
       expect(archive.fileSize, isNull);
     });
 
-    test('parsuje file_size / duplicate_count / duplicate_sequence', () {
+    test('parses file_size / duplicate_count / duplicate_sequence', () {
       final archive = Archive.fromJson(const {
         'id': 5,
         'filename': 'a.gcode',

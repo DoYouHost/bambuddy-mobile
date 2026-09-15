@@ -84,7 +84,7 @@ void main() {
       expect(stats.printsByFilamentType, isEmpty);
     });
 
-    test('toleruje liczby jako string oraz int w miejsce double', () {
+    test('accepts numbers as strings and ints where a double is expected', () {
       final stats = ArchiveStats.fromJson(const {
         'total_prints': '12',
         'total_cost': 10,

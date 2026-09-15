@@ -109,6 +109,45 @@ void main() {
     matching: find.byType(TextFormField),
   );
 
+  testWidgets('the colour wheel fills the patch and keeps its own ids', (
+    tester,
+  ) async {
+    final fake = await openSheet(tester);
+    final colorField = find.byWidgetPredicate(
+      (w) => w is Semantics && w.properties.identifier == 'bulk_edit.color',
+    );
+    await tester.ensureVisible(colorField);
+    await settle(tester);
+    await tester.tap(colorField);
+    await settle(tester);
+
+    // Shared with the spool form, but the buttons are still named for this
+    // sheet: the ids are wire values, and a report must say which form it was.
+    final ids = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .map((w) => w.properties.identifier)
+        .whereType<String>()
+        .toSet();
+    expect(
+      ids,
+      containsAll(['bulk_edit_color.cancel', 'bulk_edit_color.confirm']),
+    );
+
+    await tester.tap(find.text(l10n.inventoryColorSelect));
+    await settle(tester);
+    for (var i = 0; i < 4; i++) {
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pump();
+    }
+    await tester.tap(applyButton());
+    await settle(tester);
+    await tester.tap(find.text(l10n.inventoryApply));
+    await settle(tester);
+
+    // Nothing was picked, so the wheel's starting white comes back, opaque.
+    expect(fake.patch!.toNativeJson(), {'rgba': 'FFFFFFFF'});
+  });
+
   testWidgets('apply stays dead until a field is filled in', (tester) async {
     await openSheet(tester);
 

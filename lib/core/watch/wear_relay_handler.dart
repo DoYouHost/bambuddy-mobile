@@ -137,8 +137,13 @@ class WearRelayHandler {
     try {
       res = await _execute(req);
     } on StateError catch (e) {
-      // startNext with nothing pending — a first-class outcome, not a crash.
-      res = WearRpcResponse.failure(req.id, e.message);
+      // startNext with nothing pending is a first-class outcome, not a crash.
+      // Any other StateError is a bug, and its message is no code the watch
+      // knows — it goes out as the generic one.
+      res = WearRpcResponse.failure(
+        req.id,
+        e.message == 'empty-queue' ? e.message : 'phone-error',
+      );
     } on AppApiException catch (e) {
       // The code drives the watch's own wording; the detail is what the server
       // said, and on a 403 it is the only place the missing permission appears.
