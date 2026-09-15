@@ -207,15 +207,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
     _hmsCatalog = catalog;
+    // One store for this isolate: the REST client, the media credential, the
+    // socket and the proactive refresh all read the same keystore, and two
+    // instances would be two independent reads of it.
+    final creds = SecureCredentialsStore();
+    // One re-login for all of them too. The REST client used to build its own,
+    // so a 401 on a maintenance poll and the socket's rejected handshake could
+    // each log in at once — against the server's failed-attempt budget.
+    final auth = backgroundAuthService(prefs, creds);
     // Single authenticated client for this isolate's session — shared by the
     // cover-token mint, the maintenance repo, and the WS handshake token
-    // below, instead of each independently rebuilding Dio + interceptors +
-    // a keystore read via its own `buildBackgroundApiClient` call.
-    final api = await buildBackgroundApiClient(prefs);
-    // One store for this isolate: the media credential, the socket and the
-    // proactive refresh all read the same keystore, and two instances would be
-    // two independent reads of it.
-    final creds = SecureCredentialsStore();
+    // below, instead of each independently rebuilding Dio + interceptors.
+    final api = await buildBackgroundApiClient(
+      prefs,
+      credentials: creds,
+      auth: auth,
+    );
     // Print cover fetch for the widget: media credential resolved with the
     // authenticated Dio, image fetched with bare Dio carrying it explicitly.
     _mediaAuth = api == null
@@ -254,10 +261,6 @@ class PrintMonitorTaskHandler extends TaskHandler {
       ),
     );
 
-    // Shared by the socket below and the proactive refresh: both recover a
-    // lapsed session the same way, and building two would mean two independent
-    // silent re-logins racing against the server's failed-attempt budget.
-    final auth = backgroundAuthService(prefs, creds);
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;

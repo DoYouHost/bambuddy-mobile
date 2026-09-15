@@ -79,17 +79,26 @@ AuthService backgroundAuthService(
 /// background isolate (foreground service) and notification callback isolate
 /// where providers are unavailable. Mirrors `apiClientProvider` logic.
 /// Returns `null` if no server profile is configured.
-Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
+///
+/// A caller that also opens a socket or a token refresher passes its own
+/// [credentials] and [auth]: silent re-login is single-flight per
+/// [AuthService], so a second instance for the REST lane is a second login
+/// racing the first against the server's failed-attempt budget.
+Future<ApiClient?> buildBackgroundApiClient(
+  SharedPreferences prefs, {
+  CredentialsStore? credentials,
+  AuthService? auth,
+}) async {
   final settings = SettingsRepository(prefs);
   final profile = settings.loadProfile();
   if (profile == null) return null;
-  final creds = SecureCredentialsStore();
-  final auth = backgroundAuthService(prefs, creds);
+  final creds = credentials ?? SecureCredentialsStore();
+  final reLogin = auth ?? backgroundAuthService(prefs, creds);
   return ApiClient(
     profile: profile,
     credentials: creds,
     refreshAuth: profile.authMode == AuthMode.jwt
-        ? () => auth.silentReLogin(profile.baseUrl)
+        ? () => reLogin.silentReLogin(profile.baseUrl)
         : null,
   );
 }

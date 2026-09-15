@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -107,14 +109,26 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     final current = state.valueOrNull;
     if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
-    state = AsyncValue.data(current.where((i) => i.id != itemId).toList());
+    final index = current.indexWhere((i) => i.id == itemId);
+
+    if (index >= 0) state = AsyncValue.data([...current]..removeAt(index));
     try {
       await ref.read(queueRepositoryProvider).delete(itemId);
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      state = AsyncValue.data(current); // rollback
+      if (index >= 0) _putBack(current[index], index);
       return ActionOutcome.failed(e, action: logId);
     }
+  }
+
+  /// Rollback of one optimistic removal into the list as it is *now*, not the
+  /// snapshot from before the request: that one also undid rows removed and
+  /// polls landed in the meantime.
+  void _putBack(QueueItem item, int index) {
+    final list = state.valueOrNull;
+    // A refresh that landed meanwhile already holds the row the server kept.
+    if (list == null || list.any((i) => i.id == item.id)) return;
+    state = AsyncValue.data([...list]..insert(min(index, list.length), item));
   }
 
   /// Manually start item — triggers physical print. On success, fetch fresh list

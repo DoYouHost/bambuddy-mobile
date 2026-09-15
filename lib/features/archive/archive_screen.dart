@@ -1246,6 +1246,11 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   bool _purgeStats = false;
   AsyncValue<ArchivePurgePreview> _preview = const AsyncValue.loading();
 
+  /// Only the newest preview may land. Switching 7 → 365 days quickly can bring
+  /// the 7-day answer back last, and the confirm button would then delete a
+  /// year's prints under a count of a week's.
+  int _previewRequest = 0;
+
   @override
   void initState() {
     super.initState();
@@ -1253,14 +1258,19 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   }
 
   Future<void> _fetchPreview() async {
+    final request = ++_previewRequest;
     setState(() => _preview = const AsyncValue.loading());
     try {
       final preview = await ref
           .read(archiveRepositoryProvider)
           .purgePreview(olderThanDays: _days, purgeStats: _purgeStats);
-      if (mounted) setState(() => _preview = AsyncValue.data(preview));
+      if (mounted && request == _previewRequest) {
+        setState(() => _preview = AsyncValue.data(preview));
+      }
     } on AppApiException catch (e, st) {
-      if (mounted) setState(() => _preview = AsyncValue.error(e, st));
+      if (mounted && request == _previewRequest) {
+        setState(() => _preview = AsyncValue.error(e, st));
+      }
     }
   }
 

@@ -1,3 +1,6 @@
+import 'dart:math' show min;
+
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -197,10 +200,11 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
 
   /// Toggle an archive's favorite flag. Flips locally at once for instant
   /// feedback, then reconciles with the server's returned value; on error the
-  /// previous list is restored and `false` is returned.
+  /// flag goes back and `false` is returned.
   Future<bool> toggleFavorite(int archiveId) async {
     final current = state.valueOrNull;
     if (current == null) return false;
+    final before = current.firstWhereOrNull((a) => a.id == archiveId);
 
     _patchRow(archiveId, (a) => a.withFavorite(!a.isFavorite));
     try {
@@ -210,7 +214,11 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
       replace(updated);
       return true;
     } on AppApiException {
-      state = AsyncValue.data(current); // rollback
+      // Just this row's flag: the list may have changed while the request was
+      // out, and a whole-list snapshot would undo that too.
+      if (before != null) {
+        _patchRow(archiveId, (a) => a.withFavorite(before.isFavorite));
+      }
       return false;
     }
   }
@@ -237,17 +245,28 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   Future<bool> delete(int archiveId, {required bool purgeStats}) async {
     final current = state.valueOrNull;
     if (current == null) return false;
+    final index = current.indexWhere((a) => a.id == archiveId);
 
-    state = AsyncValue.data(current.where((a) => a.id != archiveId).toList());
+    if (index >= 0) state = AsyncValue.data([...current]..removeAt(index));
     try {
       await ref
           .read(archiveRepositoryProvider)
           .delete(archiveId, purgeStats: purgeStats);
       return true;
     } on AppApiException {
-      state = AsyncValue.data(current); // rollback
+      if (index >= 0) _putBack(current[index], index);
       return false;
     }
+  }
+
+  /// Rollback of one optimistic removal into the list as it is *now*. Restoring
+  /// the snapshot taken before the request brought back rows deleted in the
+  /// meantime — swipe A, swipe B, A fails, and B is on screen again.
+  void _putBack(Archive row, int index) {
+    final list = state.valueOrNull;
+    // A refresh that landed meanwhile already holds the row the server kept.
+    if (list == null || list.any((a) => a.id == row.id)) return;
+    state = AsyncValue.data([...list]..insert(min(index, list.length), row));
   }
 
   /// Delete several prints (multi-select). No bulk-by-id endpoint exists, so
@@ -271,9 +290,12 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
         failed++;
       }
     }
-    state = AsyncValue.data(
-      current.where((a) => !deleted.contains(a.id)).toList(),
-    );
+    // From the list as it is after the loop, not from `current`: the deletes
+    // run one by one, and whatever changed during them has to survive.
+    state = AsyncValue.data([
+      for (final a in state.valueOrNull ?? current)
+        if (!deleted.contains(a.id)) a,
+    ]);
     return (ok: deleted.length, failed: failed);
   }
 }
