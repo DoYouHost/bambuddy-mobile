@@ -26,8 +26,20 @@ void main() {
       expect(result.length, 61, reason: 'the ellipsis replaces nothing');
     });
 
-    test('leaves a message that already ends in an ellipsis alone', () {
+    test('what a message already contains is none of its business', () {
+      // No special case for an ellipsis, a newline or anything else: inside the
+      // budget the text comes back byte for byte.
       expect(wearShortText('Loading…', max: 60), 'Loading…');
+      expect(wearShortText('one\ntwo', max: 60), 'one\ntwo');
+    });
+
+    test('a long message keeps exactly one ellipsis, its own', () {
+      // The cut lands before the text's own trailing one, so nothing ever
+      // arrives with two.
+      final result = wearShortText('${'x' * 70}…', max: 60);
+
+      expect(result, '${'x' * 60}…');
+      expect('…'.allMatches(result), hasLength(1));
     });
 
     test('handles an empty message', () {

@@ -7,11 +7,20 @@
 set -eu
 
 types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
-subject_re="^(${types})(\([a-z0-9._, /-]+\))?!?: [a-z0-9].*[^.]$"
+subject_re="^(${types})(\([a-z0-9._, /-]+\))?!?: [^[:space:]]"
 
-# What git will keep: comments gone, and with --verbose the diff below the
-# scissors line gone too.
-kept=$(sed -e '/^# *-\{1,\} >8 -\{1,\}/,$d' -e '/^#/d' "$1")
+# What git will keep. `stripspace` drops the comment lines using whatever
+# core.commentChar is set to; the scissors line is a comment, but the --verbose
+# diff below it is not, so that goes first and needs the character spelled out.
+char=$(git config core.commentChar 2>/dev/null || true)
+case "$char" in '' | auto) char='#' ;; esac
+kept=$(sed "/^${char} *-\{1,\} >8 -\{1,\}/,\$d" "$1" | git stripspace --strip-comments)
+
+# Lines git writes into a message on the author's behalf. They are not a second
+# line anybody typed, so they do not count as one.
+kept=$(printf '%s\n' "$kept" |
+	grep -vE '^\(cherry picked from commit [0-9a-f]{7,}\)$' || true)
+
 subject=$(printf '%s\n' "$kept" | grep -m1 '[^[:space:]]' || true)
 extra=$(printf '%s\n' "$kept" | grep -c '[^[:space:]]' || true)
 
@@ -20,7 +29,7 @@ extra=$(printf '%s\n' "$kept" | grep -c '[^[:space:]]' || true)
 
 # Messages git writes, and the ones an interactive rebase folds away.
 case "$subject" in
-Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ * | "Squashed commit of the following:") exit 0 ;;
 esac
 
 fail() {
@@ -43,3 +52,7 @@ fi
 
 printf '%s\n' "$subject" | grep -Eq "$subject_re" ||
 	fail "not a Conventional Commits subject"
+
+case "$subject" in
+*.) fail "a subject does not end in a full stop" ;;
+esac
