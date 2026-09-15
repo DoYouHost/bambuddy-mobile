@@ -426,15 +426,13 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// can be shown but not named.
   ///
   /// Ids are **local** to the unit here, unlike [amsLoad]: the external spool is
-  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), which is the same pair the
-  /// inventory assignment already uses.
+  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), the pair the inventory
+  /// assignment already uses.
   ///
-  /// The mapping is saved separately and cannot fail the write: it needs
-  /// `printers:update`, a permission of its own, and by the time it runs the
-  /// filament is already set on the printer. Failing the whole action over the
-  /// label would report a change that did happen as one that did not.
-  ///
-  /// See [SlotNameOutcome] for the three ways that second call can end.
+  /// The mapping is saved separately and cannot fail the write — it needs
+  /// `printers:update` of its own, and by then the filament is already set, so
+  /// failing over the label would report a change that happened as one that did
+  /// not. [SlotNameOutcome] has the three ways that second call ends.
   Future<SlotConfigOutcome> configureSlot(
     int id, {
     required int amsId,
@@ -515,13 +513,13 @@ class ControlsNotifier extends Notifier<ControlsState> {
   Future<ActionOutcome> homeAxes(int id) =>
       _run(id, ControlAction.move, () => _repo.homeAxes(id));
 
-  /// Runs a command with optimistic apply + rollback-on-error. [apply] overlays
-  /// the optimistic override; [rollback] restores the touched field from
-  /// [before] (surgically, preserving any concurrent different action);
-  /// [clearKey] schedules discarding the override once real status catches up.
+  /// Optimistic apply with rollback on error: [apply] overlays the override,
+  /// [rollback] restores the touched field from [before] surgically, so a
+  /// concurrent different action survives, and [clearKey] discards the override
+  /// once real status catches up.
   ///
-  /// [permission] is the server gate this route sits behind, and decides what a
-  /// 403 costs: only the buttons that need the same permission go away.
+  /// [permission] decides what a 403 costs: only the buttons needing that same
+  /// permission go away.
   Future<ActionOutcome> _run(
     int id,
     ControlAction action,

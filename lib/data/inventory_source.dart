@@ -236,15 +236,14 @@ Map<String, dynamic>? _objectOf(Object? data) =>
 
 /// Sends one request per chunk of the 500-id cap and sums what came back.
 ///
-/// A refusal part-way through keeps what the earlier chunks already did: those
-/// rows are mutated on the server, and throwing here would report the whole
-/// selection as failed while hundreds of spools had in fact been archived. The
-/// ids from the failing chunk on are counted as failed, since none of them took
-/// effect.
+/// A refusal part-way through keeps what the earlier chunks did — those rows are
+/// already mutated, and throwing would report the whole selection as failed
+/// while hundreds of spools had been archived — and counts the failing chunk
+/// onwards as failed.
 ///
-/// With nothing accumulated yet the error propagates instead — that is the path
-/// carrying "no permission" to the user, and the 404 the caller reads as "this
-/// server has no bulk routes" before falling back to per-spool calls.
+/// With nothing accumulated yet the error propagates instead: that is the path
+/// carrying "no permission" to the user, and the 404 the caller reads as "no
+/// bulk routes on this server".
 Future<BulkOutcome> _postChunked(
   List<int> ids,
   Future<BulkOutcome> Function(List<int> chunk) send,

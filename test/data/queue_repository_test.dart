@@ -198,6 +198,57 @@ void main() {
     // No exception = success.
   });
 
+  group('a removal refused by the server', () {
+    // All three routes answer 400 by naming the status they found, and that
+    // status is the whole explanation — issue #35 reached the reporter's screen
+    // as "server error 400" because the plain mapper drops a 400's detail.
+    for (final (name, path, call)
+        in <(String, String, Future<void> Function(QueueRepository))>[
+          ('cancel', '/api/v1/queue/78/cancel', (r) => r.cancel(78)),
+          ('stop', '/api/v1/queue/78/stop', (r) => r.stop(78)),
+        ]) {
+      test('$name keeps the sentence naming the status', () async {
+        adapter.onPost(
+          path,
+          (server) => server.reply(400, {
+            'detail': "Cannot cancel item with status 'printing'",
+          }),
+        );
+
+        await expectLater(
+          call(repo),
+          throwsA(
+            isA<AppApiException>().having(
+              (e) => e.detail,
+              'detail',
+              "Cannot cancel item with status 'printing'",
+            ),
+          ),
+        );
+      });
+    }
+
+    test('delete keeps it too', () async {
+      adapter.onDelete(
+        '/api/v1/queue/78',
+        (server) => server.reply(400, {
+          'detail': 'Cannot delete item that is currently printing',
+        }),
+      );
+
+      await expectLater(
+        repo.delete(78),
+        throwsA(
+          isA<AppApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'Cannot delete item that is currently printing',
+          ),
+        ),
+      );
+    });
+  });
+
   test(
     'delete: sends DELETE /queue/78 and completes without exception',
     () async {

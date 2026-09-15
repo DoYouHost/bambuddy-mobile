@@ -29,14 +29,13 @@ Map<String, int>? rackChoiceWire(Object? choice) {
 /// counterpart of [QueueRepository.updateItem]'s named parameters.
 ///
 /// Mirrors the server's `PrintQueueItemCreate`, where every field has a default:
-/// a null here means "not configured", the key is left out of the body, and the
-/// server's own default applies. That is why this is a plain object rather than
-/// the sentinel dance `updateItem` needs — on create there is no stored value a
-/// null could clear.
+/// a null here means "not configured" and the key is left out, which is why this
+/// is a plain object rather than the sentinel dance `updateItem` needs — on
+/// create there is no stored value a null could clear.
 ///
-/// Sending the whole configuration with the POST is the point: it closes the
-/// window in which the scheduler could dispatch a freshly added item while the
-/// user is still configuring it.
+/// The whole configuration goes with the POST to close the window in which the
+/// scheduler could dispatch a freshly added item while the user is still
+/// configuring it.
 class QueueCreateOptions {
   const QueueCreateOptions({
     this.targetModel,
@@ -203,17 +202,13 @@ class QueueRepository {
   /// The queue as the app shows it: everything waiting plus whatever is
   /// printing, in two filtered requests instead of one unfiltered one.
   ///
-  /// Unfiltered, `GET /queue/` answers with every item the server has ever
-  /// queued — measured on a real server after two months: 163 records, 218 kB,
-  /// growing with each print, all of it to render the handful that are still
-  /// active. The queue screen polls every 10 s, so that was the whole print
-  /// history on the wire six times a minute, and it is what made the endpoint
-  /// take eight seconds in a user's diagnostic log.
+  /// Unfiltered, `GET /queue/` answers with every item ever queued — 163
+  /// records and 218 kB on a real server after two months, polled every 10 s to
+  /// render the handful still active, and eight seconds of it in a user's
+  /// diagnostic log.
   ///
-  /// The server takes one status per call, hence two calls; they run
-  /// concurrently, so the wait is the slower one rather than their sum. A paused
-  /// print needs no third call — the server keeps such an item `printing` and
-  /// the pause lives in the printer's state.
+  /// The server takes one status per call, hence two, run concurrently. A paused
+  /// print needs no third: the server keeps such an item `printing`.
   Future<List<QueueItem>> fetchActive() async {
     final lists = await Future.wait([
       fetch(status: 'pending'),
@@ -377,21 +372,15 @@ class QueueRepository {
   /// POST /queue/{id}/stop — stop the print a `printing` item is running and
   /// drop the item out of the queue (the server writes it `cancelled`).
   ///
-  /// The escape hatch for a row the server holds as `printing`: `/cancel`
-  /// takes `pending` alone, `DELETE` refuses a printing row, and the queue
-  /// screen offers no swipe on the pinned printing card — so before this the
-  /// app had no way to clear one. That is issue #35, where a print had failed
-  /// on the machine while its row stayed `printing`.
+  /// The escape hatch for a row the server holds as `printing`: `/cancel` takes
+  /// `pending` alone and `DELETE` refuses a printing row, so before this a print
+  /// that had failed on the machine could not be cleared at all (issue #35).
   ///
-  /// Sends a stop to the printer, which is harmless when it already stopped:
-  /// the server writes the row `cancelled` either way and says which of the
-  /// two happened.
+  /// The stop it sends is harmless when the printer has already stopped — the
+  /// server writes the row `cancelled` either way and says which happened.
   ///
-  /// [guardKeepingDetail], like the other two removals: all three answer 400
-  /// by naming the status they found ("Cannot cancel item with status
-  /// 'printing'"), and that status is the whole explanation. Plain [guard]
-  /// drops a 400's detail, which is how the reporter's screen could only say
-  /// "server error 400".
+  /// [guardKeepingDetail], like the other two removals: the 400 names the status
+  /// it found, and that status is the whole explanation.
   Future<void> stop(int itemId) => guardKeepingDetail(
     () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)),
   );
@@ -438,19 +427,15 @@ class QueueRepository {
   /// POST /queue/ — one job offering several sliced files, whichever printer
   /// frees up first (server #671, **1.2.6+**).
   ///
-  /// [fileIds] is the priority order: when more than one printer is idle at the
-  /// same moment, the earlier candidate wins. Two files minimum, and no
-  /// `printer_id` — naming a printer defeats the purpose and the server rejects
-  /// the combination outright.
+  /// [fileIds] is the priority order, two files minimum, and no `printer_id` —
+  /// naming a printer defeats the purpose and the server refuses the
+  /// combination. `target_model` per candidate is deliberately not sent: the
+  /// server reads each file's own `sliced_for_model`, and overriding that is for
+  /// legacy 3MFs the phone cannot identify.
   ///
-  /// `target_model` per candidate is deliberately not sent: the server reads it
-  /// from each file's own `sliced_for_model`, and overriding that is only for
-  /// legacy 3MFs that declare none — which the phone has no way to identify.
-  ///
-  /// The caller must have checked [LibraryRepository.supportsCrossModelVariants]
-  /// first; an older server answers 422 for the unknown `variants` shape only
-  /// because the rest of the body is then invalid, which is a confusing way to
-  /// learn the feature is missing.
+  /// The caller checks [LibraryRepository.supportsCrossModelVariants] first: an
+  /// older server answers 422 only because the rest of the body is then invalid,
+  /// which is a confusing way to learn the feature is missing.
   Future<void> addCrossModel(
     List<int> fileIds, {
     int quantity = 1,

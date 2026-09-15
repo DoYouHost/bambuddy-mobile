@@ -348,14 +348,11 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
 
 /// Filament consumed since the counters were last reset, over the whole shelf.
 ///
-/// Archived spools are counted in: it is a running total, and what a spool
-/// consumed before being archived is real history — dropping it would make the
-/// number fall for no visible reason (the bug bambuddy's own tile was fixed for,
-/// server issue #1390).
+/// Archived spools are counted in — it is a running total, and dropping what
+/// they consumed makes the number fall for no visible reason (server #1390).
 ///
-/// A provider rather than a sum inside the list header: the header rebuilds on
-/// every search keystroke, and this way the shelf is only walked again when the
-/// shelf itself changes.
+/// A provider rather than a sum in the list header, which rebuilds on every
+/// search keystroke; this way the shelf is walked again only when it changes.
 final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
   final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
   var total = 0.0;
@@ -461,16 +458,14 @@ final filamentPresetsProvider =
 /// The printer models the fleet actually has, spelled exactly as the server
 /// reports them.
 ///
-/// Not `ownedPrinterCodesProvider`, which reads the same fleet for the same
-/// field and upper-cases it: that one narrows a preset *list* by name, where
-/// case cannot matter, while this one is the key the server matches an
-/// override on — `printer_model` is compared for plain string equality
-/// (`services/spool_filament_preset.py::_pick`), so a case-folded key writes a
-/// row nothing will ever resolve to. Two readers, deliberately, and neither is
-/// safe to point at the other.
+/// **Not** `ownedPrinterCodesProvider`, which upper-cases the same field: that
+/// one narrows a preset list by name, where case cannot matter, while this is
+/// the key the server matches an override on by plain string equality
+/// (`spool_filament_preset.py::_pick`) — a case-folded key writes a row nothing
+/// resolves to. Two readers on purpose, neither safe to point at the other.
 ///
-/// Sorted for a stable order in the spool form; a printer that has not reported
-/// a model is left out, having no model to key a row by.
+/// Sorted for a stable order in the spool form; a printer that reported no model
+/// is left out, having nothing to key a row by.
 final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   ref,
 ) async {
