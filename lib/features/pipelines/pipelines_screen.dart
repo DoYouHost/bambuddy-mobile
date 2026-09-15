@@ -17,6 +17,7 @@ import '../slicer/slice_providers.dart';
 import 'pipeline_edit_screen.dart';
 import 'pipeline_presets.dart';
 import 'pipeline_runs_screen.dart';
+import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
 
 /// The saved pipelines: what each bundles, whether it can run, and the edit
@@ -249,7 +250,7 @@ class _PipelineCard extends ConsumerWidget {
     }
     final label = switch (pipeline.targetKind) {
       PipelineTargetKind.specificPrinter => l10n.pipelineRunOnPrinter(
-        _printerName(printers, l10n),
+        targetPrinterName(l10n, printers, pipeline.targetPrinterId),
       ),
       PipelineTargetKind.printerClass => l10n.pipelineRunOnClass(
         pipeline.targetModelClass ?? '',
@@ -266,17 +267,6 @@ class _PipelineCard extends ConsumerWidget {
         Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
       ],
     );
-  }
-
-  String _printerName(List<Printer>? printers, AppLocalizations l10n) {
-    final id = pipeline.targetPrinterId;
-    if (id == null) return '';
-    for (final p in printers ?? const <Printer>[]) {
-      if (p.id == id) return p.name;
-    }
-    // Either the list has not landed yet or the printer really is gone. Naming
-    // the id beats an empty line in both cases.
-    return l10n.pipelineTargetPrinterGone(id);
   }
 
   /// `Text.rich`, never a bare `RichText`: that one's `textScaler` defaults to

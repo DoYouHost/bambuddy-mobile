@@ -115,6 +115,11 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
   Future<void> _pick() async {
     final pipelines = ref.read(pipelinesProvider).valueOrNull ?? const [];
     final catalog = ref.read(slicerPresetsProvider).valueOrNull;
+    // Both read before the sheet, like every other action in this file: the
+    // sheet is an await, and `onApply` below rebuilds the form that owns this
+    // bar, so neither is safe to look up off `context` afterwards.
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final picked = await pickPipeline(
       context,
       pipelines: pipelines,
@@ -123,9 +128,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
     );
     if (picked == null || !mounted) return;
     widget.onApply(picked);
-    ScaffoldMessenger.of(
-      context,
-    ).snack(AppLocalizations.of(context).pipelineApplied(picked.name));
+    messenger.snack(l10n.pipelineApplied(picked.name));
   }
 
   Future<void> _save() async {

@@ -39,8 +39,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeForegroundTask platform;
+  late FlutterForegroundTaskPlatform realPlatform;
+  late bool realSkipCheck;
 
   setUp(() {
+    realPlatform = FlutterForegroundTaskPlatform.instance;
+    realSkipCheck = FlutterForegroundTask.skipServiceResponseCheck;
     platform = _FakeForegroundTask();
     FlutterForegroundTaskPlatform.instance = platform;
     // Without this the plugin polls the channel for the service state change it
@@ -49,8 +53,11 @@ void main() {
   });
 
   tearDown(() {
-    // Process-wide, and the service is the only thing that writes it — a value
-    // left behind here would decide the clock of every later test in this file.
+    // All three are process-wide statics, and this file is the only thing that
+    // writes them — anything left behind would decide the plugin and the clock
+    // of every later test sharing this process.
+    FlutterForegroundTaskPlatform.instance = realPlatform;
+    FlutterForegroundTask.skipServiceResponseCheck = realSkipCheck;
     DateTimeFormats.rememberSystemClock(null);
   });
 
@@ -102,30 +109,40 @@ void main() {
   });
 
   group('facts the app pushes into a service that is already running', () {
-    test('a clock sync reads the 24-hour switch back out of preferences', () async {
-      // The bare engine behind the service is never told the 12/24-hour setting,
-      // so it reads it from preferences — and a service that was already up when
-      // the user flipped the switch only hears about it through this message.
-      SharedPreferences.setMockInitialValues({'clock_24h': true});
-      expect(
-        DateTimeFormats.system().use24Hour,
-        isFalse,
-        reason: 'the test locale is a 12-hour one, so the sync is visible',
+    // Both directions, and never against a hardcoded expectation: with nothing
+    // remembered, `use24Hour` falls back to whatever locale the runner reports,
+    // so a test that assumed a 12-hour one would pass or fail on the machine
+    // rather than on the code. A remembered value wins outright over the locale
+    // (`DateTimeFormats.isolateClock`), so each of these holds on any runner —
+    // and a sync that stopped working fails one of them whichever locale it is.
+    for (final wanted in [true, false]) {
+      test(
+        'a clock sync reads a $wanted switch back out of preferences',
+        () async {
+          // The bare engine behind the service is never told the 12/24-hour
+          // setting, so it reads it from preferences — and a service that was
+          // already up when the user flipped the switch only hears about it
+          // through this message.
+          SharedPreferences.setMockInitialValues({'clock_24h': wanted});
+
+          PrintMonitorTaskHandler().onReceiveData(BackgroundSync.clock.message);
+          await pumpEventQueue();
+
+          expect(DateTimeFormats.system().use24Hour, wanted);
+        },
       );
-
-      PrintMonitorTaskHandler().onReceiveData(BackgroundSync.clock.message);
-      await pumpEventQueue();
-
-      expect(DateTimeFormats.system().use24Hour, isTrue);
-    });
+    }
 
     test('a message the isolate does not know changes nothing', () async {
-      SharedPreferences.setMockInitialValues({'clock_24h': true});
+      // Stored as the opposite of what this runner's locale answers, so a stray
+      // sync is visible here on any machine rather than only on a 12-hour one.
+      final fromLocale = DateTimeFormats.system().use24Hour;
+      SharedPreferences.setMockInitialValues({'clock_24h': !fromLocale});
 
       PrintMonitorTaskHandler().onReceiveData(const {'something': 'sync'});
       await pumpEventQueue();
 
-      expect(DateTimeFormats.system().use24Hour, isFalse);
+      expect(DateTimeFormats.system().use24Hour, fromLocale);
     });
   });
 }

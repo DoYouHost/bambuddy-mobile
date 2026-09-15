@@ -39,6 +39,11 @@ class FailureCacheEntry {
       // that reader would read the absence as UTC and shift it by the device's
       // offset — which on the "all time" bucket decides whether a day counts as
       // banked. Plain `tryParse` is the exact inverse of how it was written.
+      //
+      // An unreadable one falls back to a date far enough in the past that
+      // stale-while-revalidate refetches on sight. Deliberately not a cache
+      // miss: the aggregate beside it is intact, and throwing away good numbers
+      // over a broken timestamp costs a round trip for nothing.
       fetchedAt: DateTime.tryParse('${json['fetched_at']}') ?? DateTime(2000),
     );
   }

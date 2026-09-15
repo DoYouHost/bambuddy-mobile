@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/printer.dart';
 import '../../core/models/pipeline_run.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -36,3 +37,22 @@ Color runStatusColour(ColorScheme scheme, PipelineRunStatus status) =>
       PipelineRunStatus.cancelled ||
       PipelineRunStatus.unknown => scheme.onSurfaceVariant,
     };
+
+/// What a pipeline's target printer is called.
+///
+/// The picker used to spell this `#3` while the pipeline list beside it
+/// resolved the name, so the same printer read as two different things
+/// depending on which screen named it.
+String targetPrinterName(
+  AppLocalizations l10n,
+  List<Printer>? printers,
+  int? id,
+) {
+  if (id == null) return '';
+  for (final p in printers ?? const <Printer>[]) {
+    if (p.id == id) return p.name;
+  }
+  // Either the list has not landed yet or the printer really is gone. Naming
+  // the id beats an empty line in both cases.
+  return l10n.pipelineTargetPrinterGone(id);
+}

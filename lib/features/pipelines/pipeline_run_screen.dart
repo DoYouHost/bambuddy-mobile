@@ -12,6 +12,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import 'pipeline_eligibility_view.dart';
 import 'pipeline_picker_sheet.dart';
+import 'pipeline_run_status_labels.dart';
 import 'pipeline_runs_screen.dart';
 import 'pipelines_providers.dart';
 
@@ -231,6 +232,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   }
 
   Future<void> _pick(List<SlicerPipeline> pipelines) async {
+    // Read before the sheet so a row can name its printer rather than its id,
+    // the way the pipeline list does.
+    final printers = ref.read(pipelineTargetPrintersProvider).valueOrNull;
     final picked = await pickPipeline(
       context,
       pipelines: pipelines,
@@ -240,7 +244,9 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
       subtitle: (l10n, p) => p.isRunnable
           ? (p.targetKind == PipelineTargetKind.printerClass
                 ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
-                : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'))
+                : l10n.pipelineRunOnPrinter(
+                    targetPrinterName(l10n, printers, p.targetPrinterId),
+                  ))
           : l10n.pipelineNoTargetChip,
       subtitleColor: (theme, p) =>
           p.isRunnable ? null : theme.colorScheme.tertiary,

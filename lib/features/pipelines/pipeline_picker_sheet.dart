@@ -58,6 +58,11 @@ class _PipelinePickerSheet extends StatelessWidget {
       expand: false,
       initialChildSize: 0.6,
       maxChildSize: 0.95,
+      // Flutter's default floor is 0.25, which is lower than anything else in
+      // the app: a drag down left a quarter-screen stub of a list rather than
+      // closing. Both pickers inherited it by saying nothing. 0.4 is what
+      // `DraggableSheetSurface` and the AMS sheet settle on.
+      minChildSize: 0.4,
       builder: (ctx, controller) => Column(
         children: [
           // A sheet that opens straight into a list gives a screen reader
