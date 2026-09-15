@@ -177,10 +177,8 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 /// Describes the session for a report: app and server version, the device, the
 /// display settings.
 ///
-/// A provider rather than a closure inside the recorder, because a change or
-/// feature request needs the same versions and has no recording to read them
-/// off — and two copies of this argument list would be two places for the
-/// server version to be fetched differently.
+/// A provider rather than a closure inside the recorder: a change or feature
+/// request needs the same versions and has no recording to read them off.
 final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
   (ref) =>
       () => loadSessionFacts(
@@ -256,14 +254,12 @@ final authServiceProvider = Provider<AuthService>(
   ),
 );
 
-/// Proactive JWT refresh for active profile: schedules silent re-login just
-/// before token expiry so REST and WS handshake don't hit 401s (which we only
-/// retry reactively). Only for [AuthMode.jwt] — API key is static and no-auth
-/// server doesn't expire; those modes return `null`.
+/// Silent re-login just before the token expires, so REST and the WS handshake
+/// do not hit a 401 we only retry reactively. `null` for the other two modes: an
+/// API key is static and a no-auth server has nothing to expire.
 ///
-/// Doesn't run itself — lazy provider; UI keeps it alive and controls it per
-/// lifecycle (background taken over by foreground service isolate, see
-/// [PrintMonitorTaskHandler]). Rebuilt on profile change.
+/// Does not run itself — the UI keeps it alive and drives it per lifecycle, and
+/// the service isolate takes over in the background.
 final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
@@ -343,15 +339,12 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
   }
 }
 
-/// Most recently built client. Survives the transient frame between "change
-/// server" clearing the profile and the router redirecting to /setup: the many
-/// non-autoDispose repository providers that `watch` [apiClientProvider] stay
-/// alive while the dashboard is still mounted under the drawer, so on clear
-/// they rebuild and would hit the null-profile throw before the redirect
-/// unmounts them. Returning the last client keeps them from crashing; it's
-/// never used for requests (its consumers are guarded / about to unmount) and
-/// is replaced as soon as a new profile is set. Safe to cache — [ApiClient]
-/// holds no resources needing disposal.
+/// Most recently built client, for the transient frame between "change server"
+/// clearing the profile and the router redirecting to /setup: the non-autoDispose
+/// repositories watching [apiClientProvider] are still mounted under the drawer
+/// and would rebuild into the null-profile throw. Never used for a request — its
+/// consumers are guarded or about to unmount — and replaced with the next
+/// profile.
 ApiClient? _lastApiClient;
 
 /// API client for active profile. Requires configured profile — routes without
@@ -451,30 +444,24 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// strings.
 ///
 /// **Answers `true` whenever the identity is unknown** (no profile, still
-/// loading, auth switched off server-side, a `/auth/me` that failed, or a
-/// response without a `permissions` field). The server is the only enforcer —
-/// it answers 403 regardless of what this says — so a permissive unknown
-/// leaves a screen reachable rather than hiding one the user is entitled to.
+/// loading, auth off server-side, a failed `/auth/me`, a response without a
+/// `permissions` field). The server is the only enforcer, so a permissive
+/// unknown leaves a screen reachable rather than hiding one the user is
+/// entitled to. An empty `permissions` list is *not* unknown — that is a user
+/// whose groups grant nothing, and they are refused.
 ///
-/// An empty `permissions` list is *not* unknown: it is a user whose groups
-/// grant nothing, and this answers `false` for them.
-///
-/// **Not the gate for anything administrative.** The server refuses an
-/// API-key session every users/groups/api-keys route no matter what `/auth/me`
-/// said about it — use [identifiedPermissionProvider] there, which knows that.
-///
-/// A screen that would rather not flash a drawer entry and take it away again
-/// should watch [currentUserProvider] and handle `loading` itself, instead of
-/// this being made restrictive for everyone.
+/// **Not the gate for anything administrative**: use
+/// [identifiedPermissionProvider], which knows about API-key sessions. A screen
+/// that would rather not flash an entry and take it away should watch
+/// [currentUserProvider] and handle `loading` itself.
 final permissionProvider = Provider.family<bool, String>(
   (ref, permission) =>
       ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
 );
 
-/// Whether the current user is an admin. Unknown identity answers `true`, for
-/// the reasons in [permissionProvider] — and, like it, this is not enough on
-/// its own for a write to users, groups or API keys: an API-key session
-/// answers `true` here and is refused all three server-side. Pair it with
+/// Whether the current user is an admin. Unknown identity answers `true`, as in
+/// [permissionProvider], and an API-key session answers `true` here while being
+/// refused every administrative route — pair it with
 /// [identifiedPermissionProvider].
 final isAdminProvider = Provider<bool>(
   (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
@@ -483,20 +470,14 @@ final isAdminProvider = Provider<bool>(
 /// Whether a *known* identity holds [permission] — the gate on the entry
 /// points into administration.
 ///
-/// Deliberately the opposite of [permissionProvider] on an unknown identity:
-/// this answers `false`. Nothing administrative is offered when we cannot say
-/// who is signed in — with authentication switched off server-side there is no
-/// account to attribute an edit to, and an entry that leads straight to a 401
-/// is worse than no entry at all.
+/// The opposite of [permissionProvider] on an unknown identity: nothing
+/// administrative is offered when nobody can say who is signed in.
 ///
-/// An API-key session is refused outright, [CurrentUser.isAdmin] or not: the
-/// server denies a key **every** administrative permission
-/// (`_check_apikey_permissions`, `backend/app/core/auth.py` — anything outside
-/// the scope allowlist is a 403, and users/groups/api-keys are all outside
-/// it). What `/auth/me` says about a key never described that gate: up to
-/// 1.2.5.x it claimed admin with every permission, and from 1.2.6 it reports
-/// the key's real, non-administrative set. Both are answered here the same
-/// way, on the auth mode rather than on the payload.
+/// An API-key session is refused outright, [CurrentUser.isAdmin] or not — the
+/// server denies a key every administrative permission
+/// (`_check_apikey_permissions`, `core/auth.py`), and what `/auth/me` says about
+/// a key never described that gate. Hence the decision on the auth mode rather
+/// than on the payload.
 final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
@@ -598,30 +579,16 @@ final serverVersionServiceProvider = Provider<ServerVersionService>(
 final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
 
 /// The connected server's version string, for the drawer footer. `null` is
-/// "nobody knows": a server too old to serve `/updates/version`, one that is
-/// unreachable, or a reply this build's parser made nothing of — the screen
-/// says so rather than guessing a number.
+/// "nobody knows" — too old to serve `/updates/version`, unreachable, or a reply
+/// the parser made nothing of — and with no profile it answers `null` rather
+/// than letting [apiClientProvider] throw.
 ///
-/// Answers `null` with no profile rather than letting [apiClientProvider] throw
-/// on the way: the router keeps every screen that shows this behind a profile,
-/// but a screen is a weaker guarantee than a check, and this one is read from
-/// three of them now.
-///
-/// `autoDispose` **with a link kept on success** — the two halves answer two
-/// different failures, and either one alone reintroduces the other.
-///
-/// Kept unconditionally, the provider caches its first answer for the life of
-/// the container: a drawer opened once in a lift showed "unknown" until the app
-/// was killed, and [ServerVersionService]'s five-minute window ticked by with
-/// nobody left to ask. Disposed unconditionally, every reopening of the drawer
-/// starts at [AsyncLoading] again — one frame of "Server …" in front of an
-/// answer the service already has in hand, which is the same flash
-/// [appVersionProvider] exists to avoid.
-///
-/// So: an answer is kept, an unknown is released. The version cannot change
-/// without the server restarting and dropping the connection, so there is
-/// nothing for the kept one to go stale against — and the released one puts the
-/// service's retry back within reach of the next opening.
+/// `autoDispose` **with a link kept on success**, because the two halves answer
+/// two different failures. Kept unconditionally, a drawer opened once in a lift
+/// reads "unknown" until the app is killed; disposed unconditionally, every
+/// reopening starts at [AsyncLoading] — the flash [appVersionProvider] exists to
+/// avoid. An answer cannot go stale without the server restarting, and an
+/// unknown released puts the service's retry within reach of the next opening.
 final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
   // Synchronous on purpose: with no server configured there is nothing to wait
   // for, and handing back a future would put a loading frame in front of an
@@ -869,11 +836,8 @@ Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
 /// The settled answer of [gate], for a caller running outside a build.
 ///
 /// A widget re-reads a gate when the settings land, because it rebuilds. Code
-/// that runs once — a queue item deciding whether to ask about the plate before
-/// it starts — gets no second look, so it waits for the answer here instead.
-///
-/// Waits on the gate rather than on `/settings` behind it, so overriding the
-/// gate is enough to decide what this answers.
+/// that runs once gets no second look, so it waits here instead — on the gate
+/// rather than on `/settings`, so overriding the gate decides the answer.
 Future<T> settledGate<T>(
   ProviderContainer providers,
   ProviderListenable<AsyncValue<T>> gate,
@@ -899,11 +863,10 @@ Future<T> settledGate<T>(
 /// One value derived from the server's settings, resolved immediately against
 /// the fallback the server itself would have used.
 ///
-/// Use it for a **value**, not a gate: a symbol, a limit, a set of presets.
-/// Nothing is hidden while the settings are in flight — the screen shows the
-/// default and swaps in the real answer when it lands — and a spinner in the
-/// middle of a price column or a stepper would be worse than the default it
-/// replaces.
+/// For a **value**, not a gate: a symbol, a limit, a set of presets. Nothing is
+/// hidden while the settings are in flight — the screen shows the default and
+/// swaps in the real answer — because a spinner in the middle of a price column
+/// is worse than the default it replaces.
 Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
     Provider<T>(
       (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),

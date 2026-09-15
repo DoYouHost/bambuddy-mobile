@@ -21,6 +21,18 @@ There are two answers, and a screen uses one or the other:
 | **Inscribed rectangle** | the largest rectangle that fits in the circle | paragraphs, forms, anything taller than the face's radius |
 | **Scaled curve** | the full face, each item scaled to the chord lit where it sits | lists of short rows |
 
+### Why the rectangle is not the answer for both
+
+The rectangle is the easy thing to be sure of, and that is its whole appeal. It
+costs 36% of the height of a display that had none to spare, and it hands every
+row the width available at the *worst* point of the viewport — including the
+rows crossing the middle, where the whole diameter is lit. Measured on a 225 dp
+face it leaves **144 dp of viewport, 1.8 rows of a printer list**.
+
+`WearScrollView` is where the choice is made: a screen with a footer, or one
+holding still with `centerWhenShort`, is a fixed layout and keeps the rectangle;
+`curved: true` is the list.
+
 ### The insets go on the viewport, not on the content
 
 This is the whole fix, and the part that is easy to get wrong. Padding the

@@ -327,6 +327,57 @@ void main() {
     });
   });
 
+  group('guardOrNullAllowingForbidden', () {
+    test('a refusal degrades like any other failure', () async {
+      // The read only decorates a screen, and a session dialog in front of a
+      // control the user simply cannot have is the wrong thing entirely.
+      expect(
+        await guardOrNullAllowingForbidden<int>(
+          () async => throw _badResponse(403),
+        ),
+        isNull,
+      );
+    });
+
+    test('an expired session still throws, so the app can redirect', () async {
+      await expectLater(
+        guardOrNullAllowingForbidden<int>(() async => throw _badResponse(401)),
+        throwsA(isA<AuthException>()),
+      );
+    });
+  });
+
+  group('mapDioExceptionKeepingDetail', () {
+    test('a rule violation keeps the sentence explaining it', () async {
+      for (final status in [400, 422]) {
+        expect(
+          mapDioExceptionKeepingDetail(
+            _badResponseWithDetail(status, 'Cannot delete the last admin user'),
+          ).detail,
+          'Cannot delete the last admin user',
+          reason: 'status $status',
+        );
+      }
+    });
+
+    test('any other status keeps the plain mapping', () async {
+      // The server's English is quoted to the user for these two statuses
+      // alone; everywhere else a better sentence is already built from the code.
+      for (final status in [404, 409, 500]) {
+        final mapped = mapDioExceptionKeepingDetail(
+          _badResponseWithDetail(status, 'Something in English'),
+        );
+        expect(
+          mapped.detail,
+          mapDioException(
+            _badResponseWithDetail(status, 'Something in English'),
+          ).detail,
+          reason: 'status $status',
+        );
+      }
+    });
+  });
+
   group('guardOrNull', () {
     test('auth failures still throw so the UI can redirect', () async {
       for (final status in [401, 403]) {

@@ -154,8 +154,8 @@ class _PrinterMemo {
   /// answers again — held here only so the deferral is recorded once instead of
   /// on every frame of the outage. Cleared the moment it is back.
   final Set<String> hmsDeferredOffline = {};
-  final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
-  final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
+  final Set<int> lowFilamentTrays = {};
+  final Set<int> humidUnits = {};
 
   /// Units whose current stay above the band has already been announced. Kept
   /// apart from [humidUnits] because a rise the cooldown swallowed leaves the
@@ -570,29 +570,6 @@ class PrintMonitor {
     _processBedCooled(id, status, memo);
   }
 
-  /// Whether the reported `progress` describes the JOB rather than a stage of
-  /// the printer's own. During bed levelling / vibration compensation the
-  /// firmware reports a percentage of THAT phase: observed jumping 6 → 60 in
-  /// 300 ms at `layer_num == 0`, which crossed two milestones at once before a
-  /// single line of plastic was down. The job is underway from the first layer
-  /// on, and only while the printer is not in a stage of its own.
-  ///
-  /// The stage half ([PrinterStatus.inNamedStage]) is what the layer check alone
-  /// cannot cover: Bambu firmware ticks `layer_num` through the pre-print
-  /// sequence, so "layer ≥ 1" is true while the bed is still being scanned. A
-  /// crossing this drops is not lost — nothing latches, so it is announced from
-  /// the next frame that describes the job.
-  ///
-  /// That half is deliberately not narrowed to the pre-print window, so a stage
-  /// the printer enters *mid*-print (a filament change, a user pause) holds a
-  /// threshold back until it clears rather than announcing it on time. The
-  /// alternative — trusting the percentage once the print looks underway — is
-  /// what let a stale 100% cross all three thresholds at once, and a milestone
-  /// arriving a filament change late is the cheaper of the two.
-  ///
-  /// A frame without `layer_num` says nothing about the phase, so it counts as
-  /// underway — a server that omits the field keeps the previous behaviour
-  /// rather than going silent for the whole print.
   /// Whether this frame says the first layer is behind us, on the terms
   /// bambuddy's own `on_layer_change` uses (server #1837):
   ///
@@ -601,12 +578,11 @@ class PrintMonitor {
   ///   to a print we joined halfway or to the job that has just ended, and
   ///   neither is news. bambuddy's window is the same `[2, 10]`;
   /// * a printer **in a stage of its own is not laying that layer down**: the
-  ///   firmware ticks `layer_num` through bed levelling, bed scanning and
-  ///   nozzle cleaning, which announced a first layer minutes before the first
-  ///   line of plastic — and, right after a dispatch, under the previous
-  ///   print's name. bambuddy gates on `mc_print_sub_stage`, which the
-  ///   WebSocket does not carry; [PrinterStatus.inNamedStage] asks the same
-  ///   question of the field both lanes do carry.
+  ///   firmware ticks `layer_num` through bed levelling and nozzle cleaning,
+  ///   which announced a first layer minutes early and, right after a dispatch,
+  ///   under the previous print's name. bambuddy gates on `mc_print_sub_stage`,
+  ///   which the WebSocket does not carry, so [PrinterStatus.inNamedStage] asks
+  ///   the same question of the field both lanes do.
   ///
   /// Records the one frame it turns down per print, because "the first layer
   /// went by and nothing arrived" is otherwise indistinguishable from the alert
@@ -759,7 +735,7 @@ class PrintMonitor {
         }
         continue;
       }
-      memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
+      memo.hmsLastSeen[key] = now;
       // Only ever the first sighting of a code gets this far, so each of the
       // records below is one per code per clear-grace window, not one per frame.
       // A record for the already-known case is deliberately absent: the WebSocket
@@ -939,7 +915,7 @@ class PrintMonitor {
       lead.remainingTime,
       printing.length,
     );
-    if (key == _lastOngoing) return; // Nothing material changed
+    if (key == _lastOngoing) return;
     _lastOngoing = key;
     // Recorded here rather than in the notification decorator: by the time the
     // service sees it, all of this is baked into a title and body made of the

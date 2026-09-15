@@ -26,9 +26,9 @@ enum AppErrorCode {
   /// The challenge survives a wrong code, so the user just types the next one.
   twoFactorCodeRejected,
 
-  /// The pre-auth token is gone: elapsed, spent, or the `2fa_challenge` binding
-  /// failed — a proxy dropping `Set-Cookie` looks exactly like this. Only the
-  /// password step can produce a new one.
+  /// The pre-auth token is gone — elapsed, spent, or the `2fa_challenge` binding
+  /// failed, which is what a proxy dropping `Set-Cookie` looks like. Only the
+  /// password step produces a new one.
   twoFactorChallengeExpired,
 
   /// TOTP turned off between the two steps, or a backup code on an account
@@ -40,10 +40,9 @@ enum AppErrorCode {
 
   apiKeyRejected,
 
-  /// The slot holds no readable RFID tag, so Spoolman — which binds a spool to
-  /// the tag rather than to the (printer, AMS, tray) triple the native backend
-  /// writes — has nothing to bind to. Raised before the request, because the
-  /// server spends a bare 400 on it and that reaches the user as a number.
+  /// The slot holds no readable RFID tag, so Spoolman — which binds to the tag
+  /// rather than to the (printer, AMS, tray) triple — has nothing to bind to.
+  /// Raised before the request, since the server spends a bare 400 on it.
   slotTagUnreadable,
 
   /// The printer is not reachable, so the app cannot read what its slot holds.
@@ -53,8 +52,7 @@ enum AppErrorCode {
 
   /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
   /// the password, so a rate-limited user gets it even when they finally type
-  /// the right one; its own code because "wait 15 minutes" and "your password
-  /// is wrong" send the user in opposite directions.
+  /// the right one, and "wait 15 minutes" sends them somewhere else entirely.
   tooManyAttempts,
 }
 
@@ -74,31 +72,25 @@ sealed class AppApiException implements Exception {
   final int? statusCode;
 
   /// The call that failed, for the `action_failed` record: without it a reader
-  /// has to guess which of the requests in flight the failure belongs to.
-  ///
-  /// [path] has been through [loggablePath], the same reduction `HttpProbe`
-  /// records with: no host, no query string, and no segment the user named.
-  /// Null for an exception the app raised itself rather than mapped from a
-  /// response.
+  /// guesses which request in flight the failure belongs to. [path] has been
+  /// through [loggablePath] — no host, no query, no segment the user named — and
+  /// both are null for an exception the app raised itself.
   final String? method;
   final String? path;
 
-  /// What the server wrote, when it wrote anything: the `detail` of a FastAPI
-  /// error, or `DioException.message` for a failure that never reached one.
-  ///
-  /// Shown to the user only where a code alone cannot say why — a 403 names
-  /// the missing permission and nothing else can. It is the server's own
-  /// English either way, so display it framed rather than bare.
+  /// What the server wrote: the `detail` of a FastAPI error, or
+  /// `DioException.message` for a failure that never reached one. Shown to the
+  /// user only where a code alone cannot say why, and framed rather than bare —
+  /// it is the server's own English.
   final String? detail;
 
   /// Whether this is the 403 that means the API key's owner account is gone,
   /// rather than a permission the key or the account is missing.
   ///
-  /// Worth telling apart because the remedy is the opposite: no scope or group
+  /// The remedy is the opposite of a missing permission: no scope or group
   /// change fixes it, the account has to come back. It also arrives on *every*
-  /// route at once, including `/auth/me`, so the app looks broken rather than
-  /// restricted (`backend/app/core/auth.py::resolve_apikey_owner`,
-  /// server 1.2.6+).
+  /// route at once, `/auth/me` included, so the app looks broken rather than
+  /// restricted (`core/auth.py::resolve_apikey_owner`).
   ///
   /// Matched on the server's wording, so a reworded message degrades to the
   /// framed detail — still the truth, just less specific.
@@ -147,12 +139,7 @@ Future<T> guard<T>(Future<T> Function() body) async {
 
 /// [guard] for a route that enforces a rule the app does not re-implement, so
 /// the 400 or 422 keeps the sentence explaining it — see
-/// [mapDioExceptionKeepingDetail] for which statuses that is and why.
-///
-/// The missing sibling for a long time: seventeen writes across eight
-/// repositories each spelled the `try` / `on DioException` out by hand purely
-/// to swap the mapper, and one of them grew a private `_removal` wrapper for
-/// three routes that needed it at once.
+/// [mapDioExceptionKeepingDetail].
 Future<T> guardKeepingDetail<T>(Future<T> Function() body) async {
   try {
     return await body();
@@ -181,12 +168,9 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
 /// [guardOrNull] for a read that only decorates a screen — an optional badge, a
 /// nudge, a picker that is hidden when there is nothing to pick.
 ///
-/// Same as [guardOrNull] except that a **403 also degrades to `null`**. A 401
-/// still bubbles up: the session really is over and the app has to redirect. A
-/// 403 is a permanent per-permission answer about one route, and throwing it out
-/// of a decorative read would put a session dialog in front of a user over a
-/// control they simply cannot have (`slicer_repository.presetValues` learned
-/// this the hard way and handles the two apart for the same reason).
+/// Same as [guardOrNull] except that a **403 also degrades to `null`** — it is a
+/// permanent per-permission answer about one route, not a session ending, and a
+/// 401 still bubbles up so the app can redirect.
 Future<T?> guardOrNullAllowingForbidden<T>(Future<T?> Function() body) async {
   try {
     return await body();
@@ -203,12 +187,11 @@ Future<T?> guardOrNullAllowingForbidden<T>(Future<T?> Function() body) async {
   }
 }
 
-/// The one failure this app makes invisible on purpose: the screen renders
-/// without the missing piece and says nothing, so "the dashboard shows no
-/// printer" reaches a report as a screenshot of a working app. The `http`
-/// record shows the failed request but not the decision to carry on without it
-/// — and a `TypeError` from a response the parser could not read never reaches
-/// the probe at all. Field list: `docs/diagnostics-log.md`.
+/// The one failure this app makes invisible on purpose, so "the dashboard shows
+/// no printer" reaches a report as a screenshot of a working app. The `http`
+/// record shows the failed request but not the decision to carry on without it,
+/// and a `TypeError` from an unreadable response never reaches the probe at all.
+/// Field list: `docs/diagnostics-log.md`.
 void _logDegraded(String cause, AppApiException? failure) =>
     DiagnosticRecorder.active?.add(
       LogSource.http,
@@ -224,13 +207,10 @@ void _logDegraded(String cause, AppApiException? failure) =>
       },
     );
 
-/// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
-/// enforcing rules the app deliberately does not re-implement — "Cannot delete
-/// the last admin user", "Cannot rename system groups" — the reason exists only
-/// in `detail`, which the plain mapper drops for those two statuses.
-///
-/// A 403 needs no help here: the base mapper keeps its detail for every caller,
-/// because a refusal is worth explaining wherever it happens.
+/// [mapDioException] keeping what the server wrote in a 400 or 422, where the
+/// reason for a rule the app does not re-implement ("Cannot delete the last
+/// admin user") exists only in `detail`. A 403 needs no help: the base mapper
+/// keeps its detail for every caller.
 AppApiException mapDioExceptionKeepingDetail(DioException e) {
   final mapped = mapDioException(e);
   final status = e.response?.statusCode;
@@ -250,13 +230,10 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
 
 /// What the server wrote, out of a FastAPI error body.
 ///
-/// It answers a rule violation with `{"detail": "..."}` and a schema violation
-/// with `{"detail": [{"msg": "..."}, ...]}` — the password complexity
-/// validator produces the second shape.
-///
-/// Public because a route can answer one status for two unrelated reasons, and
-/// then the text is the only thing that tells them apart — see
-/// `_guardKeeping404Detail` in `data/inventory_source.dart`.
+/// A rule violation arrives as `{"detail": "..."}` and a schema violation as
+/// `{"detail": [{"msg": "..."}, ...]}` — the password validator produces the
+/// second. Public because a route can answer one status for two unrelated
+/// reasons, and then the text is all that tells them apart.
 String? serverDetailOf(Object? data) {
   if (data is! Map) return null;
   final detail = data['detail'];

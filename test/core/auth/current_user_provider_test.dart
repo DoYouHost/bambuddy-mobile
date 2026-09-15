@@ -50,6 +50,11 @@ const _jwtProfile = ServerProfile(
   authMode: AuthMode.jwt,
 );
 
+const _apiKeyProfile = ServerProfile(
+  baseUrl: 'http://s.local:8000',
+  authMode: AuthMode.apiKey,
+);
+
 void main() {
   late _FakeAccount account;
 
@@ -289,5 +294,47 @@ void main() {
         expect(container.read(permissionProvider('anything:at:all')), isTrue);
       },
     );
+  });
+
+  group('identifiedPermissionProvider', () {
+    test('a known user holding the permission may enter', () async {
+      _TestProfileNotifier.initial = _jwtProfile;
+      account.user = _user(permissions: {Permissions.usersRead});
+      final container = makeContainer();
+      await container.read(currentUserProvider.future);
+
+      expect(
+        container.read(identifiedPermissionProvider(Permissions.usersRead)),
+        isTrue,
+      );
+    });
+
+    test('an unknown identity is refused, unlike the permissive gate', () async {
+      // Nothing administrative is offered when nobody can say who is signed in:
+      // there is no account to attribute an edit to, and an entry that leads
+      // straight to a 401 is worse than no entry at all.
+      final container = makeContainer();
+
+      expect(container.read(permissionProvider(Permissions.usersRead)), isTrue);
+      expect(
+        container.read(identifiedPermissionProvider(Permissions.usersRead)),
+        isFalse,
+      );
+    });
+
+    test('an API key is refused however admin it claims to be', () async {
+      // The server denies a key every administrative permission whatever
+      // /auth/me said — up to 1.2.5.x it claimed admin with everything.
+      _TestProfileNotifier.initial = _apiKeyProfile;
+      account.user = _user(isAdmin: true, permissionsKnown: false);
+      final container = makeContainer();
+      await container.read(currentUserProvider.future);
+
+      expect(container.read(isAdminProvider), isTrue);
+      expect(
+        container.read(identifiedPermissionProvider(Permissions.usersRead)),
+        isFalse,
+      );
+    });
   });
 }

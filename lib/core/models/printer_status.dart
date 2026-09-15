@@ -576,8 +576,16 @@ class PrinterStatus {
   /// counter at all is taken as underway, because a printer mid-job that simply
   /// omitted the field must not read as idle.
   ///
-  /// Here rather than in the notification monitor because it is a question
-  /// about the frame, and the widget publisher and the watch ask it too.
+  /// The percentage is the other reason: during bed levelling the firmware
+  /// reports a percentage of *that* phase, observed jumping 6 → 60 in 300 ms at
+  /// `layer_num == 0`. A stage entered **mid**-print (a filament change, a
+  /// pause) is deliberately not excused — it holds a milestone back until the
+  /// stage clears, which is cheaper than a stale 100% crossing three thresholds
+  /// at once, and nothing latches, so the crossing is announced from the next
+  /// frame that describes the job.
+  ///
+  /// Here rather than in the notification monitor because it is a question about
+  /// the frame, and the widget publisher and the watch ask it too.
   bool get jobUnderway => (layerNum ?? 1) >= 1 && !inNamedStage;
 
   /// Whether the first layer is behind this frame at all: layer **2** or

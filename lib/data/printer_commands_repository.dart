@@ -6,14 +6,12 @@ import '../core/ams/slot_addressing.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 
-/// Printer control commands: pause/resume/stop, chamber light, speed, and
-/// temperatures (nozzle/bed/chamber) + airduct mode.
-/// All are `POST` with empty body; parameters go in query.
+/// Printer control commands — pause/resume/stop, light, speed, temperatures,
+/// airduct, jogs. All `POST` with an empty body and the parameters in the query,
+/// and success is simply returning: no response content is read.
 ///
-/// Auth adds [AuthInterceptor] to the shared Dio (X-API-Key or Bearer).
-/// Each method maps [DioException] to [AppApiException] — including 403 →
-/// `AuthException(forbidden)` if key lacks `can_control_printer`.
-/// Success = return without exception; response content not needed.
+/// A key without `can_control_printer` gets a 403, which maps to
+/// `AuthException(forbidden)` like everywhere else.
 class PrinterCommandsRepository {
   PrinterCommandsRepository(this._dio);
 
@@ -25,14 +23,13 @@ class PrinterCommandsRepository {
 
   Future<void> stop(int printerId) => _post(Endpoints.printStop(printerId));
 
-  /// Acknowledge the build plate has been cleared (lets the scheduler start the
-  /// next queued print). Empty body.
+  /// Acknowledge the build plate has been cleared, which lets the scheduler
+  /// start the next queued print.
   ///
-  /// Keeps what the server wrote on a 400: this route answers that status for
-  /// two unrelated reasons, and only the text tells them apart — a printer that
-  /// is not awaiting an acknowledgement at all, or a pre-#2864 server refusing
-  /// to release the gate on a printer it cannot reach. See
-  /// `isOfflinePlateClearRefusal`.
+  /// Keeps what the server wrote on a 400: the route answers that status for two
+  /// unrelated reasons — nothing is awaiting an acknowledgement, or a pre-#2864
+  /// server will not release the gate on a printer it cannot reach — and only
+  /// the text tells them apart (`isOfflinePlateClearRefusal`).
   Future<void> clearPlate(int printerId) =>
       _post(Endpoints.printerClearPlate(printerId), keepDetail: true);
 
@@ -40,8 +37,7 @@ class PrinterCommandsRepository {
   Future<void> setChamberLight(int printerId, {required bool on}) =>
       _post(Endpoints.chamberLight(printerId), query: {'on': on});
 
-  /// Print speed: `mode` 1–4 (1 Silent … 4 Ludicrous). Out-of-range values
-  /// rejected locally — server would return 422 anyway.
+  /// Print speed: `mode` 1–4 (1 Silent … 4 Ludicrous).
   Future<void> setPrintSpeed(int printerId, int mode) {
     assert(mode >= 1 && mode <= 4, 'speed mode out of range 1..4: $mode');
     return _post(Endpoints.printSpeed(printerId), query: {'mode': mode});
@@ -73,11 +69,10 @@ class PrinterCommandsRepository {
   /// Chamber target temperature (°C, 0 turns heating off). Only call for models
   /// with an active chamber heater — the server 400s otherwise.
   ///
-  /// The ceiling is the server's, not a constant: 60 up to 1.2.5.x and 65 from
-  /// 1.2.6 (`MAX_CHAMBER_TEMP_C`). The assert takes the higher one because it
-  /// guards against a caller bug, not against an old server — the UI never
-  /// offers more than [chamberMaxTargetProvider] allows, and a server that
-  /// disagrees answers 422, which is a server answer and not an assertion.
+  /// The ceiling is the server's (`MAX_CHAMBER_TEMP_C`: 60 up to 1.2.5.x, 65
+  /// from 1.2.6), and the assert takes the higher one because it guards a caller
+  /// bug rather than an old server — that one answers 422, which is an answer
+  /// and not an assertion.
   Future<void> setChamberTemperature(int printerId, int target) {
     assert(target >= 0 && target <= 65, 'chamber target out of range: $target');
     return _post(
