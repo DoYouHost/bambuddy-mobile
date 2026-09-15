@@ -1,5 +1,8 @@
+import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
+import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
@@ -19,6 +22,8 @@ class _CountingRepository extends SlicerRepository {
     return const PresetValues(resolved: true, reason: 'ok');
   }
 }
+
+class _MockInventory extends Mock implements InventoryRepository {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -113,6 +118,60 @@ void main() {
       await c.read(presetValuesProvider(other).future);
 
       expect(repo.asked, [('local', '12'), ('cloud', '99')]);
+    });
+  });
+
+  group('ownedFilamentsProvider', () {
+    Spool spool(int id, {String? preset, String? rgba}) =>
+        Spool(id: id, material: 'PLA', rgba: rgba, slicerFilamentName: preset);
+
+    Future<List<OwnedFilament>> owned(List<Spool> shelf) {
+      final repo = _MockInventory();
+      when(() => repo.fetchSpools()).thenAnswer((_) async => shelf);
+      return container(
+        overrides: [inventoryRepositoryProvider.overrideWithValue(repo)],
+      ).read(ownedFilamentsProvider.future);
+    }
+
+    test(
+      'a shelf of one filament in many colours keeps every colour',
+      () async {
+        // One preset covers every spool of that filament, so collapsing on the
+        // name alone kept an arbitrary colour and threw the rest away — and the
+        // auto-pick can only match a colour that survived this far.
+        final shelf = await owned([
+          spool(1, preset: 'Bambu PLA Basic', rgba: 'FF0000FF'),
+          spool(2, preset: 'Bambu PLA Basic', rgba: '00FF00FF'),
+          spool(3, preset: 'Bambu PLA Basic', rgba: '0000FFFF'),
+        ]);
+
+        expect(shelf, hasLength(3));
+        expect(
+          shelf.map((f) => f.color),
+          containsAll(['FF0000FF', '00FF00FF', '0000FFFF']),
+        );
+      },
+    );
+
+    test('two spools of the same filament and colour are one entry', () async {
+      final shelf = await owned([
+        spool(1, preset: 'Bambu PLA Basic', rgba: 'FF0000FF'),
+        spool(2, preset: 'Bambu PLA Basic', rgba: 'FF0000FF'),
+      ]);
+
+      expect(shelf, hasLength(1));
+    });
+
+    test('a spool with no preset mapping is not an owned filament', () async {
+      // Spoolman carries no slicer mapping at all, and the modal then falls
+      // back to printer compatibility rather than showing a nameless row.
+      final shelf = await owned([
+        spool(1),
+        spool(2, preset: '   '),
+        spool(3, preset: 'Bambu PLA Basic'),
+      ]);
+
+      expect(shelf.map((f) => f.name), ['Bambu PLA Basic']);
     });
   });
 }

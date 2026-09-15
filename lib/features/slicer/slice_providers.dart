@@ -34,12 +34,10 @@ final archiveCapabilitiesProvider = FutureProvider.autoDispose
           ref.watch(slicerRepositoryProvider).archiveCapabilities(archiveId),
     );
 
-/// Printer model codes the user actually owns (e.g. {"X2D"}), used to narrow
-/// the printer/process/filament lists to fitting presets.
-///
-/// Upper-cased because it is only ever compared against preset names, never
-/// sent — the spool form's `printerModelsProvider` reads the same fleet and
-/// must keep the server's own spelling, and says there why.
+/// Printer model codes the user actually owns (e.g. {"X2D"}), for narrowing the
+/// preset lists. Upper-cased because it is only ever compared against preset
+/// names, never sent — unlike the spool form's `printerModelsProvider`, which
+/// reads the same fleet and must keep the server's spelling.
 final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>((
   ref,
 ) async {
@@ -51,18 +49,13 @@ final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>((
   };
 });
 
-/// Filaments the user owns (from inventory spools) that carry a slicer-preset
-/// mapping, used to limit the filament list to owned filaments, to auto-pick
-/// per slot by material/colour, and to say what colour each slot actually
-/// prints in (`sliceFilamentColours`). Empty for backends (Spoolman) without a
-/// slicer mapping — the modal then falls back to printer-compatibility only.
+/// Filaments the user owns that carry a slicer-preset mapping: the filament
+/// list, the per-slot auto-pick, and what colour each slot really prints in
+/// (`sliceFilamentColours`). Empty on a backend without the mapping (Spoolman),
+/// where the modal falls back to printer compatibility alone.
 ///
-/// Deduplicated by name **and** colour, not by name alone: one preset covers
-/// every spool of that filament, so collapsing on the name kept an arbitrary
-/// one of a shelf full of colours and threw the rest away. Both readers want
-/// the colours — the auto-pick to find the closest to the plate, the request to
-/// record what is really being printed — and neither can ask for a colour that
-/// was dropped here.
+/// Deduplicated by name **and** colour, because one preset covers every spool
+/// of that filament and neither reader can ask for a colour dropped here.
 final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
   ref,
 ) async {
@@ -81,17 +74,14 @@ final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>((
 /// `isArchive` picks the route (`/archives/…` vs `/library/files/…`), `id` the
 /// file, `plate` the plate inside it.
 ///
-/// A record rather than three loose arguments because it is a provider family
-/// key and has to compare by value — and because the plate belongs to the key:
-/// the answer for plate 2 is a different answer, not a variation on plate 1's.
+/// A record because it is a provider family key and has to compare by value —
+/// the plate included, since plate 2's answer is a different answer.
 typedef PlateSource = ({bool isArchive, int id, int plate});
 
-/// Filament slots a model needs, keyed by [PlateSource]. Drives the per-colour
-/// pickers in the slice modal and the queue mapping sheet for multicolor prints.
-///
-/// The plate is part of the key on purpose: on a multi-plate file each plate
-/// consumes its own set of slots, so asking for the wrong one offers the wrong
-/// pickers (see `SlicerRepository.filamentRequirements`).
+/// Filament slots a model needs, keyed by [PlateSource] — the per-colour pickers
+/// in the slice modal and the queue mapping sheet. Each plate of a multi-plate
+/// file consumes its own slots, so the wrong key offers the wrong pickers (see
+/// `SlicerRepository.filamentRequirements`).
 final filamentRequirementsProvider = FutureProvider.autoDispose
     .family<List<FilamentRequirement>, PlateSource>(
       (ref, key) => ref
@@ -106,10 +96,8 @@ final filamentRequirementsProvider = FutureProvider.autoDispose
 /// The plates of one 3MF, keyed by `(isArchive, id)` — no plate in the key,
 /// since this is the read that says which plates there are.
 ///
-/// Best-effort in the repository: a server without the route, a file that is not
-/// a 3MF and a missing permission all answer [PlateList.none], which callers
-/// read as "no plate to choose" and render exactly as they did before plates
-/// existed.
+/// Best-effort in the repository: no route, not a 3MF and no permission all
+/// answer [PlateList.none], which callers read as "no plate to choose".
 final plateListProvider = FutureProvider.autoDispose
     .family<PlateList, (bool, int)>((ref, key) {
       final (isArchive, id) = key;
@@ -121,9 +109,8 @@ final plateListProvider = FutureProvider.autoDispose
 /// What the source 3MF was prepared with — the "slice as designed" switch.
 ///
 /// A view on [plateListProvider] rather than a request of its own: both answers
-/// come out of the same `…/plates` payload, and reading it twice meant two
-/// round trips and two zip parses for one question. Riverpod caches the
-/// underlying read, so a screen watching both gets one.
+/// come out of the same `…/plates` payload, and reading it twice cost two round
+/// trips and two zip parses for one question.
 final embeddedSettingsProvider = FutureProvider.autoDispose
     .family<EmbeddedSettings, (bool, int)>(
       (ref, key) async =>
@@ -136,12 +123,10 @@ final embeddedSettingsProvider = FutureProvider.autoDispose
 /// would refetch on every rebuild.
 typedef ProcessPresetRef = (String source, String id);
 
-/// The vendored OrcaSlicer option metadata, loaded on first use.
-///
-/// Null when the assets failed to load, which is a build error rather than a
-/// server problem — callers keep the settings screen out of reach rather than
-/// open an empty one. Not `autoDispose`: the catalog is cached per isolate
-/// regardless, so disposing the provider would only drop the handle to it.
+/// The vendored OrcaSlicer option metadata, loaded on first use. Null when the
+/// assets failed to load — a build error, not a server one, so callers keep the
+/// settings screen out of reach rather than open an empty one. Not
+/// `autoDispose`: the catalog is cached per isolate either way.
 final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>((
   ref,
 ) async {
@@ -154,11 +139,8 @@ final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>((
 /// flattened by the server's slicer sidecar.
 ///
 /// Null means the screen must not be offered at all — see
-/// [SlicerRepository.presetValues]. A `resolved: false` value is not that: the
-/// screen opens on schema defaults and says why.
-///
-/// `autoDispose` and keyed by preset, so changing the process preset in the
-/// sheet re-reads the baseline the fields are edited against.
+/// [SlicerRepository.presetValues]; a `resolved: false` is not that. Keyed by
+/// preset, so changing it re-reads the baseline the fields are edited against.
 final presetValuesProvider = FutureProvider.autoDispose
     .family<PresetValues?, ProcessPresetRef>(
       (ref, preset) => ref

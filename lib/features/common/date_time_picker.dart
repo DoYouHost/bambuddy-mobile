@@ -3,18 +3,12 @@ import 'package:flutter/material.dart';
 
 /// Asks for a date, then a time, and combines the two into a local instant.
 ///
-/// Two dialogs because Material has no combined picker — which is why both
-/// places that schedule something (a queued print, a drying run) had written
-/// out the same pair, down to the `mounted` check between the steps and the
-/// hour-ahead default.
+/// Two dialogs because Material has no combined picker.
 ///
-/// [initial] seeds both halves. With nothing to seed from it is an hour from
-/// now: near enough to be a small edit, far enough to be a schedule the server
-/// will accept.
-///
-/// [firstDate] is the earliest day the calendar offers, today by default. The
-/// queue passes yesterday, because editing a job whose time has already passed
-/// must not silently move it.
+/// [initial] seeds both halves; with nothing to seed from it is an hour from
+/// now. [firstDate] is the earliest day the calendar offers, today by default —
+/// the queue passes yesterday, because editing a job whose time has already
+/// passed must not silently move it.
 ///
 /// Returns null when either step is dismissed, and when the screen goes away
 /// between them — half an answer is not one.
@@ -30,10 +24,10 @@ Future<DateTime?> pickDateTime(
   // stored time that has since passed is exactly how that happens — the queue's
   // own row, or a drying time picked before the user went back to the sliders.
   //
-  // Compared by **day**, the way the picker itself compares them: an instant
-  // comparison would also move a seed that merely sits earlier in the first
-  // allowed day, which is the queue's ordinary case (yesterday at 18:00 against
-  // a `firstDate` of yesterday evening) and would silently reset the time.
+  // Compared by **day**, because that is what the assert compares: the picker
+  // runs `dateOnly` over both before checking (`date_picker.dart`, ~227). An
+  // instant comparison clamps in cases it never fires on, which is a claim
+  // about the SDK that would quietly stop being true.
   final openOn = DateUtils.dateOnly(seed).isBefore(DateUtils.dateOnly(earliest))
       ? earliest
       : seed;
@@ -46,10 +40,9 @@ Future<DateTime?> pickDateTime(
   );
   if (date == null || !context.mounted) return null;
 
-  // From [seed], not from the clamped day: only the calendar can refuse a
-  // value, and only a date. Seeding the clock from the clamp too would throw
-  // away the hour the user actually chose — a job set for 06:00 last week comes
-  // back to be re-dated, not re-timed.
+  // From [seed], not from the clamped day: seeding the clock from the clamp
+  // would throw away the hour the user chose — a job set for 06:00 last week
+  // comes back to be re-dated, not re-timed.
   final time = await showTimePicker(
     context: context,
     initialTime: TimeOfDay.fromDateTime(seed),
