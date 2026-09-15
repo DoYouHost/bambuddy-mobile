@@ -1672,6 +1672,7 @@
   "wearPlateCleared": "Platte geleert",
   "wearPlateNeedsOnline": "Dieser Server benötigt den Drucker online",
   "wearStarted": "Gestartet",
+  "wearNothingQueuedHere": "Nichts in der Warteschlange für diesen Drucker",
   "wearPhoneUnreachable": "Smartphone nicht erreichbar",
   "wearPhoneNoResponse": "Smartphone hat nicht geantwortet",
   "wearConfirm": "Bestätigen",

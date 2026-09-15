@@ -5326,6 +5326,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wearStarted => 'Iniciado';
 
   @override
+  String get wearNothingQueuedHere =>
+      'No hay nada en la cola para esta impresora';
+
+  @override
   String get wearPhoneUnreachable => 'Teléfono no disponible';
 
   @override

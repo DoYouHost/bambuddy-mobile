@@ -148,22 +148,21 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
         'queue.save_mapping',
       );
 
-  /// Assign indicated (free) printer and start item — triggers physical print.
-  /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
-  /// [amsMapping] (optional) sets the filament→AMS-slot mapping before starting;
-  /// `-1` entries mean "auto". On success, refresh list.
+  /// Put [item] on the indicated (free) printer and start it — triggers a
+  /// physical print. See [QueueRepository.startOnPrinter], which also undoes the
+  /// assignment when the start is refused. [amsMapping] (optional) sets the
+  /// filament→AMS-slot mapping before starting; `-1` entries mean "auto". On
+  /// success, refresh list.
   Future<ActionOutcome> startOnPrinter(
-    int itemId,
+    QueueItem item,
     int printerId, {
     List<int>? amsMapping,
-  }) => _serverAction(() async {
-    final repo = ref.read(queueRepositoryProvider);
-    await repo.assignPrinter(itemId, printerId);
-    if (amsMapping != null && amsMapping.isNotEmpty) {
-      await repo.setAmsMapping(itemId, amsMapping);
-    }
-    await repo.start(itemId);
-  }, 'queue.start_on_printer');
+  }) => _serverAction(
+    () => ref
+        .read(queueRepositoryProvider)
+        .startOnPrinter(item, printerId, amsMapping: amsMapping),
+    'queue.start_on_printer',
+  );
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via

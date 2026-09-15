@@ -5380,6 +5380,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearStarted => 'Démarré';
 
   @override
+  String get wearNothingQueuedHere =>
+      'Rien dans la file d\'attente pour cette imprimante';
+
+  @override
   String get wearPhoneUnreachable => 'Téléphone injoignable';
 
   @override

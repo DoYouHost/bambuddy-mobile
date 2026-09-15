@@ -8888,6 +8888,12 @@ abstract class AppLocalizations {
   /// **'Started'**
   String get wearStarted;
 
+  /// No description provided for @wearNothingQueuedHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing queued for this printer'**
+  String get wearNothingQueuedHere;
+
   /// No description provided for @wearPhoneUnreachable.
   ///
   /// In en, this message translates to:

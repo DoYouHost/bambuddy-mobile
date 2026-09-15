@@ -1884,6 +1884,7 @@
   "@wearPlateCleared": { "description": "Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit." },
   "wearPlateNeedsOnline": "This server needs the printer online",
   "wearStarted": "Started",
+  "wearNothingQueuedHere": "Nothing queued for this printer",
   "wearPhoneUnreachable": "Phone unreachable",
   "wearPhoneNoResponse": "Phone did not respond",
   "wearConfirm": "Confirm",

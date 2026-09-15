@@ -5312,6 +5312,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearStarted => 'Gestartet';
 
   @override
+  String get wearNothingQueuedHere =>
+      'Nichts in der Warteschlange für diesen Drucker';
+
+  @override
   String get wearPhoneUnreachable => 'Smartphone nicht erreichbar';
 
   @override

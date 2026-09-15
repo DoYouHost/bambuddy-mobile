@@ -1672,6 +1672,7 @@
   "wearPlateCleared": "Placa despejada",
   "wearPlateNeedsOnline": "El servidor requiere la impresora conectada",
   "wearStarted": "Iniciado",
+  "wearNothingQueuedHere": "No hay nada en la cola para esta impresora",
   "wearPhoneUnreachable": "Teléfono no disponible",
   "wearPhoneNoResponse": "El teléfono no respondió",
   "wearConfirm": "Confirmar",

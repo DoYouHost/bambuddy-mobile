@@ -251,11 +251,11 @@ class _MutableQueueNotifier extends QueueNotifier {
 
   @override
   Future<ActionOutcome> startOnPrinter(
-    int itemId,
+    QueueItem item,
     int printerId, {
     List<int>? amsMapping,
   }) async {
-    started.add((item: itemId, printer: printerId));
+    started.add((item: item.id, printer: printerId));
     return ActionOutcome.ok;
   }
 }

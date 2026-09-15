@@ -127,6 +127,16 @@ class AuthService {
     required String username,
     required String password,
     bool remember = false,
+  }) => _login(baseUrl, username, password, remember: remember);
+
+  /// [remember] `null` leaves the saved pair as it is — the silent renewal,
+  /// which runs on that very pair and would otherwise rewrite the keystore on
+  /// every expiry.
+  Future<LoginResult> _login(
+    String baseUrl,
+    String username,
+    String password, {
+    required bool? remember,
   }) async {
     final Response<Map<String, dynamic>> res;
     try {
@@ -162,10 +172,13 @@ class AuthService {
     }
 
     await _credentials.writeJwt(token);
-    if (remember) {
-      await _credentials.writeRememberedLogin(username, password);
-    } else {
-      await _credentials.clearRememberedLogin();
+    switch (remember) {
+      case true:
+        await _credentials.writeRememberedLogin(username, password);
+      case false:
+        await _credentials.clearRememberedLogin();
+      case null:
+        break;
     }
     return LoginCompleted(token, user: _userOrNull(body['user']));
   }
@@ -362,12 +375,11 @@ class AuthService {
     final saved = await _credentials.readRememberedLogin();
     if (saved == null) return null;
     try {
-      final result = await login(
-        baseUrl: baseUrl,
-        username: saved.username,
-        password: saved.password,
-        // Otherwise the renewal would forget the very pair it renewed with.
-        remember: true,
+      final result = await _login(
+        baseUrl,
+        saved.username,
+        saved.password,
+        remember: null,
       );
       switch (result) {
         case LoginCompleted(:final token):

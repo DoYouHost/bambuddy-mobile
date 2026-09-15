@@ -43,6 +43,17 @@ class _CountingAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Every silent renewal is a keystore write when this counts one.
+class _WriteCountingStore extends InMemoryCredentialsStore {
+  int loginWrites = 0;
+
+  @override
+  Future<void> writeRememberedLogin(String username, String password) {
+    loginWrites++;
+    return super.writeRememberedLogin(username, password);
+  }
+}
+
 ResponseBody _json(Object body, int status) => ResponseBody.fromString(
   jsonEncode(body),
   status,
@@ -823,6 +834,27 @@ void main() {
         expect(await store.readRememberedLogin(), isNotNull);
       },
     );
+
+    test('a renewal leaves the saved pair untouched on disk', () async {
+      final writes = _WriteCountingStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      final localDio = Dio();
+      DioAdapter(dio: localDio).onPost(
+        '$baseUrl/api/v1/auth/login',
+        (s) => s.reply(200, readFixture('login_response_ok.json')),
+        data: {'username': 'tester', 'password': 'sekret'},
+      );
+
+      await AuthService(
+        bareDio: localDio,
+        credentials: writes,
+      ).silentReLogin(baseUrl);
+
+      expect(writes.jwt, isNotNull);
+      expect(writes.loginWrites, 0);
+      expect(await writes.readRememberedLogin(), isNotNull);
+    });
 
     test('null instead of throwing when the server refuses', () async {
       // Callers are interceptors and background timers; an exception there

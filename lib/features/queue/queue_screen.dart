@@ -823,7 +823,7 @@ Future<void> _sendQueuedPrint(
   // it listened to.
   final result = await providers
       .read(queueProvider.notifier)
-      .startOnPrinter(item.id, printerId, amsMapping: mapping);
+      .startOnPrinter(item, printerId, amsMapping: mapping);
   messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 

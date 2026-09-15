@@ -189,11 +189,14 @@ void main() {
       queryParameters: {'printer_id': printerId, 'status': 'pending'},
     );
 
+    // Positions all default to 1 on a real server, so every item here keeps
+    // that unless a test is about position itself.
     Map<String, dynamic> item(
       int id, {
       int position = 1,
       int? printerId,
       String? targetModel,
+      String? targetLocation,
       bool variants = false,
     }) => {
       'id': id,
@@ -201,6 +204,7 @@ void main() {
       'status': 'pending',
       'printer_id': printerId,
       'target_model': targetModel,
+      'target_location': targetLocation,
       if (variants)
         'variants': [
           {
@@ -212,63 +216,128 @@ void main() {
         ],
     };
 
+    void mockAssign(int id) => adapter.onPatch(
+      '/api/v1/queue/$id',
+      (server) => server.reply(200, item(id, printerId: 1)),
+      data: {'printer_id': 1, 'target_model': null},
+    );
+
     void mockStart(int id) => adapter.onPost(
       '/api/v1/queue/$id/start',
       (server) => server.reply(200, item(id)),
     );
 
-    test('takes an "any model" item for this printer, never another printer\'s '
-        'job', () async {
-      // Printer 1's own list holds its model's item 4. The unassigned list also
-      // carries an A1 job (6) and a cross-model job (7): positions put both
-      // first, and neither may land on printer 1.
-      mockPending(1, [
-        item(3, position: 2, printerId: 1),
-        item(4, targetModel: 'X1C'),
-      ]);
-      mockPending(-1, [
-        item(4, targetModel: 'X1C'),
-        item(6, position: 0, targetModel: 'A1'),
-        item(7, position: 0, variants: true),
-      ]);
-      adapter.onPatch(
-        '/api/v1/queue/4',
-        (server) => server.reply(200, item(4, printerId: 1)),
-        data: {'printer_id': 1, 'target_model': null},
-      );
+    final emptyQueue = throwsA(
+      isA<StateError>().having((e) => e.message, 'message', 'empty-queue'),
+    );
+
+    test('this printer\'s own job beats older unassigned ones', () async {
+      // Same position, and the "any X1C" job has the lower id: an id tiebreak
+      // alone would start it instead of the one queued for this printer. No
+      // unassigned listing is mocked — asking for it would fail the test.
+      mockPending(1, [item(4, targetModel: 'X1C'), item(25, printerId: 1)]);
+      mockStart(25);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls, ['GET /api/v1/queue/', 'POST /api/v1/queue/25/start']);
+    });
+
+    test('an "any model" job for this printer is assigned with its model '
+        'cleared', () async {
+      mockPending(1, [item(4, targetModel: 'X1C')]);
+      mockAssign(4);
       mockStart(4);
       final sent = captureRequests(dio);
 
       await repo.startNextPending(1);
 
-      expect(sent.calls.skip(2), [
+      expect(sent.calls, [
+        'GET /api/v1/queue/',
         'PATCH /api/v1/queue/4',
         'POST /api/v1/queue/4/start',
       ]);
       // The model has to go with the assignment, or the server answers 400.
-      expect(sent.requests[2].data, {'printer_id': 1, 'target_model': null});
+      expect(sent.requests[1].data, {'printer_id': 1, 'target_model': null});
     });
 
-    test('an item already on this printer starts without a PATCH', () async {
-      mockPending(1, [item(3, printerId: 1)]);
-      mockPending(-1, [item(8, position: 5)]);
-      mockStart(3);
+    test('a job for the model in another location is left alone', () async {
+      // The printer listing ignores `target_location`; the scheduler does not.
+      mockPending(1, [item(4, targetModel: 'X1C', targetLocation: 'Office')]);
+      adapter.onGet(
+        '/api/v1/printers/',
+        (server) => server.reply(200, [
+          {'id': 1, 'name': 'X1C', 'location': 'Workshop'},
+        ]),
+      );
+      mockPending(-1, [
+        item(4, targetModel: 'X1C', targetLocation: 'Office'),
+        item(9),
+      ]);
+      mockAssign(9);
+      mockStart(9);
       final sent = captureRequests(dio);
 
       await repo.startNextPending(1);
 
-      expect(sent.calls.last, 'POST /api/v1/queue/3/start');
-      expect(sent.calls.where((c) => c.startsWith('PATCH')), isEmpty);
+      expect(sent.calls.last, 'POST /api/v1/queue/9/start');
+      expect(sent.calls, isNot(contains('PATCH /api/v1/queue/4')));
+    });
+
+    test('from the unassigned list only jobs with no model and no '
+        'alternatives', () async {
+      mockPending(1, const []);
+      mockPending(-1, [
+        item(6, targetModel: 'A1'),
+        item(7, variants: true),
+        item(8, position: 2),
+      ]);
+      mockAssign(8);
+      mockStart(8);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls.skip(2), [
+        'PATCH /api/v1/queue/8',
+        'POST /api/v1/queue/8/start',
+      ]);
+    });
+
+    test('a refused start puts the assignment back', () async {
+      // 409 is the server's filament-deficit answer. Left assigned, the job
+      // would lose "any X1C" for good and no other printer would take it.
+      mockPending(1, [item(4, targetModel: 'X1C')]);
+      mockAssign(4);
+      adapter.onPost(
+        '/api/v1/queue/4/start',
+        (server) => server.reply(409, {
+          'detail': {'code': 'insufficient_filament', 'deficit': <dynamic>[]},
+        }),
+      );
+      adapter.onPatch(
+        '/api/v1/queue/4',
+        (server) => server.reply(200, item(4, targetModel: 'X1C')),
+        data: {'printer_id': null, 'target_model': 'X1C', 'ams_mapping': null},
+      );
+      final sent = captureRequests(dio);
+
+      await expectLater(
+        repo.startNextPending(1),
+        throwsA(isA<AppApiException>()),
+      );
+      expect(sent.calls.last, 'PATCH /api/v1/queue/4');
+      expect(sent.statuses.last, 200);
     });
 
     test('a refused listing reaches the watch as the server error', () async {
       // The relay maps AppApiException to its code; anything else is the
       // generic `phone-error`, which hides a missing permission.
-      mockPending(1, const []);
       adapter.onGet(
         '/api/v1/queue/',
         (server) => server.reply(403, {'detail': 'queue:read'}),
-        queryParameters: {'printer_id': -1, 'status': 'pending'},
+        queryParameters: {'printer_id': 1, 'status': 'pending'},
       );
 
       await expectLater(
@@ -282,12 +351,7 @@ void main() {
       mockPending(-1, [item(6, targetModel: 'A1')]);
       final sent = captureRequests(dio);
 
-      await expectLater(
-        repo.startNextPending(1),
-        throwsA(
-          isA<StateError>().having((e) => e.message, 'message', 'empty-queue'),
-        ),
-      );
+      await expectLater(repo.startNextPending(1), emptyQueue);
       expect(sent.calls.where((c) => !c.startsWith('GET')), isEmpty);
     });
   });

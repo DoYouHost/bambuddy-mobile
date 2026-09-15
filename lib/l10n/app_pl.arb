@@ -1671,6 +1671,7 @@
   "wearPlateCleared": "Płyta zwolniona",
   "wearPlateNeedsOnline": "Ten serwer wymaga drukarki online",
   "wearStarted": "Uruchomiono",
+  "wearNothingQueuedHere": "W kolejce nie ma nic dla tej drukarki",
   "wearPhoneUnreachable": "Telefon nieosiągalny",
   "wearPhoneNoResponse": "Telefon nie odpowiedział",
   "wearConfirm": "Potwierdź",

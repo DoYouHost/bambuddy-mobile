@@ -536,7 +536,11 @@ class _WearFaultState extends State<_WearFault> {
 }
 
 String _shortError(AppLocalizations l10n, Object e) {
-  if (e is StateError && e.message == 'empty-queue') return l10n.queueEmpty;
+  // The button is offered on the fleet-wide pending count, so "empty" would
+  // contradict it whenever the waiting jobs belong to other printers.
+  if (e is StateError && e.message == 'empty-queue') {
+    return l10n.wearNothingQueuedHere;
+  }
   if (e is WearRelayUnreachable) return l10n.wearPhoneUnreachable;
   if (e is WearRelayTimeout) return l10n.wearPhoneNoResponse;
   // Relayed server error: the phone forwards the AppErrorCode name.

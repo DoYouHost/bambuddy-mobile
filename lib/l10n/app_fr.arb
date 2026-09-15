@@ -1672,6 +1672,7 @@
   "wearPlateCleared": "Plateau vidé",
   "wearPlateNeedsOnline": "Ce serveur nécessite l'imprimante en ligne",
   "wearStarted": "Démarré",
+  "wearNothingQueuedHere": "Rien dans la file d'attente pour cette imprimante",
   "wearPhoneUnreachable": "Téléphone injoignable",
   "wearPhoneNoResponse": "Le téléphone n'a pas répondu",
   "wearConfirm": "Confirmer",

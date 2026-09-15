@@ -5340,6 +5340,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearStarted => 'Uruchomiono';
 
   @override
+  String get wearNothingQueuedHere => 'W kolejce nie ma nic dla tej drukarki';
+
+  @override
   String get wearPhoneUnreachable => 'Telefon nieosiągalny';
 
   @override

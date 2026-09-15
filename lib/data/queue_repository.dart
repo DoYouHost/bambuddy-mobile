@@ -251,7 +251,9 @@ class QueueRepository {
   /// model, and the server refuses a row holding both with 400
   /// (`print_queue.py::update_queue_item`). Picking a printer is what replaces
   /// the model; for an item without one the null changes nothing.
-  Future<void> assignPrinter(int itemId, int printerId) => guard(
+  ///
+  /// Keeps the detail like [updateItem], which is the same route.
+  Future<void> assignPrinter(int itemId, int printerId) => guardKeepingDetail(
     () => _dio.patch<dynamic>(
       Endpoints.queueItem(itemId),
       data: {'printer_id': printerId, 'target_model': null},
@@ -260,12 +262,13 @@ class QueueRepository {
 
   /// PATCH /queue/{id} — set the AMS slot mapping (file filament slot → global
   /// AMS tray). Body: `{"ams_mapping": [..]}`.
-  Future<void> setAmsMapping(int itemId, List<int> mapping) => guard(
-    () => _dio.patch<dynamic>(
-      Endpoints.queueItem(itemId),
-      data: {'ams_mapping': mapping},
-    ),
-  );
+  Future<void> setAmsMapping(int itemId, List<int> mapping) =>
+      guardKeepingDetail(
+        () => _dio.patch<dynamic>(
+          Endpoints.queueItem(itemId),
+          data: {'ams_mapping': mapping},
+        ),
+      );
 
   /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
   ///
@@ -340,52 +343,135 @@ class QueueRepository {
   }
 
   /// POST /queue/{id}/start — manually start item.
-  Future<void> start(int itemId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.queueItemStart(itemId)));
-
-  /// Start the next pending queue item on [printerId]. Assigns the printer
-  /// first if the item isn't already bound to it (server requires the printer
-  /// set before start). Throws [StateError] when nothing pending can print
-  /// there. Shared by the watch ("start next" button) both directly (REST
-  /// fallback) and via the phone relay.
   ///
-  /// Candidates are what the phone's own start flow would put on this printer:
-  /// its items, "any model X" items for its model, and items with no printer
-  /// and no model. An item assigned to another printer is never taken over —
-  /// its AMS mapping belongs to that machine — nor is a model it cannot print
-  /// or a cross-model job, whose printer the server picks itself.
+  /// Keeps the detail: "Can only start pending items" names the status the
+  /// server found, as the removals do.
+  Future<void> start(int itemId) => guardKeepingDetail(
+    () => _dio.post<dynamic>(Endpoints.queueItemStart(itemId)),
+  );
+
+  /// Puts [item] on [printerId] and starts it: assign when it is not there yet,
+  /// then the optional [amsMapping], then `POST start`.
+  ///
+  /// Three requests with no transaction around them, and the start is the one
+  /// most likely refused (409 filament deficit, 400 status moved on). A refused
+  /// start after an assignment would leave the row bound to this printer with
+  /// its "any X" model gone — no other printer would ever take it — so the
+  /// assignment is put back before the error goes on. A mapping on an item
+  /// that was already here stays, as it did before: the user chose it.
+  Future<void> startOnPrinter(
+    QueueItem item,
+    int printerId, {
+    List<int>? amsMapping,
+  }) async {
+    final moved = item.printerId != printerId;
+    if (moved) await assignPrinter(item.id, printerId);
+    try {
+      if (amsMapping != null && amsMapping.isNotEmpty) {
+        await setAmsMapping(item.id, amsMapping);
+      }
+      await start(item.id);
+    } on Object {
+      if (moved) await _restoreAssignment(item);
+      rethrow;
+    }
+  }
+
+  /// Best effort: the start's own error is what the caller has to see, and a
+  /// failed restore has nothing better to say than that one.
+  Future<void> _restoreAssignment(QueueItem item) async {
+    try {
+      await _dio.patch<dynamic>(
+        Endpoints.queueItem(item.id),
+        data: {
+          'printer_id': item.printerId,
+          'target_model': item.targetModel,
+          'ams_mapping': item.amsMapping,
+        },
+      );
+    } on DioException {
+      // See above.
+    }
+  }
+
+  /// Start the next pending queue item on [printerId] — the watch's "start
+  /// next", both directly (REST fallback) and via the phone relay. Throws
+  /// [StateError] when nothing pending can print there.
   Future<void> startNextPending(int printerId) async {
-    // The printer filter returns its own items plus unassigned ones matching
-    // its model (`print_queue.py::list_queue`); `-1` is every unassigned item.
-    // `Future.wait`, not a record's `.wait`: that one wraps a failure in
-    // `ParallelWaitError`, and the watch would lose the server's error code.
-    final lists = await Future.wait([
-      fetch(printerId: printerId, status: 'pending'),
-      fetch(printerId: -1, status: 'pending'),
-    ]);
-    final candidates =
-        <int, QueueItem>{
-          for (final q in lists[0])
-            if (q.printerId == printerId || q.printerId == null) q.id: q,
-          for (final q in lists[1])
-            if (q.printerId == null && q.targetModel == null) q.id: q,
-        }.values.where(
-          (q) =>
-              q.statusKind == QueueItemStatusKind.pending && q.variants.isEmpty,
-        );
-    // Queue positions frequently all default to 1 (see queue notes), so sort
-    // by position then id for a stable "first" pick.
-    final item = candidates.sorted((a, b) {
-      final byPos = a.position.compareTo(b.position);
-      return byPos != 0 ? byPos : a.id.compareTo(b.id);
-    }).firstOrNull;
+    final item = await _nextPendingFor(printerId);
     if (item == null) {
       throw StateError('empty-queue');
     }
-    if (item.printerId != printerId) {
-      await assignPrinter(item.id, printerId);
+    await startOnPrinter(item, printerId);
+  }
+
+  /// The item "start next" on [printerId] picks, most specific first: its own
+  /// items, then "any model X" items for its model and location, then items
+  /// with no printer and no model.
+  ///
+  /// By tier rather than by position alone: positions all default to 1, so an
+  /// id tiebreak would let an old unassigned job starve the one the user
+  /// queued for this printer. Never an item assigned to another printer (its
+  /// AMS mapping belongs to that machine), nor a cross-model job, whose printer
+  /// the server picks itself.
+  ///
+  /// Each tier costs a request only when the one before it came up empty, so
+  /// a printer with its own queue is one GET, and a refusal of a later listing
+  /// cannot block what an earlier one found.
+  Future<QueueItem?> _nextPendingFor(int printerId) async {
+    bool startable(QueueItem q) =>
+        q.statusKind == QueueItemStatusKind.pending && q.variants.isEmpty;
+    // The printer filter returns its own items plus unassigned ones for its
+    // model (`print_queue.py::list_queue`) — but ignores `target_location`,
+    // which the scheduler honours when it places such an item.
+    final listed = (await fetch(
+      printerId: printerId,
+      status: 'pending',
+    )).where(startable).toList();
+
+    final own = _firstInQueue(listed.where((q) => q.printerId == printerId));
+    if (own != null) return own;
+
+    final forModel = listed.where((q) => q.printerId == null).toList();
+    if (forModel.any((q) => q.targetLocation != null)) {
+      final location = await _printerLocation(printerId);
+      forModel.removeWhere(
+        (q) => q.targetLocation != null && q.targetLocation != location,
+      );
     }
-    await start(item.id);
+    final modelItem = _firstInQueue(forModel);
+    if (modelItem != null) return modelItem;
+
+    final unassigned = await fetch(printerId: -1, status: 'pending');
+    return _firstInQueue(
+      unassigned.where(
+        (q) => startable(q) && q.printerId == null && q.targetModel == null,
+      ),
+    );
+  }
+
+  /// Queue positions frequently all default to 1 (see queue notes), so id
+  /// breaks the tie for a stable "first".
+  static QueueItem? _firstInQueue(Iterable<QueueItem> items) =>
+      items.sorted((a, b) {
+        final byPos = a.position.compareTo(b.position);
+        return byPos != 0 ? byPos : a.id.compareTo(b.id);
+      }).firstOrNull;
+
+  /// Read from the listing the app already uses; [Endpoints] has no
+  /// single-printer route. Only asked when a candidate names a location.
+  Future<String?> _printerLocation(int printerId) async {
+    final printers = await guard(
+      () async =>
+          (await _dio.get<List<dynamic>>(Endpoints.printers)).data ?? const [],
+    );
+    for (final p in printers) {
+      if (p is Map && p['id'] == printerId) {
+        final location = p['location'];
+        return location is String ? location : null;
+      }
+    }
+    return null;
   }
 
   /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
