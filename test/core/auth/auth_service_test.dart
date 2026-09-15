@@ -294,6 +294,27 @@ void main() {
       expect(await store.readRememberedLogin(), isNull);
     });
 
+    test(
+      'without remember, a pair saved by an earlier sign-in is dropped',
+      () async {
+        // Signing in again after a session expired keeps the old secrets on disk.
+        // Left there, silent re-login would switch back to the previous account,
+        // or send its password to whichever server this sign-in chose.
+        store
+          ..username = 'previous'
+          ..password = 'old-server';
+        onLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
+
+        await service.login(
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'sekret',
+        );
+
+        expect(await store.readRememberedLogin(), isNull);
+      },
+    );
+
     test('remember=true stores username and password', () async {
       onLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
 
@@ -670,6 +691,20 @@ void main() {
       expect(store.apiKey, 'bb_dobry');
     });
 
+    test('a saved password from an earlier sign-in does not stay', () async {
+      store
+        ..username = 'previous'
+        ..password = 'old-server';
+      adapter.onGet(
+        '$baseUrl/api/v1/printers/',
+        (s) => s.reply(200, readFixture('printers_list.json')),
+        headers: {'X-API-Key': 'bb_dobry'},
+      );
+
+      await service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_dobry');
+      expect(await store.readRememberedLogin(), isNull);
+    });
+
     test('401 is the key being rejected, and nothing is stored', () async {
       adapter.onGet(
         '$baseUrl/api/v1/printers/',
@@ -783,6 +818,9 @@ void main() {
         final token = await service.silentReLogin(baseUrl);
         expect(token, isNotNull);
         expect(store.jwt, token);
+        // A renewal is not a new sign-in: the pair has to survive it, or the
+        // next expiry has nothing to renew with.
+        expect(await store.readRememberedLogin(), isNotNull);
       },
     );
 
@@ -1131,6 +1169,24 @@ void main() {
       expect(completed.token, 'eyJ.po.2fa');
       expect(completed.user?.isAdmin, isTrue);
       expect(completed.user?.can(Permissions.usersRead), isTrue);
+    });
+
+    test('finishing 2FA drops a pair saved by an earlier sign-in', () async {
+      final r = recording(
+        (o) async => _json({'access_token': 'eyJ.po.2fa'}, 200),
+      );
+      r.store
+        ..username = 'previous'
+        ..password = 'old-server';
+
+      await r.service.verifyTwoFactor(
+        baseUrl: baseUrl,
+        challenge: challenge,
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
+
+      expect(await r.store.readRememberedLogin(), isNull);
     });
 
     test('the login response cookie travels back on the verify call', () async {

@@ -1,4 +1,5 @@
 import 'package:app_util/app_util.dart';
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -245,11 +246,15 @@ class QueueRepository {
   );
 
   /// PATCH /queue/{id} — assign printer to item (before start).
-  /// Body: `{"printer_id": ..}`.
+  ///
+  /// `target_model: null` goes along because an "any X" item already has a
+  /// model, and the server refuses a row holding both with 400
+  /// (`print_queue.py::update_queue_item`). Picking a printer is what replaces
+  /// the model; for an item without one the null changes nothing.
   Future<void> assignPrinter(int itemId, int printerId) => guard(
     () => _dio.patch<dynamic>(
       Endpoints.queueItem(itemId),
-      data: {'printer_id': printerId},
+      data: {'printer_id': printerId, 'target_model': null},
     ),
   );
 
@@ -340,23 +345,43 @@ class QueueRepository {
 
   /// Start the next pending queue item on [printerId]. Assigns the printer
   /// first if the item isn't already bound to it (server requires the printer
-  /// set before start). Throws [StateError] when the queue has nothing
-  /// pending. Shared by the watch ("start next" button) both directly (REST
+  /// set before start). Throws [StateError] when nothing pending can print
+  /// there. Shared by the watch ("start next" button) both directly (REST
   /// fallback) and via the phone relay.
+  ///
+  /// Candidates are what the phone's own start flow would put on this printer:
+  /// its items, "any model X" items for its model, and items with no printer
+  /// and no model. An item assigned to another printer is never taken over —
+  /// its AMS mapping belongs to that machine — nor is a model it cannot print
+  /// or a cross-model job, whose printer the server picks itself.
   Future<void> startNextPending(int printerId) async {
-    final items = await fetch();
+    // The printer filter returns its own items plus unassigned ones matching
+    // its model (`print_queue.py::list_queue`); `-1` is every unassigned item.
+    // `Future.wait`, not a record's `.wait`: that one wraps a failure in
+    // `ParallelWaitError`, and the watch would lose the server's error code.
+    final lists = await Future.wait([
+      fetch(printerId: printerId, status: 'pending'),
+      fetch(printerId: -1, status: 'pending'),
+    ]);
+    final candidates =
+        <int, QueueItem>{
+          for (final q in lists[0])
+            if (q.printerId == printerId || q.printerId == null) q.id: q,
+          for (final q in lists[1])
+            if (q.printerId == null && q.targetModel == null) q.id: q,
+        }.values.where(
+          (q) =>
+              q.statusKind == QueueItemStatusKind.pending && q.variants.isEmpty,
+        );
     // Queue positions frequently all default to 1 (see queue notes), so sort
     // by position then id for a stable "first" pick.
-    final pending =
-        items.where((q) => q.statusKind == QueueItemStatusKind.pending).toList()
-          ..sort((a, b) {
-            final byPos = a.position.compareTo(b.position);
-            return byPos != 0 ? byPos : a.id.compareTo(b.id);
-          });
-    if (pending.isEmpty) {
+    final item = candidates.sorted((a, b) {
+      final byPos = a.position.compareTo(b.position);
+      return byPos != 0 ? byPos : a.id.compareTo(b.id);
+    }).firstOrNull;
+    if (item == null) {
       throw StateError('empty-queue');
     }
-    final item = pending.first;
     if (item.printerId != printerId) {
       await assignPrinter(item.id, printerId);
     }

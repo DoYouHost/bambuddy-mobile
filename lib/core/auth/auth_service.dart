@@ -117,8 +117,11 @@ class AuthService {
   }
 
   /// Stores the JWT on success, plus username and password when [remember] is
-  /// set — that pair is what [silentReLogin] runs on. A `requires_2fa` answer
-  /// stores nothing and comes back as [LoginNeedsTwoFactor].
+  /// set — that pair is what [silentReLogin] runs on. Without [remember] a pair
+  /// saved by an earlier sign-in is dropped: it may belong to another account
+  /// or another server, and silent re-login would replay it there. A
+  /// `requires_2fa` answer stores nothing and comes back as
+  /// [LoginNeedsTwoFactor].
   Future<LoginResult> login({
     required String baseUrl,
     required String username,
@@ -161,6 +164,8 @@ class AuthService {
     await _credentials.writeJwt(token);
     if (remember) {
       await _credentials.writeRememberedLogin(username, password);
+    } else {
+      await _credentials.clearRememberedLogin();
     }
     return LoginCompleted(token, user: _userOrNull(body['user']));
   }
@@ -238,6 +243,9 @@ class AuthService {
     }
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
+    // Same reason as a login without "remember me": an older pair would be
+    // replayed against this session.
+    await _credentials.clearRememberedLogin();
     // `TwoFAVerifyResponse` carries the same `user` as the one-step login
     // (`backend/app/schemas/auth.py::TwoFAVerifyRequest`), so this costs no
     // `GET /auth/me`.
@@ -323,6 +331,7 @@ class AuthService {
       throw mapDioException(e);
     }
     await _credentials.writeApiKey(apiKey);
+    await _credentials.clearRememberedLogin();
   }
 
   Future<String?>? _pendingSilentReLogin;
@@ -357,6 +366,8 @@ class AuthService {
         baseUrl: baseUrl,
         username: saved.username,
         password: saved.password,
+        // Otherwise the renewal would forget the very pair it renewed with.
+        remember: true,
       );
       switch (result) {
         case LoginCompleted(:final token):

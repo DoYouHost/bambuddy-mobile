@@ -182,6 +182,116 @@ void main() {
     });
   });
 
+  group('startNextPending (the watch button)', () {
+    void mockPending(int printerId, List<dynamic> reply) => adapter.onGet(
+      '/api/v1/queue/',
+      (server) => server.reply(200, reply),
+      queryParameters: {'printer_id': printerId, 'status': 'pending'},
+    );
+
+    Map<String, dynamic> item(
+      int id, {
+      int position = 1,
+      int? printerId,
+      String? targetModel,
+      bool variants = false,
+    }) => {
+      'id': id,
+      'position': position,
+      'status': 'pending',
+      'printer_id': printerId,
+      'target_model': targetModel,
+      if (variants)
+        'variants': [
+          {
+            'library_file_id': 1,
+            'filename': 'a.gcode.3mf',
+            'target_model': 'X1C',
+            'position': 0,
+          },
+        ],
+    };
+
+    void mockStart(int id) => adapter.onPost(
+      '/api/v1/queue/$id/start',
+      (server) => server.reply(200, item(id)),
+    );
+
+    test('takes an "any model" item for this printer, never another printer\'s '
+        'job', () async {
+      // Printer 1's own list holds its model's item 4. The unassigned list also
+      // carries an A1 job (6) and a cross-model job (7): positions put both
+      // first, and neither may land on printer 1.
+      mockPending(1, [
+        item(3, position: 2, printerId: 1),
+        item(4, targetModel: 'X1C'),
+      ]);
+      mockPending(-1, [
+        item(4, targetModel: 'X1C'),
+        item(6, position: 0, targetModel: 'A1'),
+        item(7, position: 0, variants: true),
+      ]);
+      adapter.onPatch(
+        '/api/v1/queue/4',
+        (server) => server.reply(200, item(4, printerId: 1)),
+        data: {'printer_id': 1, 'target_model': null},
+      );
+      mockStart(4);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls.skip(2), [
+        'PATCH /api/v1/queue/4',
+        'POST /api/v1/queue/4/start',
+      ]);
+      // The model has to go with the assignment, or the server answers 400.
+      expect(sent.requests[2].data, {'printer_id': 1, 'target_model': null});
+    });
+
+    test('an item already on this printer starts without a PATCH', () async {
+      mockPending(1, [item(3, printerId: 1)]);
+      mockPending(-1, [item(8, position: 5)]);
+      mockStart(3);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls.last, 'POST /api/v1/queue/3/start');
+      expect(sent.calls.where((c) => c.startsWith('PATCH')), isEmpty);
+    });
+
+    test('a refused listing reaches the watch as the server error', () async {
+      // The relay maps AppApiException to its code; anything else is the
+      // generic `phone-error`, which hides a missing permission.
+      mockPending(1, const []);
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(403, {'detail': 'queue:read'}),
+        queryParameters: {'printer_id': -1, 'status': 'pending'},
+      );
+
+      await expectLater(
+        repo.startNextPending(1),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+
+    test('jobs only for other models → empty-queue, nothing written', () async {
+      mockPending(1, const []);
+      mockPending(-1, [item(6, targetModel: 'A1')]);
+      final sent = captureRequests(dio);
+
+      await expectLater(
+        repo.startNextPending(1),
+        throwsA(
+          isA<StateError>().having((e) => e.message, 'message', 'empty-queue'),
+        ),
+      );
+      expect(sent.calls.where((c) => !c.startsWith('GET')), isEmpty);
+    });
+  });
+
   test('reorder: sends POST and completes without exception', () async {
     adapter.onPost(
       '/api/v1/queue/reorder',
