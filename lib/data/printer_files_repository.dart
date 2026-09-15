@@ -9,15 +9,13 @@ import '../core/models/printer_download_job.dart';
 import '../core/models/printer_file.dart';
 import 'streamed_download.dart';
 
-/// REST data source for the printer's on-device storage (file manager).
+/// The printer's on-device storage: `GET/DELETE /printers/{id}/files`,
+/// `/files/download[-zip]` and `/storage`, with every download streamed into a
+/// file the caller names rather than into memory.
 ///
-/// Backs `GET/DELETE /printers/{id}/files`, `/files/download[-zip]` and
-/// `/storage`. Listing and storage read-only; a download is streamed into a
-/// file the caller names, never into memory — see [streamDownload].
-///
-/// No polling: each list call opens a fresh FTP connection to the printer, so
-/// the UI refreshes only on navigation, pull-to-refresh, or after a mutation
-/// (mirrors the server web UI, which throttles for fragile controllers).
+/// No polling — each list call opens a fresh FTP connection to the printer, so
+/// the UI refreshes only on navigation, pull-to-refresh or a mutation, which is
+/// what the server's own web UI does for fragile controllers.
 class PrinterFilesRepository {
   PrinterFilesRepository(this._dio, [this._serverVersion]);
 
@@ -29,10 +27,9 @@ class PrinterFilesRepository {
   /// Whether this server prepares a download in the background instead of
   /// behind a held request.
   ///
-  /// Unknown → not offered, which is free here in a way it rarely is: the
-  /// legacy route the app falls back to exists on every server generation and
-  /// downloads the same bytes. The only thing lost is the progress and the
-  /// Cancel button.
+  /// Unknown → not offered, which is free here: the legacy route exists on every
+  /// server generation and downloads the same bytes. Only the progress and the
+  /// Cancel button are lost.
   late final _downloadJobs = ObservedCapability(
     ServerFeature.printerFilesDownloadJob,
     _serverVersion,
@@ -40,12 +37,9 @@ class PrinterFilesRepository {
 
   Future<bool> supportsDownloadJobs() => _downloadJobs.supported;
 
-  /// List entries at [path] (default root). Directories and files mixed;
-  /// caller sorts. Auth/network errors bubble up via [guard].
-  ///
-  /// Returns the listing rather than the bare list because an empty `files` has
-  /// two meanings and only the response can tell them apart — see
-  /// [PrinterFileListing].
+  /// Entries at [path], directories and files mixed, for the caller to sort.
+  /// The listing rather than the bare list because an empty `files` has two
+  /// meanings and only the response tells them apart.
   Future<PrinterFileListing> listFiles(int printerId, String path) async {
     final data = await guard(() async {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -74,13 +68,11 @@ class PrinterFilesRepository {
   /// Streams one printer file into [savePath].
   ///
   /// No receive deadline, on any server version: both download routes answer
-  /// only once the whole payload exists — older servers built it in memory,
-  /// current ones assemble it on disk and allow themselves 30 minutes
-  /// (`MAX_PRINTER_ZIP_PREPARE_SECONDS`) — while the printer feeds it over its
-  /// single FTP socket. Dio's deadline measures the gap between chunks, so the
-  /// client-wide 15 s failed a transfer that was merely slow, and the user
-  /// could not tell that from a broken one. `connectTimeout` still guards a
-  /// server that is not there at all.
+  /// only once the whole payload exists (the current one allows itself 30
+  /// minutes, `MAX_PRINTER_ZIP_PREPARE_SECONDS`) while the printer feeds it over
+  /// one FTP socket. Dio measures the gap between chunks, so the client-wide
+  /// 15 s failed a transfer that was merely slow. `connectTimeout` still guards
+  /// a server that is not there at all.
   Future<void> downloadFileTo(
     int printerId,
     String path,
@@ -116,25 +108,18 @@ class PrinterFilesRepository {
     );
   }
 
-  /// Asks the server to prepare [paths] and answers as soon as it has a job to
-  /// watch — the preparation itself then runs on the server, reportable and
-  /// cancellable, instead of inside a request held open for up to 30 minutes.
+  /// Asks the server to prepare [paths] and answers as soon as there is a job to
+  /// watch, so the preparation runs on the server — reportable and cancellable —
+  /// instead of inside a request held open for up to 30 minutes.
   ///
-  /// **Null means this server has no such route**, and the caller must fall
-  /// back to [downloadZipTo] / [downloadFileTo]. A 404 cannot be told apart
-  /// from a printer that has just been deleted (`_load_printer_or_404` answers
-  /// the same status), and that ambiguity is harmless: the legacy route answers
-  /// that 404 itself, so the user sees the real error rather than a silent
-  /// nothing.
+  /// **Null means this server has no such route** and the caller falls back to
+  /// [downloadZipTo] / [downloadFileTo]. A deleted printer 404s the same way,
+  /// which is harmless: the legacy route answers that 404 itself, so the user
+  /// sees the real error rather than silence.
   ///
-  /// [sizes] buys the only thing it can: the server checks its own free space
-  /// before touching the printer, so an impossible selection is refused in a
-  /// second rather than after a long transfer. What it is worth depends
-  /// entirely on the numbers being real, which is why the map is vouched for
-  /// here rather than at each call site — see [_vouchedSizes].
-  ///
-  /// [asZip] false is a native single-file download, which the server accepts
-  /// for exactly one path.
+  /// [sizes] lets the server check its free space before touching the printer,
+  /// which is worth only as much as the numbers are real — hence [_vouchedSizes].
+  /// [asZip] false is a native single-file download, for exactly one path.
   Future<PrinterDownloadJob?> startDownloadJob(
     int printerId, {
     required List<String> paths,
@@ -158,30 +143,20 @@ class PrinterFilesRepository {
     // Not a 403: this runs because the user pressed Download, so a refusal
     // is the one thing they have to be told.
     absentOn: const {404},
-    // The one route that keeps this against the rule: `_load_printer_or
-    // _404` does give it a second reason to 404, but this latch picks
-    // between two *working* paths rather than between a feature and
-    // nothing. Wrong costs a slower download; not latching costs a wasted
-    // 404 before every download on a 1.2.6 daily older than the route.
+    // Against the usual rule, because this latch picks between two *working*
+    // paths rather than between a feature and nothing: wrong costs a slower
+    // download, not latching costs a 404 before every download.
     observing: treat404AsAbsent,
   );
 
   /// [sizes] as the server may be told them, or **null when they are not worth
   /// sending** — the whole map goes or none of it does.
   ///
-  /// Two ways a map fails to be worth sending, and they cost the same:
-  ///
-  ///  * **Incomplete.** The schema refuses a partial map outright
-  ///    (`PrinterFilesDownloadRequest._validate_sizes`: its keys must be
-  ///    exactly [paths]).
-  ///  * **A size the listing could not read**, which arrives as `0`. Claiming
-  ///    a gigabyte of models is empty passes the server's free-space check on
-  ///    a lie, and the transfer then fails halfway through instead. Better no
-  ///    check than a check on invented numbers.
-  ///
-  /// The rule lives here because it is about what this route may be told, not
-  /// about the screen that happens to be asking — it was written out once per
-  /// caller before it lived here.
+  /// **Incomplete** is refused by the schema outright
+  /// (`PrinterFilesDownloadRequest._validate_sizes` wants exactly [paths]), and
+  /// **a size the listing could not read** arrives as `0`: claiming a gigabyte
+  /// of models is empty passes the free-space check on a lie and fails the
+  /// transfer halfway instead. Better no check than one on invented numbers.
   Map<String, int>? _vouchedSizes(List<String> paths, Map<String, int> sizes) {
     if (sizes.length != paths.length) return null;
     if (sizes.values.any((size) => size <= 0)) return null;
@@ -226,15 +201,13 @@ class PrinterFilesRepository {
   /// Streams a `ready` job's bundle into [savePath].
   ///
   /// The token authorises this one transfer and the server deletes the staged
-  /// file behind it, so there is no retry: a stream that breaks needs a fresh
-  /// job. It is also short-lived (five minutes), which is why this is called
-  /// the moment a job reports `ready` rather than after asking the user
-  /// anything.
+  /// file behind it, so a broken stream needs a fresh job — and it expires in
+  /// five minutes, which is why this runs the moment a job reports `ready`
+  /// rather than after asking the user anything.
   ///
-  /// No receive deadline, as everywhere else on this screen: the bytes come off
-  /// the server's own disk here, but a phone that dozes mid-transfer looks
-  /// exactly like a stall and would lose a bundle that cannot be asked for
-  /// again.
+  /// No receive deadline, as everywhere else here: a phone that dozes
+  /// mid-transfer looks like a stall and would lose a bundle that cannot be
+  /// asked for again.
   Future<void> downloadPreparedTo(
     int printerId, {
     required String token,

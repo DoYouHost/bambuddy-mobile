@@ -1,11 +1,10 @@
 /// A fact the app writes to `SharedPreferences` that the service isolate has to
 /// re-read while it runs.
 ///
-/// The isolate reads preferences once, at start-up. That covers a service which
-/// starts *because* the app went to the background, and misses the opposite
-/// order — a service Android restarted after a swipe outlives the next launch,
-/// so `startService` is a no-op and nothing it decided at boot is ever revisited.
-/// Each value here is one such fact, and one message on the port `main` opens.
+/// The isolate reads preferences once, at start-up — which misses a service
+/// Android restarted after a swipe, since that one outlives the next launch and
+/// `startService` is then a no-op. Each value is one such fact, and one message
+/// on the port `main` opens.
 enum BackgroundSync {
   /// Which bug report this isolate should log into, if any.
   diagnostics,

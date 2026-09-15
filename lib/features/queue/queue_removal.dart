@@ -14,13 +14,10 @@ enum QueueRemoval {
   /// physical job.
   stopPrint,
 
-  /// `POST /queue/{id}/stop` for a row the printer is not showing as running.
-  ///
-  /// An unreachable printer belongs here rather than with [stopPrint]: the
-  /// server cannot deliver a stop to it either, and answers "Queue item
-  /// cancelled (printer was offline)". Hence wording that claims only that the
-  /// print is not *shown* as running, true for FAILED, IDLE and no contact
-  /// alike.
+  /// `POST /queue/{id}/stop` for a row the printer is not showing as running —
+  /// an unreachable printer included, since the server cannot deliver a stop to
+  /// it either and answers "cancelled (printer was offline)". Hence wording that
+  /// claims only that the print is not *shown* as running.
   stopAbandoned,
 
   /// `DELETE /queue/{id}` — refused for `printing` and accepted for every
@@ -28,10 +25,9 @@ enum QueueRemoval {
   delete,
 }
 
-/// Which removal [status] accepts. [printerBusy] is `PrinterStatus.isPrinting`
-/// for the item's printer and only picks between the two `/stop` wordings,
-/// never the route; no status at all counts as not busy, which is what an
-/// offline printer degrades to (`PrinterStatus.mergedWith`).
+/// Which removal [status] accepts. [printerBusy] only picks between the two
+/// `/stop` wordings, never the route; no status at all counts as not busy,
+/// which is what an offline printer degrades to.
 QueueRemoval queueRemovalFor(
   QueueItemStatusKind status, {
   required bool printerBusy,
@@ -49,9 +45,9 @@ QueueRemoval queueRemovalFor(
 String? queueWriteMessage(AppLocalizations l10n, ActionOutcome outcome) =>
     outcomeRefusal(l10n, outcome, _rules);
 
-/// Four routes, four phrasings of "that is not the status I found", and one
-/// thing the user has to do about it. The edit route is here too: opening the
-/// form on an item that starts printing behind you refuses exactly this way.
+/// Four routes, four phrasings of "that is not the status I found", one thing
+/// the user has to do about it. The edit route is here because opening the form
+/// on an item that starts printing behind you refuses exactly this way.
 final _rules = <RefusalRule>[
   for (final phrase in const [
     'cannot cancel item with status',

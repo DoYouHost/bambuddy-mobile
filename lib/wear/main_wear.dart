@@ -7,23 +7,19 @@ import '../l10n/app_locale.dart';
 import '../providers.dart';
 import 'wear_app.dart';
 
-/// Entry point for the Wear OS build. Deliberately lean: no foreground service,
-/// no WebSocket, no notifications, no home widget — the watch app is a thin,
-/// on-demand REST client that reuses `core/` + `data/`. Build with:
-///   flutter run --target lib/wear/main_wear.dart
+/// Entry point for the Wear OS build: no foreground service, no WebSocket, no
+/// notifications, no home widget — a thin on-demand REST client over `core/` and
+/// `data/`. Run with `--target lib/wear/main_wear.dart`.
 ///
-/// Orientation is locked to natural via android:screenOrientation="nosensor"
-/// in the wear flavor manifest. We must NOT call
-/// SystemChrome.setPreferredOrientations here: it runs
-/// setRequestedOrientation(PORTRAIT) at startup, and on the square watch
-/// display "portrait" still lets the system rotate 90° — it overrode the
-/// manifest lock and reintroduced the rotation bug.
+/// **Never call `SystemChrome.setPreferredOrientations` here.** Orientation is
+/// locked by `android:screenOrientation="nosensor"` in the wear manifest, and
+/// the Dart call issues `setRequestedOrientation(PORTRAIT)`, which on a square
+/// display still allows a 90° rotation — it overrode the manifest lock.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  // Without the catalog a fault has no description, and an unnamed fault is
-  // hidden — so on the watch this line is the difference between the error
-  // panel existing and never appearing at all.
+  // An unnamed fault is hidden, so without the catalogue the watch's error panel
+  // never appears at all.
   await HmsCatalog.instance.load(systemLocale());
   runApp(
     ProviderScope(

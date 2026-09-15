@@ -1,15 +1,13 @@
 /// Watch↔phone RPC contract over the Wear Data Layer (`MessageClient`).
 ///
-/// The watch sends a [WearRpcRequest]; the phone executes it against the
-/// server (or its live WS state) and replies with a [WearRpcResponse] carrying
-/// the raw server JSON. The watch parses that JSON with the existing model
-/// `fromJson`s, so no `toJson` is needed anywhere.
+/// The watch sends a [WearRpcRequest]; the phone executes it and replies with a
+/// [WearRpcResponse] carrying the raw server JSON, which the watch parses with
+/// the existing model `fromJson`s — no `toJson` anywhere.
 ///
-/// The `watch_connectivity` plugin hardcodes a single MessageClient path for
-/// all messages, so requests and responses share one stream and are
-/// discriminated by the `kind` field instead of Data Layer paths. Correlation
-/// is by `id` (many requests may be in flight; delivery is not guaranteed —
-/// callers pair this with a timeout).
+/// `watch_connectivity` hardcodes one MessageClient path for every message, so
+/// requests and responses share a stream and are told apart by `kind` rather
+/// than by Data Layer paths. Correlation is by `id`, and delivery is not
+/// guaranteed — callers pair this with a timeout.
 library;
 
 import 'dart:math';
@@ -20,11 +18,10 @@ enum WearRpcAction {
   /// "status": {...}|absent}]}` — raw server JSON under both keys.
   getFleet,
 
-  /// The connected server's version, for the watch's settings footer.
-  /// Response `data`: `{"version": "1.2.6b1"}`, the key absent when the phone
-  /// could not read one. A phone older than this action never decodes the
-  /// request and stays silent, which the watch reads as "unknown" after its
-  /// timeout — see [WearRpcRequest.decode].
+  /// The connected server's version, for the watch's settings footer. Response
+  /// `data`: `{"version": "1.2.6b1"}`, the key absent when the phone could not
+  /// read one — and a phone older than this action never decodes the request at
+  /// all, which the watch reads as unknown after its timeout.
   getServerVersion,
   pause,
   resume,
@@ -41,12 +38,9 @@ enum WearRpcAction {
   hmsAction,
 }
 
-/// What a *second* run of an action costs.
-///
-/// Two places ask, from opposite sides — the watch deciding whether to run a
-/// timed-out call itself, the phone deciding whether to run a call whose sender
-/// has stopped waiting — and one table is what keeps their answers from
-/// drifting apart as actions are added.
+/// What a *second* run of an action costs. Two places ask from opposite sides —
+/// the watch about a timed-out call, the phone about a sender that stopped
+/// waiting — and one table keeps their answers from drifting apart.
 enum WearRpcRetry {
   /// A read: asking again changes nothing.
   read,
@@ -77,20 +71,18 @@ extension WearRpcActionRetry on WearRpcAction {
   /// Whether the **watch** may serve this over its own REST connection after
   /// the relay timed out (`HybridWearTransport`).
   ///
-  /// Only a read, [WearRpcRetry.idempotent] included: a command that timed out
-  /// may have run on the phone with the reply lost on the way back, and the
-  /// watch cannot tell that from a phone that never heard it. It does not
-  /// guess — not even where the repeat itself would be harmless, because the
-  /// user is owed one answer about one command, not two attempts at it.
+  /// Only a read, [WearRpcRetry.idempotent] included: a timed-out command may
+  /// have run with the reply lost on the way back, and the watch cannot tell
+  /// that from a phone that never heard it. The user is owed one answer about
+  /// one command, not two attempts at it.
   bool get mayRepeatOverRest => retry == WearRpcRetry.read;
 
   /// Whether the **phone** may execute this for a sender that has already
   /// given up on it (`wear_relay_engine.dart`).
   ///
-  /// The phone is not guessing here: it was woken *by* this request, so it
-  /// knows nothing has run yet. The only question left is what the user's next
-  /// tap would do, and only [WearRpcRetry.destructive] answers that with
-  /// "print the next plate as well".
+  /// The phone is not guessing: it was woken *by* this request, so nothing has
+  /// run yet. The only question left is what the user's next tap would do, and
+  /// only [WearRpcRetry.destructive] answers "print the next plate as well".
   bool get isRepeatSafe => retry != WearRpcRetry.destructive;
 }
 
@@ -113,23 +105,21 @@ const _kindResponse = 'res';
 const _kindAck = 'ack';
 
 /// Contract version, bumped on incompatible changes. A decoder seeing a newer
-/// version than it knows still tries to parse (fields are additive) — the
-/// field exists so a future breaking change can be detected explicitly.
+/// one still tries to parse, since fields are additive.
 ///
-/// v2 = the sender understands [WearRpcAck] and waits [wearRpcWakeTimeout] for
-/// a request it has been acked. The phone reads this off a request to decide
-/// whether it may execute one on the cold path at all: a v1 watch has already
-/// given up by then, and its retry would run the command a second time.
+/// v2 = the sender understands [WearRpcAck] and waits [wearRpcWakeTimeout] once
+/// acked. The phone reads it off a request to decide whether it may execute one
+/// on the cold path at all: a v1 watch has already given up, and its retry would
+/// run the command twice.
 const wearRpcVersion = 2;
 
 /// First version whose sender waits for a woken phone. Mirrored natively in
 /// `WearRelayListenerService.kt` — the cold path is gated on it.
 const wearRpcWakeAwareVersion = 2;
 
-/// How long the watch waits for a request the phone acked as "waking". Covers a
-/// cold engine boot (process start, secure storage, an authenticated Dio) plus
-/// the request itself, and is deliberately not the timeout for a phone that
-/// never acks — see [wearRpcAckWaking].
+/// How long the watch waits for a request the phone acked as "waking": a cold
+/// engine boot (process start, secure storage, an authenticated Dio) plus the
+/// request. Deliberately not the timeout for a phone that never acks.
 const wearRpcWakeTimeout = Duration(seconds: 15);
 
 /// The one [WearRpcAck.state] there is so far: the phone was asleep, its relay
@@ -144,11 +134,10 @@ String _newRpcId() =>
     '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}'
     '-${_rng.nextInt(1 << 32).toRadixString(36)}';
 
-/// Deeply re-keys nested maps to `Map<String, dynamic>` and drops null values.
-/// Needed on both ends: raw server JSON carries nulls (the Data Layer map
-/// serialization rejects them, same as the config codec), and maps arriving
-/// over the plugin's EventChannel are `Map<Object?, Object?>` below the top
-/// level — only the outermost map gets cast by the plugin.
+/// Deeply re-keys nested maps to `Map<String, dynamic>` and drops nulls. Needed
+/// on both ends: the Data Layer rejects a null, and maps arriving over the
+/// plugin's EventChannel are `Map<Object?, Object?>` below the top level — only
+/// the outermost one is cast for us.
 dynamic deepSanitize(dynamic value) => switch (value) {
   Map m => <String, dynamic>{
     for (final e in m.entries)
@@ -211,20 +200,18 @@ class WearRpcRequest {
 
   /// Whether a phone woken *by this request* may execute it there and then.
   ///
-  /// A sender older than [wearRpcWakeAwareVersion] does not know the wake ack
-  /// and has given up long before a cold boot can answer, so its user's next
-  /// tap is the second run — which only a repeat-safe action survives. Every
-  /// later request reaches a warm engine, is answered in milliseconds, and is
-  /// not gated at all (`wear_relay_engine.dart`).
+  /// A sender older than [wearRpcWakeAwareVersion] gave up long before a cold
+  /// boot can answer, so its user's next tap is the second run — which only a
+  /// repeat-safe action survives. Later requests reach a warm engine and are not
+  /// gated at all.
   bool get mayRunOnWake =>
       version >= wearRpcWakeAwareVersion || action.isRepeatSafe;
 
   Map<String, dynamic> encode() => <String, dynamic>{
-    // The version this request carries, not the one this build speaks. They
-    // differ the moment a decoded request is encoded again, and the field
-    // is the whole basis of the wake gate: stamping the current version on
-    // a v1 sender would promote a watch that stopped waiting long ago into
-    // one the phone may run a non-repeat-safe action for.
+    // The version this request carries, not the one this build speaks: they
+    // differ the moment a decoded request is encoded again, and stamping the
+    // current one would promote a v1 watch that stopped waiting into one the
+    // phone may run a non-repeat-safe action for.
     _kVersion: version,
     _kKind: _kindRequest,
     _kId: id,
@@ -241,9 +228,8 @@ class WearRpcRequest {
     if (map[_kKind] != _kindRequest) return null;
     final id = map[_kId];
     if (id is! String || id.isEmpty) return null;
-    // Unknown action (e.g. newer watch talking to older phone) → null; the
-    // phone can't execute what it doesn't know, and the watch's timeout turns
-    // that silence into a fallback.
+    // A newer watch talking to an older phone: it cannot execute what it does
+    // not know, and the watch's timeout turns that silence into a fallback.
     final action = WearRpcAction.values.asNameMap()[map[_kAction]];
     if (action == null) return null;
     final printerId = map[_kPrinterId];
@@ -283,10 +269,9 @@ class WearRpcResponse {
   /// Short machine-readable reason (e.g. `phone-unconfigured`, `empty-queue`).
   final String? error;
 
-  /// What the *server* said, when the failure came from it — the sentence that
-  /// names the missing permission on a 403. Optional by design: an older phone
-  /// relays without it and the watch falls back to wording derived from
-  /// [error], exactly as it did before this field existed.
+  /// What the *server* said, when the failure came from it — the sentence naming
+  /// the missing permission on a 403. Optional: an older phone relays without it
+  /// and the watch falls back to wording derived from [error].
   final String? reason;
 
   Map<String, dynamic> encode() => <String, dynamic>{

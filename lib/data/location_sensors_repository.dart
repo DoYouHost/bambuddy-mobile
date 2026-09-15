@@ -1,24 +1,18 @@
 import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
-import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/location_sensor.dart';
 
-/// REST data source for the Home Assistant sensors a storage location can be
-/// given — `GET /location-ha-sensors/` and the per-location readings behind it
-/// (server #2827).
+/// The Home Assistant sensors a storage location can be given —
+/// `GET /location-ha-sensors/` and the readings behind it (server #2827).
 ///
 /// Read-only by design: binding an entity needs `smart_plugs:create`, which no
-/// API key can hold (`_APIKEY_DENIED_PERMISSIONS`, `backend/app/core/auth.py`),
-/// and the picker behind it needs the Home Assistant URL and token that only
-/// the server's own settings hold.
-///
-/// Auth adds the shared `AuthInterceptor`; [DioException] is mapped to
-/// [AppApiException].
+/// API key can hold (`_APIKEY_DENIED_PERMISSIONS`, `core/auth.py`), and the
+/// picker needs the Home Assistant URL and token only the server holds.
 class LocationSensorsRepository {
   LocationSensorsRepository(this._dio, [this._serverVersion]);
 
@@ -38,11 +32,9 @@ class LocationSensorsRepository {
   Future<bool> supportsLocationSensors() => _sensors.supported;
 
   /// Every binding the server holds, so a caller can tell which locations have
-  /// something to show before asking any of them for a reading.
-  ///
-  /// A 404 (no such route) or 403 (a key without `smart_plugs:read`) answers
-  /// with an empty list rather than throwing: the whole feature is additive,
-  /// and the latch above has already recorded why there is nothing to add.
+  /// something to show before asking any of them for a reading. A 404 or a 403
+  /// answers with an empty list rather than throwing: the feature is additive,
+  /// and the latch above has recorded why there is nothing to add.
   Future<List<LocationSensorBinding>> listBindings() => _sensors.watching(
     () async {
       final res = await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);

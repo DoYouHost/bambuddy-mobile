@@ -7,13 +7,9 @@ import '../settings/server_settings.dart';
 /// AMS-HT. Picked apart by [AmsUnit.isHtDryModule].
 typedef DryPreset = ({int temp, int htTemp, int hours, int htHours});
 
-/// What the server uses when nobody has configured anything — the table
-/// `services/print_scheduler.py::_get_drying_presets` falls back to (its
-/// `DEFAULT_DRYING_PRESETS`), taken from BambuStudio's filament profiles.
-///
-/// Kept as a fallback rather than as the truth: it is what the drying sheet
-/// offers before the server's settings have arrived, and on a session that may
-/// not read them.
+/// What the server falls back to (`print_scheduler.py::_get_drying_presets`,
+/// from BambuStudio's filament profiles) — and so what the sheet offers before
+/// the settings arrive, or on a session that may not read them.
 const defaultDryingPresets = <String, DryPreset>{
   'PLA': (temp: 45, htTemp: 45, hours: 12, htHours: 12),
   'PETG': (temp: 65, htTemp: 65, hours: 12, htHours: 12),
@@ -27,18 +23,14 @@ const defaultDryingPresets = <String, DryPreset>{
 
 /// The table the server actually dries with, from the `drying_presets` setting.
 ///
-/// The setting is a **JSON string**, not an object: the server stores it as a
-/// blob (`AppSettings.drying_presets`, default `""`) and parses it in
-/// `PrintScheduler._get_drying_presets`. Each row is
-/// `{"n3f": °C, "n3s": °C, "n3f_hours": h, "n3s_hours": h}`.
+/// The setting is a **JSON string**, not an object (`AppSettings.drying_presets`,
+/// default `""`), each row `{"n3f": °C, "n3s": °C, "n3f_hours": h,
+/// "n3s_hours": h}`.
 ///
-/// **Replaces the table rather than merging into it**, which is what the server
-/// does: a blob that parses to a non-empty object is used whole, and anything
-/// else falls back to the built-in defaults. Merging would let the phone offer
-/// a filament the server's own auto-drying has never heard of.
-///
-/// Never throws — this runs on a value a server handed us, and a malformed one
-/// only costs the customisation, not the sheet.
+/// **Replaces the table rather than merging into it**, as the server does:
+/// merging would let the phone offer a filament the server's own auto-drying
+/// has never heard of. Never throws — a malformed blob costs the customisation,
+/// not the sheet.
 Map<String, DryPreset> dryingPresetsFrom(dynamic value) {
   final decoded = decodeSettingBlob(value);
   if (decoded == null) return defaultDryingPresets;
@@ -71,12 +63,10 @@ Map<String, DryPreset> dryingPresetsFrom(dynamic value) {
 
 /// Which of the server's own drying automations are switched on.
 ///
-/// Read-only on purpose. Writing them is `settings:update`, which an API key
-/// can never hold: the permission is absent from the key's scope allowlist and
-/// named administrative in `core/auth.py::_APIKEY_DENIED_PERMISSIONS`, because
-/// rewriting settings reaches the SMTP/LDAP/MQTT credentials. Nothing in the
-/// app offers to change them; the sheet only says what is already happening, so
-/// a drying cycle nobody started stops looking like a fault.
+/// Read-only on purpose: writing them is `settings:update`, which an API key can
+/// never hold (`core/auth.py::_APIKEY_DENIED_PERMISSIONS` — rewriting settings
+/// reaches the SMTP/LDAP/MQTT credentials). The sheet only says what is already
+/// happening, so a drying cycle nobody started stops looking like a fault.
 typedef AutoDrying = ({
   /// `queue_drying_enabled` — dry between queued prints.
   bool betweenPrints,

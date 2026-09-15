@@ -2,8 +2,8 @@ import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
 
 /// Raised when the watch has no input activity to hand a request to. The caller
-/// should fall back to an editable field: a tap that does nothing at all is the
-/// bug this whole path exists to fix.
+/// falls back to an editable field — a tap that does nothing is the bug this
+/// path exists to fix.
 class WearTextInputUnavailable implements Exception {
   const WearTextInputUnavailable();
 
@@ -12,12 +12,10 @@ class WearTextInputUnavailable implements Exception {
 }
 
 /// Text entry on Wear OS, handed to the watch's own input activity (keyboard,
-/// handwriting, dictation) through [MainActivity]'s `wear_input` channel.
-///
-/// A plain `TextField` is not an option there: on the watch the soft keyboard
-/// either never opens (Pixel Watch 3) or opens as a fullscreen window that the
-/// app is never told about, leaving the field hidden underneath it. Details in
-/// the Kotlin doc for `requestWearText`.
+/// handwriting, dictation) through `MainActivity`'s `wear_input` channel: a
+/// plain `TextField` either never opens a keyboard (Pixel Watch 3) or is hidden
+/// under a fullscreen window the app is never told about. Details in the Kotlin
+/// doc for `requestWearText`.
 class WearTextInput {
   static const MethodChannel _channel = MethodChannel(
     'page.codeberg.morganmlgman.bambuddy/wear_input',
@@ -25,20 +23,18 @@ class WearTextInput {
 
   static const _platform = PlatformQuery(_channel);
 
-  /// Whether this device is a watch, i.e. whether text has to go through the
-  /// input activity. False on phones, and on anything without the channel.
+  /// Whether text has to go through the input activity. False on phones, and on
+  /// anything without the channel.
   Future<bool> isSupported() => _platform.ask('isSupported', fallback: false);
 
   /// Opens the input activity titled [label] and resolves to what was entered.
   ///
-  /// Null means "keep the current value": the user backed out, confirmed an
-  /// empty screen, or a request was already open. Throws
-  /// [WearTextInputUnavailable] when there is no input activity to open.
+  /// Null means "keep the current value": backed out, confirmed empty, or a
+  /// request was already open.
   ///
-  /// The one caller that talks to the channel itself rather than through
-  /// [PlatformQuery]: "nobody to ask" is not a fallback value here, it is a
-  /// different screen — the field has to become editable instead of eating the
-  /// tap.
+  /// Talks to the channel itself rather than through [PlatformQuery] because
+  /// "nobody to ask" is not a fallback value here but a different screen — hence
+  /// [WearTextInputUnavailable] rather than a null.
   Future<String?> request({required String label}) async {
     try {
       return await _channel.invokeMethod<String>('requestText', {
