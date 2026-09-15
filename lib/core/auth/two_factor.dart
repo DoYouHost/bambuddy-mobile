@@ -1,8 +1,7 @@
 /// The second login step: what the server offered, and what the app has to
 /// carry between `POST /auth/login` and `POST /auth/2fa/verify`.
 ///
-/// Contract in `docs/plans/10-two-factor-login.md`; server side is
-/// `reference/bambuddy/backend/app/api/routes/mfa.py`.
+/// Server side is `backend/app/api/routes/mfa.py` in the bambuddy reference.
 library;
 
 /// Wire values: they go out as `method` on `/2fa/verify`, which accepts exactly

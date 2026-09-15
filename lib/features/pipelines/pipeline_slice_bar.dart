@@ -5,11 +5,13 @@ import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/slicer_pipeline.dart';
 import '../../core/models/slicer_preset.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../slicer/slice_providers.dart';
+import 'pipeline_picker_sheet.dart';
 import 'pipeline_presets.dart';
 import 'pipelines_providers.dart';
 
@@ -113,21 +115,17 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
   Future<void> _pick() async {
     final pipelines = ref.read(pipelinesProvider).valueOrNull ?? const [];
     final catalog = ref.read(slicerPresetsProvider).valueOrNull;
-    final picked = await showModalBottomSheet<SlicerPipeline>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => _PipelinePicker(pipelines: pipelines, catalog: catalog),
+    final picked = await pickPipeline(
+      context,
+      pipelines: pipelines,
+      tag: 'slice.pipeline_option',
+      subtitle: (l10n, p) => _summary(l10n, catalog, p),
     );
     if (picked == null || !mounted) return;
     widget.onApply(picked);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).pipelineApplied(picked.name),
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).snack(AppLocalizations.of(context).pipelineApplied(picked.name));
   }
 
   Future<void> _save() async {
@@ -152,7 +150,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
           );
       ref.invalidate(pipelinesProvider);
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineSaved)));
+      messenger.snack(l10n.pipelineSaved);
     } on AppApiException catch (e) {
       showApiFailure(
         mounted ? messenger : null,
@@ -221,74 +219,30 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
   }
 }
 
-/// The saved bundles, each summarised by the profiles it carries so two
-/// similarly named pipelines can be told apart without opening them.
-class _PipelinePicker extends StatelessWidget {
-  const _PipelinePicker({required this.pipelines, required this.catalog});
-
-  final List<SlicerPipeline> pipelines;
-  final UnifiedPresets? catalog;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.95,
-      builder: (ctx, controller) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.pipelineSection,
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              controller: controller,
-              itemCount: pipelines.length,
-              itemBuilder: (ctx, i) {
-                final p = pipelines[i];
-                return ListTile(
-                  title: Text(
-                    p.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    _summary(l10n, p),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  onTap: () => Navigator.pop(ctx, p),
-                ).tagged('slice.pipeline_option');
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+/// Each pipeline summarised by the profiles it carries, so two similarly named
+/// ones can be told apart without opening them.
+String _summary(
+  AppLocalizations l10n,
+  UnifiedPresets? catalog,
+  SlicerPipeline p,
+) {
+  if (catalog == null) {
+    return l10n.pipelineFilamentsCount(p.filamentPresets.length);
   }
-
-  String _summary(AppLocalizations l10n, SlicerPipeline p) {
-    final cat = catalog;
-    if (cat == null) {
-      return l10n.pipelineFilamentsCount(p.filamentPresets.length);
-    }
-    final process = resolvePresetRef(cat, p.processPreset, PresetSlot.process);
-    final printer = resolvePresetRef(cat, p.printerPreset, PresetSlot.printer);
-    final parts = [
-      if (!isUnresolved(printer)) printer.name,
-      if (!isUnresolved(process)) process.name,
-      l10n.pipelineFilamentsCount(p.filamentPresets.length),
-    ];
-    return parts.join(' · ');
-  }
+  final process = resolvePresetRef(
+    catalog,
+    p.processPreset,
+    PresetSlot.process,
+  );
+  final printer = resolvePresetRef(
+    catalog,
+    p.printerPreset,
+    PresetSlot.printer,
+  );
+  final parts = [
+    if (!isUnresolved(printer)) printer.name,
+    if (!isUnresolved(process)) process.name,
+    l10n.pipelineFilamentsCount(p.filamentPresets.length),
+  ];
+  return parts.join(' · ');
 }

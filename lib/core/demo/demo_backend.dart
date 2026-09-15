@@ -2196,9 +2196,9 @@ class DemoBackend {
     'gcode_injection': gcodeInjection,
     'filament_short': false,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
-    // arrival emptied the real queue screen (docs/plans/07). Demo mode is
-    // where that regression should surface first, so it speaks the current
-    // contract and includes an `auto` rather than only the two easy values.
+    // arrival emptied the real queue screen. Demo mode is where that
+    // regression should surface first, so it speaks the current contract and
+    // includes an `auto` rather than only the two easy values.
     'bed_levelling': 'auto',
     'flow_cali': 'off',
     'nozzle_offset_cali': 'auto',

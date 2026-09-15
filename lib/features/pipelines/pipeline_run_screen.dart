@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import 'pipeline_eligibility_view.dart';
+import 'pipeline_picker_sheet.dart';
 import 'pipeline_runs_screen.dart';
 import 'pipelines_providers.dart';
 
@@ -230,11 +231,19 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
   }
 
   Future<void> _pick(List<SlicerPipeline> pipelines) async {
-    final picked = await showModalBottomSheet<SlicerPipeline>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => _RunPipelinePicker(pipelines: pipelines),
+    final picked = await pickPipeline(
+      context,
+      pipelines: pipelines,
+      tag: 'pipeline_run.option',
+      // An untargeted pipeline stays selectable — picking it is how the
+      // operator finds out it needs an edit, and the row says so.
+      subtitle: (l10n, p) => p.isRunnable
+          ? (p.targetKind == PipelineTargetKind.printerClass
+                ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
+                : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'))
+          : l10n.pipelineNoTargetChip,
+      subtitleColor: (theme, p) =>
+          p.isRunnable ? null : theme.colorScheme.tertiary,
     );
     if (picked == null || !mounted) return;
     setState(() {
@@ -288,7 +297,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
             force: force,
           );
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineRunStarted)));
+      messenger.snack(l10n.pipelineRunStarted);
       // Replace rather than pop-then-push: the run is dispatched, so this
       // screen has nothing left to show, and popping first plays a whole
       // dismissal animation before the dashboard slides in over it. `result`
@@ -313,73 +322,4 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
       );
     }
   }
-}
-
-/// Pipelines to run with. An untargeted one stays selectable — picking it is
-/// how the operator finds out it needs an edit, and the screen says so.
-class _RunPipelinePicker extends StatelessWidget {
-  const _RunPipelinePicker({required this.pipelines});
-
-  final List<SlicerPipeline> pipelines;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.95,
-      builder: (ctx, controller) => Column(
-        children: [
-          // The same heading `_PipelinePicker` carries. A sheet that opens
-          // straight into a list gives a screen reader nothing to say about
-          // what the list is for.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Semantics(
-                header: true,
-                child: Text(
-                  l10n.pipelineSection,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-            ),
-          ),
-          Expanded(child: _list(theme, l10n, controller)),
-        ],
-      ),
-    );
-  }
-
-  Widget _list(
-    ThemeData theme,
-    AppLocalizations l10n,
-    ScrollController controller,
-  ) => ListView.builder(
-    controller: controller,
-    itemCount: pipelines.length,
-    itemBuilder: (ctx, i) {
-      final p = pipelines[i];
-      return ListTile(
-        title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: p.isRunnable
-            ? Text(
-                p.targetKind == PipelineTargetKind.printerClass
-                    ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
-                    : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'),
-                style: theme.textTheme.bodySmall,
-              )
-            : Text(
-                l10n.pipelineNoTargetChip,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.tertiary,
-                ),
-              ),
-        onTap: () => Navigator.pop(ctx, p),
-      ).tagged('pipeline_run.option');
-    },
-  );
 }

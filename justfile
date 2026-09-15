@@ -46,7 +46,7 @@ test:
     flutter test
 
 # Spelling and grammar for the strings the user actually reads. Checks only what
-# this branch changed; `just l10n-check-all` sweeps both files. Set
+# this branch changed; `just l10n-check-all` sweeps every locale file. Set
 # LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and
 # keep the copy off someone else's server.
 # usage: just l10n-check [BASE_REF]

@@ -256,9 +256,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     try {
       final n = await ref.read(pipelinesRepositoryProvider).clearTerminalRuns();
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunsCleared(n))),
-      );
+      messenger.snack(l10n.pipelineRunsCleared(n));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.clear');
     }
@@ -456,9 +454,7 @@ class _RunCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).cancel(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunCancelled)),
-      );
+      messenger.snack(l10n.pipelineRunCancelled);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.cancel');
     }
@@ -474,9 +470,7 @@ class _RunCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).retryFailed(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunRetryStarted(count))),
-      );
+      messenger.snack(l10n.pipelineRunRetryStarted(count));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.retry');
     }

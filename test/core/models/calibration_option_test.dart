@@ -80,7 +80,7 @@ void main() {
   group('queue contract', () {
     // Regression from production: server 1.2.5 sends strings, the generated
     // cast to bool blew up on EVERY record, parseJsonList dropped them and
-    // the list came out empty on a valid 200 (docs/plans/07-queue-cali-enum.md).
+    // the list came out empty on a valid 200.
     Map<String, dynamic> record(Object bed, Object flow, Object nozzle) => {
       'id': 240,
       'position': 1,

@@ -344,12 +344,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlLight => 'Światło komory';
 
   @override
-  String get ctrlLightOn => 'Wł.';
-
-  @override
-  String get ctrlLightOff => 'Wył.';
-
-  @override
   String get ctrlAirduct => 'Nawiew';
 
   @override
@@ -493,9 +487,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get ctrlMoveZDown => 'W dół';
-
-  @override
-  String get ctrlMoveExtruder => 'Ekstruder';
 
   @override
   String get ctrlMoveExtrude => 'Wytłocz';
@@ -765,11 +756,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveEmpty => 'Brak zarchiwizowanych wydruków';
-
-  @override
-  String archiveSearchFailed(String query) {
-    return 'Nie udało się wyszukać „$query”. Spróbuj innej frazy.';
-  }
 
   @override
   String get archiveNoMatches => 'Żaden wydruk nie pasuje do filtrów';
@@ -1349,9 +1335,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pickPrinterTitle => 'Wybierz drukarkę';
 
   @override
-  String get noPrintersAvailable => 'Brak dostępnych drukarek';
-
-  @override
   String get detailsShow => 'Szczegóły';
 
   @override
@@ -1547,12 +1530,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get extruderRightShort => 'P';
 
   @override
-  String get amsHumidityTooltip => 'Wilgotność AMS';
-
-  @override
-  String get amsTempTooltip => 'Temperatura AMS';
-
-  @override
   String amsHistoryTitle(String ams) {
     return 'Historia $ams';
   }
@@ -1618,9 +1595,6 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get heaterHistoryRecordingInfo =>
       'Zapisywane co minutę, gdy drukarka jest połączona';
-
-  @override
-  String get wifiTooltip => 'Sygnał Wi-Fi';
 
   @override
   String get doorOpen => 'Drzwiczki otwarte';
@@ -1697,12 +1671,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String widgetMultiOfflineCount(int count) {
     return '$count offline';
   }
-
-  @override
-  String get widgetMultiName => 'Bambuddy · Drukarki';
-
-  @override
-  String get widgetMultiDescription => 'Wszystkie drukarki na raz';
 
   @override
   String remaining(String time) {
@@ -2161,9 +2129,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notifEventsMenu => 'Zdarzenia powiadomień';
 
   @override
-  String get hmsErrorsHeader => 'Aktywne błędy';
-
-  @override
   String get hmsViewInWiki => 'Otwórz w wiki Bambu';
 
   @override
@@ -2186,13 +2151,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get hmsDismissed => 'Błędy wyczyszczone na drukarce';
 
   @override
-  String get hmsDismissFailed => 'Nie udało się wyczyścić błędów';
-
-  @override
   String get hmsActionSent => 'Wysłano do drukarki';
-
-  @override
-  String get hmsActionFailed => 'Drukarka odrzuciła akcję';
 
   @override
   String get hmsActionNotAcknowledged =>
@@ -2351,12 +2310,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySearchHint => 'Szukaj: materiał, marka, kolor…';
 
   @override
-  String get inventoryShowArchived => 'Pokaż zarchiwizowane';
-
-  @override
-  String get inventoryArchived => 'Zarchiwizowana';
-
-  @override
   String get inventoryLowStock => 'Mało';
 
   @override
@@ -2447,9 +2400,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryTag => 'Tag';
 
   @override
-  String get inventoryId => 'ID filamentu';
-
-  @override
   String get inventoryUsageHistory => 'Historia zużycia';
 
   @override
@@ -2492,9 +2442,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventorySave => 'Zapisz';
-
-  @override
-  String get inventoryFieldQuantity => 'Ilość';
 
   @override
   String get inventoryQuantityHint => 'Dodaj naraz kilka identycznych szpul';
@@ -2573,9 +2520,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldLabelWeight => 'Waga szpuli (g)';
 
   @override
-  String get inventoryFieldWeightUsed => 'Zużyto (g)';
-
-  @override
   String get inventoryFieldCostPerKg => 'Cena za kg';
 
   @override
@@ -2583,12 +2527,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryFieldLocation => 'Miejsce przechowywania';
-
-  @override
-  String get inventoryFieldNozzleMin => 'Dysza min (°C)';
-
-  @override
-  String get inventoryFieldNozzleMax => 'Dysza maks (°C)';
 
   @override
   String get inventoryFieldNote => 'Notatka';
@@ -2606,15 +2544,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryFieldNegative => 'Podaj wartość 0 lub większą';
-
-  @override
-  String get inventorySectionBasics => 'Podstawy';
-
-  @override
-  String get inventorySectionWeight => 'Waga i koszt';
-
-  @override
-  String get inventorySectionDetails => 'Szczegóły';
 
   @override
   String get inventorySectionFilament => 'Filament';
@@ -2814,19 +2743,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryScanHint => 'Skieruj aparat na kod QR szpuli';
-
-  @override
-  String get inventoryScanPermissionTitle => 'Potrzebny dostęp do aparatu';
-
-  @override
-  String get inventoryScanPermissionBody =>
-      'Zezwól na dostęp do aparatu, aby skanować kody QR szpul.';
-
-  @override
-  String get inventoryScanOpenSettings => 'Otwórz ustawienia';
-
-  @override
-  String get inventoryScanInvalid => 'Nierozpoznany kod QR';
 
   @override
   String inventoryScanNotFound(int id) {
@@ -3152,11 +3068,6 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String maintenanceWarningBadge(int count) {
-    return '$count wkrótce';
-  }
-
-  @override
   String maintenanceDueIn(int hours) {
     return 'Za $hours h';
   }
@@ -3186,9 +3097,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get maintenanceDone => 'Konserwacja oznaczona jako wykonana';
 
   @override
-  String get maintenanceFailed => 'Nie udało się zaktualizować konserwacji';
-
-  @override
   String get maintenanceSaved => 'Zapisano';
 
   @override
@@ -3200,12 +3108,6 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get maintenanceOverridesSubtitle =>
       'Wycisz zadania lub dostosuj interwały per drukarka';
-
-  @override
-  String get maintenanceTabStatus => 'Status';
-
-  @override
-  String get maintenanceTabSettings => 'Ustawienia';
 
   @override
   String get maintenanceMute => 'Wycisz';
@@ -3338,9 +3240,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get maintenanceNotifAction => 'Oznacz wykonane';
 
   @override
-  String get navMenu => 'Menu';
-
-  @override
   String get menuStatistics => 'Statystyki';
 
   @override
@@ -3428,13 +3327,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statsTimeAccuracyHint => '100% = idealny szacunek';
 
   @override
-  String get statsByMaterial => 'Wydruki wg materiału';
-
-  @override
   String get statsByPrinter => 'Wydruki wg drukarki';
-
-  @override
-  String get statsTimeAccuracyByPrinter => 'Dokładność czasu wg drukarki';
 
   @override
   String statsPrintsCount(int count) {
@@ -3470,14 +3363,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get statsFailureAnalysis => 'Analiza niepowodzeń';
-
-  @override
-  String get statsFailureRate => 'Odsetek niepowodzeń';
-
-  @override
-  String statsFailurePeriod(int days) {
-    return 'Ostatnie $days dni';
-  }
 
   @override
   String statsFailedOfTotal(int failed, int total) {
@@ -4309,9 +4194,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectDeleted => 'Projekt usunięty';
 
   @override
-  String get projectDeleteFailed => 'Nie udało się usunąć projektu';
-
-  @override
   String get projectSaved => 'Projekt zapisany';
 
   @override
@@ -4400,16 +4282,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectPriorityUrgent => 'Pilny';
 
   @override
-  String get projectTabOverview => 'Przegląd';
-
-  @override
-  String get projectTabArchives => 'Archiwa';
-
-  @override
   String get projectTabBom => 'BOM';
-
-  @override
-  String get projectTabQueue => 'Kolejka';
 
   @override
   String get projectTabTimeline => 'Oś czasu';
@@ -4419,9 +4292,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get projectTabAttachments => 'Załączniki';
-
-  @override
-  String get projectStatsTitle => 'Statystyki';
 
   @override
   String get projectStatProgress => 'Postęp';
@@ -4450,9 +4320,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectStatQueued => 'W kolejce';
 
   @override
-  String get projectStatInProgress => 'W trakcie';
-
-  @override
   String get projectStatPrintTime => 'Czas druku';
 
   @override
@@ -4465,19 +4332,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectStatEnergy => 'Energia';
 
   @override
-  String get projectStatEnergyCost => 'Koszt energii';
-
-  @override
-  String get projectStatRemaining => 'Pozostało';
-
-  @override
   String get projectStatBom => 'BOM';
 
   @override
   String get projectChildren => 'Podprojekty';
-
-  @override
-  String get projectNoDescription => 'Brak opisu';
 
   @override
   String projectDueOn(String date) {
@@ -4486,15 +4344,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get projectAddArchives => 'Dodaj archiwa';
-
-  @override
-  String get projectRemoveArchive => 'Usuń z projektu';
-
-  @override
-  String get projectArchivesEmpty => 'Brak powiązanych archiwów';
-
-  @override
-  String get projectArchiveRemoved => 'Usunięto z projektu';
 
   @override
   String get archiveAddToProject => 'Dodaj do projektu';
@@ -4524,9 +4373,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bomQtyNeeded => 'Ilość';
 
   @override
-  String get bomQtyAcquired => 'Posiadane';
-
-  @override
   String get bomUnitPrice => 'Cena jedn.';
 
   @override
@@ -4536,16 +4382,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bomRemarks => 'Uwagi';
 
   @override
-  String get bomComplete => 'Skompletowane';
-
-  @override
   String get bomDelete => 'Usuń pozycję';
-
-  @override
-  String get bomDeleted => 'Pozycja usunięta';
-
-  @override
-  String get projectQueueEmpty => 'Brak elementów w kolejce';
 
   @override
   String get projectTimelineEmpty => 'Brak zdarzeń';
@@ -4604,21 +4441,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectFromTemplate => 'Utwórz z szablonu';
 
   @override
-  String get projectTemplateNone => 'Brak szablonów';
-
-  @override
-  String get projectTemplatePickTitle => 'Wybierz szablon';
-
-  @override
-  String get projectTemplateNamePrompt => 'Nazwa nowego projektu';
-
-  @override
   String projectExported(String path) {
     return 'Wyeksportowano do $path';
   }
-
-  @override
-  String get projectExportFailed => 'Eksport nie powiódł się';
 
   @override
   String get projectTemplateCreated => 'Szablon utworzony';
@@ -4940,9 +4765,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Zapisz pierwszy z formularza cięcia — drukarka, proces, filamenty i stół w komplecie, który zastosujesz jednym dotknięciem.';
 
   @override
-  String get pipelineProfiles => 'Profile';
-
-  @override
   String pipelineFilamentsCount(int count) {
     return 'Filamenty ($count)';
   }
@@ -5026,16 +4848,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pipelineDeleted => 'Usunięto pipeline';
 
   @override
-  String get pipelineDescriptionNoClear =>
-      'Raz zapisanego opisu nie da się wyczyścić — ten serwer potrafi tylko wpisać nowy.';
-
-  @override
   String get pipelineRun => 'Uruchom';
-
-  @override
-  String pipelineRunTitle(String name) {
-    return 'Uruchom „$name”';
-  }
 
   @override
   String get pipelineRunCopies => 'Kopie';
@@ -5053,9 +4866,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String pipelineRunMaxCopies(int max) {
     return 'Ten serwer pozwala najwyżej na $max.';
   }
-
-  @override
-  String get pipelineCheckingEligibility => 'Sprawdzam drukarki…';
 
   @override
   String get pipelineEligibilityOk => 'Można uruchamiać.';
@@ -5308,10 +5118,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueFilamentMapping => 'Mapowanie filamentów';
-
-  @override
-  String get mappingNoPrinter =>
-      'Najpierw przypisz drukarkę do tej pozycji, aby mapować sloty AMS.';
 
   @override
   String get mappingNoSlots => 'Brak informacji o filamentach dla tego pliku.';
@@ -5928,9 +5734,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get usersTitle => 'Użytkownicy';
 
   @override
-  String get usersMenu => 'Użytkownicy';
-
-  @override
   String get usersEmpty => 'Na tym serwerze nie ma kont.';
 
   @override
@@ -6188,9 +5991,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get groupsTitle => 'Grupy';
-
-  @override
-  String get groupsMenu => 'Grupy';
 
   @override
   String get groupsEmpty => 'Na tym serwerze nie ma grup.';
@@ -6460,9 +6260,6 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueSettingsKeepWarmOffNote =>
       'Utrzymywanie ciepła jest wyłączone. Temperatura stołu powyżej działa też przy nagrzewaniu wstępnym.';
-
-  @override
-  String get adminMenu => 'Administracja';
 
   @override
   String get adminTitle => 'Administracja';

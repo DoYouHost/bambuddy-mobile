@@ -40,8 +40,7 @@ import 'queue_removal.dart';
 /// [QueueEditMode.create]: `POST /queue/` via [QueueRepository.addFromArchive]
 /// or [QueueRepository.addFromLibraryFile], carrying the whole configuration.
 /// Configuring BEFORE the item exists is what keeps the scheduler from starting
-/// a job the user is still setting up — the race in
-/// `docs/plans/06b-log-findings.md`.
+/// a job the user is still setting up.
 ///
 /// Either way the payload follows the web's: printer mode clears
 /// `target_model`/`target_location`, model mode clears `printer_id`,

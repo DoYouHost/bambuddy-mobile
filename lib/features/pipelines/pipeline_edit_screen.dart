@@ -218,7 +218,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           );
       ref.invalidate(pipelinesProvider);
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineSaved)));
+      messenger.snack(l10n.pipelineSaved);
       navigator.pop();
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);

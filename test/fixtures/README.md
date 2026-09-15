@@ -32,8 +32,7 @@ jest sens fixture'a: jeśli serwer zmieni typ pola, testy na nim padną.
 `flow_cali` i `nozzle_offset_cali` to `"off"` / `"on"` / `"auto"` zamiast
 booleanów. Struktura wzięta z `queue_list.json` (nasz serwer jest starszy i tej
 postaci nie wyśle), a wartości trzech pól kalibracji — z rekordów, które podesłał
-tester z Discorda na serwerze 1.x; to jego zgłoszenie opisuje
-[`docs/plans/07-queue-cali-enum.md`](../../docs/plans/07-queue-cali-enum.md).
+tester z Discorda na serwerze 1.x.
 Trzymane osobno, żeby nie ruszać przechwyconego pliku: `queue_list.json` jest
 dowodem na to, co serwer naprawdę wysyła, i ma zostać niezmieniony.
 

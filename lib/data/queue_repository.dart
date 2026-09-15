@@ -36,7 +36,7 @@ Map<String, int>? rackChoiceWire(Object? choice) {
 ///
 /// Sending the whole configuration with the POST is the point: it closes the
 /// window in which the scheduler could dispatch a freshly added item while the
-/// user is still configuring it (see `docs/plans/06b-log-findings.md`).
+/// user is still configuring it.
 class QueueCreateOptions {
   const QueueCreateOptions({
     this.targetModel,

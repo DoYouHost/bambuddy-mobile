@@ -1,14 +1,12 @@
 /// All bambuddy API endpoints in one place.
 ///
 /// Contract: bambuddy v0.2.4.9 … v1.2.5.1 (`/api/v1`) — every path below was
-/// diffed across that range and none of them moved
-/// (`docs/plans/08-server-v1.2.5-migration.md`). When updating the server,
+/// diffed across that range and none of them moved. When updating the server,
 /// compare with `/openapi.json` before changing anything here.
 ///
 /// [usersSlim] is the one exception: it arrives in 1.2.6 and every server
-/// before it refuses the path
-/// (`docs/plans/13-users-slim-and-api-key-identity.md`). Callers probe rather
-/// than check a version number — see [StatsRepository].
+/// before it refuses the path. Callers probe rather than check a version
+/// number — see [StatsRepository].
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
@@ -32,8 +30,7 @@ abstract final class Endpoints {
   /// ownership keeps `id: 0` and the `api-key:` username, but no longer claims
   /// admin.
   ///
-  /// So `permissions` is the field to branch on, never `is_admin` or `role`
-  /// (`docs/plans/13-users-slim-and-api-key-identity.md`).
+  /// So `permissions` is the field to branch on, never `is_admin` or `role`.
   static const authMe = '$apiPrefix/auth/me';
 
   /// Second step of a login that answered `requires_2fa`: exchanges the
@@ -41,8 +38,7 @@ abstract final class Endpoints {
   static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
 
   /// Mails a 6-digit code to the user and answers with a **fresh** pre-auth
-  /// token — the one sent in is consumed. See
-  /// `docs/plans/10-two-factor-login.md`.
+  /// token — the one sent in is consumed.
   static const authTwoFactorEmailSend = '$apiPrefix/auth/2fa/email/send';
 
   /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
@@ -1323,11 +1319,11 @@ abstract final class Endpoints {
   /// issue #1894.
   ///
   /// **An older server cannot answer this successfully**, so support is probed
-  /// rather than derived from a version number (that numbering is a trap —
-  /// `docs/plans/08-server-v1.2.5-migration.md`). `/{user_id}` is declared
-  /// `int` there, so the path yields **422** for a caller that would otherwise
-  /// pass, and **403** for one refused before the path is even parsed. Never a
-  /// 404 — treat any non-200 as "not supported here" and fall back to [users].
+  /// rather than derived from a version number (that numbering is a trap).
+  /// `/{user_id}` is declared `int` there, so the path yields **422** for a
+  /// caller that would otherwise pass, and **403** for one refused before the
+  /// path is even parsed. Never a 404 — treat any non-200 as "not supported
+  /// here" and fall back to [users].
   ///
   /// No trailing slash: `slim` is a literal segment, not a collection.
   static const usersSlim = '$apiPrefix/users/slim';

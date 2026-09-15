@@ -111,7 +111,8 @@ do not stay silent because it was not part of the task.
 - `lib/wear/` — the Wear OS app. Separate entry point
   (`lib/wear/main_wear.dart`), reuses `lib/core` and `lib/data`.
 - `lib/data/` — repositories on top of the API client, shared by both flavors.
-- `lib/l10n/` — `app_en.arb` / `app_pl.arb` plus the generated
+- `lib/l10n/` — `app_en.arb` (the template) plus `app_pl.arb`, `app_de.arb`,
+  `app_es.arb` and `app_fr.arb`, and the generated
   `app_localizations*.dart` (committed). User-visible strings go through
   `AppLocalizations`, never hardcoded, and every string you add or change goes
   through `just l10n-check` before you hand the change over (see Conventions).
@@ -171,7 +172,12 @@ do not stay silent because it was not part of the task.
   exists nowhere else in this repo, while the code it sits above is a const
   constructor plus a `fromJson`. Judge a model comment by "does this say
   anything the declaration does not", never by the 20% in the `comment-ratio`
-  skill.
+  skill. **[lib/core/api/endpoints.dart](lib/core/api/endpoints.dart) is the
+  same case** and measures far higher still (~66%): it is a catalogue of route
+  constants whose comments are the contract around them — which server version
+  a path arrived in, what an API-key session is answered with, why a caller
+  probes instead of reading a version number. Cutting those leaves a list of
+  strings.
 - **`dart format` is the style, and CI enforces it** (`dart format
   --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
   test tool` before pushing and never hand-tune spacing to fight it. The whole
@@ -215,7 +221,7 @@ do not stay silent because it was not part of the task.
   (`font_scale 0.85`) on a 360 dp screen. Add ~10 px of slack — collapsing early
   looks fine, a wrapped label does not. **Two buttons beside each other go
   through `ButtonPair`**
-  ([lib/features/common/button_pair.dart](lib/features/common/button_pair.dart)),
+  (`ButtonPair` in the `dash_kit` package, not this repo),
   which owns that measurement and stacks them full-width when they no longer
   fit; a `Wrap` there gets it wrong twice over — no gap between the rows, and
   each button left at its own content width. Related: `showModalBottomSheet`

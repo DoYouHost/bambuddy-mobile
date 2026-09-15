@@ -370,7 +370,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       }());
       return cached;
     }
-    throw StateError('apiClientProvider użyty bez profilu serwera');
+    throw StateError('apiClientProvider used without a server profile');
   }
   final auth = ref.watch(authServiceProvider);
   return _lastApiClient = ApiClient(

@@ -710,18 +710,6 @@ abstract class AppLocalizations {
   /// **'Chamber light'**
   String get ctrlLight;
 
-  /// No description provided for @ctrlLightOn.
-  ///
-  /// In en, this message translates to:
-  /// **'On'**
-  String get ctrlLightOn;
-
-  /// No description provided for @ctrlLightOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Off'**
-  String get ctrlLightOff;
-
   /// No description provided for @ctrlAirduct.
   ///
   /// In en, this message translates to:
@@ -997,12 +985,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Down'**
   String get ctrlMoveZDown;
-
-  /// No description provided for @ctrlMoveExtruder.
-  ///
-  /// In en, this message translates to:
-  /// **'Extruder'**
-  String get ctrlMoveExtruder;
 
   /// No description provided for @ctrlMoveExtrude.
   ///
@@ -1435,12 +1417,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No archived prints'**
   String get archiveEmpty;
-
-  /// No description provided for @archiveSearchFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t search for \"{query}\". Try a different term.'**
-  String archiveSearchFailed(String query);
 
   /// No description provided for @archiveNoMatches.
   ///
@@ -2276,12 +2252,6 @@ abstract class AppLocalizations {
   /// **'Choose a printer'**
   String get pickPrinterTitle;
 
-  /// No description provided for @noPrintersAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'No printers available'**
-  String get noPrintersAvailable;
-
   /// No description provided for @detailsShow.
   ///
   /// In en, this message translates to:
@@ -2624,18 +2594,6 @@ abstract class AppLocalizations {
   /// **'R'**
   String get extruderRightShort;
 
-  /// No description provided for @amsHumidityTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS humidity'**
-  String get amsHumidityTooltip;
-
-  /// No description provided for @amsTempTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS temperature'**
-  String get amsTempTooltip;
-
   /// No description provided for @amsHistoryTitle.
   ///
   /// In en, this message translates to:
@@ -2761,12 +2719,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recorded every minute while the printer is connected'**
   String get heaterHistoryRecordingInfo;
-
-  /// No description provided for @wifiTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Wi-Fi signal'**
-  String get wifiTooltip;
 
   /// No description provided for @doorOpen.
   ///
@@ -2899,18 +2851,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} offline'**
   String widgetMultiOfflineCount(int count);
-
-  /// No description provided for @widgetMultiName.
-  ///
-  /// In en, this message translates to:
-  /// **'Bambuddy · Printers'**
-  String get widgetMultiName;
-
-  /// No description provided for @widgetMultiDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'All printers at a glance'**
-  String get widgetMultiDescription;
 
   /// No description provided for @remaining.
   ///
@@ -3668,12 +3608,6 @@ abstract class AppLocalizations {
   /// **'Notification events'**
   String get notifEventsMenu;
 
-  /// No description provided for @hmsErrorsHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Active errors'**
-  String get hmsErrorsHeader;
-
   /// No description provided for @hmsViewInWiki.
   ///
   /// In en, this message translates to:
@@ -3698,23 +3632,11 @@ abstract class AppLocalizations {
   /// **'Errors cleared on the printer'**
   String get hmsDismissed;
 
-  /// No description provided for @hmsDismissFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not clear the errors'**
-  String get hmsDismissFailed;
-
   /// No description provided for @hmsActionSent.
   ///
   /// In en, this message translates to:
   /// **'Sent to the printer'**
   String get hmsActionSent;
-
-  /// No description provided for @hmsActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'The printer refused the action'**
-  String get hmsActionFailed;
 
   /// No description provided for @hmsActionNotAcknowledged.
   ///
@@ -4016,18 +3938,6 @@ abstract class AppLocalizations {
   /// **'Search material, brand, color…'**
   String get inventorySearchHint;
 
-  /// No description provided for @inventoryShowArchived.
-  ///
-  /// In en, this message translates to:
-  /// **'Show archived'**
-  String get inventoryShowArchived;
-
-  /// No description provided for @inventoryArchived.
-  ///
-  /// In en, this message translates to:
-  /// **'Archived'**
-  String get inventoryArchived;
-
   /// No description provided for @inventoryLowStock.
   ///
   /// In en, this message translates to:
@@ -4166,12 +4076,6 @@ abstract class AppLocalizations {
   /// **'Tag'**
   String get inventoryTag;
 
-  /// No description provided for @inventoryId.
-  ///
-  /// In en, this message translates to:
-  /// **'Filament ID'**
-  String get inventoryId;
-
   /// No description provided for @inventoryUsageHistory.
   ///
   /// In en, this message translates to:
@@ -4231,12 +4135,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get inventorySave;
-
-  /// No description provided for @inventoryFieldQuantity.
-  ///
-  /// In en, this message translates to:
-  /// **'Quantity'**
-  String get inventoryFieldQuantity;
 
   /// No description provided for @inventoryQuantityHint.
   ///
@@ -4376,12 +4274,6 @@ abstract class AppLocalizations {
   /// **'Spool weight (g)'**
   String get inventoryFieldLabelWeight;
 
-  /// No description provided for @inventoryFieldWeightUsed.
-  ///
-  /// In en, this message translates to:
-  /// **'Used (g)'**
-  String get inventoryFieldWeightUsed;
-
   /// No description provided for @inventoryFieldCostPerKg.
   ///
   /// In en, this message translates to:
@@ -4399,18 +4291,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage location'**
   String get inventoryFieldLocation;
-
-  /// No description provided for @inventoryFieldNozzleMin.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle min (°C)'**
-  String get inventoryFieldNozzleMin;
-
-  /// No description provided for @inventoryFieldNozzleMax.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle max (°C)'**
-  String get inventoryFieldNozzleMax;
 
   /// No description provided for @inventoryFieldNote.
   ///
@@ -4441,24 +4321,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a value of 0 or more'**
   String get inventoryFieldNegative;
-
-  /// No description provided for @inventorySectionBasics.
-  ///
-  /// In en, this message translates to:
-  /// **'Basics'**
-  String get inventorySectionBasics;
-
-  /// No description provided for @inventorySectionWeight.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight & cost'**
-  String get inventorySectionWeight;
-
-  /// No description provided for @inventorySectionDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Details'**
-  String get inventorySectionDetails;
 
   /// No description provided for @inventorySectionFilament.
   ///
@@ -4813,30 +4675,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Point the camera at the spool\'s QR code'**
   String get inventoryScanHint;
-
-  /// No description provided for @inventoryScanPermissionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Camera access needed'**
-  String get inventoryScanPermissionTitle;
-
-  /// No description provided for @inventoryScanPermissionBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow camera access to scan spool QR codes.'**
-  String get inventoryScanPermissionBody;
-
-  /// No description provided for @inventoryScanOpenSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Open settings'**
-  String get inventoryScanOpenSettings;
-
-  /// No description provided for @inventoryScanInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Unrecognized QR code'**
-  String get inventoryScanInvalid;
 
   /// No description provided for @inventoryScanNotFound.
   ///
@@ -5252,12 +5090,6 @@ abstract class AppLocalizations {
   /// **'{count} due'**
   String maintenanceDueBadge(int count);
 
-  /// No description provided for @maintenanceWarningBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} soon'**
-  String maintenanceWarningBadge(int count);
-
   /// No description provided for @maintenanceDueIn.
   ///
   /// In en, this message translates to:
@@ -5306,12 +5138,6 @@ abstract class AppLocalizations {
   /// **'Maintenance marked as done'**
   String get maintenanceDone;
 
-  /// No description provided for @maintenanceFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not update maintenance'**
-  String get maintenanceFailed;
-
   /// No description provided for @maintenanceSaved.
   ///
   /// In en, this message translates to:
@@ -5335,18 +5161,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mute tasks or customize intervals per printer'**
   String get maintenanceOverridesSubtitle;
-
-  /// No description provided for @maintenanceTabStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Status'**
-  String get maintenanceTabStatus;
-
-  /// No description provided for @maintenanceTabSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get maintenanceTabSettings;
 
   /// No description provided for @maintenanceMute.
   ///
@@ -5564,12 +5378,6 @@ abstract class AppLocalizations {
   /// **'Mark done'**
   String get maintenanceNotifAction;
 
-  /// No description provided for @navMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Menu'**
-  String get navMenu;
-
   /// No description provided for @menuStatistics.
   ///
   /// In en, this message translates to:
@@ -5732,23 +5540,11 @@ abstract class AppLocalizations {
   /// **'100% = perfect estimate'**
   String get statsTimeAccuracyHint;
 
-  /// No description provided for @statsByMaterial.
-  ///
-  /// In en, this message translates to:
-  /// **'Prints by material'**
-  String get statsByMaterial;
-
   /// No description provided for @statsByPrinter.
   ///
   /// In en, this message translates to:
   /// **'Prints by printer'**
   String get statsByPrinter;
-
-  /// No description provided for @statsTimeAccuracyByPrinter.
-  ///
-  /// In en, this message translates to:
-  /// **'Time accuracy by printer'**
-  String get statsTimeAccuracyByPrinter;
 
   /// No description provided for @statsPrintsCount.
   ///
@@ -5791,18 +5587,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failure analysis'**
   String get statsFailureAnalysis;
-
-  /// No description provided for @statsFailureRate.
-  ///
-  /// In en, this message translates to:
-  /// **'Failure rate'**
-  String get statsFailureRate;
-
-  /// No description provided for @statsFailurePeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'Last {days} days'**
-  String statsFailurePeriod(int days);
 
   /// No description provided for @statsFailedOfTotal.
   ///
@@ -7130,12 +6914,6 @@ abstract class AppLocalizations {
   /// **'Project deleted'**
   String get projectDeleted;
 
-  /// No description provided for @projectDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not delete project'**
-  String get projectDeleteFailed;
-
   /// No description provided for @projectSaved.
   ///
   /// In en, this message translates to:
@@ -7310,29 +7088,11 @@ abstract class AppLocalizations {
   /// **'Urgent'**
   String get projectPriorityUrgent;
 
-  /// No description provided for @projectTabOverview.
-  ///
-  /// In en, this message translates to:
-  /// **'Overview'**
-  String get projectTabOverview;
-
-  /// No description provided for @projectTabArchives.
-  ///
-  /// In en, this message translates to:
-  /// **'Archives'**
-  String get projectTabArchives;
-
   /// No description provided for @projectTabBom.
   ///
   /// In en, this message translates to:
   /// **'BOM'**
   String get projectTabBom;
-
-  /// No description provided for @projectTabQueue.
-  ///
-  /// In en, this message translates to:
-  /// **'Queue'**
-  String get projectTabQueue;
 
   /// No description provided for @projectTabTimeline.
   ///
@@ -7351,12 +7111,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attachments'**
   String get projectTabAttachments;
-
-  /// No description provided for @projectStatsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Statistics'**
-  String get projectStatsTitle;
 
   /// No description provided for @projectStatProgress.
   ///
@@ -7406,12 +7160,6 @@ abstract class AppLocalizations {
   /// **'Queued'**
   String get projectStatQueued;
 
-  /// No description provided for @projectStatInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get projectStatInProgress;
-
   /// No description provided for @projectStatPrintTime.
   ///
   /// In en, this message translates to:
@@ -7436,18 +7184,6 @@ abstract class AppLocalizations {
   /// **'Energy'**
   String get projectStatEnergy;
 
-  /// No description provided for @projectStatEnergyCost.
-  ///
-  /// In en, this message translates to:
-  /// **'Energy cost'**
-  String get projectStatEnergyCost;
-
-  /// No description provided for @projectStatRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'Remaining'**
-  String get projectStatRemaining;
-
   /// No description provided for @projectStatBom.
   ///
   /// In en, this message translates to:
@@ -7460,12 +7196,6 @@ abstract class AppLocalizations {
   /// **'Sub-projects'**
   String get projectChildren;
 
-  /// No description provided for @projectNoDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'No description'**
-  String get projectNoDescription;
-
   /// No description provided for @projectDueOn.
   ///
   /// In en, this message translates to:
@@ -7477,24 +7207,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add archives'**
   String get projectAddArchives;
-
-  /// No description provided for @projectRemoveArchive.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from project'**
-  String get projectRemoveArchive;
-
-  /// No description provided for @projectArchivesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No archives linked'**
-  String get projectArchivesEmpty;
-
-  /// No description provided for @projectArchiveRemoved.
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from project'**
-  String get projectArchiveRemoved;
 
   /// No description provided for @archiveAddToProject.
   ///
@@ -7550,12 +7262,6 @@ abstract class AppLocalizations {
   /// **'Quantity'**
   String get bomQtyNeeded;
 
-  /// No description provided for @bomQtyAcquired.
-  ///
-  /// In en, this message translates to:
-  /// **'Acquired'**
-  String get bomQtyAcquired;
-
   /// No description provided for @bomUnitPrice.
   ///
   /// In en, this message translates to:
@@ -7574,29 +7280,11 @@ abstract class AppLocalizations {
   /// **'Remarks'**
   String get bomRemarks;
 
-  /// No description provided for @bomComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Complete'**
-  String get bomComplete;
-
   /// No description provided for @bomDelete.
   ///
   /// In en, this message translates to:
   /// **'Delete item'**
   String get bomDelete;
-
-  /// No description provided for @bomDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Item deleted'**
-  String get bomDeleted;
-
-  /// No description provided for @projectQueueEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No queue items'**
-  String get projectQueueEmpty;
 
   /// No description provided for @projectTimelineEmpty.
   ///
@@ -7706,35 +7394,11 @@ abstract class AppLocalizations {
   /// **'Create from template'**
   String get projectFromTemplate;
 
-  /// No description provided for @projectTemplateNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No templates'**
-  String get projectTemplateNone;
-
-  /// No description provided for @projectTemplatePickTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a template'**
-  String get projectTemplatePickTitle;
-
-  /// No description provided for @projectTemplateNamePrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'New project name'**
-  String get projectTemplateNamePrompt;
-
   /// No description provided for @projectExported.
   ///
   /// In en, this message translates to:
   /// **'Exported to {path}'**
   String projectExported(String path);
-
-  /// No description provided for @projectExportFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Export failed'**
-  String get projectExportFailed;
 
   /// No description provided for @projectTemplateCreated.
   ///
@@ -8270,12 +7934,6 @@ abstract class AppLocalizations {
   /// **'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.'**
   String get pipelinesEmptyHint;
 
-  /// No description provided for @pipelineProfiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Profiles'**
-  String get pipelineProfiles;
-
   /// No description provided for @pipelineFilamentsCount.
   ///
   /// In en, this message translates to:
@@ -8420,23 +8078,11 @@ abstract class AppLocalizations {
   /// **'Pipeline deleted'**
   String get pipelineDeleted;
 
-  /// No description provided for @pipelineDescriptionNoClear.
-  ///
-  /// In en, this message translates to:
-  /// **'A description cannot be emptied once saved — this server only ever writes a new one.'**
-  String get pipelineDescriptionNoClear;
-
   /// No description provided for @pipelineRun.
   ///
   /// In en, this message translates to:
   /// **'Run'**
   String get pipelineRun;
-
-  /// No description provided for @pipelineRunTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Run \"{name}\"'**
-  String pipelineRunTitle(String name);
 
   /// No description provided for @pipelineRunCopies.
   ///
@@ -8467,12 +8113,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This server allows {max} at most.'**
   String pipelineRunMaxCopies(int max);
-
-  /// No description provided for @pipelineCheckingEligibility.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking printers…'**
-  String get pipelineCheckingEligibility;
 
   /// No description provided for @pipelineEligibilityOk.
   ///
@@ -8893,12 +8533,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filament mapping'**
   String get queueFilamentMapping;
-
-  /// No description provided for @mappingNoPrinter.
-  ///
-  /// In en, this message translates to:
-  /// **'Assign a printer to this item first to map its AMS slots.'**
-  String get mappingNoPrinter;
 
   /// No description provided for @mappingNoSlots.
   ///
@@ -9920,12 +9554,6 @@ abstract class AppLocalizations {
   /// **'Users'**
   String get usersTitle;
 
-  /// No description provided for @usersMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Users'**
-  String get usersMenu;
-
   /// No description provided for @usersEmpty.
   ///
   /// In en, this message translates to:
@@ -10358,12 +9986,6 @@ abstract class AppLocalizations {
   /// **'Groups'**
   String get groupsTitle;
 
-  /// No description provided for @groupsMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Groups'**
-  String get groupsMenu;
-
   /// No description provided for @groupsEmpty.
   ///
   /// In en, this message translates to:
@@ -10747,12 +10369,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep-warm is off. The bed temperature above still applies to preheat.'**
   String get queueSettingsKeepWarmOffNote;
-
-  /// No description provided for @adminMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Administration'**
-  String get adminMenu;
 
   /// No description provided for @adminTitle.
   ///

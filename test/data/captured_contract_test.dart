@@ -199,7 +199,7 @@ void main() {
     // This is the shape whose arrival emptied the queue screen: bambuddy 1.2.5
     // sends the three calibrations as `off`/`on`/`auto` strings, and the
     // generated `as bool?` cast threw on every record, so a correct 200 rendered
-    // as "nothing queued" (docs/plans/07-queue-cali-enum.md).
+    // as "nothing queued".
     //
     // Asserted on the raw JSON as well as on the parsed model on purpose. The
     // parsed side alone would still pass if the fixture were re-captured from an

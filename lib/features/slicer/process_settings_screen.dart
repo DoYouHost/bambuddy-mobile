@@ -21,7 +21,7 @@ import 'slice_providers.dart';
 /// project's rule that user-visible text goes through [AppLocalizations]: they
 /// are 348 upstream strings, they match what Bambu Studio shows on the desktop,
 /// and hand-translating them is not viable. The screen's own chrome is localised
-/// as usual. See `docs/plans/16-slicer-process-overrides.md` §10.
+/// as usual.
 ///
 /// Edits are reported upward as they happen rather than returned on pop: the
 /// slice sheet below owns the map, so backing out of here keeps them and there

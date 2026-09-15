@@ -90,7 +90,7 @@ void main() {
       // The demo is the only place tri-state calibrations can be exercised
       // without a 1.2.5 server — ours runs on 0.2.5b2 and sends booleans.
       // If this payload ever reverted to booleans, the demo would stop
-      // catching the regression it was changed for (docs/plans/07), silently.
+      // catching the regression it was changed for, silently.
       final items = await QueueRepository(dio).fetch();
 
       expect(

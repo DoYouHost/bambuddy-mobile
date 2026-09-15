@@ -33,7 +33,12 @@ class FailureCacheEntry {
     if (a is! Map<String, dynamic>) return null;
     return FailureCacheEntry(
       analysis: FailureAnalysis.fromJson(a),
-      coveredThrough: _parseDate(json['covered_through']),
+      coveredThrough: calendarDateFromJson(json['covered_through']),
+      // Deliberately not `dateTimeFromJson`: this instant is ours, not the
+      // server's. `toIso8601String` on a local `DateTime` writes no zone, and
+      // that reader would read the absence as UTC and shift it by the device's
+      // offset — which on the "all time" bucket decides whether a day counts as
+      // banked. Plain `tryParse` is the exact inverse of how it was written.
       fetchedAt: DateTime.tryParse('${json['fetched_at']}') ?? DateTime(2000),
     );
   }
@@ -93,8 +98,3 @@ class FailureAnalysisCache {
 }
 
 String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
-
-DateTime? _parseDate(Object? v) {
-  if (v is! String || v.isEmpty) return null;
-  return DateTime.tryParse(v);
-}

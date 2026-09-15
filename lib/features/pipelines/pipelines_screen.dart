@@ -331,7 +331,7 @@ class _PipelineCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).delete(pipeline.id);
       ref.invalidate(pipelinesProvider);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineDeleted)));
+      messenger.snack(l10n.pipelineDeleted);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipelines.delete');
     }

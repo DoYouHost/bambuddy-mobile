@@ -203,7 +203,7 @@ class AuthService {
   ///
   /// Deliberately has no "remember me": a saved password cannot renew a 2FA
   /// session on its own, and a stored secret that buys nothing is pure
-  /// liability. `docs/plans/10-two-factor-login.md` §2.
+  /// liability.
   Future<LoginCompleted> verifyTwoFactor({
     required String baseUrl,
     required TwoFactorChallenge challenge,

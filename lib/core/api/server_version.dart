@@ -52,8 +52,6 @@ enum ServerFeature {
   ///   server whose reported version parses below 1.2.6 while actually serving
   ///   the route would be pinned to the full listing forever — which an API key
   ///   is refused outright, removing exactly the picker #1894 added.
-  ///
-  /// See `docs/plans/13-users-slim-and-api-key-identity.md`.
   usersSlimListing,
 
   /// `cost` / `energy_kwh` / `energy_cost` on a print-log entry, and the

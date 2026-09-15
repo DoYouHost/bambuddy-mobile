@@ -56,7 +56,6 @@ dependencies:
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
-  cupertino_icons: ^1.0.8
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1
   flutter_secure_storage: ^9.2.2

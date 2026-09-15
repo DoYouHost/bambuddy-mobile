@@ -8,7 +8,7 @@ import 'server_version.dart';
 /// Reads and caches the connected server's version, for the queue write path
 /// (which needs to know whether tri-state calibration can be stored) and the
 /// bug-report log header — the one line that would have turned the queue-enum
-/// diagnosis (`docs/plans/07-queue-cali-enum.md`) into a lookup.
+/// diagnosis into a lookup.
 ///
 /// Never throws: an unreachable or unrecognisable server reads as unknown, and
 /// every caller treats unknown as the older, more conservative contract.

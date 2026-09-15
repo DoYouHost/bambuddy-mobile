@@ -46,9 +46,9 @@ Future<Map<String, String>> sessionSecrets({
 ///
 /// [readServerVersion] is a callback rather than a value because the version
 /// comes off the network. Which server build produced the behaviour below is
-/// the first question every report raises — the queue-enum diagnosis
-/// (`docs/plans/07-queue-cali-enum.md`) cost a day for want of this line. A
-/// failure to read it is swallowed; a recording must start regardless.
+/// the first question every report raises — the queue-enum diagnosis cost a
+/// day for want of this line. A failure to read it is swallowed; a recording
+/// must start regardless.
 Future<SessionFacts> loadSessionFacts({
   required ServerProfile? profile,
   required CredentialsStore credentials,
