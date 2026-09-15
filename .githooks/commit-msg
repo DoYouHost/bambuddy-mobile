@@ -1,0 +1,45 @@
+#!/bin/sh
+# Holds a commit message to the shape this repo has always used: one
+# Conventional Commits line, nothing after it.
+#
+# Install (once per clone): just hooks
+
+set -eu
+
+types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+subject_re="^(${types})(\([a-z0-9._, /-]+\))?!?: [a-z0-9].*[^.]$"
+
+# What git will keep: comments gone, and with --verbose the diff below the
+# scissors line gone too.
+kept=$(sed -e '/^# *-\{1,\} >8 -\{1,\}/,$d' -e '/^#/d' "$1")
+subject=$(printf '%s\n' "$kept" | grep -m1 '[^[:space:]]' || true)
+extra=$(printf '%s\n' "$kept" | grep -c '[^[:space:]]' || true)
+
+# An empty message is git's own business — it aborts the commit itself.
+[ -n "$subject" ] || exit 0
+
+# Messages git writes, and the ones an interactive rebase folds away.
+case "$subject" in
+Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+fail() {
+	echo "commit-msg: $1" >&2
+	echo >&2
+	echo "  got:      $subject" >&2
+	echo "  expected: <type>[(scope)][!]: <description>   — one line, nothing else" >&2
+	echo "  types:    $(echo "$types" | tr '|' ' ')" >&2
+	echo >&2
+	echo "  e.g.  fix(auth): stop logging out on 403" >&2
+	exit 1
+}
+
+# Named before the line count, so the reason given is the real one.
+if printf '%s\n' "$kept" | grep -Eqi '^(co-authored-by|signed-off-by):|generated with'; then
+	fail "attribution trailers do not go in a commit message"
+fi
+
+[ "$extra" -eq 1 ] || fail "a commit message is one line; this one has $extra"
+
+printf '%s\n' "$subject" | grep -Eq "$subject_re" ||
+	fail "not a Conventional Commits subject"

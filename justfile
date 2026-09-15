@@ -45,6 +45,14 @@ default:
 test:
     flutter test
 
+# core.hooksPath is per-clone local config, so a fresh clone has no hooks until
+# this runs. Points git at .githooks/, which holds the commit-message check.
+[doc('point this clone at the versioned git hooks')]
+[group('1-develop')]
+hooks:
+    git config core.hooksPath .githooks
+    @echo "hooks: core.hooksPath = $(git config core.hooksPath)"
+
 # Spelling and grammar for the strings the user actually reads. Checks only what
 # this branch changed; `just l10n-check-all` sweeps every locale file. Set
 # LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and

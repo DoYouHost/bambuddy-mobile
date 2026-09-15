@@ -118,7 +118,9 @@ do not stay silent because it was not part of the task.
   through `just l10n-check` before you hand the change over (see Conventions).
 - `test/` — mirrors `lib/`; `test/helpers.dart` holds the shared harness.
 - `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
-  `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes.
+  `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes. **`just
+  hooks` once per clone** points git at `.githooks/`, which refuses a commit
+  message that is not one Conventional Commits line.
 
 ## Documentation
 
