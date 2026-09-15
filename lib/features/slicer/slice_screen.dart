@@ -1022,6 +1022,12 @@ class _PresetPickerState extends State<_PresetPicker> {
       expand: false,
       initialChildSize: 0.7,
       maxChildSize: 0.95,
+      // Said out loud, or Flutter's 0.25 leaves a quarter-screen stub. 0.5
+      // rather than the 0.4 the sheets without a keyboard use: the search field
+      // above the list keeps the keyboard up, and the two together need the
+      // room the maintenance form — the app's only other keyboard sheet —
+      // settled on.
+      minChildSize: 0.5,
       builder: (ctx, scrollController) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Column(
