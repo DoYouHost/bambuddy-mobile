@@ -72,6 +72,9 @@ void main() {
     );
 
     test('replaces an earlier file of the same name', () async {
+      // Nothing deletes the earlier file first: `rename` replaces the target,
+      // and this is what holds that platform contract. The second expectation
+      // is the one that catches a copy left beside it.
       await File('${cache.path}/print.mp4').writeAsString('an older take');
 
       final file = await downloadToCacheFile(

@@ -140,6 +140,24 @@ void main() {
       }
     });
 
+    test('the heater-history row stays in the old numbering', () {
+      // It shipped in v0.2.4.8, two releases before the scheme changed to
+      // 1.2.5, and every 1.x outranks that — so the one row covers both
+      // schemes. Written as (1, 2, 4, 8) it would hide the chart on exactly
+      // the 0.2.4.x servers that serve the route.
+      for (final has in ['0.2.4.8', '0.2.4.9', '1.2.5', '1.2.6b1']) {
+        expect(
+          parse(has).supports(ServerFeature.printerSensorHistory),
+          isTrue,
+          reason: has,
+        );
+      }
+      expect(
+        parse('0.2.4.7').supports(ServerFeature.printerSensorHistory),
+        isFalse,
+      );
+    });
+
     test(
       'supports() reads the threshold from the map, not a separate compare',
       () {
@@ -159,6 +177,11 @@ void main() {
           ServerFeature.usersSlimListing,
           ServerFeature.printLogCostEnergy,
           ServerFeature.labelStartingPosition,
+          ServerFeature.printerFilesDownloadJob,
+          ServerFeature.scheduledDryings,
+          ServerFeature.archivePrinterMedia,
+          ServerFeature.locationHaSensors,
+          ServerFeature.spoolModelPresets,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');

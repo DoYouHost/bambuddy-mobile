@@ -128,6 +128,12 @@ do not stay silent because it was not part of the task.
   feature so a report about it explains anything: naming controls, sampled
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
+- [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
+  exists, what an older server does without it and what being early costs.
+  **Read it before adding a version gate**; the enum keeps one line per member.
+- [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
+  inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
+  was paid for, and the quadratic behind `roundScaleFor`.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.

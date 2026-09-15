@@ -26,11 +26,15 @@ void main() {
       expect(result.length, 61, reason: 'the ellipsis replaces nothing');
     });
 
+    test('leaves a message that already ends in an ellipsis alone', () {
+      expect(wearShortText('Loading…', max: 60), 'Loading…');
+    });
+
     test('handles an empty message', () {
       expect(wearShortText('', max: 60), '');
     });
 
-    test('the two budgets are what the callers ask for', () {
+    test('the toast budget is the larger of the two', () {
       // Named rather than inlined so the difference stays an argument, and the
       // argument is room rather than time: the passing message is given the
       // whole face, while the one that stays has to share a screen with the

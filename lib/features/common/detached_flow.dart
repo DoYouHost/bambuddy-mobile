@@ -8,30 +8,12 @@ typedef DetachedHandles = ({
 });
 
 /// Takes both **before the first `await`**, for a flow that can outlive its own
-/// widget.
+/// widget: afterwards `ref` throws and `ScaffoldMessenger.of(context)` has no
+/// context to read, so the rows stay stale and the user is told nothing —
+/// including that the action failed.
 ///
-/// The situation, which four flows had each explained to themselves: a sheet is
-/// dismissed, or a card is rebuilt by the next status frame, while the request
-/// it fired is still in the air. Afterwards
-///
-/// - `ref` throws (`Cannot use ref after the widget was disposed`), so the list
-///   the server has just changed keeps the old rows until a manual refresh;
-/// - `ScaffoldMessenger.of(context)` has no context to read, so the user is
-///   told nothing at all — including that the action failed.
-///
-/// Both of the objects returned here belong to things above the screen — the
-/// container to the app, the messenger to the `MaterialApp` — so both are still
-/// there to use. Reading through the container also keeps each read live at the
-/// point of use, rather than a snapshot taken before the flow began.
-///
-/// Destructure it, so the rest of the method reads as it always did:
-///
-/// ```dart
-/// final (:providers, :messenger) = detachFrom(context);
-/// ```
-///
-/// This is about the handles, not about the widget: a `setState` after the
-/// await still needs its own `mounted` check, and `showApiFailure` still wants
+/// This is about the handles, not the widget: a `setState` after the await
+/// still needs its own `mounted` check, and `showApiFailure` still wants
 /// `mounted ? messenger : null` so a refusal nobody saw is recorded as one.
 DetachedHandles detachFrom(BuildContext context) => (
   providers: ProviderScope.containerOf(context, listen: false),
