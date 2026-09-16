@@ -63,6 +63,17 @@ hooks:
 l10n-check base='dev':
     python3 tool/check_l10n_language.py --base {{base}}
 
+# What ships in the watch APK is decided by Gradle and the manifest merger, so
+# no Dart test can see it: the per-flavor asset prune and the stripped startup
+# components are both silent when they break. Checks the debug APK the compile
+# step already produces; pass the phone one too and it also verifies the prune
+# is flavor-scoped rather than global.
+# usage: just check-wear-apk [WEAR_APK] [MOBILE_APK]
+[doc('check the built watch APK: pruned assets and stripped components')]
+[group('1-develop')]
+check-wear-apk wear='build/app/outputs/flutter-apk/app-wear-debug.apk' mobile='':
+    python3 tool/check_wear_apk.py {{wear}} {{ if mobile != '' { '--mobile ' + mobile } else { '' } }}
+
 [doc('spell-check every .arb string, not only this branch')]
 [group('1-develop')]
 l10n-check-all:
@@ -218,6 +229,13 @@ _build kind flavor name code:
         --build-name="$name" --build-number="$code"
     mkdir -p build/dist
     cp "$src" "build/dist/app-{{flavor}}-release.$ext"
+    # The watch APK is the one artifact whose contents nothing else checks, and
+    # a release build is the only one that can answer the reachability half —
+    # CI builds debug, where nothing has been tree-shaken yet. An .aab is a
+    # different container, so it is left to the APK build.
+    if [ '{{flavor}}' = wear ] && [ "$ext" = apk ]; then
+        python3 tool/check_wear_apk.py "build/dist/app-wear-release.apk"
+    fi
     echo "-> build/dist/app-{{flavor}}-release.$ext"
 
 [doc('build the phone release APK')]
