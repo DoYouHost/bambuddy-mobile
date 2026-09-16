@@ -1,5 +1,3 @@
-import 'dart:math' show min;
-
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +8,7 @@ import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything
@@ -280,9 +279,10 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// meantime — swipe A, swipe B, A fails, and B is on screen again.
   void _putBack(Archive row, int index) {
     final list = state.valueOrNull;
-    // A refresh that landed meanwhile already holds the row the server kept.
-    if (list == null || list.any((a) => a.id == row.id)) return;
-    state = AsyncValue.data([...list]..insert(min(index, list.length), row));
+    if (list == null) return;
+    state = AsyncValue.data(
+      withRowRestored(list, row, index, isRow: (a) => a.id == row.id),
+    );
   }
 
   void _removeRow(int archiveId) {

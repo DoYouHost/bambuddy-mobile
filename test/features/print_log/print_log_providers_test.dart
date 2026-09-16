@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
@@ -50,6 +51,14 @@ class _FakeRepository extends PrintLogRepository {
 
   @override
   Future<void> deleteEntry(int entryId) async => deleted.add(entryId);
+
+  @override
+  Future<PrintLogEntry> updateEntry(
+    int entryId, {
+    String? failureReason,
+    bool clearFailureReason = false,
+    String? status,
+  }) async => _entry(entryId).copyWith(status: status ?? 'completed');
 }
 
 PrintLogEntry _entry(int id) => PrintLogEntry(
@@ -115,6 +124,38 @@ void main() {
     expect(state.total, 1);
     expect(repo.calls.last, 'failed');
   });
+
+  test(
+    'a failed page does not undo a re-classification made meanwhile',
+    () async {
+      repo.pending.first.complete(_page([1, 2], total: 4));
+      await container.read(printLogProvider.future);
+
+      final notifier = container.read(printLogProvider.notifier);
+      // The user scrolls, so a page goes out…
+      unawaited(notifier.loadMore());
+      await Future<void>.delayed(Duration.zero);
+      // …and while it is out, marks run 1 as failed. That edit lands.
+      await notifier.reclassify(1, status: 'failed');
+      expect(
+        container.read(printLogProvider).valueOrNull!.items.first.status,
+        'failed',
+      );
+
+      // Now the page fails — with what the repository's own `guard` produces,
+      // since that is the only kind `loadMore` catches. Clearing `loadingMore`
+      // off the snapshot taken before the request also put the row back to
+      // 'completed': an edit the user had seen succeed, undone by a scroll.
+      repo.pending.last.completeError(
+        const ApiException(AppErrorCode.serverUnreachable),
+      );
+      await pumpEventQueue();
+
+      final state = container.read(printLogProvider).valueOrNull!;
+      expect(state.items.first.status, 'failed');
+      expect(state.loadingMore, isFalse, reason: 'the list is askable again');
+    },
+  );
 
   test('clearing the filters leaves the search alone', () {
     // The search has its own box on screen and its own text — `activeCount`

@@ -241,7 +241,14 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
       state = AsyncValue.data(next);
     } on AppApiException {
       if (epoch != _epoch) return;
-      state = AsyncValue.data(current.copyWith(loadingMore: false));
+      // The flag comes off whatever is on screen now, not off the snapshot
+      // taken before the request: `reclassify` patches rows without moving the
+      // epoch, so reinstating `current` here undid an edit the user had just
+      // made and seen succeed.
+      final now = state.valueOrNull;
+      if (now != null) {
+        state = AsyncValue.data(now.copyWith(loadingMore: false));
+      }
     }
   }
 

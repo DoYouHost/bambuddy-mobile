@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -161,4 +163,28 @@ Widget dashAsyncStrip<T>(
     },
     data: data,
   );
+}
+
+/// Put a row that was optimistically removed back into the list **as it is
+/// now** — never into the snapshot it was removed from.
+///
+/// Restoring that snapshot is the bug this exists to stop, and it has been
+/// written wrong in four places: swipe A, swipe B, A's request fails, and the
+/// rollback puts B back on screen, along with undoing whatever a refresh landed
+/// in between. Only the row that failed goes back.
+///
+/// [index] is where it was, clamped — the list may be shorter now. Returns
+/// [now] itself when something has already restored the row, so the caller can
+/// assign the result unconditionally and a no-op stays a no-op.
+///
+/// Not for the queue, whose rollback has to rebuild a *position* relative to
+/// the rows around it rather than an index (`_placedBack` there).
+List<T> withRowRestored<T>(
+  List<T> now,
+  T row,
+  int index, {
+  required bool Function(T) isRow,
+}) {
+  if (now.any(isRow)) return now;
+  return [...now]..insert(min(index, now.length), row);
 }
