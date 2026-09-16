@@ -286,18 +286,12 @@ class _PrintProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final progress = status.progress;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: LinearProgressIndicator(
-        value: _preparingStage(status) != null || progress == null
-            ? null
-            : (progress / 100).clamp(0.0, 1.0),
-        minHeight: height,
-        backgroundColor: t.gaugeTrack,
-        valueColor: AlwaysStoppedAnimation(t.accentGreen),
-      ),
+    return DashProgressBar(
+      value: _preparingStage(status) != null || progress == null
+          ? null
+          : (progress / 100).clamp(0.0, 1.0),
+      height: height,
     );
   }
 }

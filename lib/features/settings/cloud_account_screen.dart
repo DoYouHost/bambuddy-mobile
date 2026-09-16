@@ -9,6 +9,7 @@ import '../../core/models/cloud_auth.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_icon_tile.dart';
 
 /// Bambu Cloud account screen (login) — in app "settings" (drawer), intentionally
 /// separate from MakerWorld screen. Login here is prerequisite for importing models
@@ -78,22 +79,10 @@ class _SignedInState extends ConsumerState<_SignedIn> {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: t.cardGradient,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: t.cardBorder),
-          ),
+          decoration: t.cardBox,
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: t.accentGreen.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.cloud_done, color: t.accentGreenInk),
-              ),
+              const DashIconTile(icon: Icons.cloud_done, size: 44, radius: 14),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -256,11 +245,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
       children: [
         Container(
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: t.cardGradient,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: t.cardBorder),
-          ),
+          decoration: t.cardBox,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

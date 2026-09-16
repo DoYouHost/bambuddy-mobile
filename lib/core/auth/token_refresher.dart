@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:clock/clock.dart' as ambient;
+import 'package:clock/clock.dart';
 
 import '../diagnostics/auth_probe.dart';
 import '../time/timer_factory.dart';
@@ -17,8 +17,8 @@ import 'jwt.dart';
 /// image tokens (a server-side TTL). The server issues no refresh token, so the
 /// JWT path re-mints with the saved credentials — `AuthService.silentReLogin`.
 ///
-/// Clock and timer are injected, so this runs in the foreground-service isolate
-/// as readily as under Riverpod.
+/// The timer is injected and the time comes from the ambient clock, so this
+/// runs in the foreground-service isolate as readily as under Riverpod.
 class ProactiveTokenRefresher {
   ProactiveTokenRefresher({
     required Future<DateTime?> Function() readExpiry,
@@ -27,7 +27,6 @@ class ProactiveTokenRefresher {
     this.minDelay = const Duration(seconds: 30),
     this.fallbackDelay = const Duration(hours: 2),
     Future<bool> Function()? canRetry,
-    DateTime Function()? clock,
     TimerFactory? timerFactory,
   }) : // An initializing formal would need a private parameter name, so the
        // lint cannot be satisfied while the fields stay private.
@@ -37,7 +36,6 @@ class ProactiveTokenRefresher {
        _refresh = refresh,
        // ignore: prefer_initializing_formals
        _canRetry = canRetry,
-       _now = clock ?? (() => ambient.clock.now()),
        _timerFactory = timerFactory ?? Timer.new;
 
   /// `null` when the expiry cannot be read.
@@ -62,7 +60,6 @@ class ProactiveTokenRefresher {
   /// can be fixed by waking up later. `null` retries either way.
   final Future<bool> Function()? _canRetry;
 
-  final DateTime Function() _now;
   final TimerFactory _timerFactory;
 
   Timer? _timer;
@@ -118,7 +115,7 @@ class ProactiveTokenRefresher {
 
   Duration _delayFor(DateTime? expiry) {
     if (expiry == null) return fallbackDelay;
-    final delay = expiry.difference(_now()) - leadTime;
+    final delay = expiry.difference(clock.now()) - leadTime;
     return delay < minDelay ? minDelay : delay;
   }
 

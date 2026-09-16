@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -105,7 +106,6 @@ void main() {
       notifications: notifications,
       memory: memory,
       isEnabled: () => enabled,
-      clock: () => _now,
     )..start();
     frames.add(frame);
     // Two turns of the event loop: one to deliver the frame, one for the chain of
@@ -118,7 +118,7 @@ void main() {
   const photoFrame = WsArchiveUpdated(82, photoAdded: 'finish_1.jpg');
 
   /// One archive polling pass — what the timer does in the background.
-  Future<void> pollOnce({DateTime? now}) async {
+  Future<void> pollOnce({DateTime? at}) async {
     final notifier = FinishPhotoNotifier(
       updates: frames.stream,
       fetchArchive: (id) async {
@@ -137,14 +137,20 @@ void main() {
       notifications: notifications,
       memory: memory,
       isEnabled: () => enabled,
-      clock: () => now ?? _now,
     );
-    await notifier.poll();
+    // The pass reads the clock, so a test that wants it to run later says so
+    // here rather than building a notifier with a clock of its own.
+    await withClock(Clock.fixed(at ?? clock.now()), notifier.poll);
     await notifier.stop();
   }
 
+  /// A case in this file, on the ambient clock pinned to [_now] — which is what
+  /// the fixtures above are dated against.
+  void testAt(String description, dynamic Function(TestClock time) body) =>
+      testWithClock(description, _now, body);
+
   group('FinishPhotoNotifier.runForAlert', () {
-    test('picks the print by completed_at, not by the server order', () {
+    testAt('picks the print by completed_at, not by the server order', (_) {
       // The server sorts by created_at, and a reprint reuses the old entry without
       // touching that field — so a file uploaded after it ends up at the head of the
       // list. An uploaded file never printed yet: new entry, no completed_at.
@@ -167,7 +173,7 @@ void main() {
       );
     });
 
-    test('nothing matches in time → null instead of a random archive', () {
+    testAt('nothing matches in time → null instead of a random archive', (_) {
       final old = _archive(
         completedAt: _now.subtract(const Duration(hours: 3)),
       );
@@ -175,7 +181,7 @@ void main() {
       expect(FinishPhotoNotifier.runForAlert([old], _alert()), isNull);
     });
 
-    test('empty list and archives without completed_at → null', () {
+    testAt('empty list and archives without completed_at → null', (_) {
       expect(FinishPhotoNotifier.runForAlert(const [], _alert()), isNull);
       const neverPrinted = Archive(
         id: 90,
@@ -191,7 +197,7 @@ void main() {
   });
 
   group('FinishPhotoNotifier.finishPhotoIn', () {
-    test('takes the newest server shot, not whichever comes first', () {
+    testAt('takes the newest server shot, not whichever comes first', (_) {
       // An ordinary shot is appended, an enhanced one from the timelapse is
       // prepended, and a reprint leaves the photos of earlier runs behind.
       const photos = [
@@ -205,7 +211,7 @@ void main() {
       );
     });
 
-    test('the enhanced shot (prepended) beats the earlier one', () {
+    testAt('the enhanced shot (prepended) beats the earlier one', (_) {
       const photos = [
         'finish_20260815_120200_cccc.jpg', // enhanced, put at the head
         'finish_20260815_115900_bbbb.jpg',
@@ -217,7 +223,7 @@ void main() {
       );
     });
 
-    test('user-uploaded photos do not pass as a printer shot', () {
+    testAt('user-uploaded photos do not pass as a printer shot', (_) {
       expect(FinishPhotoNotifier.finishPhotoIn(const ['ab12cd34.jpg']), isNull);
       expect(
         FinishPhotoNotifier.finishPhotoIn(const [
@@ -228,13 +234,13 @@ void main() {
       );
     });
 
-    test('empty list → null', () {
+    testAt('empty list → null', (_) {
       expect(FinishPhotoNotifier.finishPhotoIn(const []), isNull);
     });
   });
 
   group('archive polling (the server does not announce an ordinary photo)', () {
-    test('a photo found by polling lands on the notification', () async {
+    testAt('a photo found by polling lands on the notification', (_) async {
       await memory.remember(_alert());
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
@@ -245,9 +251,9 @@ void main() {
       expect(notifications.alerts.single['photo'], '/tmp/finish_photo.png');
     });
 
-    test(
+    testAt(
       'an archive without a photo → nothing, the entry waits for the next pass',
-      () async {
+      (_) async {
         await memory.remember(_alert());
         newest = _archive();
 
@@ -259,7 +265,7 @@ void main() {
       },
     );
 
-    test('once attached, the next pass does nothing', () async {
+    testAt('once attached, the next pass does nothing', (_) async {
       await memory.remember(_alert());
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
@@ -269,11 +275,11 @@ void main() {
       expect(notifications.alerts, hasLength(1));
     });
 
-    test('after 15 minutes it stops looking', () async {
+    testAt('after 15 minutes it stops looking', (_) async {
       await memory.remember(_alert(postedAt: _now));
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
-      await pollOnce(now: _now.add(const Duration(minutes: 16)));
+      await pollOnce(at: _now.add(const Duration(minutes: 16)));
 
       expect(
         newestFetches,
@@ -283,7 +289,7 @@ void main() {
       expect(notifications.alerts, isEmpty);
     });
 
-    test('disabled in settings → no traffic at all', () async {
+    testAt('disabled in settings → no traffic at all', (_) async {
       await memory.remember(_alert());
       newest = _archive();
       enabled = false;
@@ -295,7 +301,7 @@ void main() {
     });
   });
 
-  test('attaches the photo to an alert that is still up', () async {
+  testAt('attaches the photo to an alert that is still up', (_) async {
     await memory.remember(_alert());
 
     await send(photoFrame);
@@ -311,7 +317,7 @@ void main() {
     expect(post['thumb'], '/tmp/finish_photo_thumb.png');
   });
 
-  test('a failed-print alert gets the photo too', () async {
+  testAt('a failed-print alert gets the photo too', (_) async {
     await memory.remember(_alert(event: NotifEvent.printFailed));
 
     await send(photoFrame);
@@ -319,7 +325,9 @@ void main() {
     expect(notifications.alerts.single['event'], NotifEvent.printFailed);
   });
 
-  test('a frame without photo_added does not even touch the archive', () async {
+  testAt('a frame without photo_added does not even touch the archive', (
+    _,
+  ) async {
     await memory.remember(_alert());
 
     await send(const WsArchiveUpdated(82));
@@ -328,7 +336,7 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
-  test('disabled in settings → nothing happens', () async {
+  testAt('disabled in settings → nothing happens', (_) async {
     await memory.remember(_alert());
     enabled = false;
 
@@ -338,27 +346,28 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
-  test('no remembered alert → does not create a new notification', () async {
+  testAt('no remembered alert → does not create a new notification', (_) async {
     await send(photoFrame);
 
     expect(notifications.alerts, isEmpty);
     expect(pictureFetches, 0, reason: 'no reason to fetch the picture');
   });
 
-  test(
-    'an alert older than the window → treated as a different print',
-    () async {
-      await memory.remember(
-        _alert(postedAt: _now.subtract(const Duration(minutes: 45))),
-      );
+  testAt('an alert older than the window → treated as a different print', (
+    _,
+  ) async {
+    await memory.remember(
+      _alert(postedAt: _now.subtract(const Duration(minutes: 45))),
+    );
 
-      await send(photoFrame);
+    await send(photoFrame);
 
-      expect(notifications.alerts, isEmpty);
-    },
-  );
+    expect(notifications.alerts, isEmpty);
+  });
 
-  test('a notification dismissed DURING the fetch → also not resurrected', () async {
+  testAt('a notification dismissed DURING the fetch → also not resurrected', (
+    _,
+  ) async {
     // The fetch can take a dozen-odd seconds (Dio timeouts plus the retry after a
     // 401), and `onlyAlertOnce` only mutes an update to an existing entry — once
     // cancelled, Android counts the post as new, so it would ring a second time.
@@ -372,7 +381,7 @@ void main() {
     expect(await memory.recall(3, _now), isNull);
   });
 
-  test('a notification the user dismissed → not resurrected', () async {
+  testAt('a notification the user dismissed → not resurrected', (_) async {
     await memory.remember(_alert());
     notifications.alertActive = false;
 
@@ -387,9 +396,9 @@ void main() {
     );
   });
 
-  test(
+  testAt(
     'a second frame (enhanced shot) does not post the notification twice',
-    () async {
+    (_) async {
       await memory.remember(_alert());
 
       await send(photoFrame);
@@ -399,7 +408,7 @@ void main() {
     },
   );
 
-  test('a failed picture fetch leaves the next frame a chance', () async {
+  testAt('a failed picture fetch leaves the next frame a chance', (_) async {
     await memory.remember(_alert());
     picture = null;
 
@@ -412,7 +421,9 @@ void main() {
     expect(notifications.alerts, hasLength(1));
   });
 
-  test('an exception on one frame does not kill handling of the rest', () async {
+  testAt('an exception on one frame does not kill handling of the rest', (
+    _,
+  ) async {
     await memory.remember(_alert());
     // Throws before `_handle` enters its own try — this is the case that left a
     // rejected future in the chain, so no later frame was handled at all and
@@ -429,7 +440,6 @@ void main() {
         if (explode) throw StateError('prefs unavailable');
         return true;
       },
-      clock: () => _now,
     )..start();
 
     frames.add(photoFrame);
@@ -448,9 +458,9 @@ void main() {
     await expectLater(notifier.stop(), completes);
   });
 
-  test(
+  testAt(
     'an archive without a printer → does not guess which alert it matches',
-    () async {
+    (_) async {
       await memory.remember(_alert());
       archive = _archive(printerId: null);
 

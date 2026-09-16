@@ -13,6 +13,7 @@ import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -361,15 +362,7 @@ class _ProgressRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progressFraction(percent),
-            minHeight: 8,
-            backgroundColor: t.gaugeTrack,
-            valueColor: AlwaysStoppedAnimation(t.accentGreen),
-          ),
-        ),
+        DashProgressBar(value: progressFraction(percent), height: 8),
       ],
     );
   }

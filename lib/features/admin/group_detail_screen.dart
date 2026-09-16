@@ -233,11 +233,7 @@ class _GroupHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

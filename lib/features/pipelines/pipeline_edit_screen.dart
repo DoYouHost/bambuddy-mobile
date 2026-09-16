@@ -120,11 +120,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           FilledButton(
             onPressed: _name.text.trim().isEmpty || _saving ? null : _save,
             child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const DashSpinner()
                 : Text(l10n.pipelineSaveConfirm),
           ).tagged('pipeline_edit.save'),
         ],

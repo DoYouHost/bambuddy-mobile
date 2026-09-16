@@ -1,3 +1,4 @@
+import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -987,15 +988,7 @@ class _DrawerTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: t.accentGreen.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, size: 21, color: t.accentGreenInk),
-                  ),
+                  DashIconTile(icon: icon, size: 40, radius: 12, iconSize: 21),
                   const SizedBox(width: 14),
                   Expanded(child: Text(label, style: t.bodyStrong)),
                   Icon(

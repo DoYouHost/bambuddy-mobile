@@ -132,9 +132,11 @@ void main() {
   });
 
   group('RememberingNotifications', () {
-    test('saves the print-end alert and passes it through', () async {
+    testWithClock('saves the print-end alert and passes it through', _now, (
+      _,
+    ) async {
       final inner = RecordingNotifications();
-      final service = RememberingNotifications(inner, memory, () => _now);
+      final service = RememberingNotifications(inner, memory);
 
       await service.showAlert(
         event: NotifEvent.printFinished,
@@ -149,13 +151,13 @@ void main() {
       expect((await memory.recall(3, _now))!.id, 1003);
     });
 
-    test(
+    testWithClock(
       'an alert of another type passes through but is not remembered',
-      () async {
+      _now,
+      (_) async {
         final service = RememberingNotifications(
           RecordingNotifications(),
           memory,
-          () => _now,
         );
 
         await service.showAlert(
@@ -170,13 +172,13 @@ void main() {
       },
     );
 
-    test(
+    testWithClock(
       'a post with a photo is already an update — does not re-arm',
-      () async {
+      _now,
+      (_) async {
         final service = RememberingNotifications(
           RecordingNotifications(),
           memory,
-          () => _now,
         );
 
         await service.showAlert(

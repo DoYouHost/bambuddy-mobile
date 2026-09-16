@@ -113,9 +113,7 @@ void main() {
     tester,
   ) async {
     final fake = await openSheet(tester);
-    final colorField = find.byWidgetPredicate(
-      (w) => w is Semantics && w.properties.identifier == 'bulk_edit.color',
-    );
+    final colorField = byLogId('bulk_edit.color');
     await tester.ensureVisible(colorField);
     await settle(tester);
     await tester.tap(colorField);
@@ -123,11 +121,7 @@ void main() {
 
     // Shared with the spool form, but the buttons are still named for this
     // sheet: the ids are wire values, and a report must say which form it was.
-    final ids = tester
-        .widgetList<Semantics>(find.byType(Semantics))
-        .map((w) => w.properties.identifier)
-        .whereType<String>()
-        .toSet();
+    final ids = identifiersIn(tester).toSet();
     expect(
       ids,
       containsAll(['bulk_edit_color.cancel', 'bulk_edit_color.confirm']),

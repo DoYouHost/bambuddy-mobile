@@ -1,4 +1,4 @@
-import 'package:clock/clock.dart' as ambient;
+import 'package:clock/clock.dart';
 import '../api/ws_messages.dart';
 import '../models/printer_status.dart' show AmsTray, AmsUnit, HmsError;
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -39,8 +39,7 @@ enum WsDisconnectReason {
 /// Which frame fields go in and why repeats collapse:
 /// `docs/diagnostics-log.md`.
 class WsProbe {
-  WsProbe({DateTime Function()? clock})
-    : _now = clock ?? (() => ambient.clock.now()) {
+  WsProbe() {
     _live.add(this);
   }
 
@@ -68,8 +67,6 @@ class WsProbe {
       probe._reportState();
     }
   }
-
-  final DateTime Function() _now;
 
   /// A `WsConnectionState` name, kept as a string so this file need not import
   /// the client that owns it. Tracked without writing anything: transitions
@@ -106,7 +103,7 @@ class WsProbe {
   /// a minted `?token=`, from the older header-only ones — a handshake rejected
   /// on one is a different report than on the other.
   void connecting({required bool queryToken}) {
-    _connectStartedAt = _now();
+    _connectStartedAt = clock.now();
     DiagnosticRecorder.active?.add(
       LogSource.ws,
       'connect',
@@ -115,7 +112,7 @@ class WsProbe {
   }
 
   void opened() {
-    final now = _now();
+    final now = clock.now();
     _openedAt = now;
     DiagnosticRecorder.active?.add(
       LogSource.ws,
@@ -140,7 +137,7 @@ class WsProbe {
         'phase': phase,
         'cause': cause,
         'status': status,
-        'ms': _msSince(_connectStartedAt, _now()),
+        'ms': _msSince(_connectStartedAt, clock.now()),
         'msg': _messageOf(error, cause, status: status),
       },
     );
@@ -176,7 +173,7 @@ class WsProbe {
     if (key == _repeatKey) {
       _repeats++;
       _lastRepeatMs = store.elapsedMs;
-      if (_msSince(_lastFlushAt, _now())! >= repeatWindow.inMilliseconds) {
+      if (_msSince(_lastFlushAt, clock.now())! >= repeatWindow.inMilliseconds) {
         flushRepeats();
       }
       return;
@@ -187,7 +184,7 @@ class WsProbe {
     flushRepeats();
     _repeatKey = key;
     _repeatType = type;
-    _lastFlushAt = _now();
+    _lastFlushAt = clock.now();
     store.add(LogSource.ws, 'frame', fields: fields);
   }
 
@@ -201,7 +198,7 @@ class WsProbe {
       at: _lastRepeatMs,
     );
     _repeats = 0;
-    _lastFlushAt = _now();
+    _lastFlushAt = clock.now();
   }
 
   /// The next attempt is due. Separate from the failure record because the
@@ -238,7 +235,7 @@ class WsProbe {
         'cause': error?.runtimeType.toString(),
         // A socket reopening every few seconds is a different report than one
         // that dropped once.
-        'up_ms': openedAt == null ? null : _msSince(openedAt, _now()),
+        'up_ms': openedAt == null ? null : _msSince(openedAt, clock.now()),
       },
     );
   }
@@ -257,7 +254,7 @@ class WsProbe {
         'state': _state,
         // What the `connect` and `open` records would have said had they not
         // predated the recording.
-        'up_ms': openedAt == null ? null : _msSince(openedAt, _now()),
+        'up_ms': openedAt == null ? null : _msSince(openedAt, clock.now()),
       },
     );
   }

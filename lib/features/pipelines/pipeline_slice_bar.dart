@@ -87,11 +87,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   icon: _saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const DashSpinner(size: 16)
                       : const Icon(Icons.bookmark_add_outlined, size: 18),
                   label: Text(l10n.pipelineSaveAs),
                   onPressed: canSave && !_saving && !widget.busy ? _save : null,

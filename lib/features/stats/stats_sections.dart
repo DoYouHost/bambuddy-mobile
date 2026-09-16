@@ -13,6 +13,7 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
@@ -443,14 +444,10 @@ class BarList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: rows[i].fraction.clamp(0, 1).toDouble(),
-                  minHeight: 8,
-                  color: rows[i].color ?? t.accentGreen,
-                  backgroundColor: t.gaugeTrack,
-                ),
+              DashProgressBar(
+                value: rows[i].fraction.clamp(0, 1).toDouble(),
+                height: 8,
+                color: rows[i].color,
               ),
             ],
           ),

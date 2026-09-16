@@ -58,6 +58,8 @@ import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
 import '../../../core/diagnostics/log_tag_material.dart';
+import '../../common/dash_icon_tile.dart';
+import '../../common/dash_progress_bar.dart';
 import '../../common/sheet_surface.dart';
 
 part 'printer_card_details.dart';
@@ -421,14 +423,13 @@ class _IconSquare extends StatelessWidget {
       color = tokens.accentGreenInk;
       fill = tokens.accentGreen.withValues(alpha: 0.14);
     }
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Icon(icon, size: 18, color: color),
+    return DashIconTile(
+      icon: icon,
+      size: 36,
+      radius: 11,
+      iconSize: 18,
+      ink: color,
+      fill: fill,
     );
   }
 }

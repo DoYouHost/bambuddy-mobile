@@ -100,11 +100,7 @@ class _UserCard extends ConsumerWidget {
             onTap: () => showUserDetailSheet(context, user),
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -594,11 +594,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.byWidgetPredicate(
-        (w) =>
-            w is Semantics &&
-            w.properties.identifier == 'printer.temperature_history_nozzle',
-      ),
+      byLogId('printer.temperature_history_nozzle'),
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
@@ -804,11 +800,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 250));
           return tester.widgetList<InkWell>(
             find.descendant(
-              of: find.byWidgetPredicate(
-                (w) =>
-                    w is Semantics &&
-                    w.properties.identifier == 'printer.ams_meta',
-              ),
+              of: byLogId('printer.ams_meta'),
               matching: find.byType(InkWell),
             ),
           );
@@ -1362,11 +1354,7 @@ void main() {
     });
 
     /// The registration button, by the name it carries in the diagnostic log.
-    Finder registerButton() => find.byWidgetPredicate(
-      (w) =>
-          w is Semantics &&
-          w.properties.identifier == 'assign_spool.add_to_inventory',
-    );
+    Finder registerButton() => byLogId('assign_spool.add_to_inventory');
 
     testWidgets('a tagged slot the shelf does not know offers to register it', (
       tester,
@@ -1555,13 +1543,7 @@ void main() {
       await openSlotSheet(tester, state: 'IDLE', stocked: true);
       await reveal(tester, find.byType(TextField));
 
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics && w.properties.identifier == 'assign_spool.scan',
-        ),
-        findsOneWidget,
-      );
+      expect(byLogId('assign_spool.scan'), findsOneWidget);
     });
   });
 
@@ -2148,11 +2130,6 @@ void main() {
     /// identically to "Set", and from three nozzle tiles it wasn't clear which
     /// the user touched. This is the same class as shifted confirmation-dialog
     /// ids — the log claims the user did something other than what they did.
-    Iterable<String> identifiersIn(WidgetTester tester) => tester
-        .widgetList<Semantics>(find.byType(Semantics))
-        .map((s) => s.properties.identifier)
-        .whereType<String>();
-
     testWidgets('every sensor has its own tile identifier', (tester) async {
       await tester.pumpWidget(
         _cardWithProviders(
@@ -2233,11 +2210,7 @@ void main() {
       // Tap the tile by its own identifier — the same thing
       // the probe will write to the log.
       await tester.tap(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'printer.temperature_nozzle',
-        ),
+        byLogId('printer.temperature_nozzle'),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
@@ -2740,13 +2713,7 @@ void main() {
     );
 
     Future<void> openDetails(WidgetTester tester) async {
-      await tester.tap(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'printer.details_toggle',
-        ),
-      );
+      await tester.tap(byLogId('printer.details_toggle'));
       await tester.pumpAndSettle();
     }
 
@@ -3030,12 +2997,7 @@ void main() {
               '"n3s_hours":6}}',
         });
 
-        await tester.tap(
-          find.byWidgetPredicate(
-            (w) =>
-                w is Semantics && w.properties.identifier == 'drying.filament',
-          ),
-        );
+        await tester.tap(byLogId('drying.filament'));
         await tester.pumpAndSettle();
 
         // Counted through the option tag rather than by text: the AMS row on
@@ -3184,11 +3146,8 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      SemanticsNode node(WidgetTester tester, String id) => tester.getSemantics(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.identifier == id,
-        ),
-      );
+      SemanticsNode node(WidgetTester tester, String id) =>
+          tester.getSemantics(byLogId(id));
 
       /// A `Semantics(identifier:)` forms a node *around* the control rather
       /// than on it — the same shape `InteractionProbe` carries an id down

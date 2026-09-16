@@ -157,11 +157,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                   width: double.infinity,
                   child: FilledButton.icon(
                     icon: _starting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const DashSpinner()
                         : const Icon(Icons.play_arrow_rounded),
                     label: Text(
                       blocked ? l10n.pipelineRunAnyway : l10n.pipelineRunStart,
