@@ -6,6 +6,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_icon_tile.dart';
 import '../common/server_version_text.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
@@ -187,11 +188,7 @@ class _AboutSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -257,15 +254,7 @@ class _AboutRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(icon, size: 17, color: t.accentGreenInk),
-                ),
+                DashIconTile(icon: icon, size: 36, radius: 11, iconSize: 17),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

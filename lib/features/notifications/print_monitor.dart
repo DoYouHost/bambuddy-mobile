@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:clock/clock.dart' as ambient;
+import 'package:clock/clock.dart';
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -221,13 +221,11 @@ class PrintMonitor {
     this._notifications, {
     this._prefs = NotificationPrefs.defaults,
     AppLocalizations Function()? l10n,
-    DateTime Function()? clock,
     DateTimeFormats Function()? formats,
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
   }) : _l10n = l10n ?? systemAppLocalizations,
-       _now = clock ?? (() => ambient.clock.now()),
        _formats = formats ?? DateTimeFormats.system,
        _timer = timerFactory ?? Timer.new,
        // ignore: prefer_initializing_formals — private field with a named param
@@ -236,7 +234,6 @@ class PrintMonitor {
   final NotificationService _notifications;
   final NotificationPrefs _prefs;
   final AppLocalizations Function() _l10n;
-  final DateTime Function() _now;
 
   /// Read per notification rather than cached: the user can flip the system
   /// 24-hour switch while the service runs, and a monitor built at boot would
@@ -330,7 +327,7 @@ class PrintMonitor {
   /// them again. The socket's own idle watchdog is longer than the window, so
   /// every disconnect it catches lands here.
   void _carryHmsMemoryOverFeedGap() {
-    final now = _now();
+    final now = clock.now();
     final last = _lastFrameAt;
     _lastFrameAt = now;
     if (last == null || now.difference(last) < _hmsClearGrace) return;
@@ -399,7 +396,7 @@ class PrintMonitor {
     memo.offline.seed(status.connected);
     final errors = status.hmsErrors;
     if (errors != null) {
-      final now = _now();
+      final now = clock.now();
       for (final e in errors) {
         final key = _hmsKey(e);
         if (key != null) memo.hmsLastSeen[key] = now;
@@ -692,7 +689,7 @@ class PrintMonitor {
   void _processHms(int id, PrinterStatus status, _PrinterMemo memo) {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
-    final now = _now();
+    final now = clock.now();
     // An offline printer can't be actively faulting — its `hms_errors` are just
     // the last-known values carried forward by mergedWith. This is the same rule
     // `displayableHmsErrors` applies for every screen; it is spelled out again
@@ -835,7 +832,7 @@ class PrintMonitor {
         // as done, so a rise the cooldown swallowed is still owed one.
         if (memo.humidAnnounced.contains(key)) continue;
         final last = memo.humidAlertedAt[key];
-        final now = _now();
+        final now = clock.now();
         if (last != null && now.difference(last) < _humidityAlertCooldown) {
           // Only on the rise itself: the frames after it would repeat this
           // record every second until the hour is up.
@@ -1161,7 +1158,7 @@ class PrintMonitor {
   /// If print finishes different day, the date comes along.
   String? _etaClock(int? minutes) {
     if (minutes == null) return null;
-    final now = _now();
+    final now = clock.now();
     return _formats().clockOnDay(now.add(Duration(minutes: minutes)), now: now);
   }
 }

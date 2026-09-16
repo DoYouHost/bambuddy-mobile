@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
+import 'dash_icon_tile.dart';
 
 /// A row on a hub screen: an icon in a green tile, a title, a line saying what
 /// is behind it, and a chevron.
@@ -41,23 +42,10 @@ class SettingsEntryTile extends StatelessWidget {
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: t.accentGreen.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, size: 21, color: t.accentGreenInk),
-                  ),
+                  DashIconTile(icon: icon, size: 44, radius: 14, iconSize: 21),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

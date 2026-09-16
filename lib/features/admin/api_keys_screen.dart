@@ -107,11 +107,7 @@ class _ApiKeyCard extends ConsumerWidget {
             onTap: canEdit ? () => openApiKeyEdit(context, apiKey) : null,
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

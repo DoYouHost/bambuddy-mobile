@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/dash_async.dart';
+import '../common/dash_icon_tile.dart';
 import '../common/dash_input.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
@@ -185,11 +186,7 @@ class _DashCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
@@ -214,18 +211,11 @@ class _TypeTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return ListTile(
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: t.accentGreen.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          maintenanceIcon(type.icon),
-          size: 18,
-          color: t.accentGreenInk,
-        ),
+      leading: DashIconTile(
+        icon: maintenanceIcon(type.icon),
+        size: 40,
+        radius: 12,
+        iconSize: 18,
       ),
       title: Text(type.name, style: t.titleSm),
       subtitle: Text(
@@ -441,6 +431,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final printers = _availablePrinters();
@@ -464,11 +455,10 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
+              decoration: dashDecoration(
+                t,
                 labelText: l10n.maintenanceFieldName,
                 hintText: l10n.maintenanceFieldNameHint,
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
               validator: (v) =>
                   (v ?? '').trim().isEmpty ? l10n.inventoryFieldRequired : null,
@@ -478,21 +468,11 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  // Keeps this form's own chrome rather than taking the app's:
-                  // every other field here is still plain Material, and one
-                  // restyled field beside them reads as a rendering fault. The
-                  // convention this satisfies is the widget — an anchored menu
-                  // instead of the old full-screen overlay; restyling the form
-                  // is its own change.
                   child: dashCombo<String>(
                     context,
                     id: 'maintenance_type_form.interval_type',
                     label: Text(l10n.maintenanceFieldIntervalType),
                     initialSelection: _intervalType,
-                    decorationTheme: const InputDecorationTheme(
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
                     onSelected: (v) =>
                         setState(() => _intervalType = v ?? 'hours'),
                     entries: [
@@ -521,10 +501,9 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                   child: TextFormField(
                     controller: _interval,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
+                    decoration: dashDecoration(
+                      t,
                       labelText: l10n.maintenanceFieldInterval,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
                     ),
                     validator: (v) {
                       final n = parseUserDecimal(v);
@@ -556,11 +535,10 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             TextFormField(
               controller: _wiki,
               keyboardType: TextInputType.url,
-              decoration: InputDecoration(
+              decoration: dashDecoration(
+                t,
                 labelText: l10n.maintenanceFieldDocLink,
                 hintText: 'https://…',
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
             ).tagged('maintenance_type_form.description'),
             if (!_isEdit && printers.isNotEmpty) ...[
@@ -692,11 +670,7 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: unit,
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
+            decoration: InputDecoration(labelText: unit),
           ).tagged('interval_edit.value'),
         ],
       ),

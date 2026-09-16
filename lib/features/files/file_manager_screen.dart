@@ -1,3 +1,4 @@
+import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
 import 'package:app_util/app_util.dart';
@@ -1094,19 +1095,12 @@ class _FolderTile extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: t.accentGreen.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      folder.isExternal
-                          ? Icons.folder_special_outlined
-                          : Icons.folder,
-                      color: t.accentGreenInk,
-                    ),
+                  DashIconTile(
+                    icon: folder.isExternal
+                        ? Icons.folder_special_outlined
+                        : Icons.folder,
+                    size: 40,
+                    radius: 12,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

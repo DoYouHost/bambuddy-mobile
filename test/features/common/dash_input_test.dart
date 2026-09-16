@@ -224,12 +224,9 @@ void main() {
         isTrue,
         reason: 'the menu opened',
       );
-      final ids = tester
-          .widgetList<Semantics>(find.byType(Semantics))
-          .map((w) => w.properties.identifier)
-          .whereType<String>()
-          .where((id) => id.startsWith('test.filter'))
-          .toSet();
+      final ids = identifiersIn(
+        tester,
+      ).where((id) => id.startsWith('test.filter')).toSet();
       expect(ids, containsAll(['test.filter.any', 'test.filter.option']));
     });
   });

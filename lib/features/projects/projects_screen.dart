@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -175,11 +176,7 @@ class _ProjectCard extends StatelessWidget {
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -224,15 +221,7 @@ class _ProjectCard extends StatelessWidget {
                           ),
                         const SizedBox(height: 8),
                         if (project.progressPercent != null) ...[
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: fraction,
-                              minHeight: 6,
-                              backgroundColor: t.gaugeTrack,
-                              valueColor: AlwaysStoppedAnimation(t.accentGreen),
-                            ),
-                          ),
+                          DashProgressBar(value: fraction, height: 6),
                           const SizedBox(height: 6),
                         ],
                         Text(counts.join(' · '), style: t.monoLabel),

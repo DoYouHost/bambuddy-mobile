@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
 import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -97,6 +98,49 @@ Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
   supportedLocales: AppLocalizations.supportedLocales,
   builder: builder,
   home: child,
+);
+
+/// A clock the test moves by hand, handed to the body of [testWithClock].
+class TestClock {
+  TestClock(this.now);
+
+  DateTime now;
+
+  void tick(Duration by) => now = now.add(by);
+}
+
+/// A test whose body runs on a clock it controls, starting at [start].
+///
+/// The app reads the time through `package:clock`'s ambient clock and nothing
+/// in it takes a clock of its own, so this is the one way a test fakes time:
+/// build the subject inside the body, and move the clock with
+/// [TestClock.tick] rather than rebuilding anything.
+void testWithClock(
+  String description,
+  DateTime start,
+  dynamic Function(TestClock time) body,
+) => test(description, () {
+  final time = TestClock(start);
+  return withClock(Clock(() => time.now), () => body(time));
+});
+
+/// Every diagnostic identifier in the pumped tree — the `logTag` / `.tagged`
+/// names a bug report will quote.
+///
+/// A control that lost its id is invisible to the rest of the suite: it still
+/// renders, still taps, and only the log goes quiet. Written out in four test
+/// files before it lived here.
+Iterable<String> identifiersIn(WidgetTester tester) => tester
+    .widgetList<Semantics>(find.byType(Semantics))
+    .map((s) => s.properties.identifier)
+    .whereType<String>();
+
+/// The node carrying one diagnostic identifier.
+///
+/// The id is the only thing that tells three identical tiles apart — which is
+/// the same reason the app logs it rather than the label.
+Finder byLogId(String id) => find.byWidgetPredicate(
+  (w) => w is Semantics && w.properties.identifier == id,
 );
 
 /// Pumps a fixed span in place of `pumpAndSettle`, for the screens it can never

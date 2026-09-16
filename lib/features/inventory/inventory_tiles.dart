@@ -211,14 +211,11 @@ class _SpoolTile extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: frac,
-                                  minHeight: 4,
-                                  backgroundColor: t.gaugeTrack,
-                                  valueColor: AlwaysStoppedAnimation(fillColor),
-                                ),
+                              DashProgressBar(
+                                value: frac,
+                                height: 4,
+                                radius: 2,
+                                color: fillColor,
                               ),
                               const SizedBox(height: 8),
                               metaLine,
@@ -422,16 +419,10 @@ class _SpoolDetailSheet extends ConsumerWidget {
             const SizedBox(height: 16),
 
             if (spool.remainingFraction != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: spool.remainingFraction,
-                  minHeight: 8,
-                  backgroundColor: t.gaugeTrack,
-                  valueColor: AlwaysStoppedAnimation(
-                    spool.isLowStock ? t.danger : t.accentGreen,
-                  ),
-                ),
+              DashProgressBar(
+                value: spool.remainingFraction,
+                height: 8,
+                color: spool.isLowStock ? t.danger : null,
               ),
               const SizedBox(height: 6),
               Text(

@@ -10,6 +10,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/dash_icon_tile.dart';
+import '../common/dash_progress_bar.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -137,11 +139,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: t.cardGradient,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: t.cardBorder),
-        ),
+        decoration: t.cardBox,
         // One card per printer: the tasks live inside it, split off by
         // hairlines, so nesting needs no indent to read. Clipping keeps the
         // header and last-row ink inside the rounded corners.
@@ -265,18 +263,13 @@ class _MaintenanceRow extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: tileAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    maintenanceIcon(item.maintenanceTypeIcon),
-                    size: 18,
-                    color: inkAccent,
-                  ),
+                DashIconTile(
+                  icon: maintenanceIcon(item.maintenanceTypeIcon),
+                  size: 40,
+                  radius: 12,
+                  iconSize: 18,
+                  ink: inkAccent,
+                  fill: tileAccent.withValues(alpha: 0.14),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -285,14 +278,11 @@ class _MaintenanceRow extends ConsumerWidget {
                     children: [
                       Text(item.maintenanceTypeName, style: t.titleSm),
                       const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: item.progress,
-                          minHeight: 5,
-                          backgroundColor: t.gaugeTrack,
-                          valueColor: AlwaysStoppedAnimation(tileAccent),
-                        ),
+                      DashProgressBar(
+                        value: item.progress,
+                        height: 5,
+                        radius: 3,
+                        color: tileAccent,
                       ),
                       const SizedBox(height: 6),
                       Text(

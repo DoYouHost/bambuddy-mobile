@@ -201,7 +201,6 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final notify = RememberingNotifications(
       LoggingNotifications(fgs),
       FinishAlertMemory(prefs),
-      DateTime.now,
     );
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();

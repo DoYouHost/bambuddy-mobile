@@ -116,11 +116,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: t.cardGradient,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: t.cardBorder),
-            ),
+            decoration: t.cardBox,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

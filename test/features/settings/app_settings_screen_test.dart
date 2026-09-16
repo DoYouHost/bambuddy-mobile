@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers.dart';
+
 void main() {
   late AppLocalizations l10n;
 
@@ -79,9 +81,7 @@ void main() {
     await pumpScreen(tester);
 
     expect(
-      tester
-          .widgetList<Semantics>(find.byType(Semantics))
-          .map((s) => s.properties.identifier),
+      identifiersIn(tester),
       containsAll(<String>[
         'app_settings.collapse_printer_cards',
         'app_settings.notifications',

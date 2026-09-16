@@ -5,6 +5,8 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
@@ -22,15 +24,17 @@ void main() {
   const session = 'sess-abc';
   final sessionStart = DateTime.utc(2026, 7, 25, 12);
 
+  /// When the woken isolate starts writing: half a minute into the session the
+  /// UI left behind.
+  final now = sessionStart.add(const Duration(seconds: 30));
+
   late Directory dir;
   late SettingsRepository settings;
-  late DateTime now;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     settings = SettingsRepository(await SharedPreferences.getInstance());
     dir = Directory.systemTemp.createTempSync('bambuddy_fgs');
-    now = sessionStart.add(const Duration(seconds: 30));
   });
 
   tearDown(() => dir.deleteSync(recursive: true));
@@ -72,7 +76,6 @@ void main() {
     stream: stream,
     resolveDirectory: () async => dir,
     loadSecrets: () async => secrets,
-    clock: () => now,
     attachErrors: false,
   );
 
@@ -102,10 +105,11 @@ void main() {
     }) => startActionRecording(
       openSettings: openSettings ?? () async => settings,
       resolveDirectory: () async => dir,
-      clock: () => now,
     );
 
-    test('records into the action stream, not the service\'s', () async {
+    testWithClock('records into the action stream, not the service\'s', now, (
+      _,
+    ) async {
       // Both are open at once whenever the phone is backgrounded, and two
       // writers on one file is a torn session.
       await settings.saveDiagnosticsSession(session);
@@ -123,7 +127,9 @@ void main() {
       expect(linesOf(LogStream.fgs), isEmpty);
     });
 
-    test('stands down when this isolate is already recording', () async {
+    testWithClock('stands down when this isolate is already recording', now, (
+      _,
+    ) async {
       await settings.saveDiagnosticsSession(session);
       await writeUiStream();
       final first = await start();
@@ -133,9 +139,10 @@ void main() {
       expect(DiagnosticRecorder.active, same(first!.store));
     });
 
-    test(
+    testWithClock(
       'a platform read that fails costs the recording, not the job',
-      () async {
+      now,
+      (_) async {
         // The caller is carrying out the user's tap; a keystore that cannot be
         // read must leave it unrecorded, never undone.
         expect(

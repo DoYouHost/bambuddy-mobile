@@ -49,7 +49,6 @@ Future<BackgroundRecording?> startActionRecording({
   Future<SettingsRepository> Function() openSettings =
       SettingsRepository.opened,
   Future<Directory?> Function() resolveDirectory = diagnosticsDirectory,
-  DateTime Function()? clock,
 }) async {
   try {
     if (DiagnosticRecorder.isRecording) return null;
@@ -65,7 +64,6 @@ Future<BackgroundRecording?> startActionRecording({
         credentials: SecureCredentialsStore(),
       ),
       attachErrors: false,
-      clock: clock,
     );
   } on Object {
     return null;

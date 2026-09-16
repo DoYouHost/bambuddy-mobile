@@ -58,6 +58,8 @@ import 'ams_history_sheet.dart';
 import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
 import '../../../core/diagnostics/log_tag_material.dart';
+import '../../common/dash_icon_tile.dart';
+import '../../common/dash_progress_bar.dart';
 import '../../common/sheet_surface.dart';
 
 part 'printer_card_details.dart';
@@ -421,14 +423,13 @@ class _IconSquare extends StatelessWidget {
       color = tokens.accentGreenInk;
       fill = tokens.accentGreen.withValues(alpha: 0.14);
     }
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Icon(icon, size: 18, color: color),
+    return DashIconTile(
+      icon: icon,
+      size: _HeaderLine.glyphSquare,
+      radius: 11,
+      iconSize: 18,
+      ink: color,
+      fill: fill,
     );
   }
 }
@@ -468,8 +469,12 @@ class _HeaderLine extends StatelessWidget {
   final String? afterName;
   final Widget? belowName;
 
-  /// The glyph square and the header buttons.
-  static const _lineHeight = 34.0;
+  /// The glyph square, and with it the height the line starts at.
+  ///
+  /// Also the width [build] reserves for the leading square when it hands the
+  /// rest to the name and the buttons — so a square built to any other number
+  /// spends the name's guaranteed [_minNameWidth] without saying so.
+  static const glyphSquare = 36.0;
 
   static const _minNameWidth = 48.0;
   static const _afterNameGap = 8.0;
@@ -483,7 +488,7 @@ class _HeaderLine extends StatelessWidget {
     // A minimum rather than a fixed height: at a large system text size the
     // name is taller than the glyph, and a fixed line would overflow.
     Widget line(Widget child) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: _lineHeight),
+      constraints: const BoxConstraints(minHeight: glyphSquare),
       child: child,
     );
     final belowName = this.belowName;
@@ -493,7 +498,7 @@ class _HeaderLine extends StatelessWidget {
       builder: (context, constraints) {
         final trailingMaxWidth =
             (constraints.maxWidth -
-                    _lineHeight -
+                    glyphSquare -
                     _leadingGap -
                     _trailingGap -
                     _minNameWidth)
@@ -540,7 +545,7 @@ class _HeaderLine extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: trailingMaxWidth,
-                minHeight: _lineHeight,
+                minHeight: glyphSquare,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
