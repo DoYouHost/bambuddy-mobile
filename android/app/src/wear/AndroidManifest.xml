@@ -70,12 +70,85 @@
              relay has no watch-side counterpart to declare: the watch app is
              the one that asks, and it is on screen while it waits.) -->
         <receiver android:name=".BambuddyWidgetProvider" tools:node="remove" />
+        <receiver android:name=".BambuddyMultiWidgetProvider" tools:node="remove" />
         <service android:name=".wear.WearRelayListenerService" tools:node="remove" />
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             tools:node="remove" />
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            tools:node="remove" />
+
+        <!-- ML Kit's initializer is a ContentProvider, so Android runs it inside
+             `Application.onCreate` on every cold start — component discovery via
+             PackageManager plus reflective construction of the barcode and
+             vision registrars — before Flutter has been asked to start. The
+             watch has no scanner screen to reach it.
+
+             Measured on the wear_round AVD, `am start -W`, seven runs a side:
+             dropping this and the two FileProviders below took the median from
+             1342 ms to 1259 ms. That is a debug build on desktop cores; the
+             share of it is what transfers, not the number.
+
+             The AndroidManifest entries are the whole of the available win —
+             the Gradle dependency has to stay, because mobile_scanner's Kotlin
+             references these classes and the phone flavor compiles the same
+             source set. -->
+        <provider
+            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+            tools:node="remove" />
+        <service
+            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+            tools:node="remove" />
+
+        <!-- Two more providers instantiated at process start for features the
+             watch has no screen for: printing a spool label and sharing a file
+             out of the archive. Each parses its own `file_paths` XML on the way
+             up. -->
+        <provider
+            android:name="net.nfet.flutter.printing.PrintFileProvider"
+            tools:node="remove" />
+        <provider
+            android:name="dev.fluttercommunity.plus.share.ShareFileProvider"
+            tools:node="remove" />
+
+        <!-- Declared rather than started, so these cost a bigger component table
+             rather than startup time — but nothing on the watch can reach any of
+             them either. Glance arrives through home_widget (we draw the widgets
+             with RemoteViews, not Glance), WorkManager and Room arrive behind
+             Glance, CameraX behind mobile_scanner, and the datatransport
+             scheduler behind ML Kit. -->
+        <receiver
+            android:name="androidx.glance.appwidget.action.ActionCallbackBroadcastReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name="androidx.glance.appwidget.MyPackageReplacedReceiver"
+            tools:node="remove" />
+        <service
+            android:name="androidx.glance.appwidget.GlanceRemoteViewsService"
+            tools:node="remove" />
+        <activity
+            android:name="androidx.glance.appwidget.action.ActionTrampolineActivity"
+            tools:node="remove" />
+        <activity
+            android:name="androidx.glance.appwidget.action.InvisibleActionTrampolineActivity"
+            tools:node="remove" />
+        <service
+            android:name="androidx.core.widget.RemoteViewsCompatService"
+            tools:node="remove" />
+        <service
+            android:name="androidx.camera.core.impl.MetadataHolderService"
+            tools:node="remove" />
+
+        <!-- flutter_foreground_task's restart hooks. The watch strips the
+             service itself above, so these two receivers are wired to nothing;
+             RECEIVE_BOOT_COMPLETED is already removed, which leaves RebootReceiver
+             unable to fire at all. -->
+        <receiver
+            android:name="com.pravera.flutter_foreground_task.service.RebootReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name="com.pravera.flutter_foreground_task.service.RestartReceiver"
             tools:node="remove" />
     </application>
 </manifest>

@@ -8858,6 +8858,12 @@ abstract class AppLocalizations {
   /// **'Printer unavailable'**
   String get wearPrinterUnavailable;
 
+  /// Watch, under the status chip while the screen is showing the fleet cached from the last run: says why it is dimmed and why every command button is disabled. The buttons come back on the first successful poll. Short because it sits on a line of its own on a 1.4 inch face.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for current state'**
+  String get wearWaitingForState;
+
   /// No description provided for @wearNoActions.
   ///
   /// In en, this message translates to:

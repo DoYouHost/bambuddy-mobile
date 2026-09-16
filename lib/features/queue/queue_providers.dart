@@ -10,6 +10,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
 /// Used by the queue filament-mapping sheet to list loaded AMS filaments.
@@ -135,17 +136,9 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     List<QueueItem> rows,
   ) {
     final out = [...rows]..removeWhere((i) => i.id == item.id);
-    final above = {
-      for (final i in before.takeWhile((i) => i.id != item.id)) i.id,
-    };
-    final lastAbove = out.lastIndexWhere((i) => above.contains(i.id));
-    // With nothing above it left, it goes in front of the first row that was
-    // below it, so a row the server added meanwhile keeps its place.
-    final known = {for (final i in before) i.id};
-    final firstBelow = out.indexWhere((i) => known.contains(i.id));
-    var at = lastAbove >= 0
-        ? lastAbove + 1
-        : (firstBelow >= 0 ? firstBelow : 0);
+    // The neighbour walk is shared with the other two optimistic removals; only
+    // the pin below is the queue's own.
+    var at = restoredPositionOf(out, item, before, idOf: (i) => i.id);
     // Printing rows stay pinned on top whatever the rows around them did.
     final pinned = out.takeWhile((i) => _printingFirst(i) == 0).length;
     at = _printingFirst(item) == 0

@@ -7,6 +7,7 @@ import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// A mutation that is not an [AppApiException] never reached the server, so
 /// there is no reason to report beyond the failure itself.
@@ -50,20 +51,34 @@ class ProjectsListNotifier
     );
   }
 
-  /// Optimistic delete: remove locally, call server, restore on failure.
+  /// Optimistic delete: remove locally, call server, put the row back on
+  /// failure.
+  ///
+  /// Only that row, and into the list as it is when the failure arrives —
+  /// restoring the snapshot taken before the request brought back a project
+  /// deleted in the meantime, and undid a refresh that had landed. See
+  /// [withRowRestored].
   Future<ActionOutcome> delete(int id) async {
     final previous = state.valueOrNull;
-    if (previous != null) {
-      state = AsyncValue.data([
-        for (final p in previous)
-          if (p.id != id) p,
-      ]);
+    final index = previous?.indexWhere((p) => p.id == id) ?? -1;
+    if (previous != null && index >= 0) {
+      state = AsyncValue.data([...previous]..removeAt(index));
     }
     try {
       await ref.read(projectsRepositoryProvider).delete(id);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      if (previous != null) state = AsyncValue.data(previous);
+    } catch (e) {
+      // Any failure puts the row back; only a refusal is an answer. Caught
+      // wider than `AppApiException` for the same reason the archive is: a
+      // socket dying mid-request never deleted anything, and leaving the row
+      // off the list says it did.
+      final now = state.valueOrNull;
+      if (now != null && index >= 0) {
+        state = AsyncValue.data(
+          withRowRestored(now, previous![index], previous, idOf: (p) => p.id),
+        );
+      }
+      if (e is! AppApiException) rethrow;
       return _mapError(e, 'projects.delete');
     }
   }

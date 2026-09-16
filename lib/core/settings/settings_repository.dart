@@ -26,6 +26,7 @@ class SettingsRepository {
   static const _printOptionsKey = 'print_options';
   static const _clock24hKey = 'clock_24h';
   static const _wearRelayClaimKey = 'wear_relay_claim';
+  static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
 
@@ -234,4 +235,11 @@ class SettingsRepository {
   Future<void> saveWearRelayClaim(String? claim) => claim == null
       ? _prefs.remove(_wearRelayClaimKey)
       : _prefs.setString(_wearRelayClaimKey, claim);
+
+  /// The watch's last fleet, so a cold start paints it instead of a spinner —
+  /// see `WearFleetCache`, which owns the shape stored here.
+  String? loadWearFleetCache() => _prefs.getString(_wearFleetCacheKey);
+
+  Future<void> saveWearFleetCache(String value) =>
+      _prefs.setString(_wearFleetCacheKey, value);
 }

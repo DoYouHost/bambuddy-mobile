@@ -5310,6 +5310,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wearPrinterUnavailable => 'Impresora no disponible';
 
   @override
+  String get wearWaitingForState => 'Esperando el estado actual';
+
+  @override
   String get wearNoActions => 'Sin acciones disponibles';
 
   @override

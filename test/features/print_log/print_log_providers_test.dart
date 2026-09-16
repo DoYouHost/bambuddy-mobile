@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
@@ -50,6 +51,14 @@ class _FakeRepository extends PrintLogRepository {
 
   @override
   Future<void> deleteEntry(int entryId) async => deleted.add(entryId);
+
+  @override
+  Future<PrintLogEntry> updateEntry(
+    int entryId, {
+    String? failureReason,
+    bool clearFailureReason = false,
+    String? status,
+  }) async => _entry(entryId).copyWith(status: status ?? 'completed');
 }
 
 PrintLogEntry _entry(int id) => PrintLogEntry(
@@ -114,6 +123,64 @@ void main() {
     expect(state.items.map((e) => e.id), [9]);
     expect(state.total, 1);
     expect(repo.calls.last, 'failed');
+  });
+
+  test(
+    'a failed page does not undo a re-classification made meanwhile',
+    () async {
+      repo.pending.first.complete(_page([1, 2], total: 4));
+      await container.read(printLogProvider.future);
+
+      final notifier = container.read(printLogProvider.notifier);
+      // The user scrolls, so a page goes out…
+      unawaited(notifier.loadMore());
+      await Future<void>.delayed(Duration.zero);
+      // …and while it is out, marks run 1 as failed. That edit lands.
+      await notifier.reclassify(1, status: 'failed');
+      expect(
+        container.read(printLogProvider).valueOrNull!.items.first.status,
+        'failed',
+      );
+
+      // Now the page fails — with what the repository's own `guard` produces,
+      // since that is the only kind `loadMore` catches. Clearing `loadingMore`
+      // off the snapshot taken before the request also put the row back to
+      // 'completed': an edit the user had seen succeed, undone by a scroll.
+      repo.pending.last.completeError(
+        const ApiException(AppErrorCode.serverUnreachable),
+      );
+      await pumpEventQueue();
+
+      final state = container.read(printLogProvider).valueOrNull!;
+      expect(state.items.first.status, 'failed');
+      expect(state.loadingMore, isFalse, reason: 'the list is askable again');
+    },
+  );
+
+  test('a page that fails outside the guard still frees the list', () async {
+    repo.pending.first.complete(_page([1, 2], total: 4));
+    await container.read(printLogProvider.future);
+    final notifier = container.read(printLogProvider.notifier);
+
+    // `PrintLogPage` is built outside the repository's `guard`, so a malformed
+    // body arrives here as a plain TypeError. Caught only as AppApiException,
+    // it left `loadingMore` true and the list refused every further scroll.
+    // An unexpected error still travels — the flag just has to come off on the
+    // way past, which is what `finally` is for.
+    unawaited(notifier.loadMore().catchError((Object _) {}));
+    await pumpEventQueue();
+    repo.pending.last.completeError(TypeError());
+    await pumpEventQueue();
+
+    expect(container.read(printLogProvider).valueOrNull!.loadingMore, isFalse);
+
+    // And the proof it is not merely a flag: the list takes a page again.
+    final before = repo.pending.length;
+    unawaited(notifier.loadMore());
+    await pumpEventQueue();
+    expect(repo.pending.length, before + 1, reason: 'pagination is unstuck');
+    repo.pending.last.complete(_page([3, 4], total: 4));
+    await pumpEventQueue();
   });
 
   test('clearing the filters leaves the search alone', () {

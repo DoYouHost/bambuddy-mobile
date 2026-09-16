@@ -117,6 +117,67 @@ flutter {
     source = "../.."
 }
 
+// Assets are declared once in pubspec.yaml and Flutter has no per-flavor list,
+// so the watch APK carries the phone's G-code viewer, the slicer schemas, the
+// dashboard's cover placeholder and four JetBrains Mono faces — ~2.2 MB behind
+// screens the wear entry point does not have.
+//
+// Unreachable was verified, not assumed: none of these paths, and not the
+// family name "JetBrainsMono", survives Dart tree shaking into the wear
+// snapshot, while the phone's snapshot names them. `tool/check_wear_apk.py`
+// asserts both halves against the built APK on every CI run, which is what
+// makes deleting files out of a build directory safe to do at all — nothing
+// else here would notice a path that stopped matching.
+val wearPrunedAssetPaths = listOf(
+    "assets/gcode",
+    "assets/slicer",
+    "assets/icons/cover_placeholder.png",
+)
+
+/// Dropped from the APK *and* from FontManifest.json. Leaving the manifest
+/// naming a file that is gone is what turns a saved megabyte into an engine
+/// that logs a missing asset on every start.
+val wearPrunedFontFamilies = listOf("JetBrainsMono")
+
+tasks.configureEach {
+    // `copyFlutterAssets<Variant>` is a Copy into the merged assets directory,
+    // registered by the Flutter plugin — so this runs once the assets are in
+    // place and before they are packaged. Variants are wearDebug/wearProfile/
+    // wearRelease; the mobile ones never match.
+    if (!name.startsWith("copyFlutterAssetsWear")) return@configureEach
+    doLast {
+        // Gradle's Kotlin DSL gives `doLast` a Task receiver, not an `it`.
+        val assets = (this as Copy).destinationDir.resolve("flutter_assets")
+        var freed = 0L
+        for (path in wearPrunedAssetPaths) {
+            val target = assets.resolve(path)
+            if (!target.exists()) continue
+            freed += target.walkBottomUp().filter { f -> f.isFile }.sumOf { f -> f.length() }
+            target.deleteRecursively()
+        }
+
+        val manifest = assets.resolve("FontManifest.json")
+        if (manifest.exists()) {
+            @Suppress("UNCHECKED_CAST")
+            val families = groovy.json.JsonSlurper().parse(manifest) as List<Map<String, Any>>
+            val keep = families.filterNot { family -> family["family"] in wearPrunedFontFamilies }
+            if (keep.size != families.size) {
+                for (family in families - keep.toSet()) {
+                    @Suppress("UNCHECKED_CAST")
+                    for (font in family["fonts"] as List<Map<String, Any>>) {
+                        val file = assets.resolve(font["asset"] as String)
+                        if (!file.exists()) continue
+                        freed += file.length()
+                        file.delete()
+                    }
+                }
+                manifest.writeText(groovy.json.JsonOutput.toJson(keep))
+            }
+        }
+        logger.lifecycle("wear: pruned ${freed / 1024} KiB of phone-only assets")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Already on the classpath through watch_connectivity's `api` dependency,

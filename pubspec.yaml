@@ -144,12 +144,22 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
-        - asset: assets/fonts/JetBrainsMono-500.ttf
-          weight: 500
         - asset: assets/fonts/JetBrainsMono-600.ttf
           weight: 600
         - asset: assets/fonts/JetBrainsMono-700.ttf
           weight: 700
+        # 800 rather than a fifth weight nobody asks for: `DashText.monoTitle`
+        # is w800 in eleven places and, with no face for it, was resolving to
+        # the 700 above — so `monoTitle` and `monoHeadline` rendered identically
+        # while the design asks for two different weights. The 500 this replaces
+        # was the mirror image: shipped, and requested by nothing.
+        #
+        # Taken from the same JetBrains Mono 2.304 release as its siblings,
+        # verified by that release's Bold being byte-for-byte the 700 above.
+        # The OFL travels with the family, not the face (`registerDashFontLicenses`
+        # in dash_ui), so the licence page already covers this one.
+        - asset: assets/fonts/JetBrainsMono-800.ttf
+          weight: 800
 
 flutter_launcher_icons:
   android: true

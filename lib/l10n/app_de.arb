@@ -1667,6 +1667,7 @@
   "wearConnectionFailed": "Verbindung fehlgeschlagen",
   "wearNoPrinters": "Keine Drucker",
   "wearPrinterUnavailable": "Drucker nicht verfügbar",
+  "wearWaitingForState": "Warten auf aktuellen Status",
   "wearNoActions": "Keine Aktionen verfügbar",
   "wearClearPlate": "Platte leeren",
   "wearPlateCleared": "Platte geleert",

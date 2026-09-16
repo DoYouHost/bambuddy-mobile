@@ -5296,6 +5296,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wearPrinterUnavailable => 'Drucker nicht verfügbar';
 
   @override
+  String get wearWaitingForState => 'Warten auf aktuellen Status';
+
+  @override
   String get wearNoActions => 'Keine Aktionen verfügbar';
 
   @override

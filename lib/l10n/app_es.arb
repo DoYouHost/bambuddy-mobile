@@ -1667,6 +1667,7 @@
   "wearConnectionFailed": "Error de conexión",
   "wearNoPrinters": "Sin impresoras",
   "wearPrinterUnavailable": "Impresora no disponible",
+  "wearWaitingForState": "Esperando el estado actual",
   "wearNoActions": "Sin acciones disponibles",
   "wearClearPlate": "Despejar placa",
   "wearPlateCleared": "Placa despejada",

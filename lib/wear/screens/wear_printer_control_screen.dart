@@ -16,6 +16,7 @@ import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
+import '../widgets/wear_center_message.dart';
 import '../widgets/wear_confirm_dialog.dart';
 import '../widgets/wear_face.dart';
 import '../widgets/wear_header.dart';
@@ -64,11 +65,36 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
   PrinterWithStatus? _find(List<PrinterWithStatus> printers) =>
       printers.firstWhereOrNull((p) => p.printer.id == widget.printerId);
 
+  /// Whether what is on screen came from the cache rather than from the server
+  /// ([WearFleetCache]) — and therefore whether a command may be sent at all.
+  ///
+  /// A cached frame says what the *previous* run saw. Stop, Resume and the
+  /// firmware's own remediation buttons all act on a job identified by nothing
+  /// more than the printer, so a Stop aimed at what the watch last saw can land
+  /// on whatever is running now. Reading a stale progress bar for a second
+  /// costs nothing; commanding from one is the risk this whole feature would
+  /// otherwise have introduced.
+  ///
+  /// One-way: `refresh` only ever replaces the state with a live fleet or keeps
+  /// the one it has, so a screen that has gone live never goes back.
+  bool get _stale => ref.read(wearFleetProvider).valueOrNull?.stale ?? false;
+
   @override
   Widget build(BuildContext context) {
-    final fleet = ref.watch(wearFleetProvider).valueOrNull;
-    final printers = fleet?.printers ?? const <PrinterWithStatus>[];
+    final async = ref.watch(wearFleetProvider);
     final l10n = AppLocalizations.of(context);
+    // Pushed from the picker, this screen sits above the home screen that would
+    // otherwise report the failure — so it has to report it itself. Without
+    // this it answered a dead bridge with "printer unavailable", which names
+    // the wrong thing and offers no way to try again.
+    if (async.hasError) {
+      return WearCenterMessage(
+        text: l10n.wearConnectionFailed,
+        onRetry: () => ref.invalidate(wearFleetProvider),
+      );
+    }
+    final fleet = async.drawable;
+    final printers = fleet?.printers ?? const <PrinterWithStatus>[];
     final item = _find(printers);
     if (item == null) {
       // The one thing on this screen that never reaches `WearScrollView`, so
@@ -88,28 +114,42 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
     return Stack(
       children: [
-        WearScrollView(
-          // Short items all the way down — a title, a chip, a readout, buttons
-          // — which is what the curve is for. The one exception carries itself:
-          // a fault card is taller than the radius, so `WearFaceCurve` clips it
-          // to the round-safe band exactly as the rectangle viewport used to.
-          curved: true,
-          onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-          children: [
-            WearHeader(item.printer.name),
-            const SizedBox(height: 6),
-            Center(child: WearStatusChip(state: state)),
-            const SizedBox(height: 10),
-            if (state == WearState.printing || state == WearState.paused)
-              _progress(l10n, status),
-            const SizedBox(height: 10),
-            ..._faults(item),
-            ..._actions(item, state, fleet?.queuePending),
-            if (widget.showSettings) ...[
-              const SizedBox(height: 4),
-              const WearSettingsEntry(),
+        wearDimIfStale(
+          stale: fleet?.stale ?? false,
+          child: WearScrollView(
+            // Short items all the way down — a title, a chip, a readout, buttons
+            // — which is what the curve is for. The one exception carries itself:
+            // a fault card is taller than the radius, so `WearFaceCurve` clips it
+            // to the round-safe band exactly as the rectangle viewport used to.
+            curved: true,
+            onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
+            children: [
+              WearHeader(item.printer.name),
+              const SizedBox(height: 6),
+              Center(child: WearStatusChip(state: state)),
+              // Why the screen is dim and why nothing can be pressed. Without
+              // it a cached frame is a control screen whose every button is
+              // greyed out for no stated reason.
+              if (fleet?.stale ?? false) ...[
+                const SizedBox(height: 6),
+                Text(
+                  l10n.wearWaitingForState,
+                  textAlign: TextAlign.center,
+                  style: WearText.small.copyWith(color: wearInert),
+                ),
+              ],
+              const SizedBox(height: 10),
+              if (state == WearState.printing || state == WearState.paused)
+                _progress(l10n, status),
+              const SizedBox(height: 10),
+              ..._faults(item),
+              ..._actions(item, state, fleet?.queuePending),
+              if (widget.showSettings) ...[
+                const SizedBox(height: 4),
+                const WearSettingsEntry(),
+              ],
             ],
-          ],
+          ),
         ),
         if (busy) wearBusyVeil,
       ],
@@ -195,7 +235,8 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
           padding: const EdgeInsets.only(bottom: 8),
           child: _WearFault(
             fault: fault,
-            busy: busy,
+            // Same gate as every other command on this screen.
+            busy: busy || _stale,
             onAction: (action) => action == hmsStopAction
                 ? _confirmHmsStop(actions, id, fault, item.printer.name)
                 : _run(
@@ -339,7 +380,9 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     Color? color,
     _WearFailureText? errMsg,
   }) => FilledButton.icon(
-    onPressed: busy ? null : () => _run(action, okMsg: okMsg, errMsg: errMsg),
+    onPressed: busy || _stale
+        ? null
+        : () => _run(action, okMsg: okMsg, errMsg: errMsg),
     icon: Icon(icon),
     label: _label(label),
     style: color != null
@@ -400,22 +443,28 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     Future<void> Function() action, {
     String? okMsg,
     _WearFailureText? errMsg,
-  }) => run(
-    () async {
-      await action();
-      await ref.read(wearFleetProvider.notifier).refresh();
-    },
-    onDone: () {
-      if (okMsg != null) {
-        wearToast(context, okMsg, tone: WearToastTone.success);
-      }
-    },
-    onError: (error) => wearToast(
-      context,
-      errMsg?.call(error) ?? _shortError(AppLocalizations.of(context), error),
-      tone: WearToastTone.failure,
-    ),
-  );
+  }) async {
+    // The buttons are already disabled while [_stale]; this is the backstop for
+    // a path that reaches here without one — the two confirm dialogs, which are
+    // open across an await.
+    if (_stale) return;
+    return run(
+      () async {
+        await action();
+        await ref.read(wearFleetProvider.notifier).refresh();
+      },
+      onDone: () {
+        if (okMsg != null) {
+          wearToast(context, okMsg, tone: WearToastTone.success);
+        }
+      },
+      onError: (error) => wearToast(
+        context,
+        errMsg?.call(error) ?? _shortError(AppLocalizations.of(context), error),
+        tone: WearToastTone.failure,
+      ),
+    );
+  }
 }
 
 /// A button's own wording for a failure, where the generic [_shortError] would
