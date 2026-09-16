@@ -31,14 +31,14 @@ void main() {
     testWidgets('paints the accent fill under an accent glyph', (tester) async {
       await pump(
         tester,
-        const DashIconTile(icon: Icons.print_outlined, size: 34, radius: 11),
+        const DashIconTile(icon: Icons.print_outlined, size: 36, radius: 11),
       );
 
       final box = tester.widget<Container>(find.byType(Container));
       final decoration = box.decoration! as BoxDecoration;
       expect(decoration.color, tokens.accentGreen.withValues(alpha: 0.14));
       expect(decoration.borderRadius, BorderRadius.circular(11));
-      expect(tester.getSize(find.byType(Container)), const Size(34, 34));
+      expect(tester.getSize(find.byType(Container)), const Size(36, 36));
       expect(
         tester.widget<Icon>(find.byType(Icon)).color,
         tokens.accentGreenInk,
@@ -50,7 +50,7 @@ void main() {
         tester,
         DashIconTile(
           icon: Icons.warning_amber_rounded,
-          size: 34,
+          size: 36,
           radius: 11,
           ink: const Color(0xFFAA0000),
           fill: const Color(0x11AA0000),
