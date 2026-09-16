@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/dash_icon_tile.dart';
 import '../common/dash_progress_bar.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
@@ -262,18 +263,13 @@ class _MaintenanceRow extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: tileAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    maintenanceIcon(item.maintenanceTypeIcon),
-                    size: 18,
-                    color: inkAccent,
-                  ),
+                DashIconTile(
+                  icon: maintenanceIcon(item.maintenanceTypeIcon),
+                  size: 40,
+                  radius: 12,
+                  iconSize: 18,
+                  ink: inkAccent,
+                  fill: tileAccent.withValues(alpha: 0.14),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

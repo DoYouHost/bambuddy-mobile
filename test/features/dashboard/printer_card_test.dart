@@ -3495,6 +3495,36 @@ void main() {
         expect(find.text('OFFLINE'), findsOneWidget);
         expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
       });
+
+      // The header reserves the leading square's width by name, and this is the
+      // case that spends every pixel of what is left: plug, status and toggle
+      // take their whole budget, so the name lands exactly on its floor. A
+      // square built to a number the budget does not know about comes out of
+      // this 48 — it was 46 while the tile said 36 and the budget said 34.
+      testWidgets('the name keeps its floor when the buttons take it all', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: false),
+        );
+        await pumpNarrow(
+          tester,
+          item,
+          collapsed: false,
+          extra: [
+            smartPlugsProvider.overrideWith(
+              () => _StubSmartPlugsNotifier(_plugState()),
+            ),
+          ],
+        );
+
+        expect(
+          tester.getSize(find.text('X1C Warsztat')).width,
+          greaterThanOrEqualTo(48.0),
+          reason: 'the floor the header line promises the name',
+        );
+      });
     });
 
     testWidgets('a card nobody can toggle offers no button in either look', (

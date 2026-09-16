@@ -670,11 +670,7 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: unit,
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
+            decoration: InputDecoration(labelText: unit),
           ).tagged('interval_edit.value'),
         ],
       ),

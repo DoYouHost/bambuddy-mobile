@@ -6,10 +6,10 @@ import '../../core/theme/dash_theme.dart';
 /// row, a drawer entry, a folder tile, a printer card header.
 ///
 /// The paint is one decision — the accent at α 0.14 under an `accentGreenInk`
-/// glyph — and that is what this widget owns. The geometry is not: the tile is
-/// 34 px on a printer card and 44 px on the cloud account card, and those sizes
-/// have never been through a design pass together, so each call site still
-/// states its own.
+/// glyph — and that is what this widget owns. The geometry is not: the tile
+/// runs 36 / 40 / 44 px depending on how dense the row around it is, and a
+/// call site whose layout reserves room for the square passes the same
+/// constant it reserves (`_HeaderLine.glyphSquare` on the printer card).
 class DashIconTile extends StatelessWidget {
   const DashIconTile({
     super.key,

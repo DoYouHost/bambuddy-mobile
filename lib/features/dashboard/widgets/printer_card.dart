@@ -425,7 +425,7 @@ class _IconSquare extends StatelessWidget {
     }
     return DashIconTile(
       icon: icon,
-      size: 36,
+      size: _HeaderLine.glyphSquare,
       radius: 11,
       iconSize: 18,
       ink: color,
@@ -469,8 +469,12 @@ class _HeaderLine extends StatelessWidget {
   final String? afterName;
   final Widget? belowName;
 
-  /// The glyph square and the header buttons.
-  static const _lineHeight = 34.0;
+  /// The glyph square, and with it the height the line starts at.
+  ///
+  /// Also the width [build] reserves for the leading square when it hands the
+  /// rest to the name and the buttons — so a square built to any other number
+  /// spends the name's guaranteed [_minNameWidth] without saying so.
+  static const glyphSquare = 36.0;
 
   static const _minNameWidth = 48.0;
   static const _afterNameGap = 8.0;
@@ -484,7 +488,7 @@ class _HeaderLine extends StatelessWidget {
     // A minimum rather than a fixed height: at a large system text size the
     // name is taller than the glyph, and a fixed line would overflow.
     Widget line(Widget child) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: _lineHeight),
+      constraints: const BoxConstraints(minHeight: glyphSquare),
       child: child,
     );
     final belowName = this.belowName;
@@ -494,7 +498,7 @@ class _HeaderLine extends StatelessWidget {
       builder: (context, constraints) {
         final trailingMaxWidth =
             (constraints.maxWidth -
-                    _lineHeight -
+                    glyphSquare -
                     _leadingGap -
                     _trailingGap -
                     _minNameWidth)
@@ -541,7 +545,7 @@ class _HeaderLine extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: trailingMaxWidth,
-                minHeight: _lineHeight,
+                minHeight: glyphSquare,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
