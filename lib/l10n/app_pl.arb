@@ -1666,6 +1666,7 @@
   "wearConnectionFailed": "Błąd połączenia",
   "wearNoPrinters": "Brak drukarek",
   "wearPrinterUnavailable": "Drukarka niedostępna",
+  "wearWaitingForState": "Oczekiwanie na aktualny stan",
   "wearNoActions": "Brak dostępnych akcji",
   "wearClearPlate": "Zwolnij płytę",
   "wearPlateCleared": "Płyta zwolniona",

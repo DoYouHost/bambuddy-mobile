@@ -5364,6 +5364,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wearPrinterUnavailable => 'Imprimante indisponible';
 
   @override
+  String get wearWaitingForState => 'En attente de l\'état actuel';
+
+  @override
   String get wearNoActions => 'Aucune action disponible';
 
   @override

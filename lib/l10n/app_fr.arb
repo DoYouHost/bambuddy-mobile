@@ -1667,6 +1667,7 @@
   "wearConnectionFailed": "Échec de connexion",
   "wearNoPrinters": "Aucune imprimante",
   "wearPrinterUnavailable": "Imprimante indisponible",
+  "wearWaitingForState": "En attente de l'état actuel",
   "wearNoActions": "Aucune action disponible",
   "wearClearPlate": "Vider le plateau",
   "wearPlateCleared": "Plateau vidé",

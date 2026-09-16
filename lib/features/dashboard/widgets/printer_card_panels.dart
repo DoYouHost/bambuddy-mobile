@@ -321,7 +321,9 @@ class _CoverThumbnail extends StatelessWidget {
         key: const ValueKey('cover_placeholder'),
         width: _size,
         height: _size,
-        // The asset is 1362x1362 and this tile is 64 dp, once per card.
+        // The asset is 256x256 — 64 dp at xxxhdpi, the densest this ships to —
+        // and the tile is drawn once per card. `cacheWidth` still asks the codec
+        // for the size actually drawn rather than the size on disk.
         cacheWidth: (_size * MediaQuery.devicePixelRatioOf(context)).round(),
         fit: BoxFit.cover,
       ),

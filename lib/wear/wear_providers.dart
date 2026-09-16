@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
+import 'wear_fleet_cache.dart';
 import 'wear_status.dart';
 import 'wear_transport.dart';
 
@@ -95,6 +96,13 @@ final wearServerVersionProvider = FutureProvider.autoDispose<String?>((
   }
 });
 
+/// The watch's cold-start cache. Not `autoDispose`: it carries the floor
+/// between writes ([WearFleetCache.minInterval]) across polls, and a fresh
+/// instance per read would let every poll write.
+final wearFleetCacheProvider = Provider<WearFleetCache>(
+  (ref) => WearFleetCache(ref.watch(settingsRepositoryProvider)),
+);
+
 /// Fleet of printers with status, polled through [wearTransportProvider].
 /// No WebSocket or background service on the watch (deliberate — battery);
 /// the poll runs only while a screen watching it is mounted (autoDispose).
@@ -107,24 +115,57 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   Timer? _timer;
   bool _disposed = false;
 
+  /// Set while the watch app is in the background. Every relay poll wakes the
+  /// phone over Bluetooth, and a screen nobody is looking at has nothing to
+  /// update — the phone's own screens have stopped their polls on pause since
+  /// they were written, and this one never did.
+  ///
+  /// Checked in [_scheduleNext] rather than only at [stopPolling], because a
+  /// fetch already in flight when the app goes away would otherwise come back
+  /// and re-arm the timer the pause had just cancelled.
+  bool _paused = false;
+
   @override
   Future<WearFleet> build() async {
     ref.onDispose(() {
       _disposed = true;
       _timer?.cancel();
     });
+    final cached = ref
+        .read(wearFleetCacheProvider)
+        .load(ref.read(serverProfileProvider));
+    if (cached != null) {
+      // Painted at once, refreshed underneath. A zero-length timer rather than
+      // a direct call: [refresh] assigns `state`, which Riverpod refuses until
+      // `build` has returned — and the timer is already the field `onDispose`
+      // cancels, so a screen left before the first poll takes it with it.
+      _timer = Timer(Duration.zero, refresh);
+      return cached;
+    }
     final fleet = await _fetch();
     _scheduleNext(fleet);
     return fleet;
   }
 
-  Future<WearFleet> _fetch() => ref.read(wearTransportProvider).getFleet();
+  Future<WearFleet> _fetch() async {
+    final fleet = await ref.read(wearTransportProvider).getFleet();
+    // Not awaited, and never fatal: writing the cache is not part of the poll
+    // this caller is waiting on. Skipped once disposed, where `ref` throws.
+    if (!_disposed) {
+      unawaited(
+        ref
+            .read(wearFleetCacheProvider)
+            .save(fleet, ref.read(serverProfileProvider)),
+      );
+    }
+    return fleet;
+  }
 
   /// Adaptive cadence: every relay poll wakes the phone over the bridge, so
   /// back off to 30 s when nothing is actively printing. Direct REST (or an
   /// active print) keeps the familiar 5 s.
   void _scheduleNext(WearFleet? fleet) {
-    if (_disposed) return;
+    if (_disposed || _paused) return;
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
     final active =
@@ -143,9 +184,21 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
     _timer = Timer(interval, refresh);
   }
 
+  /// Stops the poll until something asks for a [refresh] again — which is what
+  /// coming back to the foreground does.
+  void stopPolling() {
+    _paused = true;
+    _timer?.cancel();
+  }
+
   /// Re-fetch in the background; keeps the last good data visible on transient
   /// errors instead of blanking the screen.
+  ///
+  /// Also the way out of [stopPolling]: every caller — the resume hook, pull to
+  /// refresh, the tick after a command — means the screen is being watched
+  /// again.
   Future<void> refresh() async {
+    _paused = false;
     final next = await AsyncValue.guard(_fetch);
     if (_disposed) return;
     // Only surface an error if we have nothing to show; otherwise keep old data.

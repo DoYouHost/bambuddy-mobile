@@ -8,6 +8,7 @@ import '../wear_theme.dart';
 import '../widgets/wear_header.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
+import '../widgets/wear_spinner.dart';
 import 'wear_printer_control_screen.dart';
 
 /// Printer picker (shown only when more than one printer). Tapping a row pushes
@@ -17,41 +18,44 @@ class WearPrinterListBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fleet = ref.watch(wearFleetProvider);
-    final printers = fleet.valueOrNull?.printers ?? const [];
-    return WearScrollView(
-      // Uniform short rows, which is exactly what curving is for: the picker
-      // was handing 36% of the face to a margin nothing could ever enter.
-      curved: true,
-      // Every row here is the same rounded card, so the curve may stop
-      // shrinking them to protect a square corner none of them has.
-      itemCornerRadius: wearRadiusRow,
-      onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: WearHeader(AppLocalizations.of(context).printersTitle),
-        ),
-        for (final p in printers)
+    final fleet = ref.watch(wearFleetProvider).valueOrNull;
+    final printers = fleet?.printers ?? const [];
+    return wearDimIfStale(
+      stale: fleet?.stale ?? false,
+      child: WearScrollView(
+        // Uniform short rows, which is exactly what curving is for: the picker
+        // was handing 36% of the face to a margin nothing could ever enter.
+        curved: true,
+        // Every row here is the same rounded card, so the curve may stop
+        // shrinking them to protect a square corner none of them has.
+        itemCornerRadius: wearRadiusRow,
+        onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
+        children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: _PrinterRow(
-              name: p.printer.name,
-              stateLabel: wearStateOf(
-                p.status,
-              ).label(AppLocalizations.of(context)),
-              stateColor: wearStateOf(p.status).color,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      WearPrinterControlScreen(printerId: p.printer.id),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: WearHeader(AppLocalizations.of(context).printersTitle),
+          ),
+          for (final p in printers)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: _PrinterRow(
+                name: p.printer.name,
+                stateLabel: wearStateOf(
+                  p.status,
+                ).label(AppLocalizations.of(context)),
+                stateColor: wearStateOf(p.status).color,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        WearPrinterControlScreen(printerId: p.printer.id),
+                  ),
                 ),
               ),
             ),
-          ),
-        const SizedBox(height: 4),
-        const WearSettingsEntry(),
-      ],
+          const SizedBox(height: 4),
+          const WearSettingsEntry(),
+        ],
+      ),
     );
   }
 }

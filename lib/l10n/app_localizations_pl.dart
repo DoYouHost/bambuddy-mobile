@@ -5325,6 +5325,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearPrinterUnavailable => 'Drukarka niedostępna';
 
   @override
+  String get wearWaitingForState => 'Oczekiwanie na aktualny stan';
+
+  @override
   String get wearNoActions => 'Brak dostępnych akcji';
 
   @override

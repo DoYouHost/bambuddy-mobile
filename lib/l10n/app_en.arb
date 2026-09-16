@@ -1877,6 +1877,8 @@
   "wearConnectionFailed": "Connection failed",
   "wearNoPrinters": "No printers",
   "wearPrinterUnavailable": "Printer unavailable",
+  "wearWaitingForState": "Waiting for current state",
+  "@wearWaitingForState": { "description": "Watch, under the status chip while the screen is showing the fleet cached from the last run: says why it is dimmed and why every command button is disabled. The buttons come back on the first successful poll. Short because it sits on a line of its own on a 1.4 inch face." },
   "wearNoActions": "No actions available",
   "wearClearPlate": "Clear plate",
   "@wearClearPlate": { "description": "Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all." },

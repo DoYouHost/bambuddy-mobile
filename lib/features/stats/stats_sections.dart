@@ -126,7 +126,7 @@ class FailureAnalysisCard extends ConsumerWidget {
   }
 }
 
-// ── Print Activity (heatmapa) ───────────────────────────────────────────────
+// ── Print Activity (heatmap) ───────────────────────────────────────────────
 
 class PrintActivityCard extends StatelessWidget {
   const PrintActivityCard({super.key, required this.data, required this.fmt});

@@ -48,7 +48,12 @@ class WearRelayRemoteError implements Exception {
 /// One watch poll: the printers plus the queue signal behind the
 /// "start next" button.
 class WearFleet {
-  const WearFleet({required this.printers, this.queuePending});
+  const WearFleet({
+    required this.printers,
+    this.queuePending,
+    this.raw,
+    this.stale = false,
+  });
 
   final List<PrinterWithStatus> printers;
 
@@ -56,6 +61,73 @@ class WearFleet {
   /// Null = unknown (older phone app relaying, or the queue fetch failed) —
   /// the UI then keeps offering "start next" as before.
   final int? queuePending;
+
+  /// The wire map this was read from, kept so the cold-start cache can store it
+  /// verbatim rather than re-encode the models.
+  ///
+  /// There is no other shape that survives the round trip: [PrinterStatus] is
+  /// parsed through several dozen tolerant converters and is declared
+  /// `createToJson: false`, so nothing in the app can spell it back out.
+  ///
+  /// Null on the REST path, which is handed models rather than JSON — a watch
+  /// that can never reach its phone therefore caches nothing and starts on a
+  /// spinner exactly as before.
+  // ponytail: relay-only cache; give `PrintersRepository` a raw fleet read if
+  // the standalone watch is worth the same treatment.
+  final Map<String, dynamic>? raw;
+
+  /// True only for a fleet [WearFleetCache] restored, i.e. one drawn from the
+  /// last run rather than from the server. The screens dim themselves on it and
+  /// clear the moment a real poll lands.
+  final bool stale;
+}
+
+/// One reader for the fleet's wire shape — the relay's reply, and the cache
+/// that stored one.
+///
+/// Tolerant per entry, mirroring `parseJsonList`: one malformed printer drops
+/// that entry, not the whole fleet. A cache written by an older version is the
+/// second caller that depends on it.
+WearFleet wearFleetFromJson(Map<String, dynamic>? data, {bool stale = false}) {
+  final pending = data?['queuePending'];
+  final queuePending = pending is int ? pending : null;
+  final list = data?['printers'];
+  if (list is! List) {
+    return WearFleet(
+      printers: const [],
+      queuePending: queuePending,
+      raw: data,
+      stale: stale,
+    );
+  }
+  final out = <PrinterWithStatus>[];
+  for (final entry in list) {
+    if (entry is! Map<String, dynamic>) continue;
+    final rawPrinter = entry['printer'];
+    if (rawPrinter is! Map<String, dynamic>) continue;
+    final Printer printer;
+    try {
+      printer = Printer.fromJson(rawPrinter);
+    } on Object {
+      continue;
+    }
+    final rawStatus = entry['status'];
+    PrinterStatus? status;
+    if (rawStatus is Map<String, dynamic>) {
+      try {
+        status = PrinterStatus.fromJson(rawStatus);
+      } on Object {
+        status = null;
+      }
+    }
+    out.add(PrinterWithStatus(printer: printer, status: status));
+  }
+  return WearFleet(
+    printers: out,
+    queuePending: queuePending,
+    raw: data,
+    stale: stale,
+  );
 }
 
 /// What the watch needs from "the other side", regardless of whether that's
@@ -183,45 +255,8 @@ class RelayTransport implements WearTransport {
   }
 
   @override
-  Future<WearFleet> getFleet() async {
-    final data = await _call(WearRpcAction.getFleet);
-    final pending = data?['queuePending'];
-    final list = data?['printers'];
-    if (list is! List) {
-      return WearFleet(
-        printers: const [],
-        queuePending: pending is int ? pending : null,
-      );
-    }
-    final out = <PrinterWithStatus>[];
-    // Tolerant per-entry parsing, mirroring parseJsonList: one malformed
-    // printer drops that entry, not the whole fleet.
-    for (final entry in list) {
-      if (entry is! Map<String, dynamic>) continue;
-      final rawPrinter = entry['printer'];
-      if (rawPrinter is! Map<String, dynamic>) continue;
-      final Printer printer;
-      try {
-        printer = Printer.fromJson(rawPrinter);
-      } on Object {
-        continue;
-      }
-      final rawStatus = entry['status'];
-      PrinterStatus? status;
-      if (rawStatus is Map<String, dynamic>) {
-        try {
-          status = PrinterStatus.fromJson(rawStatus);
-        } on Object {
-          status = null;
-        }
-      }
-      out.add(PrinterWithStatus(printer: printer, status: status));
-    }
-    return WearFleet(
-      printers: out,
-      queuePending: pending is int ? pending : null,
-    );
-  }
+  Future<WearFleet> getFleet() async =>
+      wearFleetFromJson(await _call(WearRpcAction.getFleet));
 
   @override
   Future<String?> getServerVersion() async {

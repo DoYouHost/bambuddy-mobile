@@ -17,10 +17,16 @@ import 'wear_app.dart';
 /// display still allows a 90° rotation — it overrode the manifest lock.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Started before the preferences are awaited, not after: both block the first
+  // frame, one is a platform round trip and the other reads ~100 KB out of the
+  // bundle and decodes it, and neither needs the other's answer. Overlapping
+  // them costs a line and buys back whichever is shorter.
+  //
+  // Still awaited, rather than left running: an unnamed fault is hidden, so
+  // without the catalogue the watch's error panel never appears at all.
+  final catalog = HmsCatalog.instance.load(systemLocale());
   final prefs = await SharedPreferences.getInstance();
-  // An unnamed fault is hidden, so without the catalogue the watch's error panel
-  // never appears at all.
-  await HmsCatalog.instance.load(systemLocale());
+  await catalog;
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
