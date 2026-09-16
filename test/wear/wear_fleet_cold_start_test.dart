@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/wear/screens/wear_home.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_fleet_cache.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
@@ -37,6 +38,11 @@ class _HangingTransport implements WearTransport {
 
 const _printerName = 'X1C';
 
+/// `pumpWear` runs the tree in Polish, so this is the error screen on screen.
+const plWearConnectionFailed = 'Błąd połączenia';
+const plWearPrinterUnavailable = 'Drukarka niedostępna';
+const plRetry = 'Spróbuj ponownie';
+
 Map<String, dynamic> _wire({int progress = 42}) => {
   'printers': [
     {
@@ -63,8 +69,11 @@ class _SeededCache implements WearFleetCache {
 
   final WearFleet? _fleet;
 
+  /// Answered only for the server it was seeded against, exactly as the real
+  /// cache is: what one server said is not an answer about another.
   @override
-  WearFleet? load(ServerProfile? profile) => _fleet;
+  WearFleet? load(ServerProfile? profile) =>
+      profile?.baseUrl == fakeServerBaseUrl ? _fleet : null;
 
   @override
   Future<void> save(WearFleet fleet, ServerProfile? profile) async {}
@@ -72,6 +81,22 @@ class _SeededCache implements WearFleetCache {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
+}
+
+/// A profile the test can change under the app, the way adopting a pushed
+/// config does.
+class _SwitchableProfile extends ServerProfileNotifier {
+  _SwitchableProfile(this._profile);
+
+  ServerProfile? _profile;
+
+  void switchTo(ServerProfile next) {
+    _profile = next;
+    state = next;
+  }
+
+  @override
+  ServerProfile? build() => _profile;
 }
 
 /// The cache override plus the hanging relay behind it — the cold-start shape
@@ -112,7 +137,7 @@ void main() {
     expect(_dimOpacity(tester), isNull);
   });
 
-  testWidgets('a failed poll leaves the stale frame up and still refreshable', (
+  testWidgets('a failed poll takes the cached frame down with it', (
     tester,
   ) async {
     final transport = _HangingTransport();
@@ -125,14 +150,17 @@ void main() {
         cached: wearFleetFromJson(_wire(), stale: true),
       ),
     );
+    expect(transport.calls, 1, reason: 'the poll is actually out');
+    expect(find.text(_printerName), findsOneWidget);
 
     transport.failWith(StateError('phone unreachable'));
     await tester.pumpAndSettle();
 
-    // Dimmed, not blanked and not frozen: `wearDimIfStale` takes no pointers
-    // away, so pull-to-refresh is still the way out of a server that is down.
-    expect(find.text(_printerName), findsOneWidget);
-    expect(_dimOpacity(tester), 0.6);
+    // The cache buys a first frame, not a licence to keep last run's printers
+    // on screen while nothing can be reached. Nothing was ever confirmed this
+    // run, so the failure is the answer — dimming it and disabling every button
+    // would leave the user looking at a screen with no way to tell why.
+    expect(find.text(_printerName), findsNothing);
   });
 
   testWidgets('no command may be sent from a cached frame', (tester) async {
@@ -164,6 +192,112 @@ void main() {
     // Live again: the buttons come back and the line goes away.
     expect(_enabledButtons(tester), isNotEmpty);
     expect(find.text(plWearWaitingForState), findsNothing);
+  });
+
+  testWidgets('a cached frame gives way when the connection fails', (
+    tester,
+  ) async {
+    final transport = _HangingTransport();
+
+    await pumpWear(
+      tester,
+      const WearHome(),
+      overrides: _coldStart(
+        transport,
+        cached: wearFleetFromJson(_wire(), stale: true),
+      ),
+    );
+    expect(find.text(_printerName), findsOneWidget);
+
+    // A frame the cache supplied has never been confirmed by this run, so a
+    // failed poll is a failed connection and has to read as one — not as a
+    // dimmed screen with every button disabled and nothing said about why.
+    transport.failWith(StateError('phone unreachable'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_printerName), findsNothing);
+    expect(find.text(plWearConnectionFailed), findsOneWidget);
+  });
+
+  testWidgets('confirmed data still survives a dropped poll', (tester) async {
+    final transport = _HangingTransport();
+
+    await pumpWear(
+      tester,
+      const WearHome(),
+      overrides: _coldStart(
+        transport,
+        cached: wearFleetFromJson(_wire(), stale: true),
+      ),
+    );
+    transport.answerWith(wearFleetFromJson(_wire(progress: 80)));
+    await tester.pumpAndSettle();
+    expect(find.text(_printerName), findsOneWidget);
+
+    // Once a poll has confirmed the fleet, one bad tick must not blank a screen
+    // that was right a moment ago — the rule that predates the cache.
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_printerName), findsOneWidget);
+  });
+
+  testWidgets('a server switch empties the fleet rather than keeping the old '
+      'one', (tester) async {
+    final transport = _HangingTransport();
+    final profile = _SwitchableProfile(
+      ServerProfile(baseUrl: fakeServerBaseUrl, authMode: AuthMode.none),
+    );
+
+    await pumpWear(
+      tester,
+      const WearHome(),
+      overrides: [
+        serverProfileProvider.overrideWith(() => profile),
+        wearFleetCacheProvider.overrideWithValue(
+          _SeededCache(wearFleetFromJson(_wire(), stale: true)),
+        ),
+        wearTransportProvider.overrideWithValue(
+          HybridWearTransport.restOnly(transport),
+        ),
+      ],
+    );
+    expect(find.text(_printerName), findsOneWidget);
+
+    // The watch adopts whatever server the phone pushes at it. What the old one
+    // said is not an answer about the new one, so it goes — the cache is keyed
+    // by base URL and has nothing for it either.
+    profile.switchTo(
+      ServerProfile(baseUrl: 'http://other.local', authMode: AuthMode.none),
+    );
+    await tester.pump();
+
+    expect(find.text(_printerName), findsNothing);
+  });
+
+  testWidgets('a pushed control screen names the failure and offers a retry', (
+    tester,
+  ) async {
+    final transport = _HangingTransport();
+
+    // The picker pushed this, so the home screen that would report the failure
+    // is underneath it and the user cannot see it.
+    await pumpWear(
+      tester,
+      const WearPrinterControlBody(printerId: 7),
+      overrides: _coldStart(
+        transport,
+        cached: wearFleetFromJson(_wire(), stale: true),
+      ),
+    );
+    transport.failWith(StateError('phone unreachable'));
+    await tester.pumpAndSettle();
+
+    // "Printer unavailable" names a printer that is gone, which is not what
+    // happened, and leaves nothing to press.
+    expect(find.text(plWearPrinterUnavailable), findsNothing);
+    expect(find.text(plWearConnectionFailed), findsOneWidget);
+    expect(find.text(plRetry), findsOneWidget);
   });
 
   testWidgets('with no cache the first frame is the spinner it always was', (

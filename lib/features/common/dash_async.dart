@@ -1,5 +1,3 @@
-import 'dart:math' show min;
-
 import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,6 +163,37 @@ Widget dashAsyncStrip<T>(
   );
 }
 
+/// Where a row that was optimistically removed belongs in the list **as it is
+/// now** — read off the rows that were around it, never off the index it used
+/// to sit at.
+///
+/// An index is the obvious thing to remember and it is wrong as soon as a
+/// second removal is in flight. Delete A then B from `[A, B, C]` and both
+/// remember index 0, because B was at 0 once A had gone; when both fail, both
+/// are put back at 0 and the list comes back as `[B, A, C]` — two rows swapped
+/// although neither was deleted. Neighbours survive that: whatever else moved,
+/// the row goes after the last row that was above it.
+///
+/// [before] is the list as it stood when the row was still in it. With nothing
+/// above it left, the row goes in front of the first row that was below it, so
+/// a row the server added meanwhile keeps its place.
+int restoredPositionOf<T>(
+  List<T> now,
+  T row,
+  List<T> before, {
+  required Object Function(T) idOf,
+}) {
+  final id = idOf(row);
+  final above = {
+    for (final r in before.takeWhile((r) => idOf(r) != id)) idOf(r),
+  };
+  final lastAbove = now.lastIndexWhere((r) => above.contains(idOf(r)));
+  if (lastAbove >= 0) return lastAbove + 1;
+  final known = {for (final r in before) idOf(r)};
+  final firstBelow = now.indexWhere((r) => known.contains(idOf(r)));
+  return firstBelow >= 0 ? firstBelow : 0;
+}
+
 /// Put a row that was optimistically removed back into the list **as it is
 /// now** — never into the snapshot it was removed from.
 ///
@@ -173,18 +202,20 @@ Widget dashAsyncStrip<T>(
 /// rollback puts B back on screen, along with undoing whatever a refresh landed
 /// in between. Only the row that failed goes back.
 ///
-/// [index] is where it was, clamped — the list may be shorter now. Returns
-/// [now] itself when something has already restored the row, so the caller can
-/// assign the result unconditionally and a no-op stays a no-op.
+/// Its place comes from [restoredPositionOf]. Returns [now] itself when
+/// something has already restored the row, so the caller can assign the result
+/// unconditionally and a no-op stays a no-op.
 ///
-/// Not for the queue, whose rollback has to rebuild a *position* relative to
-/// the rows around it rather than an index (`_placedBack` there).
+/// The queue does its own insertion ([QueueNotifier] pins printing rows on top)
+/// but reads its position from the same function.
 List<T> withRowRestored<T>(
   List<T> now,
   T row,
-  int index, {
-  required bool Function(T) isRow,
+  List<T> before, {
+  required Object Function(T) idOf,
 }) {
-  if (now.any(isRow)) return now;
-  return [...now]..insert(min(index, now.length), row);
+  final id = idOf(row);
+  if (now.any((r) => idOf(r) == id)) return now;
+  return [...now]
+    ..insert(restoredPositionOf(now, row, before, idOf: idOf), row);
 }

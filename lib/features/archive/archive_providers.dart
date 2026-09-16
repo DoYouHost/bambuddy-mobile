@@ -268,7 +268,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
       return true;
     } catch (e) {
       // Any failure puts the row back; only a refusal is an answer.
-      if (index >= 0) _putBack(current[index], index);
+      if (index >= 0) _putBack(current[index], current);
       if (e is! AppApiException) rethrow;
       return false;
     }
@@ -277,11 +277,11 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   /// Rollback of one optimistic removal into the list as it is *now*. Restoring
   /// the snapshot taken before the request brought back rows deleted in the
   /// meantime — swipe A, swipe B, A fails, and B is on screen again.
-  void _putBack(Archive row, int index) {
+  void _putBack(Archive row, List<Archive> before) {
     final list = state.valueOrNull;
     if (list == null) return;
     state = AsyncValue.data(
-      withRowRestored(list, row, index, isRow: (a) => a.id == row.id),
+      withRowRestored(list, row, before, idOf: (a) => a.id),
     );
   }
 

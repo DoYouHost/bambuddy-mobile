@@ -131,9 +131,12 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
       _disposed = true;
       _timer?.cancel();
     });
-    final cached = ref
-        .read(wearFleetCacheProvider)
-        .load(ref.read(serverProfileProvider));
+    // Watched, not read: switching the server on the watch has to empty this,
+    // not leave the old server's printers on screen until a poll happens to
+    // replace them. The rebuild resets the state and re-reads the cache, which
+    // is keyed by base URL and so answers nothing for the new server.
+    final profile = ref.watch(serverProfileProvider);
+    final cached = ref.read(wearFleetCacheProvider).load(profile);
     if (cached != null) {
       // Painted at once, refreshed underneath. A zero-length timer rather than
       // a direct call: [refresh] assigns `state`, which Riverpod refuses until
@@ -164,7 +167,7 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// Adaptive cadence: every relay poll wakes the phone over the bridge, so
   /// back off to 30 s when nothing is actively printing. Direct REST (or an
   /// active print) keeps the familiar 5 s.
-  void _scheduleNext(WearFleet? fleet) {
+  void _scheduleNext(WearFleet? fleet, {bool afterFailure = false}) {
     if (_disposed || _paused) return;
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
@@ -177,7 +180,13 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
         ) ??
         // Unknown fleet (fetch failed) → poll fast to recover quickly.
         true;
-    final interval = relaying && !active
+    // Two reasons to slow down, and the second one arrived with the cold-start
+    // cache: a poll that failed while something is still on screen. Before the
+    // cache a failed first fetch left the provider in its error state and
+    // `_scheduleNext` was never reached at all, so an unreachable phone cost
+    // nothing; keeping the frame means keeping the timer, and 5 s of that only
+    // wakes the bridge for an answer that is not coming.
+    final interval = (relaying && !active) || (afterFailure && fleet != null)
         ? const Duration(seconds: 30)
         : const Duration(seconds: 5);
     _timer?.cancel();
@@ -198,15 +207,53 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   /// refresh, the tick after a command — means the screen is being watched
   /// again.
   Future<void> refresh() async {
+    // Before anything else: a tick armed earlier would otherwise mature while
+    // this request is still out — and a relay call can be out for 15 s waiting
+    // on a phone whose engine is booting — putting a second identical RPC on
+    // the bridge. Every path back in here re-arms it on the way out.
+    _timer?.cancel();
     _paused = false;
+    // Whether what is on screen has ever been confirmed by this run. A frame
+    // restored from the cache has not, and it is the difference between the two
+    // things a failure can mean here.
+    final unconfirmed = state.valueOrNull?.stale ?? false;
     final next = await AsyncValue.guard(_fetch);
     if (_disposed) return;
-    // Only surface an error if we have nothing to show; otherwise keep old data.
-    if (!(next.hasError && state.hasValue)) {
-      state = next;
+
+    if (next.hasError && state.hasValue && !unconfirmed) {
+      // Confirmed data survives a dropped poll: one bad tick should not blank a
+      // screen that was right a moment ago.
+      _scheduleNext(state.valueOrNull, afterFailure: true);
+      return;
     }
-    _scheduleNext(next.valueOrNull ?? state.valueOrNull);
+
+    // Everything else, the never-confirmed frame included: a failed connection
+    // has to read as a failed connection. The cache buys a first frame, not a
+    // licence to keep showing last run's printers while nothing can be reached
+    // — so the error goes through and `WearHome` offers its retry.
+    state = next;
+    // Nothing on screen to keep fresh, and the retry re-creates the provider,
+    // which is what starts the poll again. Left running it would wake the
+    // bridge every few seconds behind an error the user is already looking at.
+    if (next.hasError) return;
+    _scheduleNext(next.valueOrNull);
   }
+}
+
+/// What a screen should draw out of [wearFleetProvider].
+///
+/// Riverpod's notifier keeps the previous value when the state is set to an
+/// error, so `valueOrNull` still answers with the fleet that was on screen. For
+/// a screen switching on the variant — `WearHome` and its `when` — that is
+/// invisible; for a body reading `valueOrNull` it is the difference between
+/// reporting a dead bridge and drawing last run's printers under it.
+///
+/// An error is always the answer here, never the old frame: [WearFleetNotifier]
+/// only ever sets one where the data on screen has not been confirmed, and a
+/// `build` that fails after a server switch must not leave the previous
+/// server's printers up either.
+extension WearFleetView on AsyncValue<WearFleet> {
+  WearFleet? get drawable => hasError ? null : valueOrNull;
 }
 
 /// Controller for the watch actions. Stateless facade over the transport;

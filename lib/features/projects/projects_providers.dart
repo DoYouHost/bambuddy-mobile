@@ -67,18 +67,18 @@ class ProjectsListNotifier
     try {
       await ref.read(projectsRepositoryProvider).delete(id);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
+    } catch (e) {
+      // Any failure puts the row back; only a refusal is an answer. Caught
+      // wider than `AppApiException` for the same reason the archive is: a
+      // socket dying mid-request never deleted anything, and leaving the row
+      // off the list says it did.
       final now = state.valueOrNull;
       if (now != null && index >= 0) {
         state = AsyncValue.data(
-          withRowRestored(
-            now,
-            previous![index],
-            index,
-            isRow: (p) => p.id == id,
-          ),
+          withRowRestored(now, previous![index], previous, idOf: (p) => p.id),
         );
       }
+      if (e is! AppApiException) rethrow;
       return _mapError(e, 'projects.delete');
     }
   }

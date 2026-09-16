@@ -86,6 +86,63 @@ void main() {
       });
     });
 
+    test('a failed poll against a frame on screen backs off to 30 s', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++);
+        final container = containerWith(transport);
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        async.flushMicrotasks();
+        expect(polls, 1);
+
+        // From here every poll fails, with last run's fleet still drawn.
+        transport.fail = true;
+        async.elapse(const Duration(seconds: 6));
+        expect(polls, 2, reason: 'the tick that was already armed');
+
+        // Before the cold-start cache a failed first fetch left the provider in
+        // its error state and nothing rescheduled, so an unreachable phone cost
+        // nothing. Keeping the frame keeps the timer, so it has to slow down:
+        // 5 s of retries only wakes the bridge for an answer not coming.
+        async.elapse(const Duration(seconds: 20));
+        expect(polls, 2, reason: 'no 5 s retry while the frame stands');
+        async.elapse(const Duration(seconds: 11));
+        expect(polls, 3, reason: 'one retry a half-minute later');
+
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+
+    test('a manual refresh takes the armed tick with it', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++);
+        final container = containerWith(transport);
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        async.flushMicrotasks();
+        expect(polls, 1);
+
+        // Four seconds into the five-second tick, the user pulls to refresh and
+        // the relay sits on the request — a phone booting its engine is given
+        // 15 s. The tick left armed would mature a second later and put an
+        // identical RPC on the same bridge.
+        async.elapse(const Duration(seconds: 4));
+        transport.hold = true;
+        unawaited(container.read(wearFleetProvider.notifier).refresh());
+        async.flushMicrotasks();
+        expect(polls, 2, reason: 'the manual one');
+
+        async.elapse(const Duration(seconds: 3));
+        expect(polls, 2, reason: 'the armed tick was taken down with it');
+
+        transport.release();
+        async.flushMicrotasks();
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+
     test('a fetch still in flight when the app leaves does not re-arm', () {
       fakeAsync((async) {
         final transport = _CountingTransport(() => polls++);
@@ -119,6 +176,7 @@ class _CountingTransport implements WearTransport {
 
   final void Function() onCall;
   bool hold = false;
+  bool fail = false;
   Completer<void>? _held;
 
   void release() {
@@ -130,6 +188,7 @@ class _CountingTransport implements WearTransport {
   @override
   Future<WearFleet> getFleet() async {
     onCall();
+    if (fail) throw WearRelayUnreachable();
     if (hold) {
       _held = Completer<void>();
       await _held!.future;

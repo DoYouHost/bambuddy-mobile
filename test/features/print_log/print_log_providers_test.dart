@@ -157,6 +157,32 @@ void main() {
     },
   );
 
+  test('a page that fails outside the guard still frees the list', () async {
+    repo.pending.first.complete(_page([1, 2], total: 4));
+    await container.read(printLogProvider.future);
+    final notifier = container.read(printLogProvider.notifier);
+
+    // `PrintLogPage` is built outside the repository's `guard`, so a malformed
+    // body arrives here as a plain TypeError. Caught only as AppApiException,
+    // it left `loadingMore` true and the list refused every further scroll.
+    // An unexpected error still travels — the flag just has to come off on the
+    // way past, which is what `finally` is for.
+    unawaited(notifier.loadMore().catchError((Object _) {}));
+    await pumpEventQueue();
+    repo.pending.last.completeError(TypeError());
+    await pumpEventQueue();
+
+    expect(container.read(printLogProvider).valueOrNull!.loadingMore, isFalse);
+
+    // And the proof it is not merely a flag: the list takes a page again.
+    final before = repo.pending.length;
+    unawaited(notifier.loadMore());
+    await pumpEventQueue();
+    expect(repo.pending.length, before + 1, reason: 'pagination is unstuck');
+    repo.pending.last.complete(_page([3, 4], total: 4));
+    await pumpEventQueue();
+  });
+
   test('clearing the filters leaves the search alone', () {
     // The search has its own box on screen and its own text — `activeCount`
     // leaves it out of the badge for that reason. Clearing it from under the

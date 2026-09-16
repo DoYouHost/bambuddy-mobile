@@ -18,7 +18,7 @@ class WearPrinterListBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fleet = ref.watch(wearFleetProvider).valueOrNull;
+    final fleet = ref.watch(wearFleetProvider).drawable;
     final printers = fleet?.printers ?? const [];
     return wearDimIfStale(
       stale: fleet?.stale ?? false,
@@ -35,6 +35,18 @@ class WearPrinterListBody extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: WearHeader(AppLocalizations.of(context).printersTitle),
           ),
+          // Same sentence the control screen carries, for the same reason: a
+          // dimmed list with nothing to explain it reads as a rendering fault.
+          // Rows stay tappable — this screen only navigates, and the control
+          // screen it opens does its own gating.
+          if (fleet?.stale ?? false) ...[
+            Text(
+              AppLocalizations.of(context).wearWaitingForState,
+              textAlign: TextAlign.center,
+              style: WearText.small.copyWith(color: wearInert),
+            ),
+            const SizedBox(height: 6),
+          ],
           for (final p in printers)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),

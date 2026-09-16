@@ -16,6 +16,7 @@ import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
+import '../widgets/wear_center_message.dart';
 import '../widgets/wear_confirm_dialog.dart';
 import '../widgets/wear_face.dart';
 import '../widgets/wear_header.dart';
@@ -80,9 +81,20 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
 
   @override
   Widget build(BuildContext context) {
-    final fleet = ref.watch(wearFleetProvider).valueOrNull;
-    final printers = fleet?.printers ?? const <PrinterWithStatus>[];
+    final async = ref.watch(wearFleetProvider);
     final l10n = AppLocalizations.of(context);
+    // Pushed from the picker, this screen sits above the home screen that would
+    // otherwise report the failure — so it has to report it itself. Without
+    // this it answered a dead bridge with "printer unavailable", which names
+    // the wrong thing and offers no way to try again.
+    if (async.hasError) {
+      return WearCenterMessage(
+        text: l10n.wearConnectionFailed,
+        onRetry: () => ref.invalidate(wearFleetProvider),
+      );
+    }
+    final fleet = async.drawable;
+    final printers = fleet?.printers ?? const <PrinterWithStatus>[];
     final item = _find(printers);
     if (item == null) {
       // The one thing on this screen that never reaches `WearScrollView`, so

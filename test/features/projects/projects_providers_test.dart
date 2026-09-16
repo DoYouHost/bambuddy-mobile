@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/project.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
@@ -114,6 +115,70 @@ void main() {
     await pumpEventQueue();
 
     expect(idsOnScreen(), [1, 3]);
+  });
+
+  test('a failure that is not an API refusal also puts the row back', () async {
+    await container.read(projectsListProvider.future);
+    final notifier = container.read(projectsListProvider.notifier);
+
+    unawaited(notifier.delete(2).catchError((_) => ActionOutcome.ok));
+    await pumpEventQueue();
+    expect(idsOnScreen(), [1, 3]);
+
+    // A socket dying mid-request deleted nothing, so the row has to come back —
+    // the same rule the archive follows. It used to slip past a catch that only
+    // named AppApiException and leave the list lying about what is on the
+    // server.
+    repo.pending[2]!.completeError(StateError('socket died'));
+    await pumpEventQueue();
+
+    expect(idsOnScreen(), [1, 2, 3]);
+  });
+
+  test('two deletes that both fail come back in their original order', () async {
+    await container.read(projectsListProvider.future);
+    final notifier = container.read(projectsListProvider.notifier);
+
+    // Both remember index 0: project 2 is at 0 once project 1 has gone. Put
+    // back by index they land as [2, 1, 3] — two rows swapped although neither
+    // was deleted. The neighbour walk is what keeps them apart.
+    unawaited(notifier.delete(1));
+    await pumpEventQueue();
+    unawaited(notifier.delete(2));
+    await pumpEventQueue();
+    expect(idsOnScreen(), [3]);
+
+    repo.pending[1]!.completeError(
+      const ApiException(AppErrorCode.serverUnreachable),
+    );
+    await pumpEventQueue();
+    repo.pending[2]!.completeError(
+      const ApiException(AppErrorCode.serverUnreachable),
+    );
+    await pumpEventQueue();
+
+    expect(idsOnScreen(), [1, 2, 3]);
+  });
+
+  test('the same pair failing in the other order lands the same way', () async {
+    await container.read(projectsListProvider.future);
+    final notifier = container.read(projectsListProvider.notifier);
+
+    unawaited(notifier.delete(1));
+    await pumpEventQueue();
+    unawaited(notifier.delete(2));
+    await pumpEventQueue();
+
+    repo.pending[2]!.completeError(
+      const ApiException(AppErrorCode.serverUnreachable),
+    );
+    await pumpEventQueue();
+    repo.pending[1]!.completeError(
+      const ApiException(AppErrorCode.serverUnreachable),
+    );
+    await pumpEventQueue();
+
+    expect(idsOnScreen(), [1, 2, 3]);
   });
 
   test('a refresh that landed first keeps the row it fetched', () async {

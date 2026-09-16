@@ -46,11 +46,14 @@ class WearFleetCache {
     final now = clock.now();
     final last = _lastWrite;
     if (last != null && now.difference(last) < minInterval) return;
-    _lastWrite = now;
     try {
       await _settings.saveWearFleetCache(
         jsonEncode({_urlKey: profile.baseUrl, _fleetKey: raw}),
       );
+      // Stamped only once it is written. Stamping before the write booked the
+      // whole [minInterval] for an attempt that failed, so "the next poll tries
+      // again" — which is what this catch relies on — was false for a minute.
+      _lastWrite = now;
     } on Object {
       // Nothing to tell and nobody to tell it to; the next poll tries again.
     }
