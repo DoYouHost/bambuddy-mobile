@@ -22,6 +22,9 @@ void main() {
   const written = FlutterSecureStorage(aOptions: _asVersion9);
   const read = FlutterSecureStorage();
 
+  // Both ends: a run killed halfway leaves keys behind, and the first test
+  // would then read them instead of what it wrote.
+  setUp(() => read.deleteAll());
   tearDown(() => read.deleteAll());
 
   testWidgets('reads back a token written by the old cipher', (tester) async {

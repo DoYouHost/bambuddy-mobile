@@ -67,6 +67,9 @@ test-device avd=avd:
     flutter build apk --debug --flavor mobile
     apk=build/app/outputs/flutter-apk/app-mobile-debug.apk
     failed=0
+    # Without this an empty integration_test/ hands `flutter test` the pattern
+    # itself, which fails as a missing file rather than as "nothing to run".
+    shopt -s nullglob
     for file in integration_test/*_test.dart; do
         adb -s "$serial" install -r -g "$apk" >/dev/null
         flutter test "$file" -d "$serial" --flavor mobile || failed=1

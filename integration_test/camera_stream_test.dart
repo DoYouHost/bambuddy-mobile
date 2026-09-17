@@ -10,11 +10,11 @@ import 'package:integration_test/integration_test.dart';
 import '../test/fixtures/tiny_jpeg.dart';
 
 /// An MJPEG server on the device's own loopback. The point of running these on
-/// a device at all: the frames are read off a real socket by the real Dio
-/// adapter and decoded by the real codec, none of which a mocked adapter or the
-/// widget-test binding exercises.
+/// a device at all: the frames cross a real socket and are decoded by the real
+/// codec, neither of which a host `flutter test` can do — its binding answers
+/// every HTTP request itself.
 class _CameraServer {
-  late final HttpServer _server;
+  HttpServer? _server;
 
   /// The app's request arrives a few event-loop turns after the widget mounts,
   /// so a frame pushed straight away would be written to nothing.
@@ -24,11 +24,12 @@ class _CameraServer {
   /// the app hung up.
   final _hungUp = Completer<void>();
 
-  String get url => 'http://127.0.0.1:${_server.port}/stream';
+  String get url => 'http://127.0.0.1:${_server!.port}/stream';
 
   Future<void> start({int status = 200}) async {
-    _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    _server.listen((request) async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    _server = server;
+    server.listen((request) async {
       final response = request.response;
       if (status != 200) {
         response.statusCode = status;
@@ -53,8 +54,10 @@ class _CameraServer {
       response.add('\r\n'.codeUnits);
       // Bounded: once the app is gone the flush does not always throw — it can
       // simply never complete, and an unbounded await there is a test that
-      // hangs until the runner kills it four minutes later.
-      await response.flush().timeout(const Duration(milliseconds: 500));
+      // hangs until the runner kills it four minutes later. Two seconds, not
+      // half of one: on loopback a 700-byte write is instant, and the margin is
+      // what keeps a loaded emulator from reading as a disconnect.
+      await response.flush().timeout(const Duration(seconds: 2));
     } on Object {
       if (!_hungUp.isCompleted) _hungUp.complete();
     }
@@ -76,19 +79,27 @@ class _CameraServer {
     await (await _connected.future).close();
   }
 
+  /// Whether the app closed the connection, as seen from the server.
+  ///
+  /// The answer comes from the pusher started by [pushEvery] and from nothing
+  /// else: a second writer here used to race the timer over one `HttpResponse`,
+  /// and the collision raised an error of its own — which this method then read
+  /// as the disconnect it was supposed to be proving. A view that never closed
+  /// its socket passed that test.
   Future<bool> clientHungUp() async {
-    // Nothing tells the server about a closed socket until it writes to it, and
-    // each write is bounded, so this answers in a few seconds either way.
-    for (var i = 0; i < 20 && !_hungUp.isCompleted; i++) {
-      await push(tinyJpeg());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+    try {
+      await _hungUp.future.timeout(const Duration(seconds: 5));
+      return true;
+    } on TimeoutException {
+      return false;
     }
-    return _hungUp.isCompleted;
   }
 
-  Future<void> dispose() {
+  Future<void> dispose() async {
     _pusher?.cancel();
-    return _server.close(force: true);
+    // Nullable rather than `late`: a bind that fails would otherwise die here
+    // with a LateInitializationError and hide what actually went wrong.
+    await _server?.close(force: true);
   }
 }
 
@@ -121,6 +132,9 @@ void main() {
   tearDown(() async {
     await server.dispose();
     reportedError = null;
+    // Global, so without this the next timeout message quotes the error of the
+    // test before it.
+    lastError = null;
   });
 
   Future<void> show(WidgetTester tester) => tester.pumpWidget(
