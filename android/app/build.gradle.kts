@@ -55,7 +55,13 @@ android {
         applicationId = "page.codeberg.morganmlgman.bambuddy_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Pinned rather than `flutter.minSdkVersion`: that value is the SDK's
+        // default of the day, so the floor moved with every Flutter upgrade and
+        // no commit here recorded it. `flutter_local_notifications` 21+ needs
+        // API 24, and building with an SDK that still defaulted to 21 would
+        // ship an app whose notifications fail at runtime on old phones. 24 is
+        // what Flutter 3.44 already resolved to, so this strands nobody.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
