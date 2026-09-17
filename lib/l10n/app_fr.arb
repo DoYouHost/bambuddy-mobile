@@ -7,7 +7,7 @@
   "signInRequiredBody": "Le serveur a rejeté votre mot de passe enregistré, l'application a donc cessé de réessayer — des tentatives répétées risquent de bloquer votre compte. Reconnectez-vous et utilisez un nouveau mot de passe s'il a été modifié.",
   "signInRequiredAction": "Se connecter",
   "signInRequiredTwoFactorBody": "Votre compte requiert désormais un deuxième facteur d'authentification et l'application ne peut pas le fournir en arrière-plan — elle a donc cessé de se connecter automatiquement. Reconnectez-vous et saisissez le code.",
-  "signInRequiredMissingBody": "L'application ne parvient plus à lire vos identifiants enregistrés et a donc cessé de les utiliser. Il suffit de vous reconnecter : rien d'autre n'a été perdu.",
+  "signInRequiredMissingBody": "Une mise à jour de sécurité ou une sauvegarde restaurée a invalidé la clé qui chiffrait votre connexion enregistrée. Rien d'autre n'a été perdu.",
   "later": "Plus tard",
   "serverUnreachableStale": "Serveur inaccessible — les données peuvent être obsolètes",
   "wsReconnecting": "Aucune connexion en direct — actualisation toutes les 5 s",

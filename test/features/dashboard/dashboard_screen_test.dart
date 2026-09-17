@@ -713,9 +713,11 @@ void main() {
 
       expect(find.text('Zaloguj się ponownie'), findsOneWidget);
       expect(
-        find.textContaining('nie potrafi już odczytać'),
+        find.textContaining('aktualizacja zabezpieczeń'),
         findsOneWidget,
-        reason: 'the wording must not blame a password nobody rejected',
+        reason:
+            'the wording names the cause; blaming a password nobody '
+            'rejected sends the user to reset a working one',
       );
       expect(_prefs.getBool('sign_in_required'), isTrue);
     });

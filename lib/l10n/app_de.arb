@@ -7,7 +7,7 @@
   "signInRequiredBody": "Der Server hat dein gespeichertes Passwort abgelehnt, daher hat die App weitere Versuche eingestellt — wiederholte Versuche können das Konto sperren. Melde dich erneut an und verwende ein neues Passwort, falls es geändert wurde.",
   "signInRequiredAction": "Anmelden",
   "signInRequiredTwoFactorBody": "Dein Konto erfordert jetzt einen zweiten Faktor, den die App im Hintergrund nicht bereitstellen kann — daher wurde die automatische Anmeldung beendet. Melde dich erneut an und gib den Code ein.",
-  "signInRequiredMissingBody": "Die App kann die gespeicherten Anmeldedaten nicht mehr lesen und verwendet sie deshalb nicht weiter. Eine erneute Anmeldung genügt — sonst ist nichts verloren gegangen.",
+  "signInRequiredMissingBody": "Ein Sicherheitsupdate oder eine wiederhergestellte Sicherung hat den Schlüssel der gespeicherten Anmeldung ungültig gemacht. Sonst ist nichts verloren gegangen.",
   "later": "Später",
   "serverUnreachableStale": "Server nicht erreichbar — Daten sind möglicherweise veraltet",
   "wsReconnecting": "Keine Live-Verbindung — Aktualisierung alle 5 s",

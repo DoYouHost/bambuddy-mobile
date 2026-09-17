@@ -149,7 +149,7 @@ abstract class AppLocalizations {
   /// Sign-in warning when the profile expects a credential and the secure store has none
   ///
   /// In en, this message translates to:
-  /// **'The app can no longer read your saved sign-in details, so it stopped using them. Signing in again is all it takes — nothing else was lost.'**
+  /// **'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.'**
   String get signInRequiredMissingBody;
 
   /// No description provided for @later.

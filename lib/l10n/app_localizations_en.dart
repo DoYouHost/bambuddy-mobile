@@ -33,7 +33,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInRequiredMissingBody =>
-      'The app can no longer read your saved sign-in details, so it stopped using them. Signing in again is all it takes — nothing else was lost.';
+      'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.';
 
   @override
   String get later => 'Later';

@@ -7,7 +7,7 @@
   "signInRequiredBody": "El servidor rechazó tu contraseña guardada, por lo que la aplicación dejó de intentarlo — los intentos repetidos pueden bloquear la cuenta. Inicia sesión de nuevo y usa una nueva contraseña si se ha cambiado.",
   "signInRequiredAction": "Iniciar sesión",
   "signInRequiredTwoFactorBody": "Tu cuenta ahora solicita un segundo factor y la aplicación no puede proporcionarlo en segundo plano — por lo que dejó de iniciar sesión automáticamente. Inicia sesión de nuevo e introduce el código.",
-  "signInRequiredMissingBody": "La aplicación ya no puede leer tus datos de acceso guardados, así que ha dejado de usarlos. Basta con volver a iniciar sesión: no se ha perdido nada más.",
+  "signInRequiredMissingBody": "Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.",
   "later": "Más tarde",
   "serverUnreachableStale": "Servidor inaccesible — los datos pueden estar desactualizados",
   "wsReconnecting": "Sin conexión en tiempo real — actualizando cada 5 s",

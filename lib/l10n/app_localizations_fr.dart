@@ -33,7 +33,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get signInRequiredMissingBody =>
-      'L\'application ne parvient plus à lire vos identifiants enregistrés et a donc cessé de les utiliser. Il suffit de vous reconnecter : rien d\'autre n\'a été perdu.';
+      'Une mise à jour de sécurité ou une sauvegarde restaurée a invalidé la clé qui chiffrait votre connexion enregistrée. Rien d\'autre n\'a été perdu.';
 
   @override
   String get later => 'Plus tard';

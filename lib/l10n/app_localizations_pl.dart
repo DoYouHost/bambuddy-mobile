@@ -33,7 +33,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get signInRequiredMissingBody =>
-      'Aplikacja nie potrafi już odczytać zapisanych danych logowania, więc przestała ich używać. Wystarczy zalogować się ponownie — nic poza tym nie przepadło.';
+      'Klucz, którym zaszyfrowano zapisane logowanie, unieważniła aktualizacja zabezpieczeń albo przywrócenie kopii zapasowej. Nic poza tym nie zniknęło.';
 
   @override
   String get later => 'Później';

@@ -33,7 +33,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get signInRequiredMissingBody =>
-      'Die App kann die gespeicherten Anmeldedaten nicht mehr lesen und verwendet sie deshalb nicht weiter. Eine erneute Anmeldung genügt — sonst ist nichts verloren gegangen.';
+      'Ein Sicherheitsupdate oder eine wiederhergestellte Sicherung hat den Schlüssel der gespeicherten Anmeldung ungültig gemacht. Sonst ist nichts verloren gegangen.';
 
   @override
   String get later => 'Später';

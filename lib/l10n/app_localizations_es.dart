@@ -33,7 +33,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get signInRequiredMissingBody =>
-      'La aplicación ya no puede leer tus datos de acceso guardados, así que ha dejado de usarlos. Basta con volver a iniciar sesión: no se ha perdido nada más.';
+      'Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.';
 
   @override
   String get later => 'Más tarde';
