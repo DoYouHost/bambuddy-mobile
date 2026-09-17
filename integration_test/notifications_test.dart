@@ -23,6 +23,8 @@ void main() {
     ),
   );
 
+  tearDown(() => plugin.cancelAll());
+
   setUpAll(() async {
     await plugin.initialize(
       settings: const InitializationSettings(
@@ -59,9 +61,13 @@ void main() {
     );
   });
 
-  testWidgets('an action button survives the round trip', (tester) async {
-    // Maintenance alerts and HMS remediations are buttons on the notification;
-    // losing them is silent, since the notification itself still appears.
+  testWidgets('a notification carrying an action button still posts', (
+    tester,
+  ) async {
+    // As far as an assertion reaches: `ActiveNotification` reports id, channel,
+    // title, body, payload and tag — never the buttons. What this catches is a
+    // plugin that refuses the action on the way in, which is how maintenance
+    // alerts and HMS remediations would lose their buttons.
     await plugin.show(
       id: 4243,
       title: 'Maintenance due',
