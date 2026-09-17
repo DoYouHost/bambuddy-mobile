@@ -1,6 +1,5 @@
 {
   "@@locale": "fr",
-
   "printersTitle": "Imprimantes",
   "changeServer": "Changer de serveur",
   "sessionExpired": "Session expirée — reconnectez-vous",
@@ -8,6 +7,7 @@
   "signInRequiredBody": "Le serveur a rejeté votre mot de passe enregistré, l'application a donc cessé de réessayer — des tentatives répétées risquent de bloquer votre compte. Reconnectez-vous et utilisez un nouveau mot de passe s'il a été modifié.",
   "signInRequiredAction": "Se connecter",
   "signInRequiredTwoFactorBody": "Votre compte requiert désormais un deuxième facteur d'authentification et l'application ne peut pas le fournir en arrière-plan — elle a donc cessé de se connecter automatiquement. Reconnectez-vous et saisissez le code.",
+  "signInRequiredMissingBody": "L'application ne parvient plus à lire vos identifiants enregistrés et a donc cessé de les utiliser. Il suffit de vous reconnecter : rien d'autre n'a été perdu.",
   "later": "Plus tard",
   "serverUnreachableStale": "Serveur inaccessible — les données peuvent être obsolètes",
   "wsReconnecting": "Aucune connexion en direct — actualisation toutes les 5 s",
@@ -22,7 +22,13 @@
   "searchPrinters": "Rechercher des imprimantes…",
   "noPrinters": "Aucune imprimante — ajoutez-en sur le serveur",
   "noSearchResults": "Aucun résultat pour « {query} »",
-  "@noSearchResults": {"placeholders": {"query": {"type": "String"}}},
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "noPrintersMatchFilters": "Aucune imprimante ne correspond aux filtres actuels",
   "dashboardFilters": "Filtres",
   "filterStatus": "Statut",
@@ -59,7 +65,16 @@
   "addPrinterScanButton": "Analyser le sous-réseau pour trouver des imprimantes",
   "addPrinterDiscoverNetwork": "Détecter les imprimantes sur le réseau",
   "addPrinterScanning": "Analyse en cours… {scanned}/{total}",
-  "@addPrinterScanning": {"placeholders": {"scanned": {"type": "int"}, "total": {"type": "int"}}},
+  "@addPrinterScanning": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "addPrinterScanningPlain": "Analyse en cours…",
   "addPrinterScanNoResults": "Aucune imprimante trouvée",
   "addPrinterScanError": "Échec de l'analyse. Réessayez.",
@@ -87,13 +102,25 @@
   "change": "Modifier",
   "noActivePrints": "Aucune impression en cours",
   "printingCount": "{count, plural, one{{count} impression en cours} other{{count} impressions en cours}}",
-  "@printingCount": {"placeholders": {"count": {"type": "int"}}},
+  "@printingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "nextAvailableLabel": "Prochaine disponible : ",
   "tempNozzle": "Buse",
   "tempBed": "Plateau",
   "tempChamber": "Chambre",
   "tempNozzleNumbered": "Buse {n}",
-  "@tempNozzleNumbered": {"placeholders": {"n": {"type": "String"}}},
+  "@tempNozzleNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlFanPart": "Ventilateur de pièce",
   "ctrlFanAux": "Ventilateur auxiliaire",
   "ctrlFanAux2": "Ventilateur auxiliaire gauche",
@@ -120,7 +147,13 @@
   "ctrlDryTemp": "Température",
   "ctrlDryDuration": "Durée",
   "ctrlDryHours": "{h} h",
-  "@ctrlDryHours": {"placeholders": {"h": {"type": "int"}}},
+  "@ctrlDryHours": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      }
+    }
+  },
   "ctrlDryAutoIdle": "Séchage automatique en cas d'humidité élevée.",
   "ctrlDryAutoQueue": "Séchage automatique entre les impressions en file d'attente.",
   "ctrlDryAutoWhilePrinting": "Pendant les impressions également.",
@@ -133,12 +166,24 @@
   "ctrlDryScheduled": "Séchage programmé",
   "ctrlDryScheduleTimePast": "Choisissez une heure dans le futur",
   "ctrlDryScheduledFor": "Séchage à {time}",
-  "@ctrlDryScheduledFor": {"placeholders": {"time": {"type": "String"}}},
+  "@ctrlDryScheduledFor": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlDryScheduledAsap": "Séchage programmé, en attente de l'imprimante",
   "ctrlDryScheduleCancel": "Annuler le séchage programmé",
   "ctrlDryScheduleDismiss": "Ignorer",
   "ctrlDryScheduleFailed": "Échec du séchage programmé : {reason}",
-  "@ctrlDryScheduleFailed": {"placeholders": {"reason": {"type": "String"}}},
+  "@ctrlDryScheduleFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlDryScheduleFailedUnknown": "erreur inconnue",
   "ctrlDryWaitPower": "Branchez l'adaptateur secteur de l'AMS",
   "ctrlDryWaitRetract": "Rétractez le filament à la sortie de l'AMS",
@@ -159,7 +204,13 @@
   "ctrlMoveRetract": "Rétracter",
   "ctrlMoveLength": "Longueur",
   "ctrlMoveMm": "{d} mm",
-  "@ctrlMoveMm": {"placeholders": {"d": {"type": "int"}}},
+  "@ctrlMoveMm": {
+    "placeholders": {
+      "d": {
+        "type": "int"
+      }
+    }
+  },
   "ctrlPause": "Pause",
   "ctrlResume": "Reprendre",
   "ctrlStop": "Arrêter",
@@ -171,22 +222,73 @@
   "skipObjectsSkip": "Ignorer",
   "skipObjectsSkippedTag": "Ignoré",
   "skipObjectsSkippedToast": "{count, plural, =1{« {names} » ignoré} other{{count} objets ignorés}}",
-  "@skipObjectsSkippedToast": {"placeholders": {"count": {"type": "int"}, "names": {"type": "String"}}},
+  "@skipObjectsSkippedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "skipObjectsConfirmTitle": "{count, plural, =1{Ignorer cet objet ?} other{Ignorer {count} objets ?}}",
-  "@skipObjectsConfirmTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@skipObjectsConfirmTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "skipObjectsConfirmBody": "{count, plural, =1{« {names} » sera ignoré pour le reste de cette impression. Cette action est irréversible.} other{« {names} » seront ignorés pour le reste de cette impression. Cette action est irréversible.}}",
-  "@skipObjectsConfirmBody": {"placeholders": {"count": {"type": "int"}, "names": {"type": "String"}}},
+  "@skipObjectsConfirmBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "skipObjectsSelectedCount": "{count, plural, one{{count} sélectionné} other{{count} sélectionnés}}",
-  "@skipObjectsSelectedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@skipObjectsSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "skipObjectsSelectHint": "Appuyez sur un objet ci-dessus ou ci-dessous pour le sélectionner",
   "skipObjectsMatchInfo": "Faites correspondre les identifiants avec l'écran de l'imprimante",
   "skipObjectsMatchHint": "L'écran de l'imprimante affiche les identifiants des objets sur le plateau d'impression",
   "skipObjectsCounter": "{skipped}/{total} ignorés",
-  "@skipObjectsCounter": {"placeholders": {"skipped": {"type": "int"}, "total": {"type": "int"}}},
+  "@skipObjectsCounter": {
+    "placeholders": {
+      "skipped": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "skipObjectsActiveCount": "{count} actifs",
-  "@skipObjectsActiveCount": {"placeholders": {"count": {"type": "int"}}},
+  "@skipObjectsActiveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "skipObjectsWaitForLayer": "Ignorer des objets est possible à partir de la couche 2 (couche actuelle : {layer})",
-  "@skipObjectsWaitForLayer": {"placeholders": {"layer": {"type": "int"}}},
+  "@skipObjectsWaitForLayer": {
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
+  },
   "skipObjectsEmpty": "Aucun objet imprimable",
   "skipObjectsEmptyHint": "Les objets se chargent au lancement d'une impression. Rechargez si une impression est en cours.",
   "skipObjectsReload": "Recharger",
@@ -207,12 +309,24 @@
   "smartPlugOnConfirmBody": "L'imprimante sera mise sous tension.",
   "smartPlugTurnOn": "Allumer",
   "powerWatts": "{watts} W",
-  "@powerWatts": {"placeholders": {"watts": {"type": "int"}}},
+  "@powerWatts": {
+    "placeholders": {
+      "watts": {
+        "type": "int"
+      }
+    }
+  },
   "totalPowerTooltip": "Consommation totale de toutes les prises",
   "queueEmpty": "La file d'attente est vide",
   "queueAmsFromSlicer": "AMS depuis le slicer",
   "queueAnyOfModels": "Au choix parmi : {models}",
-  "@queueAnyOfModels": {"placeholders": {"models": {"type": "String"}}},
+  "@queueAnyOfModels": {
+    "placeholders": {
+      "models": {
+        "type": "String"
+      }
+    }
+  },
   "queueDeleteTitle": "Retirer de la file d'attente ?",
   "queueDeleteBody": "Cela retire l'élément de la file d'attente d'impression.",
   "queueDeleteConfirm": "Retirer",
@@ -267,52 +381,121 @@
   "archiveAddToQueue": "Ajouter à la file d'attente",
   "archiveTimelapse": "Regarder le timelapse",
   "archivePhotos": "{count, plural, =1{Voir la photo} other{Voir les photos ({count})}}",
-  "@archivePhotos": {"placeholders": {"count": {"type": "int"}}},
+  "@archivePhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaAction": "Enregistrements et photos",
   "archiveMediaOnServer": "Sur le serveur",
   "archiveMediaOnPrinter": "{count, plural, =0{Sur l'imprimante} other{Sur l'imprimante ({count})}}",
-  "@archiveMediaOnPrinter": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveMediaOnPrinter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaSearching": "Recherche sur l'imprimante…",
   "archiveMediaNothingOnPrinter": "Rien sur l'imprimante",
   "archiveMediaPhotoCount": "{count, plural, one{une photo} other{{count} photos}}",
-  "@archiveMediaPhotoCount": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveMediaPhotoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaKindTimelapse": "Timelapse",
   "archiveMediaKindIpcam": "Caméra",
   "archiveMediaDownloadSelected": "Télécharger {count, plural, =0{la sélection} one{un fichier} other{{count} fichiers}}",
-  "@archiveMediaDownloadSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveMediaDownloadSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaSaved": "Vidéo enregistrée",
   "archiveMediaNoFilePermission": "Aucune autorisation pour les fichiers de l'imprimante",
   "archiveMediaPrinterMissing": "L'imprimante n'est plus disponible",
   "archiveMediaTimelapseUnavailable": "Timelapses : aucune réponse de l'imprimante",
   "archiveMediaIpcamUnavailable": "Caméra : aucune réponse de l'imprimante",
   "archivePlate": "Plateau {plate}",
-  "@archivePlate": {"placeholders": {"plate": {"type": "int"}}},
+  "@archivePlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "archivePlateDetail": "Plateau {plate} d'un fichier multi-plateaux",
-  "@archivePlateDetail": {"placeholders": {"plate": {"type": "int"}}},
+  "@archivePlateDetail": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "archivePhotosTitle": "Photos",
   "archivePhotosEmpty": "Aucune photo pour cette impression",
   "archivePhotoFailed": "Impossible de charger cette photo.",
   "archiveFilamentUsed": "Filament utilisé",
   "archiveFilamentGrams": "{grams} g",
-  "@archiveFilamentGrams": {"placeholders": {"grams": {"type": "String"}}},
+  "@archiveFilamentGrams": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "archiveFilamentActual": "{count, plural, =1{{grams} consommés} other{{grams} consommés sur {count} exécutions}}",
-  "@archiveFilamentActual": {"placeholders": {"grams": {"type": "String"}, "count": {"type": "int"}}},
+  "@archiveFilamentActual": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveFilamentNoActual": "Aucune utilisation enregistrée",
   "archiveFilamentSaving": "Enregistrement…",
   "archiveFilamentNone": "Non enregistré",
   "archiveFilamentLabel": "Poids (g)",
   "archiveFilamentNotANumber": "Entrez un nombre ou laissez vide pour effacer le poids.",
   "archiveFilamentOutOfRange": "Un poids compris entre 0 et {max} g.",
-  "@archiveFilamentOutOfRange": {"placeholders": {"max": {"type": "String"}}},
+  "@archiveFilamentOutOfRange": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
   "archiveFilamentSaved": "Poids du filament enregistré",
   "archiveFilamentUnsupported": "Ce serveur ne prend pas encore en charge la saisie manuelle du poids du filament. Mettez à jour bambuddy.",
   "archiveHasTimelapse": "Avec timelapse",
   "archiveHasPhotos": "{count, plural, =1{Avec une photo} other{Avec {count} photos}}",
-  "@archiveHasPhotos": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveHasPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseTitle": "Timelapse",
   "timelapseError": "Impossible de lire ce timelapse.",
   "timelapseHttpError": "Le serveur n'a pas pu fournir ce timelapse ({status}).",
-  "@timelapseHttpError": {"placeholders": {"status": {"type": "int"}}},
+  "@timelapseHttpError": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseStalled": "Le serveur transmet la vidéo, mais le lecteur ne l'a jamais démarrée.",
   "timelapsePlay": "Lire",
   "timelapsePause": "Pause",
@@ -327,9 +510,27 @@
   "timelapseEditTrim": "Raccourcir",
   "timelapseEditSpeed": "Vitesse",
   "timelapseEditOutput": "Résultat : {length}",
-  "@timelapseEditOutput": {"placeholders": {"length": {"type": "String"}}},
+  "@timelapseEditOutput": {
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
   "timelapseEditSource": "Original : {length} en {width}×{height}",
-  "@timelapseEditSource": {"placeholders": {"length": {"type": "String"}, "width": {"type": "int"}, "height": {"type": "int"}}},
+  "@timelapseEditSource": {
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseEditSaveTitle": "Écraser l'enregistrement ?",
   "timelapseEditSaveMessage": "Le serveur encode à nouveau le timelapse et remplace l'original. Aucune copie ne permettra de revenir en arrière.",
   "timelapseEditProcessing": "Le serveur encode à nouveau la vidéo. Sur une machine peu puissante, cela prend plusieurs minutes — quitter cet écran n'interrompt pas le processus.",
@@ -346,10 +547,22 @@
   "gcodeViewerColorByWidth": "Largeur",
   "gcodeSingleLayer": "couche unique",
   "gcodeViewerFilamentSlot": "Filament {n}",
-  "@gcodeViewerFilamentSlot": {"placeholders": {"n": {"type": "int"}}},
+  "@gcodeViewerFilamentSlot": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "gcodeViewerEmpty": "Ce fichier ne contient aucune trajectoire — il n'a pas encore été découpé.",
   "gcodeViewerHttpError": "Le serveur n'a pas pu fournir le G-code pour ce fichier ({status}).",
-  "@gcodeViewerHttpError": {"placeholders": {"status": {"type": "int"}}},
+  "@gcodeViewerHttpError": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "gcodeFeatureWall": "Parois",
   "gcodeFeatureSparseInfill": "Remplissage clairsemé",
   "gcodeFeatureSolidInfill": "Remplissage plein",
@@ -372,32 +585,86 @@
   "archiveDelete": "Supprimer",
   "archiveDeleteTitle": "Supprimer l'impression ?",
   "archiveDeleteBody": "Supprimer « {name} » de l'archive.",
-  "@archiveDeleteBody": {"placeholders": {"name": {"type": "String"}}},
+  "@archiveDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "archiveDeletePurgeStats": "Supprimer aussi des statistiques",
   "archiveDeletePurgeStatsHint": "Sinon, l'impression est conservée dans vos totaux statistiques.",
   "archiveDeleted": "Impression supprimée",
   "archiveDeleteFailed": "Impossible de supprimer l'impression",
   "archiveSelectAll": "Tout sélectionner",
   "archiveSelectedCount": "{count, plural, =1{1 sélectionné} other{{count} sélectionnés}}",
-  "@archiveSelectedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveDeleteSelectedTitle": "{count, plural, =1{Supprimer 1 impression ?} other{Supprimer {count} impressions ?}}",
-  "@archiveDeleteSelectedTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveDeleteSelectedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveDeleteSelectedBody": "Supprimer les impressions sélectionnées de l'archive.",
   "archiveDeletedCount": "{count, plural, =1{1 impression supprimée} other{{count} impressions supprimées}}",
-  "@archiveDeletedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@archiveDeletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveDeleteSomeFailed": "{ok} supprimées, {failed} en échec",
-  "@archiveDeleteSomeFailed": {"placeholders": {"ok": {"type": "int"}, "failed": {"type": "int"}}},
+  "@archiveDeleteSomeFailed": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "archivePurgeOlder": "Purger les anciennes impressions…",
   "archivePurgeTitle": "Purger les anciennes impressions",
   "archivePurgeOlderThan": "Plus anciennes que",
   "archivePurgeDaysOption": "{days, plural, =1{1 jour} other{{days} jours}}",
-  "@archivePurgeDaysOption": {"placeholders": {"days": {"type": "int"}}},
+  "@archivePurgeDaysOption": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "archivePurgePreview": "{count, plural, =1{1 impression · {size}} other{{count} impressions · {size}}}",
-  "@archivePurgePreview": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
+  "@archivePurgePreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "archivePurgeNothing": "Aucune impression plus ancienne que cela.",
   "archivePurgePreviewError": "Impossible de charger l'aperçu.",
   "archivePurgeResult": "{count, plural, =0{Aucune impression purgée} =1{1 impression purgée} other{{count} impressions purgées}}",
-  "@archivePurgeResult": {"placeholders": {"count": {"type": "int"}}},
+  "@archivePurgeResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pickPrinterTitle": "Choisir une imprimante",
   "detailsShow": "Détails",
   "detailsHide": "Masquer les détails",
@@ -406,7 +673,13 @@
   "cameraError": "Impossible de charger le flux de la caméra",
   "cameraDemoUnavailable": "L'aperçu de la caméra n'est pas disponible en mode démo",
   "amsUnit": "AMS {number}",
-  "@amsUnit": {"placeholders": {"number": {"type": "int"}}},
+  "@amsUnit": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "externalSpool": "Bobine externe",
   "traySlotEmpty": "Vide",
   "amsSlotFilament": "Filament",
@@ -417,7 +690,13 @@
   "amsUnloadStarted": "Déchargement du filament…",
   "amsRfidRereadStarted": "Relecture du tag RFID…",
   "amsFeedTitle": "Dans quelle buse charger {slot} ?",
-  "@amsFeedTitle": {"placeholders": {"slot": {"type": "String"}}},
+  "@amsFeedTitle": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "amsFeedPrompt": "Le Filament Track Switch peut acheminer cet emplacement vers l'une ou l'autre buse, l'imprimante ne peut donc pas déterminer où envoyer le filament.",
   "amsFeedAlreadyLoaded": "déjà chargé",
   "amsSwitchNotReady": "Le Filament Track Switch n'est pas encore configuré. Assignez chaque AMS à une entrée sur l'imprimante, puis réessayez.",
@@ -438,21 +717,54 @@
   "amsSlotConfigTierCloud": "Bambu Cloud",
   "amsSlotConfigTierBuiltin": "Intégrés",
   "amsSlotConfigOnlyPrinter": "Uniquement pour {model}",
-  "@amsSlotConfigOnlyPrinter": {"placeholders": {"model": {"type": "String"}}},
+  "@amsSlotConfigOnlyPrinter": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "amsSlotConfigOnlyPrinterHiding": "Uniquement pour {model} ({hidden} masqués)",
-  "@amsSlotConfigOnlyPrinterHiding": {"placeholders": {"model": {"type": "String"}, "hidden": {"type": "int"}}},
+  "@amsSlotConfigOnlyPrinterHiding": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "hidden": {
+        "type": "int"
+      }
+    }
+  },
   "amsSlotConfigModelUnknown": "Modèle d'imprimante inconnu — affichage de tous les préréglages",
   "amsSlotConfigCurrent": "Actuellement défini",
   "amsSlotConfigKProfile": "Profil K",
   "amsSlotConfigKProfileDefault": "Par défaut (K {value})",
-  "@amsSlotConfigKProfileDefault": {"placeholders": {"value": {"type": "String"}}},
+  "@amsSlotConfigKProfileDefault": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "amsSlotConfigKProfileOther": "Autres profils",
   "amsSlotConfigKProfileNone": "Cette imprimante n'a aucun profil K enregistré pour cette buse",
   "amsSlotConfigKProfileUnavailable": "Impossible de lire les profils K de l'imprimante",
   "amsSlotConfigNozzleGuess": "L'imprimante n'a pas indiqué la taille de sa buse — {diameter} mm supposé",
-  "@amsSlotConfigNozzleGuess": {"placeholders": {"diameter": {"type": "String"}}},
+  "@amsSlotConfigNozzleGuess": {
+    "placeholders": {
+      "diameter": {
+        "type": "String"
+      }
+    }
+  },
   "amsSlotConfigKProfileValue": "K {value}",
-  "@amsSlotConfigKProfileValue": {"placeholders": {"value": {"type": "String"}}},
+  "@amsSlotConfigKProfileValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "amsSlotConfigColourCatalogue": "Couleurs du catalogue",
   "amsSlotConfigColourCustom": "Couleur personnalisée",
   "amsSlotReset": "Réinitialiser l'emplacement",
@@ -464,7 +776,13 @@
   "extruderLeftShort": "G",
   "extruderRightShort": "D",
   "amsHistoryTitle": "Historique de {ams}",
-  "@amsHistoryTitle": {"placeholders": {"ams": {"type": "String"}}},
+  "@amsHistoryTitle": {
+    "placeholders": {
+      "ams": {
+        "type": "String"
+      }
+    }
+  },
   "amsHistoryHumidity": "Humidité",
   "amsHistoryTemperature": "Température",
   "sensorHistoryCurrent": "Actuel",
@@ -489,7 +807,13 @@
   "doorClosed": "Porte fermée",
   "firmwareUpToDate": "Firmware à jour",
   "firmwareUpdateAvailable": "Mise à jour du firmware disponible : {version}",
-  "@firmwareUpdateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "@firmwareUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "statusUnavailable": "état non disponible",
   "statusOffline": "HORS LIGNE",
   "online": "en ligne",
@@ -504,26 +828,92 @@
   "widgetStatusError": "Erreur",
   "widgetMultiTitle": "Imprimantes",
   "widgetMultiActive": "{active}/{total} actives",
-  "@widgetMultiActive": {"placeholders": {"active": {"type": "int"}, "total": {"type": "int"}}},
+  "@widgetMultiActive": {
+    "placeholders": {
+      "active": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiMore": "+{count} de plus",
-  "@widgetMultiMore": {"placeholders": {"count": {"type": "int"}}},
+  "@widgetMultiMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiGaugeLabel": "en impression",
   "widgetMultiIdleCount": "{count} inactives",
-  "@widgetMultiIdleCount": {"placeholders": {"count": {"type": "int"}}},
+  "@widgetMultiIdleCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiOfflineCount": "{count} hors ligne",
-  "@widgetMultiOfflineCount": {"placeholders": {"count": {"type": "int"}}},
+  "@widgetMultiOfflineCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "remaining": "{time} restant",
-  "@remaining": {"placeholders": {"time": {"type": "String"}}},
+  "@remaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "eta": "Fin {time}",
-  "@eta": {"placeholders": {"time": {"type": "String"}}},
+  "@eta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "durationMinutes": "{minutes}min",
-  "@durationMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "durationHoursMinutes": "{hours}h {minutes}min",
-  "@durationHoursMinutes": {"placeholders": {"hours": {"type": "int"}, "minutes": {"type": "int"}}},
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "durationHours": "{hours}h",
-  "@durationHours": {"placeholders": {"hours": {"type": "int"}}},
+  "@durationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "durationSeconds": "{seconds}s",
-  "@durationSeconds": {"placeholders": {"seconds": {"type": "int"}}},
+  "@durationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "connectToServer": "Se connecter au serveur",
   "serverAddressLabel": "Adresse du serveur bambuddy",
   "serverAddressHint": "ex. 192.168.1.10:8000",
@@ -568,10 +958,22 @@
   "errUnauthorized": "Non autorisé",
   "errForbidden": "Non autorisé — le serveur a refusé cette action",
   "errForbiddenDetail": "Non autorisé : {reason}",
-  "@errForbiddenDetail": {"placeholders": {"reason": {"type": "String"}}},
+  "@errForbiddenDetail": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "errApiKeyOwnerDisabled": "Le compte propriétaire de cette clé API a été désactivé ou supprimé — la clé restera refusée tant que ce compte ne sera pas restauré.",
   "errBadResponse": "Le serveur a renvoyé l'erreur {code}",
-  "@errBadResponse": {"placeholders": {"code": {"type": "int"}}},
+  "@errBadResponse": {
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
   "errBadCertificate": "Certificat TLS invalide (les certificats auto-signés ne sont pas pris en charge dans la v1)",
   "errConnection": "Erreur de connexion",
   "errMalformedResponse": "Réponse du serveur malformée",
@@ -587,49 +989,172 @@
   "errSlotTagUnreadable": "Cet emplacement ne comporte pas de tag RFID lisible — Spoolman associe les bobines par tag et ne peut donc pas accepter celle-ci. L'inventaire intégré les assigne par emplacement.",
   "errPrinterOffline": "L'imprimante est hors ligne, l'application ne peut donc pas lire le contenu de l'emplacement. Reconnectez-la et réessayez.",
   "notifOngoingBody": "{percent} % · fin {eta}",
-  "@notifOngoingBody": {"placeholders": {"percent": {"type": "int"}, "eta": {"type": "String"}}},
+  "@notifOngoingBody": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
   "demoSettingsSection": "Démo",
   "demoPrintingCountTitle": "Imprimantes en cours d'impression",
   "demoPrintingCountDesc": "Combien d'imprimantes de la démo impriment en même temps — pour voir ce que plusieurs font au tableau de bord et à la notification permanente.",
   "notifOngoingMultiBody": "Moyenne {overall} % · {printer} {percent} % · fin {eta}",
-  "@notifOngoingMultiBody": {"placeholders": {"overall": {"type": "int"}, "printer": {"type": "String"}, "percent": {"type": "int"}, "eta": {"type": "String"}}},
+  "@notifOngoingMultiBody": {
+    "placeholders": {
+      "overall": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
   "notifOngoingMultiBodyNoEta": "Moyenne {overall} % · {printer} {percent} %",
-  "@notifOngoingMultiBodyNoEta": {"placeholders": {"overall": {"type": "int"}, "printer": {"type": "String"}, "percent": {"type": "int"}}},
+  "@notifOngoingMultiBodyNoEta": {
+    "placeholders": {
+      "overall": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "printFinishedTitle": "Impression terminée",
   "printFinishedBody": "{name} est terminé",
-  "@printFinishedBody": {"placeholders": {"name": {"type": "String"}}},
+  "@printFinishedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "printFailedTitle": "Échec de l'impression",
   "printFailedBody": "{name} a échoué",
-  "@printFailedBody": {"placeholders": {"name": {"type": "String"}}},
+  "@printFailedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifStartedTitle": "Impression démarrée",
   "notifStartedBody": "L'impression de {name} a commencé",
-  "@notifStartedBody": {"placeholders": {"name": {"type": "String"}}},
+  "@notifStartedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifFirstLayerTitle": "Première couche terminée",
   "notifFirstLayerBody": "{name} a terminé sa première couche",
-  "@notifFirstLayerBody": {"placeholders": {"name": {"type": "String"}}},
+  "@notifFirstLayerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifMilestoneTitle": "{percent} % imprimé",
-  "@notifMilestoneTitle": {"placeholders": {"percent": {"type": "int"}}},
+  "@notifMilestoneTitle": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifMilestoneBody": "{name} est terminé à {percent} %",
-  "@notifMilestoneBody": {"placeholders": {"name": {"type": "String"}, "percent": {"type": "int"}}},
+  "@notifMilestoneBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifPlateTitle": "Plateau non vide",
   "notifPlateBody": "Le plateau de {printer} doit être libéré avant la prochaine impression",
-  "@notifPlateBody": {"placeholders": {"printer": {"type": "String"}}},
+  "@notifPlateBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "notifOfflineTitle": "Imprimante hors ligne",
   "notifOfflineBody": "{printer} a perdu la connexion",
-  "@notifOfflineBody": {"placeholders": {"printer": {"type": "String"}}},
+  "@notifOfflineBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "notifErrorTitle": "Erreur de l'imprimante",
   "notifErrorBody": "{printer} : {detail}",
-  "@notifErrorBody": {"placeholders": {"printer": {"type": "String"}, "detail": {"type": "String"}}},
+  "@notifErrorBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowFilamentTitle": "Niveau de filament bas",
   "notifLowFilamentBody": "Il reste {percent} % de filament sur {printer}",
-  "@notifLowFilamentBody": {"placeholders": {"printer": {"type": "String"}, "percent": {"type": "int"}}},
+  "@notifLowFilamentBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityTitle": "Humidité AMS élevée",
   "notifHumidityHtTitle": "Humidité AMS-HT élevée",
   "notifHumidityBody": "L'humidité de l'AMS de {printer} est de {value} %",
-  "@notifHumidityBody": {"placeholders": {"printer": {"type": "String"}, "value": {"type": "int"}}},
+  "@notifHumidityBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "notifBedCooledTitle": "Plateau refroidi",
   "notifBedCooledBody": "Le plateau de {printer} a refroidi à {temp} °C",
-  "@notifBedCooledBody": {"placeholders": {"printer": {"type": "String"}, "temp": {"type": "int"}}},
+  "@notifBedCooledBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "notifSettingsTitle": "Notifications",
   "notifSettingsHint": "Choisissez les événements qui déclenchent une notification. Les modifications s'appliqueront au prochain démarrage de la surveillance en arrière-plan.",
   "notifMasterTitle": "Notifications d'événements",
@@ -662,22 +1187,52 @@
   "notifEvtBedCooled": "Plateau refroidi",
   "notifEvtBedCooledDesc": "Lorsque le plateau refroidit après une impression",
   "notifBedCooledThreshold": "Plateau refroidi en dessous de {temp} °C",
-  "@notifBedCooledThreshold": {"placeholders": {"temp": {"type": "int"}}},
+  "@notifBedCooledThreshold": {
+    "placeholders": {
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "Humidité AMS au-dessus de {value} %",
-  "@notifHumidityThreshold": {"placeholders": {"value": {"type": "int"}}},
+  "@notifHumidityThreshold": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "notifLowFilamentThreshold": "Filament bas en dessous de {percent} %",
-  "@notifLowFilamentThreshold": {"placeholders": {"percent": {"type": "int"}}},
+  "@notifLowFilamentThreshold": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifEventsMenu": "Événements de notification",
   "hmsViewInWiki": "Ouvrir dans le wiki Bambu",
   "hmsErrorsCount": "{count, plural, =1{1 erreur} other{{count} erreurs}}",
-  "@hmsErrorsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@hmsErrorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hmsDismissAll": "Tout ignorer",
   "hmsDismissed": "Erreurs effacées sur l'imprimante",
   "hmsActionSent": "Envoyé à l'imprimante",
   "hmsActionNotAcknowledged": "L'imprimante n'a pas confirmé l'action — vérifiez son écran",
   "hmsStopConfirmTitle": "Arrêter l'impression ?",
   "hmsStopConfirmBody": "{printer} va annuler le travail d'impression. Cette action est irréversible.",
-  "@hmsStopConfirmBody": {"placeholders": {"printer": {"type": "String"}}},
+  "@hmsStopConfirmBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "hmsStopConfirmAction": "Arrêter l'impression",
   "hmsActionResume": "Reprendre",
   "hmsActionResumeDefects": "Reprendre quand même",
@@ -737,34 +1292,97 @@
   "inventoryFilterBrand": "Marque",
   "inventoryFiltersClear": "Tout effacer",
   "inventorySpoolCount": "{count} {count, plural, one{bobine} other{bobines}}",
-  "@inventorySpoolCount": {"placeholders": {"count": {"type": "int"}}},
+  "@inventorySpoolCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryRemaining": "{grams} g restants",
-  "@inventoryRemaining": {"placeholders": {"grams": {"type": "String"}}},
+  "@inventoryRemaining": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryTotalConsumed": "{weight} consommés",
-  "@inventoryTotalConsumed": {"placeholders": {"weight": {"type": "String"}}},
+  "@inventoryTotalConsumed": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryConsumedSinceReset": "Consommé depuis la réinitialisation : {weight}",
-  "@inventoryConsumedSinceReset": {"placeholders": {"weight": {"type": "String"}}},
+  "@inventoryConsumedSinceReset": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryOfTotal": "sur {total} g",
-  "@inventoryOfTotal": {"placeholders": {"total": {"type": "int"}}},
+  "@inventoryOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryLoadedIn": "Chargée dans {slot}",
-  "@inventoryLoadedIn": {"placeholders": {"slot": {"type": "String"}}},
+  "@inventoryLoadedIn": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryNotLoaded": "Non chargée dans un emplacement AMS",
   "inventoryLocation": "Emplacement",
   "inventoryNozzleTemp": "Temp. de la buse",
   "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {"placeholders": {"cost": {"type": "String"}}},
+  "@inventoryCostPerKg": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Historique d'utilisation",
   "inventoryUsageEmpty": "Aucune utilisation enregistrée pour le moment",
   "inventoryUsageWeight": "{grams} g",
-  "@inventoryUsageWeight": {"placeholders": {"grams": {"type": "String"}}},
+  "@inventoryUsageWeight": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryKProfiles": "Calibrage (K)",
   "inventoryKProfileLine": "{nozzle} mm · K {k}",
-  "@inventoryKProfileLine": {"placeholders": {"nozzle": {"type": "String"}, "k": {"type": "String"}}},
+  "@inventoryKProfileLine": {
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      },
+      "k": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryAddSpool": "Ajouter une bobine",
   "inventoryAddSpools": "Ajouter {count} {count, plural, one{bobine} other{bobines}}",
-  "@inventoryAddSpools": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryAddSpools": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryNewSpool": "Nouvelle bobine",
   "inventoryEditSpool": "Modifier la bobine",
   "inventorySave": "Enregistrer",
@@ -783,7 +1401,16 @@
   "inventoryPrinterPresetsHint": "Le choix effectué ici prévaut sur le préréglage de la bobine.",
   "inventoryPrinterPresetDefault": "Comme sur la bobine",
   "inventoryPrinterPresetNozzle": "{model} · buse de {diameter}",
-  "@inventoryPrinterPresetNozzle": {"placeholders": {"model": {"type": "String"}, "diameter": {"type": "String"}}},
+  "@inventoryPrinterPresetNozzle": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "diameter": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryPrinterPresetsLoadFailed": "Non lus — l'enregistrement les laissera inchangés.",
   "inventoryPrinterPresetsSaveFailed": "Bobine enregistrée, mais ses préréglages par modèle ne l'ont pas été.",
   "inventoryFieldMaterial": "Matériau",
@@ -799,7 +1426,16 @@
   "inventoryFieldRequired": "Obligatoire",
   "inventoryFieldInvalidNumber": "Saisissez un nombre",
   "inventoryFieldRange": "Saisissez une valeur comprise entre {min} et {max}",
-  "@inventoryFieldRange": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "@inventoryFieldRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryFieldNegative": "Saisissez une valeur supérieure ou égale à 0",
   "inventorySectionFilament": "Filament",
   "inventorySectionColor": "Couleur",
@@ -821,14 +1457,32 @@
   "inventoryColorNone": "Aucune couleur",
   "inventoryLowStockHint": "Laisser vide pour utiliser le seuil global",
   "inventoryRemainingOfLabel": "sur {total} g",
-  "@inventoryRemainingOfLabel": {"placeholders": {"total": {"type": "int"}}},
+  "@inventoryRemainingOfLabel": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryDeleteTitle": "Supprimer la bobine ?",
   "inventoryDeleteConfirm": "Supprimer définitivement {name} ? Cette action est irréversible.",
-  "@inventoryDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@inventoryDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryResetUsageConfirm": "Réinitialiser le compteur de filament consommé à zéro ? Les futures impressions repartiront de zéro — le poids restant ne sera pas modifié.",
   "inventorySpoolCreated": "Bobine ajoutée",
   "inventorySpoolsCreated": "{count} {count, plural, one{bobine ajoutée} other{bobines ajoutées}}",
-  "@inventorySpoolsCreated": {"placeholders": {"count": {"type": "int"}}},
+  "@inventorySpoolsCreated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySpoolUpdated": "Bobine mise à jour",
   "inventorySpoolDeleted": "Bobine supprimée",
   "inventorySpoolArchived": "Bobine archivée",
@@ -851,7 +1505,13 @@
   "inventoryAssignPick": "Choisir une bobine",
   "inventoryReassignTitle": "Déplacer la bobine ?",
   "inventoryReassignMessage": "Cette bobine est actuellement dans {slot}. Elle en sera retirée et assignée à cet emplacement.",
-  "@inventoryReassignMessage": {"placeholders": {"slot": {"type": "String"}}},
+  "@inventoryReassignMessage": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryReassignAction": "Déplacer",
   "inventorySpoolAssigned": "Bobine assignée",
   "inventorySpoolUnassigned": "Bobine désassignée",
@@ -865,41 +1525,137 @@
   "inventoryScanTitle": "Scanner le QR de la bobine",
   "inventoryScanHint": "Pointez l'appareil photo vers le code QR de la bobine",
   "inventoryScanNotFound": "Bobine #{id} introuvable",
-  "@inventoryScanNotFound": {"placeholders": {"id": {"type": "int"}}},
+  "@inventoryScanNotFound": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySelectedCount": "{count, plural, one{{count} sélectionnée} other{{count} sélectionnées}}",
-  "@inventorySelectedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@inventorySelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySelectAll": "Tout sélectionner",
   "inventoryBulkArchiveTitle": "Archiver {count} {count, plural, one{bobine} other{bobines}} ?",
-  "@inventoryBulkArchiveTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkArchiveBody": "Elles seront masquées de la liste active. Vous pourrez les restaurer plus tard.",
   "inventoryBulkRestoreTitle": "Restaurer {count} {count, plural, one{bobine} other{bobines}} ?",
-  "@inventoryBulkRestoreTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkRestoreTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkRestoreBody": "Elles retourneront dans la liste active.",
   "inventoryBulkDeleteTitle": "Supprimer {count} {count, plural, one{bobine} other{bobines}} ?",
-  "@inventoryBulkDeleteTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkDeleteTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkDeleteBody": "Cette action est permanente et irréversible.",
   "inventoryBulkResetTitle": "Réinitialiser l'utilisation de {count} {count, plural, one{bobine} other{bobines}} ?",
-  "@inventoryBulkResetTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkResetTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkResetBody": "Leurs compteurs de filament consommé reviennent à zéro. Les poids restants ne sont pas modifiés.",
   "inventoryBulkDone": "{count} {count, plural, one{bobine mise} other{bobines mises}} à jour",
-  "@inventoryBulkDone": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkPartial": "{ok} réussies, {failed} en échec",
-  "@inventoryBulkPartial": {"placeholders": {"ok": {"type": "int"}, "failed": {"type": "int"}}},
+  "@inventoryBulkPartial": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkSkipped": "{ok} réussies, {skipped} déjà en place",
-  "@inventoryBulkSkipped": {"placeholders": {"ok": {"type": "int"}, "skipped": {"type": "int"}}},
+  "@inventoryBulkSkipped": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkPartialSkipped": "{ok} réussies, {skipped} déjà en place, {failed} en échec",
-  "@inventoryBulkPartialSkipped": {"placeholders": {"ok": {"type": "int"}, "skipped": {"type": "int"}, "failed": {"type": "int"}}},
+  "@inventoryBulkPartialSkipped": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEdit": "Modifier les champs",
   "inventoryBulkEditTitle": "Modifier {count} {count, plural, one{bobine} other{bobines}}",
-  "@inventoryBulkEditTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkEditTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditHint": "Seuls les champs que vous remplissez seront modifiés. Laissez le reste vide.",
   "inventoryBulkEditUnchanged": "Inchangé",
   "inventoryBulkEditApply": "Appliquer à {count} {count, plural, one{bobine} other{bobines}}",
-  "@inventoryBulkEditApply": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkEditApply": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditConfirmTitle": "Modifier {count} {count, plural, one{bobine} other{bobines}} ?",
-  "@inventoryBulkEditConfirmTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@inventoryBulkEditConfirmTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditConfirmBody": "{fields} {fields, plural, one{champ sera écrasé} other{champs seront écrasés}} sur chaque bobine sélectionnée.",
-  "@inventoryBulkEditConfirmBody": {"placeholders": {"fields": {"type": "int"}}},
+  "@inventoryBulkEditConfirmBody": {
+    "placeholders": {
+      "fields": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditUnsupported": "Ce serveur est trop ancien pour la modification en masse. Modifiez les bobines une par une, ou mettez à jour bambuddy.",
   "inventoryApply": "Appliquer",
   "inventoryLabelsTitle": "Imprimer des étiquettes de bobine",
@@ -910,11 +1666,38 @@
   "inventoryClimateSource": "Le serveur les lit depuis Home Assistant. Les capteurs sont liés à un emplacement dans l'interface web de Bambuddy.",
   "inventoryClimateNoReading": "aucune mesure",
   "inventoryClimateReading": "{name} : {value}",
-  "@inventoryClimateReading": {"placeholders": {"name": {"type": "String"}, "value": {"type": "String"}}},
+  "@inventoryClimateReading": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryClimateReadingAlerting": "{name} : {value}, hors de la plage d'alerte",
-  "@inventoryClimateReadingAlerting": {"placeholders": {"name": {"type": "String"}, "value": {"type": "String"}}},
+  "@inventoryClimateReadingAlerting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryClimateReadingStale": "{name} : {value}, capteur inaccessible",
-  "@inventoryClimateReadingStale": {"placeholders": {"name": {"type": "String"}, "value": {"type": "String"}}},
+  "@inventoryClimateReadingStale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryLabelsSearchHint": "Rechercher par nom, marque ou #ID",
   "inventoryLabelsPickSpools": "Choisissez les bobines pour lesquelles imprimer des étiquettes :",
   "inventoryLabelsMaterial": "Matériau :",
@@ -931,7 +1714,13 @@
   "inventoryLabelsShare": "Partager le PDF plutôt que d'imprimer",
   "inventoryLabelsPickTemplate": "Choisissez une taille d'étiquette à imprimer :",
   "inventoryLabelsTooMany": "Sélectionnez au maximum {max} bobines par impression",
-  "@inventoryLabelsTooMany": {"placeholders": {"max": {"type": "int"}}},
+  "@inventoryLabelsTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryLabelsFailed": "Impossible de générer les étiquettes",
   "inventoryLabelsAmsSmall": "Support AMS — petit (74 × 33 mm)",
   "inventoryLabelsAmsSmallHint": "Une par page ; correspond à l'étiquette imprimable du modèle MakerWorld 752566.",
@@ -948,16 +1737,46 @@
   "inventoryLabelsStartTitle": "Première étiquette libre",
   "inventoryLabelsStartHint": "Appuyez sur la case de la première étiquette à imprimer — celles qui la précèdent restent vides, pour terminer une feuille partiellement utilisée plutôt que d'en commencer une nouvelle.",
   "inventoryLabelsStartSlot": "Position {position}",
-  "@inventoryLabelsStartSlot": {"placeholders": {"position": {"type": "int"}}},
+  "@inventoryLabelsStartSlot": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "Aucune donnée de maintenance",
   "maintenanceTotalHours": "{hours} h au total",
-  "@maintenanceTotalHours": {"placeholders": {"hours": {"type": "int"}}},
+  "@maintenanceTotalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDueBadge": "{count} à faire",
-  "@maintenanceDueBadge": {"placeholders": {"count": {"type": "int"}}},
+  "@maintenanceDueBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDueIn": "À faire dans {hours} h",
-  "@maintenanceDueIn": {"placeholders": {"hours": {"type": "int"}}},
+  "@maintenanceDueIn": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceOverdueBy": "En retard de {hours} h",
-  "@maintenanceOverdueBy": {"placeholders": {"hours": {"type": "int"}}},
+  "@maintenanceOverdueBy": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenancePerform": "Marquer comme effectuée",
   "maintenancePerformConfirm": "Réinitialiser le compteur de cette tâche de maintenance ?",
   "maintenanceNotesHint": "Notes (facultatif)",
@@ -982,14 +1801,38 @@
   "maintenanceEditType": "Modifier le type",
   "maintenanceSystemType": "Système",
   "maintenanceEveryHours": "Toutes les {count} h",
-  "@maintenanceEveryHours": {"placeholders": {"count": {"type": "int"}}},
+  "@maintenanceEveryHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEveryDays": "Tous les {count} jours",
-  "@maintenanceEveryDays": {"placeholders": {"count": {"type": "int"}}},
+  "@maintenanceEveryDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDeleteTypeTitle": "Supprimer le type de maintenance ?",
   "maintenanceDeleteTypeConfirm": "Supprimer « {name} » ? Cette action est irréversible.",
-  "@maintenanceDeleteTypeConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@maintenanceDeleteTypeConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceHideTypeConfirm": "Masquer le type par défaut « {name} » ? Vous pourrez le restaurer plus tard.",
-  "@maintenanceHideTypeConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@maintenanceHideTypeConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceFieldName": "Nom",
   "maintenanceFieldNameHint": "ex. : Remplacer le filtre HEPA",
   "maintenanceFieldIntervalType": "Type d'intervalle",
@@ -1005,10 +1848,28 @@
   "notifEvtMaintenanceDesc": "Lorsqu'une tâche de maintenance est en retard",
   "maintenanceNotifTitle": "Maintenance requise",
   "maintenanceNotifBody": "{printer} : {task}",
-  "@maintenanceNotifBody": {"placeholders": {"printer": {"type": "String"}, "task": {"type": "String"}}},
+  "@maintenanceNotifBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "task": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceReminderTitle": "Rappel de maintenance",
   "maintenanceReminderBody": "{count} {count, plural, one{tâche de maintenance en retard} other{tâches de maintenance en retard}} sur {printer}",
-  "@maintenanceReminderBody": {"placeholders": {"printer": {"type": "String"}, "count": {"type": "int"}}},
+  "@maintenanceReminderBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceNotifAction": "Marquer comme effectuée",
   "menuStatistics": "Statistiques",
   "statsTitle": "Statistiques",
@@ -1031,28 +1892,73 @@
   "statsEnergyWarmingUp": "Les données d'énergie sont encore en cours de collecte",
   "statsSuccessRate": "Taux de réussite",
   "statsSuccessful": "Réussies : {count}",
-  "@statsSuccessful": {"placeholders": {"count": {"type": "int"}}},
+  "@statsSuccessful": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsFailed": "Échouées : {count}",
-  "@statsFailed": {"placeholders": {"count": {"type": "int"}}},
+  "@statsFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsCancelled": "Annulées : {count}",
-  "@statsCancelled": {"placeholders": {"count": {"type": "int"}}},
+  "@statsCancelled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsAllUsers": "Tous les utilisateurs",
   "statsNoUser": "Aucun utilisateur (système)",
   "statsTimeAccuracy": "Précision du temps",
   "statsTimeAccuracyHint": "100 % = estimation parfaite",
   "statsByPrinter": "Impressions par imprimante",
   "statsPrintsCount": "{count, plural, one{{count} impression} other{{count} impressions}}",
-  "@statsPrintsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@statsPrintsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsHours": "{hours} h",
-  "@statsHours": {"placeholders": {"hours": {"type": "String"}}},
+  "@statsHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
   "statsPrinterFallback": "Imprimante #{id}",
-  "@statsPrinterFallback": {"placeholders": {"id": {"type": "String"}}},
+  "@statsPrinterFallback": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "statsMetricWeight": "Poids",
   "statsMetricPrints": "Impressions",
   "statsMetricTime": "Temps",
   "statsFailureAnalysis": "Analyse des échecs",
   "statsFailedOfTotal": "{failed} / {total} impressions échouées",
-  "@statsFailedOfTotal": {"placeholders": {"failed": {"type": "int"}, "total": {"type": "int"}}},
+  "@statsFailedOfTotal": {
+    "placeholders": {
+      "failed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "statsTopFailureReasons": "Principales causes d'échec",
   "statsNoFailures": "Aucun échec sur cette période",
   "statsPrintActivity": "Activité d'impression",
@@ -1065,7 +1971,13 @@
   "statsBusiestDay": "Jour le plus actif",
   "statsSuccessStreak": "Série de réussites",
   "statsConsecutive": "{count} d'affilée",
-  "@statsConsecutive": {"placeholders": {"count": {"type": "int"}}},
+  "@statsConsecutive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsFilamentTrends": "Tendances du filament",
   "statsPeriodFilament": "Filament de la période",
   "statsPeriodCost": "Coût de la période",
@@ -1074,15 +1986,33 @@
   "statsEnergyOverTime": "Énergie dans le temps",
   "statsMostEnergy": "Plus grande consommation d'énergie",
   "statsKwh": "{value} kWh",
-  "@statsKwh": {"placeholders": {"value": {"type": "String"}}},
+  "@statsKwh": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "statsByMaterialTitle": "Par matériau",
   "statsSuccessByMaterial": "Réussite par matériau",
   "statsColorDistribution": "Répartition des couleurs",
   "statsColorShareHint": "Part du filament utilisé, par poids",
   "statsColorsCount": "{count} {count, plural, one{couleur} other{couleurs}}",
-  "@statsColorsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@statsColorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsMoreCount": "+{count} de plus",
-  "@statsMoreCount": {"placeholders": {"count": {"type": "int"}}},
+  "@statsMoreCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsPrintDuration": "Durée d'impression",
   "statsPrintHabits": "Habitudes d'impression",
   "statsPrintTimeOfDay": "Heure d'impression dans la journée",
@@ -1090,9 +2020,21 @@
   "aboutTitle": "À propos",
   "aboutTagline": "Client Android natif pour bambuddy — un gestionnaire d'imprimantes Bambu Lab auto-hébergé.",
   "appVersionLabel": "Application {version}",
-  "@appVersionLabel": {"placeholders": {"version": {"type": "String"}}},
+  "@appVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "serverVersionLabel": "Serveur {version}",
-  "@serverVersionLabel": {"placeholders": {"version": {"type": "String"}}},
+  "@serverVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "serverVersionUnknown": "Version du serveur inconnue",
   "aboutLicenseHeader": "Licence",
   "aboutLicenseBody": "Bambuddy est un logiciel libre publié sous la licence GNU Affero General Public License v3.0 (AGPL-3.0). Vous pouvez l'utiliser, l'étudier, le partager et le modifier ; si vous exécutez une version modifiée en tant que service réseau, vous devez en fournir le code source à ses utilisateurs.",
@@ -1131,16 +2073,40 @@
   "fmDeleted": "Déplacé vers la corbeille",
   "fmDeleteFile": "Supprimer le fichier",
   "fmDeleteFileConfirm": "Déplacer « {name} » vers la corbeille ?",
-  "@fmDeleteFileConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@fmDeleteFileConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeleteFolder": "Supprimer le dossier",
   "fmDeleteFolderConfirm": "Supprimer le dossier « {name} » et tout son contenu ?",
-  "@fmDeleteFolderConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@fmDeleteFolderConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeleteSelectedConfirm": "Déplacer {count} {count, plural, one{fichier} other{fichiers}} vers la corbeille ?",
-  "@fmDeleteSelectedConfirm": {"placeholders": {"count": {"type": "int"}}},
+  "@fmDeleteSelectedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmMoveTo": "Déplacer vers…",
   "fmMoved": "Déplacé",
   "fmFolderItems": "{count} {count, plural, one{élément} other{éléments}}",
-  "@fmFolderItems": {"placeholders": {"count": {"type": "int"}}},
+  "@fmFolderItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmPrint": "Imprimer",
   "fmAddToQueue": "Ajouter à la file d'attente",
   "fmAddedToQueue": "Ajouté à la file d'attente",
@@ -1148,24 +2114,66 @@
   "fmQueueAsVariants": "Mettre en file d'attente comme une seule tâche",
   "fmUngroupVariants": "Dissocier les alternatives",
   "fmVariantsGrouped": "{count} fichiers regroupés comme alternatives",
-  "@fmVariantsGrouped": {"placeholders": {"count": {"type": "int"}}},
+  "@fmVariantsGrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmVariantsUngrouped": "Alternatives dissociées",
   "fmVariantsMemberCount": "{count} alternatives",
-  "@fmVariantsMemberCount": {"placeholders": {"count": {"type": "int"}}},
+  "@fmVariantsMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmVariantsGone": "Ce groupe n'existe plus",
   "fmUpload": "Téléverser un fichier",
   "fmUploading": "Téléversement…",
   "fmUploaded": "Téléversement terminé : {name}",
-  "@fmUploaded": {"placeholders": {"name": {"type": "String"}}},
+  "@fmUploaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmUploadFailed": "Échec du téléversement",
   "fmSelectedCount": "{count, plural, one{{count} sélectionné} other{{count} sélectionnés}}",
-  "@fmSelectedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@fmSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFiles": "{count} {count, plural, one{fichier} other{fichiers}}",
-  "@fmStatsFiles": {"placeholders": {"count": {"type": "int"}}},
+  "@fmStatsFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFolders": "{count} {count, plural, one{dossier} other{dossiers}}",
-  "@fmStatsFolders": {"placeholders": {"count": {"type": "int"}}},
+  "@fmStatsFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFree": "{size} libres",
-  "@fmStatsFree": {"placeholders": {"size": {"type": "String"}}},
+  "@fmStatsFree": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "fmTrash": "Corbeille",
   "fmTrashTitle": "Corbeille",
   "fmTrashEmpty": "La corbeille est vide",
@@ -1175,7 +2183,13 @@
   "fmEmptyTrashConfirm": "Supprimer définitivement tous les fichiers de la corbeille ? Cette action est irréversible.",
   "fmHardDelete": "Supprimer définitivement",
   "fmHardDeleteConfirm": "Supprimer définitivement « {name} » ? Cette action est irréversible.",
-  "@fmHardDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@fmHardDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeletedForever": "Supprimé définitivement",
   "fmTags": "Étiquettes",
   "fmTagsFilterTitle": "Filtrer par étiquettes",
@@ -1189,20 +2203,47 @@
   "fmTagRename": "Renommer l'étiquette",
   "fmTagDelete": "Supprimer l'étiquette",
   "fmTagDeleteConfirm": "Supprimer l'étiquette « {name} » ? Les fichiers conservent tout le reste — ils perdent uniquement cette étiquette.",
-  "@fmTagDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@fmTagDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmTagCreated": "Étiquette créée",
   "fmTagDeleted": "Étiquette supprimée",
   "fmTagExists": "Une étiquette portant ce nom existe déjà",
   "fmTagsSaved": "Étiquettes mises à jour",
   "fmTagsPartial": "{count} sur {total} fichiers mis à jour — vous n'avez pas l'autorisation de modifier le reste",
-  "@fmTagsPartial": {"placeholders": {"count": {"type": "int"}, "total": {"type": "int"}}},
+  "@fmTagsPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsBulkTitle": "Étiqueter {count} {count, plural, one{fichier} other{fichiers}}",
-  "@fmTagsBulkTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@fmTagsBulkTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsAdd": "Ajouter",
   "fmTagsRemove": "Retirer",
   "fmTagsReplace": "Remplacer",
   "fmTagsReplaceConfirm": "Remplacer toutes les étiquettes de {count} {count, plural, one{fichier} other{fichiers}} par celles sélectionnées ?",
-  "@fmTagsReplaceConfirm": {"placeholders": {"count": {"type": "int"}}},
+  "@fmTagsReplaceConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsPickSome": "Sélectionnez au moins une étiquette",
   "makerworldMenu": "MakerWorld",
   "makerworldTitle": "MakerWorld",
@@ -1212,11 +2253,23 @@
   "mwEnterUrl": "Saisissez une URL MakerWorld",
   "mwUntitledModel": "Modèle sans titre",
   "mwPlatesCount": "{count, plural, =0{Aucun plateau} =1{1 plateau} other{{count} plateaux}}",
-  "@mwPlatesCount": {"placeholders": {"count": {"type": "int"}}},
+  "@mwPlatesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mwNoPlates": "Aucun plateau trouvé pour ce modèle.",
   "mwImport": "Importer",
   "mwShowAllPlates": "Afficher les {count} plateaux",
-  "@mwShowAllPlates": {"placeholders": {"count": {"type": "int"}}},
+  "@mwShowAllPlates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mwShowLess": "Afficher moins",
   "mwInLibrary": "Dans la bibliothèque",
   "mwImported": "Importé dans votre bibliothèque",
@@ -1251,34 +2304,88 @@
   "swatchNoCodes": "Aucun code d'échantillon pour l'instant",
   "swatchNoCodesHint": "Créez un code pour étiqueter un échantillon de filament.",
   "swatchNoMatch": "Aucun code ne correspond à « {query} »",
-  "@swatchNoMatch": {"placeholders": {"query": {"type": "String"}}},
+  "@swatchNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "swatchAllCoded": "Tous les filaments de l'inventaire ont un code",
   "swatchNewCode": "Nouveau code",
   "swatchGenerate": "Générer",
   "swatchGenerateCode": "Générer un code",
   "swatchExists": "Ce filament a déjà un code",
   "swatchCreatedSnack": "Code {code} créé",
-  "@swatchCreatedSnack": {"placeholders": {"code": {"type": "String"}}},
+  "@swatchCreatedSnack": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchUpdatedSnack": "Code {code} mis à jour",
-  "@swatchUpdatedSnack": {"placeholders": {"code": {"type": "String"}}},
+  "@swatchUpdatedSnack": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchCopied": "{code} copié",
-  "@swatchCopied": {"placeholders": {"code": {"type": "String"}}},
+  "@swatchCopied": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchDelete": "Supprimer",
   "swatchDeleteTitle": "Supprimer le code ?",
   "swatchDeleteBody": "Le code {code} pour {name} sera supprimé.",
-  "@swatchDeleteBody": {"placeholders": {"code": {"type": "String"}, "name": {"type": "String"}}},
+  "@swatchDeleteBody": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "swatchExport": "Exporter",
   "swatchImport": "Importer",
   "swatchExportEmpty": "Aucun code à exporter",
   "swatchExported": "{count, plural, =1{1 code exporté} other{{count} codes exportés}}",
-  "@swatchExported": {"placeholders": {"count": {"type": "int"}}},
+  "@swatchExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "swatchExportFailed": "Échec de l'exportation",
   "swatchImportTitle": "Importer les codes ?",
   "swatchImportWarning": "Cette opération remplace les {existing} codes existants par les {incoming} codes du fichier. Cette action est irréversible.",
-  "@swatchImportWarning": {"placeholders": {"existing": {"type": "int"}, "incoming": {"type": "int"}}},
+  "@swatchImportWarning": {
+    "placeholders": {
+      "existing": {
+        "type": "int"
+      },
+      "incoming": {
+        "type": "int"
+      }
+    }
+  },
   "swatchImportConfirm": "Tout remplacer",
   "swatchImported": "{count, plural, =1{1 code importé} other{{count} codes importés}}",
-  "@swatchImported": {"placeholders": {"count": {"type": "int"}}},
+  "@swatchImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "swatchImportFailed": "Impossible de lire ce fichier",
   "swatchImportEmpty": "Aucun code trouvé dans le fichier",
   "swatchFormTitle": "Nouveau code d'échantillon",
@@ -1304,7 +2411,13 @@
   "projectDelete": "Supprimer",
   "projectDeleteTitle": "Supprimer le projet ?",
   "projectDeleteBody": "« {name} » sera supprimé. Les impressions associées resteront dans les archives.",
-  "@projectDeleteBody": {"placeholders": {"name": {"type": "String"}}},
+  "@projectDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "projectDeleted": "Projet supprimé",
   "projectSaved": "Projet enregistré",
   "projectName": "Nom",
@@ -1343,7 +2456,16 @@
   "projectStatPartsProgress": "Pièces",
   "projectStatSets": "Ensembles complets",
   "projectSetsOfTarget": "{done} sur {target}",
-  "@projectSetsOfTarget": {"placeholders": {"done": {"type": "int"}, "target": {"type": "int"}}},
+  "@projectSetsOfTarget": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "projectStatPrints": "Plateaux",
   "projectStatCompleted": "Terminés",
   "projectStatFailed": "Échoués",
@@ -1355,7 +2477,13 @@
   "projectStatBom": "BOM",
   "projectChildren": "Sous-projets",
   "projectDueOn": "Échéance le {date}",
-  "@projectDueOn": {"placeholders": {"date": {"type": "String"}}},
+  "@projectDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "projectAddArchives": "Ajouter des archives",
   "archiveAddToProject": "Ajouter au projet",
   "projectArchivesAdded": "Ajouté au projet",
@@ -1379,7 +2507,13 @@
   "projectAttachmentDeleted": "Pièce jointe supprimée",
   "projectAttachmentUploaded": "Pièce jointe téléversée",
   "projectFileSaved": "Enregistré dans {path}",
-  "@projectFileSaved": {"placeholders": {"path": {"type": "String"}}},
+  "@projectFileSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "projectDownloadFailed": "Échec du téléchargement",
   "projectCoverUpload": "Définir l'image de couverture",
   "projectCoverDelete": "Supprimer l'image de couverture",
@@ -1390,7 +2524,13 @@
   "projectMenuImport": "Importer un projet",
   "projectFromTemplate": "Créer à partir d'un modèle",
   "projectExported": "Exporté vers {path}",
-  "@projectExported": {"placeholders": {"path": {"type": "String"}}},
+  "@projectExported": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "projectTemplateCreated": "Modèle créé",
   "projectImported": "Projet importé",
   "projectImportFailed": "Échec de l'importation",
@@ -1402,9 +2542,21 @@
   "projectFolderUnlinked": "Dossier délié",
   "projectNotesEmpty": "Aucune note pour l'instant",
   "projectFolderFileCount": "{count, plural, =1{{count} fichier} other{{count} fichiers}}",
-  "@projectFolderFileCount": {"placeholders": {"count": {"type": "int"}}},
+  "@projectFolderFileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "projectRemainingShort": "{count, plural, =1{{count} restant} other{{count} restants}}",
-  "@projectRemainingShort": {"placeholders": {"count": {"type": "int"}}},
+  "@projectRemainingShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sliceAction": "Découper",
   "sliceTitle": "Découper le fichier",
   "slicePrinter": "Imprimante",
@@ -1413,13 +2565,25 @@
   "sliceBedDefault": "Par défaut (du préréglage)",
   "sliceFilament": "Filament",
   "sliceFilamentNumbered": "Filament {n}",
-  "@sliceFilamentNumbered": {"placeholders": {"n": {"type": "String"}}},
+  "@sliceFilamentNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
   "sliceAutoOrient": "Orientation automatique",
   "sliceAutoOrientHint": "Oriente chaque objet sur sa face d'impression optimale.",
   "sliceAutoArrange": "Disposition automatique",
   "sliceAutoArrangeHint": "Réorganise les objets sur le plateau.",
   "sliceDesignedFor": "Ce fichier est conçu pour {printer}",
-  "@sliceDesignedFor": {"placeholders": {"printer": {"type": "String"}}},
+  "@sliceDesignedFor": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "sliceUseDesignedPrinter": "Changer",
   "sliceAsDesigned": "Utiliser les paramètres d'origine du fichier",
   "sliceAsDesignedHint": "Les paramètres du créateur au lieu des préréglages ci-dessus.",
@@ -1429,7 +2593,13 @@
   "sliceProcessSettingsNeedsProcess": "Choisissez d'abord un préréglage de processus",
   "sliceProcessSettingsUnchanged": "Préréglage utilisé tel quel",
   "sliceProcessSettingsChanged": "{count, plural, =1{{count} modifié} other{{count} modifiés}}",
-  "@sliceProcessSettingsChanged": {"placeholders": {"count": {"type": "int"}}},
+  "@sliceProcessSettingsChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processSettingsModeSimple": "Simple",
   "processSettingsModeAdvanced": "Avancé",
   "processSettingsModeExpert": "Expert",
@@ -1437,9 +2607,21 @@
   "processSettingsNoMatches": "Aucun paramètre ne correspond à cette recherche.",
   "processSettingsRevert": "Rétablir la valeur du préréglage",
   "processSettingsRevertAll": "Rétablir {count}",
-  "@processSettingsRevertAll": {"placeholders": {"count": {"type": "int"}}},
+  "@processSettingsRevertAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processSettingsOutOfRange": "Le slicer accepte {range}",
-  "@processSettingsOutOfRange": {"placeholders": {"range": {"type": "String"}}},
+  "@processSettingsOutOfRange": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
   "processSettingsDisabledHint": "Le slicer ignore ce paramètre avec vos réglages actuels.",
   "processSettingsUnavailable": "Ce serveur ne peut pas indiquer les paramètres de processus pour le préréglage sélectionné.",
   "processSettingsDefaultsOutdatedSidecar": "Valeurs par défaut du slicer affichées : votre sidecar de slicer est antérieur à cette fonctionnalité et ne peut pas lire les valeurs du préréglage. Mettez à jour l'image du sidecar pour les afficher. Tout ce que vous ne modifiez pas continuera d'utiliser le préréglage.",
@@ -1448,9 +2630,24 @@
   "processSettingsDefaultsUnavailable": "Valeurs par défaut du slicer affichées : les valeurs du préréglage sélectionné n'ont pas pu être lues. Tout ce que vous ne modifiez pas continuera d'utiliser le préréglage.",
   "processSettingsFilamentDefault": "Par défaut (le filament de la zone)",
   "processSettingsFilamentSlot": "{slot} : {name}",
-  "@processSettingsFilamentSlot": {"placeholders": {"slot": {"type": "String"}, "name": {"type": "String"}}},
+  "@processSettingsFilamentSlot": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "processSettingsFilamentSlotMissing": "Emplacement {slot} — ce fichier ne comporte aucun emplacement de ce type",
-  "@processSettingsFilamentSlotMissing": {"placeholders": {"slot": {"type": "String"}}},
+  "@processSettingsFilamentSlotMissing": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "sliceSelect": "Appuyer pour sélectionner",
   "sliceStart": "Découper",
   "sliceShowAll": "Tout",
@@ -1468,12 +2665,24 @@
   "sliceExternalInvalidName": "Ce dossier n'a pas accepté le nom du fichier.",
   "sliceClose": "Fermer",
   "sliceResultTime": "Temps estimé : {time}",
-  "@sliceResultTime": {"placeholders": {"time": {"type": "String"}}},
+  "@sliceResultTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "sliceRefusedStep": "Les fichiers STEP ne peuvent pas être découpés. Exportez d'abord le modèle au format STL ou 3MF depuis votre logiciel de CAO.",
   "sliceRefusedFormat": "Le fichier source doit être un STL ou un 3MF.",
   "sliceRefusedNoSource": "Cette archive n'a conservé que le G-code imprimé, pas le modèle — il n'y a rien à redécouper.",
   "sliceResultFilament": "Filament : {grams} g",
-  "@sliceResultFilament": {"placeholders": {"grams": {"type": "String"}}},
+  "@sliceResultFilament": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "sliceTierLocal": "Préréglage local",
   "sliceTierCloud": "Bambu Cloud",
   "sliceTierOrcaCloud": "Orca Cloud",
@@ -1482,7 +2691,13 @@
   "pipelineApply": "Appliquer le pipeline…",
   "pipelineApplyEmpty": "Aucun pipeline enregistré",
   "pipelineApplied": "« {name} » appliqué",
-  "@pipelineApplied": {"placeholders": {"name": {"type": "String"}}},
+  "@pipelineApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineSaveAs": "Enregistrer comme pipeline",
   "pipelineNameHint": "Nom du pipeline",
   "pipelineSaveConfirm": "Enregistrer",
@@ -1493,11 +2708,23 @@
   "pipelinesEmpty": "Aucun pipeline pour l'instant",
   "pipelinesEmptyHint": "Enregistrez-en un depuis le formulaire de découpage : imprimante, processus, filaments et plateau regroupés pour les réappliquer en un seul geste.",
   "pipelineFilamentsCount": "Filaments ({count})",
-  "@pipelineFilamentsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@pipelineFilamentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineHistory": "Historique des exécutions",
   "pipelineCardActions": "Actions du pipeline",
   "pipelineSlotNumbered": "Filament {n}",
-  "@pipelineSlotNumbered": {"placeholders": {"n": {"type": "int"}}},
+  "@pipelineSlotNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineBed": "Plaque",
   "pipelinePresetGone": "Plus disponible dans le catalogue",
   "pipelineNeedsTarget": "Définissez une cible avant de lancer ce pipeline.",
@@ -1511,14 +2738,26 @@
   "pipelineTargetPickClass": "Choisir un modèle",
   "pipelineTargetNone": "— aucune cible —",
   "pipelineTargetPrinterGone": "Imprimante #{id} (disparue)",
-  "@pipelineTargetPrinterGone": {"placeholders": {"id": {"type": "int"}}},
+  "@pipelineTargetPrinterGone": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineFanout": "Répartition des exemplaires",
   "pipelineFanoutMaxParallel": "Parallélisme maximal — sur toute imprimante compatible inactive",
   "pipelineFanoutRoundRobin": "Tour de rôle (round-robin) — alterne entre les imprimantes éligibles",
   "pipelineFanoutFillOneFirst": "Remplir une imprimante d'abord — tous les exemplaires sur la même",
   "pipelineDelete": "Supprimer le pipeline",
   "pipelineDeleteConfirm": "Supprimer « {name} » ? Les exécutions déjà effectuées conserveront leur nom.",
-  "@pipelineDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@pipelineDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineDeleted": "Pipeline supprimé",
   "pipelineRun": "Lancer",
   "pipelineRunCopies": "Exemplaires",
@@ -1526,10 +2765,25 @@
   "pipelineRunStarted": "Exécution lancée",
   "pipelineRunAnyway": "Lancer quand même",
   "pipelineRunMaxCopies": "Ce serveur autorise au maximum {max}.",
-  "@pipelineRunMaxCopies": {"placeholders": {"max": {"type": "int"}}},
+  "@pipelineRunMaxCopies": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineEligibilityOk": "Prêt à être lancé.",
   "pipelineEligibilityClassCount": "{ok} sur {total} imprimantes prêtes",
-  "@pipelineEligibilityClassCount": {"placeholders": {"ok": {"type": "int"}, "total": {"type": "int"}}},
+  "@pipelineEligibilityClassCount": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineEligibilityBlocked": "Aucune imprimante ne peut prendre cette exécution pour le moment.",
   "pipelineEligibilityAdvisory": "À vérifier avant de lancer.",
   "pipelineIssuePrinterNotSet": "Ce pipeline n'a pas d'imprimante cible.",
@@ -1543,11 +2797,32 @@
   "pipelineIssueNoClassMatches": "Aucune imprimante de ce modèle n'est installée.",
   "pipelineIssueClassNotSet": "Ce pipeline n'a aucun modèle d'imprimante défini.",
   "pipelineIssueSlot": "Emplacement {n}",
-  "@pipelineIssueSlot": {"placeholders": {"n": {"type": "int"}}},
+  "@pipelineIssueSlot": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineIssueWantedGot": "attendu : {expected}, chargé : {actual}",
-  "@pipelineIssueWantedGot": {"placeholders": {"expected": {"type": "String"}, "actual": {"type": "String"}}},
+  "@pipelineIssueWantedGot": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      },
+      "actual": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineIssueWanted": "attendu : {expected}",
-  "@pipelineIssueWanted": {"placeholders": {"expected": {"type": "String"}}},
+  "@pipelineIssueWanted": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunsTitle": "Exécutions du pipeline",
   "pipelineRunsEmpty": "Aucune exécution pour l'instant",
   "pipelineRunsNoneMatch": "Aucune exécution ne correspond à ces filtres",
@@ -1557,7 +2832,13 @@
   "pipelineEligible": "Prêt",
   "pipelineIneligible": "Non prêt",
   "pipelineRunsFilterActive": "Filtrer les exécutions ({count} actifs)",
-  "@pipelineRunsFilterActive": {"placeholders": {"count": {"type": "int"}}},
+  "@pipelineRunsFilterActive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsFilterAny": "Tous",
   "pipelineRunsFilterStatus": "Statut",
   "pipelineRunsFilterStatusHint": "Le filtre porte sur le dernier statut enregistré : une exécution peut donc encore correspondre à l'étape précédant celle où elle se trouve.",
@@ -1567,30 +2848,81 @@
   "pipelineRunsFilterClear": "Effacer les filtres",
   "pipelineRunsLoadMore": "Charger plus",
   "pipelineRunsShowingAll": "{count, plural, =1{{count} affiché} other{Tous les {count} affichés}}",
-  "@pipelineRunsShowingAll": {"placeholders": {"count": {"type": "int"}}},
+  "@pipelineRunsShowingAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsDone": "Terminé",
   "pipelineRunsClear": "Effacer les terminées",
   "pipelineRunsCleared": "{count, plural, =1{{count} supprimée} other{{count} supprimées}}",
-  "@pipelineRunsCleared": {"placeholders": {"count": {"type": "int"}}},
+  "@pipelineRunsCleared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsClearConfirm": "Supprimer de cette liste toutes les exécutions terminées ?",
   "pipelineRunCopiesProgress": "{done} sur {total} exemplaires",
-  "@pipelineRunCopiesProgress": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "@pipelineRunCopiesProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunCancel": "Annuler l'exécution",
   "pipelineRunCancelConfirm": "Annuler cette exécution ? Les exemplaires non encore envoyés seront abandonnés ; toute impression déjà en cours doit être arrêtée directement sur l'imprimante.",
   "pipelineRunCancelled": "Exécution annulée",
   "pipelineRunRetry": "Réessayer les échecs",
   "pipelineRunRetryStarted": "{count, plural, =1{Nouvelle tentative pour {count} exemplaire} other{Nouvelle tentative pour {count} exemplaires}}",
-  "@pipelineRunRetryStarted": {"placeholders": {"count": {"type": "int"}}},
+  "@pipelineRunRetryStarted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunOverridden": "Démarré malgré l'échec d'une vérification",
   "pipelineRunDeletedPipeline": "Pipeline supprimé",
   "pipelineRunSource": "Depuis {name}",
-  "@pipelineRunSource": {"placeholders": {"name": {"type": "String"}}},
+  "@pipelineRunSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunRetryOf": "Nouvelle tentative de l'exécution #{id}",
-  "@pipelineRunRetryOf": {"placeholders": {"id": {"type": "int"}}},
+  "@pipelineRunRetryOf": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunOnPrinter": "Sur {printer}",
-  "@pipelineRunOnPrinter": {"placeholders": {"printer": {"type": "String"}}},
+  "@pipelineRunOnPrinter": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunOnClass": "Sur n'importe quelle {model}",
-  "@pipelineRunOnClass": {"placeholders": {"model": {"type": "String"}}},
+  "@pipelineRunOnClass": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineStatusQueued": "En file d'attente",
   "pipelineStatusSlicing": "Découpage",
   "pipelineStatusDispatching": "Envoi",
@@ -1601,7 +2933,13 @@
   "pipelineStatusCancelled": "Annulée",
   "pipelineStatusUnknown": "Inconnue",
   "pipelineJobCopy": "Exemplaire {n}",
-  "@pipelineJobCopy": {"placeholders": {"n": {"type": "int"}}},
+  "@pipelineJobCopy": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineJobPending": "En attente",
   "pipelineJobAwaitingPrinter": "En attente d'une imprimante",
   "pipelineJobQueued": "En file d'attente",
@@ -1613,11 +2951,26 @@
   "queueFilamentMapping": "Mappage des filaments",
   "mappingNoSlots": "Aucune information de filament pour ce fichier.",
   "mappingNoAms": "Aucun filament AMS chargé sur {printer}.",
-  "@mappingNoAms": {"placeholders": {"printer": {"type": "String"}}},
+  "@mappingNoAms": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "mappingPickTray": "Sélectionner un emplacement AMS",
   "mappingExternalSpool": "Bobine externe",
   "mappingAmsSlot": "AMS {unit} · emplacement {slot}",
-  "@mappingAmsSlot": {"placeholders": {"unit": {"type": "String"}, "slot": {"type": "String"}}},
+  "@mappingAmsSlot": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "mappingSaved": "Mappage des filaments enregistré",
   "plateClearTitle": "Le plateau est-il dégagé ?",
   "plateClearBody": "Assurez-vous que le plateau d'impression est vide avant de lancer cette impression.",
@@ -1629,7 +2982,13 @@
   "pfmTitle": "Gestionnaire de fichiers",
   "pfmTooltip": "Fichiers sur l'imprimante",
   "pfmStorageUsed": "Utilisé : {size}",
-  "@pfmStorageUsed": {"placeholders": {"size": {"type": "String"}}},
+  "@pfmStorageUsed": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "pfmTabRoot": "Racine",
   "pfmTabCache": "Cache",
   "pfmTabModels": "Modèles",
@@ -1647,7 +3006,13 @@
   "pfmSelectAll": "Tout sélectionner",
   "pfmDeselectAll": "Tout désélectionner",
   "pfmSelected": "{count, plural, =1{{count} sélectionné} other{{count} sélectionnés}}",
-  "@pfmSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@pfmSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmEmpty": "Ce dossier est vide",
   "pfmNoMatches": "Aucun fichier ne correspond à votre filtre",
   "pfmPrinterUnavailable": "L'imprimante n'a pas répondu, ses fichiers n'ont pas pu être listés",
@@ -1659,16 +3024,34 @@
   "pfmDownloadCancelled": "Téléchargement annulé",
   "pfmDownloadPrepareFailed": "Le serveur n'a pas pu préparer ce téléchargement",
   "pfmDownloadPartial": "{count, plural, one{Un fichier n'a pas pu être lu depuis l'imprimante et a été ignoré} other{{count} fichiers n'ont pas pu être lus depuis l'imprimante et ont été ignorés}}",
-  "@pfmDownloadPartial": {"placeholders": {"count": {"type": "int"}}},
+  "@pfmDownloadPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmDownloadSaved": "Fichier enregistré",
   "pfmDownloadNotSaved": "Le fichier n'a pas pu être enregistré à l'emplacement choisi",
   "pfmDownload": "Télécharger",
   "pfmDelete": "Supprimer",
   "pfmDeleteConfirmTitle": "Supprimer les fichiers ?",
   "pfmDeleteConfirmBody": "Supprimer définitivement {count} {count, plural, one{fichier} other{fichiers}} de l'imprimante ? Cette action est irréversible.",
-  "@pfmDeleteConfirmBody": {"placeholders": {"count": {"type": "int"}}},
+  "@pfmDeleteConfirmBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmDeleted": "{count, plural, one{{count} fichier supprimé} other{{count} fichiers supprimés}}",
-  "@pfmDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "@pfmDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "wearConnectionFailed": "Échec de connexion",
   "wearNoPrinters": "Aucune imprimante",
   "wearPrinterUnavailable": "Imprimante indisponible",
@@ -1716,25 +3099,64 @@
   "queueEditTarget": "Cible",
   "queueEditSpecificPrinter": "Imprimante spécifique",
   "queueEditAnyModel": "N'importe quelle {model}",
-  "@queueEditAnyModel": {"placeholders": {"model": {"type": "String"}}},
+  "@queueEditAnyModel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditAnyModelGeneric": "N'importe quel modèle",
   "queueEditTargetModel": "Modèle",
   "queueEditTargetLocation": "Emplacement",
   "queueEditAnyLocation": "Tout emplacement",
   "queueEditMappingNeedsPrinter": "Sélectionnez une imprimante pour associer les filaments",
   "queueEditMappingSummary": "{count} {count, plural, one{emplacement associé} other{emplacements associés}}",
-  "@queueEditMappingSummary": {"placeholders": {"count": {"type": "int"}}},
+  "@queueEditMappingSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditMappingAuto": "Auto (aucune association manuelle)",
   "queueEditPlate": "Plateau",
   "queueEditPlateSelected": "Plateau {plate}",
-  "@queueEditPlateSelected": {"placeholders": {"plate": {"type": "int"}}},
+  "@queueEditPlateSelected": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditPlateNamed": "Plateau {plate} · {name}",
-  "@queueEditPlateNamed": {"placeholders": {"plate": {"type": "int"}, "name": {"type": "String"}}},
+  "@queueEditPlateNamed": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditPlateFixed": "Ce travail imprime le plateau {plate}",
-  "@queueEditPlateFixed": {"placeholders": {"plate": {"type": "int"}}},
+  "@queueEditPlateFixed": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "queuePlatePickTitle": "Quel plateau ?",
   "queuePlateObjects": "{count, plural, =0{Aucun objet} =1{1 objet} other{{count} objets}}",
-  "@queuePlateObjects": {"placeholders": {"count": {"type": "int"}}},
+  "@queuePlateObjects": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditPrintOptions": "Options d'impression",
   "queueOptBedLevelling": "Nivellement du plateau",
   "queueOptBedLevellingDesc": "Niveler automatiquement le plateau avant l'impression",
@@ -1753,7 +3175,13 @@
   "queuePreheatInherit": "Hériter",
   "queueEditChamberTarget": "Remplacer la température de chambre (°C, vide = défaut du filament)",
   "queueEditChamberTargetRange": "0–{max} °C",
-  "@queueEditChamberTargetRange": {"placeholders": {"max": {"type": "int"}}},
+  "@queueEditChamberTargetRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditWhenToPrint": "Quand imprimer",
   "queueScheduleAsap": "Dès que possible",
   "queueScheduleQueue": "File d'attente",
@@ -1764,7 +3192,13 @@
   "queueEditPowerOff": "Éteindre l'imprimante une fois terminé",
   "queueEditGcodeInjection": "Injecter le G-code d'impression automatique",
   "queueEditGcodeInjectionNoSnippet": "Aucun extrait G-code pour {model} — rien ne sera injecté.",
-  "@queueEditGcodeInjectionNoSnippet": {"placeholders": {"model": {"type": "String"}}},
+  "@queueEditGcodeInjectionNoSnippet": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditNoModel": "Sélectionnez un modèle cible",
   "queueEditNoPrinter": "Sélectionnez une imprimante",
   "queueEditFilamentOverride": "Substitution de filament",
@@ -1772,23 +3206,74 @@
   "queueEditNoFilamentReqs": "Aucune exigence de filament pour ce travail.",
   "queueEditOriginal": "Original",
   "queueEditSlotLabel": "Emplacement {slot} · {type}",
-  "@queueEditSlotLabel": {"placeholders": {"slot": {"type": "String"}, "type": {"type": "String"}}},
+  "@queueEditSlotLabel": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditForceColorMatch": "Forcer la correspondance de couleur",
   "queueEditNozzleRack": "Rack de buses",
   "queueEditNozzleRackDesc": "Choisissez depuis quelle buse du rack chaque filament s'imprime. Si laissé en automatique, une position adaptée sera choisie au lancement de l'impression.",
   "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {"placeholders": {"slots": {"type": "String"}, "nozzle": {"type": "String"}}},
+  "@queueEditRackGroupLabel": {
+    "placeholders": {
+      "slots": {
+        "type": "String"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackAuto": "Automatique",
   "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": {"placeholders": {"position": {"type": "int"}, "nozzle": {"type": "String"}}},
+  "@queueEditRackPosition": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackPositionTaken": "Position {position} · {nozzle} — déjà choisie",
-  "@queueEditRackPositionTaken": {"placeholders": {"position": {"type": "int"}, "nozzle": {"type": "String"}}},
+  "@queueEditRackPositionTaken": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackPositionUnfit": "Position {position} · {nozzle} — incompatible",
-  "@queueEditRackPositionUnfit": {"placeholders": {"position": {"type": "int"}, "nozzle": {"type": "String"}}},
+  "@queueEditRackPositionUnfit": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackEmpty": "vide",
   "queueEditRackPickStale": "La position choisie ne convient plus à ce filament — choisissez-en une autre, sinon l'impression sera refusée au démarrage.",
   "queueEditRackNoFit": "Aucune position du rack ne contient de buse {nozzle} — installez-en une, sinon l'imprimante décidera d'elle-même.",
-  "@queueEditRackNoFit": {"placeholders": {"nozzle": {"type": "String"}}},
+  "@queueEditRackNoFit": {
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "nozzleFlowStandard": "Standard",
   "nozzleFlowHigh": "Haut débit",
   "bugReportMenu": "Signaler un bug ou proposer une idée",
@@ -1815,7 +3300,13 @@
   "usersNoGroups": "aucun",
   "usersPermissionsLabel": "Permissions",
   "usersPermissionsCount": "{count, plural, =0{aucune} =1{1 permission} other{{count} permissions}}",
-  "@usersPermissionsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@usersPermissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "usersPermissionsUnknown": "non communiqué par le serveur",
   "usersAuthSourceLabel": "Connexion",
   "usersAuthSourceLocal": "Compte local",
@@ -1859,10 +3350,22 @@
   "usersPasswordNoDigit": "Ajoutez un chiffre.",
   "usersPasswordNoSpecial": "Ajoutez un symbole.",
   "usersDeleteTitle": "Supprimer {username} ?",
-  "@usersDeleteTitle": {"placeholders": {"username": {"type": "String"}}},
+  "@usersDeleteTitle": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "usersDeleteBody": "Le compte, ses clés API et son état de connexion seront supprimés. Cette action est irréversible.",
   "usersDeleteOwnsCount": "{count, plural, =1{Ce compte a créé 1 élément} other{Ce compte a créé {count} éléments}}",
-  "@usersDeleteOwnsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@usersDeleteOwnsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "usersDeleteItemsToo": "Les supprimer aussi",
   "usersDeleteItemsTooHint": "Ses impressions, éléments en file d'attente et fichiers seront supprimés avec le compte.",
   "usersDeleteItemsKeepHint": "Ses impressions, éléments en file d'attente et fichiers seront conservés, sans propriétaire.",
@@ -1884,18 +3387,45 @@
   "groupsSystemPill": "Intégré",
   "groupsSystemNote": "Un groupe intégré ne peut pas être renommé et ses permissions sont fixes — seuls ses membres peuvent changer.",
   "groupsMemberCount": "{count, plural, =0{aucun compte} =1{1 compte} other{{count} comptes}}",
-  "@groupsMemberCount": {"placeholders": {"count": {"type": "int"}}},
+  "@groupsMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsPermissionCount": "{count, plural, =0{aucune permission} =1{1 permission} other{{count} permissions}}",
-  "@groupsPermissionCount": {"placeholders": {"count": {"type": "int"}}},
+  "@groupsPermissionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsMembersHeader": "MEMBRES",
   "groupsNoMembers": "Personne ne fait partie de ce groupe.",
   "groupsAddMember": "Ajouter un membre",
   "groupsAddMemberTitle": "Ajouter à {group}",
-  "@groupsAddMemberTitle": {"placeholders": {"group": {"type": "String"}}},
+  "@groupsAddMemberTitle": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsEveryoneIsIn": "Tous les comptes font déjà partie de ce groupe.",
   "groupsRemoveMember": "Retirer",
   "groupsRemoveMemberQuestion": "Retirer {username} de {group} ?",
-  "@groupsRemoveMemberQuestion": {"placeholders": {"username": {"type": "String"}, "group": {"type": "String"}}},
+  "@groupsRemoveMemberQuestion": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsRemoveMemberBody": "Le compte est conservé et perd ce que ce groupe lui accordait.",
   "groupsCreate": "Nouveau groupe",
   "groupsCreateTitle": "Nouveau groupe",
@@ -1904,16 +3434,34 @@
   "groupsSaved": "Groupe enregistré",
   "groupsDeleted": "Groupe supprimé",
   "groupsDeleteQuestion": "Supprimer {group} ?",
-  "@groupsDeleteQuestion": {"placeholders": {"group": {"type": "String"}}},
+  "@groupsDeleteQuestion": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsDeleteBody": "Les permissions qu'il accorde disparaîtront avec lui.",
   "groupsDeleteBodyWithMembers": "{count, plural, =1{1 compte en fait partie et sera conservé — il perdra simplement ce que ce groupe lui accordait.} other{{count} comptes en font partie et seront conservés — ils perdront simplement ce que ce groupe leur accordait.}}",
-  "@groupsDeleteBodyWithMembers": {"placeholders": {"count": {"type": "int"}}},
+  "@groupsDeleteBodyWithMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsFieldName": "Nom",
   "groupsFieldDescription": "À quoi il sert",
   "groupsSystemFormNote": "Groupe intégré : son nom et ses permissions sont fixés par le serveur. Seule la description peut être modifiée ici.",
   "groupsPermissionsHeader": "PERMISSIONS",
   "groupsPermissionsSelected": "{count, plural, one{{count} sélectionnée} other{{count} sélectionnées}}",
-  "@groupsPermissionsSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@groupsPermissionsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsAdvancedPermissions": "Administration du serveur",
   "groupsAdvancedHint": "Utilisateurs, clés API, paramètres, sauvegardes — tout ce pour quoi l'application n'a pas d'écran dédié.",
   "serverSettingsMenu": "Paramètres du serveur",
@@ -1932,23 +3480,53 @@
   "queueSettingsShortestFirstTitle": "Travail le plus court en premier",
   "queueSettingsShortestFirstDesc": "Prendre le travail en attente le plus court plutôt que celui qui attend depuis le plus longtemps.",
   "queueSettingsMaxUploads": "Fichiers téléversés simultanément : {count}",
-  "@queueSettingsMaxUploads": {"placeholders": {"count": {"type": "int"}}},
+  "@queueSettingsMaxUploads": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueSettingsPreheatHeader": "Préchauffage",
   "queueSettingsPreheatTitle": "Préchauffer avant un travail",
   "queueSettingsPreheatDesc": "Chauffe la chambre avant l'envoi du fichier. Un travail en file d'attente peut l'outrepasser individuellement.",
   "queueSettingsPreheatMaxWait": "Limite d'attente de la chambre : {duration}",
-  "@queueSettingsPreheatMaxWait": {"placeholders": {"duration": {"type": "String"}}},
+  "@queueSettingsPreheatMaxWait": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsPreheatSoak": "Stabilisation après atteinte de la température : {duration}",
-  "@queueSettingsPreheatSoak": {"placeholders": {"duration": {"type": "String"}}},
+  "@queueSettingsPreheatSoak": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsNoSoak": "aucune stabilisation",
   "queueSettingsPreheatOffNote": "Le préchauffage est désactivé, les paramètres ci-dessous n'ont donc aucun effet.",
   "queueSettingsKeepWarmHeader": "Maintien au chaud",
   "queueSettingsKeepWarmTitle": "Maintenir le plateau chaud entre les impressions",
   "queueSettingsKeepWarmDesc": "Tant que personne ne retire l'impression terminée, le plateau reste chaud afin que le prochain travail nécessitant une chambre chaude ne démarre pas à froid. Ignoré pour le PLA et le PETG.",
   "queueSettingsKeepWarmTemp": "Température du plateau pour chauffer la chambre : {temp} °C",
-  "@queueSettingsKeepWarmTemp": {"placeholders": {"temp": {"type": "int"}}},
+  "@queueSettingsKeepWarmTemp": {
+    "placeholders": {
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "queueSettingsKeepWarmMax": "Durée maximale de maintien du plateau : {duration}",
-  "@queueSettingsKeepWarmMax": {"placeholders": {"duration": {"type": "String"}}},
+  "@queueSettingsKeepWarmMax": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsMaxUploadsDesc": "Avant qu'un travail en file d'attente ne démarre, son fichier est envoyé à l'imprimante par FTP, ce qui peut prendre des minutes. Cela définit le nombre de transferts simultanés — cela n'a d'effet qu'avec plusieurs imprimantes.",
   "queueSettingsPreheatMaxWaitDesc": "Une X1C ou P2S n'a pas de chauffage de chambre — la chambre chauffe grâce au plateau, ce qui peut prendre 15 à 30 minutes. Passé ce délai, la file d'attente cesse d'attendre et passe à la stabilisation.",
   "queueSettingsPreheatSoakDesc": "Durée de maintien à température une fois celle-ci atteinte par la chambre, ou après expiration du délai d'attente ci-dessus. Zéro pour ignorer.",
@@ -1957,7 +3535,13 @@
   "queueSettingsKeepWarmOffNote": "Le maintien au chaud est désactivé. La température de plateau ci-dessus s'applique toujours au préchauffage.",
   "adminTitle": "Administration",
   "adminSignedInAs": "Connecté en tant que {username}",
-  "@adminSignedInAs": {"placeholders": {"username": {"type": "String"}}},
+  "@adminSignedInAs": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "adminUsersSubtitle": "Qui dispose d'un compte et ce que chacun peut faire",
   "adminGroupsSubtitle": "Ensembles de permissions et utilisateurs qui les détiennent",
   "adminApiKeysSubtitle": "Identifiants pour tout ce qui n'est pas cette application",
@@ -1970,17 +3554,41 @@
   "apiKeysRevoke": "Révoquer",
   "apiKeysRevoked": "Clé révoquée",
   "apiKeysRevokeQuestion": "Révoquer {name} ?",
-  "@apiKeysRevokeQuestion": {"placeholders": {"name": {"type": "String"}}},
+  "@apiKeysRevokeQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysRevokeBody": "Tout ce qui utilise cette clé cessera immédiatement de fonctionner. Cette action est irréversible — une nouvelle clé devra être générée.",
   "apiKeysLastUsed": "dernière utilisation le {date}",
-  "@apiKeysLastUsed": {"placeholders": {"date": {"type": "String"}}},
+  "@apiKeysLastUsed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysNeverUsed": "jamais utilisée",
   "apiKeysDisabled": "Désactivée",
   "apiKeysExpired": "Expirée",
   "apiKeysExpiresOn": "jusqu'au {date}",
-  "@apiKeysExpiresOn": {"placeholders": {"date": {"type": "String"}}},
+  "@apiKeysExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysPrinterLimited": "{count, plural, =1{1 imprimante} other{{count} imprimantes}}",
-  "@apiKeysPrinterLimited": {"placeholders": {"count": {"type": "int"}}},
+  "@apiKeysPrinterLimited": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "apiKeysLegacy": "Sans propriétaire",
   "apiKeysFieldName": "Nom",
   "apiKeysFieldNameHint": "Ce qui utilise cette clé — « Home Assistant », « SpoolBuddy ».",
@@ -2030,7 +3638,16 @@
   "printLogNoUser": "Aucun utilisateur",
   "printLogOrphan": "Archive supprimée",
   "printLogShowing": "{loaded} sur {total}",
-  "@printLogShowing": {"placeholders": {"loaded": {"type": "int"}, "total": {"type": "int"}}},
+  "@printLogShowing": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "printLogLoadMore": "Charger plus",
   "printLogSort": "Trier par",
   "printLogSortDate": "Date",
@@ -2052,7 +3669,13 @@
   "printLogStatusSkipped": "Ignorée",
   "printLogStatusAborted": "Interrompue",
   "printLogEnergy": "{value} kWh",
-  "@printLogEnergy": {"placeholders": {"value": {"type": "String"}}},
+  "@printLogEnergy": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "printLogClassifyTitle": "Classifier cette impression",
   "printLogDetailStarted": "Début",
   "printLogDetailFinished": "Fin",
@@ -2066,7 +3689,13 @@
   "printLogCountsAsFailure": "Comptabilisé comme un échec — cette impression et sa cause apparaîtront dans l'analyse des échecs.",
   "printLogNotCountedAsFailure": "Non comptabilisé comme un échec, la cause est donc exclue de l'analyse des échecs.",
   "printLogStatusOneWay": "Ce serveur ne peut pas rétablir « {status} ». Si vous le modifiez, il sera définitivement perdu.",
-  "@printLogStatusOneWay": {"placeholders": {"status": {"type": "String"}}},
+  "@printLogStatusOneWay": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "printLogSave": "Enregistrer",
   "printLogSaveFailed": "Impossible d'enregistrer la classification",
   "printLogDelete": "Supprimer l'impression",
@@ -2076,10 +3705,22 @@
   "printLogClear": "Effacer l'historique des impressions",
   "printLogClearTitle": "Effacer tout l'historique des impressions ?",
   "printLogClearBody": "{count, plural, one{L'unique impression de l'historique sera supprimée} other{Toutes les {count} impressions seront supprimées}} — celles de tous les utilisateurs, pas seulement les vôtres — et leur filament, leur coût et leur durée seront retirés des statistiques. Les archives et la file d'attente ne sont pas affectées. Cette action est irréversible.",
-  "@printLogClearBody": {"placeholders": {"count": {"type": "int"}}},
+  "@printLogClearBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "printLogClearBodyFiltered": "Toutes les impressions de l'historique seront supprimées — celles de tous les utilisateurs, pas seulement les vôtres, et le filtre appliqué ne les limite pas — et leur filament, leur coût et leur durée seront retirés des statistiques. Les archives et la file d'attente ne sont pas affectées. Cette action est irréversible.",
   "printLogCleared": "{count, plural, one{{count} impression supprimée} other{{count} impressions supprimées}}",
-  "@printLogCleared": {"placeholders": {"count": {"type": "int"}}},
+  "@printLogCleared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "printLogClearFailed": "Impossible d'effacer l'historique des impressions",
   "failureReasonAdhesion": "Défaut d'adhérence",
   "failureReasonSpaghetti": "Spaghetti / impression décollée",

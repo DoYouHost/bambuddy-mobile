@@ -11,7 +11,15 @@ enum SignInReason {
 
   /// The password still works; nothing in the background can supply a second
   /// factor.
-  twoFactorRequired;
+  twoFactorRequired,
+
+  /// The profile says this server is authenticated, and the secure store has
+  /// nothing to authenticate with. Nobody rejected anything — the secret is
+  /// simply gone, which is what a restored backup, a wiped Keystore or a
+  /// storage format the current plugin can no longer read all look like from
+  /// here. Without this the app keeps sending unauthenticated requests and
+  /// shows their 401s as an empty dashboard.
+  credentialsMissing;
 
   static SignInReason fromName(String? name) {
     for (final reason in SignInReason.values) {

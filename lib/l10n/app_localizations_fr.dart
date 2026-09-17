@@ -32,6 +32,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre compte requiert désormais un deuxième facteur d\'authentification et l\'application ne peut pas le fournir en arrière-plan — elle a donc cessé de se connecter automatiquement. Reconnectez-vous et saisissez le code.';
 
   @override
+  String get signInRequiredMissingBody =>
+      'L\'application ne parvient plus à lire vos identifiants enregistrés et a donc cessé de les utiliser. Il suffit de vous reconnecter : rien d\'autre n\'a été perdu.';
+
+  @override
   String get later => 'Plus tard';
 
   @override

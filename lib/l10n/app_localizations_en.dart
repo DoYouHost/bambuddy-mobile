@@ -32,6 +32,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.';
 
   @override
+  String get signInRequiredMissingBody =>
+      'The app can no longer read your saved sign-in details, so it stopped using them. Signing in again is all it takes — nothing else was lost.';
+
+  @override
   String get later => 'Later';
 
   @override

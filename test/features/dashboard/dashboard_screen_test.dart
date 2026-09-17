@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
@@ -687,6 +688,54 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Zaloguj się ponownie'), findsNothing);
+    });
+
+    testWidgets('an empty store raises the warning with nobody to raise it', (
+      tester,
+    ) async {
+      // Nothing rejected these credentials — they are gone, which is what a
+      // secure store that cannot read its own older format leaves behind. The
+      // two writers of the flag only ever hear a rejection, so without this the
+      // app keeps sending bare requests and shows their 401s as an empty
+      // dashboard.
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(
+        find.textContaining('nie potrafi już odczytać'),
+        findsOneWidget,
+        reason: 'the wording must not blame a password nobody rejected',
+      );
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that is there raises nothing', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
     });
 
     testWidgets('"Sign in" leads to the setup screen', (tester) async {

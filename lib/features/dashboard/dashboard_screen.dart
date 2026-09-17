@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/ws_client.dart';
+import '../../core/auth/auth_headers.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
@@ -185,7 +186,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _signInChecking = false;
     }
     if (!mounted) return;
-    if (!settings.loadSignInRequired()) return;
+    // Nobody rejected these credentials — they are not there at all, and the
+    // two places that raise the flag only ever hear a rejection. Raised here so
+    // that a session which ended without a word still ends visibly.
+    var reason = settings.loadSignInReason();
+    if (!settings.loadSignInRequired()) {
+      final profile = ref.read(serverProfileProvider);
+      if (profile == null ||
+          !await credentialMissing(
+            profile.authMode,
+            ref.read(credentialsStoreProvider),
+          )) {
+        return;
+      }
+      reason = SignInReason.credentialsMissing;
+      await settings.saveSignInRequired(true, reason: reason);
+      if (!mounted) return;
+    }
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
@@ -194,9 +211,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: l10n.signInRequiredTitle,
       // 2FA gets its own wording: the saved password is fine there, and sending
       // the user off to reset it would waste their time on the wrong thing.
-      message: switch (settings.loadSignInReason()) {
+      message: switch (reason) {
         SignInReason.credentialsRejected => l10n.signInRequiredBody,
         SignInReason.twoFactorRequired => l10n.signInRequiredTwoFactorBody,
+        SignInReason.credentialsMissing => l10n.signInRequiredMissingBody,
       },
       confirmLabel: l10n.signInRequiredAction,
       cancelLabel: l10n.later,

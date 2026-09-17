@@ -32,6 +32,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Konto wymaga teraz drugiego składnika, a aplikacja nie poda go w tle — więc przestała logować się sama. Zaloguj się ponownie i wpisz kod.';
 
   @override
+  String get signInRequiredMissingBody =>
+      'Aplikacja nie potrafi już odczytać zapisanych danych logowania, więc przestała ich używać. Wystarczy zalogować się ponownie — nic poza tym nie przepadło.';
+
+  @override
   String get later => 'Później';
 
   @override

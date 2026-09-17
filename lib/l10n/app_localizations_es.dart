@@ -32,6 +32,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu cuenta ahora solicita un segundo factor y la aplicación no puede proporcionarlo en segundo plano — por lo que dejó de iniciar sesión automáticamente. Inicia sesión de nuevo e introduce el código.';
 
   @override
+  String get signInRequiredMissingBody =>
+      'La aplicación ya no puede leer tus datos de acceso guardados, así que ha dejado de usarlos. Basta con volver a iniciar sesión: no se ha perdido nada más.';
+
+  @override
   String get later => 'Más tarde';
 
   @override

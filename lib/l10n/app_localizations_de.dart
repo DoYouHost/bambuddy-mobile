@@ -32,6 +32,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dein Konto erfordert jetzt einen zweiten Faktor, den die App im Hintergrund nicht bereitstellen kann — daher wurde die automatische Anmeldung beendet. Melde dich erneut an und gib den Code ein.';
 
   @override
+  String get signInRequiredMissingBody =>
+      'Die App kann die gespeicherten Anmeldedaten nicht mehr lesen und verwendet sie deshalb nicht weiter. Eine erneute Anmeldung genügt — sonst ist nichts verloren gegangen.';
+
+  @override
   String get later => 'Später';
 
   @override

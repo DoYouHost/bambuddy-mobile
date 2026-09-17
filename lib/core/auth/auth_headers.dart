@@ -19,3 +19,18 @@ Future<Map<String, String>> authHeaders(
       return key == null ? const {} : {'X-API-Key': key};
   }
 }
+
+/// Whether the profile promises a credential the store cannot produce.
+///
+/// The mirror image of [authHeaders]: every mode that would add a header here
+/// has something to lose, and losing it is invisible — the request goes out
+/// bare and comes back 401, which reads as a broken server rather than as a
+/// session that ended.
+Future<bool> credentialMissing(
+  AuthMode mode,
+  CredentialsStore credentials,
+) async => switch (mode) {
+  AuthMode.none => false,
+  AuthMode.jwt => await credentials.readJwt() == null,
+  AuthMode.apiKey => await credentials.readApiKey() == null,
+};
