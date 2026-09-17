@@ -53,12 +53,33 @@ class SecureCredentialsStore implements CredentialsStore {
 
   /// A read that cannot be decrypted is reported as absent, not as an error:
   /// every caller already handles "no credential", and none handles a throw.
+  ///
+  /// Retried once, because the failure this exists for is usually a Keystore
+  /// that is not ready rather than a key that is gone — it happens seconds
+  /// after a reboot, and by the second attempt it is over. Once, not a loop:
+  /// a key that is really gone must not cost a retry budget on every read.
   Future<String?> _read(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } on Object {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
     try {
       return await _storage.read(key: key);
     } on Object catch (error) {
       AuthProbe.credentialUnreadable(key, error);
       return null;
+    }
+  }
+
+  /// Deleting is best-effort for the same reason reading is: the caller is
+  /// usually in the middle of telling the user to sign in again, and a throw
+  /// from here would take that message with it.
+  Future<void> _delete(String key) async {
+    try {
+      await _storage.delete(key: key);
+    } on Object catch (error) {
+      AuthProbe.credentialUnreadable(key, error);
     }
   }
 
@@ -79,8 +100,12 @@ class SecureCredentialsStore implements CredentialsStore {
   @override
   Future<({String username, String password})?> readRememberedLogin() async {
     final username = await _read(_usernameKey);
+    // No second read when the first came up empty: on a failing Keystore that
+    // is another wait and another warning in the log for an answer already
+    // known.
+    if (username == null) return null;
     final password = await _read(_passwordKey);
-    if (username == null || password == null) return null;
+    if (password == null) return null;
     return (username: username, password: password);
   }
 
@@ -92,8 +117,8 @@ class SecureCredentialsStore implements CredentialsStore {
 
   @override
   Future<void> clearRememberedLogin() async {
-    await _storage.delete(key: _usernameKey);
-    await _storage.delete(key: _passwordKey);
+    await _delete(_usernameKey);
+    await _delete(_passwordKey);
   }
 
   @override

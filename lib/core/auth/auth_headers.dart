@@ -26,11 +26,17 @@ Future<Map<String, String>> authHeaders(
 /// has something to lose, and losing it is invisible — the request goes out
 /// bare and comes back 401, which reads as a broken server rather than as a
 /// session that ended.
+///
+/// A remembered login counts. Without a token but with a password the app signs
+/// itself back in on the first 401, which is the whole point of "remember me" —
+/// asking the user to do it by hand would break a feature that was working.
 Future<bool> credentialMissing(
   AuthMode mode,
   CredentialsStore credentials,
 ) async => switch (mode) {
   AuthMode.none => false,
-  AuthMode.jwt => await credentials.readJwt() == null,
+  AuthMode.jwt =>
+    await credentials.readJwt() == null &&
+        await credentials.readRememberedLogin() == null,
   AuthMode.apiKey => await credentials.readApiKey() == null,
 };

@@ -55,6 +55,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// otherwise walk past the guard and open a second dialog.
   bool _signInChecking = false;
 
+  /// The generic session-expiry listener already sent the user to `/setup`.
+  /// Set from the listener, read by the warning, so only one of the two speaks.
+  bool _authExpiredHandled = false;
+
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
@@ -222,7 +226,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _showSignInRequired(SignInReason reason) async {
-    if (!mounted) return;
+    // The generic expiry path got there first and is already on `/setup`;
+    // opening a dialog over it would explain a screen the user has left.
+    if (!mounted || _authExpiredHandled) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
@@ -417,8 +423,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final l10n = AppLocalizations.of(context);
 
     // Session expiry → graceful return to setup, never crash or dead dashboard.
+    //
+    // Skipped once the sign-in warning has taken over: both end at `/setup`,
+    // and a 401 answered by a missing credential raises them together — a
+    // snack bar saying the session expired under a dialog saying the key is
+    // unreadable, with a route change between them.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
-      if (expired) {
+      if (expired && !_signInWarned) {
+        _authExpiredHandled = true;
         ScaffoldMessenger.of(context).snack(l10n.sessionExpired);
         context.go('/setup');
       }
