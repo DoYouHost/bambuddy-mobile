@@ -13,7 +13,6 @@ import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
-import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -181,35 +180,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // the door open for the next resume.
     if (_signInWarned || _signInChecking || !mounted) return;
     _signInChecking = true;
-    final SettingsRepository settings;
+    // Held across the whole check, dialog included. Everything below awaits,
+    // and `_signInWarned` only goes up at the very end of it: releasing the
+    // latch earlier lets a resume that lands in between open a second copy of
+    // a dialog that cannot be dismissed.
     try {
-      // Both writers are other isolates, so the rejection this asks about is
-      // only on disk.
-      settings = await ref.read(settingsRepositoryProvider).reloaded();
+      await _checkSignInRequired();
     } finally {
       _signInChecking = false;
     }
+  }
+
+  Future<void> _checkSignInRequired() async {
+    // Both writers are other isolates, so the rejection this asks about is
+    // only on disk.
+    final settings = await ref.read(settingsRepositoryProvider).reloaded();
     if (!mounted) return;
     final reason = settings.loadSignInReason();
-    final profile = ref.read(serverProfileProvider);
-    final missing =
-        profile != null &&
-        await credentialMissing(
-          profile.authMode,
-          ref.read(credentialsStoreProvider),
-        );
-    if (!mounted) return;
 
     if (!settings.loadSignInRequired()) {
       // Nobody rejected these credentials — they are not there at all, and the
       // two places that raise the flag only ever hear a rejection. Raised here
       // so that a session which ended without a word still ends visibly.
-      if (!missing) return;
+      if (!await _credentialMissing()) return;
       await settings.saveSignInRequired(
         true,
         reason: SignInReason.credentialsMissing,
       );
-      if (!mounted) return;
       return _showSignInRequired(SignInReason.credentialsMissing);
     }
 
@@ -217,12 +214,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Keystore that was briefly unavailable rather than a key that is gone.
     // Nothing else lowers the flag but signing in, so without this the app
     // would keep asking for one it no longer needs.
-    if (reason == SignInReason.credentialsMissing && !missing) {
+    if (reason == SignInReason.credentialsMissing &&
+        !await _credentialMissing()) {
       await settings.saveSignInRequired(false);
-      _signInWarned = false;
       return;
     }
     return _showSignInRequired(reason);
+  }
+
+  /// Asked only where the answer decides something. On a Keystore that is not
+  /// answering this costs two reads, a 300 ms retry each, and a warning per key
+  /// in the log — on every resume, for a question the branch above may not even
+  /// be asking.
+  Future<bool> _credentialMissing() async {
+    final profile = ref.read(serverProfileProvider);
+    if (profile == null) return false;
+    return credentialMissing(
+      profile.authMode,
+      ref.read(credentialsStoreProvider),
+    );
   }
 
   Future<void> _showSignInRequired(SignInReason reason) async {

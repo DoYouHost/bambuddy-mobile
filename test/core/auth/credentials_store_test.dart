@@ -28,6 +28,7 @@ class _FlakyStorage extends FlutterSecureStorage {
   final Map<String, String> values;
   final failed = <String>{};
   var deletes = 0;
+  var deleteAlls = 0;
 
   @override
   Future<String?> read({
@@ -54,6 +55,19 @@ class _FlakyStorage extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async {
     deletes++;
+    throw PlatformException(code: 'Keystore not ready');
+  }
+
+  @override
+  Future<void> deleteAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    deleteAlls++;
     throw PlatformException(code: 'Keystore not ready');
   }
 }
@@ -91,5 +105,18 @@ void main() {
       completes,
     );
     expect(storage.deletes, 2);
+  });
+
+  test('signing out finishes even when the store cannot delete', () async {
+    // By the time this runs the profile is already gone from disk, so a throw
+    // here leaves the app holding a server it has forgotten how to reach. The
+    // entries are then tried one by one: `deleteAll` either happens or does
+    // not, and the one entry that cannot be decrypted must not keep the other
+    // three.
+    final storage = _FlakyStorage({});
+
+    await expectLater(SecureCredentialsStore(storage).clearAll(), completes);
+    expect(storage.deleteAlls, 1);
+    expect(storage.deletes, 4);
   });
 }

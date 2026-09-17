@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -31,6 +32,13 @@ class MjpegStreamEnded implements Exception {
 /// in the foreground; going to the background stops the socket but keeps the
 /// last frame on screen, so returning to it does not flash a spinner.
 ///
+/// A connection that drops is retried on its own, on the backoff in
+/// [reconnectDelays]: a two-second Wi-Fi blip is not something the user should
+/// have to tap a button about, and the view this replaced (`flutter_mjpeg` with
+/// `isLive`) healed from one by itself. A response with an HTTP status is the
+/// exception — the server answered, and what to do about a 401 is the caller's
+/// policy, not a delay.
+///
 /// **On `HttpClient` rather than the app's Dio.** Dio returns the status and the
 /// headers of a `multipart/x-mixed-replace` response and then never emits a byte
 /// of the body — proved on a device against a local MJPEG server in
@@ -45,6 +53,12 @@ class MjpegView extends StatefulWidget {
     required this.error,
     this.fit,
     this.idleTimeout = const Duration(seconds: 15),
+    this.reconnectDelays = const [
+      Duration(seconds: 1),
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+      Duration(seconds: 8),
+    ],
   });
 
   final String url;
@@ -57,6 +71,12 @@ class MjpegView extends StatefulWidget {
   /// client uses for a receive.
   final Duration idleTimeout;
 
+  /// Waits before the first, second, … reconnect; the last one repeats for as
+  /// long as the stream keeps failing. The counter is reset by a frame, so a
+  /// connection that comes back and drops again starts over at the front.
+  /// Empty switches the retry off.
+  final List<Duration> reconnectDelays;
+
   @override
   State<MjpegView> createState() => _MjpegViewState();
 }
@@ -67,6 +87,8 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   HttpClient? _client;
   Uint8List? _frame;
   Object? _error;
+  Timer? _reconnect;
+  int _attempt = 0;
 
   @override
   void initState() {
@@ -84,6 +106,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
       _stop();
       _frame = null;
       _error = null;
+      _attempt = 0;
       unawaited(_start());
     }
   }
@@ -91,7 +114,11 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (_client == null && _error == null) unawaited(_start());
+      // Also when the stream is showing an error: coming back to the screen is
+      // as clear a "try again" as the button is, and the blip that broke it is
+      // usually over by now.
+      _attempt = 0;
+      if (_client == null) unawaited(_start());
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _stop();
@@ -106,6 +133,8 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   }
 
   void _stop() {
+    _reconnect?.cancel();
+    _reconnect = null;
     // Force, because a live stream never ends on its own: without it the socket
     // stays open behind whatever screen the user opened next.
     //
@@ -119,6 +148,11 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   }
 
   Future<void> _start() async {
+    // Every entry point here has already stopped, except the one that did not:
+    // a resume while a retry is pending would otherwise leave the connection it
+    // opens behind when the timer opens the next one, with nobody left holding
+    // the socket to close it.
+    _stop();
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
     _client = client;
     try {
@@ -136,10 +170,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
       mjpegFrames(response.timeout(widget.idleTimeout)).listen(
         (frame) {
           if (!mounted || !identical(_client, client)) return;
-          setState(() {
-            _frame = frame;
-            _error = null;
-          });
+          _show(frame);
         },
         onError: (Object e) => _fail(e, client),
         onDone: () => _fail(const MjpegStreamEnded(), client),
@@ -149,10 +180,42 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     }
   }
 
+  void _show(Uint8List frame) {
+    final previous = _frame;
+    setState(() {
+      _frame = frame;
+      _error = null;
+      _attempt = 0;
+    });
+    // `Image.memory` keys the image cache by the identity of the byte list, so
+    // every frame is an entry of its own and a stream holds the cache at its
+    // 100 MB ceiling — around a dozen decoded 1080p frames nothing will ever
+    // ask for again. The widget keeps painting the one it is showing from its
+    // own handle (that is what `gaplessPlayback` holds), not from the cache, so
+    // dropping the entry does not take the picture with it.
+    if (previous != null) unawaited(MemoryImage(previous).evict());
+  }
+
   void _fail(Object error, HttpClient from) {
     if (!mounted || !identical(_client, from)) return;
     _stop();
     setState(() => _error = error);
+    // A status is an answer, not a failure of the connection: retrying it on a
+    // timer would replay an expired token at the server every few seconds while
+    // the caller is already re-minting it.
+    if (error is MjpegHttpStatus) return;
+    _scheduleReconnect();
+  }
+
+  void _scheduleReconnect() {
+    final delays = widget.reconnectDelays;
+    if (delays.isEmpty) return;
+    final delay = delays[math.min(_attempt, delays.length - 1)];
+    _attempt++;
+    _reconnect = Timer(delay, () {
+      if (!mounted) return;
+      unawaited(_start());
+    });
   }
 
   @override

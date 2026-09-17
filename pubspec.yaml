@@ -58,8 +58,8 @@ dependencies:
   collection: ^1.19.0
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1
-  flutter_secure_storage: '>=10.3.4 <11.0.0'
-  go_router: '>=16.0.0 <18.0.0'
+  flutter_secure_storage: ^10.3.4
+  go_router: ^17.5.0
   intl: ^0.20.2
   json_annotation: ^4.12.0
   # Annotations only; the generator behind them is a dev dependency. Both models
@@ -75,11 +75,11 @@ dependencies:
   mobile_scanner: ^7.2.0
   flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
-  package_info_plus: '>=8.0.0 <11.0.0'
+  package_info_plus: ^9.0.1
   home_widget: ^0.10.0
   path_provider: ^2.1.5
   webview_flutter: ^4.10.0
-  file_picker: '>=8.1.6 <11.0.0'
+  file_picker: ^10.3.10
   watch_connectivity: ^0.2.9
   printing: ^5.15.0
   video_player: ^2.14.0
@@ -170,9 +170,9 @@ flutter:
 # hand, which the next regeneration silently dropped — so it is a config key
 # now. `launcher_icon_test.dart` fails if it ever stops being one.
 #
-# `min_sdk_android` is the generator's own floor, not the app's — that one comes
-# from `flutter.minSdkVersion` in `android/app/build.gradle.kts` and is 24.
-# Kept in step with it so the two do not tell different stories.
+# `min_sdk_android` is the generator's own floor, not the app's — that one is
+# the literal `minSdk = 24` in `android/app/build.gradle.kts`. Kept in step with
+# it so the two do not tell different stories.
 flutter_launcher_icons:
   android: true
   ios: false

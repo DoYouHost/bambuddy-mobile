@@ -41,7 +41,16 @@ class SecureCredentialsStore implements CredentialsStore {
     : _storage =
           storage ??
           const FlutterSecureStorage(
-            aOptions: AndroidOptions(resetOnError: false),
+            aOptions: AndroidOptions(
+              resetOnError: false,
+              // Every install that predates plugin version 10 re-encrypts its
+              // entries on the first read after the update, and a process
+              // killed in the middle of that leaves one half-written. With
+              // `resetOnError` off nothing clears it afterwards either, so the
+              // credential would be unreadable for good; the backup costs one
+              // extra write, once.
+              migrateWithBackup: true,
+            ),
           );
 
   static const _jwtKey = 'jwt';
@@ -121,6 +130,24 @@ class SecureCredentialsStore implements CredentialsStore {
     await _delete(_passwordKey);
   }
 
+  /// Best-effort, like [_delete] and for the same reason: the caller is signing
+  /// out, and it has already cleared the profile by the time it gets here. A
+  /// throw would leave the app holding a profile it has forgotten how to reach
+  /// — gone from disk, still on screen — so a Keystore that cannot delete is
+  /// reported and the sign-out finishes.
   @override
-  Future<void> clearAll() => _storage.deleteAll();
+  Future<void> clearAll() async {
+    try {
+      await _storage.deleteAll();
+      return;
+    } on Object catch (error) {
+      AuthProbe.credentialUnreadable('all', error);
+    }
+    // Key by key, because `deleteAll` is one operation that either happens or
+    // does not: the entry that cannot be decrypted must not keep the other
+    // three on disk.
+    for (final key in const [_jwtKey, _apiKeyKey, _usernameKey, _passwordKey]) {
+      await _delete(key);
+    }
+  }
 }

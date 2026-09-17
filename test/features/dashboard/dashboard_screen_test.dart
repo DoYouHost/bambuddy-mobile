@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
@@ -113,6 +115,24 @@ class _InertWearRelay extends WearRelayHandler {
 
 /// Counts the hand-off alone; what the notifier does inside is covered by its
 /// own test.
+/// A store whose reads park until the test lets them through — a Keystore
+/// taking its time, which is the window a resume can land in.
+class _GatedCredentialsStore extends InMemoryCredentialsStore {
+  final gate = Completer<void>();
+
+  /// Counts the sign-in check and nothing else: the remembered login is the
+  /// second half of `credentialMissing`, and no other caller in this screen
+  /// asks for it.
+  var checks = 0;
+
+  @override
+  Future<({String username, String password})?> readRememberedLogin() async {
+    checks++;
+    await gate.future;
+    return super.readRememberedLogin();
+  }
+}
+
 class _SpyFinishPhoto extends FinishPhotoNotifier {
   _SpyFinishPhoto()
     : super(
@@ -806,6 +826,65 @@ void main() {
 
       expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
+
+    testWidgets(
+      'a resume in the middle of the check opens one dialog, not two',
+      (tester) async {
+        // The dialog cannot be dismissed, so a second one on top of it is an app
+        // the user cannot leave: the button under the top copy leads to /setup,
+        // and the one below is still there afterwards.
+        final store = _GatedCredentialsStore();
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              fakeServerProfileOverride(authMode: AuthMode.jwt),
+              credentialsStoreProvider.overrideWithValue(store),
+              wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+            ],
+          ),
+        );
+        // Far enough for the check after the first frame to reach the store and
+        // park there, and no further.
+        await tester.pump();
+        await tester.pump();
+        expect(
+          store.checks,
+          1,
+          reason: 'the first check is waiting on the store',
+        );
+
+        // AppLifecycleListener recognises transitions, not states.
+        for (final lifecycle in const [
+          AppLifecycleState.inactive,
+          AppLifecycleState.resumed,
+        ]) {
+          tester.binding.handleAppLifecycleStateChanged(lifecycle);
+        }
+        await tester.pump();
+
+        store.gate.complete();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+        expect(
+          store.checks,
+          1,
+          reason: 'the resume found a check already running and left it to it',
+        );
+
+        // The resume restarted polling; parked again so its timers do not
+        // outlive the widget tree.
+        for (final lifecycle in const [
+          AppLifecycleState.inactive,
+          AppLifecycleState.hidden,
+          AppLifecycleState.paused,
+        ]) {
+          tester.binding.handleAppLifecycleStateChanged(lifecycle);
+        }
+        await tester.pumpAndSettle();
+      },
+    );
 
     testWidgets('the warning cannot be waved away', (tester) async {
       // There is no "later" any more: every screen behind this dialog needs a

@@ -17,13 +17,25 @@ void main() {
   /// Densities the generator writes a monochrome drawable for.
   const densities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'];
 
+  /// The `<monochrome>` element, from its opening tag to its close — the
+  /// generator has written it both wrapped around an `<inset>` and as a
+  /// self-closing tag, and the drawable is named inside either.
+  String monochromeBlock(String xml) {
+    final start = xml.indexOf('<monochrome');
+    expect(start, isNot(-1), reason: 'no themed layer in $adaptiveIcon');
+    final close = xml.indexOf('</monochrome>', start);
+    return close == -1
+        ? xml.substring(start, xml.indexOf('>', start) + 1)
+        : xml.substring(start, close);
+  }
+
   test('the adaptive icon still carries its themed layer', () {
     final file = File(adaptiveIcon);
     expect(file.existsSync(), isTrue, reason: '$adaptiveIcon is missing');
 
     expect(
       file.readAsStringSync(),
-      contains('<monochrome>'),
+      contains('<monochrome'),
       reason:
           'the themed icon layer is gone. Check that `adaptive_icon_monochrome`'
           ' is still set under `flutter_launcher_icons` in pubspec.yaml, then '
@@ -36,9 +48,24 @@ void main() {
     // anywhere else — it is an AAPT error in the middle of a build, and only
     // for whoever builds next. Generated files are easy to leave out of a
     // commit, which is exactly how that happens.
+    //
+    // The name is read out of the XML rather than written here: a regeneration
+    // that renames the drawable would otherwise pass a test still checking for
+    // the old one, which is the same broken build with a green suite in front
+    // of it.
+    final named = RegExp(
+      r'android:drawable="@drawable/([A-Za-z0-9_]+)"',
+    ).firstMatch(monochromeBlock(File(adaptiveIcon).readAsStringSync()));
+    expect(
+      named,
+      isNotNull,
+      reason: 'the themed layer in $adaptiveIcon names no drawable',
+    );
+    final name = named!.group(1);
+
     for (final density in densities) {
       final drawable = File(
-        'android/app/src/main/res/drawable-$density/ic_launcher_monochrome.png',
+        'android/app/src/main/res/drawable-$density/$name.png',
       );
       expect(
         drawable.existsSync(),
