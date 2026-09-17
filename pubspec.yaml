@@ -164,10 +164,18 @@ flutter:
         - asset: assets/fonts/JetBrainsMono-800.ttf
           weight: 800
 
+# Re-running `dart run flutter_launcher_icons` overwrites what it generated
+# last time, and `mipmap-anydpi-v26/ic_launcher.xml` has been edited by hand
+# since: the `<monochrome>` block that gives Android 13+ its themed icon is not
+# something this package writes. Regenerating means putting that block back.
+#
+# `min_sdk_android` is the generator's own floor, not the app's — that one comes
+# from `flutter.minSdkVersion` in `android/app/build.gradle.kts` and is 24.
+# Kept in step with it so the two do not tell different stories.
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 24
   adaptive_icon_background: "#1A2233"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
