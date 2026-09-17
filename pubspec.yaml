@@ -167,7 +167,9 @@ flutter:
 # Re-running `dart run flutter_launcher_icons` overwrites what it generated
 # last time, and `mipmap-anydpi-v26/ic_launcher.xml` has been edited by hand
 # since: the `<monochrome>` block that gives Android 13+ its themed icon is not
-# something this package writes. Regenerating means putting that block back.
+# something this package writes. `launcher_icon_test.dart` fails when it goes,
+# so a regeneration that drops it is a red test rather than an icon nobody
+# notices for weeks — put the block back and the test goes green.
 #
 # `min_sdk_android` is the generator's own floor, not the app's — that one comes
 # from `flutter.minSdkVersion` in `android/app/build.gradle.kts` and is 24.
