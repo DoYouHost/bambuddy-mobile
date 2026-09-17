@@ -44,7 +44,15 @@ class _CameraServer {
     });
   }
 
+  bool _pushing = false;
+
   Future<void> push(Uint8List frame) async {
+    // One write at a time. The timer below does not wait for the previous push,
+    // and two writes overlapping on one `HttpResponse` raise a `StateError` of
+    // the server's own making — which the catch below would then read as the
+    // client hanging up, passing a test that proves nothing.
+    if (_pushing) return;
+    _pushing = true;
     final response = await _connected.future.timeout(
       const Duration(seconds: 10),
     );
@@ -58,9 +66,24 @@ class _CameraServer {
       // half of one: on loopback a 700-byte write is instant, and the margin is
       // what keeps a loaded emulator from reading as a disconnect.
       await response.flush().timeout(const Duration(seconds: 2));
-    } on Object {
-      if (!_hungUp.isCompleted) _hungUp.complete();
+    } on SocketException {
+      _noteHungUp();
+    } on HttpException {
+      _noteHungUp();
+    } on TimeoutException {
+      // A write to a socket nobody is reading any more does not always fail —
+      // it can simply never finish, which is the other face of a hang-up.
+      _noteHungUp();
+    } finally {
+      _pushing = false;
     }
+  }
+
+  /// Deliberately not a blanket `on Object`: a `StateError` here would be this
+  /// server's bug, and swallowing it as "the client left" is how the test used
+  /// to pass while proving nothing. Anything unlisted escapes and fails loudly.
+  void _noteHungUp() {
+    if (!_hungUp.isCompleted) _hungUp.complete();
   }
 
   Timer? _pusher;
@@ -88,7 +111,12 @@ class _CameraServer {
   /// its socket passed that test.
   Future<bool> clientHungUp() async {
     try {
-      await _hungUp.future.timeout(const Duration(seconds: 5));
+      // Generous, because the socket does not fail on the first write after the
+      // client leaves: the kernel takes the data until its buffer fills, so
+      // writes keep succeeding for a few seconds and only then does one hang
+      // long enough to time out. Waiting less read a live socket as a closed
+      // one — a test that fails while the code is right.
+      await _hungUp.future.timeout(const Duration(seconds: 15));
       return true;
     } on TimeoutException {
       return false;
@@ -137,19 +165,26 @@ void main() {
     lastError = null;
   });
 
-  Future<void> show(WidgetTester tester) => tester.pumpWidget(
-    MaterialApp(
-      home: MjpegView(
-        url: server.url,
-        loading: (_) => const CircularProgressIndicator(),
-        error: (_, error) {
-          reportedError = error;
-          lastError = error;
-          return const Text('failed', textDirection: TextDirection.ltr);
-        },
+  Future<void> show(WidgetTester tester) {
+    // Closing the server under a mounted view makes it report a dead stream,
+    // and that report arrives an event-loop turn later — after `tearDown` has
+    // cleared `lastError`, so the next test's failure message would quote this
+    // test's error. Unmounting first leaves nothing to report.
+    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    return tester.pumpWidget(
+      MaterialApp(
+        home: MjpegView(
+          url: server.url,
+          loading: (_) => const CircularProgressIndicator(),
+          error: (_, error) {
+            reportedError = error;
+            lastError = error;
+            return const Text('failed', textDirection: TextDirection.ltr);
+          },
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   testWidgets('paints a frame read off a real socket', (tester) async {
     server = _CameraServer();

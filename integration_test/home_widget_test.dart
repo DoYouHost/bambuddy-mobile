@@ -16,10 +16,15 @@ void main() {
   const text = 'integration_test_text';
   const number = 'integration_test_number';
 
-  tearDown(() async {
+  Future<void> clear() async {
     await HomeWidget.saveWidgetData<String>(text, null);
     await HomeWidget.saveWidgetData<int>(number, null);
-  });
+  }
+
+  // Both ends: a run killed halfway leaves values behind, and reading one of
+  // those back would pass a test whose write had stopped working.
+  setUp(clear);
+  tearDown(clear);
 
   testWidgets('a published value comes back out of the widget store', (
     tester,

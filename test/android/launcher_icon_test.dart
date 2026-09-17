@@ -14,6 +14,9 @@ void main() {
   const adaptiveIcon =
       'android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml';
 
+  /// Densities the generator writes a monochrome drawable for.
+  const densities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'];
+
   test('the adaptive icon still carries its themed layer', () {
     final file = File(adaptiveIcon);
     expect(file.existsSync(), isTrue, reason: '$adaptiveIcon is missing');
@@ -26,5 +29,25 @@ void main() {
           ' is still set under `flutter_launcher_icons` in pubspec.yaml, then '
           'run `dart run flutter_launcher_icons` again.',
     );
+  });
+
+  test('every density has the drawable that layer points at', () {
+    // The XML naming a drawable that is not on disk is not a test failure
+    // anywhere else — it is an AAPT error in the middle of a build, and only
+    // for whoever builds next. Generated files are easy to leave out of a
+    // commit, which is exactly how that happens.
+    for (final density in densities) {
+      final drawable = File(
+        'android/app/src/main/res/drawable-$density/ic_launcher_monochrome.png',
+      );
+      expect(
+        drawable.existsSync(),
+        isTrue,
+        reason:
+            '${drawable.path} is missing, so `flutter build apk` will fail on '
+            'the drawable the themed icon points at. Run '
+            '`dart run flutter_launcher_icons` and commit what it writes.',
+      );
+    }
   });
 }
