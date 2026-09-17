@@ -36,9 +36,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une mise à jour de sécurité ou une sauvegarde restaurée a invalidé la clé qui chiffrait votre connexion enregistrée. Rien d\'autre n\'a été perdu.';
 
   @override
-  String get later => 'Plus tard';
-
-  @override
   String get serverUnreachableStale =>
       'Serveur inaccessible — les données peuvent être obsolètes';
 

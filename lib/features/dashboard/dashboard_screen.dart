@@ -206,22 +206,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
-    final signIn = await confirmDialog(
-      context,
-      title: l10n.signInRequiredTitle,
-      // 2FA gets its own wording: the saved password is fine there, and sending
-      // the user off to reset it would waste their time on the wrong thing.
-      message: switch (reason) {
-        SignInReason.credentialsRejected => l10n.signInRequiredBody,
-        SignInReason.twoFactorRequired => l10n.signInRequiredTwoFactorBody,
-        SignInReason.credentialsMissing => l10n.signInRequiredMissingBody,
-      },
-      confirmLabel: l10n.signInRequiredAction,
-      cancelLabel: l10n.later,
-      icon: Icons.lock_outline,
-      id: 'sign_in_required',
+    // One way out, and no "later": every screen behind this dialog is server
+    // data the app can no longer fetch, so postponing buys a dashboard of empty
+    // lists and 401s. The one thing worth doing without a session — filing a
+    // report about it — is on the setup screen this leads to.
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => logSurface(
+        'sign_in_required',
+        PopScope(
+          canPop: false,
+          child: AlertDialog(
+            // A large system font can make the text taller than the screen.
+            scrollable: true,
+            icon: const Icon(Icons.lock_outline),
+            title: Text(l10n.signInRequiredTitle),
+            // 2FA gets its own wording: the saved password is fine there, and
+            // sending the user off to reset it would waste their time on the
+            // wrong thing.
+            content: Text(switch (reason) {
+              SignInReason.credentialsRejected => l10n.signInRequiredBody,
+              SignInReason.twoFactorRequired =>
+                l10n.signInRequiredTwoFactorBody,
+              SignInReason.credentialsMissing => l10n.signInRequiredMissingBody,
+            }),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(l10n.signInRequiredAction),
+              ).tagged('sign_in_required.confirm'),
+            ],
+          ),
+        ),
+      ),
     );
-    if (signIn && mounted) context.go('/setup');
+    if (mounted) context.go('/setup');
   }
 
   /// Hands the background service's lifecycle to the log from the UI side, where

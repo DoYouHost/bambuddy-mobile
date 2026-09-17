@@ -36,9 +36,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Klucz, którym zaszyfrowano zapisane logowanie, unieważniła aktualizacja zabezpieczeń albo przywrócenie kopii zapasowej. Nic poza tym nie zniknęło.';
 
   @override
-  String get later => 'Później';
-
-  @override
   String get serverUnreachableStale =>
       'Serwer nieosiągalny — dane mogą być nieaktualne';
 

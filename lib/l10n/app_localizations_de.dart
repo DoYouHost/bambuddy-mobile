@@ -36,9 +36,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Sicherheitsupdate oder eine wiederhergestellte Sicherung hat den Schlüssel der gespeicherten Anmeldung ungültig gemacht. Sonst ist nichts verloren gegangen.';
 
   @override
-  String get later => 'Später';
-
-  @override
   String get serverUnreachableStale =>
       'Server nicht erreichbar — Daten sind möglicherweise veraltet';
 

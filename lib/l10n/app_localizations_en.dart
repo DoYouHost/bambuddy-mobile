@@ -36,9 +36,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.';
 
   @override
-  String get later => 'Later';
-
-  @override
   String get serverUnreachableStale =>
       'Server unreachable — data may be out of date';
 

@@ -152,12 +152,6 @@ abstract class AppLocalizations {
   /// **'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.'**
   String get signInRequiredMissingBody;
 
-  /// No description provided for @later.
-  ///
-  /// In en, this message translates to:
-  /// **'Later'**
-  String get later;
-
   /// No description provided for @serverUnreachableStale.
   ///
   /// In en, this message translates to:

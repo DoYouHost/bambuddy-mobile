@@ -20,7 +20,6 @@
   "@signInRequiredMissingBody": {
     "description": "Sign-in warning when the profile expects a credential and the secure store has none"
   },
-  "later": "Later",
   "serverUnreachableStale": "Server unreachable — data may be out of date",
   "wsReconnecting": "No live connection — refreshing every 5 s",
   "@wsReconnecting": {

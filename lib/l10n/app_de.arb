@@ -8,7 +8,6 @@
   "signInRequiredAction": "Anmelden",
   "signInRequiredTwoFactorBody": "Dein Konto erfordert jetzt einen zweiten Faktor, den die App im Hintergrund nicht bereitstellen kann — daher wurde die automatische Anmeldung beendet. Melde dich erneut an und gib den Code ein.",
   "signInRequiredMissingBody": "Ein Sicherheitsupdate oder eine wiederhergestellte Sicherung hat den Schlüssel der gespeicherten Anmeldung ungültig gemacht. Sonst ist nichts verloren gegangen.",
-  "later": "Später",
   "serverUnreachableStale": "Server nicht erreichbar — Daten sind möglicherweise veraltet",
   "wsReconnecting": "Keine Live-Verbindung — Aktualisierung alle 5 s",
   "connLive": "Live",

@@ -751,22 +751,22 @@ void main() {
       expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
 
-    testWidgets(
-      '"Later" closes the dialog, but the flag stays for the next launch',
-      (tester) async {
-        // The app cannot load anything until the user signs in, so postponing
-        // must not be mistaken for resolving it.
-        await _prefs.setBool('sign_in_required', true);
+    testWidgets('the warning cannot be waved away', (tester) async {
+      // There is no "later" any more: every screen behind this dialog needs a
+      // session, so dismissing it would buy a dashboard of empty lists. Back
+      // and the barrier are shut for the same reason.
+      await _prefs.setBool('sign_in_required', true);
 
-        await tester.pumpWidget(_app(state));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Później'));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(_routedApp(state));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Zaloguj się ponownie'), findsNothing);
-        expect(find.text('X1C'), findsOneWidget);
-        expect(_prefs.getBool('sign_in_required'), isTrue);
-      },
-    );
+      expect(find.widgetWithText(FilledButton, 'Później'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Zaloguj'), findsOneWidget);
+
+      // The barrier is not a way out.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+    });
   });
 }

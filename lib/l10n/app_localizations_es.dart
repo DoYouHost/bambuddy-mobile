@@ -36,9 +36,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.';
 
   @override
-  String get later => 'Más tarde';
-
-  @override
   String get serverUnreachableStale =>
       'Servidor inaccesible — los datos pueden estar desactualizados';
 

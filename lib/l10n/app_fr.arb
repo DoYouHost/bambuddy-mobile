@@ -8,7 +8,6 @@
   "signInRequiredAction": "Se connecter",
   "signInRequiredTwoFactorBody": "Votre compte requiert désormais un deuxième facteur d'authentification et l'application ne peut pas le fournir en arrière-plan — elle a donc cessé de se connecter automatiquement. Reconnectez-vous et saisissez le code.",
   "signInRequiredMissingBody": "Une mise à jour de sécurité ou une sauvegarde restaurée a invalidé la clé qui chiffrait votre connexion enregistrée. Rien d'autre n'a été perdu.",
-  "later": "Plus tard",
   "serverUnreachableStale": "Serveur inaccessible — les données peuvent être obsolètes",
   "wsReconnecting": "Aucune connexion en direct — actualisation toutes les 5 s",
   "connLive": "En direct",
