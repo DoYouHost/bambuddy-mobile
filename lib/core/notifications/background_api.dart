@@ -167,7 +167,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
     );
     final id = response.id;
     if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id);
+      await FlutterLocalNotificationsPlugin().cancel(id: id);
     }
   } on Object catch (error) {
     // The callback isolate cannot crash — but from the user's side this is "I
@@ -227,7 +227,7 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
 
     final id = response.id;
     if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id);
+      await FlutterLocalNotificationsPlugin().cancel(id: id);
     }
   } on Object catch (error) {
     // Prevent callback isolate crash — but say so, because from the user's side

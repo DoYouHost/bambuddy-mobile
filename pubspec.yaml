@@ -29,14 +29,14 @@ dependencies:
   app_diagnostics:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.9.0
+      ref: v0.11.0
       path: packages/app_diagnostics
   # The report screens — the guided flow, the recording bar and the review —
   # shared with lubelogger-mobile.
   app_report_ui:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.10.0
+      ref: v0.11.0
       path: packages/app_report_ui
   # The design system and the widgets that name themselves in the diagnostic
   # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
@@ -45,21 +45,21 @@ dependencies:
   dash_kit:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.10.0
+      ref: v0.11.0
       path: packages/dash_kit
   # JSON coercion, user-typed numbers, the demo adapter, the server address and
   # the request-failure classification, shared with lubelogger-mobile.
   app_util:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.9.0
+      ref: v0.11.0
       path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1
-  flutter_secure_storage: ^9.2.2
-  go_router: ^16.0.0
+  flutter_secure_storage: '>=10.3.4 <11.0.0'
+  go_router: '>=16.0.0 <18.0.0'
   intl: ^0.20.2
   json_annotation: ^4.12.0
   # Annotations only; the generator behind them is a dev dependency. Both models
@@ -68,21 +68,20 @@ dependencies:
   copy_with_extension: ^17.0.0
   shared_preferences: ^2.3.3
   web_socket_channel: ^3.0.3
-  flutter_mjpeg: ^2.0.4
-  flutter_local_notifications: ^18.0.1
-  flutter_foreground_task: ^9.2.2
+  flutter_local_notifications: ^22.3.1
+  flutter_foreground_task: ^11.0.3
   url_launcher: ^6.3.0
-  flutter_svg: ^2.0.9
+  flutter_svg: ^2.3.0
   mobile_scanner: ^7.2.0
   flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
-  package_info_plus: ^8.0.0
-  home_widget: ^0.7.0
+  package_info_plus: '>=8.0.0 <11.0.0'
+  home_widget: ^0.10.0
   path_provider: ^2.1.5
   webview_flutter: ^4.10.0
-  file_picker: ^8.1.6
+  file_picker: '>=8.1.6 <11.0.0'
   watch_connectivity: ^0.2.9
-  printing: ^5.14.3
+  printing: ^5.15.0
   video_player: ^2.14.0
   gal: ^2.3.3
   share_plus: ^12.0.2
@@ -90,6 +89,10 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # On-device tests (`just test-device`). A mocked adapter never performs a real
+  # read off a socket, which is exactly what the camera stream is.
+  integration_test:
     sdk: flutter
   build_runner: ^2.4.13
   flutter_lints: ^6.0.0
@@ -168,3 +171,5 @@ flutter_launcher_icons:
   min_sdk_android: 21
   adaptive_icon_background: "#1A2233"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+
+

@@ -118,7 +118,7 @@ class LocalNotificationService implements NotificationService {
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
     await _plugin.initialize(
-      settings,
+      settings: settings,
       // Tapping an action button — "Mark Done" on maintenance, a remediation on
       // an HMS alert: foreground and background (app closed) route to the same
       // dispatcher.
@@ -231,7 +231,13 @@ class LocalNotificationService implements NotificationService {
         ],
       ),
     );
-    await _plugin.show(id, title, body, details, payload: payload);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: payload,
+    );
   }
 
   @override
