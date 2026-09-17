@@ -251,12 +251,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // 2FA gets its own wording: the saved password is fine there, and
             // sending the user off to reset it would waste their time on the
             // wrong thing.
-            content: Text(switch (reason) {
-              SignInReason.credentialsRejected => l10n.signInRequiredBody,
-              SignInReason.twoFactorRequired =>
-                l10n.signInRequiredTwoFactorBody,
-              SignInReason.credentialsMissing => l10n.signInRequiredMissingBody,
-            }),
+            content: Text(
+              switch (reason) {
+                SignInReason.credentialsRejected => l10n.signInRequiredBody,
+                SignInReason.twoFactorRequired =>
+                  l10n.signInRequiredTwoFactorBody,
+                SignInReason.credentialsMissing =>
+                  l10n.signInRequiredMissingBody,
+              },
+              // Centred like the icon and the title above it. Left-aligned text
+              // under a centred heading reads as two dialogs stacked.
+              textAlign: TextAlign.center,
+            ),
             actions: [
               // Full width, the way `confirmDialog` lays its pair out: the
               // actions sit in an `OverflowBar`, which hands its widest child
