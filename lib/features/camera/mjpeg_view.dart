@@ -39,6 +39,13 @@ class MjpegStreamEnded implements Exception {
 /// exception — the server answered, and what to do about a 401 is the caller's
 /// policy, not a delay.
 ///
+/// While that retry is working the last frame stays on screen under
+/// [retrying], and [error] waits: a blip is over before anyone has read an
+/// error message, and swapping the picture for one costs the user the view they
+/// came for. Once the backoff has been through [reconnectDelays] once the drop
+/// has outlived a blip, and [error] takes over — as it does immediately when
+/// there is no frame to keep.
+///
 /// **On `HttpClient` rather than the app's Dio.** Dio returns the status and the
 /// headers of a `multipart/x-mixed-replace` response and then never emits a byte
 /// of the body — proved on a device against a local MJPEG server in
@@ -51,6 +58,7 @@ class MjpegView extends StatefulWidget {
     required this.url,
     required this.loading,
     required this.error,
+    required this.retrying,
     this.fit,
     this.idleTimeout = const Duration(seconds: 15),
     this.reconnectDelays = const [
@@ -64,6 +72,12 @@ class MjpegView extends StatefulWidget {
   final String url;
   final WidgetBuilder loading;
   final Widget Function(BuildContext context, Object error) error;
+
+  /// Painted over the last frame while a dropped stream is being retried,
+  /// aligned to the top corner. Without it a frozen picture is indisting-
+  /// uishable from a live one that happens to be of a still printer.
+  final WidgetBuilder retrying;
+
   final BoxFit? fit;
 
   /// How long a live stream may say nothing before it counts as dead. A remote
@@ -104,6 +118,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     // stream here, not the widget position.
     if (old.url != widget.url) {
       _stop();
+      _evict(_frame);
       _frame = null;
       _error = null;
       _attempt = 0;
@@ -129,6 +144,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stop();
+    _evict(_frame);
     super.dispose();
   }
 
@@ -193,18 +209,34 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     // ask for again. The widget keeps painting the one it is showing from its
     // own handle (that is what `gaplessPlayback` holds), not from the cache, so
     // dropping the entry does not take the picture with it.
-    if (previous != null) unawaited(MemoryImage(previous).evict());
+    _evict(previous);
+  }
+
+  void _evict(Uint8List? frame) {
+    if (frame != null) unawaited(MemoryImage(frame).evict());
   }
 
   void _fail(Object error, HttpClient from) {
     if (!mounted || !identical(_client, from)) return;
     _stop();
-    setState(() => _error = error);
     // A status is an answer, not a failure of the connection: retrying it on a
     // timer would replay an expired token at the server every few seconds while
-    // the caller is already re-minting it.
-    if (error is MjpegHttpStatus) return;
-    _scheduleReconnect();
+    // the caller is already re-minting it. Nor is a URL that cannot be parsed
+    // or opened — `Uri.parse` raises the first, a scheme `HttpClient` does not
+    // speak the second, and the next attempt would be handed the same string.
+    final transient =
+        error is! MjpegHttpStatus &&
+        error is! FormatException &&
+        error is! ArgumentError;
+    setState(() {
+      _error = error;
+      // Clearing the counter is what puts the error on screen: `_retrying`
+      // holds the last frame in front of it, and an answer the caller has to
+      // act on — a 401 it re-mints a token for — must not wait behind a
+      // picture because a blip happened to come first.
+      if (!transient) _attempt = 0;
+    });
+    if (transient) _scheduleReconnect();
   }
 
   void _scheduleReconnect() {
@@ -218,12 +250,28 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     });
   }
 
+  /// Whether the backoff is still inside its first pass through
+  /// [MjpegView.reconnectDelays] — 15 s on the default, after which a drop has
+  /// outlived anything worth calling a blip. A frame resets `_attempt`, and a
+  /// failure that schedules no retry (a status, an unusable URL) clears it, so
+  /// both reach [MjpegView.error] at once.
+  bool get _retrying =>
+      _attempt > 0 && _attempt <= widget.reconnectDelays.length;
+
   @override
   Widget build(BuildContext context) {
     final error = _error;
-    if (error != null) return widget.error(context, error);
     final frame = _frame;
+    if (error != null && !(_retrying && frame != null)) {
+      return widget.error(context, error);
+    }
     if (frame == null) return widget.loading(context);
-    return Image.memory(frame, gaplessPlayback: true, fit: widget.fit);
+    final image = Image.memory(frame, gaplessPlayback: true, fit: widget.fit);
+    if (!_retrying) return image;
+    return Stack(
+      fit: StackFit.passthrough,
+      alignment: AlignmentDirectional.topEnd,
+      children: [image, widget.retrying(context)],
+    );
   }
 }

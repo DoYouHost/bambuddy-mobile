@@ -78,6 +78,7 @@ class _CameraViewState extends ConsumerState<CameraView> {
       url: url,
       fit: BoxFit.contain,
       loading: (_) => _Loading(text: l10n.cameraConnecting),
+      retrying: (_) => const _Retrying(),
       error: (context, error) {
         // 401 = token expired -> once force re-mint and restart stream.
         if (_isTokenExpired(error) && _remintedFor != token) {
@@ -137,6 +138,33 @@ class _Loading extends StatelessWidget {
         const SizedBox(height: 16),
         Text(text, style: const TextStyle(color: Colors.white70)),
       ],
+    );
+  }
+}
+
+/// Sits in the corner of the last frame while the stream is being retried. The
+/// picture is frozen but still worth more than an error message a blip will
+/// outlive — this is what says so.
+class _Retrying extends StatelessWidget {
+  const _Retrying();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: AppLocalizations.of(context).cameraConnecting,
+      liveRegion: true,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(
+          color: Colors.black54,
+          shape: BoxShape.circle,
+        ),
+        child: const SizedBox.square(
+          dimension: 16,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+        ),
+      ),
     );
   }
 }

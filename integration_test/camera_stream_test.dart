@@ -165,7 +165,13 @@ void main() {
     lastError = null;
   });
 
-  Future<void> show(WidgetTester tester) {
+  /// [reconnectDelays] is empty for the tests about what the caller is told:
+  /// with a backoff the view keeps the last frame and retries instead, and the
+  /// error never reaches the builder (`mjpeg_view_test.dart` covers that side).
+  Future<void> show(
+    WidgetTester tester, {
+    List<Duration> reconnectDelays = const [],
+  }) {
     // Closing the server under a mounted view makes it report a dead stream,
     // and that report arrives an event-loop turn later — after `tearDown` has
     // cleared `lastError`, so the next test's failure message would quote this
@@ -175,7 +181,10 @@ void main() {
       MaterialApp(
         home: MjpegView(
           url: server.url,
+          reconnectDelays: reconnectDelays,
           loading: (_) => const CircularProgressIndicator(),
+          retrying: (_) =>
+              const Text('retrying', textDirection: TextDirection.ltr),
           error: (_, error) {
             reportedError = error;
             lastError = error;

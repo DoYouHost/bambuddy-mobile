@@ -54,8 +54,16 @@ class _FakeHttpOverrides extends HttpOverrides {
   final attempts = <StreamController<List<int>>>[];
   int status = 200;
 
+  /// Attempts that never reach `getUrl` are still attempts — a URL the view
+  /// cannot parse fails before the request and would leave `attempts` empty
+  /// however many times it retried.
+  int clients = 0;
+
   @override
-  HttpClient createHttpClient(SecurityContext? context) => _FakeClient(this);
+  HttpClient createHttpClient(SecurityContext? context) {
+    clients++;
+    return _FakeClient(this);
+  }
 }
 
 class _FakeClient implements HttpClient {
@@ -96,13 +104,17 @@ void main() {
 
   /// The view under test, with a backoff in milliseconds so a test does not
   /// have to sit out the real one.
-  Future<void> show(WidgetTester tester) async {
+  Future<void> show(
+    WidgetTester tester, {
+    String url = 'http://printer.test/stream?token=t',
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         home: MjpegView(
-          url: 'http://printer.test/stream?token=t',
+          url: url,
           loading: (_) => const Text('connecting'),
           error: (_, _) => const Text('failed'),
+          retrying: (_) => const Text('retrying'),
           reconnectDelays: const [
             Duration(milliseconds: 100),
             Duration(milliseconds: 200),
@@ -244,6 +256,127 @@ void main() {
       cache.pendingImageCount + cache.liveImageCount,
       lessThanOrEqualTo(2),
     );
+    await quiesce(tester);
+  });
+
+  /// Feeds one frame and reports what it left in the image cache.
+  Future<int> cachedAfterOneFrame(WidgetTester tester) async {
+    final cache = PaintingBinding.instance.imageCache;
+    cache.clear();
+    http.attempts.last.add(tinyJpeg());
+    await tester.pump();
+    await tester.pump();
+    final held = cache.pendingImageCount + cache.liveImageCount;
+    expect(held, greaterThan(0), reason: 'nothing was cached to evict');
+    return held;
+  }
+
+  testWidgets('drops the frame it is still showing when the view goes', (
+    tester,
+  ) async {
+    await show(tester);
+    await cachedAfterOneFrame(tester);
+
+    // `_show` only evicts the frame it replaced, so without the eviction in
+    // `dispose` the last one outlives the screen — a decoded 1080p frame that
+    // nothing will ever ask for again.
+    await tester.pumpWidget(const SizedBox());
+    final cache = PaintingBinding.instance.imageCache;
+    expect(cache.pendingImageCount + cache.liveImageCount, 0);
+    await quiesce(tester);
+  });
+
+  testWidgets('drops the frame it is still showing when the URL changes', (
+    tester,
+  ) async {
+    await show(tester);
+    await cachedAfterOneFrame(tester);
+
+    await show(tester, url: 'http://printer.test/stream?token=fresh');
+    final cache = PaintingBinding.instance.imageCache;
+    expect(cache.pendingImageCount + cache.liveImageCount, 0);
+    await quiesce(tester);
+  });
+
+  testWidgets('does not retry a URL it cannot parse', (tester) async {
+    // `Uri.parse` raises before a socket is opened, and the next attempt would
+    // be handed the same string: retrying it is the same failure every eight
+    // seconds for as long as the screen is open.
+    await show(tester, url: 'http://[::1');
+
+    expect(find.text('failed'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 30));
+    expect(http.attempts, isEmpty);
+    expect(http.clients, 1);
+  });
+
+  /// Feeds one frame, so the tests below have a picture the view can keep.
+  Future<void> feedFrame(WidgetTester tester) async {
+    http.attempts.last.add(tinyJpeg());
+    await tester.pump();
+    await tester.pump();
+  }
+
+  testWidgets('keeps the last frame while the backoff is retrying', (
+    tester,
+  ) async {
+    await show(tester);
+    await feedFrame(tester);
+
+    await drop(tester);
+    // A blip is over before anyone has read an error message, so the picture
+    // stays and only the indicator says the stream is being picked back up.
+    expect(find.text('failed'), findsNothing);
+    expect(find.text('retrying'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+
+    // Still the same across the wait and the attempt it opens.
+    await tester.pump(const Duration(milliseconds: 101));
+    await tester.pump();
+    expect(http.attempts, hasLength(2));
+    expect(find.text('failed'), findsNothing);
+    expect(find.text('retrying'), findsOneWidget);
+
+    await feedFrame(tester);
+    expect(find.text('retrying'), findsNothing);
+    await quiesce(tester);
+  });
+
+  testWidgets('gives the picture up once the backoff has been through its '
+      'delays', (tester) async {
+    await show(tester);
+    await feedFrame(tester);
+
+    // One drop per delay is a blip; the one after it has outlived the whole
+    // backoff, and a frozen picture is no longer the honest answer.
+    for (final delay in const [100, 200, 400]) {
+      await drop(tester);
+      expect(find.text('failed'), findsNothing);
+      await tester.pump(Duration(milliseconds: delay + 1));
+      await tester.pump();
+    }
+    await drop(tester);
+
+    expect(find.text('failed'), findsOneWidget);
+    expect(find.text('retrying'), findsNothing);
+    await quiesce(tester);
+  });
+
+  testWidgets('hands a status over even when a blip came first', (
+    tester,
+  ) async {
+    await show(tester);
+    await feedFrame(tester);
+    await drop(tester);
+    expect(find.text('failed'), findsNothing);
+
+    // The caller re-mints the token on a 401, which it never sees while the
+    // view is holding a picture in front of it.
+    http.status = 401;
+    await tester.pump(const Duration(milliseconds: 101));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('failed'), findsOneWidget);
     await quiesce(tester);
   });
 }
