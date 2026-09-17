@@ -136,6 +136,11 @@ do not stay silent because it was not part of the task.
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
   inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
   was paid for, and the quadratic behind `roundScaleFor`.
+- [docs/dependency-upgrades.md](docs/dependency-upgrades.md) — the pubspec
+  entries a `pub upgrade` cannot move on its own, and what unblocks each.
+  **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
+  ciphers version 9 wrote, so it may only ship after a release that ran 10 and
+  migrated the installed base.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.
