@@ -45,6 +45,34 @@ default:
 test:
     flutter test
 
+# The tests a host `flutter test` cannot run. Its binding replaces the HTTP
+# client, so nothing there ever reads a byte off a socket — which is how a
+# camera view that showed a spinner forever passed a green suite. These boot the
+# AVD, serve an MJPEG stream from the device's own loopback and assert on what
+# reaches the screen.
+# usage: just test-device [AVD]
+[doc('run the on-device integration tests (boots the AVD first)')]
+[group('1-develop')]
+test-device avd=avd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just emu-boot {{avd}}
+    serial=$(just _emu-serial {{avd}})
+    # One file per `flutter test`, each preceded by an install with -g. Android
+    # 13+ gates notifications behind a runtime permission that no test can grant
+    # for itself, and a run uninstalls the app when it ends — so a whole-folder
+    # run reaches the notification file with the permission already gone. An
+    # install with -g grants it, and the reinstall `flutter test` does on top is
+    # an update, which keeps it.
+    flutter build apk --debug --flavor mobile
+    apk=build/app/outputs/flutter-apk/app-mobile-debug.apk
+    failed=0
+    for file in integration_test/*_test.dart; do
+        adb -s "$serial" install -r -g "$apk" >/dev/null
+        flutter test "$file" -d "$serial" --flavor mobile || failed=1
+    done
+    exit $failed
+
 # core.hooksPath is per-clone local config, so a fresh clone has no hooks until
 # this runs. Points git at .githooks/, which holds the commit-message check.
 [doc('point this clone at the versioned git hooks')]
