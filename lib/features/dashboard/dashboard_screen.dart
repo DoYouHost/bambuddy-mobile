@@ -186,23 +186,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _signInChecking = false;
     }
     if (!mounted) return;
-    // Nobody rejected these credentials — they are not there at all, and the
-    // two places that raise the flag only ever hear a rejection. Raised here so
-    // that a session which ended without a word still ends visibly.
-    var reason = settings.loadSignInReason();
+    final reason = settings.loadSignInReason();
+    final profile = ref.read(serverProfileProvider);
+    final missing =
+        profile != null &&
+        await credentialMissing(
+          profile.authMode,
+          ref.read(credentialsStoreProvider),
+        );
+    if (!mounted) return;
+
     if (!settings.loadSignInRequired()) {
-      final profile = ref.read(serverProfileProvider);
-      if (profile == null ||
-          !await credentialMissing(
-            profile.authMode,
-            ref.read(credentialsStoreProvider),
-          )) {
-        return;
-      }
-      reason = SignInReason.credentialsMissing;
-      await settings.saveSignInRequired(true, reason: reason);
+      // Nobody rejected these credentials — they are not there at all, and the
+      // two places that raise the flag only ever hear a rejection. Raised here
+      // so that a session which ended without a word still ends visibly.
+      if (!missing) return;
+      await settings.saveSignInRequired(
+        true,
+        reason: SignInReason.credentialsMissing,
+      );
       if (!mounted) return;
+      return _showSignInRequired(SignInReason.credentialsMissing);
     }
+
+    // The store answers again, so whatever ate the credential was passing: a
+    // Keystore that was briefly unavailable rather than a key that is gone.
+    // Nothing else lowers the flag but signing in, so without this the app
+    // would keep asking for one it no longer needs.
+    if (reason == SignInReason.credentialsMissing && !missing) {
+      await settings.saveSignInRequired(false);
+      _signInWarned = false;
+      return;
+    }
+    return _showSignInRequired(reason);
+  }
+
+  Future<void> _showSignInRequired(SignInReason reason) async {
+    if (!mounted) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);

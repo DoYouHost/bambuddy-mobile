@@ -204,6 +204,10 @@ void main() {
     // no test depends on another having run first.
     await _prefs.setBool('notif_onboarded', true);
     await _prefs.remove('sign_in_required');
+    // The reason outlives the flag in SharedPreferences, and since the screen
+    // reads it to decide whether a credential coming back should lower the
+    // flag, a leftover from the test before changes what this one does.
+    await _prefs.remove('sign_in_reason');
   });
 
   testWidgets(
@@ -719,6 +723,58 @@ void main() {
             'the wording names the cause; blaming a password nobody '
             'rejected sends the user to reset a working one',
       );
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that comes back lowers the flag again', (
+      tester,
+    ) async {
+      // What a Keystore that was briefly unavailable looks like afterwards: the
+      // flag is up from the last launch, and the store answers again. Signing
+      // in is the only other thing that lowers it, so without this the app
+      // would keep asking for a session it already has.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsMissing');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'back-again',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
+    testWidgets('a rejection is not lowered by a readable credential', (
+      tester,
+    ) async {
+      // The other half: the server said no to this password. The credential
+      // reads fine — that was never the problem — so the warning stays.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsRejected');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
       expect(_prefs.getBool('sign_in_required'), isTrue);
     });
 
