@@ -258,10 +258,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               SignInReason.credentialsMissing => l10n.signInRequiredMissingBody,
             }),
             actions: [
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(l10n.signInRequiredAction),
-              ).tagged('sign_in_required.confirm'),
+              // Full width, the way `confirmDialog` lays its pair out: the
+              // actions sit in an `OverflowBar`, which hands its widest child
+              // the dialog's whole width. A lone button left at its content
+              // width hugs the right edge and reads as a different app.
+              SizedBox(
+                width: double.maxFinite,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(l10n.signInRequiredAction),
+                ).tagged('sign_in_required.confirm'),
+              ),
             ],
           ),
         ),
