@@ -1,7 +1,4 @@
-import 'dart:io' show HttpException;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
@@ -9,10 +6,11 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/endpoints.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import 'mjpeg_view.dart';
 
 /// Full-screen camera view (MJPEG). Stream lives only while screen is
-/// mounted: `Mjpeg` closes connection on `dispose` (pop route), and built-in
-/// `visibility_detector` pauses when screen is obscured.
+/// mounted: [MjpegView] closes the connection on `dispose` (pop route) and
+/// while the app is in the background.
 ///
 /// Stream token (~60 min) from [cameraTokenProvider]; on 401 (expiry)
 /// once force re-mint and restart stream.
@@ -76,21 +74,12 @@ class _CameraViewState extends ConsumerState<CameraView> {
   Widget _stream(String baseUrl, String token, AppLocalizations l10n) {
     final url =
         '$baseUrl${Endpoints.cameraStream(widget.printerId)}?token=$token';
-    return Mjpeg(
-      stream: url,
-      isLive: true,
+    return MjpegView(
+      url: url,
       fit: BoxFit.contain,
-      // Stream can be slow on remote connection — give more than default 5s.
-      timeout: const Duration(seconds: 15),
       loading: (_) => _Loading(text: l10n.cameraConnecting),
-      error: (context, error, _) {
-        // 401 = token expired → once force re-mint and restart stream.
-        // Anchored on `flutter_mjpeg`'s own `HttpException('Stream returned
-        // $statusCode status')` — not a raw substring match on
-        // `error.toString()` — since a server on a port containing "401"
-        // (e.g. `host:8401`) would otherwise make a routine connectivity
-        // error (whose message embeds the address) look like an expired
-        // token, burning the one-shot re-mint on every hiccup.
+      error: (context, error) {
+        // 401 = token expired -> once force re-mint and restart stream.
         if (_isTokenExpired(error) && _remintedFor != token) {
           _remintedFor = token;
           Future.microtask(() {
@@ -106,14 +95,8 @@ class _CameraViewState extends ConsumerState<CameraView> {
   }
 }
 
-/// `flutter_mjpeg` throws `HttpException('Stream returned $statusCode
-/// status')` for any non-2xx response — matches only that shape, not any
-/// error whose `toString()` happens to contain "401".
-bool _isTokenExpired(Object error) {
-  if (error is! HttpException) return false;
-  final m = RegExp(r'^Stream returned (\d+) status$').firstMatch(error.message);
-  return m?.group(1) == '401';
-}
+bool _isTokenExpired(Object error) =>
+    error is MjpegHttpStatus && error.status == 401;
 
 class _DemoUnavailable extends StatelessWidget {
   const _DemoUnavailable({required this.text});

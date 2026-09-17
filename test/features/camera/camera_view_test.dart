@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/features/camera/mjpeg_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -72,7 +72,7 @@ void main() {
     });
 
     testWidgets(
-      'renders Mjpeg stream with minted token and printer stream URL',
+      'points the stream at the printer route with the minted token',
       (tester) async {
         await pumpPhone(
           tester,
@@ -86,13 +86,11 @@ void main() {
         );
         await settle(tester);
 
-        final mjpegFinder = find.byType(Mjpeg);
-        expect(mjpegFinder, findsOneWidget);
-
-        final mjpeg = tester.widget<Mjpeg>(mjpegFinder);
-        expect(mjpeg.stream, contains('/api/v1/printers/7/camera/stream'));
-        expect(mjpeg.stream, contains('token=secret-stream-token'));
-        expect(mjpeg.isLive, isTrue);
+        // What the stream does with the URL is covered on a device, in
+        // `integration_test/camera_stream_test.dart`.
+        final view = tester.widget<MjpegView>(find.byType(MjpegView));
+        expect(view.url, contains('/api/v1/printers/7/camera/stream'));
+        expect(view.url, contains('token=secret-stream-token'));
       },
     );
   });
