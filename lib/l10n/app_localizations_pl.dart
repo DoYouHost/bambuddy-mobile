@@ -32,7 +32,8 @@ class AppLocalizationsPl extends AppLocalizations {
       'Konto wymaga teraz drugiego składnika, a aplikacja nie poda go w tle — więc przestała logować się sama. Zaloguj się ponownie i wpisz kod.';
 
   @override
-  String get later => 'Później';
+  String get signInRequiredMissingBody =>
+      'Klucz, którym zaszyfrowano zapisane logowanie, unieważniła aktualizacja zabezpieczeń albo przywrócenie kopii zapasowej. Nic poza tym nie zniknęło.';
 
   @override
   String get serverUnreachableStale =>

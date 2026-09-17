@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/ws_client.dart';
+import '../../core/auth/auth_headers.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
@@ -53,6 +54,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Whether a check for it is in flight — a resume landing mid-check would
   /// otherwise walk past the guard and open a second dialog.
   bool _signInChecking = false;
+
+  /// The generic session-expiry listener already sent the user to `/setup`.
+  /// Set from the listener, read by the warning, so only one of the two speaks.
+  bool _authExpiredHandled = false;
 
   static const _onboardingFlag = 'notif_onboarded';
 
@@ -185,25 +190,97 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _signInChecking = false;
     }
     if (!mounted) return;
-    if (!settings.loadSignInRequired()) return;
+    final reason = settings.loadSignInReason();
+    final profile = ref.read(serverProfileProvider);
+    final missing =
+        profile != null &&
+        await credentialMissing(
+          profile.authMode,
+          ref.read(credentialsStoreProvider),
+        );
+    if (!mounted) return;
+
+    if (!settings.loadSignInRequired()) {
+      // Nobody rejected these credentials — they are not there at all, and the
+      // two places that raise the flag only ever hear a rejection. Raised here
+      // so that a session which ended without a word still ends visibly.
+      if (!missing) return;
+      await settings.saveSignInRequired(
+        true,
+        reason: SignInReason.credentialsMissing,
+      );
+      if (!mounted) return;
+      return _showSignInRequired(SignInReason.credentialsMissing);
+    }
+
+    // The store answers again, so whatever ate the credential was passing: a
+    // Keystore that was briefly unavailable rather than a key that is gone.
+    // Nothing else lowers the flag but signing in, so without this the app
+    // would keep asking for one it no longer needs.
+    if (reason == SignInReason.credentialsMissing && !missing) {
+      await settings.saveSignInRequired(false);
+      _signInWarned = false;
+      return;
+    }
+    return _showSignInRequired(reason);
+  }
+
+  Future<void> _showSignInRequired(SignInReason reason) async {
+    // The generic expiry path got there first and is already on `/setup`;
+    // opening a dialog over it would explain a screen the user has left.
+    if (!mounted || _authExpiredHandled) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
-    final signIn = await confirmDialog(
-      context,
-      title: l10n.signInRequiredTitle,
-      // 2FA gets its own wording: the saved password is fine there, and sending
-      // the user off to reset it would waste their time on the wrong thing.
-      message: switch (settings.loadSignInReason()) {
-        SignInReason.credentialsRejected => l10n.signInRequiredBody,
-        SignInReason.twoFactorRequired => l10n.signInRequiredTwoFactorBody,
-      },
-      confirmLabel: l10n.signInRequiredAction,
-      cancelLabel: l10n.later,
-      icon: Icons.lock_outline,
-      id: 'sign_in_required',
+    // One way out, and no "later": every screen behind this dialog is server
+    // data the app can no longer fetch, so postponing buys a dashboard of empty
+    // lists and 401s. The one thing worth doing without a session — filing a
+    // report about it — is on the setup screen this leads to.
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => logSurface(
+        'sign_in_required',
+        PopScope(
+          canPop: false,
+          child: AlertDialog(
+            // A large system font can make the text taller than the screen.
+            scrollable: true,
+            icon: const Icon(Icons.lock_outline),
+            title: Text(l10n.signInRequiredTitle),
+            // 2FA gets its own wording: the saved password is fine there, and
+            // sending the user off to reset it would waste their time on the
+            // wrong thing.
+            content: Text(
+              switch (reason) {
+                SignInReason.credentialsRejected => l10n.signInRequiredBody,
+                SignInReason.twoFactorRequired =>
+                  l10n.signInRequiredTwoFactorBody,
+                SignInReason.credentialsMissing =>
+                  l10n.signInRequiredMissingBody,
+              },
+              // Centred like the icon and the title above it. Left-aligned text
+              // under a centred heading reads as two dialogs stacked.
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              // Full width, the way `confirmDialog` lays its pair out: the
+              // actions sit in an `OverflowBar`, which hands its widest child
+              // the dialog's whole width. A lone button left at its content
+              // width hugs the right edge and reads as a different app.
+              SizedBox(
+                width: double.maxFinite,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(l10n.signInRequiredAction),
+                ).tagged('sign_in_required.confirm'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-    if (signIn && mounted) context.go('/setup');
+    if (mounted) context.go('/setup');
   }
 
   /// Hands the background service's lifecycle to the log from the UI side, where
@@ -359,8 +436,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final l10n = AppLocalizations.of(context);
 
     // Session expiry → graceful return to setup, never crash or dead dashboard.
+    //
+    // Skipped once the sign-in warning has taken over: both end at `/setup`,
+    // and a 401 answered by a missing credential raises them together — a
+    // snack bar saying the session expired under a dialog saying the key is
+    // unreadable, with a route change between them.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
-      if (expired) {
+      if (expired && !_signInWarned) {
+        _authExpiredHandled = true;
         ScaffoldMessenger.of(context).snack(l10n.sessionExpired);
         context.go('/setup');
       }

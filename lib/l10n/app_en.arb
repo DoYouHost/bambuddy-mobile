@@ -1,25 +1,39 @@
 {
   "@@locale": "en",
-
   "printersTitle": "Printers",
-  "@printersTitle": { "description": "Dashboard app bar title" },
+  "@printersTitle": {
+    "description": "Dashboard app bar title"
+  },
   "changeServer": "Change server",
-  "@changeServer": { "description": "Tooltip / action to reset the saved server" },
+  "@changeServer": {
+    "description": "Tooltip / action to reset the saved server"
+  },
   "sessionExpired": "Session expired — sign in again",
   "signInRequiredTitle": "Sign in again",
   "signInRequiredBody": "The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.",
   "signInRequiredAction": "Sign in",
   "signInRequiredTwoFactorBody": "Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.",
-  "@signInRequiredTwoFactorBody": { "description": "Sign-in warning when silent re-login hit requires_2fa rather than a bad password" },
-  "later": "Later",
+  "@signInRequiredTwoFactorBody": {
+    "description": "Sign-in warning when silent re-login hit requires_2fa rather than a bad password"
+  },
+  "signInRequiredMissingBody": "A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.",
+  "@signInRequiredMissingBody": {
+    "description": "Sign-in warning when the profile expects a credential and the secure store has none"
+  },
   "serverUnreachableStale": "Server unreachable — data may be out of date",
   "wsReconnecting": "No live connection — refreshing every 5 s",
-  "@wsReconnecting": { "description": "Banner shown while the live WebSocket is down but REST polling keeps data fresh" },
+  "@wsReconnecting": {
+    "description": "Banner shown while the live WebSocket is down but REST polling keeps data fresh"
+  },
   "connLive": "Live",
-  "@connLive": { "description": "Connection-mode chip: real-time updates over WebSocket" },
+  "@connLive": {
+    "description": "Connection-mode chip: real-time updates over WebSocket"
+  },
   "connLiveTooltip": "Real-time updates over WebSocket",
   "connPolling": "Polling",
-  "@connPolling": { "description": "Connection-mode chip: no WebSocket, data refreshed via periodic REST polling" },
+  "@connPolling": {
+    "description": "Connection-mode chip: no WebSocket, data refreshed via periodic REST polling"
+  },
   "connPollingTooltip": "No live link — refreshing every 5 s (REST)",
   "connectFailed": "Could not connect to the server",
   "filePickerFailed": "The file dialog could not be opened",
@@ -28,11 +42,18 @@
   "searchPrinters": "Search printers…",
   "noPrinters": "No printers — add them on the server",
   "noSearchResults": "No results for “{query}”",
-  "@noSearchResults": { "placeholders": { "query": { "type": "String" } } },
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "noPrintersMatchFilters": "No printers match the current filters",
-
   "dashboardFilters": "Filters",
-  "@dashboardFilters": { "description": "Title of the dashboard filter sheet / filter button tooltip" },
+  "@dashboardFilters": {
+    "description": "Title of the dashboard filter sheet / filter button tooltip"
+  },
   "filterStatus": "Status",
   "filtersClear": "Clear",
   "hideOffline": "Hide offline",
@@ -43,7 +64,6 @@
   "statusFinished": "Finished",
   "statusErrorFilter": "Error",
   "statusOfflineFilter": "Offline",
-
   "addPrinterTitle": "Add printer",
   "addPrinterName": "Name",
   "addPrinterIp": "IP address",
@@ -63,13 +83,21 @@
   "addPrinterErrForbidden": "You do not have permission to add printers",
   "addPrinterErrGeneric": "Could not add the printer. Try again.",
   "addPrinterAutoArchive": "Auto-archive completed prints",
-
   "addPrinterScanTitle": "Find printers on the network",
   "addPrinterSubnet": "Subnet to scan",
   "addPrinterScanButton": "Scan subnet for printers",
   "addPrinterDiscoverNetwork": "Discover printers on network",
   "addPrinterScanning": "Scanning… {scanned}/{total}",
-  "@addPrinterScanning": { "placeholders": { "scanned": { "type": "int" }, "total": { "type": "int" } } },
+  "@addPrinterScanning": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "addPrinterScanningPlain": "Scanning…",
   "addPrinterScanNoResults": "No printers found",
   "addPrinterScanError": "Scan failed. Try again.",
@@ -77,7 +105,6 @@
   "addPrinterSubnetCustomLabel": "Custom subnet (CIDR)",
   "addPrinterSubnetDockerNote": "Docker detected. Enter your printer's subnet in CIDR notation. Requires network_mode: host in docker-compose.yml.",
   "addPrinterSubnetCustomNote": "Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.",
-
   "addPrinterDiagnostic": "Run diagnostic",
   "addPrinterDiagnosticRunning": "Running diagnostic…",
   "addPrinterDiagnosticError": "Diagnostic failed. Try again.",
@@ -96,17 +123,27 @@
   "cancel": "Cancel",
   "clear": "Clear",
   "change": "Change",
-
   "noActivePrints": "No active prints",
   "printingCount": "{count, plural, one{{count} printing} other{{count} printing}}",
-  "@printingCount": { "placeholders": { "count": { "type": "int" } } },
+  "@printingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "nextAvailableLabel": "Next available: ",
-
   "tempNozzle": "Nozzle",
   "tempBed": "Bed",
   "tempChamber": "Chamber",
   "tempNozzleNumbered": "Nozzle {n}",
-  "@tempNozzleNumbered": { "placeholders": { "n": { "type": "String" } } },
+  "@tempNozzleNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlFanPart": "Part cooling fan",
   "ctrlFanAux": "Aux fan",
   "ctrlFanAux2": "Left aux fan",
@@ -133,7 +170,13 @@
   "ctrlDryTemp": "Temperature",
   "ctrlDryDuration": "Duration",
   "ctrlDryHours": "{h} h",
-  "@ctrlDryHours": { "placeholders": { "h": { "type": "int" } } },
+  "@ctrlDryHours": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      }
+    }
+  },
   "ctrlDryAutoIdle": "Auto-drying when humidity is high.",
   "ctrlDryAutoQueue": "Auto-drying between queued prints.",
   "ctrlDryAutoWhilePrinting": "During prints, too.",
@@ -146,12 +189,24 @@
   "ctrlDryScheduled": "Drying scheduled",
   "ctrlDryScheduleTimePast": "Pick a time in the future",
   "ctrlDryScheduledFor": "Drying at {time}",
-  "@ctrlDryScheduledFor": { "placeholders": { "time": { "type": "String" } } },
+  "@ctrlDryScheduledFor": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlDryScheduledAsap": "Drying scheduled, waiting for the printer",
   "ctrlDryScheduleCancel": "Cancel scheduled drying",
   "ctrlDryScheduleDismiss": "Dismiss",
   "ctrlDryScheduleFailed": "Scheduled drying failed: {reason}",
-  "@ctrlDryScheduleFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@ctrlDryScheduleFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "ctrlDryScheduleFailedUnknown": "unknown error",
   "ctrlDryWaitPower": "Connect the AMS power adapter",
   "ctrlDryWaitRetract": "Retract the filament at the AMS outlet",
@@ -172,7 +227,13 @@
   "ctrlMoveRetract": "Retract",
   "ctrlMoveLength": "Length",
   "ctrlMoveMm": "{d} mm",
-  "@ctrlMoveMm": { "placeholders": { "d": { "type": "int" } } },
+  "@ctrlMoveMm": {
+    "placeholders": {
+      "d": {
+        "type": "int"
+      }
+    }
+  },
   "ctrlPause": "Pause",
   "ctrlResume": "Resume",
   "ctrlStop": "Stop",
@@ -181,99 +242,188 @@
   "ctrlForbidden": "No permission to control this printer",
   "ctrlFailed": "Couldn't send the command",
   "skipObjectsTitle": "Skip objects",
-  "@skipObjectsTitle": { "description": "Skip-objects screen title" },
+  "@skipObjectsTitle": {
+    "description": "Skip-objects screen title"
+  },
   "skipObjectsSkip": "Skip",
-  "@skipObjectsSkip": { "description": "Button: skip a single object" },
+  "@skipObjectsSkip": {
+    "description": "Button: skip a single object"
+  },
   "skipObjectsSkippedTag": "Skipped",
-  "@skipObjectsSkippedTag": { "description": "Status label on an already-skipped object" },
+  "@skipObjectsSkippedTag": {
+    "description": "Status label on an already-skipped object"
+  },
   "skipObjectsSkippedToast": "{count, plural, =1{Skipped \"{names}\"} other{Skipped {count} objects}}",
   "@skipObjectsSkippedToast": {
     "description": "Snackbar after skipping one or more objects",
-    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
   },
   "skipObjectsConfirmTitle": "{count, plural, =1{Skip this object?} other{Skip {count} objects?}}",
   "@skipObjectsConfirmTitle": {
     "description": "Confirm dialog title before skipping the selected objects",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "skipObjectsConfirmBody": "{count, plural, =1{\"{names}\" will be skipped for the rest of this print. This can't be undone.} other{\"{names}\" will be skipped for the rest of this print. This can't be undone.}}",
   "@skipObjectsConfirmBody": {
     "description": "Confirm dialog body before skipping the selected objects",
-    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
   },
   "skipObjectsSelectedCount": "{count} selected",
   "@skipObjectsSelectedCount": {
     "description": "Bottom bar: how many objects are selected to skip",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "skipObjectsSelectHint": "Tap an object above or below to select it for skipping",
-  "@skipObjectsSelectHint": { "description": "Hint shown while nothing is selected yet" },
+  "@skipObjectsSelectHint": {
+    "description": "Hint shown while nothing is selected yet"
+  },
   "skipObjectsMatchInfo": "Match IDs with your printer display",
-  "@skipObjectsMatchInfo": { "description": "Info banner title on the skip screen" },
+  "@skipObjectsMatchInfo": {
+    "description": "Info banner title on the skip screen"
+  },
   "skipObjectsMatchHint": "The printer screen shows object IDs on the build plate",
-  "@skipObjectsMatchHint": { "description": "Info banner subtitle on the skip screen" },
+  "@skipObjectsMatchHint": {
+    "description": "Info banner subtitle on the skip screen"
+  },
   "skipObjectsCounter": "{skipped}/{total} skipped",
   "@skipObjectsCounter": {
     "description": "Skipped-of-total counter in the info banner",
-    "placeholders": { "skipped": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "skipped": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "skipObjectsActiveCount": "{count} active",
   "@skipObjectsActiveCount": {
     "description": "Active (not skipped) object count badge on the plate preview",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "skipObjectsWaitForLayer": "Skipping is available from layer 2 (currently layer {layer})",
   "@skipObjectsWaitForLayer": {
     "description": "Warning: the first layer can't be skipped",
-    "placeholders": { "layer": { "type": "int" } }
+    "placeholders": {
+      "layer": {
+        "type": "int"
+      }
+    }
   },
   "skipObjectsEmpty": "No printable objects",
-  "@skipObjectsEmpty": { "description": "Empty state title on the skip screen" },
+  "@skipObjectsEmpty": {
+    "description": "Empty state title on the skip screen"
+  },
   "skipObjectsEmptyHint": "Objects load when a print starts. Reload if a print is running.",
-  "@skipObjectsEmptyHint": { "description": "Empty state hint on the skip screen" },
+  "@skipObjectsEmptyHint": {
+    "description": "Empty state hint on the skip screen"
+  },
   "skipObjectsReload": "Reload",
-  "@skipObjectsReload": { "description": "Button: re-read objects from the print file" },
+  "@skipObjectsReload": {
+    "description": "Button: re-read objects from the print file"
+  },
   "skipObjectsLoadFailed": "Couldn't load printable objects.",
-  "@skipObjectsLoadFailed": { "description": "Error state on the skip screen" },
+  "@skipObjectsLoadFailed": {
+    "description": "Error state on the skip screen"
+  },
   "speedSilent": "Silent",
   "speedStandard": "Standard",
   "speedSport": "Sport",
   "speedLudicrous": "Ludicrous",
-
   "smartPlugOn": "On",
-  "@smartPlugOn": { "description": "Smart plug powered on" },
+  "@smartPlugOn": {
+    "description": "Smart plug powered on"
+  },
   "smartPlugOff": "Off",
-  "@smartPlugOff": { "description": "Smart plug powered off" },
+  "@smartPlugOff": {
+    "description": "Smart plug powered off"
+  },
   "smartPlugUnreachable": "Unreachable",
-  "@smartPlugUnreachable": { "description": "Smart plug does not respond" },
+  "@smartPlugUnreachable": {
+    "description": "Smart plug does not respond"
+  },
   "smartPlugMonitorOnly": "Monitoring only",
-  "@smartPlugMonitorOnly": { "description": "Why an MQTT plug cannot be switched from the card" },
+  "@smartPlugMonitorOnly": {
+    "description": "Why an MQTT plug cannot be switched from the card"
+  },
   "smartPlugCantPowerOff": "Can't cut power while the printer is printing",
-  "@smartPlugCantPowerOff": { "description": "Why the off switch is blocked during a print" },
+  "@smartPlugCantPowerOff": {
+    "description": "Why the off switch is blocked during a print"
+  },
   "smartPlugOffConfirmTitle": "Cut power?",
-  "@smartPlugOffConfirmTitle": { "description": "Confirm turning the plug off" },
+  "@smartPlugOffConfirmTitle": {
+    "description": "Confirm turning the plug off"
+  },
   "smartPlugOffConfirmBody": "The printer loses power immediately.",
-  "@smartPlugOffConfirmBody": { "description": "Confirm body when turning a plug off" },
+  "@smartPlugOffConfirmBody": {
+    "description": "Confirm body when turning a plug off"
+  },
   "smartPlugTurnOff": "Turn off",
-  "@smartPlugTurnOff": { "description": "Confirm button: turn the plug off" },
+  "@smartPlugTurnOff": {
+    "description": "Confirm button: turn the plug off"
+  },
   "smartPlugOnConfirmTitle": "Power on?",
-  "@smartPlugOnConfirmTitle": { "description": "Confirm turning the plug on" },
+  "@smartPlugOnConfirmTitle": {
+    "description": "Confirm turning the plug on"
+  },
   "smartPlugOnConfirmBody": "The printer will be powered on.",
-  "@smartPlugOnConfirmBody": { "description": "Confirm body when turning a plug on" },
+  "@smartPlugOnConfirmBody": {
+    "description": "Confirm body when turning a plug on"
+  },
   "smartPlugTurnOn": "Turn on",
-  "@smartPlugTurnOn": { "description": "Confirm button: turn the plug on" },
+  "@smartPlugTurnOn": {
+    "description": "Confirm button: turn the plug on"
+  },
   "powerWatts": "{watts} W",
   "@powerWatts": {
     "description": "Power draw in watts",
-    "placeholders": { "watts": { "type": "int" } }
+    "placeholders": {
+      "watts": {
+        "type": "int"
+      }
+    }
   },
   "totalPowerTooltip": "Total power draw across all plugs",
-  "@totalPowerTooltip": { "description": "Dashboard header power sum tooltip" },
-
+  "@totalPowerTooltip": {
+    "description": "Dashboard header power sum tooltip"
+  },
   "queueEmpty": "The queue is empty",
   "queueAmsFromSlicer": "AMS from slicer",
   "queueAnyOfModels": "Any of: {models}",
-  "@queueAnyOfModels": { "placeholders": { "models": { "type": "String" } } },
+  "@queueAnyOfModels": {
+    "placeholders": {
+      "models": {
+        "type": "String"
+      }
+    }
+  },
   "queueDeleteTitle": "Remove from queue?",
   "queueDeleteBody": "This removes the item from the print queue.",
   "queueDeleteConfirm": "Remove",
@@ -296,7 +446,6 @@
   "queueStatusScheduled": "Scheduled",
   "queueStatusPrinting": "Printing",
   "queueStatusPaused": "Paused",
-
   "archiveSearchHint": "Search archive",
   "archiveEmpty": "No archived prints",
   "archiveNoMatches": "No prints match your filters",
@@ -329,54 +478,131 @@
   "archiveAddToQueue": "Add to queue",
   "archiveTimelapse": "Watch timelapse",
   "archivePhotos": "{count, plural, =1{View photo} other{View photos ({count})}}",
-  "@archivePhotos": { "placeholders": { "count": { "type": "int" } } },
+  "@archivePhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaAction": "Recordings & photos",
-  "@archiveMediaAction": { "description": "Archive detail sheet: one entry for everything the print has to look at or keep \u2014 replaces the separate timelapse and photos buttons." },
+  "@archiveMediaAction": {
+    "description": "Archive detail sheet: one entry for everything the print has to look at or keep — replaces the separate timelapse and photos buttons."
+  },
   "archiveMediaOnServer": "On the server",
-  "@archiveMediaOnServer": { "description": "Section header: what bambuddy already holds. These rows open a viewer." },
+  "@archiveMediaOnServer": {
+    "description": "Section header: what bambuddy already holds. These rows open a viewer."
+  },
   "archiveMediaOnPrinter": "{count, plural, =0{On the printer} other{On the printer ({count})}}",
-  "@archiveMediaOnPrinter": { "description": "Section header: what is still only on the printer's own storage. These rows are ticked and downloaded.", "placeholders": { "count": { "type": "int" } } },
-  "archiveMediaSearching": "Looking on the printer\u2026",
+  "@archiveMediaOnPrinter": {
+    "description": "Section header: what is still only on the printer's own storage. These rows are ticked and downloaded.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveMediaSearching": "Looking on the printer…",
   "archiveMediaNothingOnPrinter": "Nothing on the printer",
   "archiveMediaPhotoCount": "{count, plural, one{one photo} other{{count} photos}}",
-  "@archiveMediaPhotoCount": { "description": "Subtitle of the photos row in the media sheet — the row's own count, beside the timelapse row's size.", "placeholders": { "count": { "type": "int" } } },
+  "@archiveMediaPhotoCount": {
+    "description": "Subtitle of the photos row in the media sheet — the row's own count, beside the timelapse row's size.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaKindTimelapse": "Timelapse",
   "archiveMediaKindIpcam": "Camera",
   "archiveMediaDownloadSelected": "Download {count, plural, =0{selected} one{one file} other{{count} files}}",
-  "@archiveMediaDownloadSelected": { "description": "Download button. Zero is the disabled state, before anything is ticked.", "placeholders": { "count": { "type": "int" } } },
+  "@archiveMediaDownloadSelected": {
+    "description": "Download button. Zero is the disabled state, before anything is ticked.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveMediaSaved": "Video saved",
   "archiveMediaNoFilePermission": "No permission for the printer's files",
   "archiveMediaPrinterMissing": "The printer is gone",
   "archiveMediaTimelapseUnavailable": "Timelapses: no answer from the printer",
   "archiveMediaIpcamUnavailable": "Camera: no answer from the printer",
   "archivePlate": "Plate {plate}",
-  "@archivePlate": { "placeholders": { "plate": { "type": "int" } } },
+  "@archivePlate": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "archivePlateDetail": "Plate {plate} of a multi-plate file",
-  "@archivePlateDetail": { "description": "Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed", "placeholders": { "plate": { "type": "int" } } },
+  "@archivePlateDetail": {
+    "description": "Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed",
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "archivePhotosTitle": "Photos",
   "archivePhotosEmpty": "No photos for this print",
   "archivePhotoFailed": "Couldn't load this photo.",
   "archiveFilamentUsed": "Filament used",
   "archiveFilamentGrams": "{grams} g",
-  "@archiveFilamentGrams": { "placeholders": { "grams": { "type": "String" } } },
+  "@archiveFilamentGrams": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "archiveFilamentActual": "{count, plural, =1{Used {grams}} other{Used {grams} over {count} runs}}",
-  "@archiveFilamentActual": { "placeholders": { "grams": { "type": "String" }, "count": { "type": "int" } } },
+  "@archiveFilamentActual": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "archiveFilamentNoActual": "No usage recorded",
   "archiveFilamentSaving": "Saving",
   "archiveFilamentNone": "Not recorded",
   "archiveFilamentLabel": "Weight (g)",
   "archiveFilamentNotANumber": "Enter a number, or leave it empty to clear the weight.",
   "archiveFilamentOutOfRange": "A weight between 0 and {max} g.",
-  "@archiveFilamentOutOfRange": { "placeholders": { "max": { "type": "String" } } },
+  "@archiveFilamentOutOfRange": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
   "archiveFilamentSaved": "Filament weight saved",
   "archiveFilamentUnsupported": "This server doesn't store a typed-in filament weight yet. Update bambuddy.",
   "archiveHasTimelapse": "Has a timelapse",
   "archiveHasPhotos": "{count, plural, =1{Has a photo} other{Has {count} photos}}",
-  "@archiveHasPhotos": { "placeholders": { "count": { "type": "int" } } },
+  "@archiveHasPhotos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseTitle": "Timelapse",
   "timelapseError": "Couldn't play this timelapse.",
   "timelapseHttpError": "The server would not hand over this timelapse ({status}).",
-  "@timelapseHttpError": { "placeholders": { "status": { "type": "int" } } },
+  "@timelapseHttpError": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseStalled": "The server is serving the video, but the player never started it.",
   "timelapsePlay": "Play",
   "timelapsePause": "Pause",
@@ -391,9 +617,27 @@
   "timelapseEditTrim": "Trim",
   "timelapseEditSpeed": "Speed",
   "timelapseEditOutput": "Result: {length}",
-  "@timelapseEditOutput": { "placeholders": { "length": { "type": "String" } } },
+  "@timelapseEditOutput": {
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
   "timelapseEditSource": "Original: {length} at {width}×{height}",
-  "@timelapseEditSource": { "placeholders": { "length": { "type": "String" }, "width": { "type": "int" }, "height": { "type": "int" } } },
+  "@timelapseEditSource": {
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
   "timelapseEditSaveTitle": "Overwrite the recording?",
   "timelapseEditSaveMessage": "The server re-encodes the timelapse and replaces the original. There is no copy to go back to.",
   "timelapseEditProcessing": "The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.",
@@ -410,10 +654,22 @@
   "gcodeViewerColorByWidth": "Width",
   "gcodeSingleLayer": "single layer",
   "gcodeViewerFilamentSlot": "Filament {n}",
-  "@gcodeViewerFilamentSlot": { "placeholders": { "n": { "type": "int" } } },
+  "@gcodeViewerFilamentSlot": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "gcodeViewerEmpty": "There is no toolpath in this file — it hasn't been sliced yet.",
   "gcodeViewerHttpError": "The server would not hand over the G-code for this file ({status}).",
-  "@gcodeViewerHttpError": { "placeholders": { "status": { "type": "int" } } },
+  "@gcodeViewerHttpError": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "gcodeFeatureWall": "Walls",
   "gcodeFeatureSparseInfill": "Sparse infill",
   "gcodeFeatureSolidInfill": "Solid infill",
@@ -425,23 +681,31 @@
   "gcodeFeaturePrimeTower": "Prime tower",
   "archiveNo3mfTitle": "Some recent prints archived without their thumbnails",
   "archiveNo3mfBody": "The slicer didn't leave the .gcode.3mf on the printer's card, so Bambuddy couldn't pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer's Device tab.",
-  "@archiveNo3mfBody": {"description": "Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows."},
+  "@archiveNo3mfBody": {
+    "description": "Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows."
+  },
   "archiveNo3mfTitleInternal": "Some recent prints stayed on the printer's internal storage",
   "archiveNo3mfBodyInternal": "Bambu Studio put the sliced file on the printer's internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.",
-  "@archiveNo3mfBodyInternal": {"description": "Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong."},
+  "@archiveNo3mfBodyInternal": {
+    "description": "Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong."
+  },
   "archiveNo3mfTitleNoStorage": "Some recent prints couldn't be archived — no storage in the printer",
   "archiveNo3mfBodyNoStorage": "The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.",
   "archiveNo3mfDocs": "See install step 4",
   "archiveNo3mfDocsWhy": "Why this happens",
   "archiveNo3mfDismiss": "Dismiss this notice",
   "archiveNotSliceable": "This print has no source file or model, so it cannot be re-sliced.",
-  "@archiveNo3mfDismiss": {"description": "Tooltip and accessible name of the banner's close button."},
+  "@archiveNo3mfDismiss": {
+    "description": "Tooltip and accessible name of the banner's close button."
+  },
   "archiveDelete": "Delete",
   "archiveDeleteTitle": "Delete print?",
   "archiveDeleteBody": "Remove \"{name}\" from the archive.",
   "@archiveDeleteBody": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "archiveDeletePurgeStats": "Also remove from statistics",
@@ -452,27 +716,37 @@
   "archiveSelectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
   "@archiveSelectedCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "archiveDeleteSelectedTitle": "{count, plural, =1{Delete 1 print?} other{Delete {count} prints?}}",
   "@archiveDeleteSelectedTitle": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "archiveDeleteSelectedBody": "Remove the selected prints from the archive.",
   "archiveDeletedCount": "{count, plural, =1{1 print deleted} other{{count} prints deleted}}",
   "@archiveDeletedCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "archiveDeleteSomeFailed": "{ok} deleted, {failed} failed",
   "@archiveDeleteSomeFailed": {
     "placeholders": {
-      "ok": { "type": "int" },
-      "failed": { "type": "int" }
+      "ok": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
     }
   },
   "archivePurgeOlder": "Purge old prints…",
@@ -481,14 +755,20 @@
   "archivePurgeDaysOption": "{days, plural, =1{1 day} other{{days} days}}",
   "@archivePurgeDaysOption": {
     "placeholders": {
-      "days": { "type": "int" }
+      "days": {
+        "type": "int"
+      }
     }
   },
   "archivePurgePreview": "{count, plural, =1{1 print · {size}} other{{count} prints · {size}}}",
   "@archivePurgePreview": {
     "placeholders": {
-      "count": { "type": "int" },
-      "size": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
     }
   },
   "archivePurgeNothing": "No prints older than this.",
@@ -496,11 +776,12 @@
   "archivePurgeResult": "{count, plural, =0{No prints purged} =1{1 print purged} other{{count} prints purged}}",
   "@archivePurgeResult": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "pickPrinterTitle": "Choose a printer",
-
   "detailsShow": "Details",
   "detailsHide": "Hide details",
   "cameraTooltip": "Camera",
@@ -508,7 +789,13 @@
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "Camera preview is not available in demo mode",
   "amsUnit": "AMS {number}",
-  "@amsUnit": { "placeholders": { "number": { "type": "int" } } },
+  "@amsUnit": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
   "amsSlotFilament": "Filament",
@@ -519,7 +806,13 @@
   "amsUnloadStarted": "Unloading filament…",
   "amsRfidRereadStarted": "Re-reading the tag…",
   "amsFeedTitle": "Feed {slot} into which nozzle?",
-  "@amsFeedTitle": { "placeholders": { "slot": { "type": "String" } } },
+  "@amsFeedTitle": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "amsFeedPrompt": "The Filament Track Switch can route this slot to either nozzle, so the printer cannot work out where the filament should go.",
   "amsFeedAlreadyLoaded": "already loaded",
   "amsSwitchNotReady": "The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.",
@@ -543,30 +836,50 @@
   "amsSlotConfigOnlyPrinterHiding": "Only for {model} ({hidden} hidden)",
   "amsSlotConfigModelUnknown": "Printer model unknown — showing every preset",
   "@amsSlotConfigOnlyPrinter": {
-    "placeholders": { "model": { "type": "String" } }
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
   },
   "@amsSlotConfigOnlyPrinterHiding": {
     "placeholders": {
-      "model": { "type": "String" },
-      "hidden": { "type": "int" }
+      "model": {
+        "type": "String"
+      },
+      "hidden": {
+        "type": "int"
+      }
     }
   },
   "amsSlotConfigCurrent": "Currently set",
   "amsSlotConfigKProfile": "K profile",
   "amsSlotConfigKProfileDefault": "Default (K {value})",
   "@amsSlotConfigKProfileDefault": {
-    "placeholders": { "value": { "type": "String" } }
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "amsSlotConfigKProfileOther": "Other profiles",
   "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
   "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
   "amsSlotConfigNozzleGuess": "The printer did not report its nozzle size — assuming {diameter} mm",
   "@amsSlotConfigNozzleGuess": {
-    "placeholders": { "diameter": { "type": "String" } }
+    "placeholders": {
+      "diameter": {
+        "type": "String"
+      }
+    }
   },
   "amsSlotConfigKProfileValue": "K {value}",
   "@amsSlotConfigKProfileValue": {
-    "placeholders": { "value": { "type": "String" } }
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "amsSlotConfigColourCatalogue": "Catalogue colours",
   "amsSlotConfigColourCustom": "Custom colour",
@@ -579,7 +892,13 @@
   "extruderLeftShort": "L",
   "extruderRightShort": "R",
   "amsHistoryTitle": "{ams} history",
-  "@amsHistoryTitle": { "placeholders": { "ams": { "type": "String" } } },
+  "@amsHistoryTitle": {
+    "placeholders": {
+      "ams": {
+        "type": "String"
+      }
+    }
+  },
   "amsHistoryHumidity": "Humidity",
   "amsHistoryTemperature": "Temperature",
   "sensorHistoryCurrent": "Current",
@@ -604,13 +923,17 @@
   "doorClosed": "Door closed",
   "firmwareUpToDate": "Firmware up to date",
   "firmwareUpdateAvailable": "Firmware update available: {version}",
-  "@firmwareUpdateAvailable": { "placeholders": { "version": { "type": "String" } } },
-
+  "@firmwareUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "statusUnavailable": "status unavailable",
   "statusOffline": "OFFLINE",
   "online": "online",
   "offline": "offline",
-
   "widgetNoPrinter": "No printer",
   "widgetStatusPrinting": "Printing",
   "widgetStatusPaused": "Paused",
@@ -621,27 +944,92 @@
   "widgetStatusError": "Error",
   "widgetMultiTitle": "Printers",
   "widgetMultiActive": "{active}/{total} active",
-  "@widgetMultiActive": { "placeholders": { "active": { "type": "int" }, "total": { "type": "int" } } },
+  "@widgetMultiActive": {
+    "placeholders": {
+      "active": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiMore": "+{count} more",
-  "@widgetMultiMore": { "placeholders": { "count": { "type": "int" } } },
+  "@widgetMultiMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiGaugeLabel": "printing",
   "widgetMultiIdleCount": "{count} idle",
-  "@widgetMultiIdleCount": { "placeholders": { "count": { "type": "int" } } },
+  "@widgetMultiIdleCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "widgetMultiOfflineCount": "{count} offline",
-  "@widgetMultiOfflineCount": { "placeholders": { "count": { "type": "int" } } },
+  "@widgetMultiOfflineCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "remaining": "{time} left",
-  "@remaining": { "placeholders": { "time": { "type": "String" } } },
+  "@remaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "eta": "ETA {time}",
-  "@eta": { "placeholders": { "time": { "type": "String" } } },
+  "@eta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "durationMinutes": "{minutes}min",
-  "@durationMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "durationHoursMinutes": "{hours}h {minutes}min",
-  "@durationHoursMinutes": { "placeholders": { "hours": { "type": "int" }, "minutes": { "type": "int" } } },
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "durationHours": "{hours}h",
-  "@durationHours": { "placeholders": { "hours": { "type": "int" } } },
+  "@durationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "durationSeconds": "{seconds}s",
-  "@durationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
-
+  "@durationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "connectToServer": "Connect to server",
   "serverAddressLabel": "bambuddy server address",
   "serverAddressHint": "e.g. 192.168.1.10:8000",
@@ -660,7 +1048,9 @@
   "rememberMeSubtitle": "The password is stored in encrypted storage (Android Keystore)",
   "signInAndConnect": "Sign in and connect",
   "twoFactorTitle": "Two-factor authentication",
-  "@twoFactorTitle": { "description": "Heading of the second login step, shown after the server answered requires_2fa" },
+  "@twoFactorTitle": {
+    "description": "Heading of the second login step, shown after the server answered requires_2fa"
+  },
   "twoFactorMethodTotp": "Authenticator",
   "twoFactorMethodEmail": "E-mail",
   "twoFactorMethodBackup": "Backup code",
@@ -674,26 +1064,38 @@
   "twoFactorVerify": "Confirm and connect",
   "twoFactorBack": "Use a different account",
   "twoFactorSessionNote": "The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.",
-  "@twoFactorSessionNote": { "description": "Why remember-me does nothing for a 2FA account; shown under the code field" },
+  "@twoFactorSessionNote": {
+    "description": "Why remember-me does nothing for a 2FA account; shown under the code field"
+  },
   "tryDemo": "Try the demo",
   "scanApiKeyTitle": "Scan API key",
   "scanApiKeyHint": "Point the camera at the API key QR code",
   "cameraPermissionTitle": "Camera access needed",
   "cameraPermissionBody": "Allow camera access to scan QR codes.",
-
   "errMissingUrl": "Enter the server address",
   "errMissingApiKey": "Enter the API key",
   "errMissingCredentials": "Enter username and password",
   "errRequiresServerSetup": "The server needs initial setup — finish it in a browser and come back here.",
-
   "errServerUnreachable": "Server unreachable",
   "errUnauthorized": "Not authorized",
   "errForbidden": "Not allowed — the server refused this action",
   "errForbiddenDetail": "Not allowed: {reason}",
-  "@errForbiddenDetail": { "placeholders": { "reason": { "type": "String" } } },
+  "@errForbiddenDetail": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "errApiKeyOwnerDisabled": "The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.",
   "errBadResponse": "Server returned error {code}",
-  "@errBadResponse": { "placeholders": { "code": { "type": "int" } } },
+  "@errBadResponse": {
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
   "errBadCertificate": "Invalid TLS certificate (self-signed not supported in v1)",
   "errConnection": "Connection error",
   "errMalformedResponse": "Malformed server response",
@@ -708,53 +1110,173 @@
   "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
   "errSlotTagUnreadable": "This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.",
   "errPrinterOffline": "The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.",
-
   "notifOngoingBody": "{percent}% · ETA {eta}",
-  "@notifOngoingBody": { "placeholders": { "percent": { "type": "int" }, "eta": { "type": "String" } } },
+  "@notifOngoingBody": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
   "demoSettingsSection": "Demo",
   "demoPrintingCountTitle": "Printers printing",
   "demoPrintingCountDesc": "How many of the demo's printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.",
   "notifOngoingMultiBody": "Average {overall}% · {printer} {percent}% · ETA {eta}",
-  "@notifOngoingMultiBody": { "placeholders": { "overall": { "type": "int" }, "printer": { "type": "String" }, "percent": { "type": "int" }, "eta": { "type": "String" } } },
+  "@notifOngoingMultiBody": {
+    "placeholders": {
+      "overall": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
   "notifOngoingMultiBodyNoEta": "Average {overall}% · {printer} {percent}%",
-  "@notifOngoingMultiBodyNoEta": { "placeholders": { "overall": { "type": "int" }, "printer": { "type": "String" }, "percent": { "type": "int" } } },
+  "@notifOngoingMultiBodyNoEta": {
+    "placeholders": {
+      "overall": {
+        "type": "int"
+      },
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "printFinishedTitle": "Print finished",
   "printFinishedBody": "{name} is done",
-  "@printFinishedBody": { "placeholders": { "name": { "type": "String" } } },
+  "@printFinishedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "printFailedTitle": "Print failed",
   "printFailedBody": "{name} failed",
-  "@printFailedBody": { "placeholders": { "name": { "type": "String" } } },
-
+  "@printFailedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifStartedTitle": "Print started",
   "notifStartedBody": "{name} started printing",
-  "@notifStartedBody": { "placeholders": { "name": { "type": "String" } } },
+  "@notifStartedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifFirstLayerTitle": "First layer done",
   "notifFirstLayerBody": "{name} finished its first layer",
-  "@notifFirstLayerBody": { "placeholders": { "name": { "type": "String" } } },
+  "@notifFirstLayerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifMilestoneTitle": "{percent}% printed",
-  "@notifMilestoneTitle": { "placeholders": { "percent": { "type": "int" } } },
+  "@notifMilestoneTitle": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifMilestoneBody": "{name} is {percent}% done",
-  "@notifMilestoneBody": { "placeholders": { "name": { "type": "String" }, "percent": { "type": "int" } } },
+  "@notifMilestoneBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifPlateTitle": "Plate not empty",
   "notifPlateBody": "{printer} needs the plate cleared before the next job",
-  "@notifPlateBody": { "placeholders": { "printer": { "type": "String" } } },
+  "@notifPlateBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "notifOfflineTitle": "Printer offline",
   "notifOfflineBody": "{printer} lost connection",
-  "@notifOfflineBody": { "placeholders": { "printer": { "type": "String" } } },
+  "@notifOfflineBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "notifErrorTitle": "Printer error",
   "notifErrorBody": "{printer}: {detail}",
-  "@notifErrorBody": { "placeholders": { "printer": { "type": "String" }, "detail": { "type": "String" } } },
+  "@notifErrorBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowFilamentTitle": "Low filament",
   "notifLowFilamentBody": "{printer} has {percent}% filament left",
-  "@notifLowFilamentBody": { "placeholders": { "printer": { "type": "String" }, "percent": { "type": "int" } } },
+  "@notifLowFilamentBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityTitle": "AMS humidity high",
   "notifHumidityHtTitle": "AMS-HT humidity high",
   "notifHumidityBody": "{printer} AMS humidity is {value}%",
-  "@notifHumidityBody": { "placeholders": { "printer": { "type": "String" }, "value": { "type": "int" } } },
+  "@notifHumidityBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "notifBedCooledTitle": "Bed cooled",
   "notifBedCooledBody": "{printer} bed cooled to {temp}°C",
-  "@notifBedCooledBody": { "placeholders": { "printer": { "type": "String" }, "temp": { "type": "int" } } },
-
+  "@notifBedCooledBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "notifSettingsTitle": "Notifications",
   "notifSettingsHint": "Choose which events trigger a notification. Changes apply the next time background monitoring starts.",
   "notifMasterTitle": "Event notifications",
@@ -787,23 +1309,52 @@
   "notifEvtBedCooled": "Bed cooled",
   "notifEvtBedCooledDesc": "When the bed cools down after a print",
   "notifBedCooledThreshold": "Bed cooled below {temp}°C",
-  "@notifBedCooledThreshold": { "placeholders": { "temp": { "type": "int" } } },
+  "@notifBedCooledThreshold": {
+    "placeholders": {
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "notifHumidityThreshold": "AMS humidity above {value}%",
-  "@notifHumidityThreshold": { "placeholders": { "value": { "type": "int" } } },
+  "@notifHumidityThreshold": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "notifLowFilamentThreshold": "Low filament below {percent}%",
-  "@notifLowFilamentThreshold": { "placeholders": { "percent": { "type": "int" } } },
+  "@notifLowFilamentThreshold": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "notifEventsMenu": "Notification events",
-
   "hmsViewInWiki": "Open in Bambu wiki",
   "hmsErrorsCount": "{count, plural, =1{1 error} other{{count} errors}}",
-  "@hmsErrorsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@hmsErrorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hmsDismissAll": "Dismiss all",
   "hmsDismissed": "Errors cleared on the printer",
   "hmsActionSent": "Sent to the printer",
   "hmsActionNotAcknowledged": "The printer did not confirm the action — check its screen",
   "hmsStopConfirmTitle": "Stop the print?",
   "hmsStopConfirmBody": "{printer} will abandon the print job. This cannot be undone.",
-  "@hmsStopConfirmBody": { "placeholders": { "printer": { "type": "String" } } },
+  "@hmsStopConfirmBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "hmsStopConfirmAction": "Stop printing",
   "hmsActionResume": "Resume",
   "hmsActionResumeDefects": "Resume anyway",
@@ -830,7 +1381,6 @@
   "hmsActionTurnOffFireAlarm": "Turn off alarm",
   "hmsActionStopDrying": "Stop drying",
   "hmsActionDisablePurification": "Disable purification",
-
   "batteryOptTitle": "Reliable background notifications",
   "batteryOptBody": "To keep print notifications working when the app is in the background, allow Bambuddy to run without battery restrictions. On Samsung phones this is essential.",
   "batteryOptAllow": "Open settings",
@@ -838,25 +1388,32 @@
   "batteryOptMenu": "Background notifications",
   "notificationsReady": "Notifications are all set",
   "notificationsBlocked": "Notifications are off — enable them in system settings",
-
   "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Monitoring printers",
   "bgMonitoringToggle": "Background monitoring",
   "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
   "bgMonitoringOn": "Background monitoring on",
   "bgMonitoringOff": "Background monitoring off",
-
   "navDashboard": "Printers",
-  "@navDashboard": { "description": "Bottom nav tab: printers overview" },
+  "@navDashboard": {
+    "description": "Bottom nav tab: printers overview"
+  },
   "navQueue": "Queue",
-  "@navQueue": { "description": "Bottom nav tab: Queue" },
+  "@navQueue": {
+    "description": "Bottom nav tab: Queue"
+  },
   "navArchive": "Archive",
-  "@navArchive": { "description": "Bottom nav tab: Archive" },
+  "@navArchive": {
+    "description": "Bottom nav tab: Archive"
+  },
   "navMaintenance": "Maintenance",
-  "@navMaintenance": { "description": "Bottom nav tab: Maintenance" },
+  "@navMaintenance": {
+    "description": "Bottom nav tab: Maintenance"
+  },
   "navFilaments": "Filaments",
-  "@navFilaments": { "description": "Bottom nav tab: Filaments inventory" },
-
+  "@navFilaments": {
+    "description": "Bottom nav tab: Filaments inventory"
+  },
   "inventoryEmpty": "No spools in inventory",
   "inventoryNoMatches": "No filaments match your search",
   "inventorySearchHint": "Search material, brand, color…",
@@ -872,35 +1429,97 @@
   "inventoryFilterBrand": "Brand",
   "inventoryFiltersClear": "Clear all",
   "inventorySpoolCount": "{count} {count, plural, one{spool} other{spools}}",
-  "@inventorySpoolCount": { "placeholders": { "count": { "type": "int" } } },
+  "@inventorySpoolCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryRemaining": "{grams} g left",
   "inventoryTotalConsumed": "{weight} consumed",
-  "@inventoryTotalConsumed": { "placeholders": { "weight": { "type": "String" } } },
+  "@inventoryTotalConsumed": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryConsumedSinceReset": "Consumed since reset: {weight}",
-  "@inventoryConsumedSinceReset": { "placeholders": { "weight": { "type": "String" } } },
-  "@inventoryRemaining": { "placeholders": { "grams": { "type": "String" } } },
+  "@inventoryConsumedSinceReset": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+  "@inventoryRemaining": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryOfTotal": "of {total} g",
-  "@inventoryOfTotal": { "placeholders": { "total": { "type": "int" } } },
+  "@inventoryOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryLoadedIn": "Loaded in {slot}",
-  "@inventoryLoadedIn": { "placeholders": { "slot": { "type": "String" } } },
+  "@inventoryLoadedIn": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryNotLoaded": "Not loaded in any AMS slot",
   "inventoryLocation": "Location",
   "inventoryNozzleTemp": "Nozzle temp",
   "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": { "placeholders": { "cost": { "type": "String" } } },
+  "@inventoryCostPerKg": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Usage history",
   "inventoryUsageEmpty": "No usage recorded yet",
   "inventoryUsageWeight": "{grams} g",
-  "@inventoryUsageWeight": { "placeholders": { "grams": { "type": "String" } } },
+  "@inventoryUsageWeight": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryKProfiles": "Calibration (K)",
   "inventoryKProfileLine": "{nozzle} mm · K {k}",
-  "@inventoryKProfileLine": { "placeholders": { "nozzle": { "type": "String" }, "k": { "type": "String" } } },
-
+  "@inventoryKProfileLine": {
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      },
+      "k": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryAddSpool": "Add spool",
   "inventoryAddSpools": "Add {count} {count, plural, one{spool} other{spools}}",
-  "@inventoryAddSpools": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryAddSpools": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryNewSpool": "New spool",
   "inventoryEditSpool": "Edit spool",
   "inventorySave": "Save",
@@ -922,8 +1541,12 @@
   "@inventoryPrinterPresetNozzle": {
     "description": "Label of a per-model preset row that applies to one nozzle size only. Written by the web spool form; the app writes rows that cover the whole model.",
     "placeholders": {
-      "model": {"type": "String"},
-      "diameter": {"type": "String"}
+      "model": {
+        "type": "String"
+      },
+      "diameter": {
+        "type": "String"
+      }
     }
   },
   "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
@@ -942,8 +1565,19 @@
   "inventoryFieldInvalidNumber": "Enter a number",
   "inventoryFieldRange": "Enter a value from {min} to {max}",
   "inventoryFieldNegative": "Enter a value of 0 or more",
-  "@inventoryFieldNegative": { "description": "Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here." },
-  "@inventoryFieldRange": { "placeholders": { "min": { "type": "int" }, "max": { "type": "int" } } },
+  "@inventoryFieldNegative": {
+    "description": "Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here."
+  },
+  "@inventoryFieldRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySectionFilament": "Filament",
   "inventorySectionColor": "Color",
   "inventorySectionAdditional": "Additional",
@@ -964,14 +1598,32 @@
   "inventoryColorNone": "No color",
   "inventoryLowStockHint": "Leave blank to use the global threshold",
   "inventoryRemainingOfLabel": "of {total} g",
-  "@inventoryRemainingOfLabel": { "placeholders": { "total": { "type": "int" } } },
+  "@inventoryRemainingOfLabel": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryDeleteTitle": "Delete spool?",
   "inventoryDeleteConfirm": "Permanently delete {name}? This cannot be undone.",
-  "@inventoryDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@inventoryDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryResetUsageConfirm": "Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.",
   "inventorySpoolCreated": "Spool added",
   "inventorySpoolsCreated": "{count} {count, plural, one{spool} other{spools}} added",
-  "@inventorySpoolsCreated": { "placeholders": { "count": { "type": "int" } } },
+  "@inventorySpoolsCreated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySpoolUpdated": "Spool updated",
   "inventorySpoolDeleted": "Spool deleted",
   "inventorySpoolArchived": "Spool archived",
@@ -994,7 +1646,13 @@
   "inventoryAssignPick": "Pick a spool",
   "inventoryReassignTitle": "Move spool?",
   "inventoryReassignMessage": "This spool is currently in {slot}. It will be removed from there and assigned to this slot.",
-  "@inventoryReassignMessage": { "placeholders": { "slot": { "type": "String" } } },
+  "@inventoryReassignMessage": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "inventoryReassignAction": "Move",
   "inventorySpoolAssigned": "Spool assigned",
   "inventorySpoolUnassigned": "Spool unassigned",
@@ -1004,51 +1662,143 @@
   "inventoryFromSlotNoTag": "The printer no longer reports a tagged spool in this slot",
   "inventoryFromSlotOffline": "The printer is not connected, so it cannot say what is in the slot",
   "inventoryFromSlotUnsupported": "This server version cannot add a spool straight from a slot",
-
   "inventoryScanSpool": "Scan QR",
   "inventoryScanTitle": "Scan spool QR",
   "inventoryScanHint": "Point the camera at the spool's QR code",
   "inventoryScanNotFound": "Spool #{id} not found",
-  "@inventoryScanNotFound": { "placeholders": { "id": { "type": "int" } } },
-
+  "@inventoryScanNotFound": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySelectedCount": "{count} selected",
-  "@inventorySelectedCount": { "placeholders": { "count": { "type": "int" } } },
+  "@inventorySelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventorySelectAll": "Select all",
   "inventoryBulkArchiveTitle": "Archive {count} {count, plural, one{spool} other{spools}}?",
-  "@inventoryBulkArchiveTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkArchiveBody": "They will be hidden from the active list. You can restore them later.",
   "inventoryBulkRestoreTitle": "Restore {count} {count, plural, one{spool} other{spools}}?",
-  "@inventoryBulkRestoreTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkRestoreTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkRestoreBody": "They will return to the active list.",
   "inventoryBulkDeleteTitle": "Delete {count} {count, plural, one{spool} other{spools}}?",
-  "@inventoryBulkDeleteTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkDeleteTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkDeleteBody": "This permanently removes them and cannot be undone.",
   "inventoryBulkResetTitle": "Reset usage on {count} {count, plural, one{spool} other{spools}}?",
-  "@inventoryBulkResetTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkResetTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkResetBody": "Their consumed-filament counters go back to zero. Remaining weights are not changed.",
   "inventoryBulkDone": "{count} {count, plural, one{spool} other{spools}} updated",
-  "@inventoryBulkDone": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkPartial": "{ok} done, {failed} failed",
-  "@inventoryBulkPartial": { "placeholders": { "ok": { "type": "int" }, "failed": { "type": "int" } } },
+  "@inventoryBulkPartial": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkSkipped": "{ok} done, {skipped} already there",
-  "@inventoryBulkSkipped": { "placeholders": { "ok": { "type": "int" }, "skipped": { "type": "int" } } },
+  "@inventoryBulkSkipped": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkPartialSkipped": "{ok} done, {skipped} already there, {failed} failed",
-  "@inventoryBulkPartialSkipped": { "placeholders": { "ok": { "type": "int" }, "skipped": { "type": "int" }, "failed": { "type": "int" } } },
-
+  "@inventoryBulkPartialSkipped": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEdit": "Edit fields",
   "inventoryBulkEditTitle": "Edit {count} {count, plural, one{spool} other{spools}}",
-  "@inventoryBulkEditTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkEditTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditHint": "Only the fields you fill in change. Leave the rest blank.",
   "inventoryBulkEditUnchanged": "Unchanged",
   "inventoryBulkEditApply": "Apply to {count} {count, plural, one{spool} other{spools}}",
-  "@inventoryBulkEditApply": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkEditApply": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditConfirmTitle": "Change {count} {count, plural, one{spool} other{spools}}?",
-  "@inventoryBulkEditConfirmTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@inventoryBulkEditConfirmTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditConfirmBody": "{fields} {fields, plural, one{field} other{fields}} will be overwritten on every selected spool.",
-  "@inventoryBulkEditConfirmBody": { "placeholders": { "fields": { "type": "int" } } },
+  "@inventoryBulkEditConfirmBody": {
+    "placeholders": {
+      "fields": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryBulkEditUnsupported": "This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.",
   "inventoryApply": "Apply",
-
   "inventoryLabelsTitle": "Print spool labels",
   "inventoryLabelsPrint": "Print labels",
   "inventoryLabelsPrintAll": "Print labels for all",
@@ -1060,24 +1810,36 @@
   "@inventoryClimateReading": {
     "description": "Spoken form of a storage-location sensor pill.",
     "placeholders": {
-      "name": {"type": "String"},
-      "value": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
     }
   },
   "inventoryClimateReadingAlerting": "{name}: {value}, outside the alert range",
   "@inventoryClimateReadingAlerting": {
     "description": "Spoken form of a sensor pill whose reading trips the binding's threshold; the warm colour of the pill says this to everyone else.",
     "placeholders": {
-      "name": {"type": "String"},
-      "value": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
     }
   },
   "inventoryClimateReadingStale": "{name}: {value}, sensor unreachable",
   "@inventoryClimateReadingStale": {
     "description": "Spoken form of a sensor pill showing its last known value because the server could not reach the entity.",
     "placeholders": {
-      "name": {"type": "String"},
-      "value": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
     }
   },
   "inventoryLabelsSearchHint": "Search name, brand, or #ID",
@@ -1096,7 +1858,13 @@
   "inventoryLabelsShare": "Share PDF instead of printing",
   "inventoryLabelsPickTemplate": "Pick a label size to print:",
   "inventoryLabelsTooMany": "Pick at most {max} spools per print",
-  "@inventoryLabelsTooMany": { "placeholders": { "max": { "type": "int" } } },
+  "@inventoryLabelsTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "inventoryLabelsFailed": "Could not generate labels",
   "inventoryLabelsAmsSmall": "AMS holder — small (74 × 33 mm)",
   "inventoryLabelsAmsSmallHint": "One per page; matches the printable label from MakerWorld model 752566.",
@@ -1113,17 +1881,46 @@
   "inventoryLabelsStartTitle": "First free label",
   "inventoryLabelsStartHint": "Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.",
   "inventoryLabelsStartSlot": "Position {position}",
-  "@inventoryLabelsStartSlot": { "placeholders": { "position": { "type": "int" } } },
-
+  "@inventoryLabelsStartSlot": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",
-  "@maintenanceTotalHours": { "placeholders": { "hours": { "type": "int" } } },
+  "@maintenanceTotalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDueBadge": "{count} due",
-  "@maintenanceDueBadge": { "placeholders": { "count": { "type": "int" } } },
+  "@maintenanceDueBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDueIn": "Due in {hours} h",
-  "@maintenanceDueIn": { "placeholders": { "hours": { "type": "int" } } },
+  "@maintenanceDueIn": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceOverdueBy": "Overdue by {hours} h",
-  "@maintenanceOverdueBy": { "placeholders": { "hours": { "type": "int" } } },
+  "@maintenanceOverdueBy": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "maintenancePerform": "Mark done",
   "maintenancePerformConfirm": "Reset the counter for this maintenance task?",
   "maintenanceNotesHint": "Notes (optional)",
@@ -1148,14 +1945,38 @@
   "maintenanceEditType": "Edit type",
   "maintenanceSystemType": "System",
   "maintenanceEveryHours": "Every {count} h",
-  "@maintenanceEveryHours": { "placeholders": { "count": { "type": "int" } } },
+  "@maintenanceEveryHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceEveryDays": "Every {count} days",
-  "@maintenanceEveryDays": { "placeholders": { "count": { "type": "int" } } },
+  "@maintenanceEveryDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceDeleteTypeTitle": "Delete maintenance type?",
   "maintenanceDeleteTypeConfirm": "Delete \"{name}\"? This cannot be undone.",
-  "@maintenanceDeleteTypeConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@maintenanceDeleteTypeConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceHideTypeConfirm": "Hide the default type \"{name}\"? You can restore it later.",
-  "@maintenanceHideTypeConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@maintenanceHideTypeConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceFieldName": "Name",
   "maintenanceFieldNameHint": "e.g. Replace HEPA filter",
   "maintenanceFieldIntervalType": "Interval type",
@@ -1167,19 +1988,34 @@
   "maintenanceFieldDocLink": "Documentation link (optional)",
   "maintenanceAssignPrinters": "Assign to printers",
   "maintenanceSelectPrinter": "Select at least one printer",
-
   "notifEvtMaintenance": "Maintenance due",
   "notifEvtMaintenanceDesc": "When a maintenance task becomes overdue",
   "maintenanceNotifTitle": "Maintenance due",
   "maintenanceNotifBody": "{printer}: {task}",
-  "@maintenanceNotifBody": { "placeholders": { "printer": { "type": "String" }, "task": { "type": "String" } } },
+  "@maintenanceNotifBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "task": {
+        "type": "String"
+      }
+    }
+  },
   "maintenanceReminderTitle": "Maintenance reminder",
   "maintenanceReminderBody": "{printer} has {count} overdue maintenance {count, plural, one{task} other{tasks}}",
-  "@maintenanceReminderBody": { "placeholders": { "printer": { "type": "String" }, "count": { "type": "int" } } },
+  "@maintenanceReminderBody": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "maintenanceNotifAction": "Mark done",
-
   "menuStatistics": "Statistics",
-
   "statsTitle": "Statistics",
   "statsRangeAllTime": "All time",
   "statsRangeLast7Days": "Last 7 days",
@@ -1200,37 +2036,78 @@
   "statsEnergyWarmingUp": "Energy data is still warming up",
   "statsSuccessRate": "Success rate",
   "statsSuccessful": "Successful: {count}",
-  "@statsSuccessful": { "placeholders": { "count": { "type": "int" } } },
+  "@statsSuccessful": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsFailed": "Failed: {count}",
-  "@statsFailed": { "placeholders": { "count": { "type": "int" } } },
+  "@statsFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsCancelled": "Cancelled: {count}",
-  "@statsCancelled": { "placeholders": { "count": { "type": "int" } } },
+  "@statsCancelled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsAllUsers": "All Users",
   "statsNoUser": "No User (System)",
   "statsTimeAccuracy": "Time accuracy",
   "statsTimeAccuracyHint": "100% = perfect estimate",
   "statsByPrinter": "Prints by printer",
   "statsPrintsCount": "{count, plural, one{{count} print} other{{count} prints}}",
-  "@statsPrintsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@statsPrintsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsHours": "{hours} h",
-  "@statsHours": { "placeholders": { "hours": { "type": "String" } } },
+  "@statsHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
   "statsPrinterFallback": "Printer #{id}",
-  "@statsPrinterFallback": { "placeholders": { "id": { "type": "String" } } },
-
+  "@statsPrinterFallback": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "statsMetricWeight": "Weight",
   "statsMetricPrints": "Prints",
   "statsMetricTime": "Time",
-
   "statsFailureAnalysis": "Failure analysis",
   "statsFailedOfTotal": "{failed} / {total} prints failed",
-  "@statsFailedOfTotal": { "placeholders": { "failed": { "type": "int" }, "total": { "type": "int" } } },
+  "@statsFailedOfTotal": {
+    "placeholders": {
+      "failed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "statsTopFailureReasons": "Top failure reasons",
   "statsNoFailures": "No failures in this period",
-
   "statsPrintActivity": "Print activity",
   "statsHeatmapLess": "Less",
   "statsHeatmapMore": "More",
-
   "statsRecords": "Records",
   "statsLongestPrint": "Longest print",
   "statsHeaviestPrint": "Heaviest print",
@@ -1238,8 +2115,13 @@
   "statsBusiestDay": "Busiest day",
   "statsSuccessStreak": "Success streak",
   "statsConsecutive": "{count} consecutive",
-  "@statsConsecutive": { "placeholders": { "count": { "type": "int" } } },
-
+  "@statsConsecutive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsFilamentTrends": "Filament trends",
   "statsPeriodFilament": "Period filament",
   "statsPeriodCost": "Period cost",
@@ -1248,32 +2130,56 @@
   "statsEnergyOverTime": "Energy over time",
   "statsMostEnergy": "Most energy used",
   "statsKwh": "{value} kWh",
-  "@statsKwh": { "placeholders": { "value": { "type": "String" } } },
+  "@statsKwh": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "statsByMaterialTitle": "By material",
   "statsSuccessByMaterial": "Success by material",
   "statsColorDistribution": "Color distribution",
   "statsColorShareHint": "Share of filament used, by weight",
   "statsColorsCount": "{count} {count, plural, one{color} other{colors}}",
-  "@statsColorsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@statsColorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsMoreCount": "+{count} more",
-  "@statsMoreCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@statsMoreCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "statsPrintDuration": "Print duration",
   "statsPrintHabits": "Print habits",
   "statsPrintTimeOfDay": "Print time of day",
-
   "aboutMenu": "About",
   "aboutTitle": "About",
   "aboutTagline": "Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.",
   "appVersionLabel": "App {version}",
   "@appVersionLabel": {
     "description": "This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.",
-    "placeholders": { "version": { "type": "String" } }
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   },
   "serverVersionLabel": "Server {version}",
   "@serverVersionLabel": {
     "description": "Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.",
-    "placeholders": { "version": { "type": "String" } }
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   },
   "serverVersionUnknown": "Server version unknown",
   "@serverVersionUnknown": {
@@ -1288,9 +2194,10 @@
   "aboutThirdParty": "Open-source licenses",
   "aboutThirdPartySubtitle": "Licenses of the bundled libraries",
   "aboutOpenLinkError": "Could not open the link",
-
   "fileManagerMenu": "File Manager",
-  "@fileManagerMenu": { "description": "Drawer entry: File Manager" },
+  "@fileManagerMenu": {
+    "description": "Drawer entry: File Manager"
+  },
   "fileManagerTitle": "File Manager",
   "fmRoot": "All Files",
   "fmSearchHint": "Search files…",
@@ -1318,16 +2225,40 @@
   "fmDeleted": "Moved to trash",
   "fmDeleteFile": "Delete file",
   "fmDeleteFileConfirm": "Move \"{name}\" to trash?",
-  "@fmDeleteFileConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@fmDeleteFileConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeleteFolder": "Delete folder",
   "fmDeleteFolderConfirm": "Delete folder \"{name}\" and all its contents?",
-  "@fmDeleteFolderConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@fmDeleteFolderConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeleteSelectedConfirm": "Move {count} {count, plural, one{file} other{files}} to trash?",
-  "@fmDeleteSelectedConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@fmDeleteSelectedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmMoveTo": "Move to…",
   "fmMoved": "Moved",
   "fmFolderItems": "{count} {count, plural, one{item} other{items}}",
-  "@fmFolderItems": { "placeholders": { "count": { "type": "int" } } },
+  "@fmFolderItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmPrint": "Print",
   "fmAddToQueue": "Add to queue",
   "fmAddedToQueue": "Added to queue",
@@ -1335,24 +2266,66 @@
   "fmQueueAsVariants": "Queue as one job",
   "fmUngroupVariants": "Ungroup alternatives",
   "fmVariantsGrouped": "{count} files grouped as alternatives",
-  "@fmVariantsGrouped": { "placeholders": { "count": { "type": "int" } } },
+  "@fmVariantsGrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmVariantsUngrouped": "Alternatives ungrouped",
   "fmVariantsMemberCount": "{count} alternatives",
-  "@fmVariantsMemberCount": { "placeholders": { "count": { "type": "int" } } },
+  "@fmVariantsMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmVariantsGone": "This group no longer exists",
   "fmUpload": "Upload file",
   "fmUploading": "Uploading…",
   "fmUploaded": "Uploaded {name}",
-  "@fmUploaded": { "placeholders": { "name": { "type": "String" } } },
+  "@fmUploaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmUploadFailed": "Upload failed",
   "fmSelectedCount": "{count} selected",
-  "@fmSelectedCount": { "placeholders": { "count": { "type": "int" } } },
+  "@fmSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFiles": "{count} {count, plural, one{file} other{files}}",
-  "@fmStatsFiles": { "placeholders": { "count": { "type": "int" } } },
+  "@fmStatsFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFolders": "{count} {count, plural, one{folder} other{folders}}",
-  "@fmStatsFolders": { "placeholders": { "count": { "type": "int" } } },
+  "@fmStatsFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmStatsFree": "{size} free",
-  "@fmStatsFree": { "placeholders": { "size": { "type": "String" } } },
+  "@fmStatsFree": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "fmTrash": "Trash",
   "fmTrashTitle": "Trash",
   "fmTrashEmpty": "Trash is empty",
@@ -1362,9 +2335,14 @@
   "fmEmptyTrashConfirm": "Permanently delete all files in trash? This cannot be undone.",
   "fmHardDelete": "Delete permanently",
   "fmHardDeleteConfirm": "Permanently delete \"{name}\"? This cannot be undone.",
-  "@fmHardDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@fmHardDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmDeletedForever": "Permanently deleted",
-
   "fmTags": "Tags",
   "fmTagsFilterTitle": "Filter by tags",
   "fmTagsFilterHint": "Tags search the whole library — the current folder is ignored.",
@@ -1377,24 +2355,52 @@
   "fmTagRename": "Rename tag",
   "fmTagDelete": "Delete tag",
   "fmTagDeleteConfirm": "Delete tag \"{name}\"? Files keep everything else — they only lose this label.",
-  "@fmTagDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@fmTagDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fmTagCreated": "Tag created",
   "fmTagDeleted": "Tag deleted",
   "fmTagExists": "A tag with this name already exists",
   "fmTagsSaved": "Tags updated",
   "fmTagsPartial": "Updated {count} of {total} files — the rest are not yours to edit",
-  "@fmTagsPartial": { "placeholders": { "count": { "type": "int" }, "total": { "type": "int" } } },
+  "@fmTagsPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsBulkTitle": "Tag {count} {count, plural, one{file} other{files}}",
-  "@fmTagsBulkTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@fmTagsBulkTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsAdd": "Add",
   "fmTagsRemove": "Remove",
   "fmTagsReplace": "Replace",
   "fmTagsReplaceConfirm": "Replace all tags on {count} {count, plural, one{file} other{files}} with the selected ones?",
-  "@fmTagsReplaceConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@fmTagsReplaceConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "fmTagsPickSome": "Pick at least one tag",
-
   "makerworldMenu": "MakerWorld",
-  "@makerworldMenu": { "description": "Drawer entry: MakerWorld import" },
+  "@makerworldMenu": {
+    "description": "Drawer entry: MakerWorld import"
+  },
   "makerworldTitle": "MakerWorld",
   "mwIntro": "Paste a MakerWorld model URL to import and print it directly from Bambuddy.",
   "mwUrlHint": "https://makerworld.com/en/models/… or any MakerWorld link",
@@ -1402,11 +2408,23 @@
   "mwEnterUrl": "Enter a MakerWorld URL",
   "mwUntitledModel": "Untitled model",
   "mwPlatesCount": "{count, plural, =0{No plates} =1{1 plate} other{{count} plates}}",
-  "@mwPlatesCount": { "placeholders": { "count": { "type": "int" } } },
+  "@mwPlatesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mwNoPlates": "No plates found for this model.",
   "mwImport": "Import",
   "mwShowAllPlates": "Show all {count} plates",
-  "@mwShowAllPlates": { "placeholders": { "count": { "type": "int" } } },
+  "@mwShowAllPlates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mwShowLess": "Show less",
   "mwInLibrary": "In library",
   "mwImported": "Imported to your library",
@@ -1416,9 +2434,10 @@
   "mwNoRecent": "No recent imports yet",
   "mwOpenOnMakerworld": "Open on MakerWorld",
   "mwLoginRequired": "Sign in to your Bambu Cloud account to download MakerWorld models.",
-
   "cloudAccountMenu": "Bambu Cloud account",
-  "@cloudAccountMenu": { "description": "Drawer entry: Bambu Cloud login/account" },
+  "@cloudAccountMenu": {
+    "description": "Drawer entry: Bambu Cloud login/account"
+  },
   "cloudAccountTitle": "Bambu Cloud",
   "cloudCredsNote": "Sign in with your Bambu Lab account. These credentials are used only to download models from MakerWorld.",
   "cloudEmail": "Email",
@@ -1435,9 +2454,10 @@
   "cloudVerificationCode": "Verification code",
   "cloudVerificationPrompt": "Enter the verification code to finish signing in.",
   "cloudEnterCode": "Enter the verification code",
-
   "swatchCodesMenu": "Swatch Codes",
-  "@swatchCodesMenu": { "description": "Drawer entry: filament swatch codes" },
+  "@swatchCodesMenu": {
+    "description": "Drawer entry: filament swatch codes"
+  },
   "swatchCodesTitle": "Swatch Codes",
   "swatchSearchHint": "Search by code or name",
   "swatchSectionCodes": "Codes",
@@ -1445,34 +2465,88 @@
   "swatchNoCodes": "No swatch codes yet",
   "swatchNoCodesHint": "Create a code to label a filament sample.",
   "swatchNoMatch": "No codes match \"{query}\"",
-  "@swatchNoMatch": { "placeholders": { "query": { "type": "String" } } },
+  "@swatchNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "swatchAllCoded": "All inventory filaments have codes",
   "swatchNewCode": "New code",
   "swatchGenerate": "Generate",
   "swatchGenerateCode": "Generate code",
   "swatchExists": "That filament already has a code",
   "swatchCreatedSnack": "Created code {code}",
-  "@swatchCreatedSnack": { "placeholders": { "code": { "type": "String" } } },
+  "@swatchCreatedSnack": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchUpdatedSnack": "Updated code {code}",
-  "@swatchUpdatedSnack": { "placeholders": { "code": { "type": "String" } } },
+  "@swatchUpdatedSnack": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchCopied": "Copied {code}",
-  "@swatchCopied": { "placeholders": { "code": { "type": "String" } } },
+  "@swatchCopied": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "swatchDelete": "Delete",
   "swatchDeleteTitle": "Delete code?",
   "swatchDeleteBody": "Code {code} for {name} will be removed.",
-  "@swatchDeleteBody": { "placeholders": { "code": { "type": "String" }, "name": { "type": "String" } } },
+  "@swatchDeleteBody": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "swatchExport": "Export",
   "swatchImport": "Import",
   "swatchExportEmpty": "No codes to export",
   "swatchExported": "Exported {count, plural, =1{1 code} other{{count} codes}}",
-  "@swatchExported": { "placeholders": { "count": { "type": "int" } } },
+  "@swatchExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "swatchExportFailed": "Export failed",
   "swatchImportTitle": "Import codes?",
   "swatchImportWarning": "This replaces all {existing} existing codes with {incoming} codes from the file. This cannot be undone.",
-  "@swatchImportWarning": { "placeholders": { "existing": { "type": "int" }, "incoming": { "type": "int" } } },
+  "@swatchImportWarning": {
+    "placeholders": {
+      "existing": {
+        "type": "int"
+      },
+      "incoming": {
+        "type": "int"
+      }
+    }
+  },
   "swatchImportConfirm": "Replace all",
   "swatchImported": "Imported {count, plural, =1{1 code} other{{count} codes}}",
-  "@swatchImported": { "placeholders": { "count": { "type": "int" } } },
+  "@swatchImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "swatchImportFailed": "Couldn't read that file",
   "swatchImportEmpty": "No codes found in file",
   "swatchFormTitle": "New swatch code",
@@ -1489,7 +2563,6 @@
   "swatchFieldHex": "Color hex",
   "swatchMaterialRequired": "Material is required",
   "swatchNoCatalogColors": "No catalog colors available. Enter a color name and hex manually.",
-
   "projectsMenu": "Projects",
   "projectsTitle": "Projects",
   "projectsEmpty": "No projects yet",
@@ -1499,7 +2572,13 @@
   "projectDelete": "Delete",
   "projectDeleteTitle": "Delete project?",
   "projectDeleteBody": "“{name}” will be removed. Linked prints stay in the archive.",
-  "@projectDeleteBody": { "placeholders": { "name": { "type": "String" } } },
+  "@projectDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "projectDeleted": "Project deleted",
   "projectSaved": "Project saved",
   "projectName": "Name",
@@ -1538,7 +2617,16 @@
   "projectStatPartsProgress": "Parts",
   "projectStatSets": "Complete sets",
   "projectSetsOfTarget": "{done} of {target}",
-  "@projectSetsOfTarget": { "placeholders": { "done": { "type": "int" }, "target": { "type": "int" } } },
+  "@projectSetsOfTarget": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "projectStatPrints": "Plates",
   "projectStatCompleted": "Completed",
   "projectStatFailed": "Failed",
@@ -1550,7 +2638,13 @@
   "projectStatBom": "BOM",
   "projectChildren": "Sub-projects",
   "projectDueOn": "Due {date}",
-  "@projectDueOn": { "placeholders": { "date": { "type": "String" } } },
+  "@projectDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "projectAddArchives": "Add archives",
   "archiveAddToProject": "Add to project",
   "projectArchivesAdded": "Added to project",
@@ -1574,7 +2668,13 @@
   "projectAttachmentDeleted": "Attachment deleted",
   "projectAttachmentUploaded": "Attachment uploaded",
   "projectFileSaved": "Saved to {path}",
-  "@projectFileSaved": { "placeholders": { "path": { "type": "String" } } },
+  "@projectFileSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "projectDownloadFailed": "Download failed",
   "projectCoverUpload": "Set cover image",
   "projectCoverDelete": "Remove cover image",
@@ -1585,7 +2685,13 @@
   "projectMenuImport": "Import project",
   "projectFromTemplate": "Create from template",
   "projectExported": "Exported to {path}",
-  "@projectExported": { "placeholders": { "path": { "type": "String" } } },
+  "@projectExported": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "projectTemplateCreated": "Template created",
   "projectImported": "Project imported",
   "projectImportFailed": "Import failed",
@@ -1597,9 +2703,21 @@
   "projectFolderUnlinked": "Folder unlinked",
   "projectNotesEmpty": "No notes yet",
   "projectFolderFileCount": "{count, plural, =1{{count} file} other{{count} files}}",
-  "@projectFolderFileCount": { "placeholders": { "count": { "type": "int" } } },
+  "@projectFolderFileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "projectRemainingShort": "{count} left",
-  "@projectRemainingShort": { "placeholders": { "count": { "type": "int" } } },
+  "@projectRemainingShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sliceAction": "Slice",
   "sliceTitle": "Slice file",
   "slicePrinter": "Printer",
@@ -1608,25 +2726,41 @@
   "sliceBedDefault": "Default (from preset)",
   "sliceFilament": "Filament",
   "sliceFilamentNumbered": "Filament {n}",
-  "@sliceFilamentNumbered": { "placeholders": { "n": { "type": "String" } } },
+  "@sliceFilamentNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
   "sliceAutoOrient": "Auto orient",
   "sliceAutoOrientHint": "Turns each object onto its best printing side.",
   "sliceAutoArrange": "Auto arrange",
   "sliceAutoArrangeHint": "Lays the objects out on the plate again.",
-
   "sliceDesignedFor": "This file is for {printer}",
-  "@sliceDesignedFor": { "placeholders": { "printer": { "type": "String" } } },
+  "@sliceDesignedFor": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "sliceUseDesignedPrinter": "Switch",
   "sliceAsDesigned": "Use the file's own settings",
   "sliceAsDesignedHint": "The designer's settings instead of the profiles above.",
   "sliceAsDesignedInactive": "Not used — the file decides",
-
   "sliceFilamentUnused": "Not used by this plate",
   "processSettingsTitle": "Process settings",
   "sliceProcessSettingsNeedsProcess": "Pick a process preset first",
   "sliceProcessSettingsUnchanged": "Using the preset as it is",
   "sliceProcessSettingsChanged": "{count} changed",
-  "@sliceProcessSettingsChanged": { "placeholders": { "count": { "type": "int" } } },
+  "@sliceProcessSettingsChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processSettingsModeSimple": "Simple",
   "processSettingsModeAdvanced": "Advanced",
   "processSettingsModeExpert": "Expert",
@@ -1634,9 +2768,21 @@
   "processSettingsNoMatches": "No settings match this search.",
   "processSettingsRevert": "Reset to the preset's value",
   "processSettingsRevertAll": "Reset {count}",
-  "@processSettingsRevertAll": { "placeholders": { "count": { "type": "int" } } },
+  "@processSettingsRevertAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processSettingsOutOfRange": "The slicer accepts {range}",
-  "@processSettingsOutOfRange": { "placeholders": { "range": { "type": "String" } } },
+  "@processSettingsOutOfRange": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
   "processSettingsDisabledHint": "The slicer ignores this with your current settings.",
   "processSettingsUnavailable": "This server cannot report process settings for the selected preset.",
   "processSettingsDefaultsOutdatedSidecar": "Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset's values. Update the sidecar image to see them. Anything you do not change still uses the preset.",
@@ -1645,10 +2791,24 @@
   "processSettingsDefaultsUnavailable": "Showing slicer defaults: the selected preset's own values could not be read. Anything you do not change still uses the preset.",
   "processSettingsFilamentDefault": "Default (the region's own filament)",
   "processSettingsFilamentSlot": "{slot}: {name}",
-  "@processSettingsFilamentSlot": { "placeholders": { "slot": { "type": "String" }, "name": { "type": "String" } } },
+  "@processSettingsFilamentSlot": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "processSettingsFilamentSlotMissing": "Slot {slot} — this file has no such slot",
-  "@processSettingsFilamentSlotMissing": { "placeholders": { "slot": { "type": "String" } } },
-
+  "@processSettingsFilamentSlotMissing": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "sliceSelect": "Tap to select",
   "sliceStart": "Slice",
   "sliceShowAll": "All",
@@ -1666,28 +2826,44 @@
   "sliceExternalInvalidName": "That folder would not take the file's name.",
   "sliceClose": "Close",
   "sliceResultTime": "Estimated time: {time}",
-  "@sliceResultTime": { "placeholders": { "time": { "type": "String" } } },
+  "@sliceResultTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "sliceRefusedStep": "STEP files cannot be sliced. Export the model as an STL or a 3MF from your CAD first.",
   "sliceRefusedFormat": "The source has to be an STL or a 3MF.",
-  "sliceRefusedNoSource": "This archive kept only the G-code it printed, not the model \u2014 there is nothing to slice again.",
+  "sliceRefusedNoSource": "This archive kept only the G-code it printed, not the model — there is nothing to slice again.",
   "sliceResultFilament": "Filament: {grams} g",
-  "@sliceResultFilament": { "placeholders": { "grams": { "type": "String" } } },
+  "@sliceResultFilament": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
   "sliceTierLocal": "Local preset",
   "sliceTierCloud": "Bambu Cloud",
   "sliceTierOrcaCloud": "Orca Cloud",
   "sliceTierStandard": "Built-in",
-
   "pipelineSection": "Pipeline",
   "pipelineApply": "Apply pipeline…",
   "pipelineApplyEmpty": "No saved pipelines",
   "pipelineApplied": "Applied \"{name}\"",
-  "@pipelineApplied": { "placeholders": { "name": { "type": "String" } } },
+  "@pipelineApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineSaveAs": "Save as pipeline",
   "pipelineNameHint": "Pipeline name",
   "pipelineSaveConfirm": "Save",
   "pipelineSaved": "Pipeline saved",
   "pipelineSaveHint": "The printer, process, filaments and plate above, under a name you can reapply to the next file.",
-
   "pipelinesMenu": "Pipelines",
   "pipelinesTitle": "Pipelines",
   "pipelinesEmpty": "No pipelines yet",
@@ -1695,9 +2871,21 @@
   "pipelineFilamentsCount": "Filaments ({count})",
   "pipelineHistory": "Run history",
   "pipelineCardActions": "Pipeline actions",
-  "@pipelineFilamentsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@pipelineFilamentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineSlotNumbered": "Filament {n}",
-  "@pipelineSlotNumbered": { "placeholders": { "n": { "type": "int" } } },
+  "@pipelineSlotNumbered": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineBed": "Plate",
   "pipelinePresetGone": "No longer in the catalog",
   "pipelineNeedsTarget": "Set a target before running this pipeline.",
@@ -1711,29 +2899,54 @@
   "pipelineTargetPickClass": "Pick a model",
   "pipelineTargetNone": "— no target —",
   "pipelineTargetPrinterGone": "Printer #{id} (gone)",
-  "@pipelineTargetPrinterGone": { "placeholders": { "id": { "type": "int" } } },
+  "@pipelineTargetPrinterGone": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineFanout": "Spreading the copies",
   "pipelineFanoutMaxParallel": "Max parallel — across any idle matching printer",
   "pipelineFanoutRoundRobin": "Round robin — cycle through eligible printers",
   "pipelineFanoutFillOneFirst": "Fill one first — every copy on one printer",
   "pipelineDelete": "Delete pipeline",
   "pipelineDeleteConfirm": "Delete \"{name}\"? Runs already made keep their name.",
-  "@pipelineDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@pipelineDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineDeleted": "Pipeline deleted",
-
   "pipelineRun": "Run",
   "pipelineRunCopies": "Copies",
   "pipelineRunStart": "Start",
   "pipelineRunStarted": "Run started",
   "pipelineRunAnyway": "Run anyway",
   "pipelineRunMaxCopies": "This server allows {max} at most.",
-  "@pipelineRunMaxCopies": { "placeholders": { "max": { "type": "int" } } },
+  "@pipelineRunMaxCopies": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineEligibilityOk": "Ready to run.",
   "pipelineEligibilityClassCount": "{ok} of {total} printers ready",
-  "@pipelineEligibilityClassCount": { "placeholders": { "ok": { "type": "int" }, "total": { "type": "int" } } },
+  "@pipelineEligibilityClassCount": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineEligibilityBlocked": "Nothing can take this run right now.",
   "pipelineEligibilityAdvisory": "Worth a look before you start.",
-
   "pipelineIssuePrinterNotSet": "This pipeline has no target printer.",
   "pipelineIssuePrinterNotFound": "The target printer no longer exists.",
   "pipelineIssuePrinterDisabled": "The target printer is switched off in bambuddy.",
@@ -1745,12 +2958,32 @@
   "pipelineIssueNoClassMatches": "No printer of this model is installed.",
   "pipelineIssueClassNotSet": "This pipeline has no printer model set.",
   "pipelineIssueSlot": "Slot {n}",
-  "@pipelineIssueSlot": { "placeholders": { "n": { "type": "int" } } },
+  "@pipelineIssueSlot": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineIssueWantedGot": "wanted {expected}, loaded {actual}",
-  "@pipelineIssueWantedGot": { "placeholders": { "expected": { "type": "String" }, "actual": { "type": "String" } } },
+  "@pipelineIssueWantedGot": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      },
+      "actual": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineIssueWanted": "wanted {expected}",
-  "@pipelineIssueWanted": { "placeholders": { "expected": { "type": "String" } } },
-
+  "@pipelineIssueWanted": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunsTitle": "Pipeline runs",
   "pipelineRunsEmpty": "No runs yet",
   "pipelineRunsNoneMatch": "No run matches these filters",
@@ -1760,7 +2993,13 @@
   "pipelineEligible": "Ready",
   "pipelineIneligible": "Not ready",
   "pipelineRunsFilterActive": "Filter runs ({count} active)",
-  "@pipelineRunsFilterActive": { "placeholders": { "count": { "type": "int" } } },
+  "@pipelineRunsFilterActive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsFilterAny": "Any",
   "pipelineRunsFilterStatus": "Status",
   "pipelineRunsFilterStatusHint": "Matches the last status written down, so a run can still answer to the step before the one it is on.",
@@ -1770,31 +3009,81 @@
   "pipelineRunsFilterClear": "Clear filters",
   "pipelineRunsLoadMore": "Load more",
   "pipelineRunsShowingAll": "All {count} shown",
-  "@pipelineRunsShowingAll": { "placeholders": { "count": { "type": "int" } } },
+  "@pipelineRunsShowingAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsDone": "Done",
   "pipelineRunsClear": "Clear finished",
   "pipelineRunsCleared": "{count} removed",
-  "@pipelineRunsCleared": { "placeholders": { "count": { "type": "int" } } },
+  "@pipelineRunsCleared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunsClearConfirm": "Remove every finished run from this list?",
   "pipelineRunCopiesProgress": "{done} of {total} copies",
-  "@pipelineRunCopiesProgress": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
+  "@pipelineRunCopiesProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunCancel": "Cancel run",
   "pipelineRunCancelConfirm": "Cancel this run? Copies not yet sent are dropped; anything already printing has to be stopped on the printer itself.",
   "pipelineRunCancelled": "Run cancelled",
   "pipelineRunRetry": "Retry failed",
   "pipelineRunRetryStarted": "Retrying {count} copies",
-  "@pipelineRunRetryStarted": { "placeholders": { "count": { "type": "int" } } },
+  "@pipelineRunRetryStarted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunOverridden": "Started past a failed check",
   "pipelineRunDeletedPipeline": "Deleted pipeline",
   "pipelineRunSource": "From {name}",
-  "@pipelineRunSource": { "placeholders": { "name": { "type": "String" } } },
+  "@pipelineRunSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunRetryOf": "Retry of run #{id}",
-  "@pipelineRunRetryOf": { "placeholders": { "id": { "type": "int" } } },
+  "@pipelineRunRetryOf": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineRunOnPrinter": "On {printer}",
-  "@pipelineRunOnPrinter": { "placeholders": { "printer": { "type": "String" } } },
+  "@pipelineRunOnPrinter": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineRunOnClass": "On any {model}",
-  "@pipelineRunOnClass": { "placeholders": { "model": { "type": "String" } } },
-
+  "@pipelineRunOnClass": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "pipelineStatusQueued": "Queued",
   "pipelineStatusSlicing": "Slicing",
   "pipelineStatusDispatching": "Dispatching",
@@ -1804,9 +3093,14 @@
   "pipelineStatusPartial": "Partly failed",
   "pipelineStatusCancelled": "Cancelled",
   "pipelineStatusUnknown": "Unknown",
-
   "pipelineJobCopy": "Copy {n}",
-  "@pipelineJobCopy": { "placeholders": { "n": { "type": "int" } } },
+  "@pipelineJobCopy": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pipelineJobPending": "Pending",
   "pipelineJobAwaitingPrinter": "Waiting for a printer",
   "pipelineJobQueued": "Queued",
@@ -1818,26 +3112,50 @@
   "queueFilamentMapping": "Filament mapping",
   "mappingNoSlots": "No filament information for this file.",
   "mappingNoAms": "No AMS filaments loaded on {printer}.",
-  "@mappingNoAms": { "placeholders": { "printer": { "type": "String" } } },
+  "@mappingNoAms": {
+    "placeholders": {
+      "printer": {
+        "type": "String"
+      }
+    }
+  },
   "mappingPickTray": "Select AMS slot",
   "mappingExternalSpool": "External spool",
   "mappingAmsSlot": "AMS {unit} · slot {slot}",
-  "@mappingAmsSlot": { "placeholders": { "unit": { "type": "String" }, "slot": { "type": "String" } } },
+  "@mappingAmsSlot": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "mappingSaved": "Filament mapping saved",
   "plateClearTitle": "Is the plate clear?",
   "plateClearBody": "Make sure the build plate is empty before starting this print.",
   "plateClearConfirm": "Plate is clear",
   "plateClearAction": "Mark plate as cleared",
-  "@plateClearAction": { "description": "Tooltip of the checkmark button in the printer card's plate-clear banner — not a visible label, so it may be a full sentence. The watch says the same thing in wearClearPlate and has to be shorter; do not align the two." },
+  "@plateClearAction": {
+    "description": "Tooltip of the checkmark button in the printer card's plate-clear banner — not a visible label, so it may be a full sentence. The watch says the same thing in wearClearPlate and has to be shorter; do not align the two."
+  },
   "plateClearBadge": "Plate not cleared",
-  "@plateClearBadge": { "description": "Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about." },
+  "@plateClearBadge": {
+    "description": "Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about."
+  },
   "plateClearedSnack": "Plate marked as cleared",
   "plateClearNeedsOnline": "This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.",
-
   "pfmTitle": "File Manager",
   "pfmTooltip": "Files on printer",
   "pfmStorageUsed": "Used: {size}",
-  "@pfmStorageUsed": { "placeholders": { "size": { "type": "String" } } },
+  "@pfmStorageUsed": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "pfmTabRoot": "Root",
   "pfmTabCache": "Cache",
   "pfmTabModels": "Models",
@@ -1852,11 +3170,19 @@
   "pfmSortDateNewest": "Date (newest)",
   "pfmSortDateOldest": "Date (oldest)",
   "pfmUp": "Up one folder",
-  "@pfmUp": { "description": "Tooltip and screen-reader name for the back arrow in the printer file manager's path bar — it goes up a directory, not back through the app." },
+  "@pfmUp": {
+    "description": "Tooltip and screen-reader name for the back arrow in the printer file manager's path bar — it goes up a directory, not back through the app."
+  },
   "pfmSelectAll": "Select all",
   "pfmDeselectAll": "Deselect all",
   "pfmSelected": "{count} selected",
-  "@pfmSelected": { "placeholders": { "count": { "type": "int" } } },
+  "@pfmSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmEmpty": "This folder is empty",
   "pfmNoMatches": "No files match your filter",
   "pfmPrinterUnavailable": "The printer did not answer, so its files could not be listed",
@@ -1868,27 +3194,50 @@
   "pfmDownloadCancelled": "Download cancelled",
   "pfmDownloadPrepareFailed": "The server could not prepare this download",
   "pfmDownloadPartial": "Left out {count, plural, one{one file} other{{count} files}} that could not be read from the printer",
-  "@pfmDownloadPartial": { "placeholders": { "count": { "type": "int" } } },
+  "@pfmDownloadPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmDownloadSaved": "File saved",
   "pfmDownloadNotSaved": "The file could not be saved where you chose",
   "pfmDownload": "Download",
   "pfmDelete": "Delete",
   "pfmDeleteConfirmTitle": "Delete files?",
   "pfmDeleteConfirmBody": "Permanently delete {count} {count, plural, one{file} other{files}} from the printer? This cannot be undone.",
-  "@pfmDeleteConfirmBody": { "placeholders": { "count": { "type": "int" } } },
+  "@pfmDeleteConfirmBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pfmDeleted": "Deleted {count} {count, plural, one{file} other{files}}",
-  "@pfmDeleted": { "placeholders": { "count": { "type": "int" } } },
-
+  "@pfmDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "wearConnectionFailed": "Connection failed",
   "wearNoPrinters": "No printers",
   "wearPrinterUnavailable": "Printer unavailable",
   "wearWaitingForState": "Waiting for current state",
-  "@wearWaitingForState": { "description": "Watch, under the status chip while the screen is showing the fleet cached from the last run: says why it is dimmed and why every command button is disabled. The buttons come back on the first successful poll. Short because it sits on a line of its own on a 1.4 inch face." },
+  "@wearWaitingForState": {
+    "description": "Watch, under the status chip while the screen is showing the fleet cached from the last run: says why it is dimmed and why every command button is disabled. The buttons come back on the first successful poll. Short because it sits on a line of its own on a 1.4 inch face."
+  },
   "wearNoActions": "No actions available",
   "wearClearPlate": "Clear plate",
-  "@wearClearPlate": { "description": "Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all." },
+  "@wearClearPlate": {
+    "description": "Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all."
+  },
   "wearPlateCleared": "Plate cleared",
-  "@wearPlateCleared": { "description": "Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit." },
+  "@wearPlateCleared": {
+    "description": "Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit."
+  },
   "wearPlateNeedsOnline": "This server needs the printer online",
   "wearStarted": "Started",
   "wearNothingQueuedHere": "Nothing queued for this printer",
@@ -1921,11 +3270,9 @@
   "@wearOk": {
     "description": "Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for."
   },
-
   "commonOn": "On",
   "commonOff": "Off",
   "commonAuto": "Auto",
-
   "queueEdit": "Edit",
   "queueEditTitle": "Edit Queue Item",
   "queueEditSave": "Save",
@@ -1937,25 +3284,65 @@
   "queueEditTarget": "Target",
   "queueEditSpecificPrinter": "Specific Printer",
   "queueEditAnyModel": "Any {model}",
-  "@queueEditAnyModel": { "placeholders": { "model": { "type": "String" } } },
+  "@queueEditAnyModel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditAnyModelGeneric": "Any Model",
   "queueEditTargetModel": "Model",
   "queueEditTargetLocation": "Location",
   "queueEditAnyLocation": "Any location",
   "queueEditMappingNeedsPrinter": "Select a printer to map filaments",
   "queueEditMappingSummary": "{count} {count, plural, one{slot} other{slots}} mapped",
-  "@queueEditMappingSummary": { "placeholders": { "count": { "type": "int" } } },
+  "@queueEditMappingSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditMappingAuto": "Auto (no manual mapping)",
   "queueEditPlate": "Plate",
   "queueEditPlateSelected": "Plate {plate}",
-  "@queueEditPlateSelected": {"placeholders": {"plate": {"type": "int"}}},
+  "@queueEditPlateSelected": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditPlateNamed": "Plate {plate} · {name}",
-  "@queueEditPlateNamed": {"description": "Plate number plus the plate's own name from the 3MF, when it has one", "placeholders": {"plate": {"type": "int"}, "name": {"type": "String"}}},
+  "@queueEditPlateNamed": {
+    "description": "Plate number plus the plate's own name from the 3MF, when it has one",
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditPlateFixed": "This job prints plate {plate}",
-  "@queueEditPlateFixed": {"placeholders": {"plate": {"type": "int"}}},
+  "@queueEditPlateFixed": {
+    "placeholders": {
+      "plate": {
+        "type": "int"
+      }
+    }
+  },
   "queuePlatePickTitle": "Which plate?",
   "queuePlateObjects": "{count, plural, =0{No objects} =1{1 object} other{{count} objects}}",
-  "@queuePlateObjects": {"placeholders": {"count": {"type": "int"}}},
+  "@queuePlateObjects": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditPrintOptions": "Print Options",
   "queueOptBedLevelling": "Bed Levelling",
   "queueOptBedLevellingDesc": "Auto-level bed before print",
@@ -1974,7 +3361,13 @@
   "queuePreheatInherit": "Inherit",
   "queueEditChamberTarget": "Chamber target override (°C, blank = filament default)",
   "queueEditChamberTargetRange": "0–{max} °C",
-  "@queueEditChamberTargetRange": { "placeholders": { "max": { "type": "int" } } },
+  "@queueEditChamberTargetRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "queueEditWhenToPrint": "When to print",
   "queueScheduleAsap": "ASAP",
   "queueScheduleQueue": "Queue",
@@ -1985,7 +3378,13 @@
   "queueEditPowerOff": "Power off printer when done",
   "queueEditGcodeInjection": "Inject auto-print G-code",
   "queueEditGcodeInjectionNoSnippet": "No G-code snippet for {model} — nothing will be injected.",
-  "@queueEditGcodeInjectionNoSnippet": { "placeholders": { "model": { "type": "String" } } },
+  "@queueEditGcodeInjectionNoSnippet": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditNoModel": "Select a target model",
   "queueEditNoPrinter": "Select a printer",
   "queueEditFilamentOverride": "Filament Override",
@@ -1993,27 +3392,76 @@
   "queueEditNoFilamentReqs": "No filament requirements for this job.",
   "queueEditOriginal": "Original",
   "queueEditSlotLabel": "Slot {slot} · {type}",
-  "@queueEditSlotLabel": { "placeholders": { "slot": { "type": "String" }, "type": { "type": "String" } } },
+  "@queueEditSlotLabel": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditForceColorMatch": "Force color match",
-
   "queueEditNozzleRack": "Nozzle rack",
   "queueEditNozzleRackDesc": "Choose which rack nozzle each filament prints from. Left automatic, a fitting position is picked when the print starts.",
   "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": { "placeholders": { "slots": { "type": "String" }, "nozzle": { "type": "String" } } },
+  "@queueEditRackGroupLabel": {
+    "placeholders": {
+      "slots": {
+        "type": "String"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackAuto": "Automatic",
   "queueEditRackPosition": "Position {position} · {nozzle}",
-  "@queueEditRackPosition": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
+  "@queueEditRackPosition": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackPositionTaken": "Position {position} · {nozzle} — already chosen",
-  "@queueEditRackPositionTaken": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
+  "@queueEditRackPositionTaken": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackPositionUnfit": "Position {position} · {nozzle} — does not fit",
-  "@queueEditRackPositionUnfit": { "placeholders": { "position": { "type": "int" }, "nozzle": { "type": "String" } } },
+  "@queueEditRackPositionUnfit": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "queueEditRackEmpty": "empty",
   "queueEditRackPickStale": "The chosen position no longer fits this filament — pick another, or the print is refused at start.",
   "queueEditRackNoFit": "No rack position holds a {nozzle} nozzle — fit one, or the printer decides for itself.",
-  "@queueEditRackNoFit": { "placeholders": { "nozzle": { "type": "String" } } },
+  "@queueEditRackNoFit": {
+    "placeholders": {
+      "nozzle": {
+        "type": "String"
+      }
+    }
+  },
   "nozzleFlowStandard": "Standard",
   "nozzleFlowHigh": "High flow",
-
   "bugReportMenu": "Report a bug or an idea",
   "bugReportTitle": "Report a bug or an idea",
   "bugReportLogScreens": "Screens you open and buttons you press",
@@ -2026,7 +3474,6 @@
   "bugReportLogNoAddress": "Your server address — only http or https, name or IP, and the port",
   "bugReportLogNoData": "Printer serial numbers, or the names of your files, models and spools",
   "bugReportRequestNoData": "Nothing about your printers or your phone",
-
   "usersTitle": "Users",
   "usersEmpty": "No accounts on this server.",
   "usersYou": "you",
@@ -2039,7 +3486,13 @@
   "usersNoGroups": "none",
   "usersPermissionsLabel": "Permissions",
   "usersPermissionsCount": "{count, plural, =0{none} =1{1 permission} other{{count} permissions}}",
-  "@usersPermissionsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@usersPermissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "usersPermissionsUnknown": "not reported by the server",
   "usersAuthSourceLabel": "Sign-in",
   "usersAuthSourceLocal": "Local account",
@@ -2049,7 +3502,6 @@
   "usersOwnedQueue": "Queue",
   "usersOwnedLibrary": "Files",
   "usersOwnedFailed": "Could not read what this account owns.",
-
   "usersCreate": "Add account",
   "usersCreateTitle": "New account",
   "usersEdit": "Edit",
@@ -2084,10 +3536,22 @@
   "usersPasswordNoDigit": "Add a digit.",
   "usersPasswordNoSpecial": "Add a symbol.",
   "usersDeleteTitle": "Delete {username}?",
-  "@usersDeleteTitle": { "placeholders": { "username": { "type": "String" } } },
+  "@usersDeleteTitle": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "usersDeleteBody": "The account, its API keys and its sign-in state are removed. This cannot be undone.",
   "usersDeleteOwnsCount": "{count, plural, =1{This account created 1 item} other{This account created {count} items}}",
-  "@usersDeleteOwnsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@usersDeleteOwnsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "usersDeleteItemsToo": "Delete them too",
   "usersDeleteItemsTooHint": "Their prints, queue items and files are deleted with the account.",
   "usersDeleteItemsKeepHint": "Their prints, queue items and files stay, with no owner.",
@@ -2103,27 +3567,52 @@
   "usersErrEmailRequired": "This server needs an e-mail address for a new account.",
   "usersErrPasswordRequired": "This server needs a password for a new account.",
   "usersErrGroupsInvalid": "One of the groups no longer exists — reopen the form.",
-
   "groupsTitle": "Groups",
   "groupsEmpty": "No groups on this server.",
   "groupsNoDescription": "No description",
   "groupsSystemPill": "Built-in",
   "groupsSystemNote": "A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.",
   "groupsMemberCount": "{count, plural, =0{no accounts} =1{1 account} other{{count} accounts}}",
-  "@groupsMemberCount": { "placeholders": { "count": { "type": "int" } } },
+  "@groupsMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsPermissionCount": "{count, plural, =0{no permissions} =1{1 permission} other{{count} permissions}}",
-  "@groupsPermissionCount": { "placeholders": { "count": { "type": "int" } } },
+  "@groupsPermissionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsMembersHeader": "MEMBERS",
   "groupsNoMembers": "Nobody is in this group.",
   "groupsAddMember": "Add member",
   "groupsAddMemberTitle": "Add to {group}",
-  "@groupsAddMemberTitle": { "placeholders": { "group": { "type": "String" } } },
+  "@groupsAddMemberTitle": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsEveryoneIsIn": "Every account is already in this group.",
   "groupsRemoveMember": "Remove",
   "groupsRemoveMemberQuestion": "Remove {username} from {group}?",
-  "@groupsRemoveMemberQuestion": { "placeholders": { "username": { "type": "String" }, "group": { "type": "String" } } },
+  "@groupsRemoveMemberQuestion": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsRemoveMemberBody": "The account stays, and loses what this group granted it.",
-
   "groupsCreate": "New group",
   "groupsCreateTitle": "New group",
   "groupsEditTitle": "Edit group",
@@ -2131,26 +3620,42 @@
   "groupsSaved": "Group saved",
   "groupsDeleted": "Group deleted",
   "groupsDeleteQuestion": "Delete {group}?",
-  "@groupsDeleteQuestion": { "placeholders": { "group": { "type": "String" } } },
+  "@groupsDeleteQuestion": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "groupsDeleteBody": "The permissions it grants disappear with it.",
   "groupsDeleteBodyWithMembers": "{count, plural, =1{1 account is in it and stays — it just loses what this group granted.} other{{count} accounts are in it and stay — they just lose what this group granted.}}",
-  "@groupsDeleteBodyWithMembers": { "placeholders": { "count": { "type": "int" } } },
+  "@groupsDeleteBodyWithMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsFieldName": "Name",
   "groupsFieldDescription": "What it is for",
   "groupsSystemFormNote": "A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.",
   "groupsPermissionsHeader": "PERMISSIONS",
   "groupsPermissionsSelected": "{count} selected",
-  "@groupsPermissionsSelected": { "placeholders": { "count": { "type": "int" } } },
+  "@groupsPermissionsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsAdvancedPermissions": "Server administration",
   "groupsAdvancedHint": "Users, API keys, settings, backups — everything the app itself has no screen for.",
-
   "serverSettingsMenu": "Server settings",
   "serverSettingsTitle": "Server settings",
   "serverSettingsQueueSubtitle": "Scheduling, preheat, and holding a bed warm between prints",
   "serverSettingsMaintenanceSubtitle": "Task types and per-printer intervals",
   "serverSettingsAdminSubtitle": "Accounts, groups and API keys",
   "serverSettingsCloudSubtitle": "The Bambu account the server downloads with",
-
   "queueSettingsTitle": "Queue and preheat",
   "queueSettingsReadOnlyApiKey": "An API key can never write server settings. Sign in with an account to change these.",
   "queueSettingsReadOnlyPermission": "Your account may read these settings but not change them.",
@@ -2161,37 +3666,71 @@
   "queueSettingsShortestFirstTitle": "Shortest job first",
   "queueSettingsShortestFirstDesc": "Take the shortest waiting job rather than the one that has waited longest.",
   "queueSettingsMaxUploads": "Files uploaded at the same time: {count}",
-  "@queueSettingsMaxUploads": { "placeholders": { "count": { "type": "int" } } },
+  "@queueSettingsMaxUploads": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "queueSettingsPreheatHeader": "Preheat",
   "queueSettingsPreheatTitle": "Preheat before a job",
   "queueSettingsPreheatDesc": "Warms the chamber before the file is sent. A single queued job can overrule it.",
   "queueSettingsPreheatMaxWait": "Chamber wait limit: {duration}",
-  "@queueSettingsPreheatMaxWait": { "placeholders": { "duration": { "type": "String" } } },
+  "@queueSettingsPreheatMaxWait": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsPreheatSoak": "Soak after reaching temperature: {duration}",
-  "@queueSettingsPreheatSoak": { "placeholders": { "duration": { "type": "String" } } },
+  "@queueSettingsPreheatSoak": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsNoSoak": "no soak",
   "queueSettingsPreheatOffNote": "Preheat is off, so the settings below change nothing.",
   "queueSettingsKeepWarmHeader": "Keep warm",
   "queueSettingsKeepWarmTitle": "Hold the bed warm between prints",
   "queueSettingsKeepWarmDesc": "Until someone takes the finished print off, the bed stays hot — so the next chamber-heated job does not start from cold. Skipped for PLA and PETG.",
   "queueSettingsKeepWarmTemp": "Bed temperature used to heat the chamber: {temp} °C",
-  "@queueSettingsKeepWarmTemp": { "placeholders": { "temp": { "type": "int" } } },
+  "@queueSettingsKeepWarmTemp": {
+    "placeholders": {
+      "temp": {
+        "type": "int"
+      }
+    }
+  },
   "queueSettingsKeepWarmMax": "Longest the bed is held: {duration}",
-  "@queueSettingsKeepWarmMax": { "placeholders": { "duration": { "type": "String" } } },
+  "@queueSettingsKeepWarmMax": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "queueSettingsMaxUploadsDesc": "Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.",
   "queueSettingsPreheatMaxWaitDesc": "An X1C or P2S has no chamber heater — the chamber warms from the bed, which can take 15–30 minutes. After this the queue stops waiting and moves on to the soak.",
   "queueSettingsPreheatSoakDesc": "Extra time at temperature after the chamber reaches it, or after the wait above runs out. Zero skips it.",
   "queueSettingsKeepWarmTempDesc": "90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.",
   "queueSettingsKeepWarmMaxDesc": "Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.",
   "queueSettingsKeepWarmOffNote": "Keep-warm is off. The bed temperature above still applies to preheat.",
-
   "adminTitle": "Administration",
   "adminSignedInAs": "Signed in as {username}",
-  "@adminSignedInAs": { "placeholders": { "username": { "type": "String" } } },
+  "@adminSignedInAs": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "adminUsersSubtitle": "Who has an account, and what each of them may do",
   "adminGroupsSubtitle": "Permission sets and who holds them",
   "adminApiKeysSubtitle": "Credentials for everything that is not this app",
-
   "apiKeysTitle": "API keys",
   "apiKeysEmpty": "No keys have been issued.",
   "apiKeysCreate": "New key",
@@ -2201,17 +3740,41 @@
   "apiKeysRevoke": "Revoke",
   "apiKeysRevoked": "Key revoked",
   "apiKeysRevokeQuestion": "Revoke {name}?",
-  "@apiKeysRevokeQuestion": { "placeholders": { "name": { "type": "String" } } },
+  "@apiKeysRevokeQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysRevokeBody": "Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.",
   "apiKeysLastUsed": "last used {date}",
-  "@apiKeysLastUsed": { "placeholders": { "date": { "type": "String" } } },
+  "@apiKeysLastUsed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysNeverUsed": "never used",
   "apiKeysDisabled": "Switched off",
   "apiKeysExpired": "Expired",
   "apiKeysExpiresOn": "until {date}",
-  "@apiKeysExpiresOn": { "placeholders": { "date": { "type": "String" } } },
+  "@apiKeysExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "apiKeysPrinterLimited": "{count, plural, =1{1 printer} other{{count} printers}}",
-  "@apiKeysPrinterLimited": { "placeholders": { "count": { "type": "int" } } },
+  "@apiKeysPrinterLimited": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "apiKeysLegacy": "No owner",
   "apiKeysFieldName": "Name",
   "apiKeysFieldNameHint": "What holds this key — \"Home Assistant\", \"SpoolBuddy\".",
@@ -2261,7 +3824,16 @@
   "printLogNoUser": "No user",
   "printLogOrphan": "Archive deleted",
   "printLogShowing": "{loaded} of {total}",
-  "@printLogShowing": { "placeholders": { "loaded": { "type": "int" }, "total": { "type": "int" } } },
+  "@printLogShowing": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "printLogLoadMore": "Load more",
   "printLogSort": "Sort by",
   "printLogSortDate": "Date",
@@ -2283,7 +3855,13 @@
   "printLogStatusSkipped": "Skipped",
   "printLogStatusAborted": "Aborted",
   "printLogEnergy": "{value} kWh",
-  "@printLogEnergy": { "placeholders": { "value": { "type": "String" } } },
+  "@printLogEnergy": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "printLogClassifyTitle": "Classify this run",
   "printLogDetailStarted": "Started",
   "printLogDetailFinished": "Finished",
@@ -2297,7 +3875,13 @@
   "printLogCountsAsFailure": "Counted as a failure — this run and its cause show up in failure analysis.",
   "printLogNotCountedAsFailure": "Not counted as a failure, so the cause stays out of failure analysis.",
   "printLogStatusOneWay": "This server cannot write “{status}” back. Change it and it is gone for good.",
-  "@printLogStatusOneWay": { "placeholders": { "status": { "type": "String" } } },
+  "@printLogStatusOneWay": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "printLogSave": "Save",
   "printLogSaveFailed": "Could not save the classification",
   "printLogDelete": "Delete run",
@@ -2307,11 +3891,25 @@
   "printLogClear": "Clear print log",
   "printLogClearTitle": "Clear the whole print log?",
   "printLogClearBody": "{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone's, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.",
-  "@printLogClearBody": { "placeholders": { "count": { "type": "int" } } },
+  "@printLogClearBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "printLogClearBodyFiltered": "Every run in the log goes — everyone's, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.",
-  "@printLogClearBodyFiltered": { "description": "Shown instead of printLogClearBody when a filter or search is active. The route deletes the whole log and cannot take a filter, so this one quotes no count — printLogClearBody's number is the filtered total and would understate what goes." },
+  "@printLogClearBodyFiltered": {
+    "description": "Shown instead of printLogClearBody when a filter or search is active. The route deletes the whole log and cannot take a filter, so this one quotes no count — printLogClearBody's number is the filtered total and would understate what goes."
+  },
   "printLogCleared": "{count, plural, one{{count} run deleted} other{{count} runs deleted}}",
-  "@printLogCleared": { "placeholders": { "count": { "type": "int" } } },
+  "@printLogCleared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "printLogClearFailed": "Could not clear the print log",
   "failureReasonAdhesion": "Adhesion failure",
   "failureReasonSpaghetti": "Spaghetti / detached print",

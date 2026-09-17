@@ -32,7 +32,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu cuenta ahora solicita un segundo factor y la aplicación no puede proporcionarlo en segundo plano — por lo que dejó de iniciar sesión automáticamente. Inicia sesión de nuevo e introduce el código.';
 
   @override
-  String get later => 'Más tarde';
+  String get signInRequiredMissingBody =>
+      'Una actualización de seguridad o una copia de seguridad restaurada invalidó la clave que cifraba tu inicio de sesión guardado. No se ha perdido nada más.';
 
   @override
   String get serverUnreachableStale =>

@@ -32,7 +32,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.';
 
   @override
-  String get later => 'Later';
+  String get signInRequiredMissingBody =>
+      'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.';
 
   @override
   String get serverUnreachableStale =>

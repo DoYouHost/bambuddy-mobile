@@ -100,4 +100,18 @@ class AuthProbe {
     lvl: LogLevel.warn,
     fields: {'cause': error.runtimeType.toString()},
   );
+
+  /// The secure store could not produce a value it holds — a Keystore that is
+  /// unavailable rather than a key that was never written. The app treats it as
+  /// absent and asks for a sign-in, so without this line the log shows a
+  /// session ending for no reason at all. The name of the entry, never its
+  /// value: which one failed says whether the whole store is unreadable or only
+  /// one entry is.
+  static void credentialUnreadable(String entry, Object error) =>
+      DiagnosticRecorder.active?.add(
+        LogSource.app,
+        'credential_unreadable',
+        lvl: LogLevel.warn,
+        fields: {'entry': entry, 'cause': error.runtimeType.toString()},
+      );
 }

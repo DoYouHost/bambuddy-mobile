@@ -7,6 +7,7 @@ import '../../core/auth/two_factor.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/demo/demo_config.dart';
+import '../../providers.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/qr_scanner_screen.dart';
@@ -35,6 +36,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// Which second factor the user picked. Null until the challenge arrives —
   /// then it defaults to the server's first offered method.
   TwoFactorMethod? _method;
+
+  @override
+  void initState() {
+    super.initState();
+    // Someone sent back here to sign in again still has their server saved, and
+    // the address is the one thing they cannot guess at — it is an IP and a
+    // port on their own LAN. Typing it from memory is not part of signing in.
+    final saved = ref.read(serverProfileProvider)?.baseUrl;
+    if (saved != null) _url.text = saved;
+  }
 
   @override
   void dispose() {

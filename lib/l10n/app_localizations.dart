@@ -146,11 +146,11 @@ abstract class AppLocalizations {
   /// **'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.'**
   String get signInRequiredTwoFactorBody;
 
-  /// No description provided for @later.
+  /// Sign-in warning when the profile expects a credential and the secure store has none
   ///
   /// In en, this message translates to:
-  /// **'Later'**
-  String get later;
+  /// **'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.'**
+  String get signInRequiredMissingBody;
 
   /// No description provided for @serverUnreachableStale.
   ///

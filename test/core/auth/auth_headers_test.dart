@@ -56,4 +56,44 @@ void main() {
       isNot(contains('Authorization')),
     );
   });
+
+  group('credentialMissing', () {
+    test('a server with auth off is never missing anything', () async {
+      expect(
+        await credentialMissing(AuthMode.none, InMemoryCredentialsStore()),
+        isFalse,
+      );
+    });
+
+    test('sees the credential each mode actually uses', () async {
+      final onlyJwt = InMemoryCredentialsStore()..jwt = 'jwt-value';
+      final onlyKey = InMemoryCredentialsStore()..apiKey = 'bb_key';
+
+      expect(await credentialMissing(AuthMode.jwt, onlyJwt), isFalse);
+      expect(await credentialMissing(AuthMode.apiKey, onlyJwt), isTrue);
+      expect(await credentialMissing(AuthMode.apiKey, onlyKey), isFalse);
+      expect(await credentialMissing(AuthMode.jwt, onlyKey), isTrue);
+    });
+
+    test('a remembered login is enough on its own', () async {
+      // No token, but a password the app can sign itself back in with on the
+      // first 401 — which is what "remember me" is for. Asking the user to do
+      // it by hand would break a feature that still works.
+      final remembered = InMemoryCredentialsStore()
+        ..username = 'morgan'
+        ..password = 'hunter2';
+
+      expect(await credentialMissing(AuthMode.jwt, remembered), isFalse);
+      expect(await credentialMissing(AuthMode.apiKey, remembered), isTrue);
+    });
+
+    test('an emptied store is missing what the profile promised', () async {
+      // What a secure store that could not read its own format leaves behind:
+      // no error, no value.
+      final emptied = InMemoryCredentialsStore();
+
+      expect(await credentialMissing(AuthMode.jwt, emptied), isTrue);
+      expect(await credentialMissing(AuthMode.apiKey, emptied), isTrue);
+    });
+  });
 }

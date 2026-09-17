@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
@@ -203,6 +204,10 @@ void main() {
     // no test depends on another having run first.
     await _prefs.setBool('notif_onboarded', true);
     await _prefs.remove('sign_in_required');
+    // The reason outlives the flag in SharedPreferences, and since the screen
+    // reads it to decide whether a credential coming back should lower the
+    // flag, a leftover from the test before changes what this one does.
+    await _prefs.remove('sign_in_reason');
   });
 
   testWidgets(
@@ -689,6 +694,108 @@ void main() {
       expect(find.text('Zaloguj się ponownie'), findsNothing);
     });
 
+    testWidgets('an empty store raises the warning with nobody to raise it', (
+      tester,
+    ) async {
+      // Nothing rejected these credentials — they are gone, which is what a
+      // secure store that cannot read its own older format leaves behind. The
+      // two writers of the flag only ever hear a rejection, so without this the
+      // app keeps sending bare requests and shows their 401s as an empty
+      // dashboard.
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(
+        find.textContaining('aktualizacja zabezpieczeń'),
+        findsOneWidget,
+        reason:
+            'the wording names the cause; blaming a password nobody '
+            'rejected sends the user to reset a working one',
+      );
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that comes back lowers the flag again', (
+      tester,
+    ) async {
+      // What a Keystore that was briefly unavailable looks like afterwards: the
+      // flag is up from the last launch, and the store answers again. Signing
+      // in is the only other thing that lowers it, so without this the app
+      // would keep asking for a session it already has.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsMissing');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'back-again',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
+    testWidgets('a rejection is not lowered by a readable credential', (
+      tester,
+    ) async {
+      // The other half: the server said no to this password. The credential
+      // reads fine — that was never the problem — so the warning stays.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsRejected');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that is there raises nothing', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
     testWidgets('"Sign in" leads to the setup screen', (tester) async {
       await _prefs.setBool('sign_in_required', true);
 
@@ -700,22 +807,22 @@ void main() {
       expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
 
-    testWidgets(
-      '"Later" closes the dialog, but the flag stays for the next launch',
-      (tester) async {
-        // The app cannot load anything until the user signs in, so postponing
-        // must not be mistaken for resolving it.
-        await _prefs.setBool('sign_in_required', true);
+    testWidgets('the warning cannot be waved away', (tester) async {
+      // There is no "later" any more: every screen behind this dialog needs a
+      // session, so dismissing it would buy a dashboard of empty lists. Back
+      // and the barrier are shut for the same reason.
+      await _prefs.setBool('sign_in_required', true);
 
-        await tester.pumpWidget(_app(state));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Później'));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(_routedApp(state));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Zaloguj się ponownie'), findsNothing);
-        expect(find.text('X1C'), findsOneWidget);
-        expect(_prefs.getBool('sign_in_required'), isTrue);
-      },
-    );
+      expect(find.widgetWithText(FilledButton, 'Później'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Zaloguj'), findsOneWidget);
+
+      // The barrier is not a way out.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+    });
   });
 }
