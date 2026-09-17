@@ -172,6 +172,138 @@ void main() {
     expect(fake.lastProgress, 43);
   });
 
+  group('several printers at once', () {
+    // One notification carries the whole shelf: the count as the headline, the
+    // mean as the bar, and the machine that finishes first as the line — the
+    // only ETA worth putting in front of somebody.
+    testAt('the headline counts, the bar averages, the line names the lead', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 80,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      expect(fake.lastTitle, '2 printing');
+      expect(fake.lastProgress, 60, reason: 'the mean of 40 and 80');
+      // The lead is the one finishing first, and it is named by machine: with
+      // two printers the job name no longer says which one this is.
+      expect(fake.lastBody, contains('P1S 80%'));
+      expect(fake.lastBody, contains('Average 60%'));
+      expect(fake.lastBody, contains('ETA'));
+    });
+
+    testAt('a printer that reports no progress is left out of the mean', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', remaining: 12, name: 'P1S'),
+      });
+
+      // Counting the silent one as zero would halve the bar for a job that has
+      // simply not reported yet.
+      expect(fake.lastProgress, 40);
+    });
+
+    testAt('a printer that reports zero counts as zero', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // The other zero: heating or levelling is where this print genuinely
+      // stands, so the shelf really is 20% along. Silence and a reported zero
+      // are different facts and the mean treats them differently.
+      expect(fake.lastProgress, 20);
+    });
+
+    testAt('one machine out of range does not move the mean', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 900,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // Clamped before averaging, not after: a mean of 40 and 900 lands on 100
+      // either way, and the bar would look plausible while being a lie about
+      // the machine that is only at 40.
+      expect(fake.lastProgress, 70);
+    });
+
+    testAt('the bar follows a printer that is not the lead', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      expect(fake.lastProgress, 60);
+
+      // The lead has not moved — its percent and ETA are the same frame — so a
+      // throttle keyed on the lead alone would swallow this.
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 60, remaining: 70),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      expect(fake.ongoingCount, 2);
+      expect(fake.lastProgress, 70);
+    });
+
+    testAt('dropping back to one printer restores the job as the headline', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          job: 'cube.3mf',
+        ),
+        2: _status(id: 2, state: 'IDLE'),
+      });
+
+      expect(fake.lastTitle, 'cube.3mf');
+      expect(fake.lastProgress, 40);
+    });
+  });
+
   testAt('RUNNING → FINISH: one "finished" alert and a clean-up', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
@@ -207,32 +339,36 @@ void main() {
     expect(fake.alerts.single['body'], 'y failed');
   });
 
-  testAt(
-    'two printers: the ongoing one tracks the nearest ETA, with a +1 note',
-    (_) {
-      final fake = RecordingNotifications();
-      final m = monitor(fake);
-      m.update({
-        1: _status(
-          id: 1,
-          state: 'RUNNING',
-          progress: 10,
-          remaining: 200,
-          job: 'long',
-        ),
-        2: _status(
-          id: 2,
-          state: 'RUNNING',
-          progress: 80,
-          remaining: 15,
-          job: 'soon',
-        ),
-      });
-      expect(fake.lastTitle, 'soon'); // finishes soonest
-      expect(fake.lastProgress, 80);
-      expect(fake.lastBody, contains('+1'));
-    },
-  );
+  testAt('two printers: the line follows the nearest ETA, the bar does not', (
+    _,
+  ) {
+    final fake = RecordingNotifications();
+    final m = monitor(fake);
+    m.update({
+      1: _status(
+        id: 1,
+        state: 'RUNNING',
+        progress: 10,
+        remaining: 200,
+        job: 'long',
+        name: 'X1C',
+      ),
+      2: _status(
+        id: 2,
+        state: 'RUNNING',
+        progress: 80,
+        remaining: 15,
+        job: 'soon',
+        name: 'P1S',
+      ),
+    });
+
+    expect(fake.lastBody, contains('P1S 80%')); // finishes soonest
+    // The bar is the shelf, not the lead: 80% on it would say both are nearly
+    // done while one of them has barely started.
+    expect(fake.lastProgress, 45);
+    expect(fake.lastTitle, '2 printing');
+  });
 
   testAt('the end of every print clears the ongoing notification', (_) {
     final fake = RecordingNotifications();

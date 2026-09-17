@@ -3254,11 +3254,40 @@ abstract class AppLocalizations {
   /// **'{percent}% · ETA {eta}'**
   String notifOngoingBody(int percent, String eta);
 
-  /// No description provided for @notifMorePrints.
+  /// No description provided for @demoSettingsSection.
   ///
   /// In en, this message translates to:
-  /// **'+{count}'**
-  String notifMorePrints(int count);
+  /// **'Demo'**
+  String get demoSettingsSection;
+
+  /// No description provided for @demoPrintingCountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers printing'**
+  String get demoPrintingCountTitle;
+
+  /// No description provided for @demoPrintingCountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'How many of the demo\'s printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.'**
+  String get demoPrintingCountDesc;
+
+  /// No description provided for @notifOngoingMultiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Average {overall}% · {printer} {percent}% · ETA {eta}'**
+  String notifOngoingMultiBody(
+    int overall,
+    String printer,
+    int percent,
+    String eta,
+  );
+
+  /// No description provided for @notifOngoingMultiBodyNoEta.
+  ///
+  /// In en, this message translates to:
+  /// **'Average {overall}% · {printer} {percent}%'**
+  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent);
 
   /// No description provided for @printFinishedTitle.
   ///

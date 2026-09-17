@@ -10,7 +10,11 @@ enum BackgroundSync {
   diagnostics,
 
   /// Whether the user reads a 24-hour clock — see `DateTimeFormats.system`.
-  clock;
+  clock,
+
+  /// How many printers the demo runs a print on. Demo only: on a real server
+  /// this isolate is fed by the server, and nothing here reads it.
+  demoPrinters;
 
   /// The wire shape, kept as `{what: 'sync'}` because that is what shipped.
   Map<String, String> get message => {name: 'sync'};

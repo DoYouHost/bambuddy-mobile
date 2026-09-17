@@ -1915,8 +1915,28 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String notifMorePrints(int count) {
-    return '+$count';
+  String get demoSettingsSection => 'Demo';
+
+  @override
+  String get demoPrintingCountTitle => 'Drukarki w trakcie druku';
+
+  @override
+  String get demoPrintingCountDesc =>
+      'Ile drukarek w demo drukuje jednocześnie — do zobaczenia, co kilka naraz robi z pulpitem i ze stałym powiadomieniem.';
+
+  @override
+  String notifOngoingMultiBody(
+    int overall,
+    String printer,
+    int percent,
+    String eta,
+  ) {
+    return 'Średnio $overall% · $printer $percent% · ETA $eta';
+  }
+
+  @override
+  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent) {
+    return 'Średnio $overall% · $printer $percent%';
   }
 
   @override

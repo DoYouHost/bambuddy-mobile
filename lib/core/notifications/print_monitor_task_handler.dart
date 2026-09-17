@@ -42,6 +42,7 @@ import '../widget/home_widget_publisher.dart';
 import '../widget/multi_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
+import '../demo/demo_backend.dart';
 import '../diagnostics/diagnostics_wiring.dart';
 import '../diagnostics/report_config.dart';
 
@@ -108,6 +109,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // switch says and `DateTimeFormats.system()` would spell every ETA in AM/PM.
     // The UI writes the switch down for exactly this read.
     DateTimeFormats.rememberSystemClock(settings.loadUse24HourClock());
+
+    // Same read, same reason: this isolate runs its own copy of the demo, and
+    // starting it at the default would draw a notification for one printer
+    // while the dashboard shows three.
+    DemoBackend.printingPrinters = settings.loadDemoPrintingCount();
 
     // Before `_startMonitoring`, so the token mint and the WebSocket handshake —
     // the two things a report about background notifications most often turns out
@@ -508,6 +514,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
         unawaited(_syncDiagnostics());
       case BackgroundSync.clock:
         unawaited(_syncClockFormat());
+      case BackgroundSync.demoPrinters:
+        unawaited(_syncDemoPrinters());
       case null:
         break;
     }
@@ -524,6 +532,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
     } on Object {
       // Keep whatever this isolate started with; a stale clock is not worth
       // taking the service down for.
+    }
+  }
+
+  /// The demo's printer count as the app last saw it. Without this the service
+  /// keeps simulating the number it started with, so the notification would
+  /// disagree with the dashboard the setting had just changed.
+  Future<void> _syncDemoPrinters() async {
+    try {
+      final settings = await SettingsRepository.opened();
+      DemoBackend.printingPrinters = settings.loadDemoPrintingCount();
+      // Statics do not cross an isolate, so the poke the UI sent its own
+      // sockets never reached these. Without this the notification waits for
+      // the fake socket's next tick while the dashboard has already moved.
+      DemoBackend.pokeSockets();
+    } on Object {
+      // A demo knob is never worth taking the service down for.
     }
   }
 

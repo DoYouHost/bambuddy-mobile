@@ -16,6 +16,10 @@ void main() {
       BackgroundSync.diagnostics,
     );
     expect(BackgroundSync.parse(const {'clock': 'sync'}), BackgroundSync.clock);
+    expect(
+      BackgroundSync.parse(const {'demoPrinters': 'sync'}),
+      BackgroundSync.demoPrinters,
+    );
   });
 
   test('anything else on the port is not a sync', () {

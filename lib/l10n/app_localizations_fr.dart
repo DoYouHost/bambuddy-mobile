@@ -1913,8 +1913,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String notifMorePrints(int count) {
-    return '+$count';
+  String get demoSettingsSection => 'Démo';
+
+  @override
+  String get demoPrintingCountTitle => 'Imprimantes en cours d\'impression';
+
+  @override
+  String get demoPrintingCountDesc =>
+      'Combien d\'imprimantes de la démo impriment en même temps — pour voir ce que plusieurs font au tableau de bord et à la notification permanente.';
+
+  @override
+  String notifOngoingMultiBody(
+    int overall,
+    String printer,
+    int percent,
+    String eta,
+  ) {
+    return 'Moyenne $overall % · $printer $percent % · fin $eta';
+  }
+
+  @override
+  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent) {
+    return 'Moyenne $overall % · $printer $percent %';
   }
 
   @override

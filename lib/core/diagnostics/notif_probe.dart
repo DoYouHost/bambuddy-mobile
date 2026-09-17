@@ -186,6 +186,7 @@ class NotifProbe {
     required int percent,
     int? etaMin,
     required int active,
+    required int overall,
   }) => DiagnosticRecorder.active?.add(
     LogSource.notif,
     'ongoing',
@@ -194,6 +195,9 @@ class NotifProbe {
       'pct': percent,
       'eta_min': etaMin,
       'active': active,
+      // What the bar was drawn from — the mean over every printing machine,
+      // which equals `pct` while only one is running.
+      'overall_pct': overall,
     },
   );
 
