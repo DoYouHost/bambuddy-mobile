@@ -28,13 +28,25 @@ class DemoPrintingCountNotifier extends Notifier<int> {
     return count;
   }
 
-  Future<void> set(int count) async {
-    await ref.read(settingsRepositoryProvider).saveDemoPrintingCount(count);
+  /// What the demo shows while the slider is being dragged.
+  ///
+  /// Nothing is written and nothing crosses to the service isolate: a drag
+  /// produces a value per frame, and each one would be a flash write and an
+  /// IPC message. The dashboard still follows along, because the poke is in
+  /// this isolate and costs nothing.
+  void preview(int count) {
     DemoBackend.printingPrinters = count;
     // The dashboard is fed by the fake socket, which would otherwise show this
     // at its next three-second tick.
     DemoBackend.pokeSockets();
     state = count;
+  }
+
+  /// The value the user settled on: kept, and told to the service isolate,
+  /// which runs its own copy of the demo and draws the notification from it.
+  Future<void> set(int count) async {
+    preview(count);
+    await ref.read(settingsRepositoryProvider).saveDemoPrintingCount(count);
     ref.read(backgroundMonitorProvider).sync(BackgroundSync.demoPrinters);
   }
 }

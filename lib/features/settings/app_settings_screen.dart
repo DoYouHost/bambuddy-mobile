@@ -60,6 +60,8 @@ class AppSettingsScreen extends ConsumerWidget {
                     max: DemoBackend.maxPrintingPrinters,
                     enabled: true,
                     onChanged: (v) =>
+                        ref.read(demoPrintingCountProvider.notifier).preview(v),
+                    onChangeEnd: (v) =>
                         ref.read(demoPrintingCountProvider.notifier).set(v),
                   ),
                 ],

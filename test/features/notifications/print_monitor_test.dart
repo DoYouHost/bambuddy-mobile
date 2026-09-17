@@ -220,6 +220,46 @@ void main() {
       expect(fake.lastProgress, 40);
     });
 
+    testAt('a printer that reports zero counts as zero', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // The other zero: heating or levelling is where this print genuinely
+      // stands, so the shelf really is 20% along. Silence and a reported zero
+      // are different facts and the mean treats them differently.
+      expect(fake.lastProgress, 20);
+    });
+
+    testAt('one machine out of range does not move the mean', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 900,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // Clamped before averaging, not after: a mean of 40 and 900 lands on 100
+      // either way, and the bar would look plausible while being a lie about
+      // the machine that is only at 40.
+      expect(fake.lastProgress, 70);
+    });
+
     testAt('the bar follows a printer that is not the lead', (_) {
       final fake = RecordingNotifications();
       final m = monitor(fake);

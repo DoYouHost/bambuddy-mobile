@@ -920,11 +920,16 @@ class PrintMonitor {
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
     // What the bar tracks once several printers run: the mean of everything
     // printing, not the lead's own figure. A bar that jumps to 90% because one
-    // of three is nearly done says the whole shelf is nearly done. Printers
-    // that report no progress yet are left out of the mean rather than counted
-    // as zero, which would drag it down for a job that has simply not started
-    // reporting.
-    final reported = [for (final s in printing) ?s.progress];
+    // of three is nearly done says the whole shelf is nearly done.
+    //
+    // Two kinds of zero, and they are not the same fact. A printer that sends
+    // no `progress` at all has not reported yet and is left out — counting it
+    // would drag the mean down for a job nobody has heard from. A printer that
+    // reports 0 is heating or levelling, and 0 is where it genuinely stands, so
+    // it counts. Each figure is clamped before it is averaged: one machine's
+    // out-of-range frame must not move a mean that is then clamped again and
+    // looks plausible.
+    final reported = [for (final s in printing) ?s.progress?.clamp(0, 100)];
     final overall = reported.isEmpty
         ? percent
         : (reported.reduce((a, b) => a + b) / reported.length).round().clamp(
@@ -959,14 +964,16 @@ class PrintMonitor {
     if (printing.length == 1) {
       // One printer: the job is what the user is waiting for, and the machine
       // it runs on needs no saying.
-      title = _jobName(lead) ?? lead.name ?? l.printersTitle;
+      title = _jobLabel(lead, l);
       body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
     } else {
       // Several: the headline is how many are running, the bar is the mean, and
       // the line names the one that finishes first — the only one with an ETA
       // worth putting in front of somebody.
       title = l.printingCount(printing.length);
-      final name = lead.name ?? l.printersTitle;
+      // Not `lead.name ?? …`: a printer named "  " would leave the line with
+      // a gap between two separators.
+      final name = _printerLabel(lead, l);
       body = eta == null
           ? l.notifOngoingMultiBodyNoEta(overall, name, percent)
           : l.notifOngoingMultiBody(overall, name, percent, eta);

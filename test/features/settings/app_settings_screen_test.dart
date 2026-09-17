@@ -129,13 +129,26 @@ void main() {
         contains('app_settings.demo_printing_count'),
       );
 
-      tester.widget<Slider>(find.byType(Slider)).onChanged!(3);
+      final slider = tester.widget<Slider>(find.byType(Slider));
+
+      // Dragging is a preview: the demo follows along so the dashboard behind
+      // the screen moves, but a value per frame must not be a flash write and
+      // an IPC message each.
+      slider.onChanged!(3);
       await tester.pumpAndSettle();
 
       expect(container.read(demoPrintingCountProvider), 3);
-      // The demo this isolate runs...
       expect(DemoBackend.printingPrinters, 3);
-      // ...and the one the service isolate re-reads when it is told to.
+      expect(
+        container.read(settingsRepositoryProvider).loadDemoPrintingCount(),
+        1,
+        reason: 'nothing is kept until the drag ends',
+      );
+
+      // Letting go is the decision: kept, and told to the service isolate.
+      tester.widget<Slider>(find.byType(Slider)).onChangeEnd!(3);
+      await tester.pumpAndSettle();
+
       expect(
         container.read(settingsRepositoryProvider).loadDemoPrintingCount(),
         3,

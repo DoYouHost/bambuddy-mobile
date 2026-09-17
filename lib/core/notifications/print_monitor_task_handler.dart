@@ -542,6 +542,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     try {
       final settings = await SettingsRepository.opened();
       DemoBackend.printingPrinters = settings.loadDemoPrintingCount();
+      // Statics do not cross an isolate, so the poke the UI sent its own
+      // sockets never reached these. Without this the notification waits for
+      // the fake socket's next tick while the dashboard has already moved.
+      DemoBackend.pokeSockets();
     } on Object {
       // A demo knob is never worth taking the service down for.
     }

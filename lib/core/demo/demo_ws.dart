@@ -70,6 +70,10 @@ class DemoWsConnection implements WsConnection {
   @override
   Future<void> close() async {
     _timer?.cancel();
+    // Not only in `onCancel`: a controller closed from this side delivers done
+    // first, and until the listener acts on it this connection would still be
+    // registered on the backend's broadcast.
+    await _poke?.cancel();
     await _controller.close();
   }
 
