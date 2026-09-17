@@ -17,19 +17,23 @@ class DemoWsConnection implements WsConnection {
       onListen: () {
         _emitAll();
         _timer = Timer.periodic(const Duration(seconds: 3), (_) => _emitAll());
+        // A setting that changes the fleet does not wait for the next tick.
+        _poke = DemoBackend.pokes.listen((_) => _emitAll());
       },
-      onCancel: () => _timer?.cancel(),
+      onCancel: () {
+        _timer?.cancel();
+        _poke?.cancel();
+      },
     );
   }
 
   late final StreamController<dynamic> _controller;
   Timer? _timer;
-
-  static const _printerIds = [1, 2];
+  StreamSubscription<void>? _poke;
 
   void _emitAll() {
     if (_controller.isClosed) return;
-    for (final id in _printerIds) {
+    for (final id in DemoBackend.printerIds) {
       _controller.add(
         jsonEncode({
           'type': 'printer_status',

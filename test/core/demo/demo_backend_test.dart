@@ -1020,6 +1020,51 @@ void main() {
       final status = messages.whereType<WsPrinterStatus>().first.status;
       expect(status.id, isPositive);
     });
+
+    test('every printer in the fleet gets a frame, not just the first two', () {
+      // A real server broadcasts per printer. Naming two of them here meant a
+      // change on any other machine reached the dashboard only with the next
+      // REST poll, and the service isolate — which polls no statuses of its
+      // own — never: the notification said "2 printing" while the dashboard
+      // said three.
+      expect(DemoBackend.printerIds, hasLength(5));
+      expect(DemoBackend.printerIds, containsAll([1, 2, 3, 4, 5]));
+    });
+
+    test('a poke broadcasts now, instead of at the next tick', () async {
+      // Three seconds between ticks is long enough that a settings knob looks
+      // broken while you wait for one.
+      final conn = DemoWsConnection();
+      final seen = <Object?>[];
+      final sub = conn.stream.listen(seen.add);
+      await Future<void>.delayed(Duration.zero);
+      final afterOpen = seen.length;
+      expect(afterOpen, greaterThan(0), reason: 'the burst on listen');
+
+      DemoBackend.pokeSockets();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(seen.length, greaterThan(afterOpen));
+      await sub.cancel();
+      await conn.close();
+    });
+
+    test('the fleet frames cover the machines the count can pick', () async {
+      DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
+      addTearDown(() => DemoBackend.printingPrinters = 1);
+
+      final conn = DemoWsConnection();
+      final frames = await conn.stream
+          .take(DemoBackend.printerIds.length)
+          .toList();
+      await conn.close();
+
+      final ids = [
+        for (final f in frames)
+          (parseWsMessage(f as String) as WsPrinterStatus).status.id,
+      ];
+      expect(ids, containsAll([1, 2, 4, 5]));
+    });
   });
 
   group('AMS slot configuration', () {
@@ -1473,5 +1518,71 @@ void main() {
         expect(resliced.runCount, 0);
       },
     );
+  });
+
+  group('how many printers print at once', () {
+    // A demo-only knob (app settings), so the screens that behave differently
+    // with several machines running can be looked at at all.
+    tearDown(() => DemoBackend.printingPrinters = 1);
+
+    String? stateOf(int id) =>
+        DemoBackend.instance.statusJson(id)['state'] as String?;
+
+    test('one by default, so the other machines stand idle', () {
+      expect(DemoBackend.printingPrinters, 1);
+      for (final idle in [2, 4, 5]) {
+        expect(stateOf(idle), 'IDLE', reason: 'printer $idle');
+      }
+    });
+
+    test('raising it takes machines in order, and never the offline one', () {
+      DemoBackend.printingPrinters = 3;
+
+      // Printer 1 is left out of this one on purpose: it carries the demo's
+      // own print, which another case in this file may have stopped, and the
+      // order is what is being checked here.
+      expect([stateOf(2), stateOf(5)], everyElement('RUNNING'));
+      expect(stateOf(4), 'IDLE', reason: 'fourth in line, not asked for yet');
+      // Printer 3 is the fixture that must stay unreachable: the offline card
+      // and its grace window have nothing to show without it.
+      expect(stateOf(3), isNull);
+      expect(DemoBackend.instance.statusJson(3)['connected'], isFalse);
+    });
+
+    test('zero stands the simulation down too', () {
+      DemoBackend.printingPrinters = 0;
+
+      expect(stateOf(1), 'IDLE');
+      expect(DemoBackend.instance.statusJson(1)['current_print'], isNull);
+    });
+
+    test('each machine sits at its own point in the cycle', () {
+      DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
+
+      final percents = [
+        for (final id in [2, 4, 5])
+          DemoBackend.instance.statusJson(id)['progress'] as num,
+      ];
+      // Identical numbers would hide what several printers are here to show:
+      // a different ETA on each, and an average that is none of them.
+      expect(percents.toSet(), hasLength(percents.length));
+      for (final p in percents) {
+        expect(p, inInclusiveRange(0, 100));
+      }
+    });
+
+    test('a machine put to work reports a print, not just a state', () {
+      DemoBackend.printingPrinters = 2;
+      final status = DemoBackend.instance.statusJson(2);
+
+      expect(status['current_print'], 'Bracket v2.3mf');
+      expect(status['subtask_name'], 'Bracket v2');
+      expect(status['total_layers'], greaterThan(0));
+      expect(status['remaining_time'], greaterThan(0));
+      // The card reads a target to call it heating rather than cooling.
+      final temps = status['temperatures'] as Map;
+      expect(temps['nozzle_target'], greaterThan(0));
+      expect(temps['bed_target'], greaterThan(0));
+    });
   });
 }

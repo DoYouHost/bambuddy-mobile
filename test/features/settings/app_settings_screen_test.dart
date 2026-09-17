@@ -1,4 +1,8 @@
+import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
+import 'package:bambuddy_mobile/core/demo/demo_config.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/dashboard/card_collapse_providers.dart';
+import 'package:bambuddy_mobile/features/settings/demo_printers_provider.dart';
 import 'package:bambuddy_mobile/features/settings/app_settings_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -17,7 +21,10 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
-  Future<ProviderContainer> pumpScreen(WidgetTester tester) async {
+  Future<ProviderContainer> pumpScreen(
+    WidgetTester tester, {
+    List<Override> extra = const [],
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final router = GoRouter(
@@ -32,7 +39,10 @@ void main() {
     late ProviderContainer container;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...extra,
+        ],
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
@@ -87,5 +97,49 @@ void main() {
         'app_settings.notifications',
       ]),
     );
+  });
+
+  group('the demo printer count', () {
+    // The demo prints on one machine, and every screen that behaves differently
+    // with several had no way to be looked at. The row is demo-only: on a real
+    // server the number of printing machines is the server's business.
+    Override demoProfile() => serverProfileOverride(
+      const ServerProfile(baseUrl: DemoConfig.baseUrl, authMode: AuthMode.none),
+    );
+
+    tearDown(() => DemoBackend.printingPrinters = 1);
+
+    testWidgets('is not offered against a real server', (tester) async {
+      await pumpScreen(tester, extra: [fakeServerProfileOverride()]);
+
+      expect(
+        identifiersIn(tester),
+        isNot(contains('app_settings.demo_printing_count')),
+      );
+      expect(find.byType(Slider), findsNothing);
+    });
+
+    testWidgets('sets the demo, the preference and the service isolate', (
+      tester,
+    ) async {
+      final container = await pumpScreen(tester, extra: [demoProfile()]);
+
+      expect(
+        identifiersIn(tester),
+        contains('app_settings.demo_printing_count'),
+      );
+
+      tester.widget<Slider>(find.byType(Slider)).onChanged!(3);
+      await tester.pumpAndSettle();
+
+      expect(container.read(demoPrintingCountProvider), 3);
+      // The demo this isolate runs...
+      expect(DemoBackend.printingPrinters, 3);
+      // ...and the one the service isolate re-reads when it is told to.
+      expect(
+        container.read(settingsRepositoryProvider).loadDemoPrintingCount(),
+        3,
+      );
+    });
   });
 }

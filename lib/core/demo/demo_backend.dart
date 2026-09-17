@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -32,6 +33,28 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+
+  /// How many machines the demo runs a print on at once, from app settings.
+  ///
+  /// The demo has always printed on one, and one is what every other fixture
+  /// here assumes (the queue, the archive, the finished-print alert). Raising it
+  /// is for looking at what several printing machines do to a screen — the
+  /// dashboard summary, the ongoing notification — not for making the rest of
+  /// the demo consistent with it.
+  static int printingPrinters = 1;
+
+  /// The order machines are taken in. Printer 3 is the offline fixture and is
+  /// never one of them: something has to stay unreachable, or the offline card
+  /// and its grace window have nothing to show.
+  static const _printOrder = [1, 2, 5, 4];
+
+  /// The most the setting can ask for.
+  static final int maxPrintingPrinters = _printOrder.length;
+
+  bool _printsNow(int id) {
+    final at = _printOrder.indexOf(id);
+    return at >= 0 && at < printingPrinters;
+  }
 
   late int _printAnchor;
   bool _paused = false;
@@ -1128,6 +1151,29 @@ class DemoBackend {
 
   // --- Printers + status ---
 
+  /// Asks every open demo socket to broadcast the fleet now, instead of at its
+  /// next tick.
+  ///
+  /// For the settings that change what the demo *is* rather than what it is
+  /// doing: waiting three seconds to see a knob take effect reads as the knob
+  /// not working.
+  static void pokeSockets() => _pokes.add(null);
+
+  static final _pokes = StreamController<void>.broadcast();
+
+  /// Subscribed to by each open [DemoWsConnection].
+  static Stream<void> get pokes => _pokes.stream;
+
+  /// Every printer the demo's fleet lists.
+  ///
+  /// The fake socket broadcasts one frame per id, the way a real server does.
+  /// It used to name two of them by hand, which is why a change on any other
+  /// machine reached the dashboard only with the next REST poll — and the
+  /// service isolate, which has no status poll of its own, not at all.
+  static List<int> get printerIds => [
+    for (final p in _printers) p['id'] as int,
+  ];
+
   static final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
@@ -1207,9 +1253,9 @@ class DemoBackend {
   Map<String, dynamic> statusData(int printerId) =>
       _withSlotConfig(printerId, switch (printerId) {
         1 => _statusPrinting(),
-        2 => _statusIdle(),
-        4 => _statusAccessoryFans(),
-        5 => _statusSecondX1c(),
+        2 => _maybePrinting(2, _statusIdle(), 'Bracket v2'),
+        4 => _maybePrinting(4, _statusAccessoryFans(), 'Fan shroud'),
+        5 => _maybePrinting(5, _statusSecondX1c(), 'Hinge plate'),
         // Printer 3, and anything the fleet does not list. Written as the
         // fallback rather than as `3 =>` because an id that reached here at all
         // is one nothing should have asked about.
@@ -1265,8 +1311,42 @@ class DemoBackend {
 
   double _r1(double v) => (v * 10).roundToDouble() / 10;
 
+  /// An idle fixture with a print laid over it, for the machines that only run
+  /// one because the setting asked for several.
+  Map<String, dynamic> _maybePrinting(
+    int id,
+    Map<String, dynamic> idle,
+    String job,
+  ) {
+    if (!_printsNow(id)) return idle;
+    // Each machine sits at its own point in the cycle. Identical percentages
+    // would hide the one thing several printers are here to show: a different
+    // ETA on each, and an average that is none of them.
+    final frac = ((_elapsedSec + id * 900) % _printCycleSec) / _printCycleSec;
+    return {
+      ...idle,
+      'state': 'RUNNING',
+      'current_print': '$job.3mf',
+      'subtask_name': job,
+      'gcode_file': '/data/Metadata/plate_1.gcode',
+      'progress': _r1(frac * 100),
+      'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
+      'layer_num': (frac * _totalLayers).floor(),
+      'total_layers': _totalLayers,
+      'temperatures': {
+        ...idle['temperatures'] as Map<String, dynamic>,
+        'nozzle': _r1(220 + _wiggle(1.4, phase: id * 20)),
+        'nozzle_target': _nozzleTarget[id] ?? 220.0,
+        'bed': _r1(65 + _wiggle(0.6, phase: 30 + id * 20)),
+        'bed_target': _bedTarget[id] ?? 65.0,
+      },
+      'cooling_fan_speed': 85,
+    };
+  }
+
   Map<String, dynamic> _statusPrinting() {
-    final stopped = _stopped;
+    // "Nobody is printing" reaches this fixture as the stop it already knows.
+    final stopped = _stopped || !_printsNow(1);
     final elapsed = _elapsedSec;
     final frac = elapsed / _printCycleSec;
     final printing = !stopped;

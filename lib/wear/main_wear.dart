@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/settings/settings_repository.dart';
+import '../core/demo/demo_backend.dart';
 import '../core/notifications/hms_catalog.dart';
 import '../l10n/app_locale.dart';
 import '../providers.dart';
@@ -26,6 +28,11 @@ Future<void> main() async {
   // without the catalogue the watch's error panel never appears at all.
   final catalog = HmsCatalog.instance.load(systemLocale());
   final prefs = await SharedPreferences.getInstance();
+  // The watch runs its own copy of the demo, and the phone's slider is the only
+  // place the count is set — see the same read in `main.dart`.
+  DemoBackend.printingPrinters = SettingsRepository(
+    prefs,
+  ).loadDemoPrintingCount();
   await catalog;
   runApp(
     ProviderScope(

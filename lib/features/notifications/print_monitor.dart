@@ -193,11 +193,21 @@ typedef _JobFrame = ({int? layer, int? progress, String? job});
 /// Throttling key for ongoing notification: update only when printer, total %,
 /// ETA minute, or active print count changes — else every WS frame would redraw it.
 class _OngoingKey {
-  const _OngoingKey(this.printerId, this.percent, this.etaMinutes, this.count);
+  const _OngoingKey(
+    this.printerId,
+    this.percent,
+    this.etaMinutes,
+    this.count,
+    this.overall,
+  );
   final int printerId;
   final int percent;
   final int? etaMinutes;
   final int count;
+
+  /// The mean the bar is drawn from: it moves when any printer moves, not only
+  /// the lead, so leaving it out of the key freezes the bar between lead changes.
+  final int overall;
 
   @override
   bool operator ==(Object other) =>
@@ -205,10 +215,12 @@ class _OngoingKey {
       other.printerId == printerId &&
       other.percent == percent &&
       other.etaMinutes == etaMinutes &&
-      other.count == count;
+      other.count == count &&
+      other.overall == overall;
 
   @override
-  int get hashCode => Object.hash(printerId, percent, etaMinutes, count);
+  int get hashCode =>
+      Object.hash(printerId, percent, etaMinutes, count, overall);
 }
 
 /// Notification brain: observes latest printer statuses and controls
@@ -906,11 +918,25 @@ class PrintMonitor {
 
     final lead = printing.first; // Finishes earliest
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
+    // What the bar tracks once several printers run: the mean of everything
+    // printing, not the lead's own figure. A bar that jumps to 90% because one
+    // of three is nearly done says the whole shelf is nearly done. Printers
+    // that report no progress yet are left out of the mean rather than counted
+    // as zero, which would drag it down for a job that has simply not started
+    // reporting.
+    final reported = [for (final s in printing) ?s.progress];
+    final overall = reported.isEmpty
+        ? percent
+        : (reported.reduce((a, b) => a + b) / reported.length).round().clamp(
+            0,
+            100,
+          );
     final key = _OngoingKey(
       lead.id,
       percent,
       lead.remainingTime,
       printing.length,
+      overall,
     );
     if (key == _lastOngoing) return;
     _lastOngoing = key;
@@ -923,16 +949,29 @@ class PrintMonitor {
       percent: percent,
       etaMin: lead.remainingTime,
       active: printing.length,
+      overall: overall,
     );
 
     final l = _l10n();
-    final title = _jobName(lead) ?? lead.name ?? l.printersTitle;
     final eta = _etaClock(lead.remainingTime);
-    var body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
-    if (printing.length > 1) {
-      body = '$body · ${l.notifMorePrints(printing.length - 1)}';
+    final String title;
+    final String body;
+    if (printing.length == 1) {
+      // One printer: the job is what the user is waiting for, and the machine
+      // it runs on needs no saying.
+      title = _jobName(lead) ?? lead.name ?? l.printersTitle;
+      body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
+    } else {
+      // Several: the headline is how many are running, the bar is the mean, and
+      // the line names the one that finishes first — the only one with an ETA
+      // worth putting in front of somebody.
+      title = l.printingCount(printing.length);
+      final name = lead.name ?? l.printersTitle;
+      body = eta == null
+          ? l.notifOngoingMultiBodyNoEta(overall, name, percent)
+          : l.notifOngoingMultiBody(overall, name, percent, eta);
     }
-    _notifications.showOngoing(title: title, body: body, progress: percent);
+    _notifications.showOngoing(title: title, body: body, progress: overall);
   }
 
   void _alertStarted(int id, PrinterStatus status) {

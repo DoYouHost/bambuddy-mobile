@@ -22,6 +22,7 @@ class SettingsRepository {
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
+  static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
   static const _clock24hKey = 'clock_24h';
@@ -133,6 +134,13 @@ class SettingsRepository {
 
   Future<void> savePrinterCardsCollapsed(bool collapsed) =>
       _prefs.setBool(_printerCardsCollapsedKey, collapsed);
+
+  /// How many printers the demo runs a print on. Read by both isolates: the UI
+  /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
+  int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
+
+  Future<void> saveDemoPrintingCount(int count) =>
+      _prefs.setInt(_demoPrintingKey, count);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.

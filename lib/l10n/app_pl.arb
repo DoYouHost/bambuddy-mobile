@@ -598,7 +598,11 @@
   "errPrinterOffline": "Drukarka jest offline, więc apka nie odczyta, co jest w slocie. Połącz ją ponownie i spróbuj jeszcze raz.",
 
   "notifOngoingBody": "{percent}% · ETA {eta}",
-  "notifMorePrints": "+{count}",
+  "demoSettingsSection": "Demo",
+  "demoPrintingCountTitle": "Drukarki w trakcie druku",
+  "demoPrintingCountDesc": "Ile drukarek w demo drukuje jednocześnie — do zobaczenia, co kilka naraz robi z pulpitem i ze stałym powiadomieniem.",
+  "notifOngoingMultiBody": "Średnio {overall}% · {printer} {percent}% · ETA {eta}",
+  "notifOngoingMultiBodyNoEta": "Średnio {overall}% · {printer} {percent}%",
   "printFinishedTitle": "Wydruk zakończony",
   "printFinishedBody": "{name} gotowe",
   "printFailedTitle": "Wydruk nieudany",
