@@ -2,15 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards the parts of the launcher icon that `flutter_launcher_icons` does not
-/// write and happily overwrites.
+/// Keeps the themed icon in the generated adaptive icon.
 ///
-/// The adaptive icon XML is generated once and then edited by hand: the
-/// `<monochrome>` layer, which Android 13+ tints to the user's wallpaper, is
-/// not something the package produces. Re-running the generator — a reasonable
-/// thing to do after changing the source art — silently drops it, and the loss
-/// shows up as "the themed icon stopped working" on somebody's phone weeks
-/// later. Nothing else in the build compares the file to what it should hold.
+/// Android 13+ tints the `<monochrome>` layer to the user's wallpaper, and the
+/// layer exists only because `adaptive_icon_monochrome` is set in
+/// `pubspec.yaml`. It was a hand-written block once, which the next
+/// `dart run flutter_launcher_icons` quietly removed — the loss then shows up
+/// as "the themed icon stopped working" on somebody's phone weeks later, and
+/// nothing in the build compares this file to what it should hold.
 void main() {
   const adaptiveIcon =
       'android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml';
@@ -23,10 +22,9 @@ void main() {
       file.readAsStringSync(),
       contains('<monochrome>'),
       reason:
-          'the themed icon layer is gone — `dart run flutter_launcher_icons` '
-          'rewrites this file without it. Put the <monochrome> block back '
-          '(same inset drawable as <foreground>) rather than accepting the '
-          'generated file.',
+          'the themed icon layer is gone. Check that `adaptive_icon_monochrome`'
+          ' is still set under `flutter_launcher_icons` in pubspec.yaml, then '
+          'run `dart run flutter_launcher_icons` again.',
     );
   });
 }

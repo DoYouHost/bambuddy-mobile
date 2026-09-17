@@ -164,12 +164,11 @@ flutter:
         - asset: assets/fonts/JetBrainsMono-800.ttf
           weight: 800
 
-# Re-running `dart run flutter_launcher_icons` overwrites what it generated
-# last time, and `mipmap-anydpi-v26/ic_launcher.xml` has been edited by hand
-# since: the `<monochrome>` block that gives Android 13+ its themed icon is not
-# something this package writes. `launcher_icon_test.dart` fails when it goes,
-# so a regeneration that drops it is a red test rather than an icon nobody
-# notices for weeks — put the block back and the test goes green.
+# Everything under `android/app/src/main/res` that names an icon comes out of
+# `dart run flutter_launcher_icons`, and nothing there is edited afterwards.
+# The themed icon used to be the exception — a `<monochrome>` block added by
+# hand, which the next regeneration silently dropped — so it is a config key
+# now. `launcher_icon_test.dart` fails if it ever stops being one.
 #
 # `min_sdk_android` is the generator's own floor, not the app's — that one comes
 # from `flutter.minSdkVersion` in `android/app/build.gradle.kts` and is 24.
@@ -181,3 +180,6 @@ flutter_launcher_icons:
   min_sdk_android: 24
   adaptive_icon_background: "#1A2233"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  # Android 13+ tints this layer to the wallpaper palette. Same art as the
+  # foreground, because only its alpha silhouette is used.
+  adaptive_icon_monochrome: "assets/icon/icon_foreground.png"
