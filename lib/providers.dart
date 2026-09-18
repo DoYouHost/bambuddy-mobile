@@ -700,10 +700,9 @@ final processOverridesProvider = FutureProvider.autoDispose<bool>(
 /// Whether the label sheet may ask where on the sheet to start printing
 /// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
 /// why a PDF response cannot answer it.
-final labelStartingPositionProvider = FutureProvider<bool>(
-  (ref) => ref
-      .watch(serverVersionServiceProvider)
-      .supports(ServerFeature.labelStartingPosition),
+final labelStartingPositionProvider = capabilityGate(
+  (ref) =>
+      ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
 );
 
 /// Archive of prints (M5). Shares authenticated Dio.
@@ -744,8 +743,8 @@ final printLogRepositoryProvider = Provider<PrintLogRepository>(
 /// Whether this server sends per-run cost and energy, and honours a sort order
 /// (server #2636). Below it both are silent, so the columns and the sort
 /// control stay off rather than showing blanks and an order nobody applied.
-final printLogCostEnergyProvider = FutureProvider<bool>(
-  (ref) => ref.watch(printLogRepositoryProvider).supportsCostEnergy(),
+final printLogCostEnergyProvider = capabilityGate(
+  (ref) => ref.watch(printLogRepositoryProvider).costEnergyCapability,
 );
 
 /// Archive statistics. Shares authenticated Dio.
@@ -878,7 +877,15 @@ Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
 Provider<AsyncValue<bool>> capabilityGate(
   ObservedCapability Function(Ref ref) latchOf,
 ) => Provider<AsyncValue<bool>>((ref) {
-  final latch = latchOf(ref);
+  // A repository that cannot be built (no server profile yet) is an error the
+  // reader folds into "no", as it was while every gate was a FutureProvider —
+  // not an exception thrown into the widget's build.
+  final ObservedCapability latch;
+  try {
+    latch = latchOf(ref);
+  } on Object catch (error, stack) {
+    return AsyncError(error, stack);
+  }
   final epoch = ref.watch(serverContactEpochProvider);
   void heard() => ref.invalidateSelf();
   latch.addListener(heard);

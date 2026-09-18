@@ -477,13 +477,10 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   return models;
 });
 
-/// Whether this server has the per-model preset routes. Cached for the session
-/// — the answer is a property of the server, and the latch behind it already
-/// updates itself from what the routes actually answer.
-final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
-  ref.keepAlive();
-  return ref.watch(inventoryRepositoryProvider).supportsPresetOverrides();
-});
+/// Whether this server has the per-model preset routes.
+final presetOverridesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
+);
 
 /// One spool's per-printer-model preset overrides, as stored right now.
 ///
@@ -493,9 +490,16 @@ final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
 /// error state and keeps its section read-only when it is set.
 final spoolPresetOverridesProvider = FutureProvider.autoDispose
     .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
-      if (!await ref.watch(presetOverridesSupportedProvider.future)) {
-        return const [];
+      // Loading while the gate is unanswered, never `[]`: the form seeds its
+      // editable copy once, and a save replaces the whole list on the server.
+      final supported = ref.watch(presetOverridesSupportedProvider);
+      if (supported.hasError) {
+        return Future.error(supported.error!, supported.stackTrace);
       }
+      if (!supported.hasValue) {
+        return Completer<List<SpoolPresetOverride>>().future;
+      }
+      if (!supported.requireValue) return const [];
       return ref
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);

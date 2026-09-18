@@ -226,7 +226,7 @@ void main() {
 
       final r = repo();
 
-      expect(await r.supportsCostEnergy(), isFalse);
+      expect(await r.costEnergyCapability.supported, isFalse);
       await r.list(sort: PrintLogSort.date);
       expect(lastQuery().containsKey('sort_by'), isFalse);
     });

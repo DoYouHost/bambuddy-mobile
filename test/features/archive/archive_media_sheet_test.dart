@@ -9,6 +9,7 @@ import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -48,6 +49,7 @@ void main() {
     WidgetTester tester,
     Archive item, {
     bool searchable = true,
+    AsyncValue<bool>? gate,
     TextScaler scaler = TextScaler.noScaling,
   }) async {
     late BuildContext sheetContext;
@@ -67,7 +69,9 @@ void main() {
       overrides: [
         noServerProfileOverride,
         archiveRepositoryProvider.overrideWithValue(ArchiveRepository(dio)),
-        archiveMediaSupportedProvider.overrideWith((ref) async => searchable),
+        archiveMediaSupportedProvider.overrideWithValue(
+          gate ?? AsyncData(searchable),
+        ),
       ],
     );
     openArchiveMediaSheet(
@@ -402,6 +406,21 @@ void main() {
     expect(find.text(l10n.archiveMediaOnServer), findsOneWidget);
     expect(find.text(l10n.archiveMediaOnPrinter(0)), findsNothing);
     expect(find.text(l10n.archiveMediaNothingOnPrinter), findsNothing);
+  });
+
+  testWidgets('a gate that failed reads as an older server, not a crash', (
+    tester,
+  ) async {
+    // The search starts unawaited from initState; an error it let through
+    // would reach nobody but the zone.
+    final l10n = await open(
+      tester,
+      archive(timelapsePath: 'archive/1/benchy.mp4'),
+      gate: AsyncError(StateError('no profile'), StackTrace.empty),
+    );
+
+    expect(find.text(l10n.archiveMediaOnServer), findsOneWidget);
+    expect(find.text(l10n.archiveMediaOnPrinter(0)), findsNothing);
   });
 
   testWidgets('a print with no printer is never searched for one', (

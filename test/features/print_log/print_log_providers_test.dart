@@ -28,9 +28,6 @@ class _FakeRepository extends PrintLogRepository {
   var deleted = <int>[];
 
   @override
-  Future<bool> supportsCostEnergy() async => true;
-
-  @override
   Future<PrintLogPage> list({
     String? search,
     int? printerId,

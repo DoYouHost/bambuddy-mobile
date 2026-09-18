@@ -162,6 +162,15 @@ void main() {
     );
   });
 
+  test('a latch that cannot be reached is an error, read as "no"', () {
+    final gate = capabilityGate((_) => throw StateError('no server profile'));
+
+    final answer = container.read(gate);
+
+    expect(answer.hasError, isTrue);
+    expect(answer.valueOrNull, isNull);
+  });
+
   test('unversioned, no probe: whenUnknown at once', () {
     expect(
       container.read(capabilityGate((_) => ObservedCapability.unversioned())),
