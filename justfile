@@ -288,20 +288,25 @@ build-wear-aab name='' code='': (_build "appbundle" "wear" name code)
 # Reads the manifest out of each bundle instead of echoing back what we handed
 # to gradle: the flavor offset is applied on the gradle side, so what it baked in
 # is the only number Play will judge — and a wrong one stays invisible until the
-# upload is rejected. Takes explicit paths from `ship`/`ship-dev` so it can only
-# ever report the bundles that run just built, never a leftover in build/dist.
+# upload is rejected. `play-internal` reads the same manifest before it uploads.
 # usage: just aab-show [BUNDLE...]
 [doc('print the versions baked into the built Play bundles')]
 [group('3-build')]
 aab-show *paths:
     @python3 tool/aab_versions.py {{paths}}
 
+# Read-only. Needs uv and the service-account key (tool/play_internal.py says where).
+[doc('list the Google Play tracks and the releases on them')]
+[group('3-build')]
+play-tracks:
+    @uv run --quiet tool/play_internal.py tracks
+
 [doc('delete local build outputs')]
 [group('3-build')]
 clean:
     flutter clean
 
-# ---- 4-release — writes to the checked-out branch and to GitHub ----
+# ---- 4-release — writes to the checked-out branch, to GitHub and to Google Play ----
 #
 # `ship` and `ship-dev` produce the same four artifacts in the same order; they
 # differ only in where the version comes from. Both build the Play bundles
@@ -405,8 +410,8 @@ _upload-assets tag file_a file_b:
     done
 
 # Produces everything a stable version needs: APKs for the GitHub release (and
-# Obtainium), plus both Play bundles in build/dist/, which you upload to Play by
-# hand.
+# Obtainium), plus both Play bundles released to internal testing. Promoting
+# them to production stays a click in the Play Console.
 # usage: just ship X.Y.Z
 [doc('bump, test, build and publish a stable release')]
 [group('4-release')]
@@ -418,7 +423,7 @@ ship ver:
     just build-aab
     just build-wear-aab
     just release-publish {{ver}}
-    just aab-show {{aab}} {{wear_aab}}
+    just play-internal
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
 #
@@ -434,7 +439,7 @@ ship ver:
 # points at a SHA. Obtainium hides prereleases by default, so a tester opts in with one
 # switch and everyone else keeps seeing stable only.
 #
-# The Play bundles stay in build/dist/ for the internal testing track; pass
+# The Play bundles go out to internal testing as the last step; pass
 # `bundles=no` when a build is only meant for Obtainium. The parameter is
 # `bundles` and not `aab` because a parameter shadows the global of the same name
 # for the whole recipe, which would expand `{{aab}}` to `yes`.
@@ -570,8 +575,7 @@ ship-dev target='' bundles='yes':
     git fetch --tags origin
     echo "Published $tag"
     if [ '{{bundles}}' != 'no' ]; then
-        echo "Upload to Play internal testing ($name):"
-        just aab-show {{aab}} {{wear_aab}}
+        just play-internal
     fi
 
 # Assumes both APKs are already built. Phone and watch share an applicationId but
@@ -602,6 +606,15 @@ release-publish ver:
     just _upload-assets "v{{ver}}" {{apk}} {{wear_apk}}
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
+
+# Releases the two Play bundles in build/dist to internal testing, phone and
+# watch in one edit. Safe to re-run: what is already on its track is skipped.
+# Needs uv and the service-account key (tool/play_internal.py says where).
+# usage: just play-internal [--dry-run]
+[doc('release the built Play bundles to internal testing')]
+[group('4-release')]
+play-internal *flags:
+    uv run --quiet tool/play_internal.py internal {{flags}} {{aab}} {{wear_aab}}
 
 # ---- 5-danger — deletes what cannot be restored ----
 #
