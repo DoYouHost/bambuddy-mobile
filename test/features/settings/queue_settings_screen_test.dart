@@ -57,13 +57,16 @@ void main() {
     usePhoneWindow(tester, dp: viewHeight / 3);
 
     final repo = _FakeSettingsRepo(settings, failWith: failWith);
+    var built = 0;
     await pumpPhone(
       tester,
       const QueueSettingsScreen(),
       overrides: [
         fakeServerProfileOverride(authMode: authMode),
         currentUserOverride(user),
-        serverSettingsRepositoryProvider.overrideWithValue(repo),
+        serverSettingsRepositoryProvider.overrideWith(
+          (ref) => built++ == 0 ? repo : repo.reconnected(),
+        ),
       ],
     );
     await tester.pumpAndSettle();
@@ -321,12 +324,11 @@ void main() {
 
   testWidgets('nothing is writable until the verdict is in', (tester) async {
     // `permissionProvider` answers "yes" for an identity it does not know yet,
-    // so the lock resolves a frame late. Until it does the controls stay off:
+    // so the lock waits for `/auth/me`. Until it answers the controls stay off:
     // lighting them up invites a tap that can only end in a 403, and the lock
     // banner then lands on top of it.
     final repo = _FakeSettingsRepo(modernSettings());
-    final verdict = Completer<void>();
-    repo.verdict = verdict;
+    final verdict = Completer<CurrentUser?>();
     usePhoneWindow(tester, dp: 1800);
     addTearDown(tester.view.reset);
 
@@ -335,9 +337,7 @@ void main() {
       const QueueSettingsScreen(),
       overrides: [
         fakeServerProfileOverride(authMode: AuthMode.jwt),
-        currentUserOverride(
-          const CurrentUser(id: 1, username: 'ola', isAdmin: true),
-        ),
+        currentUserProvider.overrideWith(() => _HeldUser(verdict.future)),
         serverSettingsRepositoryProvider.overrideWithValue(repo),
       ],
     );
@@ -353,7 +353,7 @@ void main() {
       reason: 'and no banner flashes up for a session that turns out allowed',
     );
 
-    verdict.complete();
+    verdict.complete(const CurrentUser(id: 1, username: 'ola', isAdmin: true));
     await tester.pumpAndSettle();
     expect(
       tester.widgetList<Switch>(find.byType(Switch)).first.onChanged,
@@ -501,6 +501,15 @@ void main() {
   });
 }
 
+/// `/auth/me` answering when the test says so.
+class _HeldUser extends CurrentUserNotifier {
+  _HeldUser(this._answer);
+  final Future<CurrentUser?> _answer;
+
+  @override
+  Future<CurrentUser?> build() => _answer;
+}
+
 /// The settings route with nothing behind it. Extends the real repository so
 /// the screen's own provider wiring is what is under test.
 class _FakeSettingsRepo extends ServerSettingsRepository {
@@ -508,7 +517,6 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
 
   Map<String, dynamic> _settings;
   AppApiException? failWith;
-  bool _refused = false;
 
   /// A write naming one of these keys waits for its completer. Held per key,
   /// not one for all of them: the point of the test below is a write that is
@@ -518,10 +526,6 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
   /// A write naming this key is refused; every other one succeeds. Lets a test
   /// fail exactly one of two writes that are in flight together.
   String? failKey;
-
-  /// Holds the write verdict pending. In the app the wait is real — the lock
-  /// reads `/auth/me` — and the fake resolves instantly without this.
-  Completer<void>? verdict;
 
   /// How many times the settings were read. A save must not cause one.
   int reads = 0;
@@ -549,19 +553,18 @@ class _FakeSettingsRepo extends ServerSettingsRepository {
         ? const ApiException(AppErrorCode.badResponse, statusCode: 500)
         : failWith;
     if (failure == null) return _settings = {..._settings, ...changes};
-    _refused |= failure.code == AppErrorCode.forbidden;
+    // What `watching` does in the real repository, which this one bypasses.
+    if (failure.code == AppErrorCode.forbidden) {
+      writableCapability.observeRefusal();
+    }
     throw failure;
   }
 
-  @override
-  Future<bool> writable() async {
-    await verdict?.future;
-    return !_refused;
-  }
-
   /// The permission an administrator just granted back.
-  void allowAgain() {
-    _refused = false;
-    failWith = null;
-  }
+  void allowAgain() => failWith = null;
+
+  /// The same server behind a rebuilt repository, as an invalidation gives
+  /// the app: the settings carry over, the latch starts fresh.
+  _FakeSettingsRepo reconnected() =>
+      _FakeSettingsRepo(_settings, failWith: failWith);
 }

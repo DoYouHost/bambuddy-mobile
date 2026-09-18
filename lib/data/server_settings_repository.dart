@@ -13,7 +13,7 @@ class ServerSettingsRepository {
 
   /// Unversioned because `PUT /settings/` is as old as the server: the only
   /// question left to watch is the permission, and a 403 is what answers it.
-  final _writable = ObservedCapability.unversioned();
+  final writableCapability = ObservedCapability.unversioned();
 
   /// Best-effort: most callers are feature gates on screens that render anyway.
   Future<Map<String, dynamic>> fetch() async {
@@ -29,7 +29,7 @@ class ServerSettingsRepository {
   /// Partial write: the body is dumped `exclude_unset=True`, so keys not named
   /// keep their rows. Answers the settings the server holds afterwards.
   Future<Map<String, dynamic>> update(Map<String, dynamic> changes) =>
-      _writable.watching(() async {
+      writableCapability.watching(() async {
         final res = await _dio.put<Map<String, dynamic>>(
           Endpoints.appSettingsUpdate,
           data: changes,
@@ -37,7 +37,4 @@ class ServerSettingsRepository {
         final data = res.data;
         return data == null ? const <String, dynamic>{} : asJsonRecord(data);
       });
-
-  /// Whether a write has been refused — what `/auth/me` cannot answer.
-  Future<bool> writable() => _writable.supported;
 }

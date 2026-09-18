@@ -78,6 +78,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final async = ref.watch(fileManagerProvider);
     // Warm the slice gate so the per-file sheet can read it synchronously.
     ref.watch(slicerEnabledProvider);
+    // The tag catalog, kept while the screen is up: the sheets open on it at
+    // once, and its read is what settles the tag latch. Not once the latch has
+    // said no — an older server would answer 404 on every visit.
+    if (ref.watch(libraryTagsSupportedProvider).orFalse) {
+      ref.watch(libraryTagsProvider);
+    }
     final state = async.valueOrNull;
     final selectionMode = state?.selectionMode ?? false;
 
@@ -242,7 +248,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ),
       ),
       actions: [
-        if (libraryTagsSupported(ref.watch(libraryTagsProvider)))
+        if (ref.watch(libraryTagsSupportedProvider).orFalse)
           logTag(
             'files.tag_selected',
             IconButton(
@@ -360,7 +366,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     // server's slicer sidecar is enabled.
     final canSlice =
         ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
-    final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
+    final tagsSupported = ref.read(libraryTagsSupportedProvider).orFalse;
     dashSheet<void>(
       context,
       scrollControlled: false,
@@ -1003,7 +1009,7 @@ class _FilterRow extends ConsumerWidget {
             onChanged: onSearch,
           ),
         ),
-        if (libraryTagsSupported(ref.watch(libraryTagsProvider))) ...[
+        if (ref.watch(libraryTagsSupportedProvider).orFalse) ...[
           const SizedBox(width: 4),
           logTag(
             'files.tag_filter',

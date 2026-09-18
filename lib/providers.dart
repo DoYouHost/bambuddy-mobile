@@ -577,12 +577,11 @@ final serverContactEpochProvider = NotifierProvider<ServerContactEpoch, int>(
   ServerContactEpoch.new,
 );
 
+/// Never reset, not even for a new server: what it paces lives in the
+/// repositories and the version service, which a new server rebuilds anyway.
 class ServerContactEpoch extends Notifier<int> {
   @override
-  int build() {
-    ref.watch(serverProfileProvider);
-    return 0;
-  }
+  int build() => 0;
 
   void bump() => state++;
 }

@@ -795,7 +795,7 @@ void main() {
   group('storage-location sensors', () {
     test('bindings and readings parse, with all three pill states', () async {
       final repo = LocationSensorsRepository(dio, ServerVersionService(dio));
-      expect(await repo.supportsLocationSensors(), isTrue);
+      expect(await repo.sensorsCapability.supported, isTrue);
 
       final bindings = await repo.listBindings();
       expect(bindings, hasLength(3));

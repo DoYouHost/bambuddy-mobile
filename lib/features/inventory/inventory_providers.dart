@@ -535,6 +535,11 @@ class LocationClimate {
   bool get alerting => readings.any((r) => r.alerting);
 }
 
+/// Whether the server has the location sensor routes.
+final locationSensorsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(locationSensorsRepositoryProvider).sensorsCapability,
+);
+
 /// Live readings for every storage location that has a sensor bound to it,
 /// keyed by [StorageLocation.matchKey] so a spool's free-text
 /// `storage_location` can find its own.
@@ -545,8 +550,11 @@ class LocationClimate {
 /// short rather than failing the screen — every surface reading it is additive.
 final locationClimateProvider =
     FutureProvider.autoDispose<Map<String, LocationClimate>>((ref) async {
+      // Empty until the gate says yes, then asked again: display only, and
+      // nothing seeds from it (unlike the spool presets).
+      final supported = ref.watch(locationSensorsSupportedProvider);
+      if (!(supported.valueOrNull ?? false)) return const {};
       final repo = ref.watch(locationSensorsRepositoryProvider);
-      if (!await repo.supportsLocationSensors()) return const {};
 
       final bindings = await repo.listBindings();
       final wanted = <int>{

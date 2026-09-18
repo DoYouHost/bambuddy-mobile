@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 
@@ -64,6 +65,7 @@ void main() {
         ),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
+        libraryTagsSupportedProvider.overrideWithValue(AsyncData(tags != null)),
         slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
         canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
       ],
@@ -184,6 +186,8 @@ void main() {
             (ref) async => const LibraryStats(),
           ),
           libraryTagsProvider.overrideWith((ref) async => const []),
+          // The repository is real here; its tag probe must not go out.
+          libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
           slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
           canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
         ],
@@ -305,16 +309,69 @@ void main() {
       expect(find.text('Potnij'), findsNothing);
     });
 
+    testWidgets('a server with tags offers the tag action', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+      expect(find.textContaining('Tagi'), findsOneWidget);
+    });
+
     testWidgets('a server with no tag routes hides the tag action', (
       tester,
     ) async {
-      // A loaded null is the 404 gate — see libraryTagsSupported.
       final file = _file();
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
       expect(find.textContaining('Tagi'), findsNothing);
     });
+  });
+
+  testWidgets('an older server loses the tag controls once, not every visit', (
+    tester,
+  ) async {
+    // The catalog dies with the screen; the latch lives in the repository.
+    // Before, every visit showed the controls and then took them away.
+    final dio = testDio();
+    DioAdapter(dio: dio).onGet(
+      '/api/v1/library/tags',
+      (s) => s.reply(404, {'detail': 'Not Found'}),
+    );
+    final sent = captureRequests(dio);
+    final repo = LibraryRepository(dio);
+
+    Future<void> visit() async {
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(FileManagerState(files: [_file()])),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await visit();
+    expect(byLogId('files.tag_filter'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await visit();
+
+    expect(byLogId('files.tag_filter'), findsNothing);
+    expect(
+      sent.paths.where((p) => p == '/api/v1/library/tags'),
+      hasLength(1),
+      reason: 'the answer outlives the screen that asked',
+    );
   });
 
   group('the sort sheet fits', () {

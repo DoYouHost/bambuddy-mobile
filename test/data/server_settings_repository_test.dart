@@ -75,13 +75,17 @@ void main() {
         data: {'queue_shortest_first': true},
       );
 
-      expect(await repo.writable(), isTrue, reason: 'nothing tried yet');
+      expect(
+        await repo.writableCapability.supported,
+        isTrue,
+        reason: 'nothing tried yet',
+      );
       await expectLater(
         repo.update({'queue_shortest_first': true}),
         throwsA(isA<AppApiException>()),
       );
       expect(
-        await repo.writable(),
+        await repo.writableCapability.supported,
         isFalse,
         reason: 'the route outranks whatever /auth/me claimed',
       );
@@ -100,7 +104,7 @@ void main() {
           repo.update({'queue_shortest_first': true}),
           throwsA(isA<AppApiException>()),
         );
-        expect(await repo.writable(), isTrue);
+        expect(await repo.writableCapability.supported, isTrue);
       },
     );
   });

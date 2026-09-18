@@ -44,6 +44,7 @@ void main() {
       );
 
       expect(await repo.listTags(), isNull);
+      expect(repo.tagsCapability.observedAnswer, isFalse);
     });
 
     test('500 is an error, not a missing feature', () async {

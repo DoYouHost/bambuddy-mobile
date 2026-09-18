@@ -18,39 +18,40 @@ class LocationSensorsRepository {
 
   final Dio _dio;
 
-  /// Answers [supportsLocationSensors] until the listing has.
+  /// Answers [sensorsCapability] until the listing has.
   final ServerVersionService? _serverVersion;
 
   /// Whether the server has the route family at all. Unknown → not offered,
   /// which costs nothing: every surface here is hidden unless a sensor is
   /// actually bound, so all the gate saves is one 404 on an older server.
-  late final _sensors = ObservedCapability(
+  late final sensorsCapability = ObservedCapability(
     ServerFeature.locationHaSensors,
     _serverVersion,
   );
-
-  Future<bool> supportsLocationSensors() => _sensors.supported;
 
   /// Every binding the server holds, so a caller can tell which locations have
   /// something to show before asking any of them for a reading. A 404 or a 403
   /// answers with an empty list rather than throwing: the feature is additive,
   /// and the latch above has recorded why there is nothing to add.
-  Future<List<LocationSensorBinding>> listBindings() => _sensors.watching(
-    () async {
-      final res = await _dio.get<List<dynamic>>(Endpoints.locationHaSensors);
-      return parseJsonList(res.data, LocationSensorBinding.fromJson);
-    },
-    absent: () => const [],
-    // The collection: it addresses nothing, so its 404 is the route.
-    observing: treat404AsAbsent,
-  );
+  Future<List<LocationSensorBinding>> listBindings() =>
+      sensorsCapability.watching(
+        () async {
+          final res = await _dio.get<List<dynamic>>(
+            Endpoints.locationHaSensors,
+          );
+          return parseJsonList(res.data, LocationSensorBinding.fromJson);
+        },
+        absent: () => const [],
+        // The collection: it addresses nothing, so its 404 is the route.
+        observing: treat404AsAbsent,
+      );
 
   /// The live state of one location's card-visible sensors, in the order the
   /// bindings were sorted into. A sensor the poller has not reached yet comes
   /// back with its last persisted state and `reachable: false` rather than
   /// dropping out of the list on every server restart.
   Future<List<LocationSensorReading>> readings(int locationId) =>
-      _sensors.watching(
+      sensorsCapability.watching(
         () async {
           final res = await _dio.get<List<dynamic>>(
             Endpoints.locationHaSensorReadings(locationId),
