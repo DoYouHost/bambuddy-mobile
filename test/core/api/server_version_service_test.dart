@@ -221,5 +221,17 @@ void main() {
       );
       expect(calls(), 2);
     });
+
+    test('a regained contact retries at once, inside the window', () async {
+      final calls = countingReplies(
+        () => Response(requestOptions: RequestOptions(), statusCode: 500),
+      );
+
+      await service.current();
+      service.forgetFailure();
+      await service.current();
+
+      expect(calls(), 2);
+    });
   });
 }

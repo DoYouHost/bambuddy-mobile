@@ -42,6 +42,10 @@ class ServerVersionService {
   /// yet". See [_rawVersion] for why this is not `cached?.raw`.
   String? get cachedRaw => _rawVersion;
 
+  /// Lets the next [current] ask at once instead of waiting out [_retryAfter] —
+  /// for when contact with the server has just been regained.
+  void forgetFailure() => _failedAt = null;
+
   /// Concurrent callers share one in-flight request.
   Future<ServerVersion?> current() async {
     final known = _version;

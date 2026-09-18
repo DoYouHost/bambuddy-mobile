@@ -12,6 +12,20 @@ import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';
 
+/// Starts, once for the whole shell, every server answer a screen asks for the
+/// moment it opens. Each fetch is lazy — so without this the first visit to
+/// the file manager, an archive or the queue form spends its opening frames
+/// unable to say whether a control exists. Warmed here, the answer is in
+/// before any tab is reached.
+///
+/// Only answers something waits on: `/settings` behind every [serverGate], the
+/// version behind every versioned [capabilityGate] (which then derives on the
+/// frame it is read), and a probe-backed gate that hides an entry point.
+void warmServerAnswers(void Function(ProviderListenable<Object?>) keep) {
+  keep(serverSettingsProvider);
+  keep(serverVersionProvider);
+}
+
 /// Main shell scaffold with the modernized ("2a") bottom navigation bar.
 /// Displayed for all routes inside [StatefulShellRoute].
 class RootScaffold extends ConsumerStatefulWidget {
@@ -33,19 +47,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void initState() {
     super.initState();
     _reportVisibleTab();
-    // Starts `/settings` once for the whole shell. Every gate built on
-    // `serverGate` is a question a screen asks the moment it is opened, and the
-    // fetch is lazy — so without this the first visit to the file manager, an
-    // archive or the queue form spends its opening frames unable to say whether
-    // a control exists. Warmed here, the answer is in before any tab is reached.
-    //
     // A subscription rather than a `read`: "change server" rebuilds the client
-    // the settings are fetched through, and an unlistened provider is only
-    // marked stale by that — it refetches on the next read, which is the cold
-    // first screen all over again. A listener makes the rebuild eager. It is
+    // these are fetched through, and an unlistened provider is only marked
+    // stale by that — it refetches on the next read, which is the cold first
+    // screen all over again. A listener makes the rebuild eager. It is
     // `listenManual` rather than `watch` so the whole tab shell does not
     // rebuild every time a settings write lands.
-    ref.listenManual(serverSettingsProvider, (_, _) {});
+    warmServerAnswers((answer) => ref.listenManual(answer, (_, _) {}));
   }
 
   @override

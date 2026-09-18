@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/observed_capability.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
@@ -31,6 +33,21 @@ void main() {
       whenUnknown: whenUnknown,
     );
   }
+
+  /// A request that fails the way Dio fails, so the wrapper sees what a
+  /// repository sees.
+  Future<T> refusing<T>(int status) => Future<T>.error(
+    DioException(
+      requestOptions: RequestOptions(path: '/x'),
+      // badResponse, or `mapDioException` reads it as a transport failure
+      // and no status reaches the mapping at all.
+      type: DioExceptionType.badResponse,
+      response: Response(
+        requestOptions: RequestOptions(path: '/x'),
+        statusCode: status,
+      ),
+    ),
+  );
 
   test('with nothing seen it answers from the version table', () async {
     expect(await capability('1.2.5.1').supported, isFalse);
@@ -99,21 +116,6 @@ void main() {
   });
 
   group('watching', () {
-    /// A request that fails the way Dio fails, so the wrapper sees what a
-    /// repository sees.
-    Future<T> refusing<T>(int status) => Future<T>.error(
-      DioException(
-        requestOptions: RequestOptions(path: '/x'),
-        // badResponse, or `mapDioException` reads it as a transport failure
-        // and no status reaches the mapping at all.
-        type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: RequestOptions(path: '/x'),
-          statusCode: status,
-        ),
-      ),
-    );
-
     test('an answer is the answer, and records the route as there', () async {
       final cap = capability('1.2.5.1');
 
@@ -250,5 +252,164 @@ void main() {
         );
       },
     );
+  });
+
+  group('change notification', () {
+    (ObservedCapability, List<bool?>) listened() {
+      final cap = ObservedCapability.unversioned();
+      final heard = <bool?>[];
+      cap.addListener(() => heard.add(cap.observedAnswer));
+      return (cap, heard);
+    }
+
+    test('fires on a change of answer, and only then', () {
+      // Queue payloads observe the calibration spelling on every fetch; an
+      // unchanged answer must not rebuild every gate reading it.
+      final (cap, heard) = listened();
+
+      cap.observe(present: true);
+      cap.observe(present: true);
+      cap.observe(present: false);
+
+      expect(heard, [true, false]);
+    });
+
+    test('a refusal is a change; a second one is not', () {
+      final (cap, heard) = listened();
+
+      cap.observe(present: true);
+      cap.observeRefusal();
+      cap.observeRefusal();
+
+      expect(heard, [true, false]);
+      expect(cap.observedAnswer, isFalse);
+    });
+
+    test('a removed listener hears nothing more', () {
+      final (cap, heard) = listened();
+      void other() => heard.add(null);
+      cap.addListener(other);
+      cap.removeListener(other);
+
+      cap.observe(present: true);
+
+      expect(heard, [true]);
+    });
+
+    test('an unversioned or version-less latch has no row to consult', () {
+      expect(ObservedCapability.unversioned().feature, isNull);
+      expect(capability(null).feature, isNull);
+      expect(capability('1.2.6b1').feature, ServerFeature.crossModelVariants);
+    });
+  });
+
+  group('probe', () {
+    late ObservedCapability cap;
+    late List<Completer<void>> sent;
+    late int notified;
+
+    /// A latch whose every probe waits for the test to answer it through
+    /// [cap]'s own `watching`, as a repository's list call would.
+    setUp(() {
+      sent = [];
+      notified = 0;
+      cap = ObservedCapability.unversioned(
+        whenUnknown: false,
+        probe: () {
+          final reply = Completer<void>();
+          sent.add(reply);
+          return cap.watching(() => reply.future, observing: treat404AsAbsent);
+        },
+      );
+      cap.addListener(() => notified++);
+    });
+
+    Future<void> fail(Completer<void> probe, [int? status]) async {
+      if (status == null) {
+        probe.completeError(
+          DioException(
+            requestOptions: RequestOptions(path: '/x'),
+            type: DioExceptionType.connectionError,
+          ),
+        );
+      } else {
+        probe.complete(refusing<void>(status));
+      }
+      await pumpEventQueue();
+    }
+
+    test('sends one probe while one is in flight', () {
+      cap.probeIfUnknown(epoch: 0);
+      cap.probeIfUnknown(epoch: 0);
+
+      expect(sent, hasLength(1));
+      expect(notified, 0, reason: 'nothing may notify from inside a build');
+    });
+
+    test('an answered probe settles the latch and notifies once', () async {
+      cap.probeIfUnknown(epoch: 0);
+      sent.single.complete();
+      await pumpEventQueue();
+
+      expect(cap.observedAnswer, isTrue);
+      expect(cap.probeFailed, isFalse);
+      expect(notified, 1);
+
+      cap.probeIfUnknown(epoch: 1);
+      expect(sent, hasLength(1), reason: 'an answer is never asked again');
+    });
+
+    test('a 404 is an answer too', () async {
+      cap.probeIfUnknown(epoch: 0);
+      await fail(sent.single, 404);
+
+      expect(cap.observedAnswer, isFalse);
+      expect(cap.probeFailed, isFalse);
+    });
+
+    test('an unanswered probe is not sent again at the same epoch', () async {
+      // The loop this guards: a failed probe notifies, the gate rebuilds and
+      // calls this again at the epoch it already failed at.
+      cap.probeIfUnknown(epoch: 0);
+      await fail(sent.single);
+
+      expect(cap.probeFailed, isTrue);
+      expect(cap.observedAnswer, isNull);
+      expect(notified, 1);
+
+      cap.probeIfUnknown(epoch: 0);
+      expect(sent, hasLength(1));
+    });
+
+    test('a new epoch sends exactly one more', () async {
+      cap.probeIfUnknown(epoch: 0);
+      await fail(sent.single);
+
+      cap.probeIfUnknown(epoch: 1);
+      cap.probeIfUnknown(epoch: 1);
+      expect(sent, hasLength(2));
+      expect(
+        cap.probeFailed,
+        isTrue,
+        reason: 'kept while the re-probe is out, so the gate does not blink',
+      );
+
+      await fail(sent.last);
+      expect(notified, 1, reason: 'failing again changes nothing');
+
+      cap.probeIfUnknown(epoch: 2);
+      sent.last.complete();
+      await pumpEventQueue();
+      expect(cap.observedAnswer, isTrue);
+      expect(cap.probeFailed, isFalse);
+      expect(notified, 2);
+    });
+
+    test('a latch without a probe never sends one', () {
+      final plain = ObservedCapability.unversioned();
+      expect(plain.canProbe, isFalse);
+      plain.probeIfUnknown(epoch: 0);
+      expect(plain.probeFailed, isFalse);
+    });
   });
 }

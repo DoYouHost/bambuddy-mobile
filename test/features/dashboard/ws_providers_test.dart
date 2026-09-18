@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -156,6 +157,36 @@ void main() {
       });
 
       expect(store.inTouchSince, reopened);
+    });
+
+    test('the first contact after a gap re-asks the server, once', () {
+      final c = _container();
+      final store = c.read(printerStatusesProvider.notifier);
+      int epoch() => c.read(serverContactEpochProvider);
+
+      store.ingestPoll([_pws(1, state: 'IDLE')]);
+      store.ingestPoll([_pws(1, state: 'RUNNING')]);
+      expect(epoch(), 1, reason: 'only the first frame is regained contact');
+
+      store.lostContact();
+      store.ingestPoll([_pws(1, state: 'RUNNING')]);
+      expect(epoch(), 2);
+    });
+
+    test('a new socket starts a new line', () {
+      // The notifier survives its own rebuild; without a reset the first frame
+      // over a new socket would be taken as the old line still being up.
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1)]);
+      expect(c.read(serverContactEpochProvider), 1);
+
+      c.invalidate(wsClientProvider);
+      c.read(printerStatusesProvider);
+      final store = c.read(printerStatusesProvider.notifier);
+      expect(store.inTouchSince, isNull);
+
+      store.ingestPoll([_pws(1)]);
+      expect(c.read(serverContactEpochProvider), 2);
     });
 
     test('going to the background drops the line', () {

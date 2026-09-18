@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
@@ -30,17 +32,23 @@ const treat404AsAbsent = {404, 403};
 class ObservedCapability {
   /// [version] is nullable rather than optional so that a caller which has one
   /// cannot forget to pass it: every construction states its fallback.
-  ObservedCapability(this._feature, this._version, {this.whenUnknown = false});
+  ObservedCapability(this._feature, this._version, {this.whenUnknown = false})
+    : _probe = null;
 
   /// No version row behind it, for a route that predates every server this app
   /// talks to: a threshold could then only hide it from a healthy server whose
   /// version read failed. The permission is still worth watching.
-  ObservedCapability.unversioned({this.whenUnknown = true})
+  ///
+  /// [probe] is a request that settles this latch — it must go through
+  /// [watching] — for a gate that cannot wait until a screen happens to call
+  /// the route (see [probeIfUnknown]).
+  ObservedCapability.unversioned({this.whenUnknown = true, this._probe})
     : _feature = null,
       _version = null;
 
   final ServerFeature? _feature;
   final ServerVersionService? _version;
+  final Future<void> Function()? _probe;
 
   /// The answer while nothing has been observed and no version is known:
   /// `false` where offering a control an older server would silently ignore
@@ -49,13 +57,77 @@ class ObservedCapability {
 
   bool? _observed;
   bool _refused = false;
+  bool _probing = false;
+  bool _probeFailed = false;
+  int? _failedAtEpoch;
+  final _listeners = <void Function()>[];
 
-  void observe({required bool present}) {
-    _observed = present;
-    if (present) _refused = false;
+  /// The version row a synchronous reader should consult, or `null` when there
+  /// is none to consult — no row, or no version service, which [supported]
+  /// also answers with [whenUnknown].
+  ServerFeature? get feature => _version == null ? null : _feature;
+
+  /// What the server itself said: `false` after a refusal, the observation
+  /// otherwise, `null` while it has said nothing.
+  bool? get observedAnswer => _refused ? false : _observed;
+
+  bool get canProbe => _probe != null;
+
+  /// The last probe ended without the server saying anything (no network, 5xx,
+  /// 401). Stays set while a re-probe is in flight, so a gate keeps its
+  /// settled answer rather than going back to loading.
+  bool get probeFailed => _probeFailed;
+
+  /// Called after [observedAnswer] or [probeFailed] changed. Never from inside
+  /// a call a provider build makes: observations land after an `await`, and a
+  /// probe reports on completion.
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _update(void Function() change) {
+    final before = (observedAnswer, _probeFailed);
+    change();
+    if ((observedAnswer, _probeFailed) == before) return;
+    for (final listener in List.of(_listeners)) {
+      listener();
+    }
   }
 
-  void observeRefusal() => _refused = true;
+  void observe({required bool present}) => _update(() {
+    _observed = present;
+    _probeFailed = false;
+    if (present) _refused = false;
+  });
+
+  void observeRefusal() => _update(() {
+    _refused = true;
+    _probeFailed = false;
+  });
+
+  /// Sends the probe unless something has already been heard, one is in flight,
+  /// or one already went unanswered at this [epoch] — the count of regained
+  /// contacts. Without that last condition a failed probe would notify, the
+  /// gate would rebuild and probe again, as fast as the network can fail.
+  void probeIfUnknown({required int epoch}) {
+    final probe = _probe;
+    if (probe == null || observedAnswer != null) return;
+    if (_probing || _failedAtEpoch == epoch) return;
+    _probing = true;
+    unawaited(_runProbe(probe, epoch));
+  }
+
+  Future<void> _runProbe(Future<void> Function() probe, int epoch) async {
+    try {
+      await probe();
+    } on Object {
+      // Whatever the status said, [watching] has already recorded it.
+    }
+    _probing = false;
+    if (observedAnswer != null) return;
+    _failedAtEpoch = epoch;
+    _update(() => _probeFailed = true);
+  }
 
   /// A **404** is the route not being there, a **403** is it not being for this
   /// caller; anything else (401, 5xx, no response) says nothing about either.
