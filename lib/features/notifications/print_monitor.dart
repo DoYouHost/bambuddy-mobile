@@ -994,7 +994,16 @@ class PrintMonitor {
           : l.notifOngoingMultiBody(name, percent, eta);
       body = '${l.nextAvailableLabel}$line';
     }
-    _notifications.showOngoing(title: title, body: body, progress: percent);
+    // A preparing machine has nothing to draw: the percent is zero because
+    // nothing has been measured yet, and a bar pinned at zero says "nothing is
+    // happening" about one that is heating its bed. Null asks for the
+    // indeterminate bar instead, which says "running, position unknown" — and
+    // the text beside it still carries the ETA when the firmware sent one.
+    _notifications.showOngoing(
+      title: title,
+      body: body,
+      progress: lead.isPreparing ? null : percent,
+    );
   }
 
   void _alertStarted(int id, PrinterStatus status) {

@@ -659,6 +659,12 @@ class FgsNotificationService implements NotificationService {
   String _text;
   int? _progress;
 
+  /// Whether a print is running at all. Kept apart from [_progress] because a
+  /// null there means "running, position unknown" — the indeterminate bar — and
+  /// that is a different picture from the idle "monitoring" notification, which
+  /// has no bar.
+  bool _printing = false;
+
   /// Which way the last post went, so [NotifProbe.ongoingNative] records a
   /// change of path rather than one line per update.
   bool? _lastNative;
@@ -673,11 +679,12 @@ class FgsNotificationService implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {
     _title = title;
     _text = body;
     _progress = progress;
+    _printing = true;
     await _post();
   }
 
@@ -687,6 +694,7 @@ class FgsNotificationService implements NotificationService {
     _title = _l10n.bgServiceTitle;
     _text = _l10n.bgServiceText;
     _progress = null;
+    _printing = false;
     await _post();
   }
 
@@ -708,6 +716,7 @@ class FgsNotificationService implements NotificationService {
         'title': _title,
         'body': _text,
         'progress': _progress,
+        'printing': _printing,
       });
       if (native == true) {
         _noteNative(true);

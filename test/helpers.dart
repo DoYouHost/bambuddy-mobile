@@ -728,6 +728,10 @@ class RecordingNotifications implements NotificationService {
   String? lastBody;
   int? lastProgress;
 
+  /// Whether the last bar was the indeterminate one (a null progress).
+  bool get lastIndeterminate => _lastWasIndeterminate;
+  bool _lastWasIndeterminate = false;
+
   /// Thrown by [showAlert] when set — the platform channel refusing.
   Object? failWith;
 
@@ -745,12 +749,13 @@ class RecordingNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {
     ongoingCount++;
     lastTitle = title;
     lastBody = body;
     lastProgress = progress;
+    _lastWasIndeterminate = progress == null;
   }
 
   @override

@@ -218,13 +218,15 @@ void main() {
         2: _status(id: 2, state: 'RUNNING', remaining: 12, name: 'P1S'),
       });
 
-      // The silent printer has the nearer ETA, so it leads — and a lead that
-      // has reported nothing draws nothing. The mean still exists for the log
-      // (`overall_pct`), where silence is left out rather than counted as zero.
-      expect(fake.lastProgress, 0);
+      // The silent printer has the nearer ETA, so it leads — and a lead with no
+      // measured position gets the indeterminate bar, not one pinned at zero.
+      // The mean still exists for the log (`overall_pct`), where silence is left
+      // out rather than counted as zero.
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
     });
 
-    testAt('a printer reporting zero leads on its ETA, and its bar is zero', (
+    testAt('a printer reporting zero leads on its ETA, and its bar animates', (
       _,
     ) {
       final fake = RecordingNotifications();
@@ -240,11 +242,12 @@ void main() {
         ),
       });
 
-      // Twelve minutes against eighty, so P1S leads with its own zero. A
-      // reported zero is where the print genuinely stands, unlike the silence
-      // above — a difference only the log's mean still records.
+      // Twelve minutes against eighty, so P1S leads with its own zero. The text
+      // still says 0% — that is where the print stands — but the bar has nothing
+      // to draw, so it animates instead of sitting empty.
       expect(fake.lastBody, contains('P1S (0%'));
-      expect(fake.lastProgress, 0);
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
     });
 
     testAt('one machine out of range does not move the bar past 100', (_) {
@@ -389,6 +392,38 @@ void main() {
       });
 
       expect(fake.lastBody, contains('ETA soon'));
+    });
+
+    testAt('one printer, still heating: the bar animates, the ETA stays', (_) {
+      final fake = RecordingNotifications();
+      // Straight off a real phone: a single machine at 0% with an estimate
+      // already reported. The bar used to sit empty across the full width and
+      // read as "nothing is happening" on a printer that is heating its bed.
+      monitor(fake).update({
+        1: _status(
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 29,
+          job: 'gridfinitystoragebox_5xy_handle',
+        ),
+      });
+
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
+      // The estimate is a separate fact from the position, and it survives.
+      expect(fake.lastBody, contains('0%'));
+      expect(fake.lastBody, contains('ETA'));
+    });
+
+    testAt('the bar stops animating on the first measured percent', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 0, remaining: 29)});
+      expect(fake.lastIndeterminate, isTrue);
+
+      m.update({1: _status(state: 'RUNNING', progress: 1, remaining: 28)});
+      expect(fake.lastProgress, 1);
+      expect(fake.lastIndeterminate, isFalse);
     });
 
     testAt('a first layer keeps the estimate it already reported', (_) {

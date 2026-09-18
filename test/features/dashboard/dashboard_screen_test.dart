@@ -47,7 +47,7 @@ class _NoopNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {}
   @override
   Future<void> clearOngoing() async {}

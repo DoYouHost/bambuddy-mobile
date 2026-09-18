@@ -198,20 +198,35 @@ void main() {
         'title': 'cube.3mf',
         'body': '42%',
         'progress': 42,
+        'printing': true,
       });
       expect(platform.updates, isEmpty, reason: 'the plugin was not asked');
     });
 
-    test('clearing sends a null progress', () async {
-      // The transition that matters on Android 16: a null is what drops the
-      // ProgressStyle, the status-bar chip and the promotion request. A test on
-      // `showOngoing` alone never exercises it.
+    test(
+      'clearing says the print is over, not that it is unmeasured',
+      () async {
+        // Two different nulls reach the native side, and only `printing` tells
+        // them apart: no print at all leaves no bar, while a print before its
+        // first percent gets the animated one. On Android 16 the first also has
+        // to drop the ProgressStyle, the chip and the promotion request.
+        serve(true);
+
+        await build().clearOngoing();
+
+        expect(calls.single.arguments['progress'], isNull);
+        expect(calls.single.arguments['printing'], isFalse);
+        expect(platform.updates, isEmpty);
+      },
+    );
+
+    test('a print with no measured position keeps printing true', () async {
       serve(true);
 
-      await build().clearOngoing();
+      await build().showOngoing(title: 'cube.3mf', body: '0%', progress: null);
 
       expect(calls.single.arguments['progress'], isNull);
-      expect(platform.updates, isEmpty);
+      expect(calls.single.arguments['printing'], isTrue);
     });
 
     test('a refusal falls back to the plugin with the same content', () async {

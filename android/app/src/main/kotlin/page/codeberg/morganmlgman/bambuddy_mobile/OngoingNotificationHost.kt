@@ -48,6 +48,7 @@ class OngoingNotificationHost(private val context: Context) :
                             title = call.argument<String>("title").orEmpty(),
                             body = call.argument<String>("body").orEmpty(),
                             progress = call.argument<Int>("progress"),
+                            printing = call.argument<Boolean>("printing") ?: false,
                         )
                     )
                 }
@@ -70,8 +71,19 @@ class OngoingNotificationHost(private val context: Context) :
 
     override fun onTaskDestroy() = Unit
 
-    /** Whether the notification was posted; `false` sends the Dart side to the plugin instead. */
-    private fun show(title: String, body: String, progress: Int?): Boolean = try {
+    /**
+     * Whether the notification was posted; `false` sends the Dart side to the plugin instead.
+     *
+     * [printing] and [progress] are three states, not two: no print, a print whose position is
+     * known, and a print running before the first percent arrives — heating or levelling, where
+     * a bar pinned at zero says "nothing is happening" about a machine that is busy.
+     */
+    private fun show(
+        title: String,
+        body: String,
+        progress: Int?,
+        printing: Boolean,
+    ): Boolean = try {
         // Early return rather than `nm?.` throughout: `getSystemService(Class)` is a platform
         // type (the SDK annotates its parameter, not its return), so Kotlin would accept
         // either, and one non-null receiver reads better than four safe calls.
@@ -93,26 +105,43 @@ class OngoingNotificationHost(private val context: Context) :
                 builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
             }
 
-            // Both branches set every field either of them touches. `recoverBuilder` carries
+            // Every branch sets every field any of them touches. `recoverBuilder` carries
             // the previous notification's style and extras forward, and once `lastPosted` is
             // the recovery source those are our own — so leaving them alone would strand a
             // finished print's bar, chip and promotion on the idle "monitoring" notification,
             // which Android 16 would go on promoting.
-            if (progress == null) {
-                builder.setProgress(0, 0, false)
-                if (Build.VERSION.SDK_INT >= ANDROID_16) {
-                    builder.setStyle(Notification.BigTextStyle()) // what the plugin sets
-                    builder.setShortCriticalText(null)
-                    builder.addExtras(promotionRequest(false))
+            when {
+                !printing -> {
+                    builder.setProgress(0, 0, false)
+                    if (Build.VERSION.SDK_INT >= ANDROID_16) {
+                        builder.setStyle(Notification.BigTextStyle()) // what the plugin sets
+                        builder.setShortCriticalText(null)
+                        builder.addExtras(promotionRequest(false))
+                    }
                 }
-            } else {
-                builder.setProgress(100, progress, false)
-                if (Build.VERSION.SDK_INT >= ANDROID_16) {
-                    builder.setStyle(Notification.ProgressStyle().setProgress(progress))
-                    // The percent rather than the ETA: the ETA is a clock time whose 12/24-hour
-                    // format the isolate resolves, and re-deriving it here would get it wrong.
-                    builder.setShortCriticalText("$progress%")
-                    builder.addExtras(promotionRequest(true))
+
+                progress == null -> {
+                    builder.setProgress(0, 0, true)
+                    if (Build.VERSION.SDK_INT >= ANDROID_16) {
+                        builder.setStyle(
+                            Notification.ProgressStyle().setProgressIndeterminate(true)
+                        )
+                        // No percent to put on the chip, and a stale one would be a lie.
+                        builder.setShortCriticalText(null)
+                        builder.addExtras(promotionRequest(true))
+                    }
+                }
+
+                else -> {
+                    builder.setProgress(100, progress, false)
+                    if (Build.VERSION.SDK_INT >= ANDROID_16) {
+                        builder.setStyle(Notification.ProgressStyle().setProgress(progress))
+                        // The percent rather than the ETA: the ETA is a clock time whose
+                        // 12/24-hour format the isolate resolves, and re-deriving it here
+                        // would get it wrong.
+                        builder.setShortCriticalText("$progress%")
+                        builder.addExtras(promotionRequest(true))
+                    }
                 }
             }
 

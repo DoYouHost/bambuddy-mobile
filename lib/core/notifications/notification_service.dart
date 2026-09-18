@@ -53,6 +53,11 @@ abstract class NotificationService {
   /// The foreground service from `flutter_foreground_task` (separate isolate)
   /// handles keeping the process alive; this service just shows the notification.
   ///
+  /// A null [progress] means the print is running but its position is not known
+  /// — heating, levelling, anything before the first percent — and draws the
+  /// indeterminate bar. It is not the same as [clearOngoing], which is for
+  /// nothing printing at all and leaves no bar.
+  ///
   /// Unlike [showAlert] this takes no diagnostic arguments: the record is written
   /// by `PrintMonitor._updateOngoing`, which is the only place that holds the
   /// printer, percentage, ETA and print count as separate values — here they are
@@ -60,7 +65,7 @@ abstract class NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   });
 
   /// Removes the ongoing notification.
@@ -174,7 +179,7 @@ class LocalNotificationService implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {}
 
   @override
