@@ -3254,6 +3254,12 @@ abstract class AppLocalizations {
   /// **'{percent}% · ETA {eta}'**
   String notifOngoingBody(int percent, String eta);
 
+  /// No description provided for @notifEtaSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'soon'**
+  String get notifEtaSoon;
+
   /// No description provided for @demoSettingsSection.
   ///
   /// In en, this message translates to:
@@ -3275,19 +3281,14 @@ abstract class AppLocalizations {
   /// No description provided for @notifOngoingMultiBody.
   ///
   /// In en, this message translates to:
-  /// **'Average {overall}% · {printer} {percent}% · ETA {eta}'**
-  String notifOngoingMultiBody(
-    int overall,
-    String printer,
-    int percent,
-    String eta,
-  );
+  /// **'{printer} ({percent}% · ETA {eta})'**
+  String notifOngoingMultiBody(String printer, int percent, String eta);
 
   /// No description provided for @notifOngoingMultiBodyNoEta.
   ///
   /// In en, this message translates to:
-  /// **'Average {overall}% · {printer} {percent}%'**
-  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent);
+  /// **'{printer} ({percent}%)'**
+  String notifOngoingMultiBodyNoEta(String printer, int percent);
 
   /// No description provided for @printFinishedTitle.
   ///

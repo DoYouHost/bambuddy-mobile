@@ -20,11 +20,17 @@
          phone's), so neither the runtime permission nor the reboot
          rescheduling hook (flutter_local_notifications) applies here. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" tools:node="remove" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
 
+    <!-- Back to the stock Application class. The phone manifest points at
+         BambuddyApplication, whose only job is to register a listener on the
+         foreground service's task lifecycle — and the service itself is stripped
+         from this APK below. -->
     <application
+        android:name="${applicationName}"
         android:enableOnBackInvokedCallback="false"
-        tools:replace="android:enableOnBackInvokedCallback">
+        tools:replace="android:enableOnBackInvokedCallback,android:name">
         <!-- Keep the watch on the legacy back path. The phone manifest opts into
              predictive back, but on Wear OS the back gesture is swipe-to-dismiss
              and the system-driven dismiss animation is not verified against it —

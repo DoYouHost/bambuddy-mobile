@@ -179,8 +179,9 @@ class NotifProbe {
 
   /// The ongoing progress notification changed content. One record per change,
   /// not per frame: the monitor already collapses frames whose printer, whole
-  /// percent, ETA minute and print count all match, and those are exactly the
-  /// fields here. The notification's own text is the job name and stays out.
+  /// percent, ETA minute and print count all match, which is every field below
+  /// except [overall] — that one rides along on whichever frame gets through.
+  /// The notification's own text is the job name and stays out.
   static void ongoing({
     required int printerId,
     required int percent,
@@ -195,11 +196,21 @@ class NotifProbe {
       'pct': percent,
       'eta_min': etaMin,
       'active': active,
-      // What the bar was drawn from — the mean over every printing machine,
-      // which equals `pct` while only one is running.
+      // The mean over every printing machine. Nothing on screen shows it — the
+      // notification is the lead's alone — so this is the only place it exists,
+      // and it answers "how far along was the rest of the shelf" for a report
+      // about a bar that looked wrong. Equals `pct` while only one is running.
       'overall_pct': overall,
     },
   );
+
+  /// Which way the ongoing notification is being posted: our own builder (a
+  /// progress bar, and on Android 16 a Live Update), or the plugin's, which has
+  /// neither. Written only when the answer changes — a print posts hundreds of
+  /// updates and the answer is the same every time — so a report about a
+  /// missing bar can say whether this device ever took the native path.
+  static void ongoingNative({required bool native}) => DiagnosticRecorder.active
+      ?.add(LogSource.notif, 'ongoing_native', fields: {'native': native});
 
   /// Nothing is printing any more, so the progress notification went back to
   /// neutral. Named `reset` rather than `cleared` because in the foreground
@@ -326,7 +337,7 @@ class LoggingNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) => _inner.showOngoing(title: title, body: body, progress: progress);
 
   @override

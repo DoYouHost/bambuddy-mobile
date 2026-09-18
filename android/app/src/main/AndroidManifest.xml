@@ -14,6 +14,12 @@
     <!-- Ongoing print notification + background alerts (Android 13+ needs the
          runtime permission). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Android 16 Live Updates: lets the ongoing print notification ask to be
+         promoted to the status-bar chip and the lock-screen card. A normal
+         permission — no runtime prompt and no Play declaration — and the request
+         is only a request: the system decides, and the user can switch promotion
+         off per app. Refusing leaves a plain notification with a progress bar. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS"/>
     <!-- The foreground service keeps the process alive in the background so the
          WebSocket keeps receiving statuses and updating the print notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -47,7 +53,7 @@
          registers the callback itself and keeps handling back as before. -->
     <application
         android:label="Bambuddy"
-        android:name="${applicationName}"
+        android:name=".BambuddyApplication"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">

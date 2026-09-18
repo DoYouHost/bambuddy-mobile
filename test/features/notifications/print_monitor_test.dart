@@ -173,12 +173,10 @@ void main() {
   });
 
   group('several printers at once', () {
-    // One notification carries the whole shelf: the count as the headline, the
-    // mean as the bar, and the machine that finishes first as the line — the
-    // only ETA worth putting in front of somebody.
-    testAt('the headline counts, the bar averages, the line names the lead', (
-      _,
-    ) {
+    // One notification, one print: the count is the headline, and the machine
+    // that finishes first owns the bar, the line and the ETA. No second figure
+    // for the shelf — the headline count already says there is more running.
+    testAt('the headline counts, the bar and the line follow the lead', (_) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
@@ -199,15 +197,20 @@ void main() {
       });
 
       expect(fake.lastTitle, '2 printing');
-      expect(fake.lastProgress, 60, reason: 'the mean of 40 and 80');
+      expect(fake.lastProgress, 80, reason: "the lead's own figure");
       // The lead is the one finishing first, and it is named by machine: with
       // two printers the job name no longer says which one this is.
-      expect(fake.lastBody, contains('P1S 80%'));
-      expect(fake.lastBody, contains('Average 60%'));
+      expect(fake.lastBody, contains('P1S (80%'));
       expect(fake.lastBody, contains('ETA'));
+      // The same words the dashboard's chip uses, from the same string: under a
+      // "2 printing" headline a bare machine name does not say why that one.
+      expect(fake.lastBody, startsWith('Next available: '));
+      // The other machine's 40% is nowhere in the notification, averaged or
+      // otherwise: this notification is about one print.
+      expect(fake.lastBody, isNot(contains('40')));
     });
 
-    testAt('a printer that reports no progress is left out of the mean', (_) {
+    testAt('a printer that reports no progress does not draw a bar', (_) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
@@ -215,12 +218,17 @@ void main() {
         2: _status(id: 2, state: 'RUNNING', remaining: 12, name: 'P1S'),
       });
 
-      // Counting the silent one as zero would halve the bar for a job that has
-      // simply not reported yet.
-      expect(fake.lastProgress, 40);
+      // The silent printer has the nearer ETA, so it leads — and a lead with no
+      // measured position gets the indeterminate bar, not one pinned at zero.
+      // The mean still exists for the log (`overall_pct`), where silence is left
+      // out rather than counted as zero.
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
     });
 
-    testAt('a printer that reports zero counts as zero', (_) {
+    testAt('a printer reporting zero leads on its ETA, and its bar animates', (
+      _,
+    ) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
@@ -234,13 +242,15 @@ void main() {
         ),
       });
 
-      // The other zero: heating or levelling is where this print genuinely
-      // stands, so the shelf really is 20% along. Silence and a reported zero
-      // are different facts and the mean treats them differently.
-      expect(fake.lastProgress, 20);
+      // Twelve minutes against eighty, so P1S leads with its own zero. The text
+      // still says 0% — that is where the print stands — but the bar has nothing
+      // to draw, so it animates instead of sitting empty.
+      expect(fake.lastBody, contains('P1S (0%'));
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
     });
 
-    testAt('one machine out of range does not move the mean', (_) {
+    testAt('one machine out of range does not move the bar past 100', (_) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
@@ -254,29 +264,31 @@ void main() {
         ),
       });
 
-      // Clamped before averaging, not after: a mean of 40 and 900 lands on 100
-      // either way, and the bar would look plausible while being a lie about
-      // the machine that is only at 40.
-      expect(fake.lastProgress, 70);
+      // A frame out of range is clamped, not passed through: the bar is a
+      // fraction of 100 and 900 would leave it undrawable.
+      expect(fake.lastProgress, 100);
     });
 
-    testAt('the bar follows a printer that is not the lead', (_) {
+    testAt('a printer that is not the lead does not redraw the notification', (
+      _,
+    ) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
       m.update({
         1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
         2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
       });
-      expect(fake.lastProgress, 60);
+      expect(fake.ongoingCount, 1);
 
-      // The lead has not moved — its percent and ETA are the same frame — so a
-      // throttle keyed on the lead alone would swallow this.
+      // Printer 1 advanced twenty points, and not one of them is on screen: the
+      // notification is the lead's, and the lead's frame is unchanged. Redrawing
+      // here would re-post an identical notification on every WS frame.
       m.update({
         1: _status(id: 1, state: 'RUNNING', progress: 60, remaining: 70),
         2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
       });
-      expect(fake.ongoingCount, 2);
-      expect(fake.lastProgress, 70);
+      expect(fake.ongoingCount, 1);
+      expect(fake.lastProgress, 80);
     });
 
     testAt('dropping back to one printer restores the job as the headline', (
@@ -301,6 +313,146 @@ void main() {
 
       expect(fake.lastTitle, 'cube.3mf');
       expect(fake.lastProgress, 40);
+    });
+  });
+
+  // `remaining_time` is zero in three different situations and the server never
+  // sends null for a printing machine (`PrinterState` defaults it to 0), so the
+  // number alone cannot say which one this is. Progress is the second half of
+  // the answer, and each group below pins one reading of the pair.
+  group('a zero in remaining_time', () {
+    testAt('heating does not take the lead from a print about to finish', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'PREPARE',
+          progress: 0,
+          remaining: 0,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 87,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // Sorted on the raw minutes, the heating machine's zero would put it in
+      // front of the one twelve minutes from done.
+      expect(fake.lastBody, contains('P1S (87%'));
+      expect(fake.lastProgress, 87);
+    });
+
+    testAt('heating alone shows no ETA rather than the current time', (_) {
+      final fake = RecordingNotifications();
+      monitor(fake).update({
+        1: _status(state: 'PREPARE', progress: 0, remaining: 0, job: 'cube'),
+      });
+
+      // The zero means "nothing estimated yet". Rendered as a clock it used to
+      // put the current time on the notification as the finish time.
+      expect(fake.lastBody, isNot(contains('ETA')));
+      expect(fake.lastBody, isNot(contains('soon')));
+    });
+
+    testAt('the last minute of a print keeps the lead', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 99,
+          remaining: 0,
+          name: 'P1S',
+        ),
+      });
+
+      // The same zero as the heating case above, and the opposite answer: this
+      // one really is the next to finish.
+      expect(fake.lastBody, contains('P1S (99%'));
+      expect(fake.lastProgress, 99);
+    });
+
+    testAt('the last minute of a print reads "soon", not a clock time', (_) {
+      final fake = RecordingNotifications();
+      monitor(fake).update({
+        1: _status(state: 'RUNNING', progress: 99, remaining: 0, job: 'cube'),
+      });
+
+      expect(fake.lastBody, contains('ETA soon'));
+    });
+
+    testAt('one printer, still heating: the bar animates, the ETA stays', (_) {
+      final fake = RecordingNotifications();
+      // Straight off a real phone: a single machine at 0% with an estimate
+      // already reported. The bar used to sit empty across the full width and
+      // read as "nothing is happening" on a printer that is heating its bed.
+      monitor(fake).update({
+        1: _status(
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 29,
+          job: 'gridfinitystoragebox_5xy_handle',
+        ),
+      });
+
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
+      // The estimate is a separate fact from the position, and it survives.
+      expect(fake.lastBody, contains('0%'));
+      expect(fake.lastBody, contains('ETA'));
+    });
+
+    testAt('the bar stops animating on the first measured percent', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 0, remaining: 29)});
+      expect(fake.lastIndeterminate, isTrue);
+
+      m.update({1: _status(state: 'RUNNING', progress: 1, remaining: 28)});
+      expect(fake.lastProgress, 1);
+      expect(fake.lastIndeterminate, isFalse);
+    });
+
+    testAt('a first layer keeps the estimate it already reported', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // The third reading of a zero, and the one a rule written on
+      // `isPreparing` alone gets wrong: zero percent with a real estimate is a
+      // first layer, not a machine that has said nothing. Twelve minutes beats
+      // eighty and the ETA is a clock time.
+      expect(fake.lastBody, contains('P1S (0%'));
+      expect(fake.lastBody, isNot(contains('soon')));
+      expect(fake.lastBody, contains('ETA'));
     });
   });
 
@@ -339,9 +491,7 @@ void main() {
     expect(fake.alerts.single['body'], 'y failed');
   });
 
-  testAt('two printers: the line follows the nearest ETA, the bar does not', (
-    _,
-  ) {
+  testAt('two printers: the line and the bar both follow the nearest ETA', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({
@@ -363,10 +513,9 @@ void main() {
       ),
     });
 
-    expect(fake.lastBody, contains('P1S 80%')); // finishes soonest
-    // The bar is the shelf, not the lead: 80% on it would say both are nearly
-    // done while one of them has barely started.
-    expect(fake.lastProgress, 45);
+    expect(fake.lastBody, contains('P1S (80%')); // finishes soonest
+    // The bar belongs to the same print as the line and the ETA.
+    expect(fake.lastProgress, 80);
     expect(fake.lastTitle, '2 printing');
   });
 

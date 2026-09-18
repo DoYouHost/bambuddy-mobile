@@ -1898,6 +1898,9 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get notifEtaSoon => 'enseguida';
+
+  @override
   String get demoSettingsSection => 'Demo';
 
   @override
@@ -1908,18 +1911,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Cuántas impresoras de la demo imprimen a la vez, para ver qué hacen varias con el panel y con la notificación permanente.';
 
   @override
-  String notifOngoingMultiBody(
-    int overall,
-    String printer,
-    int percent,
-    String eta,
-  ) {
-    return 'Promedio $overall% · $printer $percent% · ETA $eta';
+  String notifOngoingMultiBody(String printer, int percent, String eta) {
+    return '$printer ($percent% · ETA $eta)';
   }
 
   @override
-  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent) {
-    return 'Promedio $overall% · $printer $percent%';
+  String notifOngoingMultiBodyNoEta(String printer, int percent) {
+    return '$printer ($percent%)';
   }
 
   @override

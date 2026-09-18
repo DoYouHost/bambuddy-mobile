@@ -542,6 +542,25 @@ class PrinterStatus {
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 
+  /// Ordering key for "which machine frees up first" — sort ascending.
+  ///
+  /// [remainingTime] alone cannot answer it. The server's field defaults to
+  /// zero and stays there until the firmware sends `mc_remaining_time`
+  /// (`PrinterState` in the backend's `bambu_mqtt.py`), so a machine that is
+  /// still heating reports the same zero as one in its final minute — and
+  /// sorted raw, the one that has barely started comes first. Progress breaks
+  /// that tie and only that tie: a first layer reports zero percent with a real
+  /// estimate, and keeps the rank its estimate gives it.
+  ///
+  /// Used by the ongoing notification and by the dashboard's "next available"
+  /// line, which have to name the same printer.
+  int get etaRank {
+    final minutes = remainingTime;
+    if (minutes == null) return 1 << 30;
+    if (minutes > 0) return minutes;
+    return isPreparing ? 1 << 30 : 0;
+  }
+
   /// Whether the printer reports being in a stage of its own rather than
   /// plainly printing: bed levelling, bed scanning, homing, nozzle cleaning, a
   /// pause, a filament change (`STAGE_NAMES` in the server's `bambu_mqtt.py`).

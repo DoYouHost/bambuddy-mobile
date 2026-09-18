@@ -988,6 +988,7 @@
   "errSlotTagUnreadable": "Cet emplacement ne comporte pas de tag RFID lisible — Spoolman associe les bobines par tag et ne peut donc pas accepter celle-ci. L'inventaire intégré les assigne par emplacement.",
   "errPrinterOffline": "L'imprimante est hors ligne, l'application ne peut donc pas lire le contenu de l'emplacement. Reconnectez-la et réessayez.",
   "notifOngoingBody": "{percent} % · fin {eta}",
+  "notifEtaSoon": "imminente",
   "@notifOngoingBody": {
     "placeholders": {
       "percent": {
@@ -1001,7 +1002,7 @@
   "demoSettingsSection": "Démo",
   "demoPrintingCountTitle": "Imprimantes en cours d'impression",
   "demoPrintingCountDesc": "Combien d'imprimantes de la démo impriment en même temps — pour voir ce que plusieurs font au tableau de bord et à la notification permanente.",
-  "notifOngoingMultiBody": "Moyenne {overall} % · {printer} {percent} % · fin {eta}",
+  "notifOngoingMultiBody": "{printer} ({percent} % · fin {eta})",
   "@notifOngoingMultiBody": {
     "placeholders": {
       "overall": {
@@ -1018,7 +1019,7 @@
       }
     }
   },
-  "notifOngoingMultiBodyNoEta": "Moyenne {overall} % · {printer} {percent} %",
+  "notifOngoingMultiBodyNoEta": "{printer} ({percent} %)",
   "@notifOngoingMultiBodyNoEta": {
     "placeholders": {
       "overall": {

@@ -190,24 +190,16 @@ class _PrinterMemo {
 /// that the printer has published something about the print that is running now.
 typedef _JobFrame = ({int? layer, int? progress, String? job});
 
-/// Throttling key for ongoing notification: update only when printer, total %,
-/// ETA minute, or active print count changes — else every WS frame would redraw it.
+/// Throttling key for the ongoing notification: one field per thing the
+/// notification actually shows — which printer leads, its whole percent, its ETA
+/// minute and how many are running. Anything else would redraw it on a WS frame
+/// that changes nothing a reader can see.
 class _OngoingKey {
-  const _OngoingKey(
-    this.printerId,
-    this.percent,
-    this.etaMinutes,
-    this.count,
-    this.overall,
-  );
+  const _OngoingKey(this.printerId, this.percent, this.etaMinutes, this.count);
   final int printerId;
   final int percent;
   final int? etaMinutes;
   final int count;
-
-  /// The mean the bar is drawn from: it moves when any printer moves, not only
-  /// the lead, so leaving it out of the key freezes the bar between lead changes.
-  final int overall;
 
   @override
   bool operator ==(Object other) =>
@@ -215,12 +207,10 @@ class _OngoingKey {
       other.printerId == printerId &&
       other.percent == percent &&
       other.etaMinutes == etaMinutes &&
-      other.count == count &&
-      other.overall == overall;
+      other.count == count;
 
   @override
-  int get hashCode =>
-      Object.hash(printerId, percent, etaMinutes, count, overall);
+  int get hashCode => Object.hash(printerId, percent, etaMinutes, count);
 }
 
 /// Notification brain: observes latest printer statuses and controls
@@ -899,13 +889,29 @@ class PrintMonitor {
     }
   }
 
+  /// What goes after "ETA" in the ongoing notification, or null for no ETA at
+  /// all. Branches in the same order as [PrinterStatus.etaRank], so the line
+  /// cannot name a printer the ranking would not have picked.
+  ///
+  /// A concrete finish time (e.g. "21:20"), not "in X", and the date comes
+  /// along when the print runs past midnight.
+  String? _etaText(PrinterStatus s) {
+    final minutes = s.remainingTime;
+    if (minutes == null) return null;
+    if (minutes > 0) {
+      final now = clock.now();
+      return _formats().clockOnDay(
+        now.add(Duration(minutes: minutes)),
+        now: now,
+      );
+    }
+    return s.isPreparing ? null : _l10n().notifEtaSoon;
+  }
+
   /// Ongoing notification for currently printing (one, for earliest ETA).
   void _updateOngoing(Map<int, PrinterStatus> statuses) {
     final printing = statuses.values.where((s) => s.isPrinting).toList()
-      ..sort(
-        (a, b) =>
-            (a.remainingTime ?? 1 << 30).compareTo(b.remainingTime ?? 1 << 30),
-      );
+      ..sort((a, b) => a.etaRank.compareTo(b.etaRank));
 
     if (printing.isEmpty) {
       if (_lastOngoing != null) {
@@ -918,9 +924,10 @@ class PrintMonitor {
 
     final lead = printing.first; // Finishes earliest
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
-    // What the bar tracks once several printers run: the mean of everything
-    // printing, not the lead's own figure. A bar that jumps to 90% because one
-    // of three is nearly done says the whole shelf is nearly done.
+    // The mean over every printing machine. Nothing on screen shows it — the
+    // notification belongs to the lead alone — and it is kept for the log,
+    // where it answers "how far along was the rest of the shelf" for a report
+    // about a bar that looked wrong.
     //
     // Two kinds of zero, and they are not the same fact. A printer that sends
     // no `progress` at all has not reported yet and is left out — counting it
@@ -936,12 +943,14 @@ class PrintMonitor {
             0,
             100,
           );
+    // Everything the notification shows, and nothing else. The mean used to be
+    // here because the body printed it; now that it does not, keeping it would
+    // re-post a notification whose every visible field is unchanged.
     final key = _OngoingKey(
       lead.id,
       percent,
       lead.remainingTime,
       printing.length,
-      overall,
     );
     if (key == _lastOngoing) return;
     _lastOngoing = key;
@@ -958,7 +967,7 @@ class PrintMonitor {
     );
 
     final l = _l10n();
-    final eta = _etaClock(lead.remainingTime);
+    final eta = _etaText(lead);
     final String title;
     final String body;
     if (printing.length == 1) {
@@ -967,18 +976,34 @@ class PrintMonitor {
       title = _jobLabel(lead, l);
       body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
     } else {
-      // Several: the headline is how many are running, the bar is the mean, and
-      // the line names the one that finishes first — the only one with an ETA
-      // worth putting in front of somebody.
+      // Several: the headline is how many are running, and the bar, the line
+      // and the ETA all belong to the one that finishes first. One print, one
+      // set of numbers — a second figure for the shelf had nothing to say that
+      // the headline count does not.
       title = l.printingCount(printing.length);
       // Not `lead.name ?? …`: a printer named "  " would leave the line with
       // a gap between two separators.
       final name = _printerLabel(lead, l);
-      body = eta == null
-          ? l.notifOngoingMultiBodyNoEta(overall, name, percent)
-          : l.notifOngoingMultiBody(overall, name, percent, eta);
+      // Prefixed with the dashboard's own label rather than a second string
+      // saying the same thing: a bare machine name under a "3 printing"
+      // headline does not say why that one is named. The label is built for
+      // this (it ends in its own separator) and the two surfaces then pick the
+      // same printer and call it the same thing.
+      final line = eta == null
+          ? l.notifOngoingMultiBodyNoEta(name, percent)
+          : l.notifOngoingMultiBody(name, percent, eta);
+      body = '${l.nextAvailableLabel}$line';
     }
-    _notifications.showOngoing(title: title, body: body, progress: overall);
+    // A preparing machine has nothing to draw: the percent is zero because
+    // nothing has been measured yet, and a bar pinned at zero says "nothing is
+    // happening" about one that is heating its bed. Null asks for the
+    // indeterminate bar instead, which says "running, position unknown" — and
+    // the text beside it still carries the ETA when the firmware sent one.
+    _notifications.showOngoing(
+      title: title,
+      body: body,
+      progress: lead.isPreparing ? null : percent,
+    );
   }
 
   void _alertStarted(int id, PrinterStatus status) {
@@ -1198,13 +1223,5 @@ class PrintMonitor {
       }
     }
     return out;
-  }
-
-  /// ETA as concrete finish time (e.g. "21:20"), not "in X".
-  /// If print finishes different day, the date comes along.
-  String? _etaClock(int? minutes) {
-    if (minutes == null) return null;
-    final now = clock.now();
-    return _formats().clockOnDay(now.add(Duration(minutes: minutes)), now: now);
   }
 }

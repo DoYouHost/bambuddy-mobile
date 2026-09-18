@@ -1914,6 +1914,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get notifEtaSoon => 'imminente';
+
+  @override
   String get demoSettingsSection => 'Démo';
 
   @override
@@ -1924,18 +1927,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Combien d\'imprimantes de la démo impriment en même temps — pour voir ce que plusieurs font au tableau de bord et à la notification permanente.';
 
   @override
-  String notifOngoingMultiBody(
-    int overall,
-    String printer,
-    int percent,
-    String eta,
-  ) {
-    return 'Moyenne $overall % · $printer $percent % · fin $eta';
+  String notifOngoingMultiBody(String printer, int percent, String eta) {
+    return '$printer ($percent % · fin $eta)';
   }
 
   @override
-  String notifOngoingMultiBodyNoEta(int overall, String printer, int percent) {
-    return 'Moyenne $overall % · $printer $percent %';
+  String notifOngoingMultiBodyNoEta(String printer, int percent) {
+    return '$printer ($percent %)';
   }
 
   @override
