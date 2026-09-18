@@ -67,16 +67,6 @@ class ServerVersionService {
     }
   }
 
-  /// Whether the connected server has [feature], per
-  /// [ServerVersion.introducedIn].
-  ///
-  /// Unknown → `false` for every feature, which is always the older contract: a
-  /// hidden control costs a new-server user one feature until the version read
-  /// lands, while a shown one costs an old-server user a 422 — or, for the
-  /// slice fields, a switch that silently does nothing.
-  Future<bool> supports(ServerFeature feature) async =>
-      (await current())?.supports(feature) ?? false;
-
   /// The server's own version string, for the bug-report header and the two
   /// screens that show it. `null` until a read succeeds, and after one that
   /// could not reach the server at all.

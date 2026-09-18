@@ -57,7 +57,7 @@ decide.
 Queue and settings store `bed_levelling` / `flow_cali` / `nozzle_offset_cali` as
 `off`/`on`/`auto` instead of booleans. Sending `auto` to a server that stores
 booleans is a **422**, so this one is refused rather than dropped.
-`QueueRepository.supportsTriStateCalibration` reads the real answer off the
+`QueueRepository.triStateCapability` reads the real answer off the
 payload and outranks the row.
 
 ### chamberTemp65 — 1.2.6 (server commit b04664c6)
@@ -73,7 +73,7 @@ is unknown.
 
 `POST /library/variant-groups` and the `variants[]` field on queue create:
 several sliced files, one job, whichever printer frees up first.
-`LibraryRepository.supportsCrossModelVariants` observes it and outranks the row.
+`LibraryRepository.variantsCapability` observes it and outranks the row.
 
 ### sliceLayoutOptions — 1.2.6 (server #2548)
 
@@ -181,6 +181,66 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+## From latch to screen
+
+How an answer is decided is `ObservedCapability` (above). How it reaches a
+widget is one path, the same for every capability:
+
+```
+repository                      lib/providers.dart                     screen
+ObservedCapability ──notifies──► capabilityGate(latch) ──────────────► .orFalse / .offer
+  (watching / probe)               ▲                ▲                  settledGate (outside a build)
+                        serverVersionProvider   serverContactEpochProvider
+```
+
+- **The latch lives in its repository** (`xCapability`) and is settled by the
+  requests that repository already makes, through `watching(...)` with the
+  `observing:` its handler warrants. A capability the server never shows
+  (`printLogCostEnergy`, `labelStartingPosition`, `sliceLayoutOptions`) still
+  gets a latch — never observed, so the version row decides — to keep one shape.
+- **`capabilityGate`** turns it into a `Provider<AsyncValue<bool>>`, derived
+  synchronously: no loading frame once the answer is known, and an observation
+  reaches the screen the moment the latch records it — no invalidation, no
+  `autoDispose` to "ask again". Loading only while the version read or a probe
+  is out, and not even then for `whenUnknown: true` (the control is shown while
+  unknown, so it is shown while waiting too). A repository that cannot be built
+  (no profile) is `AsyncError`, which every reader folds into "no".
+- **`serverVersionProvider`** is read once for the shell (`warmServerAnswers`
+  in `root_scaffold.dart`) rather than by the first widget that needs it.
+- **`serverContactEpochProvider`** counts regained contacts: bumped by
+  `PrinterStatusesNotifier` on the first WebSocket frame or poll after a gap,
+  including every return from the background. A version read or a probe that
+  met no network is asked again once per bump — an app started away from the
+  LAN recovers without a restart.
+- **A probe** (`ObservedCapability.unversioned(probe: …)`) is for a gate that
+  hides an entry point nothing else asks about early — pipelines, whose drawer
+  tile is built only when the drawer opens. Warm it in `warmServerAnswers`.
+  Anything a screen fetches anyway needs no probe: the tag catalog, kept
+  watched by the file manager, settles the tags latch.
+
+Reading a gate:
+
+| Situation | Read |
+|---|---|
+| Entry point to a route that may not exist | `.orFalse` — hidden while unknown |
+| A button the user waits to press | `.offer` — disabled while unknown |
+| Should be shown while unknown | `whenUnknown: true` on the **latch**, then `.orFalse` |
+| Code outside a build | `await settledGate(container, gate)`, the container taken before the first `await`; a flow started unawaited reads an error as "no" (`.catchError((Object _) => false)`) |
+| An async provider that depends on it | watch the gate and **stay loading** while it is unanswered — never resolve an empty value from "unknown" (`spoolPresetOverridesProvider`: a form seeds from it once and a save replaces the whole list) |
+
+Combining: `a.and(b)` — a settled "no" on either side wins, an error is handed
+on. It evaluates both sides, so a synchronous "no" that has to save a request
+(`canUsePipelinesProvider` before the pipelines probe) is an `if` before the
+watch, not the left side of `and`.
+
+`capability_gate_shape_test.dart` fails on a `FutureProvider<bool>` gate and on
+a `maybeWhen(data: (v) => v, …)` read.
+
+Not on this path, on purpose: gates over `/settings` (`serverGate`, same idea
+over one warmed fetch), permissions from `/auth/me` (enter a gate as a
+synchronous input), and latches that choose *how* to call rather than whether a
+control exists (download jobs, media token, `StatsRepository._hasSlimListing`).
+
 ## Adding a gate
 
 1. Find out what an older server actually does: refuse (422/400), 404 the route,
@@ -192,3 +252,13 @@ the spool form hides it until this says yes.
 3. Add the enum member, a row in `introducedIn`, and a section here.
    `server_version_test.dart` fails on a member with no row, and its
    `supports()` test lists every 1.2.6 member — add yours there too.
+4. Put the latch in the repository and route every call that can settle it
+   through `watching(...)`. A 404 settles it only on a handler that raises no
+   404 of its own — read the handler, then pass `observing: treat404AsAbsent`.
+5. One line in the providers: `capabilityGate((ref) =>
+   ref.watch(xRepositoryProvider).xCapability)`. Read it as in the table above.
+6. A probe and a `warmServerAnswers` entry only if it hides an entry point that
+   nothing fetches before the user reaches it.
+7. Tests: the latch in the repository test, with a mocked version service — a
+   latch test without one reads `false` from the start and proves nothing; the
+   screen with `gate.overrideWithValue(const AsyncData(...))`.

@@ -112,7 +112,10 @@ void main() {
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);
-      expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
+      expect(
+        (await version.current())?.supports(ServerFeature.triStateCalibration),
+        isTrue,
+      );
     });
 
     test(
@@ -124,12 +127,12 @@ void main() {
         final version = ServerVersionService(dio);
 
         expect(
-          await version.supports(ServerFeature.printLogCostEnergy),
+          (await version.current())?.supports(ServerFeature.printLogCostEnergy),
           isTrue,
           reason: 'the print log serves cost, energy and sorting',
         );
         expect(
-          await version.supports(ServerFeature.crossModelVariants),
+          (await version.current())?.supports(ServerFeature.crossModelVariants),
           isTrue,
           reason: 'library variant groups are served below',
         );
