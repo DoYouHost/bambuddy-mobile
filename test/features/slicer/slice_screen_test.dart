@@ -14,6 +14,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -167,13 +168,13 @@ void main() {
         // Inert by default: without these the bar probes the pipeline routes
         // over a real Dio and leaves a hanging timer, the same trap as
         // [inertFirmwareOverride].
-        pipelinesSupportedProvider.overrideWith(
-          (ref) async => pipelinesSupported,
+        pipelinesSupportedProvider.overrideWithValue(
+          AsyncData(pipelinesSupported),
         ),
         pipelinesProvider.overrideWith((ref) async => pipelines),
         // Reaches `currentUserProvider` and the repository's observed latch,
         // neither of which these tests stand up.
-        canWritePipelinesProvider.overrideWith((ref) async => true),
+        canWritePipelinesProvider.overrideWithValue(const AsyncData(true)),
       ],
     );
     await tester.tap(find.text('open'));

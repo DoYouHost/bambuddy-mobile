@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
+import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../queue/queue_providers.dart';
 
 /// Starts, once for the whole shell, every server answer a screen asks for the
@@ -24,6 +25,7 @@ import '../queue/queue_providers.dart';
 void warmServerAnswers(void Function(ProviderListenable<Object?>) keep) {
   keep(serverSettingsProvider);
   keep(serverVersionProvider);
+  keep(pipelinesSupportedProvider);
 }
 
 /// Main shell scaffold with the modernized ("2a") bottom navigation bar.

@@ -667,7 +667,7 @@ abstract final class Endpoints {
   /// **404 on a server older than 0.2.4.9**, which is the whole compatibility
   /// story for this feature: every pipeline route landed in one server commit
   /// and the wire schemas have not moved since, so presence and permission are
-  /// all there is to ask — see [PipelinesRepository.isSupported].
+  /// all there is to ask — see [PipelinesRepository.readCapability].
   static const slicerPipelines = '$apiPrefix/slicer-pipelines/';
 
   /// One pipeline: `GET`, `PUT` (partial — only the keys present are written)

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
@@ -65,7 +63,7 @@ void main() {
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
         slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
-        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
+        canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
       ],
     );
     await tester.pumpAndSettle();
@@ -105,45 +103,52 @@ void main() {
       expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
     });
 
-    testWidgets('appears once the gate settles after the sheet is already open', (
-      tester,
-    ) async {
-      // The sheet is built in its own route, so a gate read from the screen's
-      // `ref` cannot rebuild it. This gate is a FutureProvider — it is
-      // unresolved for the first frames — so reading it at build time hides the
-      // action on a server that does have pipelines.
-      final gate = Completer<bool>();
-      final file = _file();
-      await pumpPhone(
-        tester,
-        const FileManagerScreen(),
-        overrides: [
-          noServerProfileOverride,
-          fileManagerProvider.overrideWith(
-            () => _FakeNotifier(FileManagerState(files: [file])),
-          ),
-          libraryStatsProvider.overrideWith(
-            (ref) async => const LibraryStats(),
-          ),
-          libraryTagsProvider.overrideWith((ref) async => const []),
-          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
-          canRunPipelinesProvider.overrideWith((ref) => gate.future),
-        ],
-      );
-      await tester.pumpAndSettle();
-      await openFileSheet(tester, file);
+    testWidgets(
+      'appears once the gate settles after the sheet is already open',
+      (tester) async {
+        // The sheet is built in its own route, so a gate read from the screen's
+        // `ref` cannot rebuild it. The gate can still be unanswered when the
+        // sheet opens (the probe is out), so reading it once at build time hides
+        // the action on a server that does have pipelines.
+        final gate = StateProvider<AsyncValue<bool>>(
+          (_) => const AsyncLoading(),
+        );
+        final file = _file();
+        await pumpPhone(
+          tester,
+          const FileManagerScreen(),
+          overrides: [
+            noServerProfileOverride,
+            fileManagerProvider.overrideWith(
+              () => _FakeNotifier(FileManagerState(files: [file])),
+            ),
+            libraryStatsProvider.overrideWith(
+              (ref) async => const LibraryStats(),
+            ),
+            libraryTagsProvider.overrideWith((ref) async => const []),
+            slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+            canRunPipelinesProvider.overrideWith((ref) => ref.watch(gate)),
+          ],
+        );
+        await tester.pumpAndSettle();
+        await openFileSheet(tester, file);
 
-      expect(
-        find.byIcon(Icons.account_tree_outlined),
-        findsNothing,
-        reason: 'nothing is claimed before the server has answered',
-      );
+        expect(
+          find.byIcon(Icons.account_tree_outlined),
+          findsNothing,
+          reason: 'nothing is claimed before the server has answered',
+        );
 
-      gate.complete(true);
-      await tester.pumpAndSettle();
+        ProviderScope.containerOf(
+          tester.element(find.byType(FileManagerScreen)),
+        ).read(gate.notifier).state = const AsyncData(
+          true,
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
-    });
+        expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      },
+    );
   });
 
   group('the listing', () {

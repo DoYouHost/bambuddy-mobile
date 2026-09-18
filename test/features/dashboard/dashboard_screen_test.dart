@@ -21,6 +21,9 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/data/pipelines_repository.dart';
+import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -384,6 +387,43 @@ void main() {
       expect(find.textContaining('Serwer '), findsNothing);
     });
   });
+
+  testWidgets(
+    'the Pipelines tile is in the first frame of a drawer the shell warmed',
+    (tester) async {
+      // The report: on a cold start the drawer opened without the tile, which
+      // then appeared and pushed the five tiles under it down. The drawer is
+      // not built while closed, so it was the first thing to ask.
+      final dio = testDio();
+      DioAdapter(dio: dio).onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(200, {'pipelines': []}),
+      );
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [
+            pipelinesRepositoryProvider.overrideWithValue(
+              PipelinesRepository(dio),
+            ),
+            serverSettingsOverride(const {}),
+            serverVersionProvider.overrideWith((ref) => null),
+            serverVersionLabelProvider.overrideWith((ref) => null),
+          ],
+        ),
+      );
+      final shell = ProviderScope.containerOf(
+        tester.element(find.byType(DashboardScreen)),
+      );
+      warmServerAnswers((answer) => shell.listen(answer, (_, _) {}));
+      await settle(tester);
+
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await tester.pump();
+
+      expect(byLogId('drawer.pipelines'), findsOneWidget);
+    },
+  );
 
   testWidgets('the drawer leads to app settings, not to notifications', (
     tester,

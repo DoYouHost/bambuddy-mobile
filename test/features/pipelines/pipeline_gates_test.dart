@@ -74,7 +74,7 @@ void main() {
         },
       );
 
-      expect(await container.read(canRunPipelinesProvider.future), isTrue);
+      expect(await settledGate(container, canRunPipelinesProvider), isTrue);
     },
   );
 
@@ -91,9 +91,9 @@ void main() {
       },
     );
 
-    expect(await container.read(pipelinesSupportedProvider.future), isFalse);
-    expect(await container.read(canRunPipelinesProvider.future), isFalse);
-    expect(await container.read(canWritePipelinesProvider.future), isFalse);
+    expect(await settledGate(container, pipelinesSupportedProvider), isFalse);
+    expect(await settledGate(container, canRunPipelinesProvider), isFalse);
+    expect(await settledGate(container, canWritePipelinesProvider), isFalse);
   });
 
   test('a Viewer reads pipelines and cannot run or author one', () async {
@@ -101,9 +101,9 @@ void main() {
     routesAnswer();
     final container = session(permissions: const {Permissions.pipelinesRead});
 
-    expect(await container.read(pipelinesSupportedProvider.future), isTrue);
-    expect(await container.read(canRunPipelinesProvider.future), isFalse);
-    expect(await container.read(canWritePipelinesProvider.future), isFalse);
+    expect(await settledGate(container, pipelinesSupportedProvider), isTrue);
+    expect(await settledGate(container, canRunPipelinesProvider), isFalse);
+    expect(await settledGate(container, canWritePipelinesProvider), isFalse);
   });
 
   test(
@@ -124,16 +124,16 @@ void main() {
       );
 
       expect(
-        await container.read(canWritePipelinesProvider.future),
+        await settledGate(container, canWritePipelinesProvider),
         isFalse,
         reason: 'decided on the auth mode, not on the payload',
       );
       expect(
-        await container.read(canRunPipelinesProvider.future),
+        await settledGate(container, canRunPipelinesProvider),
         isTrue,
         reason: 'running is mapped to can_queue + can_manage_library',
       );
-      expect(await container.read(pipelinesSupportedProvider.future), isTrue);
+      expect(await settledGate(container, pipelinesSupportedProvider), isTrue);
     },
   );
 
@@ -153,8 +153,8 @@ void main() {
       permissions: const {Permissions.pipelinesRead, Permissions.pipelinesRun},
     );
 
-    expect(await container.read(pipelinesSupportedProvider.future), isFalse);
-    expect(await container.read(canRunPipelinesProvider.future), isFalse);
+    expect(await settledGate(container, pipelinesSupportedProvider), isFalse);
+    expect(await settledGate(container, canRunPipelinesProvider), isFalse);
   });
 
   test(
@@ -165,9 +165,67 @@ void main() {
       routesAnswer();
       final container = session(authMode: AuthMode.none);
 
-      expect(await container.read(pipelinesSupportedProvider.future), isTrue);
-      expect(await container.read(canRunPipelinesProvider.future), isTrue);
-      expect(await container.read(canWritePipelinesProvider.future), isTrue);
+      expect(await settledGate(container, pipelinesSupportedProvider), isTrue);
+      expect(await settledGate(container, canRunPipelinesProvider), isTrue);
+      expect(await settledGate(container, canWritePipelinesProvider), isTrue);
+    },
+  );
+
+  test('the three gates share one probe', () async {
+    routesAnswer();
+    final sent = captureRequests(dio);
+    final container = session(authMode: AuthMode.none);
+
+    await Future.wait([
+      settledGate(container, pipelinesSupportedProvider),
+      settledGate(container, canRunPipelinesProvider),
+      settledGate(container, canWritePipelinesProvider),
+    ]);
+
+    expect(sent.paths.where((p) => p == '/api/v1/slicer-pipelines/').length, 1);
+  });
+
+  test('once /auth/me says no pipelines:read, no probe is sent', () async {
+    // Only once it has answered: until then the permission is presumed, like
+    // every permission here, and a probe racing `/auth/me` meets its 403.
+    routesAnswer();
+    final sent = captureRequests(dio);
+    final container = session(permissions: const {Permissions.pipelinesRun});
+    await container.read(currentUserProvider.future);
+
+    expect(await settledGate(container, pipelinesSupportedProvider), isFalse);
+    expect(await settledGate(container, canRunPipelinesProvider), isFalse);
+    // A request is logged a few turns after it is started; give a stray probe
+    // the time to show up.
+    await pumpEventQueue();
+    expect(sent.paths, isNot(contains('/api/v1/slicer-pipelines/')));
+  });
+
+  test(
+    'unreachable at start: hidden, then shown once contact is regained',
+    () async {
+      // The session that started away from home: the probe met no network,
+      // and until this change nothing ever asked again.
+      adapter.onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.throws(
+          0,
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: '/'),
+            reason: 'offline',
+          ),
+        ),
+      );
+      final container = session(authMode: AuthMode.none);
+      container.listen(pipelinesSupportedProvider, (_, _) {});
+
+      expect(await settledGate(container, pipelinesSupportedProvider), isFalse);
+
+      routesAnswer();
+      container.read(serverContactEpochProvider.notifier).bump();
+      await pumpEventQueue();
+
+      expect(container.read(pipelinesSupportedProvider), const AsyncData(true));
     },
   );
 }

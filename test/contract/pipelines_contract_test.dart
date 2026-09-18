@@ -21,6 +21,10 @@ void main() {
       slicerRepo = SlicerRepository(dio);
     });
 
+    /// Whether this server has pipelines at all — what the app's probe asks.
+    Future<bool> pipelinesAvailable() =>
+        pipelinesRepo.list().then((_) => true, onError: (Object _) => false);
+
     test('GET /slicer/presets and /slicer/printer-models decode', () async {
       final presets = await slicerRepo.presets();
       expect(presets, isA<UnifiedPresets>());
@@ -32,8 +36,7 @@ void main() {
     test(
       'GET /slicer-pipelines/ decodes into SlicerPipeline list if supported',
       () async {
-        final supported = await pipelinesRepo.probe();
-        if (!supported) return;
+        if (!await pipelinesAvailable()) return;
 
         final pipelines = await pipelinesRepo.list();
         expect(pipelines, isA<List<SlicerPipeline>>());
@@ -47,8 +50,7 @@ void main() {
     test(
       'GET /pipeline-runs decodes into PipelineRunPage if supported',
       () async {
-        final supported = await pipelinesRepo.probe();
-        if (!supported) return;
+        if (!await pipelinesAvailable()) return;
 
         final runsPage = await pipelinesRepo.runs();
         expect(runsPage.runs, isA<List<PipelineRun>>());
