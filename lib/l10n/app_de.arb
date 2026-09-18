@@ -988,6 +988,7 @@
   "errSlotTagUnreadable": "Dieser Slot hat keinen lesbaren RFID-Tag — Spoolman verknüpft Spulen per Tag und kann diese daher nicht übernehmen. Der integrierte Bestand weist stattdessen nach Slot zu.",
   "errPrinterOffline": "Der Drucker ist offline, daher kann die App den Inhalt des Slots nicht auslesen. Verbinde ihn erneut und versuche es noch einmal.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
+  "notifEtaSoon": "gleich",
   "@notifOngoingBody": {
     "placeholders": {
       "percent": {
@@ -1001,7 +1002,7 @@
   "demoSettingsSection": "Demo",
   "demoPrintingCountTitle": "Druckende Drucker",
   "demoPrintingCountDesc": "Wie viele Drucker in der Demo gleichzeitig drucken — um zu sehen, was mehrere mit dem Dashboard und der laufenden Benachrichtigung machen.",
-  "notifOngoingMultiBody": "Ø {overall}% · {printer} {percent}% · ETA {eta}",
+  "notifOngoingMultiBody": "{printer} ({percent}% · ETA {eta})",
   "@notifOngoingMultiBody": {
     "placeholders": {
       "overall": {
@@ -1018,7 +1019,7 @@
       }
     }
   },
-  "notifOngoingMultiBodyNoEta": "Ø {overall}% · {printer} {percent}%",
+  "notifOngoingMultiBodyNoEta": "{printer} ({percent}%)",
   "@notifOngoingMultiBodyNoEta": {
     "placeholders": {
       "overall": {

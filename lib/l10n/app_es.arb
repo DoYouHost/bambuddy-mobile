@@ -988,6 +988,7 @@
   "errSlotTagUnreadable": "Esta ranura no tiene una etiqueta RFID legible — Spoolman vincula las bobinas por etiqueta, por lo que no puede admitir esta. El inventario integrado las asigna por ranura.",
   "errPrinterOffline": "La impresora está desconectada, por lo que la aplicación no puede leer lo que contiene la ranura. Vuelve a conectarla e inténtalo de nuevo.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
+  "notifEtaSoon": "enseguida",
   "@notifOngoingBody": {
     "placeholders": {
       "percent": {
@@ -1001,7 +1002,7 @@
   "demoSettingsSection": "Demo",
   "demoPrintingCountTitle": "Impresoras imprimiendo",
   "demoPrintingCountDesc": "Cuántas impresoras de la demo imprimen a la vez, para ver qué hacen varias con el panel y con la notificación permanente.",
-  "notifOngoingMultiBody": "Promedio {overall}% · {printer} {percent}% · ETA {eta}",
+  "notifOngoingMultiBody": "{printer} ({percent}% · ETA {eta})",
   "@notifOngoingMultiBody": {
     "placeholders": {
       "overall": {
@@ -1018,7 +1019,7 @@
       }
     }
   },
-  "notifOngoingMultiBodyNoEta": "Promedio {overall}% · {printer} {percent}%",
+  "notifOngoingMultiBodyNoEta": "{printer} ({percent}%)",
   "@notifOngoingMultiBodyNoEta": {
     "placeholders": {
       "overall": {

@@ -1,12 +1,21 @@
+import 'dart:convert';
+
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/print_monitor_task_handler.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 // Not re-exported by the library above, and the only seam the plugin offers:
 // swapping this out is what keeps `stopService` off a channel no test has.
 import 'package:flutter_foreground_task/flutter_foreground_task_platform_interface.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 /// Stands in for the plugin's platform channel, which a test has no engine for.
 ///
@@ -143,6 +152,135 @@ void main() {
       await pumpEventQueue();
 
       expect(DateTimeFormats.system().use24Hour, fromLocale);
+    });
+  });
+
+  group('the ongoing notification goes out natively when it can', () {
+    // The same channel name `FgsNotificationService` holds. Declared here rather
+    // than exported from the library: the name is the contract with the Kotlin
+    // side, and a test that reads it from the code under test would pass while
+    // the two drifted apart.
+    const channel = MethodChannel(
+      'page.codeberg.morganmlgman.bambuddy/ongoing',
+    );
+
+    late List<MethodCall> calls;
+
+    /// Installs a handler answering [answer]; null leaves the channel unserved,
+    /// which is what a `MissingPluginException` looks like from Dart.
+    void serve(Object? answer) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return answer;
+          });
+    }
+
+    FgsNotificationService build() => FgsNotificationService(
+      RecordingNotifications(),
+      lookupAppLocalizations(const Locale('en')),
+    );
+
+    setUp(() => calls = []);
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    test('a progress update reaches the channel and not the plugin', () async {
+      serve(true);
+
+      await build().showOngoing(title: 'cube.3mf', body: '42%', progress: 42);
+
+      expect(calls.single.method, 'show');
+      expect(calls.single.arguments, {
+        'title': 'cube.3mf',
+        'body': '42%',
+        'progress': 42,
+      });
+      expect(platform.updates, isEmpty, reason: 'the plugin was not asked');
+    });
+
+    test('clearing sends a null progress', () async {
+      // The transition that matters on Android 16: a null is what drops the
+      // ProgressStyle, the status-bar chip and the promotion request. A test on
+      // `showOngoing` alone never exercises it.
+      serve(true);
+
+      await build().clearOngoing();
+
+      expect(calls.single.arguments['progress'], isNull);
+      expect(platform.updates, isEmpty);
+    });
+
+    test('a refusal falls back to the plugin with the same content', () async {
+      // `false` is the native side saying it had no notification to rebuild —
+      // the race with `startForeground`, and every OEM that refuses the
+      // recovery. Losing the bar is fine; losing the notification is not.
+      serve(false);
+
+      await build().showOngoing(title: 'cube.3mf', body: '42%', progress: 42);
+
+      expect(calls, hasLength(1));
+      expect(platform.updates.single, ('cube.3mf', '42%'));
+    });
+
+    test('an unserved channel falls back the same way', () async {
+      // The watch flavor, which strips the Application that registers the
+      // handler — and every test that installs none.
+      await build().showOngoing(title: 'cube.3mf', body: '42%', progress: 42);
+
+      expect(platform.updates.single, ('cube.3mf', '42%'));
+    });
+
+    test('a re-post after a swipe carries the progress, not a null', () async {
+      // Android 14+ lets the user swipe the service's notification away. What
+      // comes back has to be what was there, bar included.
+      serve(true);
+      final fgs = build();
+      await fgs.showOngoing(title: 'cube.3mf', body: '42%', progress: 42);
+
+      await fgs.repost();
+
+      expect(calls, hasLength(2));
+      expect(calls.last.arguments['progress'], 42);
+      expect(calls.last.arguments['title'], 'cube.3mf');
+    });
+
+    test('the log records a change of path, not every post', () async {
+      // A print posts hundreds of these and the answer is the same every
+      // time; what a report needs is whether this device ever took the
+      // native path at all.
+      final recorder = DiagnosticRecorder(
+        sessions: MemorySessionStore(),
+        redactor: bambuddyRedactor,
+        sessionDuration: recordingLimit,
+        sessionBytes: recordingSizeLimit,
+        loadFacts: () async =>
+            const SessionFacts(app: '0.13.0+1300000', extra: {}),
+        resolveDirectory: () async => null,
+      );
+      addTearDown(recorder.discard);
+
+      await recorder.start();
+      serve(true);
+      final fgs = build();
+      await fgs.showOngoing(title: 'a', body: '1%', progress: 1);
+      await fgs.showOngoing(title: 'a', body: '2%', progress: 2);
+      serve(false);
+      await fgs.showOngoing(title: 'a', body: '3%', progress: 3);
+      final jsonl = await recorder.stop();
+
+      final records = [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, Object?> row
+              when row['evt'] == 'ongoing_native')
+            row,
+      ];
+      expect(records, hasLength(2), reason: 'three posts, two paths');
+      expect(records.first['native'], true);
+      expect(records.last['native'], false);
     });
   });
 }

@@ -483,6 +483,51 @@ void main() {
     expect(find.textContaining('Następna wolna'), findsOneWidget);
   });
 
+  testWidgets('a printer still heating is not the next one free', (
+    tester,
+  ) async {
+    // The server's `remaining_time` defaults to zero and stays there until the
+    // firmware sends its first estimate, so a machine that has just started
+    // reports the same zero as one a minute from done. Ordered on that number
+    // alone, the one that had barely begun was announced as the next to free
+    // up — ahead of a print with twelve minutes left.
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [
+            PrinterWithStatus(
+              printer: Printer(id: 1, name: 'X1C Warsztat'),
+              status: PrinterStatus(
+                id: 1,
+                connected: true,
+                state: 'PREPARE',
+                progress: 0,
+                remainingTime: 0,
+              ),
+            ),
+            PrinterWithStatus(
+              printer: Printer(id: 2, name: 'A1 mini'),
+              status: PrinterStatus(
+                id: 2,
+                connected: true,
+                state: 'RUNNING',
+                progress: 87,
+                remainingTime: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.textContaining('A1 mini'), findsWidgets);
+    expect(
+      find.textContaining('Następna wolna: X1C Warsztat'),
+      findsNothing,
+      reason: 'heating, so nothing is known about when it frees up',
+    );
+  });
+
   testWidgets('a service that outlived the previous launch is stopped', (
     tester,
   ) async {

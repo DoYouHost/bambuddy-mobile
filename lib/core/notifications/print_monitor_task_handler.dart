@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -68,7 +69,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
   FinishPhotoNotifier? _finishPhoto;
-  _FgsNotificationService? _fgs;
+  FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
   ProactiveTokenRefresher? _tokenRefresher;
@@ -196,10 +197,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     } on Object catch (error) {
       NotifProbe.initFailed(error);
     }
-    final fgs = _FgsNotificationService(alerts, l10n);
+    final fgs = FgsNotificationService(alerts, l10n);
     _fgs = fgs;
     // What the monitors talk to: the decorator records every alert handed to the
-    // platform. Outside `_FgsNotificationService`, not inside it — the ongoing
+    // platform. Outside `FgsNotificationService`, not inside it — the ongoing
     // notification there does not delegate to [alerts], so a decorator underneath
     // would never see it. `_fgs` itself stays raw for [repost].
     // Wrapped so a print-ended alert leaves a record the finish photo can find
@@ -628,12 +629,23 @@ class PrintMonitorTaskHandler extends TaskHandler {
   }
 }
 
+/// Native side of the ongoing notification — `OngoingNotificationHost`, served
+/// on the foreground service's own engine. Absent in the watch flavor and in
+/// tests that install no handler, which is what the fallback below is for.
+const _ongoingChannel = MethodChannel(
+  'page.codeberg.morganmlgman.bambuddy/ongoing',
+);
+
 /// [NotificationService] for the background isolate: ongoing progress updates
 /// are sent to the foreground service's notification itself (there's only one and it's
 /// mandatory, so we don't multiply notifications). Loud alerts (finished/failed) are
 /// sent via the regular channel through [LocalNotificationService].
-class _FgsNotificationService implements NotificationService {
-  _FgsNotificationService(this._alerts, AppLocalizations l10n)
+///
+/// Public for its tests only — nothing outside this library builds one. Reaching
+/// it through [PrintMonitorTaskHandler] would mean standing up a whole profile
+/// and an API client to exercise three notification calls.
+class FgsNotificationService implements NotificationService {
+  FgsNotificationService(this._alerts, AppLocalizations l10n)
     : _l10n = l10n,
       _title = l10n.bgServiceTitle,
       _text = l10n.bgServiceText;
@@ -645,6 +657,11 @@ class _FgsNotificationService implements NotificationService {
   // after the user swipes it ([repost]).
   String _title;
   String _text;
+  int? _progress;
+
+  /// Which way the last post went, so [NotifProbe.ongoingNative] records a
+  /// change of path rather than one line per update.
+  bool? _lastNative;
 
   @override
   Future<void> init() => _alerts.init();
@@ -660,10 +677,8 @@ class _FgsNotificationService implements NotificationService {
   }) async {
     _title = title;
     _text = body;
-    await FlutterForegroundTask.updateService(
-      notificationTitle: title,
-      notificationText: body,
-    );
+    _progress = progress;
+    await _post();
   }
 
   @override
@@ -671,18 +686,51 @@ class _FgsNotificationService implements NotificationService {
     // Nothing printing → FGS notification returns to neutral "monitoring".
     _title = _l10n.bgServiceTitle;
     _text = _l10n.bgServiceText;
+    _progress = null;
+    await _post();
+  }
+
+  /// Re-posts the ongoing notification with the last content — after the user
+  /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
+  Future<void> repost() => _post();
+
+  /// Posts through [OngoingNotificationHost], which is what puts a progress bar
+  /// on the notification at all, and falls back to the plugin when it cannot.
+  ///
+  /// The fallback is not decoration: it is the only thing between a channel that
+  /// refused and a foreground service with no visible notification. It reads the
+  /// fields rather than arguments captured before the await on purpose — if
+  /// another update overtook this one, the newer content is the one that should
+  /// land, and both calls then finish on the same text.
+  Future<void> _post() async {
+    try {
+      final native = await _ongoingChannel.invokeMethod<bool>('show', {
+        'title': _title,
+        'body': _text,
+        'progress': _progress,
+      });
+      if (native == true) {
+        _noteNative(true);
+        return;
+      }
+    } on MissingPluginException {
+      // No native side on this build: the watch flavor, and every test that
+      // installs no handler.
+    } on PlatformException {
+      // Never worth losing the notification over.
+    }
+    _noteNative(false);
     await FlutterForegroundTask.updateService(
       notificationTitle: _title,
       notificationText: _text,
     );
   }
 
-  /// Re-posts the ongoing notification with the last content — after the user
-  /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
-  Future<void> repost() => FlutterForegroundTask.updateService(
-    notificationTitle: _title,
-    notificationText: _text,
-  );
+  void _noteNative(bool native) {
+    if (_lastNative == native) return;
+    _lastNative = native;
+    NotifProbe.ongoingNative(native: native);
+  }
 
   @override
   Future<void> showAlert({

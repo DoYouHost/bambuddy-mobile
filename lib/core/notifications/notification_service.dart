@@ -163,7 +163,7 @@ class LocalNotificationService implements NotificationService {
   }
 
   // No-ops: the only production `PrintMonitor` runs in the background
-  // isolate against `_FgsNotificationService` (see
+  // isolate against `FgsNotificationService` (see
   // `print_monitor_task_handler.dart`), which routes the ongoing
   // notification through `FlutterForegroundTask.updateService` instead — the
   // foreground service's own notification is the "ongoing" one, and having a

@@ -1330,11 +1330,11 @@ class _SummaryHeader extends ConsumerWidget {
                   (p.status?.isPrinting ?? false),
             )
             .toList()
-          ..sort(
-            (a, b) => (a.status!.remainingTime ?? 1 << 30).compareTo(
-              b.status!.remainingTime ?? 1 << 30,
-            ),
-          );
+          // Through the model's rule, not on `remainingTime` alone: that field
+          // is zero both for a machine still heating and for one a minute from
+          // done, and sorted raw the heating one was announced as the next to
+          // free up. The ongoing notification names this same printer.
+          ..sort((a, b) => a.status!.etaRank.compareTo(b.status!.etaRank));
 
     final next = active.isEmpty ? null : active.first;
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
