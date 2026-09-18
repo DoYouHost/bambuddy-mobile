@@ -253,9 +253,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           ),
         // Server 1.2.6+ only, and meaningless below two files — a group of one
         // expresses no choice and the server refuses it.
-        if (ref
-            .watch(crossModelVariantsProvider)
-            .maybeWhen(data: (v) => v, orElse: () => false))
+        if (ref.watch(crossModelVariantsProvider).orFalse)
           logTag(
             'files.group_variants',
             IconButton(

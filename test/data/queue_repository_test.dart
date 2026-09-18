@@ -675,7 +675,7 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isFalse);
+      expect(await repo.triStateCapability.supported, isFalse);
     });
 
     test('what the server actually sent beats the version number', () async {
@@ -685,7 +685,7 @@ void main() {
       // below it in every ordering.
       final repo = repoFor('0.2.5b2');
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isFalse,
         reason: 'before seeing anything — be cautious',
       );
@@ -704,7 +704,7 @@ void main() {
       await repo.fetch();
 
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isTrue,
         reason: 'strings in the response are proof, not a hint',
       );
@@ -722,7 +722,7 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isFalse);
+      expect(await repo.triStateCapability.supported, isFalse);
     });
 
     test('a response without calibration fields settles nothing', () async {
@@ -736,7 +736,7 @@ void main() {
       await repo.fetch();
 
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isTrue,
         reason: 'no observation → version decides',
       );

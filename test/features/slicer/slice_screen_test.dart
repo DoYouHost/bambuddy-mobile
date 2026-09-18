@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
@@ -136,6 +138,8 @@ void main() {
     List<SlicerPipeline> pipelines = const [],
     bool pipelinesSupported = false,
     List<OwnedFilament> owned = const [],
+    Future<UnifiedPresets>? heldPresets,
+    void Function()? onSchemaLoad,
   }) async {
     await pumpPhone(
       tester,
@@ -154,16 +158,28 @@ void main() {
       ),
       overrides: [
         slicerRepositoryProvider.overrideWithValue(repo),
-        slicerPresetsProvider.overrideWith((ref) async => presets),
+        slicerPresetsProvider.overrideWith(
+          (ref) => heldPresets ?? Future.value(presets),
+        ),
         embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
-        sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
+        sliceLayoutOptionsProvider.overrideWithValue(AsyncData(layoutOptions)),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider.overrideWith((ref) async => owned),
         filamentRequirementsProvider.overrideWith(
           (ref, arg) async => requirements,
         ),
-        processSettingsAvailableProvider.overrideWith((ref) async => available),
-        processSchemaProvider.overrideWith((ref) async => catalog),
+        // With [onSchemaLoad] the availability gate is the real one, so the
+        // test can see when the screen makes it decode the schema.
+        if (onSchemaLoad == null)
+          processSettingsAvailableProvider.overrideWithValue(
+            AsyncData(available),
+          )
+        else
+          processOverridesProvider.overrideWithValue(const AsyncData(true)),
+        processSchemaProvider.overrideWith((ref) async {
+          onSchemaLoad?.call();
+          return catalog;
+        }),
         presetValuesProvider.overrideWith((ref, arg) async => presetValues),
         // Inert by default: without these the bar probes the pipeline routes
         // over a real Dio and leaves a hanging timer, the same trap as
@@ -178,6 +194,12 @@ void main() {
       ],
     );
     await tester.tap(find.text('open'));
+    if (heldPresets != null) {
+      // A spinner is up while they load, and it never settles.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      return;
+    }
     await tester.pumpAndSettle();
   }
 
@@ -194,6 +216,29 @@ void main() {
     }
     return repo.body!;
   }
+
+  testWidgets('the process schema decodes while the presets still load', (
+    tester,
+  ) async {
+    // The card it gates is built only once the presets are in; asked from
+    // there, the decode began after that wait instead of during it.
+    final presets = Completer<UnifiedPresets>();
+    var decoding = false;
+    await openSheet(
+      tester,
+      heldPresets: presets.future,
+      onSchemaLoad: () => decoding = true,
+    );
+
+    expect(decoding, isTrue);
+
+    // One frame, not a settle: the card has to be in the frame the presets
+    // arrive in, or it still lands after the form and pushes it down.
+    presets.complete(_presets);
+    await tester.pump();
+    expect(byLogId('slice.process_settings'), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
 
   group('the shape of the form', () {
     testWidgets('the plate is a plain row, not folded behind Advanced', (

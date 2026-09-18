@@ -1,10 +1,12 @@
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -149,6 +151,75 @@ void main() {
         expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
       },
     );
+  });
+
+  group('selection mode', () {
+    /// The screen in selection mode, its variants gate the real one over a
+    /// repository whose latch the test drives.
+    Future<LibraryRepository> pumpSelecting(
+      WidgetTester tester, {
+      bool? variantsSeen,
+    }) async {
+      final repo = LibraryRepository(testDio());
+      if (variantsSeen != null) {
+        repo.variantsCapability.observe(present: variantsSeen);
+      }
+      final file = _file();
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(
+                files: [file],
+                selectionMode: true,
+                selected: {file.id},
+              ),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('a server whose listing had variants offers grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: true);
+
+      expect(byLogId('files.group_variants'), findsOneWidget);
+    });
+
+    testWidgets('an older listing, or none yet, offers no grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: false);
+      expect(byLogId('files.group_variants'), findsNothing);
+    });
+
+    testWidgets('a listing that lands with the bar open updates it', (
+      tester,
+    ) async {
+      // Asked once per opening before; a listing fetched meanwhile only
+      // counted the next time selection mode started.
+      final repo = await pumpSelecting(tester);
+      expect(byLogId('files.group_variants'), findsNothing);
+
+      repo.variantsCapability.observe(present: true);
+      await tester.pumpAndSettle();
+
+      expect(byLogId('files.group_variants'), findsOneWidget);
+    });
   });
 
   group('the listing', () {

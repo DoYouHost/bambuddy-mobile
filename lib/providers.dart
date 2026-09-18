@@ -654,11 +654,9 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 ///
 /// Asks the queue repository rather than the version service directly: it has
 /// seen the server's own payloads, and that beats reasoning from a version
-/// number (see `QueueRepository.supportsTriStateCalibration`). `autoDispose` so
-/// each time the print form opens it asks again — a queue fetch between two
-/// openings is exactly what turns "unknown" into a real answer.
-final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(queueRepositoryProvider).supportsTriStateCalibration(),
+/// number (see `QueueRepository.triStateCapability`).
+final triStateCalibrationProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
@@ -678,23 +676,20 @@ final chamberMaxTargetProvider = Provider<int>(
 /// Whether library files can be grouped as cross-model alternatives and queued
 /// as one job (server #671). Asks the library repository, which prefers what a
 /// file listing actually contained over the version number.
-///
-/// `autoDispose` so each time a library screen opens it asks again — a listing
-/// fetched in between is exactly what turns "unknown" into a real answer.
-final crossModelVariantsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(libraryRepositoryProvider).supportsCrossModelVariants(),
+final crossModelVariantsProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).variantsCapability,
 );
 
 /// Whether the slice sheet may offer `auto_orient` / `auto_arrange`.
-final sliceLayoutOptionsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsLayoutOptions(),
+final sliceLayoutOptionsProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).layoutOptionsCapability,
 );
 
 /// Whether the slice sheet may offer the process-override panel. Asks the
 /// slicer repository, which prefers what `/slicer/preset-values` answered over
 /// the version number.
-final processOverridesProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
+final processOverridesProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).processOverridesCapability,
 );
 
 /// Whether the label sheet may ask where on the sheet to start printing

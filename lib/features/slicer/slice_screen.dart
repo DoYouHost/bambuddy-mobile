@@ -124,6 +124,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
     final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
+    // Watched here, not where the cards are built: those only exist once the
+    // presets have loaded, and the schema behind the first one takes its own
+    // time to decode — asked now, both answer during the presets spinner.
+    final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
+    final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
@@ -296,9 +301,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // `process_overrides` *and* our own vendored metadata loaded —
                       // `SliceRequest` forbids no extra fields, so an older server
                       // would drop the whole map without a word.
-                      if (ref
-                          .watch(processSettingsAvailableProvider)
-                          .maybeWhen(data: (v) => v, orElse: () => false))
+                      if (processSettings)
                         _dimWhenLocked(
                           !asDesigned,
                           Card(
@@ -345,9 +348,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // Hidden entirely before server 1.2.6: the fields are dropped
                       // without a word there, and a switch that does nothing is worse
                       // than no switch. See [sliceLayoutOptionsProvider].
-                      if (ref
-                          .watch(sliceLayoutOptionsProvider)
-                          .maybeWhen(data: (v) => v, orElse: () => false))
+                      if (layoutOptions)
                         Card(
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: Column(

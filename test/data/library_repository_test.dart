@@ -256,7 +256,7 @@ void main() {
 
       await repo.listFiles();
 
-      expect(await repo.supportsCrossModelVariants(), isTrue);
+      expect(await repo.variantsCapability.supported, isTrue);
     });
 
     test('variant_count absent from the listing turns support off', () async {
@@ -268,7 +268,23 @@ void main() {
 
       await repo.listFiles();
 
-      expect(await repo.supportsCrossModelVariants(), isFalse);
+      expect(await repo.variantsCapability.supported, isFalse);
+    });
+
+    test('a tag-filtered listing answers it too', () async {
+      // The same handler and response model as the folder listing; a session
+      // that opened the library on a tag filter learned nothing before.
+      adapter.onGet(
+        '/api/v1/library/files',
+        (s) => s.reply(200, [row126()]),
+        queryParameters: {
+          'tag_ids': [4],
+        },
+      );
+
+      await repo.listFilesByTags([4]);
+
+      expect(repo.variantsCapability.observedAnswer, isTrue);
     });
 
     test('an empty listing settles nothing — the cautious no stands', () async {
@@ -284,7 +300,7 @@ void main() {
 
       // With no ServerVersionService the fallback is false — what matters is
       // that an empty list did not pin the answer.
-      expect(await repo.supportsCrossModelVariants(), isFalse);
+      expect(await repo.variantsCapability.supported, isFalse);
     });
 
     test('parses a file group', () async {

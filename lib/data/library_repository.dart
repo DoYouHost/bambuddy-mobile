@@ -38,12 +38,10 @@ class LibraryRepository {
   /// its presence answers outright what a version string can only suggest.
   /// Unknown → hidden, so the grouping actions stay away rather than 404ing on
   /// an older server.
-  late final _variants = ObservedCapability(
+  late final variantsCapability = ObservedCapability(
     ServerFeature.crossModelVariants,
     _serverVersion,
   );
-
-  Future<bool> supportsCrossModelVariants() => _variants.supported;
 
   /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
   /// the raw rows rather than the model, because the model cannot distinguish
@@ -52,7 +50,7 @@ class LibraryRepository {
   void _observeVariantSupport(List<dynamic> rows) {
     final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
     if (firstMap == null) return;
-    _variants.observe(present: firstMap.containsKey('variant_count'));
+    variantsCapability.observe(present: firstMap.containsKey('variant_count'));
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).
@@ -102,6 +100,7 @@ class LibraryRepository {
       );
       return res.data ?? const [];
     });
+    _observeVariantSupport(body);
     return parseJsonList(body, LibraryFile.fromJson);
   }
 
@@ -187,7 +186,7 @@ class LibraryRepository {
 
   // --- Variant groups (server #671, 1.2.6+) ---
   //
-  // Gate every entry point on [supportsCrossModelVariants]: an older server
+  // Gate every entry point on [variantsCapability]: an older server
   // 404s these paths, which would surface as a generic failure.
 
   /// GET /library/variant-groups/by-file/{id} — the group [fileId] belongs to.
