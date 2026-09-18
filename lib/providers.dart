@@ -573,13 +573,18 @@ final serverVersionServiceProvider = Provider<ServerVersionService>(
 /// `PrinterStatusesNotifier`, whose idea of "the line is up" (a WebSocket
 /// frame or a poll after a gap, including every return from the background)
 /// is the app's only one.
-final serverContactEpochProvider = NotifierProvider<ServerContactEpoch, int>(
-  ServerContactEpoch.new,
-);
+final serverContactEpochProvider = NotifierProvider<Epoch, int>(Epoch.new);
 
-/// Never reset, not even for a new server: what it paces lives in the
-/// repositories and the version service, which a new server rebuilds anyway.
-class ServerContactEpoch extends Notifier<int> {
+/// How many times the user has asked the dashboard to refresh — the signal for
+/// every capability gate to drop the refusals its latch recorded before it. A
+/// control a 403 hid never calls its route again, so a permission granted on
+/// the server since would otherwise wait for a restart.
+final refusalsForgottenProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// A counter that only goes up. Never reset, not even for a new server: what
+/// it paces lives in the repositories and the version service, which a new
+/// server rebuilds anyway.
+class Epoch extends Notifier<int> {
   @override
   int build() => 0;
 
@@ -881,6 +886,7 @@ Provider<AsyncValue<bool>> capabilityGate(
     return AsyncError(error, stack);
   }
   final epoch = ref.watch(serverContactEpochProvider);
+  latch.forgetRefusalsBefore(ref.watch(refusalsForgottenProvider));
   void heard() => ref.invalidateSelf();
   latch.addListener(heard);
   ref.onDispose(() => latch.removeListener(heard));

@@ -632,6 +632,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // repositories drops the latch; the "supported" providers watch them.
         ref.invalidate(heaterHistoryRepositoryProvider);
         ref.invalidate(amsHistoryRepositoryProvider);
+        // The same for every other capability a 403 hid (pipelines, archive
+        // media, spool presets, tags…) — the refusal only, not the repository
+        // and the data behind it.
+        ref.read(refusalsForgottenProvider.notifier).bump();
         // Nothing polls the scheduled runs, so this is where a row someone
         // added from the web — or one the scheduler has since picked up —
         // reaches the card.

@@ -238,6 +238,60 @@ void main() {
     );
   });
 
+  group('pull-to-refresh', () {
+    void forget() => container.read(refusalsForgottenProvider.notifier).bump();
+
+    test('a refused gate asks the version again', () async {
+      final latch = ObservedCapability(_feature, version);
+      final gate = capabilityGate((_) => latch);
+      final seen = listen(gate);
+      await answerVersion(_newer);
+      latch.observeRefusal();
+      await pumpEventQueue();
+      expect(seen.last, const AsyncData(false));
+
+      forget();
+      await pumpEventQueue();
+
+      expect(seen.last, const AsyncData(true));
+    });
+
+    test('a probe the server refused is sent again', () async {
+      final probes = <Completer<void>>[];
+      late final ObservedCapability latch;
+      latch = ObservedCapability.unversioned(
+        whenUnknown: false,
+        probe: () {
+          final reply = Completer<void>();
+          probes.add(reply);
+          return latch.watching(() => reply.future);
+        },
+      );
+      final gate = capabilityGate((_) => latch);
+      final seen = listen(gate);
+      probes.single.completeError(
+        DioException(
+          requestOptions: RequestOptions(path: '/x'),
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: RequestOptions(path: '/x'),
+            statusCode: 403,
+          ),
+        ),
+      );
+      await pumpEventQueue();
+      expect(seen.last, const AsyncData(false));
+
+      forget();
+      await pumpEventQueue();
+      expect(probes, hasLength(2));
+
+      probes.last.complete();
+      await pumpEventQueue();
+      expect(seen.last, const AsyncData(true));
+    });
+  });
+
   group('and', () {
     const loading = AsyncLoading<bool>();
     const yes = AsyncData(true);

@@ -321,6 +321,27 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
+  testWidgets('pull-to-refresh tells every gate to forget its refusals', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+      ),
+    );
+    await settle(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DashboardScreen)),
+    );
+
+    await tester.fling(find.text('X1C'), const Offset(0, 400), 1000);
+    await settle(tester);
+
+    expect(container.read(refusalsForgottenProvider), 1);
+  });
+
   testWidgets('the drawer icon decodes to its tile, not to 1024 px', (
     tester,
   ) async {

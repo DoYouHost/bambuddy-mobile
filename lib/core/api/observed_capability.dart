@@ -57,6 +57,7 @@ class ObservedCapability {
 
   bool? _observed;
   bool _refused = false;
+  int? _refusalsForgottenAt;
   bool _probing = false;
   bool _probeFailed = false;
   int? _failedAtEpoch;
@@ -104,6 +105,16 @@ class ObservedCapability {
     _refused = true;
     _probeFailed = false;
   });
+
+  /// Drops a refusal recorded before [epoch] ([refusalsForgottenProvider]).
+  /// The first call only marks where this latch starts, so a refusal heard
+  /// before it stands. Silent: a gate calls this from its build and derives
+  /// from the new state anyway.
+  void forgetRefusalsBefore(int epoch) {
+    final since = _refusalsForgottenAt;
+    _refusalsForgottenAt = epoch;
+    if (since != null && epoch > since) _refused = false;
+  }
 
   /// Sends the probe unless something has already been heard, one is in flight,
   /// or one already went unanswered at this [epoch] — the count of regained

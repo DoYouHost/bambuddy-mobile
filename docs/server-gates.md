@@ -212,6 +212,11 @@ ObservedCapability ──notifies──► capabilityGate(latch) ─────
   including every return from the background. A version read or a probe that
   met no network is asked again once per bump — an app started away from the
   LAN recovers without a restart.
+- **`refusalsForgottenProvider`** is bumped by the dashboard's pull-to-refresh:
+  every gate drops the refusals its latch recorded before it. A control a 403
+  hid never calls its route again, so a permission granted on the server would
+  otherwise wait for a restart. Refusals only — a 404 is the server, and the
+  repositories (with their data) stay.
 - **A probe** (`ObservedCapability.unversioned(probe: …)`) is for a gate that
   hides an entry point nothing else asks about early — pipelines, whose drawer
   tile is built only when the drawer opens. Warm it in `warmServerAnswers`.

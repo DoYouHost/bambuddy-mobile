@@ -412,4 +412,45 @@ void main() {
       expect(plain.probeFailed, isFalse);
     });
   });
+
+  group('forgetting refusals', () {
+    test('a refusal heard before the latch was first asked stands', () {
+      final cap = ObservedCapability.unversioned()..observeRefusal();
+
+      cap.forgetRefusalsBefore(3);
+
+      expect(cap.observedAnswer, isFalse);
+    });
+
+    test('a later count drops a refusal, and only a refusal', () {
+      final refused = ObservedCapability.unversioned()
+        ..forgetRefusalsBefore(0)
+        ..observeRefusal();
+      final absent = ObservedCapability.unversioned()
+        ..forgetRefusalsBefore(0)
+        ..observe(present: false);
+
+      refused.forgetRefusalsBefore(0);
+      expect(refused.observedAnswer, isFalse, reason: 'same count: kept');
+
+      refused.forgetRefusalsBefore(1);
+      absent.forgetRefusalsBefore(1);
+      expect(refused.observedAnswer, isNull);
+      expect(
+        absent.observedAnswer,
+        isFalse,
+        reason: 'a 404 is the server, not this session',
+      );
+    });
+
+    test('a refusal heard after the drop stands until the next one', () {
+      final cap = ObservedCapability.unversioned()..forgetRefusalsBefore(0);
+      cap.forgetRefusalsBefore(1);
+      cap.observeRefusal();
+
+      cap.forgetRefusalsBefore(1);
+
+      expect(cap.observedAnswer, isFalse);
+    });
+  });
 }
