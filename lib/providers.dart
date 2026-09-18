@@ -662,20 +662,17 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
 );
 
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
-/// 60 before it and whenever the version is not known yet.
-///
-/// Not `autoDispose`: the dashboard reads this on every gauge rebuild, and the
-/// underlying version is cached in the service anyway. Rebuilt when
-/// [serverVersionServiceProvider] is, so switching servers cannot carry the old
-/// ceiling over.
+/// 60 before it and whenever the version is not known yet. A value, not a gate:
+/// the default until known, never a loading state.
 ///
 /// One of the two gates with nothing to observe — see
 /// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
 /// other. Every other capability provider here asks a repository instead,
 /// because a repository has seen the server's own answers and that outranks
 /// reasoning from a version number.
-final chamberMaxTargetProvider = FutureProvider<int>(
-  (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
+final chamberMaxTargetProvider = Provider<int>(
+  (ref) =>
+      ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued

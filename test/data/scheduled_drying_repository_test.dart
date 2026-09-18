@@ -245,14 +245,14 @@ void main() {
   group('whether to offer scheduling at all', () {
     test('the version decides until a request has', () async {
       replyVersion('1.2.5.3');
-      expect(await repo.supportsScheduling(), isFalse);
+      expect(await repo.schedulingCapability.supported, isFalse);
 
       final newer = ScheduledDryingRepository(dio, ServerVersionService(dio));
       adapter.onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'x/y'}),
       );
-      expect(await newer.supportsScheduling(), isTrue);
+      expect(await newer.schedulingCapability.supported, isTrue);
     });
 
     test('an unknown version does not offer a form that would 404', () async {
@@ -261,12 +261,12 @@ void main() {
         (s) => s.reply(500, {'detail': 'boom'}),
       );
 
-      expect(await repo.supportsScheduling(), isFalse);
+      expect(await repo.schedulingCapability.supported, isFalse);
     });
 
     test('with no version service at all it stays off', () async {
       expect(
-        await ScheduledDryingRepository(dio).supportsScheduling(),
+        await ScheduledDryingRepository(dio).schedulingCapability.supported,
         isFalse,
       );
     });
@@ -277,11 +277,11 @@ void main() {
         '/api/v1/scheduled-dryings',
         (s) => s.reply(404, {'detail': 'Not Found'}),
       );
-      expect(await repo.supportsScheduling(), isTrue);
+      expect(await repo.schedulingCapability.supported, isTrue);
 
       await repo.list();
 
-      expect(await repo.supportsScheduling(), isFalse);
+      expect(await repo.schedulingCapability.supported, isFalse);
     });
 
     test('cancelling something already gone does not hide scheduling', () async {
@@ -301,7 +301,7 @@ void main() {
         throwsA(isA<AppApiException>()),
         reason: 'the user pressed Cancel, so the failure still reaches them',
       );
-      expect(await repo.supportsScheduling(), isTrue);
+      expect(await repo.schedulingCapability.supported, isTrue);
     });
 
     test('a 403 hides it too, which no version could have said', () async {
@@ -313,7 +313,7 @@ void main() {
 
       await repo.list();
 
-      expect(await repo.supportsScheduling(), isFalse);
+      expect(await repo.schedulingCapability.supported, isFalse);
     });
 
     test('a listing that arrives outranks a version that said no', () async {
@@ -322,11 +322,11 @@ void main() {
         '/api/v1/scheduled-dryings',
         (s) => s.reply(200, <Object>[]),
       );
-      expect(await repo.supportsScheduling(), isFalse);
+      expect(await repo.schedulingCapability.supported, isFalse);
 
       await repo.list();
 
-      expect(await repo.supportsScheduling(), isTrue);
+      expect(await repo.schedulingCapability.supported, isTrue);
     });
 
     test('a 500 says nothing about the route either way', () async {
@@ -338,7 +338,7 @@ void main() {
 
       await expectLater(repo.list(), throwsA(isA<AppApiException>()));
 
-      expect(await repo.supportsScheduling(), isTrue);
+      expect(await repo.schedulingCapability.supported, isTrue);
     });
   });
 

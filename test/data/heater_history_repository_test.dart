@@ -117,21 +117,21 @@ void main() {
     /// threshold must catch both schemes.
     test('server version: 0.2.4.7 no, 0.2.4.8 and 1.2.5 yes', () async {
       replyVersion('0.2.4.7');
-      expect(await repo.supportsHistory(), isFalse);
+      expect(await repo.historyCapability.supported, isFalse);
 
       final newer = HeaterHistoryRepository(dio, ServerVersionService(dio));
       adapter.onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': '0.2.4.8', 'repo': 'x/y'}),
       );
-      expect(await newer.supportsHistory(), isTrue);
+      expect(await newer.historyCapability.supported, isTrue);
 
       final current = HeaterHistoryRepository(dio, ServerVersionService(dio));
       adapter.onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': '1.2.5.1', 'repo': 'x/y'}),
       );
-      expect(await current.supportsHistory(), isTrue);
+      expect(await current.historyCapability.supported, isTrue);
     });
 
     test('an unknown version is not an old server — the chart stays', () async {
@@ -140,11 +140,14 @@ void main() {
         (s) => s.reply(500, {'detail': 'boom'}),
       );
 
-      expect(await repo.supportsHistory(), isTrue);
+      expect(await repo.historyCapability.supported, isTrue);
     });
 
     test('without a version service it also stays', () async {
-      expect(await HeaterHistoryRepository(dio).supportsHistory(), isTrue);
+      expect(
+        await HeaterHistoryRepository(dio).historyCapability.supported,
+        isTrue,
+      );
     });
 
     test(
@@ -156,11 +159,11 @@ void main() {
           (s) => s.reply(404, {'detail': 'Not Found'}),
           queryParameters: {'hours': 24},
         );
-        expect(await repo.supportsHistory(), isTrue);
+        expect(await repo.historyCapability.supported, isTrue);
 
         await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
 
-        expect(await repo.supportsHistory(), isFalse);
+        expect(await repo.historyCapability.supported, isFalse);
       },
     );
 
@@ -176,7 +179,7 @@ void main() {
 
         await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
 
-        expect(await repo.supportsHistory(), isFalse);
+        expect(await repo.historyCapability.supported, isFalse);
       },
     );
 
@@ -195,11 +198,11 @@ void main() {
         );
 
       await expectLater(() => repo.fetch(3), throwsA(isA<AppApiException>()));
-      expect(await repo.supportsHistory(), isFalse);
+      expect(await repo.historyCapability.supported, isFalse);
 
       await repo.fetch(3, hours: 6);
 
-      expect(await repo.supportsHistory(), isTrue);
+      expect(await repo.historyCapability.supported, isTrue);
     });
   });
 }

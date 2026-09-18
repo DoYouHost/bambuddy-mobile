@@ -30,10 +30,10 @@ final amsHistoryDataProvider = FutureProvider.autoDispose
     });
 
 /// Whether the AMS humidity/temperature chips open a chart at all: the route is
-/// there and this session may read it. Invalidated by the sheet after a failed
-/// fetch, so a 403 leaves plain readings rather than a tap that only errors.
-final amsHistorySupportedProvider = FutureProvider<bool>(
-  (ref) => ref.watch(amsHistoryRepositoryProvider).supportsHistory(),
+/// there and this session may read it. A 403 inside the sheet leaves plain
+/// readings rather than a tap that only errors.
+final amsHistorySupportedProvider = capabilityGate(
+  (ref) => ref.watch(amsHistoryRepositoryProvider).historyCapability,
 );
 
 /// AMS "Good"/"Fair" status thresholds. Chart reference lines. Sourced from
@@ -120,11 +120,6 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
       amsId: widget.amsId,
       hours: _hours,
     );
-    // A failure is also an observation about the route: re-ask whether the
-    // chips should still open a chart.
-    ref.listen(amsHistoryDataProvider(query), (_, next) {
-      if (next.hasError) ref.invalidate(amsHistorySupportedProvider);
-    });
     final async = ref.watch(amsHistoryDataProvider(query));
     final thresholds = ref.watch(amsThresholdsProvider);
     final good = isHumidity ? thresholds.humidityGood : thresholds.tempGood;

@@ -77,11 +77,6 @@ class ServerVersionService {
   Future<bool> supports(ServerFeature feature) async =>
       (await current())?.supports(feature) ?? false;
 
-  /// Unknown → 60, the ceiling every server generation accepts. See
-  /// [ServerVersion.chamberMaxTargetC] for why this one cannot be observed.
-  Future<int> chamberMaxTargetC() async =>
-      (await current())?.chamberMaxTargetC ?? 60;
-
   /// The server's own version string, for the bug-report header and the two
   /// screens that show it. `null` until a read succeeds, and after one that
   /// could not reach the server at all.

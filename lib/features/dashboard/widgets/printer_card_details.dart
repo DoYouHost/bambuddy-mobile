@@ -624,9 +624,7 @@ class _AmsSection extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
-    final history = ref
-        .watch(amsHistorySupportedProvider)
-        .maybeWhen(data: (v) => v, orElse: () => false);
+    final history = ref.watch(amsHistorySupportedProvider).orFalse;
 
     VoidCallback? openHistory(AmsHistoryMetric metric) => history
         ? () => showAmsHistorySheet(
@@ -1391,10 +1389,13 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   /// Before any answer the sheet shows nothing rather than a picker that could
   /// vanish under the user's finger; the listing behind it runs whenever a
   /// drying-capable card is built, so by the time this sheet opens it has
-  /// almost always answered. `valueOrNull`, not a `data` match: opening the
-  /// sheet re-asks, and a picker that blinked out during that refresh would be
-  /// the very thing this is avoiding.
+  /// almost always answered.
   List<Widget> _startWhen(AppLocalizations l10n) {
+    // A 403 on scheduling takes the picker away while the sheet is open; the
+    // mode it set has to go with it, or the button below keeps scheduling.
+    ref.listen(scheduledDryingSupportedProvider, (_, next) {
+      if (!next.orFalse) setState(() => _startMode = DryStartMode.now);
+    });
     final offered = ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [

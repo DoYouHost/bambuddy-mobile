@@ -127,6 +127,10 @@ class _RecordingCommands implements PrinterCommandsRepository {
       calls.add('startDrying:$printerId:$amsId:$temp:$duration:$filament');
 
   @override
+  Future<void> setChamberTemperature(int printerId, int target) async =>
+      calls.add('chamber:$printerId:$target');
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
     '${invocation.memberName} is not part of this test',
   );
@@ -242,18 +246,22 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
   _StubScheduledDrying({
     List<ScheduledDrying> rows = const [],
     this.supported = true,
+    this.refuseCreate = false,
   }) : rows = [...rows],
-       super(Dio());
+       super(Dio()) {
+    schedulingCapability.observe(present: supported);
+  }
 
   final List<ScheduledDrying> rows;
   final bool supported;
 
+  /// Answers a schedule the way a session without `printers:control` is
+  /// answered: a 403, recorded on the latch as the real repository does.
+  final bool refuseCreate;
+
   final List<ScheduledDrying> created = [];
   final List<int> cancelled = [];
   int listCalls = 0;
-
-  @override
-  Future<bool> supportsScheduling() async => supported;
 
   @override
   Future<List<ScheduledDrying>> list({int? printerId}) async {
@@ -271,6 +279,10 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
     bool rotateTray = false,
     DateTime? startAfter,
   }) async {
+    if (refuseCreate) {
+      schedulingCapability.observeRefusal();
+      throw const AuthException(AppErrorCode.forbidden);
+    }
     final row = ScheduledDrying(
       id: 100 + created.length,
       printerId: printerId,
@@ -652,7 +664,9 @@ void main() {
           ),
         ),
         extra: [
-          heaterHistorySupportedProvider.overrideWith((ref) async => false),
+          heaterHistorySupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
         ],
       ),
     );
@@ -812,7 +826,9 @@ void main() {
               body: SingleChildScrollView(child: PrinterCard(item: realItem())),
             ),
             extra: [
-              amsHistorySupportedProvider.overrideWith((ref) async => false),
+              amsHistorySupportedProvider.overrideWithValue(
+                const AsyncData(false),
+              ),
             ],
           ),
         );
@@ -2189,6 +2205,45 @@ void main() {
       );
     });
 
+    testWidgets(
+      'a chamber target above the ceiling still read is applied as it is',
+      (tester) async {
+        // The ceiling reads 60 until the server version lands; a sheet opened
+        // before that used to clamp the printer's 65 °C to 60 and send it.
+        final commands = _RecordingCommands();
+        await tester.pumpWidget(
+          _cardWithProviders(
+            const PrinterWithStatus(
+              printer: Printer(id: 1, name: 'H2D'),
+              status: PrinterStatus(
+                id: 1,
+                model: 'H2D',
+                connected: true,
+                state: 'IDLE',
+                // Heating: on a cooling flap the sheet locks the target.
+                airductMode: 1,
+                temperatures: {'chamber': 40, 'chamber_target': 65},
+              ),
+            ),
+            extra: [
+              printerCommandsRepositoryProvider.overrideWithValue(commands),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          byLogId('printer.temperature_chamber'),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(byLogId('temperature.set'));
+        await tester.pumpAndSettle();
+
+        expect(commands.calls, ['chamber:1:65']);
+      },
+    );
+
     testWidgets('"turn off" and "set" in the sheet are two different names', (
       tester,
     ) async {
@@ -2912,6 +2967,26 @@ void main() {
       expect(repo.created.single.filament, 'PLA');
       expect(repo.created.single.temp, 45);
       expect(find.text('Suszenie zaplanowane'), findsOneWidget);
+    });
+
+    testWidgets('a refused schedule takes the mode away with the picker', (
+      tester,
+    ) async {
+      // The picker vanishes when the 403 lands; a mode left on "later" kept
+      // the button saying "Zaplanuj" with nothing above it to say when.
+      final repo = _StubScheduledDrying(refuseCreate: true);
+
+      await pumpCard(tester, repo);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Później'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zaplanuj'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Później'), findsNothing);
+      expect(find.text('Zaplanuj'), findsNothing);
+      expect(find.text('Start'), findsOneWidget);
     });
 
     testWidgets('"at time" with nothing picked schedules nothing', (

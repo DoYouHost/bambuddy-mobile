@@ -69,9 +69,7 @@ final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider
 /// `/updates/version` and leaves a hanging Dio timer — the same trap as
 /// [inertFirmwareOverride]. 60 is what an unknown version resolves to anyway,
 /// so gauges and sliders behave exactly as they do before the probe lands.
-final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWith(
-  (ref) async => 60,
-);
+final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWithValue(60);
 
 /// Inert history gating for widget tests. The temperature tiles and the AMS
 /// humidity/temperature chips ask whether the server keeps history, which reads
@@ -79,8 +77,8 @@ final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWith(
 /// [inertFirmwareOverride]. `true` is what any current server answers, so the
 /// shortcuts render exactly as they do in the app.
 final inertHistorySupportOverrides = [
-  heaterHistorySupportedProvider.overrideWith((ref) async => true),
-  amsHistorySupportedProvider.overrideWith((ref) async => true),
+  heaterHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
+  amsHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
 ];
 
 /// Wraps a widget in a MaterialApp with Polish localization — the tests assert
