@@ -76,6 +76,17 @@ class WsPipelineRunUpdated extends WsMessage {
   final Map<String, dynamic> run;
 }
 
+/// The spool inventory changed on the server: a spool added, edited, archived
+/// or weighed, or one assigned to an AMS slot (`inventory_changed` and
+/// `spool_assignment_changed`, `routes/inventory.py`).
+///
+/// Carries nothing: the frames name no id in a shape worth parsing, and the
+/// screen re-reads the list anyway. It exists so a spool edited on the web
+/// reaches the phone without a pull.
+class WsInventoryChanged extends WsMessage {
+  const WsInventoryChanged();
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -121,6 +132,9 @@ WsMessage? parseWsMessage(String raw) {
         decoded['printer_name']?.toString(),
         decoded['message']?.toString(),
       );
+    case 'inventory_changed':
+    case 'spool_assignment_changed':
+      return const WsInventoryChanged();
     case 'print_start':
     case 'print_complete':
       final printerId = toIntOrNull(decoded['printer_id']);

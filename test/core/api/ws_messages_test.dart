@@ -95,6 +95,19 @@ void main() {
       expect(ev.completed, isFalse);
     });
 
+    test('both inventory frames fold into one WsInventoryChanged', () {
+      // The server says the shelf changed in two ways — a spool edited and a
+      // spool assigned to a tray — and the screen re-reads the list either
+      // way, so the parser keeps no difference between them.
+      for (final type in ['inventory_changed', 'spool_assignment_changed']) {
+        expect(
+          parseWsMessage('{"type":"$type"}'),
+          isA<WsInventoryChanged>(),
+          reason: type,
+        );
+      }
+    });
+
     test('archive_updated with photo_added is a WsArchiveUpdated', () {
       final raw = jsonEncode({
         'type': 'archive_updated',

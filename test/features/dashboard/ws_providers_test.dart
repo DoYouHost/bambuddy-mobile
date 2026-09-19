@@ -29,6 +29,26 @@ class _HangConn implements WsConnection {
   String? get closeReason => null;
 }
 
+/// A connection whose frames the test pushes.
+class _PushConn implements WsConnection {
+  final _frames = StreamController<dynamic>();
+
+  @override
+  Future<void> get ready async {}
+  @override
+  Stream<dynamic> get stream => _frames.stream;
+  @override
+  void send(String data) {}
+  @override
+  Future<void> close() async => _frames.close();
+  @override
+  int? get closeCode => null;
+  @override
+  String? get closeReason => null;
+
+  void push(String frame) => _frames.add(frame);
+}
+
 ProviderContainer _container() {
   final c = ProviderContainer(
     overrides: [
@@ -244,6 +264,63 @@ void main() {
           .plateGateAcknowledged(7); // unknown
 
       expect(c.read(printerStatusesProvider), same(before));
+    });
+  });
+
+  group('what the server announces', () {
+    test('an inventory frame tells the shelf it is out of date', () async {
+      // The spool screen re-reads on this; before, a spool edited on the web
+      // stayed invisible until the user pulled the list down.
+      late _PushConn conn;
+      final c = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(),
+          wsClientProvider.overrideWith((ref) {
+            final client = WsClient(
+              url: Uri.parse('ws://s.local:8000/api/v1/ws'),
+              authHeaders: () async => const {},
+              connect: (_, _) => conn = _PushConn(),
+            );
+            ref.onDispose(client.dispose);
+            return client;
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(printerStatusesProvider);
+      await pumpEventQueue();
+      expect(c.read(inventoryChangedProvider), 0);
+
+      conn.push('{"type":"inventory_changed"}');
+      await pumpEventQueue();
+
+      expect(c.read(inventoryChangedProvider), 1);
+    });
+
+    test('an archive frame does the same for the archive', () async {
+      late _PushConn conn;
+      final c = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(),
+          wsClientProvider.overrideWith((ref) {
+            final client = WsClient(
+              url: Uri.parse('ws://s.local:8000/api/v1/ws'),
+              authHeaders: () async => const {},
+              connect: (_, _) => conn = _PushConn(),
+            );
+            ref.onDispose(client.dispose);
+            return client;
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(printerStatusesProvider);
+      await pumpEventQueue();
+
+      conn.push('{"type":"archive_updated","data":{"id":7}}');
+      await pumpEventQueue();
+
+      expect(c.read(archiveChangedProvider), 1);
     });
   });
 }

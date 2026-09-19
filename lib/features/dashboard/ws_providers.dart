@@ -136,6 +136,20 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     });
     ref.onDispose(sub.cancel);
 
+    // A spool changed somewhere else — another client, a SpoolBuddy scale,
+    // the printer loading a tray. The inventory screen re-reads when it is
+    // the tab on screen; nothing is fetched for a tab nobody is looking at.
+    final inventorySub = client.inventoryChanges.listen(
+      (_) => ref.read(inventoryChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(inventorySub.cancel);
+
+    // The same for the archive, which the server does announce.
+    final archiveSub = client.archiveUpdates.listen(
+      (_) => ref.read(archiveChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(archiveSub.cancel);
+
     // Primary trigger: explicit print_start/print_complete frames.
     final printSub = client.printEvents.listen(
       (_) => _scheduleQueueMaintenanceRefresh(),

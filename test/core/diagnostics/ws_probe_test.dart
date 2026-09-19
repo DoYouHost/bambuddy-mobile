@@ -233,6 +233,15 @@ void main() {
       expect(frame, isNot(contains('cover')));
     });
 
+    test('an inventory frame is logged by the name the server used', () async {
+      // Both frames fold into one message in the parser; the log keeps the
+      // same name, so a report reads as the wire did.
+      await recorder.start();
+      probe.frame(const WsInventoryChanged());
+
+      expect((await wsRecords()).single['type'], 'inventory_changed');
+    });
+
     test('the record covers what the server itself keys change on', () async {
       // The server's `status_key` includes fans, light and the active slot —
       // without them `repeated` would mean "something changed that we don't watch".

@@ -149,6 +149,7 @@ class WsClient {
   final _archiveController = StreamController<WsArchiveUpdated>.broadcast();
   final _pipelineRunController =
       StreamController<WsPipelineRunUpdated>.broadcast();
+  final _inventoryController = StreamController<WsInventoryChanged>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -188,6 +189,11 @@ class WsClient {
   Stream<WsPipelineRunUpdated> get pipelineRunUpdates =>
       _pipelineRunController.stream;
 
+  /// The spool inventory changed somewhere — another client, a SpoolBuddy
+  /// scale, the printer loading a tray.
+  Stream<WsInventoryChanged> get inventoryChanges =>
+      _inventoryController.stream;
+
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
     if (_disposed || _running) return;
@@ -226,6 +232,7 @@ class WsClient {
     await _statusController.close();
     await _plateController.close();
     await _printController.close();
+    await _inventoryController.close();
     await _archiveController.close();
     await _pipelineRunController.close();
   }
@@ -329,6 +336,8 @@ class WsClient {
     } else if (msg is WsPipelineRunUpdated &&
         !_pipelineRunController.isClosed) {
       _pipelineRunController.add(msg);
+    } else if (msg is WsInventoryChanged && !_inventoryController.isClosed) {
+      _inventoryController.add(msg);
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.

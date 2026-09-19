@@ -591,6 +591,15 @@ class Epoch extends Notifier<int> {
   void bump() => state++;
 }
 
+/// Bumped whenever the server says an archived print changed — a timelapse
+/// attached, a finish photo added, metadata edited elsewhere.
+final archiveChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// Bumped whenever the server says the spool inventory changed — a spool
+/// edited on the web, a scale reporting a weight, a tray loaded. The screen
+/// reading it re-fetches when it is the tab being looked at.
+final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
 /// The connected server's version, for a synchronous reader. Warmed by the
 /// shell at start, and asked again on every regained contact — a read that
 /// failed while the network was down would otherwise wait out the service's

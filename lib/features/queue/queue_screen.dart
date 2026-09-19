@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
+import '../common/refresh_when_shown.dart';
 import '../common/detached_flow.dart';
 import '../common/plate_clear.dart';
 import '../gcode/gcode_viewer_route.dart';
@@ -155,18 +156,21 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                   label: Text(l10n.queueStartNext),
                 ),
               ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () => ref.read(queueProvider.notifier).refresh(),
-          data: (items) => RefreshIndicator(
-            onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-            child: items.isEmpty
-                ? EmptyStateView(
-                    message: l10n.queueEmpty,
-                    icon: Icons.playlist_add_check,
-                  )
-                : _QueueList(items: items),
+        body: RefreshWhenShown(
+          onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () => ref.read(queueProvider.notifier).refresh(),
+            data: (items) => RefreshIndicator(
+              onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+              child: items.isEmpty
+                  ? EmptyStateView(
+                      message: l10n.queueEmpty,
+                      icon: Icons.playlist_add_check,
+                    )
+                  : _QueueList(items: items),
+            ),
           ),
         ),
       ),

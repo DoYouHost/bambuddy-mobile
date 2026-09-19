@@ -105,9 +105,10 @@ Widget dashAsync<T>(
     scrollable: scrollableError,
   );
 
-  return ValueListenableBuilder<bool?>(
-    valueListenable: ServerReachability.instance.reachable,
-    builder: (context, reachable, _) {
+  return _WhenServerReturns(
+    value: value,
+    onServerBack: onRetry,
+    builder: (context, reachable) {
       // Nothing to show yet and the server is known to be out of reach: say so
       // now. Waiting means this screen spends its own connect timeout learning
       // what the request that already failed answered for all of them — which
@@ -253,4 +254,93 @@ List<T> withRowRestored<T>(
   if (now.any((r) => idOf(r) == id)) return now;
   return [...now]
     ..insert(restoredPositionOf(now, row, before, idOf: idOf), row);
+}
+
+/// Rebuilds on [ServerReachability], and asks its screen to fetch again the
+/// moment the server comes back.
+///
+/// Without that last part only the dashboard recovered by itself, because it
+/// is the one screen that polls: every other tab kept the failure it had
+/// collected in flight mode until the user pulled it down by hand — the
+/// connection was back, the app knew it, and the screen still said otherwise.
+///
+/// Only a connection failure is retried. A 500 or a refusal is the server's
+/// answer, and asking again the moment the radio comes back would be a
+/// request per screen for a state nothing has changed about.
+class _WhenServerReturns extends StatefulWidget {
+  const _WhenServerReturns({
+    required this.value,
+    required this.onServerBack,
+    required this.builder,
+  });
+
+  final AsyncValue<Object?> value;
+  final VoidCallback onServerBack;
+  final Widget Function(BuildContext context, bool? reachable) builder;
+
+  @override
+  State<_WhenServerReturns> createState() => _WhenServerReturnsState();
+}
+
+class _WhenServerReturnsState extends State<_WhenServerReturns> {
+  ValueNotifier<bool?> get _reachable => ServerReachability.instance.reachable;
+  late bool? _last = _reachable.value;
+
+  @override
+  void initState() {
+    super.initState();
+    _reachable.addListener(_heard);
+    // Opened after the server came back, holding a failure collected while it
+    // was away: the same case as [_heard], one screen later.
+    if (_last == true && _waitingOnTheServer) _askAfterTheFrame();
+  }
+
+  @override
+  void didUpdateWidget(_WhenServerReturns old) {
+    super.didUpdateWidget(old);
+    // The failure of a request that was still in the air when the server came
+    // back lands here, after the flip this state listens for. Without this the
+    // screen would keep an error the server has already disproved.
+    if (_last == true && !old.value.hasError && _waitingOnTheServer) {
+      _askAfterTheFrame();
+    }
+  }
+
+  @override
+  void dispose() {
+    _reachable.removeListener(_heard);
+    super.dispose();
+  }
+
+  void _heard() {
+    final next = _reachable.value;
+    final regained = _last == false && next == true;
+    _last = next;
+    if (mounted) setState(() {});
+    if (!regained || !_waitingOnTheServer) return;
+    _askAfterTheFrame();
+  }
+
+  /// After the frame: the fetch this starts writes to a provider, which a
+  /// build must not be in the middle of.
+  void _askAfterTheFrame() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) widget.onServerBack();
+  });
+
+  /// Whether this screen is holding a failure the server has since disproved.
+  ///
+  /// A request still in the air is not one: it may well be the one that brings
+  /// the server back, and starting a second alongside it means two requests
+  /// and a race over which answer the provider keeps. Whatever it ends as
+  /// reaches [didUpdateWidget], which is where a late failure is picked up.
+  bool get _waitingOnTheServer {
+    final value = widget.value;
+    if (value.hasValue) return false;
+    final error = value.error;
+    return error is AppApiException &&
+        error.code == AppErrorCode.serverUnreachable;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _last);
 }
