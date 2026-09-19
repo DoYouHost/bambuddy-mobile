@@ -477,13 +477,10 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   return models;
 });
 
-/// Whether this server has the per-model preset routes. Cached for the session
-/// — the answer is a property of the server, and the latch behind it already
-/// updates itself from what the routes actually answer.
-final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
-  ref.keepAlive();
-  return ref.watch(inventoryRepositoryProvider).supportsPresetOverrides();
-});
+/// Whether this server has the per-model preset routes.
+final presetOverridesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
+);
 
 /// One spool's per-printer-model preset overrides, as stored right now.
 ///
@@ -493,9 +490,16 @@ final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
 /// error state and keeps its section read-only when it is set.
 final spoolPresetOverridesProvider = FutureProvider.autoDispose
     .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
-      if (!await ref.watch(presetOverridesSupportedProvider.future)) {
-        return const [];
+      // Loading while the gate is unanswered, never `[]`: the form seeds its
+      // editable copy once, and a save replaces the whole list on the server.
+      final supported = ref.watch(presetOverridesSupportedProvider);
+      if (supported.hasError) {
+        return Future.error(supported.error!, supported.stackTrace);
       }
+      if (!supported.hasValue) {
+        return Completer<List<SpoolPresetOverride>>().future;
+      }
+      if (!supported.requireValue) return const [];
       return ref
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);
@@ -531,6 +535,11 @@ class LocationClimate {
   bool get alerting => readings.any((r) => r.alerting);
 }
 
+/// Whether the server has the location sensor routes.
+final locationSensorsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(locationSensorsRepositoryProvider).sensorsCapability,
+);
+
 /// Live readings for every storage location that has a sensor bound to it,
 /// keyed by [StorageLocation.matchKey] so a spool's free-text
 /// `storage_location` can find its own.
@@ -541,8 +550,11 @@ class LocationClimate {
 /// short rather than failing the screen — every surface reading it is additive.
 final locationClimateProvider =
     FutureProvider.autoDispose<Map<String, LocationClimate>>((ref) async {
+      // Empty until the gate says yes, then asked again: display only, and
+      // nothing seeds from it (unlike the spool presets).
+      final supported = ref.watch(locationSensorsSupportedProvider);
+      if (!(supported.valueOrNull ?? false)) return const {};
       final repo = ref.watch(locationSensorsRepositoryProvider);
-      if (!await repo.supportsLocationSensors()) return const {};
 
       final bindings = await repo.listBindings();
       final wanted = <int>{

@@ -16,19 +16,11 @@ final scheduledDryingsProvider = FutureProvider<List<ScheduledDrying>>(
 );
 
 /// Whether the drying sheet offers the "later" start modes at all. False on a
-/// server without the route, and until the first listing has answered.
-final scheduledDryingSupportedProvider = FutureProvider<bool>((ref) async {
-  // Waits for the listing rather than racing it: that request is what sets the
-  // latch this reads, so asking first would repeat the version table's guess
-  // and never be asked again. Only a 404 or a 403 moves the latch, so a listing
-  // that failed otherwise is swallowed and the latch still decides.
-  try {
-    await ref.watch(scheduledDryingsProvider.future);
-  } on Object {
-    // Deliberately ignored; see above.
-  }
-  return ref.watch(scheduledDryingRepositoryProvider).supportsScheduling();
-});
+/// server without the route; what the listing ([scheduledDryingsProvider])
+/// finds reaches it the moment it lands.
+final scheduledDryingSupportedProvider = capabilityGate(
+  (ref) => ref.watch(scheduledDryingRepositoryProvider).schedulingCapability,
+);
 
 /// The rows a given AMS unit's card should show: this printer's `pending` and
 /// `failed` runs for that unit.

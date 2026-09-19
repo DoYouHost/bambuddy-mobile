@@ -24,26 +24,38 @@ enum QueueSettingsLock {
 /// not. Cannot reuse [identifiedPermissionProvider]: that answers `false` for
 /// an unknown identity, and with authentication off server-side the route is
 /// **open** — the one session with full rights would be the one locked out.
-final queueSettingsLockProvider = FutureProvider<QueueSettingsLock>((
+final queueSettingsLockProvider = Provider<AsyncValue<QueueSettingsLock>>((
   ref,
-) async {
+) {
   switch (ref.watch(serverProfileProvider)?.authMode) {
     case AuthMode.apiKey:
-      return QueueSettingsLock.apiKey;
+      return const AsyncData(QueueSettingsLock.apiKey);
     case AuthMode.none:
-      return QueueSettingsLock.none;
+      return const AsyncData(QueueSettingsLock.none);
     case AuthMode.jwt:
     case null:
-      // The route outranks `/auth/me`, which has been wrong about this before.
-      final refused = !await ref
-          .watch(serverSettingsRepositoryProvider)
-          .writable();
+      // Unresolved while `/auth/me` is out: the presumed "yes" would light the
+      // form for a moment on a session that turns out to be refused. One that
+      // failed is not waited on — presumed like every permission here, and the
+      // first write's 403 closes the form.
+      final user = ref.watch(currentUserProvider);
+      if (!user.hasValue && !user.hasError) return const AsyncLoading();
       final granted = ref.watch(permissionProvider(Permissions.settingsUpdate));
-      return refused || !granted
-          ? QueueSettingsLock.permission
-          : QueueSettingsLock.none;
+      // The route outranks `/auth/me`, which has been wrong about this before.
+      return ref
+          .watch(_settingsWritableGate)
+          .whenData(
+            (writable) => writable && granted
+                ? QueueSettingsLock.none
+                : QueueSettingsLock.permission,
+          );
   }
 });
+
+/// What a `PUT /settings/` has answered; unknown reads as writable.
+final _settingsWritableGate = capabilityGate(
+  (ref) => ref.watch(serverSettingsRepositoryProvider).writableCapability,
+);
 
 /// The queue / preheat / keep-warm block, and the writes to it. One key per
 /// write: the body is partial, and saving the whole block would rewrite rows
@@ -111,9 +123,6 @@ class QueueSettingsController extends AsyncNotifier<QueueSettings> {
       if (previous != null && current != null) {
         state = AsyncValue.data(current.withValue(setting, previous));
       }
-      // Only a refusal moves the write latch — so the verdict is re-read here,
-      // not on the success path, and a 403 closes the form.
-      ref.invalidate(queueSettingsLockProvider);
     }
     return outcome;
   }

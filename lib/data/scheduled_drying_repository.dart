@@ -19,7 +19,7 @@ class ScheduledDryingRepository {
 
   final Dio _dio;
 
-  /// Answers [supportsScheduling] until the listing has.
+  /// Answers [schedulingCapability] until the listing has.
   final ServerVersionService? _serverVersion;
 
   /// Whether the server can schedule a drying run at all.
@@ -28,12 +28,10 @@ class ScheduledDryingRepository {
   /// delay or a time, and a form that ends in a 404 is worse than one mode
   /// fewer. The listing runs whenever a printer card with a drying-capable AMS
   /// is built, so the observation lands before the user can open the sheet.
-  late final _scheduling = ObservedCapability(
+  late final schedulingCapability = ObservedCapability(
     ServerFeature.scheduledDryings,
     _serverVersion,
   );
-
-  Future<bool> supportsScheduling() => _scheduling.supported;
 
   /// The `pending` / `running` / `failed` rows, newest start first — the whole
   /// fleet, or one printer when [printerId] is given.
@@ -41,20 +39,21 @@ class ScheduledDryingRepository {
   /// An older server (404) or a key without the permission (403) answers with
   /// an empty list rather than throwing: every caller is a card that has
   /// nothing to say about either.
-  Future<List<ScheduledDrying>> list({int? printerId}) => _scheduling.watching(
-    () async {
-      final res = await _dio.get<List<dynamic>>(
-        Endpoints.scheduledDryings,
-        queryParameters: {'printer_id': ?printerId},
+  Future<List<ScheduledDrying>> list({int? printerId}) =>
+      schedulingCapability.watching(
+        () async {
+          final res = await _dio.get<List<dynamic>>(
+            Endpoints.scheduledDryings,
+            queryParameters: {'printer_id': ?printerId},
+          );
+          return parseJsonList(res.data, ScheduledDrying.fromJson);
+        },
+        absent: () => const [],
+        // The one call on this latch that may settle absence: the collection
+        // raises no 404, while `create` and `cancel` both do — for a missing
+        // printer and a missing job — and those are rows, not the route.
+        observing: treat404AsAbsent,
       );
-      return parseJsonList(res.data, ScheduledDrying.fromJson);
-    },
-    absent: () => const [],
-    // The one call on this latch that may settle absence: the collection
-    // raises no 404, while `create` and `cancel` both do — for a missing
-    // printer and a missing job — and those are rows, not the route.
-    observing: treat404AsAbsent,
-  );
 
   /// Schedule a run. [startAfter] null means "as soon as the printer is idle";
   /// the server refuses an instant that is not in the future.
@@ -71,7 +70,7 @@ class ScheduledDryingRepository {
     DateTime? startAfter,
   }) async {
     final start = startAfter == null ? null : instantToJson(startAfter);
-    return _scheduling.watching(() async {
+    return schedulingCapability.watching(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.scheduledDryings,
         data: {
@@ -93,7 +92,7 @@ class ScheduledDryingRepository {
   }
 
   /// Cancel a pending or running run, or dismiss a failed one.
-  Future<void> cancel(int id) => _scheduling.watching(
+  Future<void> cancel(int id) => schedulingCapability.watching(
     () => _dio.delete<Map<String, dynamic>>(Endpoints.scheduledDrying(id)),
   );
 }

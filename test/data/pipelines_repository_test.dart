@@ -45,6 +45,10 @@ void main() {
     repo = PipelinesRepository(dio);
   });
 
+  /// What the probe sends: the list, with whatever it answered recorded on the
+  /// read latch and the failure itself of no interest here.
+  Future<void> listQuietly() => repo.list().then((_) {}, onError: (_) {});
+
   group('list', () {
     test('parses the bundle and its target', () async {
       adapter.onGet(
@@ -65,7 +69,7 @@ void main() {
       expect(p.targetKind, PipelineTargetKind.printerClass);
       expect(p.targetModelClass, 'X2D');
       expect(p.fanoutStrategy, FanoutStrategy.maxParallel);
-      expect(await repo.isSupported, isTrue);
+      expect(await repo.readCapability.supported, isTrue);
     });
 
     test(
@@ -303,8 +307,8 @@ void main() {
         (s) => s.reply(404, {'detail': 'Not Found'}),
       );
 
-      expect(await repo.probe(), isFalse);
-      expect(await repo.isSupported, isFalse);
+      await listQuietly();
+      expect(await repo.readCapability.supported, isFalse);
     });
 
     test(
@@ -318,9 +322,12 @@ void main() {
           (s) => s.reply(403, {'detail': 'Forbidden'}),
         );
 
-        expect(await repo.probe(), isFalse);
-        expect(await repo.canRun, isFalse);
-        expect(await repo.canWrite, isFalse);
+        await listQuietly();
+        expect(
+          await repo.readCapability.supported,
+          isFalse,
+          reason: 'the gates put presence in front of run and write',
+        );
       },
     );
 
@@ -340,20 +347,20 @@ void main() {
         data: Matchers.any,
       );
 
-      await repo.probe();
-      expect(await repo.isSupported, isTrue);
+      await listQuietly();
+      expect(await repo.readCapability.supported, isTrue);
 
       await expectLater(
         repo.update(999, name: 'x'),
         throwsA(isA<AppApiException>()),
       );
       // Still supported: the collection answered, only that row is missing.
-      expect(await repo.isSupported, isTrue);
-      // And on the latch the 404 actually landed on. `isSupported` alone reads
-      // the *read* latch, which a failed update never touches — so it passed
-      // either way and pinned nothing.
+      expect(await repo.readCapability.supported, isTrue);
+      // And on the latch the 404 actually landed on. The read latch alone is
+      // one a failed update never touches — so it passed either way and pinned
+      // nothing.
       expect(
-        await repo.canWrite,
+        await repo.writeCapability.supported,
         isTrue,
         reason:
             'editing a pipeline that is gone is not the write routes '
@@ -375,13 +382,15 @@ void main() {
         ),
       );
 
-      expect(await repo.probe(), isFalse);
+      await listQuietly();
+      expect(repo.readCapability.observedAnswer, isNull);
 
       adapter.onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(200, {'pipelines': []}),
       );
-      expect(await repo.probe(), isTrue);
+      await listQuietly();
+      expect(repo.readCapability.observedAnswer, isTrue);
     });
   });
 
@@ -410,7 +419,7 @@ void main() {
         data: Matchers.any,
       );
 
-      await repo.probe();
+      await listQuietly();
       await expectLater(
         repo.create(
           const SlicerPipeline(
@@ -424,13 +433,13 @@ void main() {
         throwsA(isA<AppApiException>()),
       );
 
-      expect(await repo.canWrite, isFalse);
+      expect(await repo.writeCapability.supported, isFalse);
       expect(
-        await repo.isSupported,
+        await repo.readCapability.supported,
         isTrue,
         reason: 'the list route answered; authoring is a separate permission',
       );
-      expect(await repo.canRun, isTrue);
+      expect(await repo.runCapability.supported, isTrue);
     });
 
     test('a refused run leaves reading alone', () async {
@@ -442,14 +451,14 @@ void main() {
         data: Matchers.any,
       );
 
-      await repo.probe();
+      await listQuietly();
       await expectLater(
         repo.run(7, source: const PipelineSource.libraryFile(12)),
         throwsA(isA<AppApiException>()),
       );
 
-      expect(await repo.canRun, isFalse);
-      expect(await repo.isSupported, isTrue);
+      expect(await repo.runCapability.supported, isFalse);
+      expect(await repo.readCapability.supported, isTrue);
     });
 
     test('a 404 on one run does not cost the run permission', () async {
@@ -460,39 +469,11 @@ void main() {
         (s) => s.reply(404, {'detail': 'Pipeline run not found'}),
       );
 
-      await repo.probe();
+      await listQuietly();
       await expectLater(repo.cancel(999), throwsA(isA<AppApiException>()));
 
-      expect(await repo.canRun, isTrue);
-      expect(await repo.isSupported, isTrue);
-    });
-
-    test('absent routes take every tier with them', () async {
-      // Each tier answers its own permission only, so presence has to come
-      // from the read tier — a server without the routes must not look like one
-      // that merely refused the authoring call.
-      final bare = testDio();
-      DioAdapter(dio: bare).onGet(
-        '/api/v1/slicer-pipelines/',
-        (s) => s.reply(404, {'detail': 'Not Found'}),
-      );
-      final old = PipelinesRepository(bare);
-
-      expect(await old.probe(), isFalse);
-      expect(await old.canRun, isFalse);
-      expect(await old.canWrite, isFalse);
-    });
-
-    test('the probe asks once, however many entry points gate on it', () async {
-      final sent = captureRequests(dio);
-
-      await Future.wait([repo.probe(), repo.probe(), repo.probe()]);
-      await repo.probe();
-
-      expect(
-        sent.paths.where((p) => p == '/api/v1/slicer-pipelines/').length,
-        1,
-      );
+      expect(await repo.runCapability.supported, isTrue);
+      expect(await repo.readCapability.supported, isTrue);
     });
   });
 

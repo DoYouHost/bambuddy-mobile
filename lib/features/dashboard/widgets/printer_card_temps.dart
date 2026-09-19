@@ -67,9 +67,7 @@ class _GaugeTile extends ConsumerWidget {
     // the server's version is known — see [chamberMaxTargetProvider].
     final chamberMax = reading.kind != _TempKind.chamber
         ? 60
-        : ref
-              .watch(chamberMaxTargetProvider)
-              .maybeWhen(data: (v) => v, orElse: () => 60);
+        : ref.watch(chamberMaxTargetProvider);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command
@@ -90,13 +88,11 @@ class _GaugeTile extends ConsumerWidget {
         : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     final editable = _isEditable && !forbidden;
-    // Hidden until the server is known to have the route: a shortcut that can
-    // only ever error is worse than no shortcut.
+    // Shown until the server says otherwise (see the latch): a glyph that
+    // appeared once the version landed shifted the label beside it.
     final hasHistory =
         historyKinds.any((k) => k.kind == reading.raw) &&
-        ref
-            .watch(heaterHistorySupportedProvider)
-            .maybeWhen(data: (v) => v, orElse: () => false);
+        ref.watch(heaterHistorySupportedProvider).orFalse;
 
     // The sensor label, preceded by the chart glyph when this sensor is
     // recorded. The whole strip is the history button, not just the glyph: a
@@ -535,16 +531,15 @@ class _TempControlSheet extends ConsumerStatefulWidget {
 }
 
 class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
-  /// The server's chamber ceiling, read once: the sheet is short-lived and the
-  /// server cannot change underneath it. 60 until the version is known, which
-  /// is the value every generation accepts.
-  late final int _chamberMax = ref
-      .read(chamberMaxTargetProvider)
-      .maybeWhen(data: (v) => v, orElse: () => 60);
+  /// The server's chamber ceiling — 60 until the version is known, so it is
+  /// watched: a sheet opened in the first moments of a cold start would
+  /// otherwise keep the lower ceiling for its whole life.
+  int get _chamberMax => ref.watch(chamberMaxTargetProvider);
 
-  late int _target = widget.initialTarget
-      .clamp(0, widget.reading.maxTarget(_chamberMax))
-      .toInt();
+  /// Not clamped: a target set elsewhere above this sheet's range (65 °C while
+  /// the ceiling still reads 60, a nozzle above 300) is the printer's current
+  /// setting, and applying the sheet untouched must not lower it.
+  late int _target = widget.initialTarget;
   late bool? _airductHeating = widget.reading.airductIsHeating;
   bool _busy = false;
 
@@ -556,7 +551,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
   void _bump(int delta) => setState(
     () => _target = (_target + delta)
-        .clamp(0, _reading.maxTarget(_chamberMax))
+        .clamp(0, _reading.maxTarget(ref.read(chamberMaxTargetProvider)))
         .toInt(),
   );
 

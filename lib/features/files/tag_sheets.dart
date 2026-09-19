@@ -18,7 +18,7 @@ import 'file_manager_providers.dart';
 /// All four read the catalog from [libraryTagsProvider], so a tag created or
 /// renamed in one of them shows up in the others without any plumbing — and a
 /// server with no tag routes never gets here, because the caller hides the
-/// entry points (see [libraryTagsSupported]).
+/// entry points (see [libraryTagsSupportedProvider]).
 
 /// A tag as it appears on a file tile: label only, no colour and no icon —
 /// upstream deliberately kept tags plain so a file can carry several without

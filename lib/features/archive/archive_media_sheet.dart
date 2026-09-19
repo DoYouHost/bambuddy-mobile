@@ -26,8 +26,8 @@ import '../../data/streamed_download.dart';
 ///
 /// Only the printer half of the sheet rests on this — the timelapse and the
 /// photos are the archive's own, and every server generation serves them.
-final archiveMediaSupportedProvider = FutureProvider<bool>(
-  (ref) => ref.watch(archiveRepositoryProvider).supportsPrinterMedia(),
+final archiveMediaSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).printerMediaCapability,
 );
 
 /// Whether a print has anything for the sheet to show at all.
@@ -123,9 +123,15 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   Future<void> _search() async {
     // The same gate the entry point watches, so the button and the section it
     // opens cannot disagree about whether this server can be asked.
+    final providers = ProviderScope.containerOf(context, listen: false);
     final searchable =
         widget.archive.printerId != null &&
-        await ref.read(archiveMediaSupportedProvider.future);
+        // Started unawaited from initState: a gate that failed is "no", not
+        // an error with nobody to catch it.
+        await settledGate(
+          providers,
+          archiveMediaSupportedProvider,
+        ).catchError((Object _) => false);
     if (!mounted) return;
     if (!searchable) {
       setState(() {

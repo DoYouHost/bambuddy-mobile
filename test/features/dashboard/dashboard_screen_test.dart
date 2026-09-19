@@ -21,7 +21,12 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/data/pipelines_repository.dart';
+import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/core/api/server_reachability.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -249,6 +254,35 @@ void main() {
     },
   );
 
+  testWidgets('a cold start with the server out of reach says so at once', (
+    tester,
+  ) async {
+    // Before, this screen sat on its spinner until its own request timed out —
+    // and so did every tab the user opened next.
+    addTearDown(ServerReachability.instance.forget);
+
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+    expect(find.byType(DashLoading), findsOneWidget, reason: 'nothing tried');
+
+    // What the first failed request records, wherever in the app it was made.
+    ServerReachability.instance.reachable.value = false;
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsNothing);
+    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+  });
+
+  testWidgets('while the server may still answer, the spinner stays', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
   testWidgets('a first-load failure shows the error and a retry button', (
     tester,
   ) async {
@@ -318,6 +352,27 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
+  testWidgets('pull-to-refresh tells every gate to forget its refusals', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+      ),
+    );
+    await settle(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DashboardScreen)),
+    );
+
+    await tester.fling(find.text('X1C'), const Offset(0, 400), 1000);
+    await settle(tester);
+
+    expect(container.read(refusalsForgottenProvider), 1);
+  });
+
   testWidgets('the drawer icon decodes to its tile, not to 1024 px', (
     tester,
   ) async {
@@ -384,6 +439,43 @@ void main() {
       expect(find.textContaining('Serwer '), findsNothing);
     });
   });
+
+  testWidgets(
+    'the Pipelines tile is in the first frame of a drawer the shell warmed',
+    (tester) async {
+      // The report: on a cold start the drawer opened without the tile, which
+      // then appeared and pushed the five tiles under it down. The drawer is
+      // not built while closed, so it was the first thing to ask.
+      final dio = testDio();
+      DioAdapter(dio: dio).onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(200, {'pipelines': []}),
+      );
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [
+            pipelinesRepositoryProvider.overrideWithValue(
+              PipelinesRepository(dio),
+            ),
+            serverSettingsOverride(const {}),
+            serverVersionProvider.overrideWith((ref) => null),
+            serverVersionLabelProvider.overrideWith((ref) => null),
+          ],
+        ),
+      );
+      final shell = ProviderScope.containerOf(
+        tester.element(find.byType(DashboardScreen)),
+      );
+      warmServerAnswers((answer) => shell.listen(answer, (_, _) {}));
+      await settle(tester);
+
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await tester.pump();
+
+      expect(byLogId('drawer.pipelines'), findsOneWidget);
+    },
+  );
 
   testWidgets('the drawer leads to app settings, not to notifications', (
     tester,

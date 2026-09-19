@@ -54,7 +54,7 @@ void main() {
     test(
       'yes by default — the route is older than every supported server',
       () async {
-        expect(await repo.supportsHistory(), isTrue);
+        expect(await repo.historyCapability.supported, isTrue);
       },
     );
 
@@ -70,7 +70,7 @@ void main() {
         throwsA(isA<AppApiException>()),
       );
 
-      expect(await repo.supportsHistory(), isFalse);
+      expect(await repo.historyCapability.supported, isFalse);
     });
 
     test(
@@ -96,11 +96,11 @@ void main() {
           () => repo.fetch(1, 0),
           throwsA(isA<AppApiException>()),
         );
-        expect(await repo.supportsHistory(), isFalse);
+        expect(await repo.historyCapability.supported, isFalse);
 
         await repo.fetch(1, 0, hours: 6);
 
-        expect(await repo.supportsHistory(), isTrue);
+        expect(await repo.historyCapability.supported, isTrue);
       },
     );
   });

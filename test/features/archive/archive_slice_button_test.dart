@@ -52,7 +52,7 @@ void main() {
         slicerEnabledProvider.overrideWithValue(sidecar),
         // Its own routes are a separate question; this keeps the second button
         // out of the way.
-        canRunPipelinesProvider.overrideWith((ref) async => false),
+        canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
         archiveCapabilitiesProvider(archive.id).overrideWith((ref) {
           capabilityReads++;
           if (failing) throw StateError('capabilities unreachable');

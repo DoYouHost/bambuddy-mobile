@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/json_utils.dart';
@@ -54,10 +55,12 @@ class PrintLogRepository {
   /// plug — and `sort_by` is an unknown query param, which FastAPI drops in
   /// silence rather than refusing.
   ///
-  /// Version-only, with no observation to outrank it: both halves are fields on
-  /// an endpoint that answers 200 either way.
-  Future<bool> supportsCostEnergy() async =>
-      await _serverVersion?.supports(ServerFeature.printLogCostEnergy) ?? false;
+  /// Version-only — never observed, so the version row always decides: both
+  /// halves are fields on an endpoint that answers 200 either way.
+  late final costEnergyCapability = ObservedCapability(
+    ServerFeature.printLogCostEnergy,
+    _serverVersion,
+  );
 
   /// GET /print-log/ — one page of runs, plus how many the filter matches.
   ///
@@ -66,7 +69,7 @@ class PrintLogRepository {
   /// `ilike` on the print name.
   ///
   /// [sort] is dropped on a server that would ignore it, so a caller cannot
-  /// believe an order it never got — check [supportsCostEnergy] before offering
+  /// believe an order it never got — check [costEnergyCapability] before offering
   /// the control.
   Future<PrintLogPage> list({
     String? search,
@@ -80,7 +83,7 @@ class PrintLogRepository {
     PrintLogSort? sort,
     bool descending = true,
   }) async {
-    final sortable = sort != null && await supportsCostEnergy();
+    final sortable = sort != null && await costEnergyCapability.supported;
     final query = <String, dynamic>{
       'search': search == null || search.isEmpty ? null : search,
       'printer_id': printerId,

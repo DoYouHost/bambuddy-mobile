@@ -402,6 +402,9 @@ class WsProbe {
       completed ? 'print_complete' : 'print_start',
     WsArchiveUpdated() => 'archive_updated',
     WsPipelineRunUpdated() => 'pipeline_run_updated',
+    // Both frames the parser folds into one; the log keeps the distinction
+    // out of it for the same reason the parser does.
+    WsInventoryChanged() => 'inventory_changed',
     WsPong() => 'pong',
     WsUnknown(type: final type) => _knownShape(type),
     null => 'unparsed',

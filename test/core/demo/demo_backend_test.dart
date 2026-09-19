@@ -112,7 +112,10 @@ void main() {
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);
-      expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
+      expect(
+        (await version.current())?.supports(ServerFeature.triStateCalibration),
+        isTrue,
+      );
     });
 
     test(
@@ -124,12 +127,12 @@ void main() {
         final version = ServerVersionService(dio);
 
         expect(
-          await version.supports(ServerFeature.printLogCostEnergy),
+          (await version.current())?.supports(ServerFeature.printLogCostEnergy),
           isTrue,
           reason: 'the print log serves cost, energy and sorting',
         );
         expect(
-          await version.supports(ServerFeature.crossModelVariants),
+          (await version.current())?.supports(ServerFeature.crossModelVariants),
           isTrue,
           reason: 'library variant groups are served below',
         );
@@ -795,7 +798,7 @@ void main() {
   group('storage-location sensors', () {
     test('bindings and readings parse, with all three pill states', () async {
       final repo = LocationSensorsRepository(dio, ServerVersionService(dio));
-      expect(await repo.supportsLocationSensors(), isTrue);
+      expect(await repo.sensorsCapability.supported, isTrue);
 
       final bindings = await repo.listBindings();
       expect(bindings, hasLength(3));

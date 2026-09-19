@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
+import '../common/refresh_when_shown.dart';
 import '../common/dash_icon_tile.dart';
 import '../common/dash_progress_bar.dart';
 import 'maintenance_icons.dart';
@@ -79,31 +80,35 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
             ),
           ],
         ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () =>
+        body: RefreshWhenShown(
+          onRefresh: () =>
               ref.read(maintenanceOverviewProvider.notifier).refresh(),
-          data: (printers) => RefreshIndicator(
-            onRefresh: () =>
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () =>
                 ref.read(maintenanceOverviewProvider.notifier).refresh(),
-            child: printers.isEmpty
-                ? EmptyStateView(
-                    message: l10n.maintenanceEmpty,
-                    icon: Icons.build_circle_outlined,
-                  )
-                : ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    children: [
-                      for (final p in printers)
-                        _PrinterSection(
-                          printer: p,
-                          // Single printer: no point hiding its tasks. With
-                          // several, collapse by default so the list stays scannable.
-                          initiallyExpanded: printers.length == 1,
-                        ),
-                    ],
-                  ),
+            data: (printers) => RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(maintenanceOverviewProvider.notifier).refresh(),
+              child: printers.isEmpty
+                  ? EmptyStateView(
+                      message: l10n.maintenanceEmpty,
+                      icon: Icons.build_circle_outlined,
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        for (final p in printers)
+                          _PrinterSection(
+                            printer: p,
+                            // Single printer: no point hiding its tasks. With
+                            // several, collapse by default so the list stays scannable.
+                            initiallyExpanded: printers.length == 1,
+                          ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),

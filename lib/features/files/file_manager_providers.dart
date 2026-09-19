@@ -404,16 +404,18 @@ final libraryStatsProvider = FutureProvider.autoDispose<LibraryStats>(
 );
 
 /// Tag catalog. `null` (as a loaded value) means the server has no tag routes
-/// at all — the whole tag UI hides itself then, see `LibraryRepository.listTags`.
+/// at all, see `LibraryRepository.listTags`; whether to show the tag UI is
+/// [libraryTagsSupportedProvider]'s question.
 final libraryTagsProvider = FutureProvider.autoDispose<List<LibraryTag>?>(
   (ref) => ref.watch(libraryRepositoryProvider).listTags(),
 );
 
-/// Whether tag controls should be offered at all. Unknown (still loading) counts
-/// as supported so the buttons don't pop into the toolbar a moment late; only a
-/// loaded `null` — the 404 gate — hides them.
-bool libraryTagsSupported(AsyncValue<List<LibraryTag>?> tags) =>
-    !tags.hasValue || tags.value != null;
+/// Whether tag controls should be offered at all: shown while unknown, taken
+/// away by a 404 or a 403 at most once per session — the latch outlives the
+/// catalog, which is disposed with every screen.
+final libraryTagsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).tagsCapability,
+);
 
 /// List of files in trash.
 final libraryTrashProvider = FutureProvider.autoDispose<List<TrashFile>>(

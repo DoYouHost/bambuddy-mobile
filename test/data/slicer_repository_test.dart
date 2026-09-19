@@ -39,7 +39,7 @@ void main() {
       expect(values!.resolved, isTrue);
       expect(values.values['layer_height'], '0.2');
       expect(values.cause, PresetValuesCause.ok);
-      expect(await repo.supportsProcessOverrides(), isTrue);
+      expect(await repo.processOverridesCapability.supported, isTrue);
     });
 
     test('404 → null, support off (server < 1.2.6)', () async {
@@ -50,7 +50,7 @@ void main() {
       );
 
       expect(await repo.presetValues(preset), isNull);
-      expect(await repo.supportsProcessOverrides(), isFalse);
+      expect(await repo.processOverridesCapability.supported, isFalse);
     });
 
     test('a 404 outranks a version that says the route is there', () async {
@@ -68,9 +68,9 @@ void main() {
       );
       final versioned = SlicerRepository(dio, ServerVersionService(dio));
 
-      expect(await versioned.supportsProcessOverrides(), isTrue);
+      expect(await versioned.processOverridesCapability.supported, isTrue);
       expect(await versioned.presetValues(preset), isNull);
-      expect(await versioned.supportsProcessOverrides(), isFalse);
+      expect(await versioned.processOverridesCapability.supported, isFalse);
     });
 
     test('resolved:false is NOT missing support — the route answered', () async {
@@ -91,7 +91,7 @@ void main() {
 
       expect(values!.resolved, isFalse);
       expect(values.cause, PresetValuesCause.sidecarOutdated);
-      expect(await repo.supportsProcessOverrides(), isTrue);
+      expect(await repo.processOverridesCapability.supported, isTrue);
     });
 
     test(
@@ -130,7 +130,7 @@ void main() {
         ),
       );
       expect(
-        repo.supportsProcessOverrides(),
+        repo.processOverridesCapability.supported,
         completion(isFalse),
         reason: 'a rejected call proves nothing about the route',
       );
@@ -149,7 +149,7 @@ void main() {
       );
 
       expect(await repo.presetValues(preset), isNull);
-      expect(await repo.supportsProcessOverrides(), isFalse);
+      expect(await repo.processOverridesCapability.supported, isFalse);
     });
 
     test('a refusal is not recorded as an answer about the route', () async {
@@ -169,7 +169,7 @@ void main() {
       );
 
       expect(await repo.presetValues(preset), isNull);
-      expect(await repo.supportsProcessOverrides(), isFalse);
+      expect(await repo.processOverridesCapability.supported, isFalse);
 
       DioAdapter(dio: dio).onGet(
         '/api/v1/slicer/preset-values',
@@ -179,7 +179,7 @@ void main() {
 
       expect(await repo.presetValues(preset), isNotNull);
       expect(
-        await repo.supportsProcessOverrides(),
+        await repo.processOverridesCapability.supported,
         isTrue,
         reason: 'the refusal was about the caller, not the server',
       );
@@ -200,11 +200,34 @@ void main() {
       expect(values, isNotNull, reason: 'degrades to unresolved, not to null');
       expect(values!.resolved, isFalse);
       expect(
-        await repo.supportsProcessOverrides(),
+        await repo.processOverridesCapability.supported,
         isFalse,
         reason: 'no version and no observation — the older contract',
       );
     });
+  });
+
+  test('layout options follow the 1.2.6 row, nothing else', () async {
+    // Request fields an older server drops without a word: no route to
+    // observe, so the version is the whole answer.
+    for (final (version, expected) in [('1.2.5.3', false), ('1.2.6', true)]) {
+      final versionDio = testDio();
+      DioAdapter(dio: versionDio).onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
+      );
+      final versioned = SlicerRepository(
+        versionDio,
+        ServerVersionService(versionDio),
+      );
+
+      expect(
+        await versioned.layoutOptionsCapability.supported,
+        expected,
+        reason: version,
+      );
+    }
+    expect(await repo.layoutOptionsCapability.supported, isFalse);
   });
 
   group('filamentRequirements', () {

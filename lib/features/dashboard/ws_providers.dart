@@ -97,7 +97,14 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// Anything that arrived from the server is contact. The first one after a
   /// gap starts the clock; the rest leave it where it is, because what matters
   /// is how long the line has been up, not when it last carried something.
-  void _sawServer() => _inTouchSince ??= clock.now();
+  ///
+  /// The first one is also what re-asks every capability gate an unreachable
+  /// server left unanswered ([serverContactEpochProvider]).
+  void _sawServer() {
+    if (_inTouchSince != null) return;
+    _inTouchSince = clock.now();
+    ref.read(serverContactEpochProvider.notifier).bump();
+  }
 
   /// The line is down: backgrounded (socket closed, polling stopped) or a poll
   /// that failed. The next frame after this is news, not a flicker.
@@ -105,6 +112,9 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
   @override
   Map<int, PrinterStatus> build() {
+    // The notifier outlives a rebuild, and a rebuild is a new server or a new
+    // socket: the old line's start time is not this one's.
+    _inTouchSince = null;
     final profile = ref.watch(serverProfileProvider);
     if (profile == null) return const {};
 
@@ -125,6 +135,20 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       }
     });
     ref.onDispose(sub.cancel);
+
+    // A spool changed somewhere else — another client, a SpoolBuddy scale,
+    // the printer loading a tray. The inventory screen re-reads when it is
+    // the tab on screen; nothing is fetched for a tab nobody is looking at.
+    final inventorySub = client.inventoryChanges.listen(
+      (_) => ref.read(inventoryChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(inventorySub.cancel);
+
+    // The same for the archive, which the server does announce.
+    final archiveSub = client.archiveUpdates.listen(
+      (_) => ref.read(archiveChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(archiveSub.cancel);
 
     // Primary trigger: explicit print_start/print_complete frames.
     final printSub = client.printEvents.listen(

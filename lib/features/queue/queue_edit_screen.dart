@@ -1386,19 +1386,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       ? _scheduledTime!.toUtc().toIso8601String()
       : null;
 
-  /// The server's chamber ceiling — 65 from 1.2.6, 60 before it and until the
-  /// version is known.
-  static int _ceiling(AsyncValue<int> probe) =>
-      probe.maybeWhen(data: (v) => v, orElse: () => 60);
-
   /// `watch`, so the helper text stops advertising 60 the moment the version
   /// probe answers with the form already open.
-  int get _chamberMax => _ceiling(ref.watch(chamberMaxTargetProvider));
+  int get _chamberMax => ref.watch(chamberMaxTargetProvider);
 
   int? get _chamberTargetValue {
     if (_preheatOverride == 'off') return null;
     // `read`: this one runs from the save button, outside a build.
-    final max = _ceiling(ref.read(chamberMaxTargetProvider));
+    final max = ref.read(chamberMaxTargetProvider);
     return parseUserInt(_chamberTarget.text)?.clamp(0, max);
   }
 

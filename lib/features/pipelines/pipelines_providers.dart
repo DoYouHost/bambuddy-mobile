@@ -19,38 +19,53 @@ final canUsePipelinesProvider = Provider<bool>(
 );
 
 /// Whether the connected server has the pipeline routes and answers them to
-/// this session. Probed, not versioned; `false` while loading, so nothing
-/// flashes into the drawer and out again.
-final pipelinesSupportedProvider = FutureProvider<bool>((ref) async {
-  if (!ref.watch(canUsePipelinesProvider)) return false;
-  return ref.watch(pipelinesRepositoryProvider).probe();
+/// this session. Probed, not versioned; hidden while unknown, so nothing
+/// flashes into the drawer and out again — and asked by the shell at start
+/// (`warmServerAnswers`), so the drawer is not what starts the question.
+///
+/// The permission comes first so that a session without it sends no probe.
+final pipelinesSupportedProvider = Provider<AsyncValue<bool>>((ref) {
+  if (!ref.watch(canUsePipelinesProvider)) return const AsyncData(false);
+  return ref.watch(_readGate);
 });
+
+final _readGate = capabilityGate(
+  (ref) => ref.watch(pipelinesRepositoryProvider).readCapability,
+);
+final _runGate = capabilityGate(
+  (ref) => ref.watch(pipelinesRepositoryProvider).runCapability,
+);
+final _writeGate = capabilityGate(
+  (ref) => ref.watch(pipelinesRepositoryProvider).writeCapability,
+);
 
 /// Whether this session may create / edit / delete a pipeline, or clear run
 /// history. **An API-key session never may:** `PIPELINES_WRITE` is outside the
 /// allowlist in `core/auth.py`, which is allowlist-only, so it is a 403 on every
 /// version — and `/auth/me` claimed the opposite up to 1.2.5.x. Decided on the
 /// auth mode for the same reason [identifiedPermissionProvider] is.
-final canWritePipelinesProvider = FutureProvider<bool>((ref) async {
+final canWritePipelinesProvider = Provider<AsyncValue<bool>>((ref) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
-    return false;
+    return const AsyncData(false);
   }
-  if (!ref.watch(permissionProvider(Permissions.pipelinesWrite))) return false;
+  if (!ref.watch(permissionProvider(Permissions.pipelinesWrite))) {
+    return const AsyncData(false);
+  }
   // Through the probe: the list route is what settles presence for all three.
-  if (!await ref.watch(pipelinesSupportedProvider.future)) return false;
-  return ref.watch(pipelinesRepositoryProvider).canWrite;
+  return ref.watch(pipelinesSupportedProvider).and(ref.watch(_writeGate));
 });
 
 /// Whether this session may dispatch, cancel or retry a run. Offered to an API
 /// key, unlike authoring — `PIPELINES_RUN` maps to `can_queue` **and**
 /// `can_manage_library`, both, because a run slices into the library and then
 /// queues prints. A key holding one of the two is refused.
-final canRunPipelinesProvider = FutureProvider<bool>((ref) async {
-  if (!ref.watch(permissionProvider(Permissions.pipelinesRun))) return false;
+final canRunPipelinesProvider = Provider<AsyncValue<bool>>((ref) {
+  if (!ref.watch(permissionProvider(Permissions.pipelinesRun))) {
+    return const AsyncData(false);
+  }
   // See [canWritePipelinesProvider]; the archive and file-manager entry points
   // reach this without ever having listed a pipeline.
-  if (!await ref.watch(pipelinesSupportedProvider.future)) return false;
-  return ref.watch(pipelinesRepositoryProvider).canRun;
+  return ref.watch(pipelinesSupportedProvider).and(ref.watch(_runGate));
 });
 
 /// Every saved pipeline, newest first.

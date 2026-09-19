@@ -29,49 +29,26 @@ class PipelinesRepository {
   /// commit and first shipped in 0.2.4.9, which predates the renumbering to
   /// 1.2.5 — so a threshold in either scheme misjudges the other, and the wire
   /// schemas have not moved since anyway. `whenUnknown: false`: an entry point
-  /// leading to a 404 is worse than no entry point.
-  final _read = ObservedCapability.unversioned(whenUnknown: false);
+  /// leading to a 404 is worse than no entry point. The probe is [list]: the
+  /// drawer hides its entry point until something has called it.
+  late final readCapability = ObservedCapability.unversioned(
+    whenUnknown: false,
+    probe: list,
+  );
 
   /// Dispatching a run (`PIPELINES_RUN`) — refused on its own: a key needs
   /// **both** `can_queue` and `can_manage_library`, because a run slices into
-  /// the library and then queues prints (`core/auth.py`).
-  final _run = ObservedCapability.unversioned();
+  /// the library and then queues prints (`core/auth.py`). Answers its own
+  /// permission only; absence belongs to [readCapability].
+  final runCapability = ObservedCapability.unversioned();
 
   /// Authoring — create, edit, delete, and clearing run history. Outside the
   /// API-key scope allowlist entirely, so a key is refused it on every version.
-  final _write = ObservedCapability.unversioned();
-
-  /// Whether the pipeline UI may be offered at all.
-  Future<bool> get isSupported => _read.supported;
-
-  /// Whether a run may be dispatched, cancelled or retried. Presence first:
-  /// each latch answers its own permission only, so absence belongs to [_read].
-  Future<bool> get canRun async => await isSupported && await _run.supported;
-
-  /// Whether a pipeline may be created, edited or deleted.
-  Future<bool> get canWrite async =>
-      await isSupported && await _write.supported;
-
-  /// Ask the list route once so [isSupported] has an answer. Memoised for the
-  /// repository's life, so the entry points gating on it share one request.
-  Future<bool> probe() => _probe ??= _firstAsk();
-  Future<bool>? _probe;
-
-  Future<bool> _firstAsk() async {
-    try {
-      await list();
-    } on AppApiException catch (e) {
-      // 404 and 403 are answers, already recorded by list(). Anything else —
-      // offline, 500, a token that expired mid-probe — says nothing, so the
-      // memo goes and the next caller asks again.
-      if (e.statusCode != 404 && e.statusCode != 403) _probe = null;
-    }
-    return isSupported;
-  }
+  final writeCapability = ObservedCapability.unversioned();
 
   /// GET /slicer-pipelines/ — every saved pipeline, newest first.
   Future<List<SlicerPipeline>> list() =>
-      _read.watching(observing: treat404AsAbsent, () async {
+      readCapability.watching(observing: treat404AsAbsent, () async {
         final res = await _dio.get<Map<String, dynamic>>(
           Endpoints.slicerPipelines,
         );
@@ -81,7 +58,7 @@ class PipelinesRepository {
   /// POST /slicer-pipelines/ — bundle only; the target needs a follow-up
   /// [update], which is the only schema that declares it.
   Future<SlicerPipeline> create(SlicerPipeline pipeline) =>
-      _write.watching(observing: treat404AsAbsent, () async {
+      writeCapability.watching(observing: treat404AsAbsent, () async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.slicerPipelines,
           data: pipeline.toCreateJson(),
@@ -107,7 +84,7 @@ class PipelinesRepository {
     int? targetPrinterId,
     String? targetModelClass,
     FanoutStrategy? fanoutStrategy,
-  }) => _write.watching(() async {
+  }) => writeCapability.watching(() async {
     final body = <String, dynamic>{
       'name': ?name,
       'description': ?description,
@@ -129,7 +106,7 @@ class PipelinesRepository {
   });
 
   /// DELETE /slicer-pipelines/{id} — soft, so past runs keep their name.
-  Future<void> delete(int pipelineId) => _write.watching(() async {
+  Future<void> delete(int pipelineId) => writeCapability.watching(() async {
     await _dio.delete<void>(Endpoints.slicerPipeline(pipelineId));
   });
 
@@ -137,7 +114,7 @@ class PipelinesRepository {
   Future<EligibilityReport> checkEligibility(
     int pipelineId, {
     required PipelineSource source,
-  }) => _read.watching(() async {
+  }) => readCapability.watching(() async {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.slicerPipelineCheckEligibility(pipelineId),
       data: source.toJson(),
@@ -152,7 +129,7 @@ class PipelinesRepository {
     required PipelineSource source,
     int copies = 1,
     bool force = false,
-  }) => _run.watching(() async {
+  }) => runCapability.watching(() async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         Endpoints.slicerPipelineRun(pipelineId),
@@ -188,7 +165,7 @@ class PipelinesRepository {
     int limit = pageSize,
     int offset = 0,
     PipelineRunFilter filter = const PipelineRunFilter(),
-  }) => _read.watching(() async {
+  }) => readCapability.watching(() async {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.pipelineRuns,
       queryParameters: {
@@ -207,7 +184,7 @@ class PipelinesRepository {
   static const maxPageSize = 100;
 
   /// GET /pipeline-runs/{id}.
-  Future<PipelineRun> runById(int runId) => _read.watching(() async {
+  Future<PipelineRun> runById(int runId) => readCapability.watching(() async {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.pipelineRun(runId),
     );
@@ -216,7 +193,7 @@ class PipelinesRepository {
 
   /// POST /pipeline-runs/{id}/cancel — idempotent; a terminal run comes back
   /// unchanged rather than refused.
-  Future<PipelineRun> cancel(int runId) => _run.watching(() async {
+  Future<PipelineRun> cancel(int runId) => runCapability.watching(() async {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.pipelineRunCancel(runId),
     );
@@ -225,15 +202,16 @@ class PipelinesRepository {
 
   /// POST /pipeline-runs/{id}/retry-failed — a **new** run of the parent's
   /// failed + cancelled copies, forced past the pre-flight.
-  Future<PipelineRun> retryFailed(int runId) => _run.watching(() async {
-    final res = await _dio.post<Map<String, dynamic>>(
-      Endpoints.pipelineRunRetryFailed(runId),
-    );
-    return PipelineRun.fromJson(res.data ?? const {});
-  });
+  Future<PipelineRun> retryFailed(int runId) =>
+      runCapability.watching(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.pipelineRunRetryFailed(runId),
+        );
+        return PipelineRun.fromJson(res.data ?? const {});
+      });
 
   /// POST /pipeline-runs/clear — drop every terminal run. Returns how many.
-  Future<int> clearTerminalRuns() => _write.watching(() async {
+  Future<int> clearTerminalRuns() => writeCapability.watching(() async {
     final res = await _dio.post<Map<String, dynamic>>(
       Endpoints.pipelineRunsClear,
     );

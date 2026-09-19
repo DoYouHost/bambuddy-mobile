@@ -1,15 +1,16 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 
@@ -64,8 +65,9 @@ void main() {
         ),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
+        libraryTagsSupportedProvider.overrideWithValue(AsyncData(tags != null)),
         slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
-        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
+        canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
       ],
     );
     await tester.pumpAndSettle();
@@ -105,44 +107,122 @@ void main() {
       expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
     });
 
-    testWidgets('appears once the gate settles after the sheet is already open', (
-      tester,
-    ) async {
-      // The sheet is built in its own route, so a gate read from the screen's
-      // `ref` cannot rebuild it. This gate is a FutureProvider — it is
-      // unresolved for the first frames — so reading it at build time hides the
-      // action on a server that does have pipelines.
-      final gate = Completer<bool>();
+    testWidgets(
+      'appears once the gate settles after the sheet is already open',
+      (tester) async {
+        // The sheet is built in its own route, so a gate read from the screen's
+        // `ref` cannot rebuild it. The gate can still be unanswered when the
+        // sheet opens (the probe is out), so reading it once at build time hides
+        // the action on a server that does have pipelines.
+        final gate = StateProvider<AsyncValue<bool>>(
+          (_) => const AsyncLoading(),
+        );
+        final file = _file();
+        await pumpPhone(
+          tester,
+          const FileManagerScreen(),
+          overrides: [
+            noServerProfileOverride,
+            fileManagerProvider.overrideWith(
+              () => _FakeNotifier(FileManagerState(files: [file])),
+            ),
+            libraryStatsProvider.overrideWith(
+              (ref) async => const LibraryStats(),
+            ),
+            libraryTagsProvider.overrideWith((ref) async => const []),
+            slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+            canRunPipelinesProvider.overrideWith((ref) => ref.watch(gate)),
+          ],
+        );
+        await tester.pumpAndSettle();
+        await openFileSheet(tester, file);
+
+        expect(
+          find.byIcon(Icons.account_tree_outlined),
+          findsNothing,
+          reason: 'nothing is claimed before the server has answered',
+        );
+
+        ProviderScope.containerOf(
+          tester.element(find.byType(FileManagerScreen)),
+        ).read(gate.notifier).state = const AsyncData(
+          true,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      },
+    );
+  });
+
+  group('selection mode', () {
+    /// The screen in selection mode, its variants gate the real one over a
+    /// repository whose latch the test drives.
+    Future<LibraryRepository> pumpSelecting(
+      WidgetTester tester, {
+      bool? variantsSeen,
+    }) async {
+      final repo = LibraryRepository(testDio());
+      if (variantsSeen != null) {
+        repo.variantsCapability.observe(present: variantsSeen);
+      }
       final file = _file();
       await pumpPhone(
         tester,
         const FileManagerScreen(),
         overrides: [
           noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
           fileManagerProvider.overrideWith(
-            () => _FakeNotifier(FileManagerState(files: [file])),
+            () => _FakeNotifier(
+              FileManagerState(
+                files: [file],
+                selectionMode: true,
+                selected: {file.id},
+              ),
+            ),
           ),
           libraryStatsProvider.overrideWith(
             (ref) async => const LibraryStats(),
           ),
           libraryTagsProvider.overrideWith((ref) async => const []),
+          // The repository is real here; its tag probe must not go out.
+          libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
           slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
-          canRunPipelinesProvider.overrideWith((ref) => gate.future),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
         ],
       );
       await tester.pumpAndSettle();
-      await openFileSheet(tester, file);
+      return repo;
+    }
 
-      expect(
-        find.byIcon(Icons.account_tree_outlined),
-        findsNothing,
-        reason: 'nothing is claimed before the server has answered',
-      );
+    testWidgets('a server whose listing had variants offers grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: true);
 
-      gate.complete(true);
+      expect(byLogId('files.group_variants'), findsOneWidget);
+    });
+
+    testWidgets('an older listing, or none yet, offers no grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: false);
+      expect(byLogId('files.group_variants'), findsNothing);
+    });
+
+    testWidgets('a listing that lands with the bar open updates it', (
+      tester,
+    ) async {
+      // Asked once per opening before; a listing fetched meanwhile only
+      // counted the next time selection mode started.
+      final repo = await pumpSelecting(tester);
+      expect(byLogId('files.group_variants'), findsNothing);
+
+      repo.variantsCapability.observe(present: true);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      expect(byLogId('files.group_variants'), findsOneWidget);
     });
   });
 
@@ -229,16 +309,69 @@ void main() {
       expect(find.text('Potnij'), findsNothing);
     });
 
+    testWidgets('a server with tags offers the tag action', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+      expect(find.textContaining('Tagi'), findsOneWidget);
+    });
+
     testWidgets('a server with no tag routes hides the tag action', (
       tester,
     ) async {
-      // A loaded null is the 404 gate — see libraryTagsSupported.
       final file = _file();
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
       expect(find.textContaining('Tagi'), findsNothing);
     });
+  });
+
+  testWidgets('an older server loses the tag controls once, not every visit', (
+    tester,
+  ) async {
+    // The catalog dies with the screen; the latch lives in the repository.
+    // Before, every visit showed the controls and then took them away.
+    final dio = testDio();
+    DioAdapter(dio: dio).onGet(
+      '/api/v1/library/tags',
+      (s) => s.reply(404, {'detail': 'Not Found'}),
+    );
+    final sent = captureRequests(dio);
+    final repo = LibraryRepository(dio);
+
+    Future<void> visit() async {
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(FileManagerState(files: [_file()])),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await visit();
+    expect(byLogId('files.tag_filter'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await visit();
+
+    expect(byLogId('files.tag_filter'), findsNothing);
+    expect(
+      sent.paths.where((p) => p == '/api/v1/library/tags'),
+      hasLength(1),
+      reason: 'the answer outlives the screen that asked',
+    );
   });
 
   group('the sort sheet fits', () {

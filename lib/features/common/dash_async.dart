@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/api/server_reachability.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -89,21 +90,44 @@ Widget dashAsync<T>(
   bool skipLoadingOnRefresh = true,
 }) {
   final l10n = AppLocalizations.of(context);
-  return value.when(
-    skipLoadingOnReload: skipLoadingOnReload,
-    skipLoadingOnRefresh: skipLoadingOnRefresh,
-    loading: () => loading,
-    error: (error, _) => AsyncErrorView(
-      message: error is AppApiException
-          ? error.localized(l10n)
-          : fallbackMessage ?? l10n.connectFailed,
-      retryLabel: l10n.retry,
-      onRetry: onRetry,
-      icon: errorIcon,
-      tonal: tonalRetry,
-      scrollable: scrollableError,
-    ),
-    data: data,
+  AsyncErrorView failure(String message) => AsyncErrorView(
+    message: message,
+    retryLabel: l10n.retry,
+    // Forgetting first, so the try itself shows its spinner: the shared answer
+    // is still "unreachable" until this request comes back, and without this
+    // the button would look dead for as long as it takes.
+    onRetry: () {
+      ServerReachability.instance.forget();
+      onRetry();
+    },
+    icon: errorIcon,
+    tonal: tonalRetry,
+    scrollable: scrollableError,
+  );
+
+  return _WhenServerReturns(
+    value: value,
+    onServerBack: onRetry,
+    builder: (context, reachable) {
+      // Nothing to show yet and the server is known to be out of reach: say so
+      // now. Waiting means this screen spends its own connect timeout learning
+      // what the request that already failed answered for all of them — which
+      // is a spinner per screen the user opens, and the same wait each time.
+      if (!value.hasValue && !value.hasError && reachable == false) {
+        return failure(fallbackMessage ?? l10n.connectFailed);
+      }
+      return value.when(
+        skipLoadingOnReload: skipLoadingOnReload,
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        loading: () => loading,
+        error: (error, _) => failure(
+          error is AppApiException
+              ? error.localized(l10n)
+              : fallbackMessage ?? l10n.connectFailed,
+        ),
+        data: data,
+      );
+    },
   );
 }
 
@@ -142,24 +166,36 @@ Widget dashAsyncStrip<T>(
     return height == null ? padded : SizedBox(height: height, child: padded);
   }
 
-  return value.when(
-    skipLoadingOnReload: skipLoadingOnReload,
-    skipLoadingOnRefresh: skipLoadingOnRefresh,
-    loading: () => strip(loading),
-    error: (error, _) {
-      final message = error is AppApiException
-          ? error.localized(l10n)
-          : failureMessage ?? l10n.connectFailed;
-      return failureBuilder?.call(message) ??
-          strip(
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: DashTokens.of(context).labelSoft,
-            ),
-          );
+  Widget failed(String message) =>
+      failureBuilder?.call(message) ??
+      strip(
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: DashTokens.of(context).labelSoft,
+        ),
+      );
+
+  return ValueListenableBuilder<bool?>(
+    valueListenable: ServerReachability.instance.reachable,
+    builder: (context, reachable, _) {
+      // Same rule as [dashAsync]: a section has no more reason to wait out its
+      // own timeout than a screen does.
+      if (!value.hasValue && !value.hasError && reachable == false) {
+        return failed(failureMessage ?? l10n.connectFailed);
+      }
+      return value.when(
+        skipLoadingOnReload: skipLoadingOnReload,
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        loading: () => strip(loading),
+        error: (error, _) => failed(
+          error is AppApiException
+              ? error.localized(l10n)
+              : failureMessage ?? l10n.connectFailed,
+        ),
+        data: data,
+      );
     },
-    data: data,
   );
 }
 
@@ -218,4 +254,93 @@ List<T> withRowRestored<T>(
   if (now.any((r) => idOf(r) == id)) return now;
   return [...now]
     ..insert(restoredPositionOf(now, row, before, idOf: idOf), row);
+}
+
+/// Rebuilds on [ServerReachability], and asks its screen to fetch again the
+/// moment the server comes back.
+///
+/// Without that last part only the dashboard recovered by itself, because it
+/// is the one screen that polls: every other tab kept the failure it had
+/// collected in flight mode until the user pulled it down by hand — the
+/// connection was back, the app knew it, and the screen still said otherwise.
+///
+/// Only a connection failure is retried. A 500 or a refusal is the server's
+/// answer, and asking again the moment the radio comes back would be a
+/// request per screen for a state nothing has changed about.
+class _WhenServerReturns extends StatefulWidget {
+  const _WhenServerReturns({
+    required this.value,
+    required this.onServerBack,
+    required this.builder,
+  });
+
+  final AsyncValue<Object?> value;
+  final VoidCallback onServerBack;
+  final Widget Function(BuildContext context, bool? reachable) builder;
+
+  @override
+  State<_WhenServerReturns> createState() => _WhenServerReturnsState();
+}
+
+class _WhenServerReturnsState extends State<_WhenServerReturns> {
+  ValueNotifier<bool?> get _reachable => ServerReachability.instance.reachable;
+  late bool? _last = _reachable.value;
+
+  @override
+  void initState() {
+    super.initState();
+    _reachable.addListener(_heard);
+    // Opened after the server came back, holding a failure collected while it
+    // was away: the same case as [_heard], one screen later.
+    if (_last == true && _waitingOnTheServer) _askAfterTheFrame();
+  }
+
+  @override
+  void didUpdateWidget(_WhenServerReturns old) {
+    super.didUpdateWidget(old);
+    // The failure of a request that was still in the air when the server came
+    // back lands here, after the flip this state listens for. Without this the
+    // screen would keep an error the server has already disproved.
+    if (_last == true && !old.value.hasError && _waitingOnTheServer) {
+      _askAfterTheFrame();
+    }
+  }
+
+  @override
+  void dispose() {
+    _reachable.removeListener(_heard);
+    super.dispose();
+  }
+
+  void _heard() {
+    final next = _reachable.value;
+    final regained = _last == false && next == true;
+    _last = next;
+    if (mounted) setState(() {});
+    if (!regained || !_waitingOnTheServer) return;
+    _askAfterTheFrame();
+  }
+
+  /// After the frame: the fetch this starts writes to a provider, which a
+  /// build must not be in the middle of.
+  void _askAfterTheFrame() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) widget.onServerBack();
+  });
+
+  /// Whether this screen is holding a failure the server has since disproved.
+  ///
+  /// A request still in the air is not one: it may well be the one that brings
+  /// the server back, and starting a second alongside it means two requests
+  /// and a race over which answer the provider keeps. Whatever it ends as
+  /// reaches [didUpdateWidget], which is where a late failure is picked up.
+  bool get _waitingOnTheServer {
+    final value = widget.value;
+    if (value.hasValue) return false;
+    final error = value.error;
+    return error is AppApiException &&
+        error.code == AppErrorCode.serverUnreachable;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _last);
 }

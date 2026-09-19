@@ -157,9 +157,10 @@ final presetValuesProvider = FutureProvider.autoDispose
 /// Both halves have to hold, and they fail for unrelated reasons — an older
 /// server, or a broken asset in our own build. One gate keeps the slice sheet
 /// from having to know that.
-final processSettingsAvailableProvider = FutureProvider.autoDispose<bool>((
-  ref,
-) async {
-  if (!await ref.watch(processOverridesProvider.future)) return false;
-  return await ref.watch(processSchemaProvider.future) != null;
+final processSettingsAvailableProvider = Provider<AsyncValue<bool>>((ref) {
+  final server = ref.watch(processOverridesProvider);
+  // A server that said no — or could not be asked — costs no 164 KB decode.
+  if (server.hasError || server.valueOrNull == false) return server;
+  final schema = ref.watch(processSchemaProvider);
+  return server.and(schema.whenData((catalog) => catalog != null));
 });

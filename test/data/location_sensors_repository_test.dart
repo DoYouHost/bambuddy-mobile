@@ -187,17 +187,17 @@ void main() {
     });
   });
 
-  group('supportsLocationSensors', () {
+  group('sensorsCapability', () {
     test('the version answers until the listing does', () async {
       replyVersion('1.2.5.4');
-      expect(await repo.supportsLocationSensors(), isFalse);
+      expect(await repo.sensorsCapability.supported, isFalse);
 
       final newer = LocationSensorsRepository(dio, ServerVersionService(dio));
       adapter.onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'x/y'}),
       );
-      expect(await newer.supportsLocationSensors(), isTrue);
+      expect(await newer.sensorsCapability.supported, isTrue);
     });
 
     test(
@@ -208,13 +208,13 @@ void main() {
           (s) => s.reply(500, {'detail': 'boom'}),
         );
 
-        expect(await repo.supportsLocationSensors(), isFalse);
+        expect(await repo.sensorsCapability.supported, isFalse);
       },
     );
 
     test('with no version service at all it stays off', () async {
       expect(
-        await LocationSensorsRepository(dio).supportsLocationSensors(),
+        await LocationSensorsRepository(dio).sensorsCapability.supported,
         isFalse,
       );
     });
@@ -225,11 +225,11 @@ void main() {
         '/api/v1/location-ha-sensors/',
         (s) => s.reply(404, {'detail': 'Not Found'}),
       );
-      expect(await repo.supportsLocationSensors(), isTrue);
+      expect(await repo.sensorsCapability.supported, isTrue);
 
       await repo.listBindings();
 
-      expect(await repo.supportsLocationSensors(), isFalse);
+      expect(await repo.sensorsCapability.supported, isFalse);
     });
 
     test('a 403 hides it too, which no version could have said', () async {
@@ -241,7 +241,7 @@ void main() {
 
       await repo.listBindings();
 
-      expect(await repo.supportsLocationSensors(), isFalse);
+      expect(await repo.sensorsCapability.supported, isFalse);
     });
 
     test(
@@ -258,7 +258,7 @@ void main() {
 
         await repo.listBindings();
 
-        expect(await repo.supportsLocationSensors(), isTrue);
+        expect(await repo.sensorsCapability.supported, isTrue);
       },
     );
   });

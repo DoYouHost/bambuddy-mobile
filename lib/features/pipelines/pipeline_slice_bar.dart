@@ -51,7 +51,7 @@ class _PipelineSliceBarState extends ConsumerState<PipelineSliceBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (ref.watch(pipelinesSupportedProvider).valueOrNull != true) {
+    if (!ref.watch(pipelinesSupportedProvider).orFalse) {
       return const SizedBox.shrink();
     }
     final l10n = AppLocalizations.of(context);

@@ -51,7 +51,10 @@ void main() {
     replyVersion('1.2.5.1');
 
     expect((await service.current())?.raw, '1.2.5.1');
-    expect(await service.supports(ServerFeature.triStateCalibration), isTrue);
+    expect(
+      (await service.current())?.supports(ServerFeature.triStateCalibration),
+      isTrue,
+    );
     expect(await service.reportedVersion(), '1.2.5.1');
     expect(service.cachedRaw, '1.2.5.1');
   });
@@ -59,7 +62,10 @@ void main() {
   test('an older server: no tri-state', () async {
     replyVersion('0.2.4.9');
 
-    expect(await service.supports(ServerFeature.triStateCalibration), isFalse);
+    expect(
+      (await service.current())?.supports(ServerFeature.triStateCalibration),
+      isFalse,
+    );
   });
 
   test('asks once, then uses the remembered response', () async {
@@ -73,7 +79,7 @@ void main() {
 
     await service.current();
     await service.current();
-    await service.supports(ServerFeature.triStateCalibration);
+    await service.current();
 
     expect(
       calls(),
@@ -117,11 +123,6 @@ void main() {
       );
 
       expect(await service.current(), isNull);
-      expect(
-        await service.supports(ServerFeature.triStateCalibration),
-        isFalse,
-        reason: 'unknown is treated as older',
-      );
       expect(await service.reportedVersion(), isNull);
     });
 
@@ -150,9 +151,9 @@ void main() {
       expect(await service.current(), isNull);
       expect(await service.reportedVersion(), 'nightly-2026-09-11');
       expect(
-        await service.supports(ServerFeature.triStateCalibration),
-        isFalse,
-        reason: 'unparseable still gates as the older contract',
+        service.cached,
+        isNull,
+        reason: 'unparseable reaches no version row: the latch answers alone',
       );
     });
 
@@ -219,6 +220,18 @@ void main() {
           await service.current();
         },
       );
+      expect(calls(), 2);
+    });
+
+    test('a regained contact retries at once, inside the window', () async {
+      final calls = countingReplies(
+        () => Response(requestOptions: RequestOptions(), statusCode: 500),
+      );
+
+      await service.current();
+      service.forgetFailure();
+      await service.current();
+
       expect(calls(), 2);
     });
   });

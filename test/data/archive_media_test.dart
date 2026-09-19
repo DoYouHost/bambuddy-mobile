@@ -151,7 +151,7 @@ void main() {
       final versioned = ArchiveRepository(dio, ServerVersionService(dio));
 
       expect(await versioned.printerMedia(7), isNull);
-      expect(await versioned.supportsPrinterMedia(), isTrue);
+      expect(await versioned.printerMediaCapability.supported, isTrue);
     });
 
     test('any other failure is a broken search, not an empty one', () async {
@@ -170,7 +170,7 @@ void main() {
       );
 
       await expectLater(repo.printerMedia(7), throwsA(isA<AppApiException>()));
-      expect(await repo.supportsPrinterMedia(), isFalse);
+      expect(await repo.printerMediaCapability.supported, isFalse);
     });
 
     test(
@@ -190,7 +190,7 @@ void main() {
         final media = await repo.printerMedia(7);
 
         expect(media?.remoteFiles, hasLength(1));
-        expect(await repo.supportsPrinterMedia(), isTrue);
+        expect(await repo.printerMediaCapability.supported, isTrue);
       },
     );
   });

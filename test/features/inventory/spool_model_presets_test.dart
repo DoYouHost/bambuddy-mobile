@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -92,7 +93,9 @@ void main() {
         inventoryProvider.overrideWith(() => inventory ?? _FakeInventory()),
         inventoryRepositoryProvider.overrideWithValue(repo),
         noServerProfileOverride,
-        presetOverridesSupportedProvider.overrideWith((_) async => supported),
+        presetOverridesSupportedProvider.overrideWithValue(
+          AsyncData(supported),
+        ),
         printerModelsProvider.overrideWith((_) async => models),
         slicerPresetsProvider.overrideWith(
           (_) async => UnifiedPresets(
@@ -352,5 +355,60 @@ void main() {
     await settle(tester);
 
     expect(fake.writes, ['create', 'update:7']);
+  });
+
+  test(
+    'an unanswered gate keeps the stored presets loading, never empty',
+    () async {
+      // Trap T1: the form seeds its editable copy once and a save replaces the
+      // whole list, so an empty list read while the server had not answered
+      // would wipe every override on the next save.
+      final repo = _MockRepo();
+      when(
+        () => repo.fetchPresetOverrides(7),
+      ).thenAnswer((_) async => const []);
+      final gate = StateProvider<AsyncValue<bool>>((_) => const AsyncLoading());
+      final container = ProviderContainer(
+        overrides: [
+          inventoryRepositoryProvider.overrideWithValue(repo),
+          presetOverridesSupportedProvider.overrideWith(
+            (ref) => ref.watch(gate),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(spoolPresetOverridesProvider(7), (_, _) {});
+
+      await pumpEventQueue();
+      expect(container.read(spoolPresetOverridesProvider(7)).isLoading, isTrue);
+      verifyNever(() => repo.fetchPresetOverrides(7));
+
+      container.read(gate.notifier).state = const AsyncData(true);
+      await pumpEventQueue();
+
+      expect(container.read(spoolPresetOverridesProvider(7)).hasValue, isTrue);
+      verify(() => repo.fetchPresetOverrides(7)).called(1);
+    },
+  );
+
+  test('a gate that failed fails the presets rather than hanging', () async {
+    // The form keeps its section read-only on an error; a future that never
+    // completes would leave it waiting instead.
+    final repo = _MockRepo();
+    final container = ProviderContainer(
+      overrides: [
+        inventoryRepositoryProvider.overrideWithValue(repo),
+        presetOverridesSupportedProvider.overrideWithValue(
+          AsyncError(StateError('no profile'), StackTrace.empty),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(spoolPresetOverridesProvider(7), (_, _) {});
+
+    await pumpEventQueue();
+
+    expect(container.read(spoolPresetOverridesProvider(7)).hasError, isTrue);
+    verifyNever(() => repo.fetchPresetOverrides(any()));
   });
 }

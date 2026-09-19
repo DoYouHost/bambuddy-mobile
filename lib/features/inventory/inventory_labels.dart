@@ -298,7 +298,13 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
   /// worse than one that never appears.
   Future<int?> _pickStartingPosition(SpoolLabelTemplate template) async {
     if (template.sheetCapacity == null) return 1;
-    if (!await ref.read(labelStartingPositionProvider.future)) return 1;
+    if (!mounted) return null;
+    final providers = ProviderScope.containerOf(context, listen: false);
+    final supported = await settledGate(
+      providers,
+      labelStartingPositionProvider,
+    ).catchError((Object _) => false);
+    if (!supported) return 1;
     if (!mounted) return null;
     return dashSurfaceSheet<int>(
       context,

@@ -33,18 +33,18 @@ class SlicerRepository {
   /// answering `resolved: false` supports overrides, it just could not read the
   /// preset. Unknown → hidden, because nothing forbids extra fields in
   /// `SliceRequest` and an older server drops them without a word.
-  late final _processOverrides = ObservedCapability(
+  late final processOverridesCapability = ObservedCapability(
     ServerFeature.processOverrides,
     _serverVersion,
   );
 
-  Future<bool> supportsProcessOverrides() => _processOverrides.supported;
-
-  /// Whether `auto_orient` / `auto_arrange` reach the slicer. Version-only:
-  /// they are request fields with no route of their own to probe, and an older
-  /// server drops them silently.
-  Future<bool> supportsLayoutOptions() async =>
-      await _serverVersion?.supports(ServerFeature.sliceLayoutOptions) ?? false;
+  /// Whether `auto_orient` / `auto_arrange` reach the slicer. Version-only,
+  /// never observed: they are request fields with no route of their own to
+  /// probe, and an older server drops them silently.
+  late final layoutOptionsCapability = ObservedCapability(
+    ServerFeature.sliceLayoutOptions,
+    _serverVersion,
+  );
 
   /// GET /slicer/presets — printer/process/filament options across all tiers.
   Future<UnifiedPresets> presets({bool refresh = false}) => guard(() async {
@@ -108,7 +108,7 @@ class SlicerRepository {
   /// over a control the user cannot have is the wrong thing entirely.
   Future<PresetValues?> presetValues(SlicerPreset preset) async {
     try {
-      return await _processOverrides.watching(
+      return await processOverridesCapability.watching(
         () async {
           final res = await _dio.get<Map<String, dynamic>>(
             Endpoints.slicerPresetValues,

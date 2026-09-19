@@ -131,8 +131,9 @@ do not stay silent because it was not part of the task.
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
 - [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
-  exists, what an older server does without it and what being early costs.
-  **Read it before adding a version gate**; the enum keeps one line per member.
+  exists, what an older server does without it and what being early costs, and
+  how a capability travels from its latch to a screen. **Read it before adding
+  a gate**; the enum keeps one line per member.
 - [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
   inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
   was paid for, and the quadratic behind `roundScaleFor`.
@@ -204,6 +205,13 @@ do not stay silent because it was not part of the task.
 - Server timestamps are UTC even when the `Z` is missing; parse through the
   helpers in [lib/core/models/json_utils.dart](lib/core/models/json_utils.dart)
   (`dateTimeFromJson`, `calendarDateFromJson`), never `DateTime.parse`.
+- **A server capability reaches a screen one way**: a latch
+  (`ObservedCapability`) in its repository, one `capabilityGate(...)` line in
+  the providers, read with `.orFalse` / `.offer` (`settledGate` outside a
+  build). Never a `FutureProvider<bool>` — it shows a loading frame for an
+  answer it already has and never asks again once the server is reachable;
+  `capability_gate_shape_test.dart` refuses one. The path and the "adding a
+  gate" checklist are in [docs/server-gates.md](docs/server-gates.md).
 - **Select fields use M3 `DropdownMenu<T>`**, never `DropdownButtonFormField`
   (its full-screen overlay is the old Material look and does not match the app):
   `expandedInsets: EdgeInsets.zero`, `menuHeight: 320`, and a local

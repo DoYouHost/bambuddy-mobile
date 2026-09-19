@@ -42,6 +42,10 @@ class ServerVersionService {
   /// yet". See [_rawVersion] for why this is not `cached?.raw`.
   String? get cachedRaw => _rawVersion;
 
+  /// Lets the next [current] ask at once instead of waiting out [_retryAfter] —
+  /// for when contact with the server has just been regained.
+  void forgetFailure() => _failedAt = null;
+
   /// Concurrent callers share one in-flight request.
   Future<ServerVersion?> current() async {
     final known = _version;
@@ -62,21 +66,6 @@ class ServerVersionService {
       _pending = null;
     }
   }
-
-  /// Whether the connected server has [feature], per
-  /// [ServerVersion.introducedIn].
-  ///
-  /// Unknown → `false` for every feature, which is always the older contract: a
-  /// hidden control costs a new-server user one feature until the version read
-  /// lands, while a shown one costs an old-server user a 422 — or, for the
-  /// slice fields, a switch that silently does nothing.
-  Future<bool> supports(ServerFeature feature) async =>
-      (await current())?.supports(feature) ?? false;
-
-  /// Unknown → 60, the ceiling every server generation accepts. See
-  /// [ServerVersion.chamberMaxTargetC] for why this one cannot be observed.
-  Future<int> chamberMaxTargetC() async =>
-      (await current())?.chamberMaxTargetC ?? 60;
 
   /// The server's own version string, for the bug-report header and the two
   /// screens that show it. `null` until a read succeeds, and after one that

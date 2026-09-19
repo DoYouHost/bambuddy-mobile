@@ -80,7 +80,7 @@ void main() {
 
       expect(await repo.fetchPresetOverrides(7), isEmpty);
       expect(
-        await repo.supportsPresetOverrides(),
+        await repo.presetOverridesCapability.supported,
         isTrue,
         reason: 'the version row is what answers this',
       );
@@ -111,13 +111,13 @@ void main() {
     test('a server older than the route is not offered the section', () async {
       replyVersion('1.2.5.4');
 
-      expect(await nativeRepo().supportsPresetOverrides(), isFalse);
+      expect(await nativeRepo().presetOverridesCapability.supported, isFalse);
     });
 
     test('the beta the route shipped in counts as its release', () async {
       replyVersion('1.2.6b1');
 
-      expect(await nativeRepo().supportsPresetOverrides(), isTrue);
+      expect(await nativeRepo().presetOverridesCapability.supported, isTrue);
     });
 
     test('a version that cannot be read hides the section rather than '
@@ -127,7 +127,7 @@ void main() {
         (s) => s.reply(500, {'detail': 'boom'}),
       );
 
-      expect(await nativeRepo().supportsPresetOverrides(), isFalse);
+      expect(await nativeRepo().presetOverridesCapability.supported, isFalse);
     });
   });
 
@@ -195,7 +195,7 @@ void main() {
           throwsA(isA<AppApiException>()),
           reason: 'the user pressed Save, so the failure still reaches them',
         );
-        expect(await repo.supportsPresetOverrides(), isTrue);
+        expect(await repo.presetOverridesCapability.supported, isTrue);
       },
     );
 

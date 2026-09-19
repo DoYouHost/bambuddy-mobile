@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bambuddy_mobile/core/api/server_reachability.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -79,6 +80,162 @@ void main() {
     await pumpState(tester, const AsyncValue<String>.loading());
 
     expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('a server already known to be out of reach skips the wait', (
+    tester,
+  ) async {
+    // The whole point of the shared answer: the second screen the user opens
+    // says so at once instead of spinning through its own connect timeout.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+
+    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+
+    expect(find.byType(DashLoading), findsNothing);
+    expect(find.text(l10n.connectFailed), findsOneWidget);
+    await tester.tap(find.text(l10n.retry));
+    expect(retries, 1);
+  });
+
+  testWidgets('retrying shows the spinner rather than a dead button', (
+    tester,
+  ) async {
+    // The shared answer is still "unreachable" while the retry is in flight,
+    // so without forgetting it first the screen would keep the error up and
+    // the button would look like it did nothing.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+
+    await tester.tap(find.text(l10n.retry));
+    await tester.pump();
+
+    expect(retries, 1);
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('the server coming back fetches again, with no pull needed', (
+    tester,
+  ) async {
+    // Only the dashboard recovered by itself, because it polls. Every other
+    // tab kept the failure it had collected in flight mode.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    await pumpState(
+      tester,
+      AsyncValue<String>.error(
+        const NetworkException(AppErrorCode.serverUnreachable),
+        StackTrace.empty,
+      ),
+    );
+    expect(retries, 0);
+
+    ServerReachability.instance.reachable.value = true;
+    await tester.pump();
+
+    expect(retries, 1);
+  });
+
+  testWidgets('a request still in the air is left to finish', (tester) async {
+    // It may be the one that brings the server back. A second alongside it is
+    // two requests and a race over which answer the provider keeps.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    await pumpState(tester, const AsyncValue<String>.loading());
+
+    ServerReachability.instance.reachable.value = true;
+    await tester.pump();
+
+    expect(retries, 0);
+  });
+
+  testWidgets('a failure that lands after the server returned is retried', (
+    tester,
+  ) async {
+    // The connect timeout of a request started in flight mode expires long
+    // after the radio is back; the screen must not keep its verdict.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    await pumpState(tester, const AsyncValue<String>.loading());
+    ServerReachability.instance.reachable.value = true;
+    await tester.pump();
+    expect(retries, 0);
+
+    await pumpState(
+      tester,
+      AsyncValue<String>.error(
+        const NetworkException(AppErrorCode.serverUnreachable),
+        StackTrace.empty,
+      ),
+    );
+    await tester.pump();
+
+    expect(retries, 1);
+  });
+
+  testWidgets('a failure of the server itself is not asked again', (
+    tester,
+  ) async {
+    // A 500 is an answer. Asking every screen again the moment the radio comes
+    // back would be a request each for a state nothing has changed about.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    await pumpState(
+      tester,
+      AsyncValue<String>.error(
+        const ApiException(AppErrorCode.badResponse, statusCode: 500),
+        StackTrace.empty,
+      ),
+    );
+
+    ServerReachability.instance.reachable.value = true;
+    await tester.pump();
+
+    expect(retries, 0);
+  });
+
+  testWidgets('a screen opened after the server came back asks once', (
+    tester,
+  ) async {
+    ServerReachability.instance.reachable.value = true;
+    addTearDown(ServerReachability.instance.forget);
+
+    await pumpState(
+      tester,
+      AsyncValue<String>.error(
+        const NetworkException(AppErrorCode.serverUnreachable),
+        StackTrace.empty,
+      ),
+    );
+    await tester.pump();
+
+    expect(retries, 1);
+  });
+
+  testWidgets('a server that has answered is waited for', (tester) async {
+    ServerReachability.instance.reachable.value = true;
+    addTearDown(ServerReachability.instance.forget);
+
+    await pumpState(tester, const AsyncValue<String>.loading());
+
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('data on screen outlives the server going away', (tester) async {
+    // A list already fetched stays: the failure belongs to the next request,
+    // not to what the user is looking at.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+
+    await pumpState(
+      tester,
+      const AsyncValue<String>.loading().copyWithPrevious(
+        const AsyncValue.data('seventeen spools'),
+      ),
+    );
+
+    expect(find.text('seventeen spools'), findsOneWidget);
   });
 
   testWidgets('data is the only branch a screen writes', (tester) async {

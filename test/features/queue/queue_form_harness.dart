@@ -141,7 +141,7 @@ Widget queueFormScreen(
     ),
     allPrintersProvider.overrideWith((ref) async => printers),
     sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
-    triStateCalibrationProvider.overrideWith((ref) async => triState),
+    triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
     gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
     plateListProvider.overrideWith((ref, arg) async => plates),
     filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),

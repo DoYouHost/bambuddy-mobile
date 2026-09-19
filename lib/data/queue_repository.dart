@@ -149,7 +149,7 @@ class QueueRepository {
   /// sane comparison, and no ordering of those two strings can tell you whether
   /// that particular beta predates the change. The field's type says it
   /// outright. Unknown → the boolean form, which every server accepts.
-  late final _triState = ObservedCapability(
+  late final triStateCapability = ObservedCapability(
     ServerFeature.triStateCalibration,
     _serverVersion,
   );
@@ -160,8 +160,6 @@ class QueueRepository {
     'nozzle_offset_cali',
   ];
 
-  Future<bool> supportsTriStateCalibration() => _triState.supported;
-
   /// Records which spelling a queue payload used. Reads the raw JSON rather than
   /// the parsed [QueueItem], because the whole point of the parsed form is that
   /// both spellings collapse into one enum.
@@ -171,11 +169,11 @@ class QueueRepository {
       for (final key in _calibrationKeys) {
         final value = record[key];
         if (value is String) {
-          _triState.observe(present: true);
+          triStateCapability.observe(present: true);
           return;
         }
         if (value is bool) {
-          _triState.observe(present: false);
+          triStateCapability.observe(present: false);
           return;
         }
       }
@@ -306,7 +304,7 @@ class QueueRepository {
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
     Object? nozzleRackChoice = kQueueUpdateUnset,
   }) async {
-    final triState = await supportsTriStateCalibration();
+    final triState = await triStateCapability.supported;
     final body = <String, dynamic>{
       if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
       if (targetModel != kQueueUpdateUnset) 'target_model': targetModel,
@@ -544,7 +542,7 @@ class QueueRepository {
   /// server reads each file's own `sliced_for_model`, and overriding that is for
   /// legacy 3MFs the phone cannot identify.
   ///
-  /// The caller checks [LibraryRepository.supportsCrossModelVariants] first: an
+  /// The caller checks [LibraryRepository.variantsCapability] first: an
   /// older server answers 422 only because the rest of the body is then invalid,
   /// which is a confusing way to learn the feature is missing.
   Future<void> addCrossModel(
@@ -572,7 +570,7 @@ class QueueRepository {
     required bool insertAtTop,
     required QueueCreateOptions? options,
   }) async {
-    final triState = await supportsTriStateCalibration();
+    final triState = await triStateCapability.supported;
     final body = <String, dynamic>{
       ...source,
       'printer_id': printerId,

@@ -78,6 +78,28 @@ void main() {
     return (client: client, conns: conns);
   }
 
+  test('an inventory frame reaches the stream that re-reads the shelf', () {
+    fakeAsync((async) {
+      final (:client, :conns) = build();
+      var heard = 0;
+      client.inventoryChanges.listen((_) => heard++);
+
+      client.start();
+      async.flushMicrotasks();
+      conns[0].connectOk();
+      async.flushMicrotasks();
+
+      conns[0].push('{"type":"inventory_changed"}');
+      conns[0].push('{"type":"spool_assignment_changed","printer_id":1}');
+      async.flushMicrotasks();
+
+      expect(heard, 2);
+
+      client.dispose();
+      async.flushMicrotasks();
+    });
+  });
+
   test(
     'happy path: connecting → connected, frame → status, ping after 25s',
     () {

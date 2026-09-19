@@ -7,6 +7,7 @@ import '../auth/credentials_store.dart';
 import '../demo/demo_backend.dart';
 import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
+import 'server_reachability.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
@@ -15,13 +16,22 @@ import '../settings/server_profile.dart';
 /// there is a client — login, the auth/status probe — are logged too. First in
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
-Dio createBareDio() => Dio(
-  BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 15),
-    sendTimeout: const Duration(seconds: 15),
-  ),
-)..interceptors.add(HttpProbe(config: bambuddyHttpProbe));
+Dio createBareDio() {
+  // A new Dio is a new server, or a fresh start: what the last one answered
+  // says nothing about this one.
+  ServerReachability.instance.forget();
+  return Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
+      ),
+    )
+    ..interceptors.add(HttpProbe(config: bambuddyHttpProbe))
+    // After the probe, so the log keeps the whole exchange, and on the bare Dio
+    // so the login and the auth probe answer for reachability too.
+    ..interceptors.add(ReachabilityProbe(ServerReachability.instance));
+}
 
 /// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {

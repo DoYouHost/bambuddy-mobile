@@ -11,6 +11,7 @@ import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/api/media_auth.dart';
 import 'core/api/media_token.dart';
+import 'core/api/observed_capability.dart';
 import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
@@ -567,6 +568,51 @@ final serverVersionServiceProvider = Provider<ServerVersionService>(
   (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
 );
 
+/// How many times contact with the server has been regained — the signal for
+/// asking again what an unreachable server could not answer. Bumped by
+/// `PrinterStatusesNotifier`, whose idea of "the line is up" (a WebSocket
+/// frame or a poll after a gap, including every return from the background)
+/// is the app's only one.
+final serverContactEpochProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// How many times the user has asked the dashboard to refresh — the signal for
+/// every capability gate to drop the refusals its latch recorded before it. A
+/// control a 403 hid never calls its route again, so a permission granted on
+/// the server since would otherwise wait for a restart.
+final refusalsForgottenProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// A counter that only goes up. Never reset, not even for a new server: what
+/// it paces lives in the repositories and the version service, which a new
+/// server rebuilds anyway.
+class Epoch extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+/// Bumped whenever the server says an archived print changed — a timelapse
+/// attached, a finish photo added, metadata edited elsewhere.
+final archiveChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// Bumped whenever the server says the spool inventory changed — a spool
+/// edited on the web, a scale reporting a weight, a tray loaded. The screen
+/// reading it re-fetches when it is the tab being looked at.
+final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// The connected server's version, for a synchronous reader. Warmed by the
+/// shell at start, and asked again on every regained contact — a read that
+/// failed while the network was down would otherwise wait out the service's
+/// retry window. `null` is "the server did not say".
+///
+/// Re-running costs nothing once the version is known ([ServerVersionService]
+/// caches it) and keeps the previous value up meanwhile, so nothing blinks.
+final serverVersionProvider = FutureProvider<ServerVersion?>((ref) {
+  final service = ref.watch(serverVersionServiceProvider);
+  if (ref.watch(serverContactEpochProvider) > 0) service.forgetFailure();
+  return service.current();
+});
+
 /// This app's own build, as `version+buildNumber`.
 ///
 /// A provider rather than a future held in each widget's `State`, which is how
@@ -621,59 +667,50 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 ///
 /// Asks the queue repository rather than the version service directly: it has
 /// seen the server's own payloads, and that beats reasoning from a version
-/// number (see `QueueRepository.supportsTriStateCalibration`). `autoDispose` so
-/// each time the print form opens it asks again — a queue fetch between two
-/// openings is exactly what turns "unknown" into a real answer.
-final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(queueRepositoryProvider).supportsTriStateCalibration(),
+/// number (see `QueueRepository.triStateCapability`).
+final triStateCalibrationProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
-/// 60 before it and whenever the version is not known yet.
-///
-/// Not `autoDispose`: the dashboard reads this on every gauge rebuild, and the
-/// underlying version is cached in the service anyway. Rebuilt when
-/// [serverVersionServiceProvider] is, so switching servers cannot carry the old
-/// ceiling over.
+/// 60 before it and whenever the version is not known yet. A value, not a gate:
+/// the default until known, never a loading state.
 ///
 /// One of the two gates with nothing to observe — see
 /// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
 /// other. Every other capability provider here asks a repository instead,
 /// because a repository has seen the server's own answers and that outranks
 /// reasoning from a version number.
-final chamberMaxTargetProvider = FutureProvider<int>(
-  (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
+final chamberMaxTargetProvider = Provider<int>(
+  (ref) =>
+      ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued
 /// as one job (server #671). Asks the library repository, which prefers what a
 /// file listing actually contained over the version number.
-///
-/// `autoDispose` so each time a library screen opens it asks again — a listing
-/// fetched in between is exactly what turns "unknown" into a real answer.
-final crossModelVariantsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(libraryRepositoryProvider).supportsCrossModelVariants(),
+final crossModelVariantsProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).variantsCapability,
 );
 
 /// Whether the slice sheet may offer `auto_orient` / `auto_arrange`.
-final sliceLayoutOptionsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsLayoutOptions(),
+final sliceLayoutOptionsProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).layoutOptionsCapability,
 );
 
 /// Whether the slice sheet may offer the process-override panel. Asks the
 /// slicer repository, which prefers what `/slicer/preset-values` answered over
 /// the version number.
-final processOverridesProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
+final processOverridesProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).processOverridesCapability,
 );
 
 /// Whether the label sheet may ask where on the sheet to start printing
 /// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
 /// why a PDF response cannot answer it.
-final labelStartingPositionProvider = FutureProvider<bool>(
-  (ref) => ref
-      .watch(serverVersionServiceProvider)
-      .supports(ServerFeature.labelStartingPosition),
+final labelStartingPositionProvider = capabilityGate(
+  (ref) =>
+      ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
 );
 
 /// Archive of prints (M5). Shares authenticated Dio.
@@ -714,8 +751,8 @@ final printLogRepositoryProvider = Provider<PrintLogRepository>(
 /// Whether this server sends per-run cost and energy, and honours a sort order
 /// (server #2636). Below it both are silent, so the columns and the sort
 /// control stay off rather than showing blanks and an order nobody applied.
-final printLogCostEnergyProvider = FutureProvider<bool>(
-  (ref) => ref.watch(printLogRepositoryProvider).supportsCostEnergy(),
+final printLogCostEnergyProvider = capabilityGate(
+  (ref) => ref.watch(printLogRepositoryProvider).costEnergyCapability,
 );
 
 /// Archive statistics. Shares authenticated Dio.
@@ -832,6 +869,72 @@ Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
     Provider<AsyncValue<T>>(
       (ref) => ref.watch(serverSettingsProvider).whenData(read),
     );
+
+/// A server capability as a gate a screen can read on its first frame — the
+/// [serverGate] of an [ObservedCapability].
+///
+/// Derived synchronously, in the latch's order: what the server said, then the
+/// version row, then [ObservedCapability.whenUnknown] once nothing more can be
+/// learned. Loading only while the one answer that can still arrive — the
+/// version read or the latch's probe — is in flight, and not even then for a
+/// latch that would rather show its control while unknown: that one shows it
+/// while waiting too, or the control would still appear late.
+///
+/// A probe that went unanswered is sent again once per regained contact; an
+/// observation reaches the gate the moment the latch records it.
+Provider<AsyncValue<bool>> capabilityGate(
+  ObservedCapability Function(Ref ref) latchOf,
+) => Provider<AsyncValue<bool>>((ref) {
+  // A repository that cannot be built (no server profile yet) is an error the
+  // reader folds into "no", as it was while every gate was a FutureProvider —
+  // not an exception thrown into the widget's build.
+  final ObservedCapability latch;
+  try {
+    latch = latchOf(ref);
+  } on Object catch (error, stack) {
+    return AsyncError(error, stack);
+  }
+  final epoch = ref.watch(serverContactEpochProvider);
+  latch.forgetRefusalsBefore(ref.watch(refusalsForgottenProvider));
+  void heard() => ref.invalidateSelf();
+  latch.addListener(heard);
+  ref.onDispose(() => latch.removeListener(heard));
+
+  final inFlight = latch.whenUnknown
+      ? const AsyncData(true)
+      : const AsyncLoading<bool>();
+
+  if (latch.observedAnswer case final answer?) return AsyncData(answer);
+  if (latch.canProbe) {
+    latch.probeIfUnknown(epoch: epoch);
+    return latch.probeFailed ? AsyncData(latch.whenUnknown) : inFlight;
+  }
+  final feature = latch.feature;
+  if (feature == null) return AsyncData(latch.whenUnknown);
+  final version = ref.watch(serverVersionProvider);
+  if (!version.hasValue && !version.hasError) return inFlight;
+  return AsyncData(version.valueOrNull?.supports(feature) ?? latch.whenUnknown);
+});
+
+extension AsyncGate on AsyncValue<bool> {
+  /// Both must hold. A settled "no" on either side is final even while the
+  /// other is unanswered, and an error is handed on rather than turned into
+  /// loading — [settledGate] would wait on that forever.
+  ///
+  /// Both sides are evaluated: `a.and(ref.watch(b))` watches `b` whatever `a`
+  /// said. A synchronous "no" that has to save a request returns before the
+  /// watch instead.
+  AsyncValue<bool> and(AsyncValue<bool> other) {
+    if (valueOrNull == false || other.valueOrNull == false) {
+      return const AsyncData(false);
+    }
+    if (hasError) return this;
+    if (other.hasError) return other;
+    return hasValue && other.hasValue
+        ? const AsyncData(true)
+        : const AsyncLoading();
+  }
+}
 
 /// The settled answer of [gate], for a caller running outside a build.
 ///

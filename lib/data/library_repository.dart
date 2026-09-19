@@ -38,12 +38,10 @@ class LibraryRepository {
   /// its presence answers outright what a version string can only suggest.
   /// Unknown → hidden, so the grouping actions stay away rather than 404ing on
   /// an older server.
-  late final _variants = ObservedCapability(
+  late final variantsCapability = ObservedCapability(
     ServerFeature.crossModelVariants,
     _serverVersion,
   );
-
-  Future<bool> supportsCrossModelVariants() => _variants.supported;
 
   /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
   /// the raw rows rather than the model, because the model cannot distinguish
@@ -52,7 +50,7 @@ class LibraryRepository {
   void _observeVariantSupport(List<dynamic> rows) {
     final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
     if (firstMap == null) return;
-    _variants.observe(present: firstMap.containsKey('variant_count'));
+    variantsCapability.observe(present: firstMap.containsKey('variant_count'));
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).
@@ -102,6 +100,7 @@ class LibraryRepository {
       );
       return res.data ?? const [];
     });
+    _observeVariantSupport(body);
     return parseJsonList(body, LibraryFile.fromJson);
   }
 
@@ -123,25 +122,30 @@ class LibraryRepository {
 
   // --- Tags ---
 
+  /// Whether the server has a tag catalog (the routes arrived in bambuddy
+  /// 1.2.5) this session may read. Unversioned and shown while unknown: the
+  /// controls would otherwise pop into the toolbar a moment late, and an older
+  /// server takes them away once per session. Settled by [listTags].
+  final tagsCapability = ObservedCapability.unversioned();
+
   /// GET /library/tags — the whole catalog, alphabetical, with file counts.
   ///
-  /// Returns `null` when the server has no tag catalog at all (404 — the routes
-  /// arrived in bambuddy 1.2.5). That is the app's feature gate: the tag
-  /// controls stay hidden instead of offering buttons that can only fail. Any
-  /// other failure is a real error and propagates, so a network blip shows as an
-  /// error rather than silently removing the feature.
-  Future<List<LibraryTag>?> listTags() async {
-    try {
-      final body = await guard(() async {
-        final res = await _dio.get<List<dynamic>>(Endpoints.libraryTags);
-        return res.data ?? const [];
-      });
-      return parseJsonList(body, LibraryTag.fromJson);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+  /// Returns `null` when the server has no tag catalog at all (404), and
+  /// [tagsCapability] records it. Any other failure is a real error and
+  /// propagates, so a network blip shows as an error rather than silently
+  /// removing the feature.
+  ///
+  /// `list_tags` (`routes/library_tags.py`) raises no 404 of its own, so a 404
+  /// is the route.
+  Future<List<LibraryTag>?> listTags() => tagsCapability.watching(
+    () async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.libraryTags);
+      return parseJsonList(res.data ?? const [], LibraryTag.fromJson);
+    },
+    absent: () => null,
+    absentOn: const {404},
+    observing: treat404AsAbsent,
+  );
 
   /// POST /library/tags — create a tag. Names are unique case-insensitively;
   /// a duplicate answers 409, which reaches the caller as [ApiException] with
@@ -187,7 +191,7 @@ class LibraryRepository {
 
   // --- Variant groups (server #671, 1.2.6+) ---
   //
-  // Gate every entry point on [supportsCrossModelVariants]: an older server
+  // Gate every entry point on [variantsCapability]: an older server
   // 404s these paths, which would surface as a generic failure.
 
   /// GET /library/variant-groups/by-file/{id} — the group [fileId] belongs to.

@@ -22,6 +22,7 @@ import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
+import '../common/refresh_when_shown.dart';
 import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
 import '../common/inline_note.dart';
@@ -181,92 +182,96 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   ),
                 ],
               ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () => ref.read(archiveProvider.notifier).refresh(),
-          data: (all) {
-            final items = applyArchiveFilters(all, filters);
-            return RefreshIndicator(
-              onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  DashSliverSearchBar(
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DashSearchField(
-                              id: 'archive.search',
-                              hintText: l10n.archiveSearchHint,
-                              onChanged: _onSearchChanged,
+        body: RefreshWhenShown(
+          announced: ref.watch(archiveChangedProvider),
+          onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () => ref.read(archiveProvider.notifier).refresh(),
+            data: (all) {
+              final items = applyArchiveFilters(all, filters);
+              return RefreshIndicator(
+                onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    DashSliverSearchBar(
+                      child: SizedBox(
+                        height: 48,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DashSearchField(
+                                id: 'archive.search',
+                                hintText: l10n.archiveSearchHint,
+                                onChanged: _onSearchChanged,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterButton(
-                            count: filters.activeCount,
-                            tooltip: l10n.archiveFilters,
-                            id: 'archive.filters',
-                            onTap: _openFilters,
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            FilterButton(
+                              count: filters.activeCount,
+                              tooltip: l10n.archiveFilters,
+                              id: 'archive.filters',
+                              onTap: _openFilters,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  // Above the list, below the search bar — and never while
-                  // multi-selecting, where the screen is a picker and every row
-                  // pushed down is a row the user has to hunt for again.
-                  if (!_selectionMode)
-                    const SliverToBoxAdapter(child: _No3mfBanner()),
-                  if (all.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message: l10n.archiveEmpty,
-                        icon: Icons.inventory_2_outlined,
+                    // Above the list, below the search bar — and never while
+                    // multi-selecting, where the screen is a picker and every row
+                    // pushed down is a row the user has to hunt for again.
+                    if (!_selectionMode)
+                      const SliverToBoxAdapter(child: _No3mfBanner()),
+                    if (all.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          message: l10n.archiveEmpty,
+                          icon: Icons.inventory_2_outlined,
+                        ),
+                      )
+                    else if (items.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          message: l10n.archiveNoMatches,
+                          icon: Icons.search_off,
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        sliver: SliverList.builder(
+                          itemCount: items.length,
+                          itemBuilder: (context, i) {
+                            final archive = items[i];
+                            final card = _ArchiveCard(
+                              archive: archive,
+                              selected: _selected.contains(archive.id),
+                              onTap: () => _selectionMode
+                                  ? _toggleSelect(archive.id)
+                                  : _openSheet(archive),
+                              onLongPress: () => _toggleSelect(archive.id),
+                              // No favorite toggle while multi-selecting — taps
+                              // there belong to the selection gesture.
+                              onToggleFavorite: _selectionMode
+                                  ? null
+                                  : () => _toggleFavorite(archive),
+                            );
+                            // No swipe-to-delete while multi-selecting.
+                            return _selectionMode
+                                ? card
+                                : _deletable(archive, card);
+                          },
+                        ),
                       ),
-                    )
-                  else if (items.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message: l10n.archiveNoMatches,
-                        icon: Icons.search_off,
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      sliver: SliverList.builder(
-                        itemCount: items.length,
-                        itemBuilder: (context, i) {
-                          final archive = items[i];
-                          final card = _ArchiveCard(
-                            archive: archive,
-                            selected: _selected.contains(archive.id),
-                            onTap: () => _selectionMode
-                                ? _toggleSelect(archive.id)
-                                : _openSheet(archive),
-                            onLongPress: () => _toggleSelect(archive.id),
-                            // No favorite toggle while multi-selecting — taps
-                            // there belong to the selection gesture.
-                            onToggleFavorite: _selectionMode
-                                ? null
-                                : () => _toggleFavorite(archive),
-                          );
-                          // No swipe-to-delete while multi-selecting.
-                          return _selectionMode
-                              ? card
-                              : _deletable(archive, card);
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
