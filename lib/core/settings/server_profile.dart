@@ -42,6 +42,23 @@ class ServerProfile {
     return host == null || host.isEmpty ? baseUrl : host;
   }
 
+  /// Value equality, for the one caller that has to tell "the same server
+  /// again" from "a different server": the watch adopts the config the phone
+  /// pushes at every launch, and invalidating the profile for a config that
+  /// changed nothing tears the relay's reply listener down under whatever
+  /// request is on the bridge. Riverpod itself is unaffected — its
+  /// `updateShouldNotify` compares with `identical`, never with this.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ServerProfile &&
+          other.baseUrl == baseUrl &&
+          other.authMode == authMode &&
+          other.label == label;
+
+  @override
+  int get hashCode => Object.hash(baseUrl, authMode, label);
+
   Map<String, dynamic> toJson() => {
     'baseUrl': baseUrl,
     'authMode': authMode.name,

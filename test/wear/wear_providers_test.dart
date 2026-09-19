@@ -33,6 +33,169 @@ void main() {
     expect(identical(first, second), isTrue);
   });
 
+  group('a rebuild is not a dispose', () {
+    late int polls;
+
+    setUp(() => polls = 0);
+
+    ProviderContainer containerWith(
+      _CountingTransport transport,
+      ServerProfileNotifier profile, {
+      WearFleetCache cache = const _NoCache(),
+    }) {
+      final container = ProviderContainer(
+        overrides: [
+          serverProfileProvider.overrideWith(() => profile),
+          wearFleetCacheProvider.overrideWithValue(cache),
+          wearTransportProvider.overrideWithValue(
+            HybridWearTransport.restOnly(transport),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    /// The zero-length timer `build` arms over a cached frame, plus whatever
+    /// the poll behind it does.
+    void settle(FakeAsync async) {
+      async.flushMicrotasks();
+      async.elapse(Duration.zero);
+      async.flushMicrotasks();
+    }
+
+    test('the poll after a rebuild still reaches the screen', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++);
+        final profile = _RebuildableProfile();
+        final container = containerWith(
+          transport,
+          profile,
+          cache: const _StaleCache(),
+        );
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        settle(async);
+        expect(polls, 1);
+        expect(container.read(wearFleetProvider).requireValue.stale, isFalse);
+
+        // What the watch does on every launch: the phone pushes the config it
+        // is already running, the watch adopts it, and the profile is re-read.
+        // Riverpod keeps the notifier across that and runs `onDispose` anyway,
+        // so a one-way latch left every later poll answering into nothing — a
+        // cached frame dimmed forever, waiting for a state that never came.
+        profile.rebuild();
+        settle(async);
+
+        expect(polls, 2, reason: 'the rebuild polls');
+        expect(
+          container.read(wearFleetProvider).requireValue.stale,
+          isFalse,
+          reason: 'and its answer is what is on screen',
+        );
+        async.elapse(const Duration(seconds: 6));
+        expect(polls, 3, reason: 'and the cadence survived the rebuild');
+
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+
+    test('a rebuild in the background does not restart the poll', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++);
+        final profile = _RebuildableProfile();
+        final container = containerWith(
+          transport,
+          profile,
+          cache: const _StaleCache(),
+        );
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        settle(async);
+        expect(polls, 1);
+
+        // Screen off — and the phone's own launch pushes a config at it, which
+        // rebuilds this provider. Waking the bridge for a dark face is the one
+        // thing `stopPolling` exists to prevent.
+        container.read(wearFleetProvider.notifier).stopPolling();
+        profile.rebuild();
+        settle(async);
+        async.elapse(const Duration(minutes: 5));
+        expect(polls, 1, reason: 'nothing polls behind a screen that is off');
+
+        // Back on the wrist.
+        unawaited(container.read(wearFleetProvider.notifier).refresh());
+        async.flushMicrotasks();
+        expect(polls, 2);
+
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+
+    test('a refresh cannot outrun a rebuild either', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++);
+        final profile = _RebuildableProfile();
+        // No cache, which is what a switch to a server this watch has never
+        // polled leaves `build` with: it fetches, and that fetch is what the
+        // frame will be.
+        final container = containerWith(transport, profile);
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        async.flushMicrotasks();
+        expect(polls, 1);
+
+        transport.hold = true;
+        profile.rebuild();
+        settle(async);
+        expect(polls, 2, reason: 'the rebuild fetch, still out');
+
+        // The two kinds of rebuild do not look alike from here: an invalidate
+        // drops the value, a dependency change keeps it and only marks the
+        // state reloading. Reading the missing value would wave this one
+        // through, and its frame would then be overwritten by the build's.
+        unawaited(container.read(wearFleetProvider.notifier).refresh());
+        async.flushMicrotasks();
+        expect(polls, 2, reason: 'it gives way to the build already running');
+
+        transport.release();
+        async.flushMicrotasks();
+        expect(container.read(wearFleetProvider).hasValue, isTrue);
+
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+
+    test('a refresh cannot outrun the first build', () {
+      fakeAsync((async) {
+        final transport = _CountingTransport(() => polls++)..hold = true;
+        final container = containerWith(transport, _RebuildableProfile());
+        final sub = container.listen(wearFleetProvider, (_, _) {});
+        addTearDown(sub.close);
+        async.flushMicrotasks();
+        expect(polls, 1, reason: 'the build fetch, still out');
+
+        // The resume hook fires while the relay is still waiting on a phone
+        // booting its engine — which it is given 15 s for. Whatever this poll
+        // put on screen would be wiped the moment the build's own fetch
+        // answered: Riverpod assigns what `build` returns, error included.
+        unawaited(container.read(wearFleetProvider.notifier).refresh());
+        async.flushMicrotasks();
+        expect(polls, 1, reason: 'the frame it would win is not its own');
+
+        transport.release();
+        async.flushMicrotasks();
+        expect(container.read(wearFleetProvider).hasValue, isTrue);
+
+        container.read(wearFleetProvider.notifier).stopPolling();
+        async.elapse(const Duration(minutes: 5));
+      });
+    });
+  });
+
   group('the poll stops while the watch app is in the background', () {
     /// Counts polls and answers at once, so the only thing pacing them is the
     /// notifier's own timer.
@@ -42,7 +205,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           fakeServerProfileOverride(),
-          wearFleetCacheProvider.overrideWithValue(_NoCache()),
+          wearFleetCacheProvider.overrideWithValue(const _NoCache()),
           wearTransportProvider.overrideWithValue(
             HybridWearTransport.restOnly(transport),
           ),
@@ -208,8 +371,44 @@ class _CountingTransport implements WearTransport {
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }
 
+/// A profile that answers with the same server every time — but as a new
+/// instance, which is what a re-read costs and what rebuilds its dependents.
+class _RebuildableProfile extends ServerProfileNotifier {
+  @override
+  ServerProfile? build() =>
+      ServerProfile(baseUrl: fakeServerBaseUrl, authMode: AuthMode.none);
+
+  /// What adopting a pushed config does.
+  void rebuild() => ref.invalidateSelf();
+}
+
+/// Last run's fleet, so `build` takes the cold-start path: a dimmed frame that
+/// only a landed poll can clear.
+class _StaleCache implements WearFleetCache {
+  const _StaleCache();
+
+  @override
+  WearFleet? load(ServerProfile? profile) => wearFleetFromJson(const {
+    'printers': [
+      {
+        'printer': {'id': 1, 'name': 'X1C'},
+        'status': {'id': 1, 'connected': true},
+      },
+    ],
+  }, stale: true);
+
+  @override
+  Future<void> save(WearFleet fleet, ServerProfile? profile) async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not this test\'s');
+}
+
 /// No cold-start cache, so `build` takes the fetching path these tests pace.
 class _NoCache implements WearFleetCache {
+  const _NoCache();
+
   @override
   WearFleet? load(ServerProfile? profile) => null;
 
