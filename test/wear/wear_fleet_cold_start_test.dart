@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_home.dart';
+import 'package:bambuddy_mobile/wear/wear_app.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_fleet_cache.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
@@ -18,17 +20,27 @@ import '../helpers.dart';
 /// before the watch gives up on it, which is the whole window this feature
 /// exists to fill.
 class _HangingTransport implements WearTransport {
-  final _answer = Completer<WearFleet>();
+  final _answers = <Completer<WearFleet>>[];
   int calls = 0;
 
-  void answerWith(WearFleet fleet) => _answer.complete(fleet);
+  /// Answers everything asked so far and not yet answered — one reply for the
+  /// poll a rebuild left out as well as the one it started.
+  void answerWith(WearFleet fleet) => _settle((c) => c.complete(fleet));
 
-  void failWith(Object error) => _answer.completeError(error);
+  void failWith(Object error) => _settle((c) => c.completeError(error));
+
+  void _settle(void Function(Completer<WearFleet>) how) {
+    for (final answer in _answers) {
+      if (!answer.isCompleted) how(answer);
+    }
+  }
 
   @override
   Future<WearFleet> getFleet() {
     calls++;
-    return _answer.future;
+    final answer = Completer<WearFleet>();
+    _answers.add(answer);
+    return answer.future;
   }
 
   @override
@@ -81,6 +93,17 @@ class _SeededCache implements WearFleetCache {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
+}
+
+/// The stored profile, re-read as a fresh instance every time — which is what
+/// an invalidate costs and what rebuilds everything watching it. A notifier
+/// answering with one constant cannot show this: Riverpod compares with
+/// `identical`, so the rebuild would stop at the profile and never reach the
+/// fleet.
+class _FreshProfile extends ServerProfileNotifier {
+  @override
+  ServerProfile? build() =>
+      ServerProfile(baseUrl: fakeServerBaseUrl, authMode: AuthMode.none);
 }
 
 /// A profile the test can change under the app, the way adopting a pushed
@@ -275,6 +298,57 @@ void main() {
     expect(find.text(_printerName), findsNothing);
   });
 
+  testWidgets('a cold start that adopts a pushed config still goes live', (
+    tester,
+  ) async {
+    final transport = _HangingTransport();
+    // The phone pushes on every launch, and the watch reads that latch in
+    // `initState`. This one renames the server it is already on — same host,
+    // same auth — so it is adopted with nobody asked, and the profile really
+    // does change, which is the rebuild the whole cold start then runs into.
+    final pushed = WatchConfig(
+      profile: const ServerProfile(
+        baseUrl: fakeServerBaseUrl,
+        authMode: AuthMode.none,
+        label: 'Workshop',
+      ),
+    );
+
+    await pumpWear(
+      tester,
+      const WearApp(),
+      // `WearApp` builds its own MaterialApp, so it runs in the system locale.
+      wrapInApp: false,
+      overrides: [
+        serverProfileProvider.overrideWith(_FreshProfile.new),
+        watchConfigSyncProvider.overrideWithValue(
+          FakeWatchConfigSync(pending: pushed),
+        ),
+        wearFleetCacheProvider.overrideWithValue(
+          _SeededCache(wearFleetFromJson(_wire(), stale: true)),
+        ),
+        wearTransportProvider.overrideWithValue(
+          HybridWearTransport.restOnly(transport),
+        ),
+      ],
+    );
+
+    // Last run's fleet, dimmed, while the first poll is out — the point of the
+    // cache, and the state the watch used to be stuck in for good.
+    expect(find.text(_printerName), findsOneWidget);
+    expect(_dimOpacity(tester), 0.6);
+
+    // The adoption lands, the provider is rebuilt under the frame, and the
+    // poll that rebuild starts answers.
+    await tester.pump();
+    await tester.pump();
+    transport.answerWith(wearFleetFromJson(_wire()));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_printerName), findsOneWidget);
+    expect(_dimOpacity(tester), isNull, reason: 'the frame went live');
+  });
+
   testWidgets('a pushed control screen names the failure and offers a retry', (
     tester,
   ) async {
@@ -298,6 +372,42 @@ void main() {
     expect(find.text(plWearPrinterUnavailable), findsNothing);
     expect(find.text(plWearConnectionFailed), findsOneWidget);
     expect(find.text(plRetry), findsOneWidget);
+  });
+
+  testWidgets('the retry on the error screen brings the frame back to life', (
+    tester,
+  ) async {
+    final transport = _HangingTransport();
+
+    await pumpWear(
+      tester,
+      const WearHome(),
+      overrides: _coldStart(
+        transport,
+        cached: wearFleetFromJson(_wire(), stale: true),
+      ),
+    );
+    transport.failWith(StateError('phone unreachable'));
+    await tester.pumpAndSettle();
+    expect(find.text(plWearConnectionFailed), findsOneWidget);
+
+    // The retry invalidates the provider, which rebuilds it on the notifier it
+    // already has — not a fresh one, which is what the comment here used to
+    // claim. Everything the rebuild starts has to reach the screen, or the
+    // button is a way into the dimmed frame rather than out of it.
+    await tapOnWatch(tester, find.text(plRetry));
+    // `pump()` with no duration does not move the clock, and the poll a rebuild
+    // starts hangs off a zero-length timer — which only a pump that elapses
+    // something runs.
+    await tester.pump(Duration.zero);
+    expect(transport.calls, 2, reason: 'the rebuild polls again');
+
+    transport.answerWith(wearFleetFromJson(_wire()));
+    await tester.pumpAndSettle();
+
+    expect(find.text(plWearConnectionFailed), findsNothing);
+    expect(find.text(_printerName), findsOneWidget);
+    expect(_dimOpacity(tester), isNull, reason: 'and it went live');
   });
 
   testWidgets('with no cache the first frame is the spinner it always was', (
