@@ -37,7 +37,15 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   Future<void> adopt(WatchConfig config) async {
     await ref.read(watchConfigSyncProvider).apply(config);
     state = null;
-    ref.invalidate(serverProfileProvider);
+    // Only a profile that actually changed is worth the invalidate. It rebuilds
+    // [wearTransportProvider] too, which disposes the relay's reply listener
+    // under any request already on the bridge — and since the phone pushes the
+    // same config on every launch, that was every cold start paying a relay
+    // timeout for its first poll. A refreshed secret needs no invalidate:
+    // `authHeaders` reads the store on each request.
+    if (ref.read(serverProfileProvider) != config.profile) {
+      ref.invalidate(serverProfileProvider);
+    }
   }
 }
 

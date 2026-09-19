@@ -165,10 +165,21 @@ class RelayTransport implements WearTransport {
     this._watch, {
     this.timeout = const Duration(seconds: 4),
     this.wakeTimeout = wearRpcWakeTimeout,
+    this.channelTimeout = const Duration(seconds: 2),
   });
 
   final WatchConnectivity _watch;
   final Duration timeout;
+
+  /// Deadline for the two platform-channel calls below, which are the only
+  /// waits in a poll with no deadline of their own: the reply is bounded by
+  /// [timeout]/[wakeTimeout] and the REST fallback by Dio's own timeouts, but a
+  /// hung Data Layer channel left `refresh` pending forever — and it cancels
+  /// its tick on the way in, so nothing was left to try again.
+  ///
+  /// Short on purpose: both are local queries to Play services, not the round
+  /// trip to the phone.
+  final Duration channelTimeout;
 
   /// Replaces [timeout] for a request the phone acked as waking — its process
   /// was dead and a Flutter engine is booting to answer this one. Injectable so
@@ -178,7 +189,12 @@ class RelayTransport implements WearTransport {
   final _pending = <String, _PendingCall>{};
   StreamSubscription<Map<String, dynamic>>? _sub;
 
+  /// Set by [dispose], never cleared: a transport is built per profile and
+  /// thrown away with it, so unlike a notifier this one really is finished.
+  bool _disposed = false;
+
   void _ensureListening() {
+    if (_disposed) return;
     _sub ??= _watch.messageStream.listen((map) {
       final ack = WearRpcAck.decode(map);
       if (ack != null) {
@@ -197,8 +213,17 @@ class RelayTransport implements WearTransport {
   }
 
   void dispose() {
+    _disposed = true;
     _sub?.cancel();
     _sub = null;
+    // Nothing can answer these any more — the stream their reply would arrive
+    // on is the one just cancelled — so waiting out the deadline buys nothing.
+    // A timeout rather than [WearRelayUnreachable]: the request did go out, and
+    // unreachable is what licenses repeating a command over REST.
+    for (final call in _pending.values.toList()) {
+      call.fail(WearRelayTimeout());
+    }
+    _pending.clear();
   }
 
   Future<Map<String, dynamic>?> _call(
@@ -212,9 +237,15 @@ class RelayTransport implements WearTransport {
     // Cheap local check (connected nodes) before paying the send + timeout.
     var reachable = false;
     try {
-      reachable = await _watch.isReachable;
+      reachable = await _watch.isReachable.timeout(channelTimeout);
     } catch (_) {}
     if (!reachable) throw WearRelayUnreachable();
+    // Disposed while we were asking — a profile change rebuilds this transport,
+    // and the reply stream the call below needs is already cancelled. Sending
+    // now would buy a full deadline of waiting for an answer nobody can hand
+    // over, and [dispose] has been through `_pending` before this one is in it.
+    // Unreachable rather than a timeout: nothing has gone out, so nothing ran.
+    if (_disposed) throw WearRelayUnreachable();
 
     final req = WearRpcRequest.create(
       action,
@@ -226,7 +257,13 @@ class RelayTransport implements WearTransport {
     final pending = _PendingCall();
     _pending[req.id] = pending;
     try {
-      await _watch.sendMessage(req.encode());
+      await _watch.sendMessage(req.encode()).timeout(channelTimeout);
+    } on TimeoutException {
+      _pending.remove(req.id);
+      // Not [WearRelayUnreachable]: a send that never came back may still have
+      // reached the phone, and unreachable is the answer that licenses a retry
+      // over REST. A command that ran twice is the thing that costs a print.
+      throw WearRelayTimeout();
     } catch (_) {
       _pending.remove(req.id);
       throw WearRelayUnreachable();
@@ -339,6 +376,12 @@ class _PendingCall {
   void complete(WearRpcResponse res) {
     _timer?.cancel();
     if (!_completer.isCompleted) _completer.complete(res);
+  }
+
+  /// Ends the wait early, for a transport being disposed under it.
+  void fail(Object error) {
+    _timer?.cancel();
+    if (!_completer.isCompleted) _completer.completeError(error);
   }
 
   void dispose() => _timer?.cancel();

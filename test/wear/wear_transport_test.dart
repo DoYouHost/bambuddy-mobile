@@ -101,6 +101,67 @@ void main() {
       await expectLater(relay.getFleet(), throwsA(isA<WearRelayTimeout>()));
     });
 
+    test('dispose ends a call still waiting instead of stranding it', () async {
+      // A profile change rebuilds the transport provider, which disposes this
+      // under whatever is on the bridge. The reply can no longer be delivered,
+      // so the deadline — 30 s here, and up to 15 s in the app — would be spent
+      // waiting for nothing.
+      final long = RelayTransport(watch, timeout: const Duration(seconds: 30));
+      final call = long.getFleet();
+      await pumpEventQueue();
+      expect(watch.sent, hasLength(1));
+
+      long.dispose();
+
+      await expectLater(call, throwsA(isA<WearRelayTimeout>()));
+    });
+
+    test('disposed while asking whether the phone is there', () async {
+      // The window `dispose` cannot sweep: the call has not registered itself
+      // yet, so it would go on to send into a bridge whose reply listener is
+      // already cancelled and then wait out the whole deadline.
+      final gate = Completer<bool>();
+      watch.reachableGate = gate;
+      final call = relay.getFleet();
+      await pumpEventQueue();
+
+      relay.dispose();
+      gate.complete(true);
+
+      await expectLater(call, throwsA(isA<WearRelayUnreachable>()));
+      expect(watch.sent, isEmpty, reason: 'nothing goes out on a dead bridge');
+    });
+
+    test('a reachability check that never answers ends the call', () async {
+      // Everything else in a relay call is bounded — the reply by `timeout`,
+      // the REST fallback by Dio — so a hung channel here was the one way a
+      // poll could stay out forever, and `refresh` cancels its tick on the way
+      // in: nothing was left to try again.
+      watch.hangReachable = true;
+      await expectLater(
+        RelayTransport(
+          watch,
+          channelTimeout: const Duration(milliseconds: 20),
+        ).getFleet(),
+        throwsA(isA<WearRelayUnreachable>()),
+      );
+      expect(watch.sent, isEmpty);
+    });
+
+    test('a send that never returns is a timeout, not unreachable', () async {
+      // The distinction is the whole retry policy: unreachable licenses a
+      // repeat over REST, and a write that may well have landed on the phone
+      // must not license one for a command.
+      watch.hangSend = true;
+      await expectLater(
+        RelayTransport(
+          watch,
+          channelTimeout: const Duration(milliseconds: 20),
+        ).pause(1),
+        throwsA(isA<WearRelayTimeout>()),
+      );
+    });
+
     test('reply with a different id is ignored (still times out)', () async {
       watch.autoRespond = (req) =>
           const WearRpcResponse.ok('some-other-id').encode();
