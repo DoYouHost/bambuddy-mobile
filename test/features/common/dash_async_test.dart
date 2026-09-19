@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bambuddy_mobile/core/api/server_reachability.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -79,6 +80,64 @@ void main() {
     await pumpState(tester, const AsyncValue<String>.loading());
 
     expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('a server already known to be out of reach skips the wait', (
+    tester,
+  ) async {
+    // The whole point of the shared answer: the second screen the user opens
+    // says so at once instead of spinning through its own connect timeout.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+
+    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+
+    expect(find.byType(DashLoading), findsNothing);
+    expect(find.text(l10n.connectFailed), findsOneWidget);
+    await tester.tap(find.text(l10n.retry));
+    expect(retries, 1);
+  });
+
+  testWidgets('retrying shows the spinner rather than a dead button', (
+    tester,
+  ) async {
+    // The shared answer is still "unreachable" while the retry is in flight,
+    // so without forgetting it first the screen would keep the error up and
+    // the button would look like it did nothing.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+    final l10n = await pumpState(tester, const AsyncValue<String>.loading());
+
+    await tester.tap(find.text(l10n.retry));
+    await tester.pump();
+
+    expect(retries, 1);
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('a server that has answered is waited for', (tester) async {
+    ServerReachability.instance.reachable.value = true;
+    addTearDown(ServerReachability.instance.forget);
+
+    await pumpState(tester, const AsyncValue<String>.loading());
+
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
+  testWidgets('data on screen outlives the server going away', (tester) async {
+    // A list already fetched stays: the failure belongs to the next request,
+    // not to what the user is looking at.
+    ServerReachability.instance.reachable.value = false;
+    addTearDown(ServerReachability.instance.forget);
+
+    await pumpState(
+      tester,
+      const AsyncValue<String>.loading().copyWithPrevious(
+        const AsyncValue.data('seventeen spools'),
+      ),
+    );
+
+    expect(find.text('seventeen spools'), findsOneWidget);
   });
 
   testWidgets('data is the only branch a screen writes', (tester) async {

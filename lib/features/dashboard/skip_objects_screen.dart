@@ -89,7 +89,6 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen> {
         onRetry: () =>
             ref.read(skipObjectsProvider(widget.printerId).notifier).refresh(),
         fallbackMessage: l10n.skipObjectsLoadFailed,
-        errorIcon: Icons.error_outline,
         skipLoadingOnReload: false,
         skipLoadingOnRefresh: false,
         data: (data) => data.objects.isEmpty

@@ -278,8 +278,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           context,
           async,
           onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-          tonalRetry: true,
-          errorIcon: null,
           data: (inv) {
             final spools = visible;
             return RefreshIndicator(

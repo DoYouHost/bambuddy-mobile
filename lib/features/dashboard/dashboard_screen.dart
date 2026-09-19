@@ -21,6 +21,7 @@ import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
 import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
+import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
 import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
@@ -565,33 +566,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     PrinterCardCollapse collapse,
     AppLocalizations l10n,
   ) {
+    // Nothing to show yet: the spinner only while the server might still
+    // answer. Once a request has found it unreachable, every screen says so at
+    // once — see [serverReachableProvider].
+    if (state.printers == null) {
+      return ValueListenableBuilder<bool?>(
+        valueListenable: ServerReachability.instance.reachable,
+        builder: (context, reachable, _) {
+          if (state.loading && reachable != false) return const DashLoading();
+          return AsyncErrorView(
+            message: state.error?.localized(l10n) ?? l10n.connectFailed,
+            retryLabel: l10n.retry,
+            onRetry: () {
+              // See [dashAsync]: the try gets its spinner back.
+              ServerReachability.instance.forget();
+              ref.read(dashboardProvider.notifier).refresh();
+            },
+          );
+        },
+      );
+    }
     if (state.loading) {
       return const DashLoading();
-    }
-
-    // Initial load failed — nothing to show but error.
-    if (state.printers == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                state.error?.localized(l10n) ?? l10n.connectFailed,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
-                child: Text(l10n.retry),
-              ).tagged('dashboard.retry'),
-            ],
-          ),
-        ),
-      );
     }
 
     // Printer composition from polling (roster), with status overlaid from

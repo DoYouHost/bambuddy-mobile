@@ -25,6 +25,8 @@ import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/core/api/server_reachability.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -251,6 +253,35 @@ void main() {
       expect(find.text('X1C Warsztat'), findsOneWidget);
     },
   );
+
+  testWidgets('a cold start with the server out of reach says so at once', (
+    tester,
+  ) async {
+    // Before, this screen sat on its spinner until its own request timed out —
+    // and so did every tab the user opened next.
+    addTearDown(ServerReachability.instance.forget);
+
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+    expect(find.byType(DashLoading), findsOneWidget, reason: 'nothing tried');
+
+    // What the first failed request records, wherever in the app it was made.
+    ServerReachability.instance.reachable.value = false;
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsNothing);
+    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+  });
+
+  testWidgets('while the server may still answer, the spinner stays', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
 
   testWidgets('a first-load failure shows the error and a retry button', (
     tester,

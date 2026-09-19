@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/api/server_reachability.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -89,21 +90,43 @@ Widget dashAsync<T>(
   bool skipLoadingOnRefresh = true,
 }) {
   final l10n = AppLocalizations.of(context);
-  return value.when(
-    skipLoadingOnReload: skipLoadingOnReload,
-    skipLoadingOnRefresh: skipLoadingOnRefresh,
-    loading: () => loading,
-    error: (error, _) => AsyncErrorView(
-      message: error is AppApiException
-          ? error.localized(l10n)
-          : fallbackMessage ?? l10n.connectFailed,
-      retryLabel: l10n.retry,
-      onRetry: onRetry,
-      icon: errorIcon,
-      tonal: tonalRetry,
-      scrollable: scrollableError,
-    ),
-    data: data,
+  AsyncErrorView failure(String message) => AsyncErrorView(
+    message: message,
+    retryLabel: l10n.retry,
+    // Forgetting first, so the try itself shows its spinner: the shared answer
+    // is still "unreachable" until this request comes back, and without this
+    // the button would look dead for as long as it takes.
+    onRetry: () {
+      ServerReachability.instance.forget();
+      onRetry();
+    },
+    icon: errorIcon,
+    tonal: tonalRetry,
+    scrollable: scrollableError,
+  );
+
+  return ValueListenableBuilder<bool?>(
+    valueListenable: ServerReachability.instance.reachable,
+    builder: (context, reachable, _) {
+      // Nothing to show yet and the server is known to be out of reach: say so
+      // now. Waiting means this screen spends its own connect timeout learning
+      // what the request that already failed answered for all of them — which
+      // is a spinner per screen the user opens, and the same wait each time.
+      if (!value.hasValue && !value.hasError && reachable == false) {
+        return failure(fallbackMessage ?? l10n.connectFailed);
+      }
+      return value.when(
+        skipLoadingOnReload: skipLoadingOnReload,
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        loading: () => loading,
+        error: (error, _) => failure(
+          error is AppApiException
+              ? error.localized(l10n)
+              : fallbackMessage ?? l10n.connectFailed,
+        ),
+        data: data,
+      );
+    },
   );
 }
 
@@ -142,24 +165,36 @@ Widget dashAsyncStrip<T>(
     return height == null ? padded : SizedBox(height: height, child: padded);
   }
 
-  return value.when(
-    skipLoadingOnReload: skipLoadingOnReload,
-    skipLoadingOnRefresh: skipLoadingOnRefresh,
-    loading: () => strip(loading),
-    error: (error, _) {
-      final message = error is AppApiException
-          ? error.localized(l10n)
-          : failureMessage ?? l10n.connectFailed;
-      return failureBuilder?.call(message) ??
-          strip(
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: DashTokens.of(context).labelSoft,
-            ),
-          );
+  Widget failed(String message) =>
+      failureBuilder?.call(message) ??
+      strip(
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: DashTokens.of(context).labelSoft,
+        ),
+      );
+
+  return ValueListenableBuilder<bool?>(
+    valueListenable: ServerReachability.instance.reachable,
+    builder: (context, reachable, _) {
+      // Same rule as [dashAsync]: a section has no more reason to wait out its
+      // own timeout than a screen does.
+      if (!value.hasValue && !value.hasError && reachable == false) {
+        return failed(failureMessage ?? l10n.connectFailed);
+      }
+      return value.when(
+        skipLoadingOnReload: skipLoadingOnReload,
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        loading: () => strip(loading),
+        error: (error, _) => failed(
+          error is AppApiException
+              ? error.localized(l10n)
+              : failureMessage ?? l10n.connectFailed,
+        ),
+        data: data,
+      );
     },
-    data: data,
   );
 }
 
