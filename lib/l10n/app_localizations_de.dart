@@ -494,6 +494,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveZDown => 'Runter';
 
   @override
+  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Die Z-Richtung dieses Druckers hängt von der Serverversion ab, die nicht bestätigt werden konnte, daher sind Z-Bewegungen hier deaktiviert. Aktualisiere den Server oder öffne dieses Fenster erneut, sobald er erreichbar ist.';
+
+  @override
+  String get ctrlMoveZNoModel =>
+      'Für diesen Drucker ist in Bambuddy kein Modell hinterlegt, daher weiß die App nicht, ob sich in Z das Druckbett oder der Druckkopf bewegt, und Z-Bewegungen sind hier deaktiviert. Hinterlege das Druckermodell in Bambuddy, um sie zu nutzen.';
+
+  @override
   String get ctrlMoveExtrude => 'Extrudieren';
 
   @override

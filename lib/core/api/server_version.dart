@@ -149,13 +149,19 @@ class ServerVersion implements Comparable<ServerVersion> {
     // An unmapped feature is a programming error, but answering "no" keeps the
     // app on the contract every server generation accepts.
     if (since == null) return false;
-    final threshold = [since.$1, since.$2, since.$3, since.$4];
+    return !baseBelow(since);
+  }
+
+  /// Whether the numeric base is below [release] — prerelease status ignored,
+  /// as in [supports].
+  bool baseBelow((int, int, int, int) release) {
+    final threshold = [release.$1, release.$2, release.$3, release.$4];
     final mine = _base;
     for (var i = 0; i < mine.length; i++) {
       final c = mine[i].compareTo(threshold[i]);
-      if (c != 0) return c > 0;
+      if (c != 0) return c < 0;
     }
-    return true;
+    return false;
   }
 
   /// Highest chamber target the server will accept, in °C — the one gate no

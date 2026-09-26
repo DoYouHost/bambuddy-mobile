@@ -181,6 +181,39 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+## Not a row: the bed-jog sign (server #1334)
+
+`POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up
+to v1.2.5.5 the server negated it on the A1 family itself; from v1.2.5.6 it
+does not. Nothing in any payload shows which, and a wrong guess is not a
+silent drop but a nozzle driven into the plate — the jog is unguarded, since
+firmware ignores soft endstops on MQTT G-code. So it is decided in
+`lib/core/printers/bed_jog.dart`, not by `supports()`:
+
+- **Release numbers settle it** — which is why this is not a row: `supports()`
+  ignores the prerelease, and the one build number that does not settle it is a
+  prerelease. Every 1.2.6 daily reports `1.2.6b1`, before and after the fix.
+- **For `1.2.6b1` and an unknown version, `/openapi.json` is read.** The
+  `distance` description changed in exactly the two commits that changed the
+  behaviour, and only the flipping generation says the backend "translates this
+  into the right G-code Z sign". The probe looks for that frozen sentence, so a
+  later rewording of the current text still reads as "direct". The document is
+  outside `/api/`, so no session type is refused it; it is ~1 MB, fetched only
+  for an A1 / A1 Mini on those versions, once per regained contact.
+- **The version is read fresh, not from `ServerVersionService`'s cache**, after
+  every regained contact: a 1.2.5.5 upgraded in place to 1.2.5.6 would
+  otherwise keep reading as flipping. A failed read is unknown — never the
+  earlier answer.
+- **Anything else is unknown, and the Z pair is replaced by a note.** Only the
+  six model names the old server flipped depend on this at all; the A2L and
+  every bed-on-Z printer get the same sign on every server.
+- **A printer with no model gets no Z jog either.** Plate or toolhead is a
+  question about the machine, and the two answers are opposite gaps. The model
+  comes from the printer row: REST `/status` carries none, only WS frames do.
+
+`test/contract/bed_jog_contract_test.dart` reads the G-code the server
+publishes to the stand-in printer, which is the only place the sign is visible.
+
 ## From latch to screen
 
 How an answer is decided is `ObservedCapability` (above). How it reaches a

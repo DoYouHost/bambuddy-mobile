@@ -490,6 +490,17 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveZDown => 'W dół';
 
   @override
+  String get ctrlMoveZToolhead => 'Z (głowica)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.';
+
+  @override
+  String get ctrlMoveZNoModel =>
+      'Ta drukarka nie ma ustawionego modelu w Bambuddy, więc aplikacja nie wie, czy oś Z przesuwa stół, czy głowicę, i ruch w osi Z jest tu wyłączony. Ustaw model drukarki w Bambuddy, aby go używać.';
+
+  @override
   String get ctrlMoveExtrude => 'Wytłocz';
 
   @override

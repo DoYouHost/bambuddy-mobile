@@ -53,4 +53,21 @@ void main() {
       });
     });
   });
+
+  group('isBedSlinger', () {
+    test('A1 family and A2L, in every spelling the server stores', () {
+      for (final m in ['A1', 'A1 mini', 'A1-Mini', 'A1M', 'A2L', 'N1', 'N2S']) {
+        expect(isBedSlinger(m), isTrue, reason: m);
+      }
+      for (final m in ['N9', 'A04', 'A11', 'A12']) {
+        expect(isBedSlinger(m), isTrue, reason: m);
+      }
+    });
+
+    test('bed-on-Z printers and missing models are not', () {
+      for (final m in ['X1C', 'P1S', 'P2S', 'H2D', 'H2C', 'X1E', '', null]) {
+        expect(isBedSlinger(m), isFalse, reason: '$m');
+      }
+    });
+  });
 }

@@ -986,6 +986,24 @@ abstract class AppLocalizations {
   /// **'Down'**
   String get ctrlMoveZDown;
 
+  /// No description provided for @ctrlMoveZToolhead.
+  ///
+  /// In en, this message translates to:
+  /// **'Z (toolhead)'**
+  String get ctrlMoveZToolhead;
+
+  /// No description provided for @ctrlMoveZUnknownDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer\'s Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.'**
+  String get ctrlMoveZUnknownDirection;
+
+  /// No description provided for @ctrlMoveZNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer\'s model in Bambuddy to use them.'**
+  String get ctrlMoveZNoModel;
+
   /// No description provided for @ctrlMoveExtrude.
   ///
   /// In en, this message translates to:

@@ -7,6 +7,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/printers/bed_jog.dart';
 import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
@@ -493,7 +494,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// actions with no persistent status field to preview. All share
   /// [ControlAction.move], so the movement sheet locks while one is in flight.
 
-  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
+  /// Relative nozzle-bed gap jog (mm); the sign comes from [bedJogDistance].
   Future<ActionOutcome> bedJog(int id, double distance, {bool force = false}) =>
       _run(
         id,
@@ -607,3 +608,26 @@ class ControlsNotifier extends Notifier<ControlsState> {
     _clearTimers.clear();
   }
 }
+
+/// Which bed-jog sign the connected server expects. The version settles it for
+/// every build but `1.2.6b1`; only then, and only once a movement sheet for an
+/// A1 / A1 Mini reads this, is `/openapi.json` fetched.
+///
+/// Asked again after every regained contact, and the version read fresh rather
+/// than from [ServerVersionService]'s cache: a server upgraded in place from
+/// 1.2.5.5 would otherwise still read as flipping, and a stale "flipped" sends
+/// the nozzle into the plate. A failed read is unknown, never the old answer.
+final bedJogConventionProvider = FutureProvider<BedJogConvention>((ref) async {
+  ref.watch(serverContactEpochProvider);
+  final byVersion = bedJogConventionFor(
+    await ref.watch(serverVersionServiceProvider).refresh(),
+  );
+  if (byVersion != BedJogConvention.unknown) return byVersion;
+  try {
+    return bedJogConventionFromOpenApi(
+      await ref.watch(printerCommandsRepositoryProvider).fetchOpenApi(),
+    );
+  } on AppApiException {
+    return BedJogConvention.unknown;
+  }
+});

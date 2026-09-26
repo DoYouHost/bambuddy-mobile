@@ -16,6 +16,7 @@ import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/scheduled_drying.dart';
+import '../../../core/printers/bed_jog.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
@@ -172,6 +173,9 @@ class _PrinterCardState extends State<PrinterCard> {
     final status = widget.item.status;
     final connected = status?.connected ?? false;
     final printerId = widget.item.printer.id;
+    // The printer row always names the model; a status only does once a
+    // WebSocket frame arrived — REST `/status` has no `model` field.
+    final model = widget.item.printer.model ?? status?.model;
     final name = widget.item.printer.name;
     final onCollapsedChanged = widget.onCollapsedChanged;
 
@@ -311,7 +315,7 @@ class _PrinterCardState extends State<PrinterCard> {
             _TempGrid(
               readings: readings,
               printerId: printerId,
-              model: status?.model,
+              model: model,
               activeExtruder: status?.activeExtruder,
               printing: printing,
             ),
@@ -345,7 +349,8 @@ class _PrinterCardState extends State<PrinterCard> {
                             printerId: printerId,
                             status: status,
                           ),
-                        if (canMove) _MovementTile(printerId: printerId),
+                        if (canMove)
+                          _MovementTile(printerId: printerId, model: model),
                         if (hasFans)
                           _FansGrid(status: status, printerId: printerId),
                         if (hasDetails) _DetailsPanel(status: status),

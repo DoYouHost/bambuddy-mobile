@@ -497,6 +497,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlMoveZDown => 'Bas';
 
   @override
+  String get ctrlMoveZToolhead => 'Z (tête)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Le sens de l\'axe Z de cette imprimante dépend de la version du serveur, qui n\'a pas pu être confirmée : les mouvements en Z sont donc désactivés ici. Si le serveur était injoignable, rouvrez ce panneau ; sinon, mettez-le à jour.';
+
+  @override
+  String get ctrlMoveZNoModel =>
+      'Aucun modèle n\'est défini pour cette imprimante dans Bambuddy : l\'application ne sait donc pas si l\'axe Z déplace le plateau ou la tête, et les mouvements en Z sont désactivés ici. Définissez le modèle de l\'imprimante dans Bambuddy pour les utiliser.';
+
+  @override
   String get ctrlMoveExtrude => 'Extruder';
 
   @override

@@ -10,6 +10,11 @@
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
+  /// FastAPI's schema document — outside [apiPrefix], so the auth middleware
+  /// never sees it (`main.py::auth_middleware`). Read only to tell which bed-jog
+  /// sign a `1.2.6b1` server expects; ~1 MB, so nowhere else.
+  static const openApi = '/openapi.json';
+
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
@@ -277,12 +282,13 @@ abstract final class Endpoints {
   static String scheduledDrying(int id) => '$scheduledDryings/$id';
 
   // --- Movement / jog (manual control; idle only) --- All POST, empty body,
-  // params in query. Relative moves; the server maps the Z sign per model (A1
-  // bed-slingers are inverted). Require `can_control_printer`.
+  // params in query. Relative moves. Require `can_control_printer`.
 
-  /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200;
-  /// negative = decrease gap / "up"), `force` (bypass soft endstops when Z is
-  /// not homed). Server flips the Z sign on A1 bed-slingers so "up" stays "up".
+  /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200,
+  /// positive opens the gap). v0.2.4.1 up to the #1334 fix (v1.2.5.6) negated it
+  /// on A1 / A1 Mini — which sign to send is `core/printers/bed_jog.dart`.
+  /// `force` is no longer declared (absent in v1.2.5.5 and later, #2579), so
+  /// servers drop it as an unknown param.
   static String bedJog(int printerId) =>
       '$apiPrefix/printers/$printerId/bed-jog';
 

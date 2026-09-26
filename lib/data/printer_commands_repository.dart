@@ -134,9 +134,8 @@ class PrinterCommandsRepository {
   Future<void> stopDrying(int printerId, {required int amsId}) =>
       _post(Endpoints.dryingStop(printerId), query: {'ams_id': amsId});
 
-  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
-  /// [force] bypasses soft endstops (use when Z is not homed). The server
-  /// inverts the Z sign on A1 bed-slingers so "up" is consistent across models.
+  /// Relative nozzle-bed gap jog (mm), positive opens the gap. Which sign an
+  /// arrow needs is `bedJogDistance` — older servers negate it on A1 models.
   Future<void> bedJog(int printerId, double distance, {bool force = false}) {
     assert(distance != 0 && distance.abs() <= 200, 'bed jog out of range');
     return _post(
@@ -144,6 +143,11 @@ class PrinterCommandsRepository {
       query: {'distance': distance, 'force': force},
     );
   }
+
+  /// The server's `/openapi.json`, decoded — only for
+  /// `bedJogConventionFromOpenApi`, which is why it lives next to [bedJog].
+  Future<Object?> fetchOpenApi() async =>
+      (await guard(() => _dio.get<Object>(Endpoints.openApi))).data;
 
   /// Relative toolhead X/Y jog (mm).
   Future<void> xyJog(int printerId, {double x = 0, double y = 0}) {

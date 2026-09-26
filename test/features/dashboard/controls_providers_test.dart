@@ -24,6 +24,8 @@ class _FakeCommands implements PrinterCommandsRepository {
   }
 
   @override
+  Future<Object?> fetchOpenApi() async => null;
+  @override
   Future<void> pause(int id) => _do('pause:$id');
   @override
   Future<void> resume(int id) => _do('resume:$id');
