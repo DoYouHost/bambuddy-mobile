@@ -12,7 +12,7 @@ abstract final class Endpoints {
 
   /// FastAPI's schema document — outside [apiPrefix], so the auth middleware
   /// never sees it (`main.py::auth_middleware`). Read only to tell which bed-jog
-  /// sign a `1.2.6b1` server expects; several MB, so nowhere else.
+  /// sign a `1.2.6b1` server expects; ~1 MB, so nowhere else.
   static const openApi = '/openapi.json';
 
   static const authStatus = '$apiPrefix/auth/status';

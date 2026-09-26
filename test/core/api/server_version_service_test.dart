@@ -235,4 +235,32 @@ void main() {
       expect(calls(), 2);
     });
   });
+
+  test(
+    'refresh reads again past a known version, and a failure keeps it',
+    () async {
+      var answer = '1.2.5.5';
+      var fail = false;
+      final requests = countingReplies(
+        () => fail
+            ? Response(requestOptions: RequestOptions(), statusCode: 502)
+            : Response(
+                requestOptions: RequestOptions(),
+                statusCode: 200,
+                data: {'version': answer},
+              ),
+      );
+
+      expect((await service.current())?.raw, '1.2.5.5');
+      answer = '1.2.5.6';
+      expect((await service.current())?.raw, '1.2.5.5', reason: 'cached');
+      expect((await service.refresh())?.raw, '1.2.5.6');
+      expect(service.cached?.raw, '1.2.5.6');
+
+      fail = true;
+      expect(await service.refresh(), isNull);
+      expect(service.cached?.raw, '1.2.5.6');
+      expect(requests(), 3);
+    },
+  );
 }

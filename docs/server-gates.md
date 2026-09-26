@@ -200,9 +200,16 @@ firmware ignores soft endstops on MQTT G-code. So it is decided in
   later rewording of the current text still reads as "direct". The document is
   outside `/api/`, so no session type is refused it; it is ~1 MB, fetched only
   for an A1 / A1 Mini on those versions, once per regained contact.
+- **The version is read fresh, not from `ServerVersionService`'s cache**, after
+  every regained contact: a 1.2.5.5 upgraded in place to 1.2.5.6 would
+  otherwise keep reading as flipping. A failed read is unknown — never the
+  earlier answer.
 - **Anything else is unknown, and the Z pair is replaced by a note.** Only the
   six model names the old server flipped depend on this at all; the A2L and
   every bed-on-Z printer get the same sign on every server.
+- **A printer with no model gets no Z jog either.** Plate or toolhead is a
+  question about the machine, and the two answers are opposite gaps. The model
+  comes from the printer row: REST `/status` carries none, only WS frames do.
 
 `test/contract/bed_jog_contract_test.dart` reads the G-code the server
 publishes to the stand-in printer, which is the only place the sign is visible.

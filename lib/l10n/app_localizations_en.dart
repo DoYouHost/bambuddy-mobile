@@ -491,6 +491,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This printer\'s Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.';
 
   @override
+  String get ctrlMoveZNoModel =>
+      'This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer\'s model in Bambuddy to use them.';
+
+  @override
   String get ctrlMoveExtrude => 'Extrude';
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -139,11 +140,19 @@ Future<void> _connected(Dio dio, int id) async {
 /// The `param` of the first `gcode_line` the server publishes to [serial]
 /// while [send] runs. The server publishes other requests on the same topic
 /// (pushall and the like), hence the filter.
+///
+/// `-d` makes mosquitto_sub log its SUBACK to the same stdout the messages
+/// arrive on, so one subscription can wait for it before [send] — a jog sent
+/// earlier is never delivered. `-W` bounds the process inside the container.
 Future<String> _published(String serial, Future<void> Function() send) async {
   final sub = await Process.start('docker', [
     'exec',
+    // A TTY, or libc block-buffers the piped debug log and the SUBACK only
+    // shows up when the process exits. The image has no `stdbuf`.
+    '-t',
     contractBrokerContainer!,
     'mosquitto_sub',
+    '-d',
     '-h',
     'localhost',
     '-p',
@@ -154,22 +163,32 @@ Future<String> _published(String serial, Future<void> Function() send) async {
     '-t',
     'device/$serial/request',
     '-W',
-    '15',
+    '20',
   ]);
+  final subscribed = Completer<void>();
+  final gcode = Completer<String>();
+  final lines = sub.stdout
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen((line) {
+        if (line.contains('received SUBACK')) {
+          if (!subscribed.isCompleted) subscribed.complete();
+          return;
+        }
+        if (!line.startsWith('{')) return;
+        final print = (jsonDecode(line) as Map)['print'];
+        if (print is Map &&
+            print['command'] == 'gcode_line' &&
+            !gcode.isCompleted) {
+          gcode.complete(print['param'] as String);
+        }
+      });
   try {
-    final gcode = sub.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .map((line) => (jsonDecode(line) as Map)['print'])
-        .where((p) => p is Map && p['command'] == 'gcode_line')
-        .map((p) => (p as Map)['param'] as String)
-        .first;
-    // mosquitto_sub has no "subscribed" signal; a jog sent before the
-    // subscription lands is simply never seen, and the -W timeout reports it.
-    await Future<void>.delayed(const Duration(seconds: 1));
+    await subscribed.future.timeout(const Duration(seconds: 10));
     await send();
-    return await gcode.timeout(const Duration(seconds: 15));
+    return await gcode.future.timeout(const Duration(seconds: 15));
   } finally {
+    await lines.cancel();
     sub.kill();
   }
 }

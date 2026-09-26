@@ -288,7 +288,11 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         : const AsyncData(BedJogConvention.direct);
     // Null while (re)asking: a value kept from before a reconnect may belong to
     // the server as it was before an in-place upgrade.
-    final settled = convention.isLoading ? null : convention.valueOrNull;
+    final settled = convention.hasError
+        ? BedJogConvention.unknown
+        : convention.isLoading
+        ? null
+        : convention.valueOrNull;
     double? distance(bool up) => settled == null
         ? null
         : bedJogDistance(
@@ -316,7 +320,9 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           label,
           const SizedBox(height: 6),
           Text(
-            l10n.ctrlMoveZUnknownDirection,
+            model == null || model.trim().isEmpty
+                ? l10n.ctrlMoveZNoModel
+                : l10n.ctrlMoveZUnknownDirection,
             style: t.bodyPlain.copyWith(color: t.textTertiary),
           ),
         ],

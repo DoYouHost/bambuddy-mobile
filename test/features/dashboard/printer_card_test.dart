@@ -3767,19 +3767,16 @@ void main() {
   group('Z jog direction (#1334)', () {
     final l10n = lookupAppLocalizations(const Locale('pl'));
 
-    PrinterWithStatus idle(String model) => PrinterWithStatus(
+    // The model only on the printer row: a status polled over REST has none,
+    // which is how the card once read an A1 as bed-on-Z.
+    PrinterWithStatus idle(String? model) => PrinterWithStatus(
       printer: Printer(id: 3, name: 'Slinger', model: model),
-      status: PrinterStatus(
-        id: 3,
-        connected: true,
-        state: 'IDLE',
-        model: model,
-      ),
+      status: const PrinterStatus(id: 3, connected: true, state: 'IDLE'),
     );
 
     Future<_JogRecorder> openMovement(
       WidgetTester tester,
-      String model,
+      String? model,
       BedJogConvention convention,
     ) async {
       final repo = _JogRecorder();
@@ -3842,6 +3839,41 @@ void main() {
       expect(find.text(l10n.ctrlMoveZUp), findsNothing);
       expect(find.text(l10n.ctrlMoveZDown), findsNothing);
       expect(repo.distances, isEmpty);
+    });
+
+    testWidgets('no model: a note, no Z buttons, whatever the server', (
+      tester,
+    ) async {
+      final repo = await openMovement(tester, null, BedJogConvention.direct);
+
+      expect(find.text(l10n.ctrlMoveZNoModel), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(repo.distances, isEmpty);
+    });
+
+    testWidgets('a convention that failed to resolve reads as unknown', (
+      tester,
+    ) async {
+      final repo = _JogRecorder();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          idle('A1'),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(repo),
+            bedJogConventionProvider.overrideWith(
+              (ref) => Future.error(StateError('unexpected')),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.move'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
     });
 
     testWidgets('X1C: up raises the plate, whatever the server', (

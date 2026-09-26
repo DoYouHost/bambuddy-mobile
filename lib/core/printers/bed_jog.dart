@@ -83,13 +83,15 @@ BedJogConvention bedJogConventionFromOpenApi(Object? document) {
 /// The `distance` to send for an arrow, or `null` when it cannot be known.
 ///
 /// On a bed-slinger "up" lifts the toolhead and opens the gap; everywhere else
-/// it raises the plate and closes it.
+/// it raises the plate and closes it. Without a model neither is known, and
+/// the two answers are opposite gaps.
 double? bedJogDistance({
   required bool up,
   required double step,
   required String? model,
   required BedJogConvention convention,
 }) {
+  if (model == null || model.trim().isEmpty) return null;
   final opensGap = isBedSlinger(model) ? up : !up;
   final gap = opensGap ? step : -step;
   if (!bedJogDependsOnServer(model)) return gap;

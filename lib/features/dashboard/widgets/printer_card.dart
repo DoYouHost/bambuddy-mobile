@@ -173,6 +173,9 @@ class _PrinterCardState extends State<PrinterCard> {
     final status = widget.item.status;
     final connected = status?.connected ?? false;
     final printerId = widget.item.printer.id;
+    // The printer row always names the model; a status only does once a
+    // WebSocket frame arrived — REST `/status` has no `model` field.
+    final model = widget.item.printer.model ?? status?.model;
     final name = widget.item.printer.name;
     final onCollapsedChanged = widget.onCollapsedChanged;
 
@@ -312,7 +315,7 @@ class _PrinterCardState extends State<PrinterCard> {
             _TempGrid(
               readings: readings,
               printerId: printerId,
-              model: status?.model,
+              model: model,
               activeExtruder: status?.activeExtruder,
               printing: printing,
             ),
@@ -347,10 +350,7 @@ class _PrinterCardState extends State<PrinterCard> {
                             status: status,
                           ),
                         if (canMove)
-                          _MovementTile(
-                            printerId: printerId,
-                            model: status.model,
-                          ),
+                          _MovementTile(printerId: printerId, model: model),
                         if (hasFans)
                           _FansGrid(status: status, printerId: printerId),
                         if (hasDetails) _DetailsPanel(status: status),

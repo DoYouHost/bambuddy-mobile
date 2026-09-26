@@ -67,6 +67,11 @@ class ServerVersionService {
     }
   }
 
+  /// Reads the version again even when one is known, for the caller that must
+  /// not act on a server upgraded in place since the last read. `null` when
+  /// this read fails — the earlier answer stays cached for everyone else.
+  Future<ServerVersion?> refresh() => _read();
+
   /// The server's own version string, for the bug-report header and the two
   /// screens that show it. `null` until a read succeeds, and after one that
   /// could not reach the server at all.

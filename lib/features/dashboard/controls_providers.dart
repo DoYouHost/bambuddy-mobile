@@ -611,12 +611,16 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
 /// Which bed-jog sign the connected server expects. The version settles it for
 /// every build but `1.2.6b1`; only then, and only once a movement sheet for an
-/// A1 / A1 Mini reads this, is `/openapi.json` fetched. Asked again after every
-/// regained contact: a daily upgraded in place keeps its version number, and a
-/// stale "flipped" would send the nozzle into the plate.
+/// A1 / A1 Mini reads this, is `/openapi.json` fetched.
+///
+/// Asked again after every regained contact, and the version read fresh rather
+/// than from [ServerVersionService]'s cache: a server upgraded in place from
+/// 1.2.5.5 would otherwise still read as flipping, and a stale "flipped" sends
+/// the nozzle into the plate. A failed read is unknown, never the old answer.
 final bedJogConventionProvider = FutureProvider<BedJogConvention>((ref) async {
+  ref.watch(serverContactEpochProvider);
   final byVersion = bedJogConventionFor(
-    await ref.watch(serverVersionProvider.future),
+    await ref.watch(serverVersionServiceProvider).refresh(),
   );
   if (byVersion != BedJogConvention.unknown) return byVersion;
   try {

@@ -141,8 +141,14 @@ void main() {
       expect(down('N2S', BedJogConvention.unknown), isNull);
     });
 
-    test('no model is treated as bed-on-Z', () {
-      expect(up(null, BedJogConvention.unknown), -10);
-    });
+    test(
+      'no model sends nothing: plate or toolhead, the gaps are opposite',
+      () {
+        for (final c in BedJogConvention.values) {
+          expect(up(null, c), isNull);
+          expect(down('  ', c), isNull);
+        }
+      },
+    );
   });
 }
