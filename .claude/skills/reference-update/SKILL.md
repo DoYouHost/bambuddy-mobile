@@ -227,7 +227,9 @@ it added to, plus `## Watch only` and **Struck off**.
   `file:line` from our tree. A false "done" disappears and comes back as a bug
   months later; a false "to do" costs ten seconds of reading.
 - **Every removal is accounted for.** A line may leave `open-items.md` only
-  through the report's *Struck off* section. A line that quietly differs between
+  through the report's *Struck off* section, which quotes the line verbatim
+  without its checkbox — the job compares the two lists and fails the run on
+  a line that left any other way. A line that quietly differs between
   the old body and the new one is a bug in the triage, not tidying. Ticked lines
   are the exception, and not yours: the job lifts those out after you write the
   file.
