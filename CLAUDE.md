@@ -126,6 +126,9 @@ do not stay silent because it was not part of the task.
   feature so a report about it explains anything: naming controls, sampled
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
+- [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why the cron
+  jobs (`server-drift`, `contract-tests`) start hours late, what the forums
+  say, and what to do once a run gets dropped.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.
