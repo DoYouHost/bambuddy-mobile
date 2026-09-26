@@ -199,6 +199,8 @@
   "ctrlMoveZ": "Z (Bettabstand)",
   "ctrlMoveZUp": "Hoch",
   "ctrlMoveZDown": "Runter",
+  "ctrlMoveZToolhead": "Z (Druckkopf)",
+  "ctrlMoveZUnknownDirection": "Die Z-Richtung dieses Druckers hängt von der Serverversion ab, die nicht bestätigt werden konnte, daher sind Z-Bewegungen hier deaktiviert. Aktualisiere den Server oder öffne dieses Fenster erneut, sobald er erreichbar ist.",
   "ctrlMoveExtrude": "Extrudieren",
   "ctrlMoveRetract": "Einziehen",
   "ctrlMoveLength": "Länge",

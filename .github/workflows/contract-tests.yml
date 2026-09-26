@@ -130,6 +130,9 @@ jobs:
           BAMBUDDY_CONTRACT_URL: ${{ steps.server.outputs.base }}
           BAMBUDDY_CONTRACT_USER: ${{ env.ADMIN_USER }}
           BAMBUDDY_CONTRACT_PASS: ${{ env.ADMIN_PASS }}
+          # For the bed-jog test, which reads the G-code the server publishes.
+          BAMBUDDY_CONTRACT_BROKER: ${{ steps.server.outputs.broker }}
+          BAMBUDDY_CONTRACT_BROKER_IP: ${{ steps.server.outputs.broker_ip }}
           # NOT decoration, and not cosmetic either: the runner is UTC, where a
           # naive timestamp read as local and the same one read as UTC are the
           # same instant — so the timestamp contract would pass no matter which

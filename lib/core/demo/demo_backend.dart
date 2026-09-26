@@ -222,6 +222,17 @@ class DemoBackend {
   /// (already JSON-decoded map/list, or null).
   DemoResult handle(String method, Uri uri, Object? requestBody) {
     var path = uri.path;
+    // Asked because the demo reports 1.2.6b1 and has an A1 mini; answering like
+    // a post-#1334 server keeps its Z jog on the direct sign.
+    if (path == '/openapi.json') {
+      return _ok(const {
+        'paths': {
+          '/api/v1/printers/{printer_id}/bed-jog': {
+            'post': {'summary': 'Bed Jog'},
+          },
+        },
+      });
+    }
     const prefix = '/api/v1';
     if (!path.startsWith(prefix)) return _notFound();
     path = path.substring(prefix.length);

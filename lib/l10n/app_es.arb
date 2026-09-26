@@ -199,6 +199,8 @@
   "ctrlMoveZ": "Z (distancia a la cama)",
   "ctrlMoveZUp": "Subir",
   "ctrlMoveZDown": "Bajar",
+  "ctrlMoveZToolhead": "Z (cabezal)",
+  "ctrlMoveZUnknownDirection": "La dirección Z de esta impresora depende de la versión del servidor, que no se pudo confirmar, así que los movimientos en Z están desactivados aquí. Actualiza el servidor o vuelve a abrir este panel cuando esté accesible.",
   "ctrlMoveExtrude": "Extruir",
   "ctrlMoveRetract": "Retraer",
   "ctrlMoveLength": "Longitud",

@@ -494,6 +494,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlMoveZDown => 'Runter';
 
   @override
+  String get ctrlMoveZToolhead => 'Z (Druckkopf)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Die Z-Richtung dieses Druckers hängt von der Serverversion ab, die nicht bestätigt werden konnte, daher sind Z-Bewegungen hier deaktiviert. Aktualisiere den Server oder öffne dieses Fenster erneut, sobald er erreichbar ist.';
+
+  @override
   String get ctrlMoveExtrude => 'Extrudieren';
 
   @override

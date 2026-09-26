@@ -168,6 +168,8 @@
   "ctrlMoveZ": "Z (szczelina)",
   "ctrlMoveZUp": "W górę",
   "ctrlMoveZDown": "W dół",
+  "ctrlMoveZToolhead": "Z (głowica)",
+  "ctrlMoveZUnknownDirection": "Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.",
   "ctrlMoveExtrude": "Wytłocz",
   "ctrlMoveRetract": "Wycofaj",
   "ctrlMoveLength": "Długość",

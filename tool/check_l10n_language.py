@@ -140,6 +140,7 @@ KNOWN_JARGON = {
     'ekstrudera', 'ekstruderami', 'zakolejkowana', 'warping', 'runout',
     'toolpath', 'colour', 'colours', 'https', 'http', 'scope', 'yml',
     'files', 'external', 'storage', 'Device', 'nozzle', 'hotend', 'firmware',
+    'toolhead',
     # Labels of other products the copy quotes, so the reader can find them
     # there: bambuddy's own web UI, Home Assistant, the server's group names.
     'Settings', 'Assistant', 'Workflow', 'Administrators',

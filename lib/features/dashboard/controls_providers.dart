@@ -7,6 +7,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/printers/bed_jog.dart';
 import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
@@ -493,7 +494,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// actions with no persistent status field to preview. All share
   /// [ControlAction.move], so the movement sheet locks while one is in flight.
 
-  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
+  /// Relative nozzle-bed gap jog (mm); the sign comes from [bedJogDistance].
   Future<ActionOutcome> bedJog(int id, double distance, {bool force = false}) =>
       _run(
         id,
@@ -607,3 +608,22 @@ class ControlsNotifier extends Notifier<ControlsState> {
     _clearTimers.clear();
   }
 }
+
+/// Which bed-jog sign the connected server expects. The version settles it for
+/// every build but `1.2.6b1`; only then, and only once a movement sheet for an
+/// A1 / A1 Mini reads this, is `/openapi.json` fetched. Asked again after every
+/// regained contact: a daily upgraded in place keeps its version number, and a
+/// stale "flipped" would send the nozzle into the plate.
+final bedJogConventionProvider = FutureProvider<BedJogConvention>((ref) async {
+  final byVersion = bedJogConventionFor(
+    await ref.watch(serverVersionProvider.future),
+  );
+  if (byVersion != BedJogConvention.unknown) return byVersion;
+  try {
+    return bedJogConventionFromOpenApi(
+      await ref.watch(printerCommandsRepositoryProvider).fetchOpenApi(),
+    );
+  } on AppApiException {
+    return BedJogConvention.unknown;
+  }
+});

@@ -11,6 +11,8 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
+import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
+import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
@@ -3761,4 +3763,111 @@ void main() {
       });
     });
   });
+
+  group('Z jog direction (#1334)', () {
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    PrinterWithStatus idle(String model) => PrinterWithStatus(
+      printer: Printer(id: 3, name: 'Slinger', model: model),
+      status: PrinterStatus(
+        id: 3,
+        connected: true,
+        state: 'IDLE',
+        model: model,
+      ),
+    );
+
+    Future<_JogRecorder> openMovement(
+      WidgetTester tester,
+      String model,
+      BedJogConvention convention,
+    ) async {
+      final repo = _JogRecorder();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          idle(model),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(repo),
+            bedJogConventionProvider.overrideWith((ref) async => convention),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.move'));
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('A1 mini on a fixed server: up lifts the toolhead', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.direct,
+      );
+      expect(find.text(l10n.ctrlMoveZToolhead), findsOneWidget);
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [10.0]);
+    });
+
+    testWidgets('A1 mini on a flipping server keeps the sign it always had', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.flippedOnA1,
+      );
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [-10.0]);
+    });
+
+    testWidgets('A1 mini with the sign unknown: a note, no Z buttons', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.unknown,
+      );
+
+      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(find.text(l10n.ctrlMoveZDown), findsNothing);
+      expect(repo.distances, isEmpty);
+    });
+
+    testWidgets('X1C: up raises the plate, whatever the server', (
+      tester,
+    ) async {
+      final repo = await openMovement(tester, 'X1C', BedJogConvention.unknown);
+      expect(find.text(l10n.ctrlMoveZ), findsOneWidget);
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [-10.0]);
+    });
+  });
+}
+
+/// Records bed jogs; anything else the card calls is a test bug.
+class _JogRecorder implements PrinterCommandsRepository {
+  final distances = <double>[];
+
+  @override
+  Future<void> bedJog(int printerId, double distance, {bool force = false}) {
+    distances.add(distance);
+    return Future.value();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }

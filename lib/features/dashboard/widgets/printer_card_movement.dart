@@ -4,9 +4,10 @@ part of 'printer_card.dart';
 /// the printer is idle. Opens [_MovementSheet]. Self-hides when control is
 /// forbidden (API key lacks `can_control_printer`).
 class _MovementTile extends ConsumerWidget {
-  const _MovementTile({required this.printerId});
+  const _MovementTile({required this.printerId, required this.model});
 
   final int printerId;
+  final String? model;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,7 +29,8 @@ class _MovementTile extends ConsumerWidget {
           InkWell(
             onTap: () => dashSurfaceSheet<void>(
               context,
-              builder: (_) => _MovementSheet(printerId: printerId),
+              builder: (_) =>
+                  _MovementSheet(printerId: printerId, model: model),
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -59,9 +61,10 @@ class _MovementTile extends ConsumerWidget {
 /// (you jog repeatedly). Commands are momentary (no optimistic overlay); while
 /// one is in flight the whole pad locks and the pressed button spins.
 class _MovementSheet extends ConsumerStatefulWidget {
-  const _MovementSheet({required this.printerId});
+  const _MovementSheet({required this.printerId, required this.model});
 
   final int printerId;
+  final String? model;
 
   @override
   ConsumerState<_MovementSheet> createState() => _MovementSheetState();
@@ -136,50 +139,56 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     return logTag(
       'sheet.movement',
       FittedSheetSurface(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+        // Scrolls rather than overflows on a short screen or at a large text
+        // size.
+        child: Flexible(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(l10n.ctrlMove, style: t.titleLg),
-                  const Spacer(),
-                  _JogAction(
-                    icon: Icons.home_outlined,
-                    label: l10n.ctrlMoveHome,
-                    busy: _spin == 'home',
-                    enabled: !locked,
-                    onTap: _home,
+                  Row(
+                    children: [
+                      Text(l10n.ctrlMove, style: t.titleLg),
+                      const Spacer(),
+                      _JogAction(
+                        icon: Icons.home_outlined,
+                        label: l10n.ctrlMoveHome,
+                        busy: _spin == 'home',
+                        enabled: !locked,
+                        onTap: _home,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 18),
+                  _StepSelector(
+                    id: 'movement.step',
+                    label: l10n.ctrlMoveStep,
+                    presets: _stepPresets,
+                    value: _step,
+                    onChanged: (v) => setState(() => _step = v),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildXyPad(t, locked),
+                  const SizedBox(height: 20),
+                  _buildZRow(t, l10n, locked),
+                  const SizedBox(height: 20),
+                  Divider(color: t.subCardBorder, height: 1),
+                  const SizedBox(height: 20),
+                  _StepSelector(
+                    id: 'movement.length',
+                    label: l10n.ctrlMoveLength,
+                    presets: _lengthPresets,
+                    value: _length,
+                    onChanged: (v) => setState(() => _length = v),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildExtruderRow(t, l10n, locked),
                 ],
               ),
-              const SizedBox(height: 18),
-              _StepSelector(
-                id: 'movement.step',
-                label: l10n.ctrlMoveStep,
-                presets: _stepPresets,
-                value: _step,
-                onChanged: (v) => setState(() => _step = v),
-              ),
-              const SizedBox(height: 18),
-              _buildXyPad(t, locked),
-              const SizedBox(height: 20),
-              _buildZRow(t, l10n, locked),
-              const SizedBox(height: 20),
-              Divider(color: t.subCardBorder, height: 1),
-              const SizedBox(height: 20),
-              _StepSelector(
-                id: 'movement.length',
-                label: l10n.ctrlMoveLength,
-                presets: _lengthPresets,
-                value: _length,
-                onChanged: (v) => setState(() => _length = v),
-              ),
-              const SizedBox(height: 14),
-              _buildExtruderRow(t, l10n, locked),
-            ],
+            ),
           ),
         ),
       ),
@@ -268,36 +277,70 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     );
   }
 
-  /// Z (bed-gap) up/down pair. "Up" decreases the gap → negative distance; the
-  /// server flips the sign per model so the direction stays intuitive.
+  /// Z up/down pair. The sign each arrow sends is [bedJogDistance]'s; where it
+  /// cannot be known the pair is replaced by a note rather than guessed.
   Widget _buildZRow(DashTokens t, AppLocalizations l10n, bool locked) {
-    return Row(
+    final model = widget.model;
+    // Only the A1 family's sign depends on the server, so nothing is fetched
+    // for any other printer.
+    final convention = bedJogDependsOnServer(model)
+        ? ref.watch(bedJogConventionProvider)
+        : const AsyncData(BedJogConvention.direct);
+    // Null while (re)asking: a value kept from before a reconnect may belong to
+    // the server as it was before an in-place upgrade.
+    final settled = convention.isLoading ? null : convention.valueOrNull;
+    double? distance(bool up) => settled == null
+        ? null
+        : bedJogDistance(
+            up: up,
+            step: _step.toDouble(),
+            model: model,
+            convention: settled,
+          );
+
+    final label = Row(
       children: [
         Icon(Icons.height, size: 16, color: t.textSecondary),
         const SizedBox(width: 8),
-        Text(l10n.ctrlMoveZ, style: t.body.copyWith(color: t.textSecondary)),
+        Text(
+          isBedSlinger(model) ? l10n.ctrlMoveZToolhead : l10n.ctrlMoveZ,
+          style: t.body.copyWith(color: t.textSecondary),
+        ),
+      ],
+    );
+
+    if (settled != null && distance(true) == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          label,
+          const SizedBox(height: 6),
+          Text(
+            l10n.ctrlMoveZUnknownDirection,
+            style: t.bodyPlain.copyWith(color: t.textTertiary),
+          ),
+        ],
+      );
+    }
+
+    Widget jog(String btn, IconData icon, String text, bool up) {
+      final d = distance(up);
+      return _JogAction(
+        icon: icon,
+        label: text,
+        busy: _spin == btn,
+        enabled: !locked && d != null,
+        onTap: () => _send(btn, () => _notifier.bedJog(widget.printerId, d!)),
+      );
+    }
+
+    return Row(
+      children: [
+        label,
         const Spacer(),
-        _JogAction(
-          icon: Icons.keyboard_arrow_up,
-          label: l10n.ctrlMoveZUp,
-          busy: _spin == 'z+',
-          enabled: !locked,
-          onTap: () => _send(
-            'z+',
-            () => _notifier.bedJog(widget.printerId, -_step.toDouble()),
-          ),
-        ),
+        jog('z+', Icons.keyboard_arrow_up, l10n.ctrlMoveZUp, true),
         const SizedBox(width: 8),
-        _JogAction(
-          icon: Icons.keyboard_arrow_down,
-          label: l10n.ctrlMoveZDown,
-          busy: _spin == 'z-',
-          enabled: !locked,
-          onTap: () => _send(
-            'z-',
-            () => _notifier.bedJog(widget.printerId, _step.toDouble()),
-          ),
-        ),
+        jog('z-', Icons.keyboard_arrow_down, l10n.ctrlMoveZDown, false),
       ],
     );
   }

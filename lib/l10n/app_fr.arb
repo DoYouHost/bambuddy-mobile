@@ -199,6 +199,8 @@
   "ctrlMoveZ": "Z (écart du plateau)",
   "ctrlMoveZUp": "Haut",
   "ctrlMoveZDown": "Bas",
+  "ctrlMoveZToolhead": "Z (tête)",
+  "ctrlMoveZUnknownDirection": "Le sens de l'axe Z de cette imprimante dépend de la version du serveur, qui n'a pas pu être confirmée : les mouvements en Z sont donc désactivés ici. Si le serveur était injoignable, rouvrez ce panneau ; sinon, mettez-le à jour.",
   "ctrlMoveExtrude": "Extruder",
   "ctrlMoveRetract": "Rétracter",
   "ctrlMoveLength": "Longueur",

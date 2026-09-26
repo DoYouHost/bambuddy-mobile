@@ -490,6 +490,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveZDown => 'W dół';
 
   @override
+  String get ctrlMoveZToolhead => 'Z (głowica)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.';
+
+  @override
   String get ctrlMoveExtrude => 'Wytłocz';
 
   @override

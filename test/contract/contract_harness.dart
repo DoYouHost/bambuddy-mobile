@@ -35,6 +35,20 @@ String? get _baseUrl => Platform.environment['BAMBUDDY_CONTRACT_URL'];
 String? get _username => Platform.environment['BAMBUDDY_CONTRACT_USER'];
 String? get _password => Platform.environment['BAMBUDDY_CONTRACT_PASS'];
 
+/// The stand-in printer's broker — its container, for `docker exec`, and its
+/// address on the bridge, for a printer a test adds itself. Supplied by the same
+/// workflow; a test that needs them skips on [brokerSkipReason].
+String? get contractBrokerContainer =>
+    Platform.environment['BAMBUDDY_CONTRACT_BROKER'];
+String? get contractBrokerIp =>
+    Platform.environment['BAMBUDDY_CONTRACT_BROKER_IP'];
+
+String? get brokerSkipReason =>
+    contractSkipReason ??
+    ((contractBrokerContainer ?? '').isEmpty || (contractBrokerIp ?? '').isEmpty
+        ? 'BAMBUDDY_CONTRACT_BROKER / _BROKER_IP are unset'
+        : null);
+
 /// The server under test, without a trailing slash.
 String get contractBaseUrl => _baseUrl!.replaceAll(RegExp(r'/+$'), '');
 
