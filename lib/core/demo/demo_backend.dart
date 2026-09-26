@@ -5185,12 +5185,18 @@ class DemoBackend {
         }
         if (s.length >= 3 && s[2] == 'add-to-queue' && m == 'POST') {
           final ids = (body['file_ids'] as List?) ?? const [];
+          final added = <Map<String, dynamic>>[];
           for (final f in _libraryFiles) {
             if (!ids.contains(f['id'])) continue;
+            added.add({
+              'file_id': f['id'],
+              'filename': f['filename'],
+              'queue_item_id': _nextQueueId,
+            });
             _queue.add(
               _queueItem(
                 id: _nextQueueId++,
-                printerId: null,
+                printerId: body['printer_id'] as int?,
                 position: _queue.length + 1,
                 name: '${f['print_name']}',
                 status: 'pending',
@@ -5202,7 +5208,7 @@ class DemoBackend {
               ),
             );
           }
-          return _ok(const {'ok': true});
+          return _ok({'added': added, 'errors': const <Object>[]});
         }
         final fileId = int.tryParse(s.length > 2 ? s[2] : '');
         final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;

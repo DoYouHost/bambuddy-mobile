@@ -3695,6 +3695,38 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmAddedToQueue => 'Dodano do kolejki';
 
   @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gdzie wydrukować $count pliku?',
+      many: 'Gdzie wydrukować $count plików?',
+      few: 'Gdzie wydrukować $count pliki?',
+      one: 'Gdzie wydrukować ten plik?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Model zapisany w pliku';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Każdy plik czeka na drukarkę tego modelu, pod który go pocięto';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Dodano do kolejki $added z $total plików. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Pocięty pod inny model drukarki.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Niepocięty — do kolejki trafiają tylko pliki G-code.';
+
+  @override
   String get fmGroupAsVariants => 'Zgrupuj jako warianty';
 
   @override

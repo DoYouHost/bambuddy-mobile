@@ -417,4 +417,155 @@ void main() {
       expect((await repo.plates(8)).plates, isEmpty);
     });
   });
+
+  group('addToQueue', () {
+    const path = '/api/v1/library/files/add-to-queue';
+
+    test('sends no target unless one was chosen', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {
+          'added': [{}, {}],
+          'errors': [],
+        }),
+        data: {
+          'file_ids': [1, 2],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1, 2]);
+
+      expect(outcome.added, 2);
+      expect(outcome.rejections, isEmpty);
+    });
+
+    test('names the printer or the model it was given', () async {
+      adapter
+        ..onPost(
+          path,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+            'printer_id': 7,
+          },
+        )
+        ..onPost(
+          path,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [2],
+            'target_model': 'X1C',
+          },
+        );
+
+      expect((await repo.addToQueue([1], printerId: 7)).added, 1);
+      expect((await repo.addToQueue([2], targetModel: 'X1C')).added, 1);
+    });
+
+    test('a partial batch reports what was skipped and why', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {
+          'added': [{}],
+          'errors': [
+            {'file_id': 2, 'filename': 'b', 'error': 'Not a sliced file.'},
+            'junk',
+          ],
+        }),
+        data: {
+          'file_ids': [1, 2],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1, 2]);
+
+      expect(outcome.added, 1);
+      expect(outcome.rejections, ['Not a sliced file.']);
+    });
+
+    test(
+      'nothing queued throws the first reason, in both server shapes',
+      () async {
+        const reasons = [
+          {'file_id': 1, 'filename': 'a', 'error': 'File was sliced for P1S'},
+        ];
+        // Before #3112: a 200 whose body lists the refusals.
+        adapter.onPost(
+          path,
+          (s) => s.reply(200, {'added': [], 'errors': reasons}),
+          data: {
+            'file_ids': [1],
+          },
+        );
+        // From #3112: the same list inside a 400's detail.
+        adapter.onPost(
+          path,
+          (s) => s.reply(400, {
+            'detail': {
+              'message': 'No files could be added.',
+              'errors': reasons,
+            },
+          }),
+          data: {
+            'file_ids': [2],
+          },
+        );
+
+        for (final id in [1, 2]) {
+          await expectLater(
+            repo.addToQueue([id]),
+            throwsA(
+              isA<ApiException>().having(
+                (e) => e.detail,
+                'detail',
+                'File was sliced for P1S',
+              ),
+            ),
+          );
+        }
+      },
+    );
+
+    test('a batch-level 400 keeps its sentence', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(400, {'detail': 'No active printers for model: H2D'}),
+        data: {
+          'file_ids': [1],
+          'target_model': 'H2D',
+        },
+      );
+
+      await expectLater(
+        repo.addToQueue([1], targetModel: 'H2D'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'No active printers for model: H2D',
+          ),
+        ),
+      );
+    });
+
+    test('an unreadable 200 is a success with nothing to report', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {'ok': true}),
+        data: {
+          'file_ids': [1],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1]);
+
+      expect(outcome.rejections, isEmpty);
+    });
+  });
 }

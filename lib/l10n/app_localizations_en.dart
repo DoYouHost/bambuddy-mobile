@@ -3637,6 +3637,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmAddedToQueue => 'Added to queue';
 
   @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Where should $count files print?',
+      one: 'Where should this file print?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Model from the file';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Each file waits for a printer of the model it was sliced for';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Added $added of $total files to the queue. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Sliced for a different printer model.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Not sliced — only G-code files can be queued.';
+
+  @override
   String get fmGroupAsVariants => 'Group as alternatives';
 
   @override

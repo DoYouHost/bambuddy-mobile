@@ -6128,6 +6128,42 @@ abstract class AppLocalizations {
   /// **'Added to queue'**
   String get fmAddedToQueue;
 
+  /// No description provided for @fmQueueTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}'**
+  String fmQueueTargetTitle(int count);
+
+  /// No description provided for @fmQueueTargetAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Model from the file'**
+  String get fmQueueTargetAuto;
+
+  /// No description provided for @fmQueueTargetAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each file waits for a printer of the model it was sliced for'**
+  String get fmQueueTargetAutoHint;
+
+  /// No description provided for @fmAddedToQueuePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {added} of {total} files to the queue. {reason}'**
+  String fmAddedToQueuePartial(int added, int total, String reason);
+
+  /// No description provided for @fmQueueErrWrongModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for a different printer model.'**
+  String get fmQueueErrWrongModel;
+
+  /// No description provided for @fmQueueErrNotSliced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sliced — only G-code files can be queued.'**
+  String get fmQueueErrNotSliced;
+
   /// No description provided for @fmGroupAsVariants.
   ///
   /// In en, this message translates to:

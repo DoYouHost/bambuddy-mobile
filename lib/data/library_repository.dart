@@ -349,13 +349,56 @@ class LibraryRepository {
 
   // --- Print / queue ---
 
-  /// POST /library/files/add-to-queue — add files to queue.
-  Future<void> addToQueue(List<int> fileIds) => guard(
-    () => _dio.post<dynamic>(
-      Endpoints.libraryFilesAddToQueue,
-      data: <String, dynamic>{'file_ids': fileIds},
-    ),
+  /// Whether a bulk add may name the printer or model it is for (server
+  /// #3112). Never observed — see [ServerFeature.libraryQueueTarget].
+  late final queueTargetCapability = ObservedCapability(
+    ServerFeature.libraryQueueTarget,
+    _serverVersion,
   );
+
+  /// POST /library/files/add-to-queue — add files to queue, aimed at
+  /// [printerId] or [targetModel] (at most one; only when
+  /// [queueTargetCapability] says so).
+  ///
+  /// A batch that queued nothing throws, with the first file's reason as the
+  /// detail. The server answers that 200 with the reasons in the body up to
+  /// #3112 and a 400 carrying the same list from it, so both shapes are read.
+  Future<AddToQueueOutcome> addToQueue(
+    List<int> fileIds, {
+    int? printerId,
+    String? targetModel,
+  }) async {
+    Object? body;
+    try {
+      final res = await _dio.post<dynamic>(
+        Endpoints.libraryFilesAddToQueue,
+        data: <String, dynamic>{
+          'file_ids': fileIds,
+          'printer_id': ?printerId,
+          'target_model': ?targetModel,
+        },
+      );
+      body = res.data;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final detail = data is Map ? data['detail'] : null;
+      if (e.response?.statusCode != 400 || detail is! Map) {
+        throw mapDioExceptionKeepingDetail(e);
+      }
+      body = detail;
+    }
+    final outcome = parseAddToQueueOutcome(body);
+    if (outcome.added == 0 && outcome.rejections.isNotEmpty) {
+      throw ApiException(
+        AppErrorCode.badResponse,
+        statusCode: 400,
+        detail: outcome.rejections.first,
+        method: 'POST',
+        path: Endpoints.libraryFilesAddToQueue,
+      );
+    }
+    return outcome;
+  }
 
   // --- Upload ---
 
@@ -409,4 +452,25 @@ class LibraryRepository {
   /// DELETE /library/trash — empty trash (permanent).
   Future<void> emptyTrash() =>
       guard(() => _dio.delete<dynamic>(Endpoints.libraryTrash));
+}
+
+/// What a bulk add did: how many queue rows it created, and the server's reason
+/// for each file it left out.
+typedef AddToQueueOutcome = ({int added, List<String> rejections});
+
+/// Reads an `AddToQueueResponse` (`added[]`, `errors[{error}]`). Anything
+/// unreadable counts as nothing added and nothing refused — the server said
+/// yes, so the caller reports success rather than invent a failure.
+AddToQueueOutcome parseAddToQueueOutcome(Object? body) {
+  final map = body is Map ? body : const {};
+  final added = map['added'];
+  final errors = map['errors'];
+  return (
+    added: added is List ? added.length : 0,
+    rejections: [
+      if (errors is List)
+        for (final e in errors)
+          if (e is Map && e['error'] is String) e['error'] as String,
+    ],
+  );
 }

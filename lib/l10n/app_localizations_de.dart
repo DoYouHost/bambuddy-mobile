@@ -3674,6 +3674,36 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fmAddedToQueue => 'Zur Warteschlange hinzugefügt';
 
   @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Wo sollen $count Dateien gedruckt werden?',
+      one: 'Wo soll diese Datei gedruckt werden?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Modell aus der Datei';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Jede Datei wartet auf einen Drucker des Modells, für das sie geslict wurde';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return '$added von $total Dateien zur Warteschlange hinzugefügt. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Für ein anderes Druckermodell geslict.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Nicht geslict – nur G-Code-Dateien können in die Warteschlange.';
+
+  @override
   String get fmGroupAsVariants => 'Als Alternativen gruppieren';
 
   @override

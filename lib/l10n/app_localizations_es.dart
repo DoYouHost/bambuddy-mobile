@@ -3684,6 +3684,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fmAddedToQueue => 'Añadido a la cola';
 
   @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '¿Dónde imprimir $count archivos?',
+      one: '¿Dónde imprimir este archivo?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Modelo del archivo';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Cada archivo espera una impresora del modelo para el que se laminó';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Añadidos a la cola: $added de $total. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Laminado para otro modelo de impresora.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Sin laminar: solo los archivos G-code pueden ir a la cola.';
+
+  @override
   String get fmGroupAsVariants => 'Agrupar como alternativas';
 
   @override

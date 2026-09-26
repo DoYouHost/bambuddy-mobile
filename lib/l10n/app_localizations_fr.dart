@@ -3697,6 +3697,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fmAddedToQueue => 'Ajouté à la file d\'attente';
 
   @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Où imprimer ces $count fichiers ?',
+      one: 'Où imprimer ce fichier ?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Modèle indiqué dans le fichier';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Chaque fichier attend une imprimante du modèle pour lequel il a été découpé';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Ajoutés à la file d\'attente : $added sur $total. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel =>
+      'Découpé pour un autre modèle d\'imprimante.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Non découpé : seuls les fichiers G-code peuvent être mis en file d\'attente.';
+
+  @override
   String get fmGroupAsVariants => 'Regrouper comme alternatives';
 
   @override

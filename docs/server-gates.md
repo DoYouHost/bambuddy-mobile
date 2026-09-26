@@ -181,6 +181,16 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+### libraryQueueTarget — 1.2.6 (server #3112, commit 70b42d1c)
+
+`printer_id` / `target_model` on `POST /library/files/add-to-queue` — a bulk
+add aimed at one printer or one model instead of leaving each row unassigned.
+`AddToQueueRequest` forbids no extra fields, so an older server takes both,
+says nothing, and queues the files exactly as before; its reply carries no
+printer either, so there is nothing to observe. A 1.2.6b1 daily older than the
+commit is told yes and drops the choice — the unassigned rows it queues today,
+which the queue screen can still assign one by one.
+
 ## Not a row: the bed-jog sign (server #1334)
 
 `POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up

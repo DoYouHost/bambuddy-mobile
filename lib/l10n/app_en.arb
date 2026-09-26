@@ -2260,6 +2260,32 @@
   "fmPrint": "Print",
   "fmAddToQueue": "Add to queue",
   "fmAddedToQueue": "Added to queue",
+  "fmQueueTargetTitle": "{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}",
+  "@fmQueueTargetTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fmQueueTargetAuto": "Model from the file",
+  "fmQueueTargetAutoHint": "Each file waits for a printer of the model it was sliced for",
+  "fmAddedToQueuePartial": "Added {added} of {total} files to the queue. {reason}",
+  "@fmAddedToQueuePartial": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "fmQueueErrWrongModel": "Sliced for a different printer model.",
+  "fmQueueErrNotSliced": "Not sliced — only G-code files can be queued.",
   "fmGroupAsVariants": "Group as alternatives",
   "fmQueueAsVariants": "Queue as one job",
   "fmUngroupVariants": "Ungroup alternatives",

@@ -49,6 +49,10 @@ enum ServerFeature {
 
   /// `GET/PUT /inventory/spools/{id}/filament-presets` and the Spoolman twin.
   spoolModelPresets,
+
+  /// `printer_id` / `target_model` on `POST /library/files/add-to-queue`,
+  /// taken and ignored below it.
+  libraryQueueTarget,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -141,6 +145,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
+    ServerFeature.libraryQueueTarget: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

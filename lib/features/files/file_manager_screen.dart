@@ -13,6 +13,7 @@ import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
@@ -29,6 +30,7 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
+import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
@@ -749,24 +751,71 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _addSelectedToQueue(FileManagerState s) async {
-    final ids = s.selected.toList();
-    try {
-      await ref.read(libraryRepositoryProvider).addToQueue(ids);
-      if (!mounted) return;
+    final added = await _queueFiles(s.selected.toList(), 'files.add_to_queue');
+    if (added && mounted) {
       ref.read(fileManagerProvider.notifier).clearSelection();
-      _snack(_l10n.fmAddedToQueue);
-    } on AppApiException catch (e) {
-      _failed(e, 'files.add_to_queue');
     }
   }
 
-  Future<void> _addToQueue(LibraryFile file) async {
+  Future<void> _addToQueue(LibraryFile file) =>
+      _queueFiles([file.id], 'file_actions.add_to_queue');
+
+  /// Queues [ids], first asking where when the server can be told (#3112).
+  /// Returns whether anything was queued.
+  Future<bool> _queueFiles(List<int> ids, String action) async {
+    final repo = ref.read(libraryRepositoryProvider);
     try {
-      await ref.read(libraryRepositoryProvider).addToQueue([file.id]);
-      if (!mounted) return;
-      _snack(_l10n.fmAddedToQueue);
+      QueueTarget target = (printerId: null, model: null);
+      final canTarget = await settledGate(
+        ProviderScope.containerOf(context, listen: false),
+        libraryQueueTargetProvider,
+      ).catchError((Object _) => false);
+      if (canTarget) {
+        final printers = await ref
+            .read(printersRepositoryProvider)
+            .fetchPrinters();
+        if (!mounted) return false;
+        if (printers.isNotEmpty) {
+          final picked = await showQueueTargetSheet(
+            context,
+            fileCount: ids.length,
+            printers: printers,
+          );
+          if (picked == null || !mounted) return false;
+          target = picked;
+        }
+      }
+      final outcome = await repo.addToQueue(
+        ids,
+        printerId: target.printerId,
+        targetModel: target.model,
+      );
+      if (!mounted) return true;
+      final l10n = _l10n;
+      _snack(
+        outcome.rejections.isEmpty
+            ? l10n.fmAddedToQueue
+            : l10n.fmAddedToQueuePartial(
+                outcome.added,
+                outcome.added + outcome.rejections.length,
+                knownRefusal(l10n, outcome.rejections.first, _queueRefusals) ??
+                    outcome.rejections.first,
+              ),
+      );
+      return true;
     } on AppApiException catch (e) {
-      _failed(e, 'file_actions.add_to_queue');
+      if (mounted) {
+        showApiFailure(
+          _messenger,
+          e,
+          _l10n,
+          action: action,
+          message: serverRefusal(_l10n, e, _queueRefusals),
+        );
+      } else {
+        _failed(e, action);
+      }
+      return false;
     }
   }
 
@@ -1304,3 +1353,10 @@ class _FileTile extends StatelessWidget {
     );
   }
 }
+
+/// The per-file reasons a bulk add is likely to meet, worded for the user;
+/// anything else is quoted as the server wrote it.
+final _queueRefusals = <RefusalRule>[
+  (['sliced for', 'cannot be dispatched'], (l10n) => l10n.fmQueueErrWrongModel),
+  (['not a sliced file'], (l10n) => l10n.fmQueueErrNotSliced),
+];
