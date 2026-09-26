@@ -3720,11 +3720,11 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get fmQueueErrWrongModel => 'Pocięty pod inny model drukarki.';
+  String get fmQueueErrWrongModel => 'Pocięto pod inny model drukarki.';
 
   @override
   String get fmQueueErrNotSliced =>
-      'Niepocięty — do kolejki trafiają tylko pliki G-code.';
+      'Nie pocięto — do kolejki trafiają tylko pliki G-code.';
 
   @override
   String get fmGroupAsVariants => 'Zgrupuj jako warianty';

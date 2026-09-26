@@ -770,12 +770,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ProviderScope.containerOf(context, listen: false),
         libraryQueueTargetProvider,
       ).catchError((Object _) => false);
+      if (!mounted) return false;
       if (canTarget) {
         final printers = await ref
             .read(printersRepositoryProvider)
             .fetchPrinters();
         if (!mounted) return false;
-        if (printers.isNotEmpty) {
+        // Nothing active leaves only "from the file", which is what an
+        // unasked add does anyway.
+        if (printers.any((p) => p.isActive != false)) {
           final picked = await showQueueTargetSheet(
             context,
             fileCount: ids.length,
@@ -797,7 +800,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             ? l10n.fmAddedToQueue
             : l10n.fmAddedToQueuePartial(
                 outcome.added,
-                outcome.added + outcome.rejections.length,
+                ids.length,
                 knownRefusal(l10n, outcome.rejections.first, _queueRefusals) ??
                     outcome.rejections.first,
               ),

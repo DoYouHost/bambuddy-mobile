@@ -368,7 +368,7 @@ class LibraryRepository {
     int? printerId,
     String? targetModel,
   }) async {
-    Object? body;
+    final Object? body;
     try {
       final res = await _dio.post<dynamic>(
         Endpoints.libraryFilesAddToQueue,
@@ -385,20 +385,27 @@ class LibraryRepository {
       if (e.response?.statusCode != 400 || detail is! Map) {
         throw mapDioExceptionKeepingDetail(e);
       }
-      body = detail;
+      // A 400 is never a success, whatever list it carries.
+      final message = detail['message'];
+      throw _nothingQueued(
+        parseAddToQueueOutcome(detail).rejections.firstOrNull ??
+            (message is String ? message : null),
+      );
     }
     final outcome = parseAddToQueueOutcome(body);
     if (outcome.added == 0 && outcome.rejections.isNotEmpty) {
-      throw ApiException(
-        AppErrorCode.badResponse,
-        statusCode: 400,
-        detail: outcome.rejections.first,
-        method: 'POST',
-        path: Endpoints.libraryFilesAddToQueue,
-      );
+      throw _nothingQueued(outcome.rejections.first);
     }
     return outcome;
   }
+
+  ApiException _nothingQueued(String? reason) => ApiException(
+    AppErrorCode.badResponse,
+    statusCode: 400,
+    detail: reason,
+    method: 'POST',
+    path: Endpoints.libraryFilesAddToQueue,
+  );
 
   // --- Upload ---
 

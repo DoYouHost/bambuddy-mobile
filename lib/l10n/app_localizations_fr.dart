@@ -3716,12 +3716,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String fmAddedToQueuePartial(int added, int total, String reason) {
-    return 'Ajoutés à la file d\'attente : $added sur $total. $reason';
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: '$added fichiers sur $total ajoutés à la file d\'attente.',
+      one: '1 fichier sur $total ajouté à la file d\'attente.',
+    );
+    return '$_temp0 $reason';
   }
 
   @override
   String get fmQueueErrWrongModel =>
-      'Découpé pour un autre modèle d\'imprimante.';
+      'Découpage prévu pour un autre modèle d\'imprimante.';
 
   @override
   String get fmQueueErrNotSliced =>

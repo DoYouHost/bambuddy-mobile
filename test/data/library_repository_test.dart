@@ -532,6 +532,29 @@ void main() {
       },
     );
 
+    test('a 400 with no readable reasons is still a failure', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(400, {
+          'detail': {'message': 'No files could be added.', 'errors': []},
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+
+      await expectLater(
+        repo.addToQueue([1]),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'No files could be added.',
+          ),
+        ),
+      );
+    });
+
     test('a batch-level 400 keeps its sentence', () async {
       adapter.onPost(
         path,

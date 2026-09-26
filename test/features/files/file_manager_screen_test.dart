@@ -239,6 +239,7 @@ void main() {
       WidgetTester tester, {
       required Dio dio,
       required bool canTarget,
+      Set<int> selected = const {1},
     }) async {
       final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
       await pumpPhone(
@@ -254,7 +255,7 @@ void main() {
               FileManagerState(
                 files: [file],
                 selectionMode: true,
-                selected: {file.id},
+                selected: selected,
               ),
             ),
           ),
@@ -307,6 +308,77 @@ void main() {
 
       expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
     });
+
+    testWidgets('only inactive printers: nothing to choose, nothing asked', (
+      tester,
+    ) async {
+      final dio = testDio();
+      DioAdapter(dio: dio)
+        ..onGet(
+          '/api/v1/printers/',
+          (s) => s.reply(200, [
+            {'id': 8, 'name': 'Shed', 'model': 'P1S', 'is_active': false},
+          ]),
+        )
+        ..onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+          },
+        );
+      await pumpQueueing(tester, dio: dio, canTarget: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_target'), findsNothing);
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets(
+      'a partial batch counts what was selected, not what came back',
+      (tester) async {
+        final dio = testDio();
+        DioAdapter(dio: dio).onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [
+              {
+                'file_id': 2,
+                'error':
+                    'File was sliced for P1S and cannot be dispatched to X1C '
+                    'printers',
+              },
+              // Unreadable, so it is no reason — but it is still a file.
+              {'file_id': 3},
+            ],
+          }),
+          data: {
+            'file_ids': [1, 2, 3],
+          },
+        );
+        await pumpQueueing(
+          tester,
+          dio: dio,
+          canTarget: false,
+          selected: {1, 2, 3},
+        );
+
+        await tester.tap(byLogId('files.add_to_queue'));
+        await tester.pumpAndSettle();
+
+        final l = l10n(tester);
+        expect(
+          find.text(l.fmAddedToQueuePartial(1, 3, l.fmQueueErrWrongModel)),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('an older server is not asked, and gets the plain request', (
       tester,

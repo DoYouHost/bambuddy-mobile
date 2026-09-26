@@ -145,7 +145,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.archivePrinterMedia: (1, 2, 6, 0),
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
-    ServerFeature.libraryQueueTarget: (1, 2, 6, 0),
+    ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

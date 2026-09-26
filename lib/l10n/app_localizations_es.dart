@@ -3703,11 +3703,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String fmAddedToQueuePartial(int added, int total, String reason) {
-    return 'Añadidos a la cola: $added de $total. $reason';
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: 'Se añadieron $added de $total archivos a la cola.',
+      one: 'Se añadió 1 de $total archivos a la cola.',
+    );
+    return '$_temp0 $reason';
   }
 
   @override
-  String get fmQueueErrWrongModel => 'Laminado para otro modelo de impresora.';
+  String get fmQueueErrWrongModel => 'Se laminó para otro modelo de impresora.';
 
   @override
   String get fmQueueErrNotSliced =>
