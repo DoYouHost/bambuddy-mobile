@@ -142,6 +142,9 @@ do not stay silent because it was not part of the task.
   **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
   ciphers version 9 wrote, so it may only ship after a release that ran 10 and
   migrated the installed base.
+- [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why the cron
+  jobs (`server-drift`, `contract-tests`) start hours late, what the forums
+  say, and what to do once a run gets dropped.
 - [docs/play-store-listing.md](docs/play-store-listing.md),
   [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
   Google Play shows.

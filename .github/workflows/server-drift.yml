@@ -31,9 +31,9 @@ on:
   schedule:
     # Monday 06:37 UTC. The server does ~100 commits a fortnight but touches the
     # contract in about 20 files, so a daily run would mostly report nothing.
-    # The odd minute is not cosmetic: on '0 6' both deliveries this job ever got
-    # were queued 5-6 hours late (2026-08-31 +6h22m, 2026-09-07 +5h16m), which
-    # is what the round hour costs. Nothing downstream cares when it lands.
+    # GitHub delivers this ~6.5 hours late whatever the minute — moving off
+    # '0 6' changed nothing; see docs/scheduled-workflows.md. Nothing downstream
+    # cares when it lands.
     - cron: '37 6 * * 1'
   workflow_dispatch:
     inputs:
