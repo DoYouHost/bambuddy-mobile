@@ -234,6 +234,23 @@ jobs:
             fi
           done
 
+          # A standing line may leave the list only through the report's
+          # Struck off, quoted there verbatim (see the skill). The rule alone
+          # did not hold: on 2026-09-26 the triage rewrote `## Feature` with
+          # this range's items, dropped #3112 and reported "Struck off: none".
+          # Failing here leaves the issue body as it was.
+          struck="$(awk '/^#+ /{on = /^#+ Struck off/} on' "$report")"
+          lost=0
+          while IFS= read -r line; do
+            grep -qxF -- "$line" "$items" && continue
+            grep -qF -- "${line#- \[ \] }" <<<"$struck" && continue
+            echo "::error::Dropped without a Struck off entry: $line"
+            lost=1
+          done < <(grep -E '^- \[ \] ' .server-drift/open-items-current.md)
+          if (( lost )); then
+            exit 1
+          fi
+
           to_sha="$(cat .server-drift/to_sha)"
           dev_sha="$(cat .server-drift/dev_sha)"
           title="Server drift: ${to_sha:0:8}"
