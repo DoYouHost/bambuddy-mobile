@@ -595,15 +595,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// creates N identical spools.
   Widget _quantityStepper(AppLocalizations l10n) {
     final t = DashTokens.of(context);
-    void setQty(int v) => setState(() => _quantity = v.clamp(1, _maxQuantity));
-    Widget btn(IconData icon, VoidCallback? onTap) => IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: t.textSecondary),
-      iconSize: 20,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-      padding: EdgeInsets.zero,
-    ).tagged('spool_form.quantity_step');
     return Tooltip(
       message: l10n.inventoryQuantityHint,
       child: Container(
@@ -612,26 +603,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           border: Border.all(color: t.subCardBorder),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            btn(
-              Icons.remove,
-              _quantity > 1 ? () => setQty(_quantity - 1) : null,
-            ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 24),
-              child: Text(
-                '$_quantity',
-                textAlign: TextAlign.center,
-                style: t.monoTitle,
-              ),
-            ),
-            btn(
-              Icons.add,
-              _quantity < _maxQuantity ? () => setQty(_quantity + 1) : null,
-            ),
-          ],
+        // One id for both buttons, as it has always been logged.
+        child: DashStepper(
+          value: _quantity,
+          min: 1,
+          max: _maxQuantity,
+          onChanged: (v) => setState(() => _quantity = v),
+          lessTooltip: l10n.inventoryQuantityLess,
+          moreTooltip: l10n.inventoryQuantityMore,
+          lessId: 'spool_form.quantity_step',
+          moreId: 'spool_form.quantity_step',
+          compact: true,
         ),
       ),
     );

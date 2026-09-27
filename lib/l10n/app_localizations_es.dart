@@ -5072,10 +5072,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pipelineRunsFilter => 'Filtrar ejecuciones';
 
   @override
-  String get pipelineCopiesLess => 'Una copia menos';
+  String get copiesLess => 'Una copia menos';
 
   @override
-  String get pipelineCopiesMore => 'Una copia más';
+  String get copiesMore => 'Una copia más';
 
   @override
   String get pipelineEligible => 'Lista';
@@ -7147,4 +7147,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueEditOrderRefused =>
       'No se pudo crear el pedido, así que las copias se encolaron como un lote simple.';
+
+  @override
+  String get inventoryQuantityLess => 'Una bobina menos';
+
+  @override
+  String get inventoryQuantityMore => 'Una bobina más';
 }

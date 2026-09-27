@@ -22,6 +22,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_stepper.dart';
 import '../common/date_time_picker.dart';
 import '../common/inline_note.dart';
 import '../common/print_thumbnail.dart';
@@ -531,7 +532,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       return null;
     }
     final order = ref.watch(batchOrdersProvider).orFalse;
-    void set(int v) => setState(() => _copies = v.clamp(1, _maxCopies));
     return Column(
       children: [
         _SectionCard(
@@ -544,27 +544,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   Expanded(
                     child: Text(l10n.queueEditCopiesLabel, style: t.body),
                   ),
-                  IconButton(
-                    // Without a tooltip a minus beside a number has no name.
-                    tooltip: l10n.pipelineCopiesLess,
-                    onPressed: _copies > 1 ? () => set(_copies - 1) : null,
-                    icon: const Icon(Icons.remove),
-                  ).tagged('queue_edit.copies_down'),
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      '$_copies',
-                      textAlign: TextAlign.center,
-                      style: t.monoValue,
-                    ),
+                  DashStepper(
+                    value: _copies,
+                    min: 1,
+                    max: _maxCopies,
+                    onChanged: (v) => setState(() => _copies = v),
+                    lessTooltip: l10n.copiesLess,
+                    moreTooltip: l10n.copiesMore,
+                    lessId: 'queue_edit.copies_down',
+                    moreId: 'queue_edit.copies_up',
                   ),
-                  IconButton(
-                    tooltip: l10n.pipelineCopiesMore,
-                    onPressed: _copies < _maxCopies
-                        ? () => set(_copies + 1)
-                        : null,
-                    icon: const Icon(Icons.add),
-                  ).tagged('queue_edit.copies_up'),
                 ],
               ),
               // What more than one copy turns into — said only once it does,

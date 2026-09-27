@@ -2197,8 +2197,8 @@
   "pipelineRunsTitle": "Przebiegi pipeline'ów",
   "pipelineRunsNoneMatch": "Żaden przebieg nie pasuje do tych filtrów",
   "pipelineRunsFilter": "Filtruj przebiegi",
-  "pipelineCopiesLess": "O jedną kopię mniej",
-  "pipelineCopiesMore": "O jedną kopię więcej",
+  "copiesLess": "O jedną kopię mniej",
+  "copiesMore": "O jedną kopię więcej",
   "pipelineEligible": "Gotowa",
   "pipelineIneligible": "Nie gotowa",
   "pipelineRunsFilterActive": "Filtruj przebiegi (aktywne: {count})",
@@ -3148,5 +3148,7 @@
   "ordersGroupedNone": "Nie udało się zgrupować żadnego zadania.",
   "orderEditTargetLess": "O jeden wydruk mniej",
   "orderEditTargetMore": "O jeden wydruk więcej",
-  "queueEditOrderRefused": "Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia."
+  "queueEditOrderRefused": "Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.",
+  "inventoryQuantityLess": "O jedną szpulę mniej",
+  "inventoryQuantityMore": "O jedną szpulę więcej"
 }

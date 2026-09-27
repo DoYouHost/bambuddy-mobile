@@ -5084,10 +5084,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pipelineRunsFilter => 'Filtruj przebiegi';
 
   @override
-  String get pipelineCopiesLess => 'O jedną kopię mniej';
+  String get copiesLess => 'O jedną kopię mniej';
 
   @override
-  String get pipelineCopiesMore => 'O jedną kopię więcej';
+  String get copiesMore => 'O jedną kopię więcej';
 
   @override
   String get pipelineEligible => 'Gotowa';
@@ -7170,4 +7170,10 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueEditOrderRefused =>
       'Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.';
+
+  @override
+  String get inventoryQuantityLess => 'O jedną szpulę mniej';
+
+  @override
+  String get inventoryQuantityMore => 'O jedną szpulę więcej';
 }

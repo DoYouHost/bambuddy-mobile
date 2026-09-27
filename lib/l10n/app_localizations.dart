@@ -8468,17 +8468,17 @@ abstract class AppLocalizations {
   /// **'Filter runs'**
   String get pipelineRunsFilter;
 
-  /// No description provided for @pipelineCopiesLess.
+  /// No description provided for @copiesLess.
   ///
   /// In en, this message translates to:
   /// **'One fewer copy'**
-  String get pipelineCopiesLess;
+  String get copiesLess;
 
-  /// No description provided for @pipelineCopiesMore.
+  /// No description provided for @copiesMore.
   ///
   /// In en, this message translates to:
   /// **'One more copy'**
-  String get pipelineCopiesMore;
+  String get copiesMore;
 
   /// No description provided for @pipelineEligible.
   ///
@@ -11869,6 +11869,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The order could not be made, so the copies were queued as a plain batch.'**
   String get queueEditOrderRefused;
+
+  /// No description provided for @inventoryQuantityLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer spool'**
+  String get inventoryQuantityLess;
+
+  /// No description provided for @inventoryQuantityMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more spool'**
+  String get inventoryQuantityMore;
 }
 
 class _AppLocalizationsDelegate

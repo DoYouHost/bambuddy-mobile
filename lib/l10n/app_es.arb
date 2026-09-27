@@ -2860,8 +2860,8 @@
   "pipelineRunsEmpty": "Aún no hay ejecuciones",
   "pipelineRunsNoneMatch": "Ninguna ejecución coincide con estos filtros",
   "pipelineRunsFilter": "Filtrar ejecuciones",
-  "pipelineCopiesLess": "Una copia menos",
-  "pipelineCopiesMore": "Una copia más",
+  "copiesLess": "Una copia menos",
+  "copiesMore": "Una copia más",
   "pipelineEligible": "Lista",
   "pipelineIneligible": "No lista",
   "pipelineRunsFilterActive": "Filtrar ejecuciones ({count} activas)",
@@ -3848,5 +3848,7 @@
   "ordersGroupedNone": "No se pudo agrupar ningún trabajo.",
   "orderEditTargetLess": "Una impresión menos",
   "orderEditTargetMore": "Una impresión más",
-  "queueEditOrderRefused": "No se pudo crear el pedido, así que las copias se encolaron como un lote simple."
+  "queueEditOrderRefused": "No se pudo crear el pedido, así que las copias se encolaron como un lote simple.",
+  "inventoryQuantityLess": "Una bobina menos",
+  "inventoryQuantityMore": "Una bobina más"
 }

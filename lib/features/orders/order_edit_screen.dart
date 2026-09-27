@@ -14,6 +14,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/dash_input.dart';
+import '../common/dash_stepper.dart';
 import 'orders_providers.dart';
 import 'orders_screen.dart';
 
@@ -326,25 +327,16 @@ class _TargetRow extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            // Without a tooltip a minus beside a number has no name.
-            tooltip: l10n.orderEditTargetLess,
-            onPressed: value > 0 ? () => onChanged(value - 1) : null,
-            icon: const Icon(Icons.remove),
-          ).tagged('order_edit.target_down'),
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: t.monoValue,
-            ),
+          DashStepper(
+            value: value,
+            min: 0,
+            max: _max,
+            onChanged: onChanged,
+            lessTooltip: l10n.orderEditTargetLess,
+            moreTooltip: l10n.orderEditTargetMore,
+            lessId: 'order_edit.target_down',
+            moreId: 'order_edit.target_up',
           ),
-          IconButton(
-            tooltip: l10n.orderEditTargetMore,
-            onPressed: value < _max ? () => onChanged(value + 1) : null,
-            icon: const Icon(Icons.add),
-          ).tagged('order_edit.target_up'),
         ],
       ),
     );

@@ -3036,8 +3036,8 @@
   "pipelineRunsEmpty": "No runs yet",
   "pipelineRunsNoneMatch": "No run matches these filters",
   "pipelineRunsFilter": "Filter runs",
-  "pipelineCopiesLess": "One fewer copy",
-  "pipelineCopiesMore": "One more copy",
+  "copiesLess": "One fewer copy",
+  "copiesMore": "One more copy",
   "pipelineEligible": "Ready",
   "pipelineIneligible": "Not ready",
   "pipelineRunsFilterActive": "Filter runs ({count} active)",
@@ -4200,5 +4200,7 @@
   "ordersGroupedNone": "No job could be grouped.",
   "orderEditTargetLess": "One fewer run",
   "orderEditTargetMore": "One more run",
-  "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch."
+  "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
+  "inventoryQuantityLess": "One fewer spool",
+  "inventoryQuantityMore": "One more spool"
 }

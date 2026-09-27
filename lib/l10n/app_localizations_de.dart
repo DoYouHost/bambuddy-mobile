@@ -5054,10 +5054,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get pipelineRunsFilter => 'Durchläufe filtern';
 
   @override
-  String get pipelineCopiesLess => 'Eine Kopie weniger';
+  String get copiesLess => 'Eine Kopie weniger';
 
   @override
-  String get pipelineCopiesMore => 'Eine Kopie mehr';
+  String get copiesMore => 'Eine Kopie mehr';
 
   @override
   String get pipelineEligible => 'Bereit';
@@ -7124,4 +7124,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueEditOrderRefused =>
       'Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.';
+
+  @override
+  String get inventoryQuantityLess => 'Eine Spule weniger';
+
+  @override
+  String get inventoryQuantityMore => 'Eine Spule mehr';
 }

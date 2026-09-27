@@ -10,6 +10,7 @@ import '../../data/pipelines_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_stepper.dart';
 import 'pipeline_eligibility_view.dart';
 import 'pipeline_picker_sheet.dart';
 import 'pipeline_run_status_labels.dart';
@@ -193,35 +194,18 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
               : '$_copies',
           style: theme.textTheme.bodyMedium,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            logTag(
-              'pipeline_run.copies_less',
-              IconButton(
-                icon: const Icon(Icons.remove),
-                // An IconButton with no tooltip has no accessible name at all —
-                // a plus and a minus beside a number say nothing on their own.
-                tooltip: l10n.pipelineCopiesLess,
-                onPressed: _copies > 1 && !_starting
-                    ? () => setState(() => _copies--)
-                    : null,
-              ),
-            ),
-            Text('$_copies', style: theme.textTheme.titleMedium),
-            logTag(
-              'pipeline_run.copies_more',
-              IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: l10n.pipelineCopiesMore,
-                // The ceiling is a 422 server-side rather than a clamp, so the
-                // stepper stops at it instead of sending a doomed request.
-                onPressed: _copies < maxCopies && !_starting
-                    ? () => setState(() => _copies++)
-                    : null,
-              ),
-            ),
-          ],
+        // The ceiling is a 422 server-side rather than a clamp, so the stepper
+        // stops at it instead of sending a doomed request.
+        trailing: DashStepper(
+          value: _copies,
+          min: 1,
+          max: maxCopies,
+          onChanged: _starting ? null : (v) => setState(() => _copies = v),
+          lessTooltip: l10n.copiesLess,
+          moreTooltip: l10n.copiesMore,
+          lessId: 'pipeline_run.copies_less',
+          moreId: 'pipeline_run.copies_more',
+          valueStyle: theme.textTheme.titleMedium,
         ),
       ).tagged('pipeline_run.copies'),
     );

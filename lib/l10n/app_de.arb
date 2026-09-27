@@ -2860,8 +2860,8 @@
   "pipelineRunsEmpty": "Noch keine Durchläufe",
   "pipelineRunsNoneMatch": "Kein Durchlauf entspricht diesen Filtern",
   "pipelineRunsFilter": "Durchläufe filtern",
-  "pipelineCopiesLess": "Eine Kopie weniger",
-  "pipelineCopiesMore": "Eine Kopie mehr",
+  "copiesLess": "Eine Kopie weniger",
+  "copiesMore": "Eine Kopie mehr",
   "pipelineEligible": "Bereit",
   "pipelineIneligible": "Nicht bereit",
   "pipelineRunsFilterActive": "Durchläufe filtern ({count} aktiv)",
@@ -3848,5 +3848,7 @@
   "ordersGroupedNone": "Kein Auftrag ließ sich gruppieren.",
   "orderEditTargetLess": "Ein Druck weniger",
   "orderEditTargetMore": "Ein Druck mehr",
-  "queueEditOrderRefused": "Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht."
+  "queueEditOrderRefused": "Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.",
+  "inventoryQuantityLess": "Eine Spule weniger",
+  "inventoryQuantityMore": "Eine Spule mehr"
 }

@@ -5006,10 +5006,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pipelineRunsFilter => 'Filter runs';
 
   @override
-  String get pipelineCopiesLess => 'One fewer copy';
+  String get copiesLess => 'One fewer copy';
 
   @override
-  String get pipelineCopiesMore => 'One more copy';
+  String get copiesMore => 'One more copy';
 
   @override
   String get pipelineEligible => 'Ready';
@@ -7057,4 +7057,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueEditOrderRefused =>
       'The order could not be made, so the copies were queued as a plain batch.';
+
+  @override
+  String get inventoryQuantityLess => 'One fewer spool';
+
+  @override
+  String get inventoryQuantityMore => 'One more spool';
 }
