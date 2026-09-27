@@ -401,8 +401,9 @@ void main() {
       expect(result.archive.userVerdict, PrintVerdict.reject);
     });
 
-    // The server rejects a source on a clear it would not store anyway; a
-    // present null is what clears the column (`exclude_unset`).
+    // No source: the server drops the provenance whenever the verdict is null
+    // (`update_archive`). A present null is what clears the column
+    // (`exclude_unset`).
     test('clearing sends a null verdict and no source', () async {
       adapter.onPatch(
         '/api/v1/archives/82',
@@ -413,6 +414,63 @@ void main() {
       final result = await repo.setVerdict(82, null);
 
       expect(result.applied, isTrue);
+    });
+
+    // An older server's row has no verdict either, so the verdict alone would
+    // call this clear a success.
+    test('a clear an older server dropped is not reported as done', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+        data: {'user_verdict': null},
+      );
+
+      expect((await repo.setVerdict(82, null)).applied, isFalse);
+    });
+
+    test('leaving a reject clears the cause it carried', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(
+          200,
+          archiveWith({
+            ...pending,
+            'user_verdict': 'good',
+            'user_verdict_source': 'dialog',
+          }),
+        ),
+        data: {
+          'user_verdict': 'good',
+          'user_verdict_source': 'dialog',
+          'failure_reason': null,
+        },
+      );
+
+      final result = await repo.setVerdict(
+        82,
+        PrintVerdict.good,
+        clearReason: true,
+      );
+
+      expect(result.applied, isTrue);
+    });
+
+    test('every route that answers with archives settles the latch', () async {
+      adapter
+        ..onGet(
+          '/api/v1/archives/search',
+          (server) => server.reply(200, [archiveWith(pending)]),
+          queryParameters: {'q': 'x', 'limit': 50, 'offset': 0},
+        )
+        ..onPost(
+          '/api/v1/archives/82/favorite',
+          (server) => server.reply(200, readFixture('archive.json')),
+        );
+
+      await repo.search('x');
+      expect(repo.outcomeCapability.observedAnswer, isTrue);
+      await repo.toggleFavorite(82);
+      expect(repo.outcomeCapability.observedAnswer, isFalse);
     });
 
     test('a server that drops the verdict is not reported as saved', () async {

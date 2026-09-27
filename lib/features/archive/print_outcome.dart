@@ -53,6 +53,7 @@ class ArchiveVerdictBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final (label, border, ink) = switch (archive.userVerdict) {
@@ -86,9 +87,9 @@ class ArchiveVerdictBadge extends StatelessWidget {
 /// The detail sheet's line on the part's verdict: what was recorded, how and
 /// when — or that the print is still waiting for one.
 ///
-/// Only on a completed print, and only where the server records verdicts:
-/// "no verdict yet" on a server that cannot hold one would be a question
-/// nobody can answer.
+/// Only on a completed print. "No verdict yet" needs a server that records
+/// verdicts — on one that cannot hold one it would be a question nobody can
+/// answer.
 class ArchiveOutcomeRow extends ConsumerWidget {
   const ArchiveOutcomeRow({super.key, required this.archive});
 
@@ -96,7 +97,10 @@ class ArchiveOutcomeRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!archiveTakesVerdict(archive) ||
+    if (!archiveTakesVerdict(archive)) return const SizedBox.shrink();
+    // A verdict the archive carries proves the server keeps them; only the
+    // question of a missing one waits for the gate.
+    if (archive.userVerdict == null &&
         !ref.watch(printOutcomeSupportedProvider).orFalse) {
       return const SizedBox.shrink();
     }

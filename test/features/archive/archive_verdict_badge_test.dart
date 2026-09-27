@@ -73,6 +73,32 @@ void main() {
     expect(find.text(_l10n.outcomeSourcePlateClear), findsOneWidget);
   });
 
+  // The web draws these on completed prints only; a failed one already has
+  // its answer.
+  testWidgets('a failed print gets no verdict badge', (tester) async {
+    await tester.pumpWidget(
+      _screen([testArchive(status: 'failed', userVerdict: PrintVerdict.good)]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(_l10n.outcomeGoodPart), findsNothing);
+  });
+
+  testWidgets('a verdict the archive carries is shown before the gate says', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen([
+        testArchive(userVerdict: PrintVerdict.reject, userVerdictSource: 'api'),
+      ], supported: false),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Benchy'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_l10n.outcomeSourceApi), findsOneWidget);
+  });
+
   testWidgets('a server without verdicts has no line for one', (tester) async {
     await tester.pumpWidget(_screen([testArchive()], supported: false));
     await tester.pumpAndSettle();
