@@ -7156,6 +7156,15 @@ class AppLocalizationsPl extends AppLocalizations {
       'Więcej niż jedna kopia tworzy zamówienie: nieudana kopia zostaje do zrobienia i można ją ponownie dodać do kolejki z ekranu Zamówienia.';
 
   @override
-  String get ordersGroupedNone =>
-      'Niczego nie zgrupowano: wybrane zadania zmieniły się w międzyczasie.';
+  String get ordersGroupedNone => 'Nie udało się zgrupować żadnego zadania.';
+
+  @override
+  String get orderEditTargetLess => 'O jeden wydruk mniej';
+
+  @override
+  String get orderEditTargetMore => 'O jeden wydruk więcej';
+
+  @override
+  String get queueEditOrderRefused =>
+      'Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.';
 }

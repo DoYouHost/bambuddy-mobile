@@ -7110,6 +7110,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen.';
 
   @override
-  String get ordersGroupedNone =>
-      'Nichts gruppiert: Die gewählten Aufträge haben sich inzwischen geändert.';
+  String get ordersGroupedNone => 'Kein Auftrag ließ sich gruppieren.';
+
+  @override
+  String get orderEditTargetLess => 'Ein Druck weniger';
+
+  @override
+  String get orderEditTargetMore => 'Ein Druck mehr';
+
+  @override
+  String get queueEditOrderRefused =>
+      'Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.';
 }

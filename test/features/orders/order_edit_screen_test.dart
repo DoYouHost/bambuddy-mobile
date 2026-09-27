@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
@@ -152,6 +153,22 @@ void main() {
     await tester.tap(byLogId('order_edit.project'));
     await tester.pumpAndSettle();
     expect(byLogId('order_edit.project.none'), findsNothing);
+  });
+
+  testWidgets('a write from the list in flight holds the save', (tester) async {
+    await pumpEdit(tester, _order());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(OrderEditScreen)),
+    );
+    container.read(ordersInFlightProvider.notifier).state = {2};
+    await tester.pump();
+
+    await tester.enterText(byLogId('order_edit.notes'), 'changed');
+    await tester.tap(byLogId('order_edit.save'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(sent.requests, isEmpty);
+    expect(find.byType(OrderEditScreen), findsOneWidget);
   });
 
   testWidgets('a due date years out still opens the calendar', (tester) async {

@@ -144,6 +144,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   /// Copies to queue (create only). See [_copiesSection].
   int _copies = 1;
+
+  /// The order for the copies was refused and they went in as a plain batch:
+  /// the form promised an order, so the outcome says it was not one.
+  bool _orderRefused = false;
   static const _maxCopies = 999;
 
   @override
@@ -541,6 +545,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 ),
               ),
               IconButton(
+                // Without a tooltip a minus beside a number has no name.
+                tooltip: l10n.pipelineCopiesLess,
                 onPressed: _copies > 1 ? () => set(_copies - 1) : null,
                 icon: const Icon(Icons.remove),
               ).tagged('queue_edit.copies_down'),
@@ -553,6 +559,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 ),
               ),
               IconButton(
+                tooltip: l10n.pipelineCopiesMore,
                 onPressed: _copies < _maxCopies ? () => set(_copies + 1) : null,
                 icon: const Icon(Icons.add),
               ).tagged('queue_edit.copies_up'),
@@ -579,11 +586,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// here would leave a mapping pointing at another plate's slots without
   /// anything saying so. A reprint is a *new* item, which is where the choice
   /// belongs.
-  Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
+  /// The key [plateListProvider] takes for this item's file, or null.
+  (bool, int)? get _plateSource {
     final it = widget.item;
-    final source = it.archiveId != null
+    return it.archiveId != null
         ? (true, it.archiveId!)
         : (it.libraryFileId != null ? (false, it.libraryFileId!) : null);
+  }
+
+  Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
+    final source = _plateSource;
     if (source == null) return null;
     final plates =
         ref.watch(plateListProvider(source)).valueOrNull ?? PlateList.none;
@@ -1376,7 +1388,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     if (!mounted) return;
     setState(() => _saving = false);
-    final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
+    final ok = !widget._isCreate
+        ? l10n.queueEditSaved
+        : (_orderRefused ? l10n.queueEditOrderRefused : l10n.queueCreateAdded);
     messenger.snack(queueWriteMessage(l10n, result) ?? ok);
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
@@ -1506,10 +1520,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
     final providers = ProviderScope.containerOf(context, listen: false);
-    final l10n = AppLocalizations.of(context);
-    final orderId = await _createOrder(providers, l10n);
+    final plate = _orderPlate();
+    final orderId = await _createOrder(providers, plate);
     final options = QueueCreateOptions(
-      plateId: _plateId,
+      // Into an order, the item carries the plate its target names.
+      plateId: orderId == null ? _plateId : plate.id,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
       filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
@@ -1551,10 +1566,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               insertAtTop: insertAtTop,
               options: options,
             ));
-    } on Object {
+    } on Object catch (e) {
       // An order with targets and no runs is listed, owes every copy and has
-      // nothing to clone them from. Ungrouping an empty one deletes it.
-      if (orderId != null) {
+      // nothing to clone them from. Ungrouping an empty one deletes it — but
+      // only after a refusal: a timeout may have queued the copies, and
+      // ungrouping would then unlink live runs while the user queues again.
+      if (orderId != null && e is AppApiException && e is! NetworkException) {
         try {
           await providers.read(batchRepositoryProvider).ungroup(orderId);
         } on AppApiException {
@@ -1565,14 +1582,32 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     }
   }
 
+  /// The plate an order's target names. A multi-plate file with no plate
+  /// picked prints plate 1 (`plate_id or 1` server-side) and the form says
+  /// so; a null target would read "whole file" on the orders screen instead.
+  ({int? id, String? name}) _orderPlate() {
+    final source = _plateSource;
+    final plates = source == null
+        ? PlateList.none
+        : ref.read(plateListProvider(source)).valueOrNull ?? PlateList.none;
+    if (!plates.isMultiPlate) return (id: _plateId, name: null);
+    final id = _plateId ?? 1;
+    return (id: id, name: plates.byIndex(id)?.name);
+  }
+
   /// The order the copies go into, made first — the web's print dialog does
   /// the same. Null for one copy, on a server without orders, and when the
   /// order is refused: the copies then go in as a plain grouping, which is
   /// what `quantity` alone makes, so the print is not lost over its tracking.
+  ///
+  /// A network failure is not a refusal: the order may exist, and a grouping
+  /// queued beside it would leave it owing every copy. That one stops the
+  /// submit instead.
   Future<int?> _createOrder(
     ProviderContainer providers,
-    AppLocalizations l10n,
+    ({int? id, String? name}) plate,
   ) async {
+    _orderRefused = false;
     if (_copies < 2) return null;
     final supported = await settledGate(
       providers,
@@ -1589,11 +1624,17 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             libraryFileId: it.archiveId == null ? it.libraryFileId : null,
             // The runs are matched to the target by plate, so the target
             // names the plate the item will carry — null for a whole file.
-            plates: [(plateId: _plateId, plateName: null, quantity: _copies)],
+            plates: [
+              (plateId: plate.id, plateName: plate.name, quantity: _copies),
+            ],
           );
       return order.id;
+    } on NetworkException {
+      rethrow;
     } on AppApiException catch (e) {
-      showApiFailure(null, e, l10n, action: 'queue_create.order');
+      // Shown, as the outcome of the whole submit — see [_submit].
+      recordActionFailure(e, action: 'queue_create.order', shown: true);
+      _orderRefused = true;
       return null;
     }
   }

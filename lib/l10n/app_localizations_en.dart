@@ -7043,6 +7043,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.';
 
   @override
-  String get ordersGroupedNone =>
-      'Nothing was grouped: the picked jobs changed in the meantime.';
+  String get ordersGroupedNone => 'No job could be grouped.';
+
+  @override
+  String get orderEditTargetLess => 'One fewer run';
+
+  @override
+  String get orderEditTargetMore => 'One more run';
+
+  @override
+  String get queueEditOrderRefused =>
+      'The order could not be made, so the copies were queued as a plain batch.';
 }

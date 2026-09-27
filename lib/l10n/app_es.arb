@@ -3844,5 +3844,8 @@
   "queueEditCopies": "Copias",
   "queueEditCopiesHint": "Más de una copia se encola como lote.",
   "queueEditCopiesOrder": "Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes.",
-  "ordersGroupedNone": "No se agrupó nada: los trabajos elegidos cambiaron mientras tanto."
+  "ordersGroupedNone": "No se pudo agrupar ningún trabajo.",
+  "orderEditTargetLess": "Una impresión menos",
+  "orderEditTargetMore": "Una impresión más",
+  "queueEditOrderRefused": "No se pudo crear el pedido, así que las copias se encolaron como un lote simple."
 }

@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,7 +83,8 @@ const printerH2C = Printer(id: 1, name: 'H2C-1', model: 'H2C');
 /// production, so the form and the request body cannot disagree about what the
 /// server can store.
 ///
-/// [createStatus] is what `POST /queue/` answers.
+/// [createStatus] is what `POST /queue/` answers; 0 is no answer at all, a
+/// dropped connection.
 QueueRepository queueFormRepo({
   required bool triState,
   int createStatus = 200,
@@ -97,14 +99,22 @@ QueueRepository queueFormRepo({
         'repo': 'maziggy/bambuddy',
       }),
     )
-    ..onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(
+    ..onPost('/api/v1/queue/', (server) {
+      if (createStatus == 0) {
+        server.throws(
+          0,
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: '/api/v1/queue/'),
+            reason: 'dropped',
+          ),
+        );
+        return;
+      }
+      server.reply(
         createStatus,
         createStatus == 200 ? null : {'detail': 'Printer not found'},
-      ),
-      data: Matchers.any,
-    )
+      );
+    }, data: Matchers.any)
     ..onPatch(
       '/api/v1/queue/5',
       (server) => server.reply(200, null),

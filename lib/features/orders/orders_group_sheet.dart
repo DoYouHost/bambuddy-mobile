@@ -18,7 +18,8 @@ import 'orders_screen.dart';
 
 /// Waiting jobs this session may group — the only ones `POST /queue/batches`
 /// assigns; it skips the rest without saying so: those already in a batch,
-/// and someone else's unless the caller may change every item.
+/// and without `queue:update_all` any not the caller's own, ownerless ones
+/// included (`core/auth.py`: an ownerless item needs the all-permission).
 final _groupableProvider = FutureProvider.autoDispose<List<QueueItem>>((
   ref,
 ) async {
@@ -30,9 +31,7 @@ final _groupableProvider = FutureProvider.autoDispose<List<QueueItem>>((
       .fetch(status: 'pending');
   return [
     for (final i in pending)
-      if (i.batchId == null &&
-          (anyone || i.createdById == null || i.createdById == me.id))
-        i,
+      if (i.batchId == null && (anyone || i.createdById == me.id)) i,
   ];
 });
 
@@ -78,6 +77,15 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
       // floors at 1: a pick that started or was grouped elsewhere since this
       // list was read is skipped, and all of them can be.
       final grouped = batch.pendingCount + batch.printingCount;
+      if (grouped == 0) {
+        // The server made the batch anyway; with no items and no targets it
+        // is hidden from the list, and ungrouping deletes it outright.
+        try {
+          await providers.read(batchRepositoryProvider).ungroup(batch.id);
+        } on AppApiException {
+          // The outcome below is what the user has to hear.
+        }
+      }
       messenger.snack(
         grouped == 0
             ? l10n.ordersGroupedNone

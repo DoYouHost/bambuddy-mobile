@@ -11843,8 +11843,26 @@ abstract class AppLocalizations {
   /// No description provided for @ordersGroupedNone.
   ///
   /// In en, this message translates to:
-  /// **'Nothing was grouped: the picked jobs changed in the meantime.'**
+  /// **'No job could be grouped.'**
   String get ordersGroupedNone;
+
+  /// No description provided for @orderEditTargetLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer run'**
+  String get orderEditTargetLess;
+
+  /// No description provided for @orderEditTargetMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more run'**
+  String get orderEditTargetMore;
+
+  /// No description provided for @queueEditOrderRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The order could not be made, so the copies were queued as a plain batch.'**
+  String get queueEditOrderRefused;
 }
 
 class _AppLocalizationsDelegate

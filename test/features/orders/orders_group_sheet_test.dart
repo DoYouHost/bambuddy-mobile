@@ -129,16 +129,21 @@ void main() {
       _item(2, 'Hook'),
     ]);
     // The server floors `quantity` at 1 for a batch it assigned nothing to.
-    adapter.onPost(
-      '/api/v1/queue/batches',
-      data: Matchers.any,
-      (s) => s.reply(200, {
-        'id': 10,
-        'name': 'Hardware',
-        'quantity': 1,
-        'status': 'active',
-      }),
-    );
+    adapter
+      ..onPost(
+        '/api/v1/queue/batches',
+        data: Matchers.any,
+        (s) => s.reply(200, {
+          'id': 10,
+          'name': 'Hardware',
+          'quantity': 1,
+          'status': 'active',
+        }),
+      )
+      ..onPost(
+        '/api/v1/queue/batches/10/ungroup',
+        (s) => s.reply(200, {'ungrouped_count': 0, 'message': 'Ungrouped 0'}),
+      );
 
     await tester.tap(find.text('Clip'));
     await tester.tap(find.text('Hook'));
@@ -148,6 +153,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n(tester).ordersGroupedNone), findsOneWidget);
+    // The empty batch it made anyway is removed again.
+    expect(sent.calls.last, 'POST /api/v1/queue/batches/10/ungroup');
   });
 
   testWidgets('someone else\'s jobs are not offered without update-all', (
@@ -159,6 +166,8 @@ void main() {
         _item(1, 'Mine', createdBy: 1),
         _item(2, 'Also mine', createdBy: 1),
         _item(3, 'Theirs', createdBy: 7),
+        // Ownerless needs the all-permission too.
+        _item(4, 'Nobody\'s'),
       ],
       user: const CurrentUser(
         id: 1,
@@ -170,6 +179,7 @@ void main() {
 
     expect(find.text('Mine'), findsOneWidget);
     expect(find.text('Theirs'), findsNothing);
+    expect(find.text('Nobody\'s'), findsNothing);
   });
 
   testWidgets('fewer than two ungrouped jobs: says so', (tester) async {

@@ -3844,5 +3844,8 @@
   "queueEditCopies": "Copies",
   "queueEditCopiesHint": "Plus d’une copie est mise en file comme lot.",
   "queueEditCopiesOrder": "Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.",
-  "ordersGroupedNone": "Rien n’a été groupé : les travaux choisis ont changé entre-temps."
+  "ordersGroupedNone": "Aucun travail n’a pu être groupé.",
+  "orderEditTargetLess": "Une impression de moins",
+  "orderEditTargetMore": "Une impression de plus",
+  "queueEditOrderRefused": "La commande n’a pas pu être créée, les copies ont donc été mises en file comme un simple lot."
 }

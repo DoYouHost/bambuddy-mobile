@@ -173,6 +173,11 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final projects = ref.watch(orderProjectsProvider).valueOrNull;
+    // A dispatch or cancel from the list holds the batch: the save waits,
+    // visibly, rather than ignore the tap.
+    final busy =
+        _saving ||
+        ref.watch(ordersInFlightProvider.select((s) => s.contains(_b.id)));
     final due = _due;
 
     return Scaffold(
@@ -184,13 +189,13 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
           dashSaveAction(
             id: 'order_edit.save',
             label: l10n.orderEditSave,
-            busy: _saving,
+            busy: busy,
             onPressed: _save,
           ),
         ],
       ),
       body: AbsorbPointer(
-        absorbing: _saving,
+        absorbing: busy,
         child: ListView(
           padding: withSystemNavInset(
             context,
@@ -322,6 +327,8 @@ class _TargetRow extends StatelessWidget {
             ),
           ),
           IconButton(
+            // Without a tooltip a minus beside a number has no name.
+            tooltip: l10n.orderEditTargetLess,
             onPressed: value > 0 ? () => onChanged(value - 1) : null,
             icon: const Icon(Icons.remove),
           ).tagged('order_edit.target_down'),
@@ -334,6 +341,7 @@ class _TargetRow extends StatelessWidget {
             ),
           ),
           IconButton(
+            tooltip: l10n.orderEditTargetMore,
             onPressed: value < _max ? () => onChanged(value + 1) : null,
             icon: const Icon(Icons.add),
           ).tagged('order_edit.target_up'),

@@ -3844,5 +3844,8 @@
   "queueEditCopies": "Kopien",
   "queueEditCopiesHint": "Mehr als eine Kopie wird als Gruppe eingereiht.",
   "queueEditCopiesOrder": "Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen.",
-  "ordersGroupedNone": "Nichts gruppiert: Die gewählten Aufträge haben sich inzwischen geändert."
+  "ordersGroupedNone": "Kein Auftrag ließ sich gruppieren.",
+  "orderEditTargetLess": "Ein Druck weniger",
+  "orderEditTargetMore": "Ein Druck mehr",
+  "queueEditOrderRefused": "Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht."
 }

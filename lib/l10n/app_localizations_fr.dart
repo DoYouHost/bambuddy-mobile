@@ -7202,6 +7202,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.';
 
   @override
-  String get ordersGroupedNone =>
-      'Rien n’a été groupé : les travaux choisis ont changé entre-temps.';
+  String get ordersGroupedNone => 'Aucun travail n’a pu être groupé.';
+
+  @override
+  String get orderEditTargetLess => 'Une impression de moins';
+
+  @override
+  String get orderEditTargetMore => 'Une impression de plus';
+
+  @override
+  String get queueEditOrderRefused =>
+      'La commande n’a pas pu être créée, les copies ont donc été mises en file comme un simple lot.';
 }

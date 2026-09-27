@@ -2373,7 +2373,8 @@ class DemoBackend {
         plates.where((p) => p['plate_id'] == body['plate_id']).firstOrNull ??
         plates.first;
     plate['pending_count'] = (plate['pending_count'] as int) + 1;
-    plate['can_dispatch'] = true;
+    // A source to clone from, which only an order can use.
+    if (batch['has_targets'] == true) plate['can_dispatch'] = true;
   }
 
   /// The batch `POST /queue/` puts its copies in: the one [batchId] names
@@ -2443,10 +2444,12 @@ class DemoBackend {
         final batch = _batchForCopies(body['batch_id'] as int?, copies, name);
         if (batch case DemoResult refused) return refused;
         final batchMap = batch as Map<String, dynamic>?;
+        final first = _queue.length;
         for (var n = 0; n < copies; n++) {
           _addQueued(body, variantFiles, archive, lead, name, batchMap);
         }
-        return _ok(_queue.last);
+        // The server answers with the first copy.
+        return _ok(_queue[first]);
       }
     }
     if (s.length >= 2 && s[1] == 'reorder') {

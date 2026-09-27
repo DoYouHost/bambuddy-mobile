@@ -7133,6 +7133,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes.';
 
   @override
-  String get ordersGroupedNone =>
-      'No se agrupó nada: los trabajos elegidos cambiaron mientras tanto.';
+  String get ordersGroupedNone => 'No se pudo agrupar ningún trabajo.';
+
+  @override
+  String get orderEditTargetLess => 'Una impresión menos';
+
+  @override
+  String get orderEditTargetMore => 'Una impresión más';
+
+  @override
+  String get queueEditOrderRefused =>
+      'No se pudo crear el pedido, así que las copias se encolaron como un lote simple.';
 }
