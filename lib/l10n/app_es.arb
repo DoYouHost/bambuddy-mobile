@@ -2138,7 +2138,7 @@
   "fmLinkField": "Dirección",
   "fmLinkSaved": "Enlace guardado",
   "fmLinkErrScheme": "El enlace tiene que empezar por http:// o https://.",
-  "fmLinkOpenFailed": "No se pudo abrir el enlace.",
+  "linkOpenFailed": "No se pudo abrir el enlace.",
   "fmSource": "Importado de",
   "fmNotes": "Notas",
   "fmNotesNone": "Sin notas",

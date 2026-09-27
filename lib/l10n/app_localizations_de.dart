@@ -3764,7 +3764,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Link muss mit http:// oder https:// beginnen.';
 
   @override
-  String get fmLinkOpenFailed => 'Der Link konnte nicht geöffnet werden.';
+  String get linkOpenFailed => 'Der Link konnte nicht geöffnet werden.';
 
   @override
   String get fmSource => 'Importiert von';

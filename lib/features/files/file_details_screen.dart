@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
@@ -19,6 +18,7 @@ import '../common/device_files.dart';
 import '../common/media_image.dart';
 import '../common/photo_pager.dart';
 import '../common/prompt_name_dialog.dart';
+import '../common/web_link.dart';
 import 'file_manager_providers.dart';
 
 /// Route of [FileDetailsScreen]; [name] is only the bar title.
@@ -71,7 +71,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
                 leading: const Icon(Icons.public),
                 title: Text(l10n.fmSource),
                 subtitle: Text(d.sourceUrl!, maxLines: 2),
-                onTap: () => _open(d.sourceUrl!),
+                onTap: () => openWebLink(context, d.sourceUrl!),
               ).tagged('file_details.source'),
             _notesTile(l10n, d),
           ],
@@ -149,7 +149,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
       leading: const Icon(Icons.link),
       title: Text(l10n.fmLink),
       subtitle: Text(hasUrl ? url : l10n.fmLinkNone, maxLines: 2),
-      onTap: hasUrl ? () => _open(url) : () => _editLink(d),
+      onTap: hasUrl ? () => openWebLink(context, url) : () => _editLink(d),
       trailing: logTag(
         'file_details.edit_link',
         IconButton(
@@ -178,19 +178,6 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
         ),
       ),
     ).tagged('file_details.notes');
-  }
-
-  /// Only web links leave the app: the server refuses any other scheme on
-  /// write, but a row written before that check, or by an older build, is not
-  /// something to hand to the system as an intent.
-  Future<void> _open(String url) async {
-    final uri = Uri.tryParse(url);
-    final web = uri != null && (uri.isScheme('http') || uri.isScheme('https'));
-    final opened =
-        web && await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).snack(_l10n.fmLinkOpenFailed);
-    }
   }
 
   Future<void> _editLink(LibraryFileDetail d) async {

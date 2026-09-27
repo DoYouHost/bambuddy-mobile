@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../common/dash_async.dart';
 import '../common/api_failure_snack.dart';
@@ -14,6 +13,7 @@ import '../../providers.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
+import '../common/web_link.dart';
 
 /// MakerWorld screen: paste model URL → resolve → pick plate → import (download) to library.
 /// Download requires Bambu Cloud login; if missing, import action goes to settings login screen
@@ -542,10 +542,7 @@ class _RecentRow extends StatelessWidget {
                           size: 18,
                           color: t.textSecondary,
                         ),
-                        onPressed: () => launchUrl(
-                          Uri.parse(source),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onPressed: () => openWebLink(context, source),
                       ),
                     ),
                 ],

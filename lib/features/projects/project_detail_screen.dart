@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
@@ -20,6 +19,7 @@ import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
+import '../common/web_link.dart';
 
 /// Project detail — a single scrolling page (matching the web): header,
 /// plates/parts progress, stat cards, notes, linked files, attachments, BOM
@@ -165,10 +165,7 @@ class _Header extends ConsumerWidget {
           if (project.url != null && project.url!.isNotEmpty) ...[
             const SizedBox(height: 8),
             InkWell(
-              onTap: () => launchUrl(
-                Uri.parse(project.url!),
-                mode: LaunchMode.externalApplication,
-              ),
+              onTap: () => openWebLink(context, project.url!),
               child: Row(
                 children: [
                   Icon(Icons.link, size: 18, color: t.accentGreenInk),

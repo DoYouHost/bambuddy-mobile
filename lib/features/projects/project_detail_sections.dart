@@ -1,7 +1,6 @@
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
@@ -20,6 +19,7 @@ import '../common/device_files.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'projects_providers.dart';
+import '../common/web_link.dart';
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
 /// over its body. Matches the web's stacked-card layout.
@@ -539,10 +539,7 @@ class ProjectBomSection extends ConsumerWidget {
         onSelected: (v) {
           if (v == 'edit') _editItem(context, ref, item);
           if (v == 'open' && item.sourcingUrl != null) {
-            launchUrl(
-              Uri.parse(item.sourcingUrl!),
-              mode: LaunchMode.externalApplication,
-            );
+            openWebLink(context, item.sourcingUrl!);
           }
           if (v == 'delete') {
             ref.read(projectBomProvider(projectId).notifier).delete(item.id);

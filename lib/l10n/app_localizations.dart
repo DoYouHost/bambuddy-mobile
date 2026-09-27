@@ -6278,11 +6278,11 @@ abstract class AppLocalizations {
   /// **'The link has to start with http:// or https://.'**
   String get fmLinkErrScheme;
 
-  /// No description provided for @fmLinkOpenFailed.
+  /// No description provided for @linkOpenFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t open the link.'**
-  String get fmLinkOpenFailed;
+  String get linkOpenFailed;
 
   /// No description provided for @fmSource.
   ///
