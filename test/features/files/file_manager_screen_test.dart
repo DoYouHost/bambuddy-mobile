@@ -13,7 +13,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 
@@ -281,7 +280,7 @@ void main() {
       tester,
     ) async {
       final dio = testDio();
-      DioAdapter(dio: dio)
+      mockServer(dio)
         ..onGet(
           '/api/v1/printers/',
           (s) => s.reply(200, [
@@ -319,7 +318,7 @@ void main() {
       tester,
     ) async {
       final dio = testDio();
-      DioAdapter(dio: dio)
+      mockServer(dio)
         ..onGet(
           '/api/v1/printers/',
           (s) => s.reply(200, [
@@ -349,7 +348,7 @@ void main() {
       'a partial batch counts what was selected, not what came back',
       (tester) async {
         final dio = testDio();
-        DioAdapter(dio: dio).onPost(
+        mockServer(dio).onPost(
           queuePath,
           (s) => s.reply(200, {
             'added': [{}],
@@ -390,7 +389,7 @@ void main() {
       tester,
     ) async {
       final dio = testDio();
-      DioAdapter(dio: dio).onPost(
+      mockServer(dio).onPost(
         queuePath,
         (s) => s.reply(200, {
           'added': [{}],
@@ -414,7 +413,7 @@ void main() {
     ) async {
       // Before #3112 this was a 200, and the screen said "Added to queue".
       final dio = testDio();
-      DioAdapter(dio: dio).onPost(
+      mockServer(dio).onPost(
         queuePath,
         (s) => s.reply(200, {
           'added': [],
@@ -581,7 +580,7 @@ void main() {
     // The catalog dies with the screen; the latch lives in the repository.
     // Before, every visit showed the controls and then took them away.
     final dio = testDio();
-    DioAdapter(dio: dio).onGet(
+    mockServer(dio).onGet(
       '/api/v1/library/tags',
       (s) => s.reply(404, {'detail': 'Not Found'}),
     );

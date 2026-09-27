@@ -16,7 +16,7 @@ void main() {
 
   setUp(() {
     final dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     container = ProviderContainer(
       overrides: [
         libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),

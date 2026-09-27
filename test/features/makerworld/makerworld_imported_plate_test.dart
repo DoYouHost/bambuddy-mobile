@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 
@@ -25,7 +24,7 @@ void main() {
     tester,
   ) async {
     final dio = testDio();
-    DioAdapter(dio: dio)
+    mockServer(dio)
       ..onPost(
         '/api/v1/makerworld/resolve',
         (s) => s.reply(200, {

@@ -23,7 +23,6 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dar
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/core/api/server_reachability.dart';
 import 'package:dash_kit/dash_kit.dart';
@@ -447,7 +446,7 @@ void main() {
       // then appeared and pushed the five tiles under it down. The drawer is
       // not built while closed, so it was the first thing to ask.
       final dio = testDio();
-      DioAdapter(dio: dio).onGet(
+      mockServer(dio).onGet(
         '/api/v1/slicer-pipelines/',
         (s) => s.reply(200, {'pipelines': []}),
       );

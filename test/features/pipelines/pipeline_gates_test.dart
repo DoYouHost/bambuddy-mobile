@@ -50,7 +50,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = PipelinesRepository(dio);
   });
 

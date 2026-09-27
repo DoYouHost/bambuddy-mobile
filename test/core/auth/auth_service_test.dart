@@ -70,7 +70,7 @@ void main() {
 
   setUp(() {
     dio = Dio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     store = InMemoryCredentialsStore();
     service = AuthService(bareDio: dio, credentials: store);
   });
@@ -150,7 +150,7 @@ void main() {
       // not running", and it must not be mistaken for either auth mode.
       for (final status in [500, 502, 503]) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter.onGet(
           '$baseUrl/api/v1/auth/status',
@@ -227,7 +227,7 @@ void main() {
     test('/printers answers 401 or 403 → auth is on', () async {
       for (final status in [401, 403]) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter
           ..onGet(
@@ -603,7 +603,7 @@ void main() {
       ];
       for (final body in bodies) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localStore = InMemoryCredentialsStore();
         final localService = AuthService(
           bareDio: localDio,
@@ -840,7 +840,7 @@ void main() {
         ..username = 'tester'
         ..password = 'sekret';
       final localDio = Dio();
-      DioAdapter(dio: localDio).onPost(
+      mockServer(localDio).onPost(
         '$baseUrl/api/v1/auth/login',
         (s) => s.reply(200, readFixture('login_response_ok.json')),
         data: {'username': 'tester', 'password': 'sekret'},
@@ -864,7 +864,7 @@ void main() {
           ..username = 'tester'
           ..password = 'niewazne';
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(
           bareDio: localDio,
           credentials: localStore,
@@ -1082,7 +1082,7 @@ void main() {
         ..password = 'sekret';
       final rejections = <SignInReason>[];
       final localDio = Dio();
-      final localAdapter = DioAdapter(dio: localDio);
+      final localAdapter = mockServer(localDio);
       final localService = AuthService(
         bareDio: localDio,
         credentials: localStore,
@@ -1116,7 +1116,7 @@ void main() {
           ..password = 'stare-haslo';
         final rejections = <SignInReason>[];
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(
           bareDio: localDio,
           credentials: localStore,

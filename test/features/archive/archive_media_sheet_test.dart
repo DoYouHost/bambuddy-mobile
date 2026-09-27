@@ -29,7 +29,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     timelapseTaps = 0;
     photoTaps = 0;
   });
@@ -372,7 +372,7 @@ void main() {
     // A fresh adapter rather than a counter inside the handler: http_mock_adapter
     // runs the handler once, when the route is declared, so a closure that
     // counts calls answers the same thing every time.
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     replyWith(const {
       'archive_id': 1,
       'printer_id': 2,

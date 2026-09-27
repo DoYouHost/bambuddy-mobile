@@ -19,7 +19,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     watch = FakeWatchConnectivity();
   });
 
@@ -298,7 +298,7 @@ void main() {
       // object lives. Caching the service without checking that would keep
       // answering with the version of a server the phone left.
       final other = testDio();
-      DioAdapter(dio: other).onGet(
+      mockServer(other).onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': '0.2.4.9', 'repo': 'x/y'}),
       );

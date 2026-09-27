@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
@@ -43,7 +42,7 @@ void main() {
         credentials: store,
         auth: auth,
       );
-      DioAdapter(dio: api!.dio).onGet(
+      mockServer(api!.dio).onGet(
         '/api/v1/printers/',
         (server) => server.reply(401, {'detail': 'expired'}),
       );

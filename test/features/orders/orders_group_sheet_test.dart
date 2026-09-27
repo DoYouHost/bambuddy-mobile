@@ -37,7 +37,7 @@ void main() {
     CurrentUser? user,
   }) async {
     final dio = testDio();
-    final adapter = DioAdapter(dio: dio)
+    final adapter = mockServer(dio)
       ..onGet(
         '/api/v1/queue/',
         queryParameters: {'status': 'pending'},

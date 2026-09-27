@@ -91,7 +91,7 @@ QueueRepository queueFormRepo({
 }) {
   final dio = testDio();
   _sent = captureRequests(dio);
-  DioAdapter(dio: dio)
+  mockServer(dio)
     ..onGet(
       '/api/v1/updates/version',
       (server) => server.reply(200, {

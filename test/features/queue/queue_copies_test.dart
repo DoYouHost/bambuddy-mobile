@@ -36,7 +36,7 @@ void main() {
   }) {
     final dio = testDio();
     batchCalls = captureRequests(dio);
-    DioAdapter(dio: dio)
+    mockServer(dio)
       ..onPost(_batches, data: Matchers.any, (s) {
         if (createStatus == 0) {
           s.throws(

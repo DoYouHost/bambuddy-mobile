@@ -29,7 +29,7 @@ void main() {
     LibraryFileDetail detail,
   ) async {
     final dio = testDio();
-    final adapter = DioAdapter(dio: dio);
+    final adapter = mockServer(dio);
     await pumpPhone(
       tester,
       const FileDetailsScreen(fileId: 5, title: 'Benchy'),

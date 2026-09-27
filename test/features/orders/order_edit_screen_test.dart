@@ -48,7 +48,7 @@ void main() {
   /// Opens the form from a host page, so saving has somewhere to pop back to.
   Future<DioAdapter> pumpEdit(WidgetTester tester, PrintBatch batch) async {
     final dio = testDio();
-    final adapter = DioAdapter(dio: dio);
+    final adapter = mockServer(dio);
     sent = captureRequests(dio);
     await pumpPhone(
       tester,

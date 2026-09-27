@@ -27,7 +27,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     version = Completer();
     // Only the latch's `feature` needs a service; the gates read the version
     // through [serverVersionProvider].

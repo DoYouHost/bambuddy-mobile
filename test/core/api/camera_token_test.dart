@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../helpers.dart';
+
 const _baseUrl = 'http://s.local:8000';
 const _tokenPath = '/api/v1/printers/camera/stream-token';
 
@@ -15,7 +17,7 @@ void main() {
 
   setUp(() {
     dio = Dio(BaseOptions(baseUrl: _baseUrl));
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     service = CameraTokenService(dio);
   });
 

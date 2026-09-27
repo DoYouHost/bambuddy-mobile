@@ -14,7 +14,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     reachability = ServerReachability();
     dio.interceptors.add(ReachabilityProbe(reachability));
   });

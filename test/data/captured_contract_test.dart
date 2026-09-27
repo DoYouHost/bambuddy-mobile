@@ -51,7 +51,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
   });
 
   /// Answers [path] with a captured fixture and reports how many records it held,

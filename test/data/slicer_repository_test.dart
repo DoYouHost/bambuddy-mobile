@@ -18,7 +18,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = SlicerRepository(dio);
   });
 
@@ -162,7 +162,7 @@ void main() {
 
       // A second DioAdapter replaces the first on the same Dio, which is how the
       // one repository instance gets to see two different answers.
-      DioAdapter(dio: dio).onGet(
+      mockServer(dio).onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(403, {'detail': 'nope'}),
         queryParameters: query,
@@ -171,7 +171,7 @@ void main() {
       expect(await repo.presetValues(preset), isNull);
       expect(await repo.processOverridesCapability.supported, isFalse);
 
-      DioAdapter(dio: dio).onGet(
+      mockServer(dio).onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(200, {'resolved': true, 'values': {}, 'reason': 'ok'}),
         queryParameters: query,
@@ -212,7 +212,7 @@ void main() {
     // observe, so the version is the whole answer.
     for (final (version, expected) in [('1.2.5.3', false), ('1.2.6', true)]) {
       final versionDio = testDio();
-      DioAdapter(dio: versionDio).onGet(
+      mockServer(versionDio).onGet(
         '/api/v1/updates/version',
         (s) => s.reply(200, {'version': version, 'repo': 'x/y'}),
       );

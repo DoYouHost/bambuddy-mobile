@@ -36,7 +36,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),

@@ -29,6 +29,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:dio/dio.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -536,6 +537,18 @@ const fakeServerBaseUrl = 'http://s.local:8000';
 /// the wire have to agree on the host, and two spellings of it is how they stop
 /// agreeing.
 Dio testDio() => Dio(BaseOptions(baseUrl: fakeServerBaseUrl));
+
+/// The mock server a test hangs off a Dio: `data:` must **equal** the body the
+/// app sent.
+///
+/// The adapter's own default takes a body that merely *contains* the mocked
+/// keys, so a mocked `{}` matched every request and a test named "sends only
+/// what changed" passed with extra keys going out. Queries and headers still
+/// match as subsets, as the default does.
+DioAdapter mockServer(Dio dio) => DioAdapter(
+  dio: dio,
+  matcher: const FullHttpRequestMatcher(needsExactBody: true),
+);
 
 /// `serverProfileProvider` answering with [profile], or with "nothing
 /// configured yet" when it is null.
