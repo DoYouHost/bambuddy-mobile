@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,14 +19,14 @@ void main() {
   });
 
   test('unknown event names are skipped (forward compatibility)', () {
+    // What a newer build writes: every event this one has, plus one it lacks.
     final decoded = NotificationPrefs.decode(
-      '{"enabled":["printFinished","futureEvent"]}',
+      jsonEncode({
+        'enabled': ['printFinished', 'futureEvent'],
+        'known': [for (final e in NotifEvent.values) e.name, 'futureEvent'],
+      }),
     );
-    // Plus the events added since, at the default they ship with.
-    expect(decoded.enabled, {
-      NotifEvent.printFinished,
-      NotifEvent.outcomeRequest,
-    });
+    expect(decoded.enabled, {NotifEvent.printFinished});
     // thresholds fall back to defaults
     expect(decoded.bedCooledTemp, NotificationPrefs.defaultBedCooledTemp);
   });

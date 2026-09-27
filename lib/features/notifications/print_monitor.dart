@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 
 import '../../core/format/stable_digest.dart';
+import '../../core/notifications/alert_ids.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
@@ -21,12 +22,9 @@ import '../../l10n/app_localizations.dart';
 /// tests can control time instead of waiting out a window.
 export '../../core/time/timer_factory.dart' show TimerFactory;
 
-/// Room reserved per event type. The offsets added to a base are server row ids
-/// (a printer, a maintenance task), which grow without bound and are never
-/// reused after a delete — so the band has to be wide enough that no realistic
-/// install reaches the next event type's numbers and starts replacing its
-/// notifications.
-const int alertBandWidth = 1000000;
+/// The band width moved to core so a core isolate can compute its own ids;
+/// re-exported so every caller keeps reading it from here.
+export '../../core/notifications/alert_ids.dart' show alertBandWidth;
 
 /// Alert ID base per event type; add `printer_id` so alerts from different
 /// printers (and types) don't overwrite each other. ID

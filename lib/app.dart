@@ -54,8 +54,9 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // widget above: the stream while the app runs, the launch intent when the
     // tap is what started it.
     _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
-    // A prompt handled live is taken off the pending slot too, or the next
-    // launch would ask it again.
+    // Taken off the slot as well: `_onNotificationLaunch` reads it after
+    // replaying the tap that launched the app, which reaches this listener
+    // first, and one tap must ask once.
     _outcomeSub = outcomePrompts.listen((archiveId) {
       takeOutcomePrompt();
       _onOutcomePrompt(archiveId);

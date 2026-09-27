@@ -4,6 +4,7 @@ import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_alert.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_prompt.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
@@ -57,6 +58,40 @@ void main() {
       expect(alert['title'], l10n.outcomeNotifTitle('Benchy'));
       expect(alert['payload'], outcomePayload(82, _server));
       expect(alert['actionIds'], ['outcome:good', 'outcome:reject']);
+    });
+
+    test(
+      'a finished alert still on screen takes the question instead',
+      () async {
+        final sub = listenForOutcomeRequests(
+          frames.stream,
+          notifications: notifications,
+          prefs: NotificationPrefs.defaults,
+          serverUrl: _server,
+          addToFinished:
+              ({
+                required archiveId,
+                required printerId,
+                required payload,
+                required actions,
+              }) async => true,
+          l10n: () => l10n,
+        );
+        addTearDown(sub.cancel);
+        frames.add(const WsPrintConfirmRequest(3, 82, 'Benchy'));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(notifications.alerts, isEmpty);
+      },
+    );
+
+    // The server asks once; a tap that failed must leave something to tap.
+    test('the buttons do not take the notification away themselves', () async {
+      await send(const WsPrintConfirmRequest(3, 82, 'Benchy'));
+
+      final actions =
+          notifications.alerts.single['actions']! as List<NotificationAction>;
+      expect(actions.map((a) => a.dismisses), everyElement(isFalse));
     });
 
     test('a print with no name still gets a question', () async {

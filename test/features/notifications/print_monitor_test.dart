@@ -2025,5 +2025,6 @@ class _ThrowingNotifications extends RecordingNotifications {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async => throw StateError('plugin not initialised');
 }

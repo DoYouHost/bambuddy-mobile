@@ -7,7 +7,9 @@ import 'notification_prefs.dart';
 import 'notification_service.dart';
 
 /// What a print-ended alert was posted with, kept so the same notification can
-/// be re-posted later with the finish photo added to it.
+/// be re-posted later with more on it: the finish photo, and the outcome
+/// buttons (#1898). Each update re-posts everything the other one added, in
+/// whichever order the two arrive, so both are kept here.
 class PostedAlert {
   const PostedAlert({
     required this.event,
@@ -17,6 +19,8 @@ class PostedAlert {
     required this.body,
     required this.postedAt,
     this.payload,
+    this.actions = const [],
+    this.picture,
   });
 
   final NotifEvent event;
@@ -26,6 +30,27 @@ class PostedAlert {
   final String body;
   final DateTime postedAt;
   final String? payload;
+  final List<NotificationAction> actions;
+
+  /// The finish photo once it is on the notification — which also means there
+  /// is no photo left to look for.
+  final AlertPicture? picture;
+
+  PostedAlert copyWith({
+    String? payload,
+    List<NotificationAction>? actions,
+    AlertPicture? picture,
+  }) => PostedAlert(
+    event: event,
+    printerId: printerId,
+    id: id,
+    title: title,
+    body: body,
+    postedAt: postedAt,
+    payload: payload ?? this.payload,
+    actions: actions ?? this.actions,
+    picture: picture ?? this.picture,
+  );
 
   Map<String, dynamic> toJson() => {
     'event': event.name,
@@ -35,6 +60,13 @@ class PostedAlert {
     'body': body,
     'payload': payload,
     'postedAt': postedAt.millisecondsSinceEpoch,
+    if (actions.isNotEmpty)
+      'actions': [
+        for (final a in actions)
+          {'id': a.id, 'title': a.title, 'dismisses': a.dismisses},
+      ],
+    if (picture case final p?)
+      'picture': {'photo': p.photoPath, 'thumb': p.thumbnailPath},
   };
 
   /// Null for anything this version cannot read — an entry written by a newer
@@ -51,6 +83,8 @@ class PostedAlert {
     if (event == null || printerId is! int || id is! int || postedAt is! int) {
       return null;
     }
+    final picture = json['picture'];
+    final photo = picture is Map ? picture['photo'] : null;
     return PostedAlert(
       event: event,
       printerId: printerId,
@@ -59,6 +93,22 @@ class PostedAlert {
       body: json['body']?.toString() ?? '',
       payload: json['payload']?.toString(),
       postedAt: DateTime.fromMillisecondsSinceEpoch(postedAt),
+      actions: [
+        if (json['actions'] case final List<Object?> list)
+          for (final a in list.whereType<Map<Object?, Object?>>())
+            if (a['id'] is String && a['title'] is String)
+              NotificationAction(
+                id: a['id']! as String,
+                title: a['title']! as String,
+                dismisses: a['dismisses'] != false,
+              ),
+      ],
+      picture: photo is String
+          ? AlertPicture(
+              photoPath: photo,
+              thumbnailPath: (picture as Map)['thumb']?.toString(),
+            )
+          : null,
     );
   }
 }
@@ -109,16 +159,21 @@ class FinishAlertMemory {
     return alert;
   }
 
-  /// Every alert still inside the window, in no particular order — the work
-  /// list for the poll that goes looking for photos the server never announces.
+  /// Every alert still inside the window that has no photo yet, in no
+  /// particular order — the work list for the poll that goes looking for
+  /// photos the server never announces.
   Future<List<PostedAlert>> recallAll(DateTime now) async => [
     for (final alert in (await _read()).values)
-      if (!_expired(alert, now)) alert,
+      if (!_expired(alert, now) && alert.picture == null) alert,
   ];
 
-  /// Drops the entry once its notification has been updated — the photo is on
-  /// it, and the server's later "upgraded" shot for the same print would
-  /// otherwise re-post a notification the user may have dismissed in between.
+  /// Every alert still inside the window, photo or not.
+  Future<List<PostedAlert>> entries() async => [
+    for (final alert in (await _read()).values)
+      if (!_expired(alert, clock.now())) alert,
+  ];
+
+  /// Drops the entry once its notification is gone — swiped away or answered.
   Future<void> forget(int printerId) async {
     final all = await _read();
     if (all.remove('$printerId') == null) return;
@@ -196,6 +251,7 @@ class RememberingNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async {
     await _inner.showAlert(
       event: event,
@@ -206,10 +262,13 @@ class RememberingNotifications implements NotificationService {
       payload: payload,
       actions: actions,
       picture: picture,
+      quiet: quiet,
     );
-    // A post that already carries the photo is the update itself; remembering
-    // it would arm the very path that produced it.
-    if (picture != null) return;
+    // An update (the photo, the outcome buttons) is re-posted from an entry
+    // this memory already holds, and the updater writes that entry itself;
+    // remembering it here would reset `postedAt` and drop what the other
+    // update added.
+    if (picture != null || quiet) return;
     await _memory.remember(
       PostedAlert(
         event: event,

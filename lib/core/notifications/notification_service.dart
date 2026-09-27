@@ -10,10 +10,16 @@ class NotificationAction {
     required this.id,
     required this.title,
     this.opensApp = false,
+    this.dismisses = true,
   });
 
   final String id;
   final String title;
+
+  /// Whether the tap takes the notification away before the action has run.
+  /// False for an answer that may fail: the notification is then still there
+  /// to try again, and the handler takes it away once the answer landed.
+  final bool dismisses;
 
   /// Bring the app up instead of running the action where it was tapped. For
   /// the one action that cannot be taken back — stopping a print — the app is
@@ -85,7 +91,8 @@ abstract class NotificationService {
   /// [picture] marks this call as an **update** of an alert already on screen
   /// (the finish photo lands after the print-finished alert, never with it), so
   /// it re-posts silently: same [id], no second sound or buzz — on the phone and
-  /// on a paired watch alike.
+  /// on a paired watch alike. [quiet] says the same for an update that carries
+  /// no picture (the outcome buttons added to a finished alert).
   Future<void> showAlert({
     required NotifEvent event,
     required int printerId,
@@ -95,6 +102,7 @@ abstract class NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   });
 
   /// Whether the notification [id] is still on screen. False for one the user
@@ -198,6 +206,7 @@ class LocalNotificationService implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async {
     final photo = picture;
     final thumbnail = photo?.thumbnailPath;
@@ -209,7 +218,7 @@ class LocalNotificationService implements NotificationService {
         priority: Priority.high,
         category: AndroidNotificationCategory.status,
         // A picture only ever arrives late, on an alert that already rang.
-        onlyAlertOnce: photo != null,
+        onlyAlertOnce: photo != null || quiet,
         largeIcon: thumbnail == null ? null : FilePathAndroidBitmap(thumbnail),
         styleInformation: photo == null
             ? null
@@ -231,7 +240,7 @@ class LocalNotificationService implements NotificationService {
                 // HMS remediation) without opening UI; the notification
                 // dismisses after the tap either way.
                 showsUserInterface: a.opensApp,
-                cancelNotification: true,
+                cancelNotification: a.dismisses,
               ),
         ],
       ),

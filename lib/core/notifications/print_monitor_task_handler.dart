@@ -342,6 +342,21 @@ class PrintMonitorTaskHandler extends TaskHandler {
       notifications: notify,
       prefs: notifPrefs,
       serverUrl: profile.baseUrl,
+      // Late-bound: the photo notifier is built below, and only with a client.
+      addToFinished:
+          ({
+            required archiveId,
+            required printerId,
+            required payload,
+            required actions,
+          }) =>
+              _finishPhoto?.addOutcome(
+                archiveId: archiveId,
+                printerId: printerId,
+                payload: payload,
+                actions: actions,
+              ) ??
+              Future.value(false),
       l10n: () => l10n,
     );
     // The finish photo turns up long after the print-ended alert went out, and
@@ -761,6 +776,7 @@ class FgsNotificationService implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) => _alerts.showAlert(
     event: event,
     printerId: printerId,
@@ -770,6 +786,7 @@ class FgsNotificationService implements NotificationService {
     payload: payload,
     actions: actions,
     picture: picture,
+    quiet: quiet,
   );
 
   @override

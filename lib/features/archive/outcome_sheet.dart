@@ -9,6 +9,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/print_run.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/notifications/finish_alert_memory.dart';
 import '../../core/notifications/outcome_alert.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -304,7 +305,16 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
       }
       // Answered here, so the notification asking the same thing has nothing
       // left to ask.
-      if (result.applied) unawaited(cancelOutcomeAlert(archive.id));
+      if (result.applied) {
+        unawaited(
+          cancelOutcomeAlert(
+            archive.id,
+            memory: FinishAlertMemory(
+              providers.read(sharedPreferencesProvider),
+            ),
+          ),
+        );
+      }
       messenger.snack(
         !result.applied
             ? l10n.outcomeUnsupported

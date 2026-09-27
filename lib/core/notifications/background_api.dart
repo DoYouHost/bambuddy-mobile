@@ -5,6 +5,7 @@ import '../../data/archive_repository.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
+import '../api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../auth/auth_service.dart';
@@ -129,32 +130,29 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
   await handleOutcomeAction(response);
 }
 
-/// Good or Reject tapped on an outcome notification, or the notification
-/// itself.
+/// Good or Reject tapped on an outcome question — its own notification or
+/// the print-finished alert it was put on — or the notification itself.
 ///
 /// The body opens the app, so it only ever arrives where the app is coming up
 /// — the foreground handler or the launch details — and is handed to the
 /// shell's sheet, where a reject can be given a cause. The two buttons record
 /// the verdict from here, like "Mark Done": a reject without a cause, and
 /// never touching one the print already carries.
+///
+/// The buttons do not dismiss the notification themselves (the server asks
+/// once): it is taken away here once the answer landed, or once no retry can
+/// land it — a refusal, or a question from a server the app has since been
+/// switched away from, whose archive id names some other print here.
 Future<void> handleOutcomeAction(NotificationResponse response) async {
   final target = parseOutcomePayload(response.payload);
   if (target == null) return;
-  final archiveId = target.archiveId;
   final actionId = response.actionId;
   final verdict = outcomeActionVerdict(actionId);
-  final prefs = await SharedPreferences.getInstance();
-  // Asked by a server the app has since been switched away from: its archive
-  // id names some other print here.
-  final profile = SettingsRepository(prefs).loadProfile();
-  if (profile == null || outcomeServerTag(profile.baseUrl) != target.server) {
-    if (verdict != null) NotifProbe.actionFailed(const OutcomeServerChanged());
-    return;
-  }
   if (verdict == null || actionId == null) {
     if (response.notificationResponseType ==
-        NotificationResponseType.selectedNotification) {
-      postOutcomePrompt(archiveId);
+            NotificationResponseType.selectedNotification &&
+        await _asksThisServer(target.server)) {
+      postOutcomePrompt(target.archiveId);
     }
     return;
   }
@@ -163,7 +161,17 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
   try {
     recording = await startActionRecording();
     NotifProbe.action(id: actionId, items: 1);
-
+    final prefs = await SharedPreferences.getInstance();
+    final profile = (await SettingsRepository(prefs).reloaded()).loadProfile();
+    if (profile == null) {
+      NotifProbe.noClient();
+      return;
+    }
+    if (outcomeServerTag(profile.baseUrl) != target.server) {
+      NotifProbe.actionFailed(const OutcomeServerChanged(), items: 1);
+      await _dismiss(response.id);
+      return;
+    }
     final api = await buildBackgroundApiClient(prefs);
     if (api == null) {
       NotifProbe.noClient();
@@ -171,18 +179,47 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
     }
     final result = await ArchiveRepository(
       api.dio,
-    ).setVerdict(archiveId, verdict);
+    ).setVerdict(target.archiveId, verdict);
     // A server older than the feature answers 200 and keeps nothing; the tap
-    // did not do what the button said.
-    if (!result.applied) NotifProbe.actionFailed(const VerdictNotStored());
-    await FlutterLocalNotificationsPlugin().cancel(
-      id: outcomeAlertId(archiveId),
-    );
-  } on Object catch (error) {
+    // did not do what the button said, and no second tap will.
+    if (!result.applied) {
+      NotifProbe.actionFailed(const VerdictNotStored(), items: 1);
+    }
+    await _dismiss(response.id);
+  } on AppApiException catch (error) {
     // "I pressed Good and the print still waits for a verdict" — on the record.
+    NotifProbe.actionFailed(error, items: 1);
+    if (_isRefusal(error)) await _dismiss(response.id);
+  } on Object catch (error) {
     NotifProbe.actionFailed(error, items: 1);
   } finally {
     await recording?.stop();
+  }
+}
+
+/// Whether the saved profile is the server a payload's [tag] names.
+Future<bool> _asksThisServer(String tag) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final profile = (await SettingsRepository(prefs).reloaded()).loadProfile();
+    return profile != null && outcomeServerTag(profile.baseUrl) == tag;
+  } on Object {
+    return false;
+  }
+}
+
+/// The server answered and said no; asking again would get the same answer.
+/// A 5xx is not one — a proxy's 502 can arrive after the server stored it.
+bool _isRefusal(AppApiException error) =>
+    error.code == AppErrorCode.forbidden ||
+    (error is ApiException && (error.statusCode ?? 500) < 500);
+
+Future<void> _dismiss(int? id) async {
+  if (id == null) return;
+  try {
+    await FlutterLocalNotificationsPlugin().cancel(id: id);
+  } on Object {
+    // Gone already, or no plugin to ask.
   }
 }
 
