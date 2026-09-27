@@ -7130,4 +7130,35 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Eine Spule mehr anlegen';
+
+  @override
+  String get outcomeGoodPart => 'Gutteil';
+
+  @override
+  String get outcomeRejected => 'Ausschuss';
+
+  @override
+  String get outcomeAwaiting => 'Bewertung ausstehend';
+
+  @override
+  String get outcomeNotRecorded => 'Keine Bewertung erfasst';
+
+  @override
+  String get outcomeSourceDialog => 'In der App erfasst.';
+
+  @override
+  String get outcomeSourceLink => 'Über einen Ein-Tipp-Link erfasst.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Bei der Freigabe der Druckplatte erfasst.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Über die Druckerkarte erfasst.';
+
+  @override
+  String get outcomeSourceApi => 'Über die API erfasst.';
+
+  @override
+  String get outcomeSourceReaction => 'Über eine Reaktion im Chat erfasst.';
 }

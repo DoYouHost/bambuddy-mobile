@@ -4202,5 +4202,45 @@
   "orderEditTargetMore": "One more run",
   "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
   "inventoryQuantityLess": "One spool fewer to add",
-  "inventoryQuantityMore": "One more spool to add"
+  "inventoryQuantityMore": "One more spool to add",
+  "outcomeGoodPart": "Good part",
+  "@outcomeGoodPart": {
+    "description": "A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)"
+  },
+  "outcomeRejected": "Rejected",
+  "@outcomeRejected": {
+    "description": "A print that finished on the printer but the user marked as scrap"
+  },
+  "outcomeAwaiting": "Awaiting verdict",
+  "@outcomeAwaiting": {
+    "description": "A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those"
+  },
+  "outcomeNotRecorded": "No verdict recorded",
+  "@outcomeNotRecorded": {
+    "description": "Detail sheet line for a completed print that has no outcome verdict and was never asked for one"
+  },
+  "outcomeSourceDialog": "Recorded in the app.",
+  "@outcomeSourceDialog": {
+    "description": "How an outcome verdict was recorded: in the app (this one or the web UI)"
+  },
+  "outcomeSourceLink": "Recorded with a one-tap link.",
+  "@outcomeSourceLink": {
+    "description": "How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)"
+  },
+  "outcomeSourcePlateClear": "Recorded when the plate was cleared.",
+  "@outcomeSourcePlateClear": {
+    "description": "How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear"
+  },
+  "outcomeSourcePrinterCard": "Recorded from the printer card.",
+  "@outcomeSourcePrinterCard": {
+    "description": "How an outcome verdict was recorded: from the printer card in the web UI"
+  },
+  "outcomeSourceApi": "Recorded through the API.",
+  "@outcomeSourceApi": {
+    "description": "How an outcome verdict was recorded: by a script or integration through the server API"
+  },
+  "outcomeSourceReaction": "Recorded with a reaction in chat.",
+  "@outcomeSourceReaction": {
+    "description": "How an outcome verdict was recorded: with a reaction to the chat message"
+  }
 }

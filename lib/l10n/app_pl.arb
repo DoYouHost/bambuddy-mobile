@@ -3150,5 +3150,15 @@
   "orderEditTargetMore": "O jeden wydruk więcej",
   "queueEditOrderRefused": "Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.",
   "inventoryQuantityLess": "O jedną szpulę mniej do dodania",
-  "inventoryQuantityMore": "O jedną szpulę więcej do dodania"
+  "inventoryQuantityMore": "O jedną szpulę więcej do dodania",
+  "outcomeGoodPart": "Udany",
+  "outcomeRejected": "Odrzucony",
+  "outcomeAwaiting": "Czeka na ocenę",
+  "outcomeNotRecorded": "Bez oceny",
+  "outcomeSourceDialog": "Zapisano w aplikacji.",
+  "outcomeSourceLink": "Zapisano linkiem z powiadomienia.",
+  "outcomeSourcePlateClear": "Zapisano przy oznaczeniu płyty jako pustej.",
+  "outcomeSourcePrinterCard": "Zapisano z karty drukarki.",
+  "outcomeSourceApi": "Zapisano przez API.",
+  "outcomeSourceReaction": "Zapisano reakcją na czacie."
 }

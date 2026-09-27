@@ -11881,6 +11881,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One more spool to add'**
   String get inventoryQuantityMore;
+
+  /// A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)
+  ///
+  /// In en, this message translates to:
+  /// **'Good part'**
+  String get outcomeGoodPart;
+
+  /// A print that finished on the printer but the user marked as scrap
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get outcomeRejected;
+
+  /// A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting verdict'**
+  String get outcomeAwaiting;
+
+  /// Detail sheet line for a completed print that has no outcome verdict and was never asked for one
+  ///
+  /// In en, this message translates to:
+  /// **'No verdict recorded'**
+  String get outcomeNotRecorded;
+
+  /// How an outcome verdict was recorded: in the app (this one or the web UI)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded in the app.'**
+  String get outcomeSourceDialog;
+
+  /// How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a one-tap link.'**
+  String get outcomeSourceLink;
+
+  /// How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded when the plate was cleared.'**
+  String get outcomeSourcePlateClear;
+
+  /// How an outcome verdict was recorded: from the printer card in the web UI
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded from the printer card.'**
+  String get outcomeSourcePrinterCard;
+
+  /// How an outcome verdict was recorded: by a script or integration through the server API
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded through the API.'**
+  String get outcomeSourceApi;
+
+  /// How an outcome verdict was recorded: with a reaction to the chat message
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a reaction in chat.'**
+  String get outcomeSourceReaction;
 }
 
 class _AppLocalizationsDelegate

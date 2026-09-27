@@ -44,6 +44,10 @@ abstract class _$ArchiveCWProxy {
     int? fileSize,
     int duplicateCount,
     int duplicateSequence,
+    PrintVerdict? userVerdict,
+    String? userVerdictSource,
+    DateTime? userVerdictAt,
+    bool confirmRequested,
   });
 }
 
@@ -92,6 +96,10 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? fileSize = const $CopyWithPlaceholder(),
     Object? duplicateCount = const $CopyWithPlaceholder(),
     Object? duplicateSequence = const $CopyWithPlaceholder(),
+    Object? userVerdict = const $CopyWithPlaceholder(),
+    Object? userVerdictSource = const $CopyWithPlaceholder(),
+    Object? userVerdictAt = const $CopyWithPlaceholder(),
+    Object? confirmRequested = const $CopyWithPlaceholder(),
   }) {
     return Archive(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -216,6 +224,24 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.duplicateSequence
           // ignore: cast_nullable_to_non_nullable
           : duplicateSequence as int,
+      userVerdict: userVerdict == const $CopyWithPlaceholder()
+          ? _value.userVerdict
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdict as PrintVerdict?,
+      userVerdictSource: userVerdictSource == const $CopyWithPlaceholder()
+          ? _value.userVerdictSource
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdictSource as String?,
+      userVerdictAt: userVerdictAt == const $CopyWithPlaceholder()
+          ? _value.userVerdictAt
+          // ignore: cast_nullable_to_non_nullable
+          : userVerdictAt as DateTime?,
+      confirmRequested:
+          confirmRequested == const $CopyWithPlaceholder() ||
+              confirmRequested == null
+          ? _value.confirmRequested
+          // ignore: cast_nullable_to_non_nullable
+          : confirmRequested as bool,
     );
   }
 }
@@ -262,4 +288,8 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   fileSize: (json['file_size'] as num?)?.toInt(),
   duplicateCount: (json['duplicate_count'] as num?)?.toInt() ?? 0,
   duplicateSequence: (json['duplicate_sequence'] as num?)?.toInt() ?? 0,
+  userVerdict: PrintVerdict.fromWire(json['user_verdict']),
+  userVerdictSource: json['user_verdict_source'] as String?,
+  userVerdictAt: dateTimeFromJson(json['user_verdict_at']),
+  confirmRequested: json['confirm_requested'] as bool? ?? false,
 );

@@ -7153,4 +7153,35 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Una bobina más por añadir';
+
+  @override
+  String get outcomeGoodPart => 'Pieza buena';
+
+  @override
+  String get outcomeRejected => 'Rechazada';
+
+  @override
+  String get outcomeAwaiting => 'Veredicto pendiente';
+
+  @override
+  String get outcomeNotRecorded => 'Sin veredicto registrado';
+
+  @override
+  String get outcomeSourceDialog => 'Registrado en la aplicación.';
+
+  @override
+  String get outcomeSourceLink => 'Registrado con un enlace de un toque.';
+
+  @override
+  String get outcomeSourcePlateClear => 'Registrado al despejar la cama.';
+
+  @override
+  String get outcomeSourcePrinterCard =>
+      'Registrado desde la tarjeta de la impresora.';
+
+  @override
+  String get outcomeSourceApi => 'Registrado a través de la API.';
+
+  @override
+  String get outcomeSourceReaction => 'Registrado con una reacción en el chat.';
 }

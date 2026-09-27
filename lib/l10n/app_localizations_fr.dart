@@ -7222,4 +7222,37 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Une bobine de plus à ajouter';
+
+  @override
+  String get outcomeGoodPart => 'Bonne pièce';
+
+  @override
+  String get outcomeRejected => 'Rebut';
+
+  @override
+  String get outcomeAwaiting => 'Verdict en attente';
+
+  @override
+  String get outcomeNotRecorded => 'Aucun verdict enregistré';
+
+  @override
+  String get outcomeSourceDialog => 'Enregistré dans l\'application.';
+
+  @override
+  String get outcomeSourceLink => 'Enregistré via un lien rapide.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Enregistré lors de la libération du plateau.';
+
+  @override
+  String get outcomeSourcePrinterCard =>
+      'Enregistré depuis la carte imprimante.';
+
+  @override
+  String get outcomeSourceApi => 'Enregistré par API.';
+
+  @override
+  String get outcomeSourceReaction =>
+      'Enregistré par une réaction dans le chat.';
 }

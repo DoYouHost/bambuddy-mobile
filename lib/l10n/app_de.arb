@@ -3850,5 +3850,15 @@
   "orderEditTargetMore": "Ein Druck mehr",
   "queueEditOrderRefused": "Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.",
   "inventoryQuantityLess": "Eine Spule weniger anlegen",
-  "inventoryQuantityMore": "Eine Spule mehr anlegen"
+  "inventoryQuantityMore": "Eine Spule mehr anlegen",
+  "outcomeGoodPart": "Gutteil",
+  "outcomeRejected": "Ausschuss",
+  "outcomeAwaiting": "Bewertung ausstehend",
+  "outcomeNotRecorded": "Keine Bewertung erfasst",
+  "outcomeSourceDialog": "In der App erfasst.",
+  "outcomeSourceLink": "Über einen Ein-Tipp-Link erfasst.",
+  "outcomeSourcePlateClear": "Bei der Freigabe der Druckplatte erfasst.",
+  "outcomeSourcePrinterCard": "Über die Druckerkarte erfasst.",
+  "outcomeSourceApi": "Über die API erfasst.",
+  "outcomeSourceReaction": "Über eine Reaktion im Chat erfasst."
 }

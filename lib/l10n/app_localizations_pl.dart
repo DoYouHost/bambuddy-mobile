@@ -7176,4 +7176,35 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'O jedną szpulę więcej do dodania';
+
+  @override
+  String get outcomeGoodPart => 'Udany';
+
+  @override
+  String get outcomeRejected => 'Odrzucony';
+
+  @override
+  String get outcomeAwaiting => 'Czeka na ocenę';
+
+  @override
+  String get outcomeNotRecorded => 'Bez oceny';
+
+  @override
+  String get outcomeSourceDialog => 'Zapisano w aplikacji.';
+
+  @override
+  String get outcomeSourceLink => 'Zapisano linkiem z powiadomienia.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Zapisano przy oznaczeniu płyty jako pustej.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Zapisano z karty drukarki.';
+
+  @override
+  String get outcomeSourceApi => 'Zapisano przez API.';
+
+  @override
+  String get outcomeSourceReaction => 'Zapisano reakcją na czacie.';
 }

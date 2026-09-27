@@ -7063,4 +7063,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'One more spool to add';
+
+  @override
+  String get outcomeGoodPart => 'Good part';
+
+  @override
+  String get outcomeRejected => 'Rejected';
+
+  @override
+  String get outcomeAwaiting => 'Awaiting verdict';
+
+  @override
+  String get outcomeNotRecorded => 'No verdict recorded';
+
+  @override
+  String get outcomeSourceDialog => 'Recorded in the app.';
+
+  @override
+  String get outcomeSourceLink => 'Recorded with a one-tap link.';
+
+  @override
+  String get outcomeSourcePlateClear => 'Recorded when the plate was cleared.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Recorded from the printer card.';
+
+  @override
+  String get outcomeSourceApi => 'Recorded through the API.';
+
+  @override
+  String get outcomeSourceReaction => 'Recorded with a reaction in chat.';
 }

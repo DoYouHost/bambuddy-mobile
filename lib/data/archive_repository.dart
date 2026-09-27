@@ -34,6 +34,23 @@ class ArchiveRepository {
     _serverVersion,
   );
 
+  /// Whether this server records post-print verdicts (#1898). Observed on
+  /// every archive it answers with: `confirm_requested` is a defaulted field of
+  /// `ArchiveResponse` from the feature on and absent before it. Unknown →
+  /// hidden, because `ArchiveUpdate` drops `user_verdict` without a word.
+  late final outcomeCapability = ObservedCapability(
+    ServerFeature.printOutcome,
+    _serverVersion,
+  );
+
+  /// Reads the raw row rather than the model, which cannot tell an absent
+  /// `confirm_requested` from the `false` it defaults to.
+  void _observeOutcome(Object? row) {
+    if (row is Map) {
+      outcomeCapability.observe(present: row.containsKey('confirm_requested'));
+    }
+  }
+
   /// GET /archives/ — paginated archive list.
   ///
   /// Defensive parsing: unparseable entries are skipped.
@@ -54,6 +71,7 @@ class ArchiveRepository {
       );
       return res.data ?? const [];
     });
+    _observeOutcome(body.firstOrNull);
     return parseJsonList(body, Archive.fromJson);
   }
 
@@ -86,7 +104,38 @@ class ArchiveRepository {
     final res = await _dio.get<Map<String, dynamic>>(
       Endpoints.archive(archiveId),
     );
+    _observeOutcome(res.data);
     return Archive.fromJson(res.data ?? const {});
+  });
+
+  /// PATCH /archives/{id} — record the user's verdict on the part, or clear it
+  /// with a null (#1898).
+  ///
+  /// `user_verdict_source` is always `dialog`: of the three a client may claim
+  /// (`dialog`, `printer_card`, `api`) it is the one the server words as "in
+  /// the app", which is where every verdict from here is given. A [reason]
+  /// goes into `failure_reason`, as the web's reject dialog sends it; the
+  /// server mirrors both onto the run's log entry, which is what the yield
+  /// figures count.
+  ///
+  /// `applied` for the same reason as [setFilamentGrams]: an older server
+  /// answers 200 and drops both keys.
+  Future<({Archive archive, bool applied})> setVerdict(
+    int archiveId,
+    PrintVerdict? verdict, {
+    String? reason,
+  }) => guard(() async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      Endpoints.archive(archiveId),
+      data: <String, dynamic>{
+        'user_verdict': verdict?.wire,
+        if (verdict != null) 'user_verdict_source': 'dialog',
+        'failure_reason': ?reason,
+      },
+    );
+    _observeOutcome(res.data);
+    final archive = Archive.fromJson(res.data ?? const {});
+    return (archive: archive, applied: archive.userVerdict == verdict);
   });
 
   /// POST /archives/{id}/favorite — toggle the favorite flag server-side and

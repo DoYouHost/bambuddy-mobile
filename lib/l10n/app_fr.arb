@@ -3850,5 +3850,15 @@
   "orderEditTargetMore": "Une impression de plus",
   "queueEditOrderRefused": "La commande n’a pas pu être créée, les copies ont donc été mises en file comme un simple lot.",
   "inventoryQuantityLess": "Une bobine de moins à ajouter",
-  "inventoryQuantityMore": "Une bobine de plus à ajouter"
+  "inventoryQuantityMore": "Une bobine de plus à ajouter",
+  "outcomeGoodPart": "Bonne pièce",
+  "outcomeRejected": "Rebut",
+  "outcomeAwaiting": "Verdict en attente",
+  "outcomeNotRecorded": "Aucun verdict enregistré",
+  "outcomeSourceDialog": "Enregistré dans l'application.",
+  "outcomeSourceLink": "Enregistré via un lien rapide.",
+  "outcomeSourcePlateClear": "Enregistré lors de la libération du plateau.",
+  "outcomeSourcePrinterCard": "Enregistré depuis la carte imprimante.",
+  "outcomeSourceApi": "Enregistré par API.",
+  "outcomeSourceReaction": "Enregistré par une réaction dans le chat."
 }

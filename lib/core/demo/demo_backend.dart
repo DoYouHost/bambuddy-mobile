@@ -2872,6 +2872,11 @@ class DemoBackend {
       // than a zero.
       double? actualGrams,
       bool noUsageRecorded = false,
+      // The outcome prompt (#1898): whether the run asked for one, and the
+      // verdict it got with where it came from.
+      bool confirmRequested = false,
+      String? verdict,
+      String? verdictSource,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -2927,6 +2932,12 @@ class DemoBackend {
             : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
+        'confirm_requested': confirmRequested,
+        'user_verdict': verdict,
+        'user_verdict_source': verdictSource,
+        'user_verdict_at': verdict == null
+            ? null
+            : _iso(started.add(Duration(seconds: actualSec + 600))),
       };
     }
 
@@ -2943,7 +2954,15 @@ class DemoBackend {
         color: '#000000',
         plateId: 2,
       ),
-      a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
+      a(
+        'Benchy',
+        1,
+        2,
+        estSec: 3540,
+        grams: 15.8,
+        color: '#FF6A13',
+        confirmRequested: true,
+      ),
       a(
         'Raspberry Pi 5 case',
         2,
@@ -2953,7 +2972,17 @@ class DemoBackend {
         type: 'PETG',
         color: '#FFFFFF',
       ),
-      a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
+      a(
+        'Headphone hook',
+        1,
+        4,
+        estSec: 4260,
+        grams: 31.7,
+        color: '#3B3B3B',
+        confirmRequested: true,
+        verdict: 'reject',
+        verdictSource: 'link',
+      ),
       a(
         'Spiral vase',
         2,
@@ -2977,7 +3006,17 @@ class DemoBackend {
       ),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
-      a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
+      a(
+        'Phone stand',
+        3,
+        15,
+        estSec: 8340,
+        grams: 68.9,
+        color: '#FF6A13',
+        confirmRequested: true,
+        verdict: 'good',
+        verdictSource: 'plate_clear',
+      ),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
       a(
@@ -3363,6 +3402,19 @@ class DemoBackend {
         if (s.length == 2 && m == 'PATCH') {
           if (body.containsKey('filament_used_grams')) {
             archive['filament_used_grams'] = body['filament_used_grams'];
+          }
+          if (body.containsKey('user_verdict')) {
+            final verdict = body['user_verdict'];
+            archive['user_verdict'] = verdict;
+            archive['user_verdict_source'] = verdict == null
+                ? null
+                : body['user_verdict_source'] ?? 'api';
+            archive['user_verdict_at'] = verdict == null
+                ? null
+                : _iso(DateTime.now());
+          }
+          if (body.containsKey('failure_reason')) {
+            archive['failure_reason'] = body['failure_reason'];
           }
           return _ok(archive);
         }

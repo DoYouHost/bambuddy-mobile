@@ -950,6 +950,9 @@ Archive testArchive({
   List<String> photos = const [],
   DateTime? completedAt,
   DateTime? createdAt,
+  bool confirmRequested = false,
+  PrintVerdict? userVerdict,
+  String? userVerdictSource,
 }) => Archive(
   id: id,
   filename: filename,
@@ -960,6 +963,9 @@ Archive testArchive({
   photos: photos,
   completedAt: completedAt,
   createdAt: createdAt,
+  confirmRequested: confirmRequested,
+  userVerdict: userVerdict,
+  userVerdictSource: userVerdictSource,
 );
 
 /// A recorder wired the way the app wires one, for a test that only needs

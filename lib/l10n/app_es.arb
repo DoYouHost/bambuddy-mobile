@@ -3850,5 +3850,15 @@
   "orderEditTargetMore": "Una impresión más",
   "queueEditOrderRefused": "No se pudo crear el pedido, así que las copias se encolaron como un lote simple.",
   "inventoryQuantityLess": "Una bobina menos por añadir",
-  "inventoryQuantityMore": "Una bobina más por añadir"
+  "inventoryQuantityMore": "Una bobina más por añadir",
+  "outcomeGoodPart": "Pieza buena",
+  "outcomeRejected": "Rechazada",
+  "outcomeAwaiting": "Veredicto pendiente",
+  "outcomeNotRecorded": "Sin veredicto registrado",
+  "outcomeSourceDialog": "Registrado en la aplicación.",
+  "outcomeSourceLink": "Registrado con un enlace de un toque.",
+  "outcomeSourcePlateClear": "Registrado al despejar la cama.",
+  "outcomeSourcePrinterCard": "Registrado desde la tarjeta de la impresora.",
+  "outcomeSourceApi": "Registrado a través de la API.",
+  "outcomeSourceReaction": "Registrado con una reacción en el chat."
 }

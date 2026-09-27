@@ -37,6 +37,7 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
+import 'print_outcome.dart';
 import '../common/web_link.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
@@ -813,6 +814,11 @@ class _ArchiveCard extends StatelessWidget {
                             style: t.monoLabel,
                           ),
                         ],
+                        if (archive.userVerdict != null ||
+                            archive.awaitsVerdict) ...[
+                          const SizedBox(height: 4),
+                          ArchiveVerdictBadge(archive: archive),
+                        ],
                       ],
                     ),
                   ),
@@ -976,6 +982,7 @@ class _ArchiveSheet extends StatelessWidget {
                   onReprint: onReprint,
                 ),
                 const SizedBox(height: 8),
+                ArchiveOutcomeRow(archive: archive),
                 ArchiveFilamentRow(archive: archive),
                 SizedBox(
                   width: double.infinity,
@@ -1556,6 +1563,17 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                   onSelected: (v) =>
                       notifier.state = filters.copyWith(hideDuplicates: v),
                 ),
+                // Left on screen once chosen, even if the gate has since said
+                // no: a filter nobody can see is one nobody can take off.
+                if (filters.awaitingVerdictOnly ||
+                    ref.watch(printOutcomeSupportedProvider).orFalse)
+                  FilterChip(
+                    label: Text(l10n.outcomeAwaiting),
+                    selected: filters.awaitingVerdictOnly,
+                    onSelected: (v) => notifier.state = filters.copyWith(
+                      awaitingVerdictOnly: v,
+                    ),
+                  ),
               ],
             ),
 
