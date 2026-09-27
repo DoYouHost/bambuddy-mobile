@@ -101,6 +101,17 @@ class ObservedCapability {
     if (present) _refused = false;
   });
 
+  /// Whether a payload [row] carries [key] — a field the server defaults on
+  /// every row from the feature on and omits before it. Read off the raw map,
+  /// since a parsed model defaults the value and cannot tell the two apart.
+  /// Answers what it saw; null for no row, which settles nothing.
+  bool? observeKey(Object? row, String key) {
+    if (row is! Map) return null;
+    final present = row.containsKey(key);
+    observe(present: present);
+    return present;
+  }
+
   void observeRefusal() => _update(() {
     _refused = true;
     _probeFailed = false;

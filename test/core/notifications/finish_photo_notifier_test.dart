@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
@@ -236,6 +237,142 @@ void main() {
 
     testAt('empty list → null', (_) {
       expect(FinishPhotoNotifier.finishPhotoIn(const []), isNull);
+    });
+  });
+
+  // #1898: the outcome question goes onto the print-finished alert while it
+  // is on screen. The photo re-posts the same notification, in whichever
+  // order the two arrive, so each has to carry what the other added.
+  group('outcome buttons on the finished alert', () {
+    const buttons = [
+      NotificationAction(id: 'outcome:good', title: 'Good', dismisses: false),
+      NotificationAction(
+        id: 'outcome:reject',
+        title: 'Reject',
+        dismisses: false,
+      ),
+    ];
+
+    FinishPhotoNotifier notifier() => FinishPhotoNotifier(
+      updates: frames.stream,
+      fetchArchive: (id) async => archive,
+      recentArchives: (printerId) async => [if (newest != null) newest!],
+      fetchPicture: (id, filename) async {
+        pictureFetches++;
+        return picture;
+      },
+      notifications: notifications,
+      memory: memory,
+      isEnabled: () => enabled,
+    );
+
+    Future<bool> addOutcome() async {
+      final n = notifier();
+      final added = await n.addOutcome(
+        archiveId: 82,
+        printerId: 3,
+        payload: 'outcome:82:ab',
+        actions: buttons,
+      );
+      await n.stop();
+      return added;
+    }
+
+    testAt('go onto the alert still on screen, quietly', (_) async {
+      await memory.remember(_alert());
+
+      expect(await addOutcome(), isTrue);
+
+      final repost = notifications.alerts.single;
+      expect(repost['id'], 1003);
+      expect(repost['title'], 'Print finished');
+      expect(repost['payload'], 'outcome:82:ab');
+      expect(repost['actionIds'], ['outcome:good', 'outcome:reject']);
+      expect(repost['quiet'], isTrue, reason: 'it already rang once');
+    });
+
+    testAt('a dismissed alert leaves the question to its own', (_) async {
+      await memory.remember(_alert());
+      notifications.alertActive = false;
+
+      expect(await addOutcome(), isFalse);
+      expect(notifications.alerts, isEmpty);
+    });
+
+    testAt('no alert, or a failed print, asks on its own', (_) async {
+      expect(await addOutcome(), isFalse);
+      await memory.remember(_alert(event: NotifEvent.printFailed));
+      expect(await addOutcome(), isFalse);
+      expect(notifications.alerts, isEmpty);
+    });
+
+    testAt('an alert from an earlier print is not this one', (_) async {
+      await memory.remember(
+        _alert(postedAt: _now.subtract(const Duration(minutes: 16))),
+      );
+
+      expect(await addOutcome(), isFalse);
+    });
+
+    testAt('a photo landing after the buttons keeps them', (_) async {
+      await memory.remember(_alert());
+      await addOutcome();
+
+      await send(photoFrame);
+
+      final photoRepost = notifications.alerts.last;
+      expect(photoRepost['photo'], '/tmp/finish_photo.png');
+      expect(photoRepost['actionIds'], ['outcome:good', 'outcome:reject']);
+      expect(photoRepost['payload'], 'outcome:82:ab');
+    });
+
+    testAt('buttons landing after the photo keep it', (_) async {
+      final dir = Directory.systemTemp.createTempSync('finish_photo');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final photo = File('${dir.path}/finish.png')..writeAsBytesSync([0]);
+      picture = AlertPicture(photoPath: photo.path);
+      await memory.remember(_alert());
+      await send(photoFrame);
+
+      expect(await addOutcome(), isTrue);
+
+      expect(notifications.alerts.last['photo'], photo.path);
+      expect(notifications.alerts.last['actionIds'], hasLength(2));
+    });
+
+    // The other isolate put the buttons on while this one downloaded the
+    // photo; re-posting what it read before the download would take them off.
+    testAt('buttons added during the photo download survive it', (_) async {
+      await memory.remember(_alert());
+      duringPictureFetch = () => unawaited(
+        memory.remember(
+          _alert().copyWith(payload: 'outcome:82:ab', actions: buttons),
+        ),
+      );
+
+      await send(photoFrame);
+
+      expect(notifications.alerts.last['actionIds'], hasLength(2));
+      expect(notifications.alerts.last['payload'], 'outcome:82:ab');
+    });
+
+    // The photo is the app's cache; a post naming a file that is gone is one
+    // the platform refuses whole.
+    testAt('a photo cleared from the cache is left off, not the buttons', (
+      _,
+    ) async {
+      await memory.remember(_alert());
+      await send(photoFrame);
+
+      expect(await addOutcome(), isTrue);
+
+      expect(notifications.alerts.last['photo'], isNull);
+      expect(notifications.alerts.last['actionIds'], hasLength(2));
+      expect(
+        await memory.recallAll(_now),
+        hasLength(1),
+        reason: 'no photo on it any more, so the poll looks again',
+      );
     });
   });
 

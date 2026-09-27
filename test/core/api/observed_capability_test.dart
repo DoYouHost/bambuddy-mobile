@@ -55,6 +55,22 @@ void main() {
     expect(await capability('1.2.6b1').supported, isTrue);
   });
 
+  // A defaulted field present on every row from the feature on: its presence
+  // is the answer, and no row at all is no answer.
+  test('a key in a payload row is observed, a missing row is not', () async {
+    final latch = capability('1.2.6b1');
+
+    expect(latch.observeKey(null, 'k'), isNull);
+    expect(latch.observeKey('not a row', 'k'), isNull);
+    expect(latch.observedAnswer, isNull);
+
+    expect(latch.observeKey({'k': null}, 'k'), isTrue);
+    expect(latch.observedAnswer, isTrue, reason: 'present, even as null');
+
+    expect(latch.observeKey({'other': 1}, 'k'), isFalse);
+    expect(await latch.supported, isFalse, reason: 'outranks the version');
+  });
+
   test('no version service at all falls back to whenUnknown', () async {
     expect(await capability(null).supported, isFalse);
     expect(await capability(null, whenUnknown: true).supported, isTrue);

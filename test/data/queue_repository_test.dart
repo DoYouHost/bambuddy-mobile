@@ -554,6 +554,66 @@ void main() {
     },
   );
 
+  group('ask for outcome (#1898)', () {
+    test('a row that carries the flag shows the server keeps it', () async {
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [
+          {
+            ...readFixture('queue_item.json') as Map<String, dynamic>,
+            'confirm_outcome': true,
+          },
+        ]),
+      );
+
+      final item = (await repo.fetch()).single;
+
+      expect(repo.outcomeCapability.observedAnswer, isTrue);
+      expect(item.confirmOutcome, isTrue);
+    });
+
+    // The fixture predates the feature, which is what an older server sends.
+    test('a row without it is an older server', () async {
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [readFixture('queue_item.json')]),
+      );
+
+      final item = (await repo.fetch()).single;
+
+      expect(repo.outcomeCapability.observedAnswer, isFalse);
+      expect(item.confirmOutcome, isFalse);
+    });
+
+    test('an empty queue says nothing either way', () async {
+      adapter.onGet('/api/v1/queue/', (server) => server.reply(200, []));
+
+      await repo.fetch();
+
+      expect(repo.outcomeCapability.observedAnswer, isNull);
+    });
+
+    test('the flag rides with a create and an update', () async {
+      adapter
+        ..onPost(
+          '/api/v1/queue/',
+          (server) => server.reply(200, null),
+          data: {'archive_id': 77, 'quantity': 1, 'confirm_outcome': true},
+        )
+        ..onPatch(
+          '/api/v1/queue/5',
+          (server) => server.reply(200, null),
+          data: {'confirm_outcome': false},
+        );
+
+      await repo.addFromArchive(
+        77,
+        options: const QueueCreateOptions(confirmOutcome: true),
+      );
+      await repo.updateItem(5, confirmOutcome: false);
+    });
+  });
+
   group('calibrations on save', () {
     /// Repository asking the stubbed server for its version.
     QueueRepository repoFor(String version) {

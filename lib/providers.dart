@@ -681,6 +681,19 @@ final triStateCalibrationProvider = capabilityGate(
   (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
+/// Whether a queued job can ask for its outcome (#1898) — the print form's
+/// "Ask for outcome" switch. See `QueueRepository.outcomeCapability`.
+final queueOutcomeProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).outcomeCapability,
+);
+
+/// What the server's own print dialog starts the switch at
+/// (`default_confirm_outcome`, Settings → Workflow on the web). A new job here
+/// starts from the same answer rather than from one this phone remembers.
+final defaultConfirmOutcomeProvider = serverGate<bool>(
+  (settings) => settings.settingBool('default_confirm_outcome'),
+);
+
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
 /// 60 before it and whenever the version is not known yet. A value, not a gate:
 /// the default until known, never a loading state.

@@ -10421,7 +10421,7 @@ abstract class AppLocalizations {
   /// No description provided for @serverSettingsQueueSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Scheduling, preheat, and holding a bed warm between prints'**
+  /// **'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out'**
   String get serverSettingsQueueSubtitle;
 
   /// No description provided for @serverSettingsMaintenanceSubtitle.
@@ -11881,6 +11881,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One more spool to add'**
   String get inventoryQuantityMore;
+
+  /// A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)
+  ///
+  /// In en, this message translates to:
+  /// **'Good part'**
+  String get outcomeGoodPart;
+
+  /// A print that finished on the printer but the user marked as scrap
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get outcomeRejected;
+
+  /// A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting verdict'**
+  String get outcomeAwaiting;
+
+  /// Detail sheet line for a completed print that has no outcome verdict and was never asked for one
+  ///
+  /// In en, this message translates to:
+  /// **'No verdict recorded'**
+  String get outcomeNotRecorded;
+
+  /// How an outcome verdict was recorded: in the app (this one or the web UI)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded in the app.'**
+  String get outcomeSourceDialog;
+
+  /// How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a one-tap link.'**
+  String get outcomeSourceLink;
+
+  /// How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded when the plate was cleared.'**
+  String get outcomeSourcePlateClear;
+
+  /// How an outcome verdict was recorded: from the printer card in the web UI
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded from the printer card.'**
+  String get outcomeSourcePrinterCard;
+
+  /// How an outcome verdict was recorded: by a script or integration through the server API
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded through the API.'**
+  String get outcomeSourceApi;
+
+  /// How an outcome verdict was recorded: with a reaction to the chat message
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded with a reaction in chat.'**
+  String get outcomeSourceReaction;
+
+  /// Heading of the sheet that asks for a finished print's outcome verdict
+  ///
+  /// In en, this message translates to:
+  /// **'How did your print come out?'**
+  String get outcomeTitle;
+
+  /// Button: record the print as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get outcomeGood;
+
+  /// Button: record the print as scrap (then asks for an optional reason)
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get outcomeReject;
+
+  /// Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me later'**
+  String get outcomeLater;
+
+  /// Button: remove the verdict a print already has, so it has none again
+  ///
+  /// In en, this message translates to:
+  /// **'Clear verdict'**
+  String get outcomeClear;
+
+  /// Label of the dropdown for why a print was rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Reject reason (optional)'**
+  String get outcomeRejectReason;
+
+  /// Dropdown entry: reject without naming a reason
+  ///
+  /// In en, this message translates to:
+  /// **'No reason'**
+  String get outcomeNoReason;
+
+  /// Button: save the reject with the chosen reason
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get outcomeSaveReject;
+
+  /// Button: save the reject and open the print form to print the same file again
+  ///
+  /// In en, this message translates to:
+  /// **'Print again'**
+  String get outcomeRejectAndReprint;
+
+  /// Confirmation after a print was recorded as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as good part'**
+  String get outcomeSavedGood;
+
+  /// Confirmation after a print was recorded as rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as rejected'**
+  String get outcomeSavedReject;
+
+  /// Confirmation after a print's verdict was removed
+  ///
+  /// In en, this message translates to:
+  /// **'Verdict removed'**
+  String get outcomeCleared;
+
+  /// Shown when the server answered but did not store the verdict (a server older than the feature)
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not store the verdict. Update bambuddy to record print outcomes.'**
+  String get outcomeUnsupported;
+
+  /// Button in the archive detail sheet: open the outcome sheet for a print with no verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get outcomeRate;
+
+  /// Button in the archive detail sheet: open the outcome sheet to change a verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get outcomeChange;
+
+  /// Print form switch: ask how the print came out once it completes
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome'**
+  String get queueOptConfirmOutcome;
+
+  /// Explains the ask-for-outcome switch in the print form
+  ///
+  /// In en, this message translates to:
+  /// **'Ask whether the print came out well after it completes'**
+  String get queueOptConfirmOutcomeDesc;
+
+  /// Section header on the server's queue settings screen: asking how prints came out (#1898)
+  ///
+  /// In en, this message translates to:
+  /// **'Print outcome'**
+  String get queueSettingsOutcomeHeader;
+
+  /// Server setting default_confirm_outcome: whether new jobs ask for their outcome by default
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome on new prints'**
+  String get queueSettingsOutcomeDefaultTitle;
+
+  /// Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask
+  ///
+  /// In en, this message translates to:
+  /// **'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.'**
+  String get queueSettingsOutcomeDefaultDesc;
+
+  /// Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start
+  ///
+  /// In en, this message translates to:
+  /// **'Also ask about prints started elsewhere'**
+  String get queueSettingsOutcomeExternalTitle;
+
+  /// Explains confirm_outcome_external_prints
+  ///
+  /// In en, this message translates to:
+  /// **'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.'**
+  String get queueSettingsOutcomeExternalDesc;
+
+  /// Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Count an unanswered print as good once the plate is confirmed clear'**
+  String get queueSettingsOutcomePlateClearTitle;
+
+  /// Explains confirm_default_good_on_plate_clear
+  ///
+  /// In en, this message translates to:
+  /// **'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.'**
+  String get queueSettingsOutcomePlateClearDesc;
+
+  /// Notification settings switch: the question asked when a print that opted in completes
+  ///
+  /// In en, this message translates to:
+  /// **'Outcome question'**
+  String get notifEvtOutcome;
+
+  /// Explains the outcome-question notification switch
+  ///
+  /// In en, this message translates to:
+  /// **'When a print that asks for its outcome completes — answer Good or Reject from the notification'**
+  String get notifEvtOutcomeDesc;
+
+  /// Title of the notification asking how a finished print came out; {name} is the print's name
+  ///
+  /// In en, this message translates to:
+  /// **'How did {name} come out?'**
+  String outcomeNotifTitle(String name);
+
+  /// Body of the outcome notification: what tapping it and its two buttons do
+  ///
+  /// In en, this message translates to:
+  /// **'Answer here, or tap to see the finish photo first.'**
+  String get outcomeNotifBody;
+
+  /// Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off
+  ///
+  /// In en, this message translates to:
+  /// **'This print already asks for its outcome, and so does every reprint of it'**
+  String get queueOptConfirmOutcomeSticky;
 }
 
 class _AppLocalizationsDelegate

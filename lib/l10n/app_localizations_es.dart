@@ -6260,7 +6260,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Programación, precalentamiento y mantenimiento de la cama caliente entre impresiones';
+      'Programación, precalentamiento, mantenimiento de la cama caliente entre impresiones y la pregunta por el resultado';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7153,4 +7153,135 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Una bobina más por añadir';
+
+  @override
+  String get outcomeGoodPart => 'Pieza buena';
+
+  @override
+  String get outcomeRejected => 'Rechazada';
+
+  @override
+  String get outcomeAwaiting => 'Veredicto pendiente';
+
+  @override
+  String get outcomeNotRecorded => 'Sin veredicto registrado';
+
+  @override
+  String get outcomeSourceDialog => 'Registrado en la aplicación.';
+
+  @override
+  String get outcomeSourceLink => 'Registrado con un enlace de un toque.';
+
+  @override
+  String get outcomeSourcePlateClear => 'Registrado al despejar la cama.';
+
+  @override
+  String get outcomeSourcePrinterCard =>
+      'Registrado desde la tarjeta de la impresora.';
+
+  @override
+  String get outcomeSourceApi => 'Registrado a través de la API.';
+
+  @override
+  String get outcomeSourceReaction => 'Registrado con una reacción en el chat.';
+
+  @override
+  String get outcomeTitle => '¿Cómo ha salido su impresión?';
+
+  @override
+  String get outcomeGood => 'Buena';
+
+  @override
+  String get outcomeReject => 'Rechazar';
+
+  @override
+  String get outcomeLater => 'Preguntar más tarde';
+
+  @override
+  String get outcomeClear => 'Quitar el veredicto';
+
+  @override
+  String get outcomeRejectReason => 'Motivo del rechazo (opcional)';
+
+  @override
+  String get outcomeNoReason => 'Sin motivo';
+
+  @override
+  String get outcomeSaveReject => 'Guardar';
+
+  @override
+  String get outcomeRejectAndReprint => 'Imprimir de nuevo';
+
+  @override
+  String get outcomeSavedGood => 'Marcada como pieza buena';
+
+  @override
+  String get outcomeSavedReject => 'Marcada como rechazada';
+
+  @override
+  String get outcomeCleared => 'Veredicto eliminado';
+
+  @override
+  String get outcomeUnsupported =>
+      'El servidor no guardó el veredicto. Actualice bambuddy para registrar el resultado de las impresiones.';
+
+  @override
+  String get outcomeRate => 'Valorar';
+
+  @override
+  String get outcomeChange => 'Cambiar';
+
+  @override
+  String get queueOptConfirmOutcome => 'Preguntar el resultado';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Preguntar si la impresión ha salido bien después de completarse';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Resultado de la impresión';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Preguntar el resultado de las impresiones nuevas';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Los trabajos nuevos preguntan por su resultado de forma predeterminada: en el formulario de impresión, donde cada trabajo aún puede cambiarlo, y donde no hay formulario, como al añadir varios archivos a la cola o en una ejecución de pipeline.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Preguntar también por impresiones iniciadas fuera de Bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Una impresión iniciada en la impresora, en Bambu Studio o en Bambu Handy que Bambuddy archiva también recibe la pregunta por el resultado.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Contar impresiones sin responder como buenas al confirmar la placa vacía';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Cuando alguien confirma que la placa está vacía —o, si esa confirmación está desactivada, cuando el siguiente trabajo de la cola se envía a esta impresora—, una impresión terminada que sigue esperando su veredicto se registra como pieza buena. Un enlace de notificación abierto después solo muestra el resultado registrado.';
+
+  @override
+  String get notifEvtOutcome => 'Pregunta por el resultado';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return '¿Cómo ha salido $name?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Responda aquí o toque para ver primero la foto del acabado.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Esta impresión ya pregunta por su resultado, y también cada reimpresión';
 }

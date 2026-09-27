@@ -127,6 +127,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _timelapse;
   late CalibrationOption _nozzleOffsetCali;
 
+  /// Null until the user touches the switch: a new job then follows the
+  /// server's default, which may arrive after the form has opened.
+  bool? _confirmOutcomeChoice;
+
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
   late final TextEditingController _chamberTarget;
@@ -1185,6 +1189,20 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             value: _timelapse,
             onChanged: (v) => setState(() => _timelapse = v),
           ),
+          if (_offersConfirmOutcome)
+            _OptionSwitch(
+              id: 'queue_edit.confirm_outcome',
+              title: l10n.queueOptConfirmOutcome,
+              subtitle: _confirmOutcomeSticky
+                  ? l10n.queueOptConfirmOutcomeSticky
+                  : l10n.queueOptConfirmOutcomeDesc,
+              value: _confirmOutcome(watch: true),
+              // Held while a new job's default is on its way: a switch that
+              // moves by itself after the first look is one tapped wrong.
+              onChanged: _confirmOutcomeUnanswered || _confirmOutcomeSticky
+                  ? null
+                  : (v) => setState(() => _confirmOutcomeChoice = v),
+            ),
           if (_showNozzleOffset)
             _CalibrationRow(
               id: 'queue_edit.nozzle_offset_cali',
@@ -1413,6 +1431,65 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     gcodeInjection: _gcodeInjection,
   );
 
+  /// Hidden where the server would drop the flag: a switch that is on and
+  /// never asks is worse than no switch.
+  bool get _offersConfirmOutcome => ref.watch(queueOutcomeProvider).orFalse;
+
+  /// What the switch shows: the user's choice, else the item's own flag when
+  /// editing, else the server's default for a new job.
+  bool _confirmOutcome({required bool watch}) {
+    if (_confirmOutcomeSticky) return true;
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    if (!widget._isCreate) return widget.item.confirmOutcome;
+    final server = watch
+        ? ref.watch(defaultConfirmOutcomeProvider)
+        : ref.read(defaultConfirmOutcomeProvider);
+    return server.valueOrNull ?? false;
+  }
+
+  bool get _confirmOutcomeUnanswered =>
+      widget._isCreate &&
+      _confirmOutcomeChoice == null &&
+      ref.watch(defaultConfirmOutcomeProvider).isUnanswered;
+
+  /// The flag for a new job, or null to leave the key out where the server
+  /// would drop it. `POST /queue/` does not read the server's default itself
+  /// (only the paths without a dialog do), so an untouched switch sends the
+  /// default — waited for, since a job submitted before it arrived would
+  /// otherwise go out as `false`.
+  ///
+  /// A choice the user made stands unless the gate has since settled on no:
+  /// it was made on a switch that was on screen, and a gate briefly reloading
+  /// must not throw it away.
+  Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
+    final gate = providers.read(queueOutcomeProvider);
+    if (gate.valueOrNull == false) return null;
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    if (_confirmOutcomeSticky) return true;
+    if (!gate.orFalse) return null;
+    return settledGate(
+      providers,
+      defaultConfirmOutcomeProvider,
+    ).catchError((Object _) => false);
+  }
+
+  /// The flag for a PATCH, sent only when it changed — as the calibrations
+  /// are ([_calibrationUpdate]) — so a save about something else cannot
+  /// rewrite what another client set meanwhile.
+  bool? get _confirmOutcomeUpdate {
+    final choice = _confirmOutcomeChoice;
+    if (ref.read(queueOutcomeProvider).valueOrNull == false) return null;
+    return choice == widget.item.confirmOutcome ? null : choice;
+  }
+
+  /// A reprint of an archive that already asks: the server copies only a
+  /// `true` onto the archive and never clears it (`print_scheduler.py`), so
+  /// this job asks whatever the switch says — which is why it says so.
+  bool get _confirmOutcomeSticky =>
+      widget._isCreate &&
+      widget.item.archiveId != null &&
+      widget.item.confirmOutcome;
+
   /// The injection flag as it may ship, or null to leave the key out.
   ///
   /// Null while the form is not offering the checkbox: create then falls back to
@@ -1506,6 +1583,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? _calibrationUpdate(_nozzleOffsetCali, widget.item.nozzleOffsetCali)
         : null,
     gcodeInjection: _gcodeInjectionPayload,
+    confirmOutcome: _confirmOutcomeUpdate,
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
@@ -1526,6 +1604,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final it = widget.item;
     final providers = ProviderScope.containerOf(context, listen: false);
     final orderId = await _createOrder(providers);
+    final confirmOutcome = await _confirmOutcomeForCreate(providers);
     final plate = _plate;
     final options = QueueCreateOptions(
       // Into an order, the item carries the plate its target names.
@@ -1546,6 +1625,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       timelapse: _timelapse,
       nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
       gcodeInjection: _gcodeInjectionPayload,
+      confirmOutcome: confirmOutcome,
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
@@ -1902,7 +1982,9 @@ class _OptionSwitch extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

@@ -68,6 +68,10 @@ enum ServerFeature {
   /// Per-plate targets on `/queue/batches` plus `PATCH` and `/dispatch` on a
   /// batch; `plates` on create is taken and ignored below it.
   batchOrders,
+
+  /// Post-print outcome verdicts on an archive and `confirm_outcome` on a
+  /// queue item (#1898); both are taken and ignored below it.
+  printOutcome,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -166,6 +170,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.batchListing: (0, 2, 3, 0),
     ServerFeature.batchGrouping: (0, 2, 4, 8),
     ServerFeature.batchOrders: (1, 2, 5, 3),
+    ServerFeature.printOutcome: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

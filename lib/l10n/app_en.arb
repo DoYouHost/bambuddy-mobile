@@ -3700,7 +3700,7 @@
   "groupsAdvancedHint": "Users, API keys, settings, backups — everything the app itself has no screen for.",
   "serverSettingsMenu": "Server settings",
   "serverSettingsTitle": "Server settings",
-  "serverSettingsQueueSubtitle": "Scheduling, preheat, and holding a bed warm between prints",
+  "serverSettingsQueueSubtitle": "Scheduling, preheat, holding a bed warm between prints, and asking how prints came out",
   "serverSettingsMaintenanceSubtitle": "Task types and per-printer intervals",
   "serverSettingsAdminSubtitle": "Accounts, groups and API keys",
   "serverSettingsCloudSubtitle": "The Bambu account the server downloads with",
@@ -4202,5 +4202,166 @@
   "orderEditTargetMore": "One more run",
   "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
   "inventoryQuantityLess": "One spool fewer to add",
-  "inventoryQuantityMore": "One more spool to add"
+  "inventoryQuantityMore": "One more spool to add",
+  "outcomeGoodPart": "Good part",
+  "@outcomeGoodPart": {
+    "description": "A print the user confirmed came out well (badge on an archive card, verdict line in the detail sheet)"
+  },
+  "outcomeRejected": "Rejected",
+  "@outcomeRejected": {
+    "description": "A print that finished on the printer but the user marked as scrap"
+  },
+  "outcomeAwaiting": "Awaiting verdict",
+  "@outcomeAwaiting": {
+    "description": "A print that asked for an outcome verdict nobody has given yet; also the archive filter that shows only those"
+  },
+  "outcomeNotRecorded": "No verdict recorded",
+  "@outcomeNotRecorded": {
+    "description": "Detail sheet line for a completed print that has no outcome verdict and was never asked for one"
+  },
+  "outcomeSourceDialog": "Recorded in the app.",
+  "@outcomeSourceDialog": {
+    "description": "How an outcome verdict was recorded: in the app (this one or the web UI)"
+  },
+  "outcomeSourceLink": "Recorded with a one-tap link.",
+  "@outcomeSourceLink": {
+    "description": "How an outcome verdict was recorded: a one-tap link from a push notification (Telegram, ntfy…)"
+  },
+  "outcomeSourcePlateClear": "Recorded when the plate was cleared.",
+  "@outcomeSourcePlateClear": {
+    "description": "How an outcome verdict was recorded: automatically counted as good when the build plate was marked clear"
+  },
+  "outcomeSourcePrinterCard": "Recorded from the printer card.",
+  "@outcomeSourcePrinterCard": {
+    "description": "How an outcome verdict was recorded: from the printer card in the web UI"
+  },
+  "outcomeSourceApi": "Recorded through the API.",
+  "@outcomeSourceApi": {
+    "description": "How an outcome verdict was recorded: by a script or integration through the server API"
+  },
+  "outcomeSourceReaction": "Recorded with a reaction in chat.",
+  "@outcomeSourceReaction": {
+    "description": "How an outcome verdict was recorded: with a reaction to the chat message"
+  },
+  "outcomeTitle": "How did your print come out?",
+  "@outcomeTitle": {
+    "description": "Heading of the sheet that asks for a finished print's outcome verdict"
+  },
+  "outcomeGood": "Good",
+  "@outcomeGood": {
+    "description": "Button: record the print as a good part"
+  },
+  "outcomeReject": "Reject",
+  "@outcomeReject": {
+    "description": "Button: record the print as scrap (then asks for an optional reason)"
+  },
+  "outcomeLater": "Ask me later",
+  "@outcomeLater": {
+    "description": "Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge"
+  },
+  "outcomeClear": "Clear verdict",
+  "@outcomeClear": {
+    "description": "Button: remove the verdict a print already has, so it has none again"
+  },
+  "outcomeRejectReason": "Reject reason (optional)",
+  "@outcomeRejectReason": {
+    "description": "Label of the dropdown for why a print was rejected"
+  },
+  "outcomeNoReason": "No reason",
+  "@outcomeNoReason": {
+    "description": "Dropdown entry: reject without naming a reason"
+  },
+  "outcomeSaveReject": "Save",
+  "@outcomeSaveReject": {
+    "description": "Button: save the reject with the chosen reason"
+  },
+  "outcomeRejectAndReprint": "Print again",
+  "@outcomeRejectAndReprint": {
+    "description": "Button: save the reject and open the print form to print the same file again"
+  },
+  "outcomeSavedGood": "Marked as good part",
+  "@outcomeSavedGood": {
+    "description": "Confirmation after a print was recorded as a good part"
+  },
+  "outcomeSavedReject": "Marked as rejected",
+  "@outcomeSavedReject": {
+    "description": "Confirmation after a print was recorded as rejected"
+  },
+  "outcomeCleared": "Verdict removed",
+  "@outcomeCleared": {
+    "description": "Confirmation after a print's verdict was removed"
+  },
+  "outcomeUnsupported": "The server did not store the verdict. Update bambuddy to record print outcomes.",
+  "@outcomeUnsupported": {
+    "description": "Shown when the server answered but did not store the verdict (a server older than the feature)"
+  },
+  "outcomeRate": "Rate",
+  "@outcomeRate": {
+    "description": "Button in the archive detail sheet: open the outcome sheet for a print with no verdict"
+  },
+  "outcomeChange": "Change",
+  "@outcomeChange": {
+    "description": "Button in the archive detail sheet: open the outcome sheet to change a verdict"
+  },
+  "queueOptConfirmOutcome": "Ask for outcome",
+  "@queueOptConfirmOutcome": {
+    "description": "Print form switch: ask how the print came out once it completes"
+  },
+  "queueOptConfirmOutcomeDesc": "Ask whether the print came out well after it completes",
+  "@queueOptConfirmOutcomeDesc": {
+    "description": "Explains the ask-for-outcome switch in the print form"
+  },
+  "queueSettingsOutcomeHeader": "Print outcome",
+  "@queueSettingsOutcomeHeader": {
+    "description": "Section header on the server's queue settings screen: asking how prints came out (#1898)"
+  },
+  "queueSettingsOutcomeDefaultTitle": "Ask for outcome on new prints",
+  "@queueSettingsOutcomeDefaultTitle": {
+    "description": "Server setting default_confirm_outcome: whether new jobs ask for their outcome by default"
+  },
+  "queueSettingsOutcomeDefaultDesc": "New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.",
+  "@queueSettingsOutcomeDefaultDesc": {
+    "description": "Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask"
+  },
+  "queueSettingsOutcomeExternalTitle": "Also ask about prints started elsewhere",
+  "@queueSettingsOutcomeExternalTitle": {
+    "description": "Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start"
+  },
+  "queueSettingsOutcomeExternalDesc": "A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.",
+  "@queueSettingsOutcomeExternalDesc": {
+    "description": "Explains confirm_outcome_external_prints"
+  },
+  "queueSettingsOutcomePlateClearTitle": "Count an unanswered print as good once the plate is confirmed clear",
+  "@queueSettingsOutcomePlateClearTitle": {
+    "description": "Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear"
+  },
+  "queueSettingsOutcomePlateClearDesc": "When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.",
+  "@queueSettingsOutcomePlateClearDesc": {
+    "description": "Explains confirm_default_good_on_plate_clear"
+  },
+  "notifEvtOutcome": "Outcome question",
+  "@notifEvtOutcome": {
+    "description": "Notification settings switch: the question asked when a print that opted in completes"
+  },
+  "notifEvtOutcomeDesc": "When a print that asks for its outcome completes — answer Good or Reject from the notification",
+  "@notifEvtOutcomeDesc": {
+    "description": "Explains the outcome-question notification switch"
+  },
+  "outcomeNotifTitle": "How did {name} come out?",
+  "@outcomeNotifTitle": {
+    "description": "Title of the notification asking how a finished print came out; {name} is the print's name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "outcomeNotifBody": "Answer here, or tap to see the finish photo first.",
+  "@outcomeNotifBody": {
+    "description": "Body of the outcome notification: what tapping it and its two buttons do"
+  },
+  "queueOptConfirmOutcomeSticky": "This print already asks for its outcome, and so does every reprint of it",
+  "@queueOptConfirmOutcomeSticky": {
+    "description": "Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off"
+  }
 }

@@ -70,6 +70,7 @@ class QueueItem {
     this.preheatOverride = 'inherit',
     this.preheatChamberTargetOverride,
     this.gcodeInjection = false,
+    this.confirmOutcome = false,
     this.nozzleMapping,
     this.nozzleRackChoice,
     this.slicedForModel,
@@ -105,6 +106,7 @@ class QueueItem {
     String? slicedForModel,
     int? plateId,
     bool manualStart = false,
+    bool confirmOutcome = false,
   }) {
     final isArchive = archiveId != null;
     return QueueItem(
@@ -124,6 +126,7 @@ class QueueItem {
       slicedForModel: slicedForModel,
       plateId: plateId,
       manualStart: manualStart,
+      confirmOutcome: confirmOutcome,
     );
   }
 
@@ -263,6 +266,15 @@ class QueueItem {
   /// Auto-print G-code injection.
   @JsonKey(defaultValue: false)
   final bool gcodeInjection;
+
+  /// Ask how the print came out once it completes (#1898). A `true` is copied
+  /// onto the archive as `confirm_requested` at dispatch; a `false` is not,
+  /// and the archive's flag is never cleared (`print_scheduler.py`) — so a
+  /// reprint of an archive that asked once asks again whatever this says.
+  /// Absent (false) on an older server; its presence is what
+  /// `QueueRepository.outcomeCapability` observes.
+  @JsonKey(defaultValue: false)
+  final bool confirmOutcome;
 
   /// Dual-nozzle-rack physical pick (H2C/O1C2); opaque, forwarded verbatim.
   final List<int>? nozzleMapping;

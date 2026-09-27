@@ -6281,7 +6281,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planowanie, nagrzewanie i trzymanie ciepłego stołu';
+      'Planowanie, nagrzewanie, trzymanie ciepłego stołu i pytanie o wynik wydruku';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7176,4 +7176,135 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'O jedną szpulę więcej do dodania';
+
+  @override
+  String get outcomeGoodPart => 'Udany';
+
+  @override
+  String get outcomeRejected => 'Odrzucony';
+
+  @override
+  String get outcomeAwaiting => 'Czeka na ocenę';
+
+  @override
+  String get outcomeNotRecorded => 'Bez oceny';
+
+  @override
+  String get outcomeSourceDialog => 'Zapisano w aplikacji.';
+
+  @override
+  String get outcomeSourceLink => 'Zapisano linkiem z powiadomienia.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Zapisano przy oznaczeniu płyty jako pustej.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Zapisano z karty drukarki.';
+
+  @override
+  String get outcomeSourceApi => 'Zapisano przez API.';
+
+  @override
+  String get outcomeSourceReaction => 'Zapisano reakcją na czacie.';
+
+  @override
+  String get outcomeTitle => 'Jak wyszedł wydruk?';
+
+  @override
+  String get outcomeGood => 'Udany';
+
+  @override
+  String get outcomeReject => 'Odrzucony';
+
+  @override
+  String get outcomeLater => 'Zapytaj później';
+
+  @override
+  String get outcomeClear => 'Usuń ocenę';
+
+  @override
+  String get outcomeRejectReason => 'Powód odrzucenia (opcjonalnie)';
+
+  @override
+  String get outcomeNoReason => 'Bez powodu';
+
+  @override
+  String get outcomeSaveReject => 'Zapisz';
+
+  @override
+  String get outcomeRejectAndReprint => 'Drukuj ponownie';
+
+  @override
+  String get outcomeSavedGood => 'Oznaczono jako udany';
+
+  @override
+  String get outcomeSavedReject => 'Oznaczono jako odrzucony';
+
+  @override
+  String get outcomeCleared => 'Usunięto ocenę';
+
+  @override
+  String get outcomeUnsupported =>
+      'Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.';
+
+  @override
+  String get outcomeRate => 'Oceń';
+
+  @override
+  String get outcomeChange => 'Zmień';
+
+  @override
+  String get queueOptConfirmOutcome => 'Zapytaj o wynik';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Po zakończeniu zapyta, czy wydruk wyszedł dobrze';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Ocena wydruku';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Pytaj o wynik nowych wydruków';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Nowe zadania domyślnie pytają o wynik — w formularzu druku, gdzie każde zadanie może to zmienić, i tam, gdzie formularza nie ma, jak przy dodaniu kilku plików naraz do kolejki czy uruchomieniu pipeline’u.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Pytaj też o wydruki spoza Bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Wydruk uruchomiony na drukarce, w Bambu Studio albo w Bambu Handy, który Bambuddy zapisuje w archiwum, też dostaje pytanie o wynik.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Uznaj wydruk bez oceny za udany po potwierdzeniu pustego stołu';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Gdy ktoś potwierdzi, że stół jest pusty — a przy wyłączonym potwierdzaniu, gdy na tę drukarkę trafi kolejne zadanie z kolejki — ukończony wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.';
+
+  @override
+  String get notifEvtOutcome => 'Pytanie o wynik';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Jak wyszedł wydruk $name?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk';
 }

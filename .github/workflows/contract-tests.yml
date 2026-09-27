@@ -44,7 +44,6 @@ permissions:
   contents: read
 
 env:
-  BAMBUDDY_IMAGE: ghcr.io/maziggy/bambuddy:latest
   ADMIN_USER: ci-admin
   # Server-side rule (backend/app/schemas/auth.py::_validate_password_complexity):
   # upper, lower, digit, special, >= 8. Not a secret — the instance is created
@@ -53,9 +52,25 @@ env:
 
 jobs:
   contract:
-    name: parse real server responses
+    name: parse real server responses (${{ matrix.tag }})
     runs-on: [self-hosted, ci-docker]
     timeout-minutes: 30
+    # Two generations of the server, because the app talks to both: `latest`
+    # is the last release, `daily` the development branch, where a feature
+    # lands weeks before it ships. Tests detect which one they got and assert
+    # the matching half, so a new field is checked on `daily` while `latest`
+    # still proves the older server's silent drop.
+    #
+    # One at a time: there is one runner with the Docker daemon, and both
+    # jobs publish the server on the same bridge-gateway port. fail-fast off,
+    # so a break on `daily` (upstream moving) never hides the release result.
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        tag: [latest, daily]
+    env:
+      BAMBUDDY_IMAGE: ghcr.io/maziggy/bambuddy:${{ matrix.tag }}
 
     steps:
       - uses: actions/checkout@v7
@@ -88,8 +103,8 @@ jobs:
             -subj "/CN=fake-bambu" >/dev/null 2>&1
           chmod -R a+rX "$certs"
 
-          broker="fake-printer-${GITHUB_RUN_ID}"
-          server="bambuddy-ci-${GITHUB_RUN_ID}"
+          broker="fake-printer-${GITHUB_RUN_ID}-${{ matrix.tag }}"
+          server="bambuddy-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           echo "broker=$broker" >> "$GITHUB_OUTPUT"
           echo "name=$server" >> "$GITHUB_OUTPUT"
 

@@ -133,6 +133,39 @@ void main() {
       },
     );
 
+    // The frame `ws_manager.send_print_confirm_request` builds (#1898).
+    test('print_confirm_request names the printer and the archive', () {
+      final msg = parseWsMessage(
+        jsonEncode({
+          'type': 'print_confirm_request',
+          'printer_id': 3,
+          'data': {'archive_id': 82, 'print_name': 'Benchy'},
+        }),
+      );
+      expect(msg, isA<WsPrintConfirmRequest>());
+      final request = msg! as WsPrintConfirmRequest;
+      expect(request.printerId, 3);
+      expect(request.archiveId, 82);
+      expect(request.printName, 'Benchy');
+    });
+
+    test('print_confirm_request without an archive is WsUnknown', () {
+      for (final data in [
+        {'print_name': 'Benchy'},
+        'not a map',
+        null,
+      ]) {
+        final msg = parseWsMessage(
+          jsonEncode({
+            'type': 'print_confirm_request',
+            'printer_id': 3,
+            'data': data,
+          }),
+        );
+        expect(msg, isA<WsUnknown>(), reason: '$data');
+      }
+    });
+
     test('archive_updated with no id inside data is WsUnknown', () {
       final msg = parseWsMessage('{"type":"archive_updated","data":{"x":1}}');
       expect(msg, isA<WsUnknown>());

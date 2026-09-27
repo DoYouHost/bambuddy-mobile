@@ -192,6 +192,61 @@ void main() {
     expect(find.text(l10n.queueSettingsKeepWarmOffNote), findsNothing);
   });
 
+  // #1898, from 1.2.6 on. A server before it sends none of the three keys,
+  // and the section goes with them.
+  group('print outcome', () {
+    final outcome = {
+      'default_confirm_outcome': false,
+      'confirm_outcome_external_prints': true,
+      'confirm_default_good_on_plate_clear': false,
+    };
+
+    testWidgets('a server that knows them shows the section', (tester) async {
+      await pumpScreen(tester, {
+        ...modernSettings(),
+        ...outcome,
+      }, viewHeight: 9000);
+
+      expect(
+        find.text(l10n.queueSettingsOutcomeHeader.toUpperCase()),
+        findsOneWidget,
+      );
+      expect(
+        switchFor(tester, l10n.queueSettingsOutcomeExternalTitle).value,
+        isTrue,
+      );
+    });
+
+    testWidgets('an older server has no such section', (tester) async {
+      await pumpScreen(tester, modernSettings());
+
+      expect(
+        find.text(l10n.queueSettingsOutcomeHeader.toUpperCase()),
+        findsNothing,
+      );
+    });
+
+    testWidgets('each switch writes its own key', (tester) async {
+      final repo = await pumpScreen(tester, {
+        ...modernSettings(),
+        ...outcome,
+      }, viewHeight: 9000);
+
+      await tester.tap(find.text(l10n.queueSettingsOutcomeDefaultTitle));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.queueSettingsOutcomeExternalTitle));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.queueSettingsOutcomePlateClearTitle));
+      await tester.pumpAndSettle();
+
+      expect(repo.writes, [
+        {'default_confirm_outcome': true},
+        {'confirm_outcome_external_prints': false},
+        {'confirm_default_good_on_plate_clear': true},
+      ]);
+    });
+  });
+
   group('writing', () {
     testWidgets('a switch writes exactly its own key', (tester) async {
       final repo = await pumpScreen(tester, modernSettings());

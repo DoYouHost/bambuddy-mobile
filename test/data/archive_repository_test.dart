@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:dio/dio.dart';
@@ -281,6 +282,220 @@ void main() {
             contains('less than or equal to 100000'),
           ),
         ),
+      );
+    });
+  });
+
+  group('outcome verdicts', () {
+    Map<String, dynamic> archiveWith(Map<String, dynamic> fields) => {
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      ...fields,
+    };
+    final pending = {
+      'confirm_requested': true,
+      'user_verdict': null,
+      'user_verdict_source': null,
+      'user_verdict_at': null,
+    };
+
+    test(
+      'a row that carries the fields shows the server records them',
+      () async {
+        adapter.onGet(
+          '/api/v1/archives/',
+          (server) => server.reply(200, [archiveWith(pending)]),
+        );
+
+        final archive = (await repo.list()).single;
+
+        expect(repo.outcomeCapability.observedAnswer, isTrue);
+        expect(archive.confirmRequested, isTrue);
+        expect(archive.awaitsVerdict, isTrue);
+      },
+    );
+
+    // The fixture was captured before the feature, which is exactly what an
+    // older server still sends.
+    test('a row without them is an older server', () async {
+      adapter.onGet(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+      );
+
+      final archive = await repo.byId(82);
+
+      expect(repo.outcomeCapability.observedAnswer, isFalse);
+      expect(archive.userVerdict, isNull);
+      expect(archive.awaitsVerdict, isFalse);
+    });
+
+    test('an empty list says nothing either way', () async {
+      adapter.onGet('/api/v1/archives/', (server) => server.reply(200, []));
+
+      await repo.list();
+
+      expect(repo.outcomeCapability.observedAnswer, isNull);
+    });
+
+    test('reads the verdict, where it came from and when', () async {
+      adapter.onGet(
+        '/api/v1/archives/82',
+        (server) => server.reply(
+          200,
+          archiveWith({
+            ...pending,
+            'user_verdict': 'reject',
+            'user_verdict_source': 'plate_clear',
+            'user_verdict_at': '2026-09-26T10:00:00',
+          }),
+        ),
+      );
+
+      final archive = await repo.byId(82);
+
+      expect(archive.userVerdict, PrintVerdict.reject);
+      expect(archive.userVerdictSource, 'plate_clear');
+      expect(archive.userVerdictAt?.toUtc(), DateTime.utc(2026, 9, 26, 10));
+      expect(archive.awaitsVerdict, isFalse);
+    });
+
+    test('a verdict spelled some other way is no verdict', () {
+      expect(PrintVerdict.fromWire('meh'), isNull);
+      expect(PrintVerdict.fromWire(null), isNull);
+      expect(PrintVerdict.fromWire('good'), PrintVerdict.good);
+    });
+
+    test('a failed print is never waiting for a verdict', () {
+      final archive = Archive.fromJson(
+        archiveWith({...pending, 'status': 'failed'}),
+      );
+      expect(archive.awaitsVerdict, isFalse);
+    });
+
+    test('records a verdict as given in the app, with its reason', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(
+          200,
+          archiveWith({
+            ...pending,
+            'user_verdict': 'reject',
+            'user_verdict_source': 'dialog',
+            'failure_reason': 'warping',
+          }),
+        ),
+        data: {
+          'user_verdict': 'reject',
+          'user_verdict_source': 'dialog',
+          'failure_reason': 'warping',
+        },
+      );
+
+      final result = await repo.setVerdict(
+        82,
+        PrintVerdict.reject,
+        reason: 'warping',
+      );
+
+      expect(result.applied, isTrue);
+      expect(result.archive.userVerdict, PrintVerdict.reject);
+    });
+
+    // No source: the server drops the provenance whenever the verdict is null
+    // (`update_archive`). A present null is what clears the column
+    // (`exclude_unset`).
+    test('clearing sends a null verdict and no source', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(pending)),
+        data: {'user_verdict': null},
+      );
+
+      final result = await repo.setVerdict(82, null);
+
+      expect(result.applied, isTrue);
+    });
+
+    // An older server's row has no verdict either, so the verdict alone would
+    // call this clear a success.
+    test('a clear an older server dropped is not reported as done', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+        data: {'user_verdict': null},
+      );
+
+      expect((await repo.setVerdict(82, null)).applied, isFalse);
+    });
+
+    test('leaving a reject clears the cause it carried', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(
+          200,
+          archiveWith({
+            ...pending,
+            'user_verdict': 'good',
+            'user_verdict_source': 'dialog',
+          }),
+        ),
+        data: {
+          'user_verdict': 'good',
+          'user_verdict_source': 'dialog',
+          'failure_reason': null,
+        },
+      );
+
+      final result = await repo.setVerdict(
+        82,
+        PrintVerdict.good,
+        clearReason: true,
+      );
+
+      expect(result.applied, isTrue);
+    });
+
+    test('every route that answers with archives settles the latch', () async {
+      adapter
+        ..onGet(
+          '/api/v1/archives/search',
+          (server) => server.reply(200, [archiveWith(pending)]),
+          queryParameters: {'q': 'x', 'limit': 50, 'offset': 0},
+        )
+        ..onPost(
+          '/api/v1/archives/82/favorite',
+          (server) => server.reply(200, readFixture('archive.json')),
+        );
+
+      await repo.search('x');
+      expect(repo.outcomeCapability.observedAnswer, isTrue);
+      await repo.toggleFavorite(82);
+      expect(repo.outcomeCapability.observedAnswer, isFalse);
+    });
+
+    test('a server that drops the verdict is not reported as saved', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+        data: {'user_verdict': 'good', 'user_verdict_source': 'dialog'},
+      );
+
+      final result = await repo.setVerdict(82, PrintVerdict.good);
+
+      expect(result.applied, isFalse);
+      expect(repo.outcomeCapability.observedAnswer, isFalse);
+    });
+
+    test('a refusal reaches the caller', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(403, {'detail': 'Forbidden'}),
+        data: {'user_verdict': 'good', 'user_verdict_source': 'dialog'},
+      );
+
+      await expectLater(
+        repo.setVerdict(82, PrintVerdict.good),
+        throwsA(isA<AppApiException>()),
       );
     });
   });

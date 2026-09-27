@@ -6325,7 +6325,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planification, préchauffage et maintien du plateau chaud entre les impressions';
+      'Planification, préchauffage, maintien du plateau chaud entre les impressions et demande du résultat';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7222,4 +7222,137 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Une bobine de plus à ajouter';
+
+  @override
+  String get outcomeGoodPart => 'Bonne pièce';
+
+  @override
+  String get outcomeRejected => 'Rebut';
+
+  @override
+  String get outcomeAwaiting => 'Verdict en attente';
+
+  @override
+  String get outcomeNotRecorded => 'Aucun verdict enregistré';
+
+  @override
+  String get outcomeSourceDialog => 'Enregistré dans l\'application.';
+
+  @override
+  String get outcomeSourceLink => 'Enregistré via un lien rapide.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Enregistré lors de la libération du plateau.';
+
+  @override
+  String get outcomeSourcePrinterCard =>
+      'Enregistré depuis la carte imprimante.';
+
+  @override
+  String get outcomeSourceApi => 'Enregistré par API.';
+
+  @override
+  String get outcomeSourceReaction =>
+      'Enregistré par une réaction dans le chat.';
+
+  @override
+  String get outcomeTitle => 'Comment votre impression est-elle sortie ?';
+
+  @override
+  String get outcomeGood => 'Bonne';
+
+  @override
+  String get outcomeReject => 'Rebut';
+
+  @override
+  String get outcomeLater => 'Me redemander plus tard';
+
+  @override
+  String get outcomeClear => 'Effacer le verdict';
+
+  @override
+  String get outcomeRejectReason => 'Raison du rebut (facultatif)';
+
+  @override
+  String get outcomeNoReason => 'Aucune raison';
+
+  @override
+  String get outcomeSaveReject => 'Enregistrer';
+
+  @override
+  String get outcomeRejectAndReprint => 'Réimprimer';
+
+  @override
+  String get outcomeSavedGood => 'Marquée comme bonne pièce';
+
+  @override
+  String get outcomeSavedReject => 'Marquée comme rebut';
+
+  @override
+  String get outcomeCleared => 'Verdict effacé';
+
+  @override
+  String get outcomeUnsupported =>
+      'Le serveur n\'a pas enregistré le verdict. Mettez bambuddy à jour pour consigner le résultat des impressions.';
+
+  @override
+  String get outcomeRate => 'Évaluer';
+
+  @override
+  String get outcomeChange => 'Modifier';
+
+  @override
+  String get queueOptConfirmOutcome => 'Demander le résultat';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Demander si l\'impression est bien sortie une fois terminée';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Résultat de l\'impression';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Demander le résultat des nouvelles impressions';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Les nouveaux travaux demandent leur résultat par défaut : dans le formulaire d\'impression, où chaque travail peut encore le changer, et là où il n\'y a pas de formulaire, comme l\'ajout de plusieurs fichiers à la file d\'attente ou l\'exécution d\'un pipeline.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Demander aussi pour les impressions lancées hors de Bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Une impression lancée sur l\'imprimante, dans Bambu Studio ou dans Bambu Handy et archivée par Bambuddy reçoit aussi la demande de résultat.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Compter les impressions sans réponse comme bonnes une fois le plateau confirmé vide';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Quand quelqu\'un confirme que le plateau est vide — ou, si cette confirmation est désactivée, quand le travail suivant de la file d\'attente part vers cette imprimante —, une impression terminée qui attend encore son verdict est enregistrée comme bonne pièce. Un lien de notification ouvert ensuite affiche seulement le résultat enregistré.';
+
+  @override
+  String get notifEvtOutcome => 'Demande de résultat';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Quand une impression qui demande son résultat se termine : répondre « Bonne » ou « Rebut » depuis la notification';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Comment est sortie l\'impression $name ?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Répondez ici ou touchez pour voir d\'abord la photo de fin.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Cette impression demande déjà son résultat et chaque réimpression aussi';
 }

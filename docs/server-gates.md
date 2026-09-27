@@ -242,6 +242,23 @@ row (`has_targets`, 1.2.5.3) observes it; otherwise the version decides, in the
 old numbering like `printerSensorHistory`. Being early costs a refused button,
 nothing silent.
 
+### printOutcome — 1.2.6 (server #1898, PR #3047, commit 44c7e6fb)
+
+Post-print outcome verdicts: `user_verdict` / `user_verdict_source` on
+`PATCH /archives/{id}`, the four verdict fields on `ArchiveResponse`, and
+`confirm_outcome` on queue create / update / response. Only in 1.2.6 dailies
+from 2026-09-26.
+
+Both writes are silent drops below it — `ArchiveUpdate` and
+`PrintQueueItemCreate` forbid no extra fields — so a verdict would read as
+saved and a queued job would never ask. `ArchiveRepository.outcomeCapability`
+observes `confirm_requested` on any archive row, which `archive_to_response`
+sends from that commit on, and `QueueRepository.outcomeCapability` observes
+`confirm_outcome` on any queue row the same way. Each outranks the row as soon
+as its screen has loaded one row; before that a 1.2.6b1 daily older than the
+commit is told yes, and what that costs is a verdict the reply shows was not
+stored (`setVerdict`'s `applied`) or a job that finishes without asking.
+
 ## Not a row: the bed-jog sign (server #1334)
 
 `POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up

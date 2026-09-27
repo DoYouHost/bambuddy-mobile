@@ -48,6 +48,11 @@ class Archive {
     this.fileSize,
     this.duplicateCount = 0,
     this.duplicateSequence = 0,
+    this.userVerdict,
+    this.userVerdictSource,
+    this.userVerdictAt,
+    this.confirmRequested = false,
+    this.failureReason,
   });
 
   factory Archive.fromJson(Map<String, dynamic> json) =>
@@ -177,6 +182,40 @@ class Archive {
   @JsonKey(defaultValue: 0)
   final int duplicateSequence;
 
+  /// The user's judgement of the part (#1898) — deliberately apart from
+  /// [status], which is the machine's: `completed` + [PrintVerdict.reject] is
+  /// "the printer finished it, the part is scrap". Null when nobody answered,
+  /// and on every server older than the feature.
+  @JsonKey(fromJson: PrintVerdict.fromWire)
+  final PrintVerdict? userVerdict;
+
+  /// How [userVerdict] arrived: `dialog`, `link`, `plate_clear`,
+  /// `printer_card`, `api` or `reaction` (`services/print_confirmation.py`
+  /// `VERDICT_SOURCES`). Kept raw: the server may add one, and the label for an
+  /// unknown source is simply no label.
+  final String? userVerdictSource;
+
+  @JsonKey(fromJson: dateTimeFromJson)
+  final DateTime? userVerdictAt;
+
+  /// Whether this print asked for an outcome — copied from the queue item's
+  /// `confirm_outcome` at dispatch, or set for a print started outside
+  /// bambuddy when `confirm_outcome_external_prints` is on. Absent (false) on
+  /// an older server; its presence in the payload is what
+  /// `ArchiveRepository.outcomeCapability` observes.
+  @JsonKey(defaultValue: false)
+  final bool confirmRequested;
+
+  /// Why the print failed, or why a completed one was rejected — an i18n key
+  /// from the failure-reason list, or free text an older web build wrote (see
+  /// `failureReasonLabel`).
+  final String? failureReason;
+
+  /// The question is still open: the web's "unconfirmed" badge. Only a
+  /// completed print is asked — a failed one already has its answer.
+  bool get awaitsVerdict =>
+      status == 'completed' && confirmRequested && userVerdict == null;
+
   String get displayName => printName ?? filename;
 
   /// Copy with a flipped/overridden favorite flag — for optimistic UI updates
@@ -199,4 +238,20 @@ class Archive {
   /// Filament colors as a list of hex tokens (a print can use several).
   /// See [filamentColourTokens] for why they stay verbatim.
   List<String> get filamentColors => filamentColourTokens(filamentColor);
+}
+
+/// A user's verdict on a printed part, as `ArchiveUpdate.user_verdict` spells
+/// it.
+enum PrintVerdict {
+  good('good'),
+  reject('reject');
+
+  const PrintVerdict(this.wire);
+
+  final String wire;
+
+  /// Null for a missing verdict and for a spelling this build does not know —
+  /// an unknown verdict is not a verdict it can show.
+  static PrintVerdict? fromWire(Object? value) =>
+      values.where((v) => v.wire == value).firstOrNull;
 }

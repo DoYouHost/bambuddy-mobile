@@ -13,7 +13,6 @@ import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/project.dart';
-import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -37,6 +36,8 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
+import 'outcome_sheet.dart';
+import 'print_outcome.dart';
 import '../common/web_link.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
@@ -288,8 +289,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onSlice: () => _slice(archive),
         onRunPipeline: () => _runPipeline(archive),
         onDelete: () => _deleteFromSheet(archive),
+        onRate: () => _rate(archive),
       ),
     );
+  }
+
+  /// Swaps the detail sheet for the outcome one rather than stacking them.
+  Future<void> _rate(Archive archive) async {
+    Navigator.pop(context);
+    await showOutcomeSheet(context, archive.id);
   }
 
   /// Toggle an archive's favorite flag (optimistic; the list live-updates).
@@ -553,7 +561,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     Navigator.pop(context);
     await openQueueCreate(
       context,
-      draft: _draftFrom(archive),
+      draft: archiveQueueDraft(archive),
       schedule: QueueScheduleType.asap,
     );
   }
@@ -565,28 +573,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     Navigator.pop(context);
     await openQueueCreate(
       context,
-      draft: _draftFrom(archive, manualStart: true),
+      draft: archiveQueueDraft(archive, manualStart: true),
       schedule: QueueScheduleType.queue,
     );
   }
-
-  /// The archive's own printer is a starting point, not a decision — the form
-  /// lists every printer and the user can switch before anything is created.
-  QueueItem _draftFrom(Archive archive, {bool manualStart = false}) =>
-      QueueItem.draft(
-        archiveId: archive.id,
-        name: archive.displayName,
-        thumbnail: archive.thumbnailPath,
-        printerId: archive.printerId,
-        filamentType: archive.filamentType,
-        filamentColor: archive.filamentColor,
-        slicedForModel: archive.slicedForModel,
-        // The plate this print ran on, so a reprint runs the same one. Null on
-        // a single-plate file and on servers that do not report it, which is
-        // what the form and the server both read as plate 1.
-        plateId: archive.plateId,
-        manualStart: manualStart,
-      );
 }
 
 /// "These prints archived without their 3MF" — and, since #2780, *why*.
@@ -813,6 +803,11 @@ class _ArchiveCard extends StatelessWidget {
                             style: t.monoLabel,
                           ),
                         ],
+                        if (archive.userVerdict != null ||
+                            archive.awaitsVerdict) ...[
+                          const SizedBox(height: 4),
+                          ArchiveVerdictBadge(archive: archive),
+                        ],
                       ],
                     ),
                   ),
@@ -906,9 +901,11 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onSlice,
     required this.onRunPipeline,
     required this.onDelete,
+    required this.onRate,
   });
 
   final Archive archive;
+  final VoidCallback onRate;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
@@ -976,6 +973,7 @@ class _ArchiveSheet extends StatelessWidget {
                   onReprint: onReprint,
                 ),
                 const SizedBox(height: 8),
+                ArchiveOutcomeRow(archive: archive, onRate: onRate),
                 ArchiveFilamentRow(archive: archive),
                 SizedBox(
                   width: double.infinity,
@@ -1556,6 +1554,17 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                   onSelected: (v) =>
                       notifier.state = filters.copyWith(hideDuplicates: v),
                 ),
+                // Left on screen once chosen, even if the gate has since said
+                // no: a filter nobody can see is one nobody can take off.
+                if (filters.awaitingVerdictOnly ||
+                    ref.watch(printOutcomeSupportedProvider).orFalse)
+                  FilterChip(
+                    label: Text(l10n.outcomeAwaiting),
+                    selected: filters.awaitingVerdictOnly,
+                    onSelected: (v) => notifier.state = filters.copyWith(
+                      awaitingVerdictOnly: v,
+                    ),
+                  ),
               ],
             ),
 

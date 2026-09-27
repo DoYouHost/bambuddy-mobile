@@ -353,6 +353,7 @@ class LoggingNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) {
     NotifProbe.posted(event: event, printerId: printerId, nid: id);
     return _inner
@@ -365,6 +366,7 @@ class LoggingNotifications implements NotificationService {
           payload: payload,
           actions: actions,
           picture: picture,
+          quiet: quiet,
         )
         // Rethrown with its original stack: absorbing it would remove an error
         // that today reaches the isolate's uncaught handler and gets its own

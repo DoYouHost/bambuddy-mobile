@@ -38,6 +38,7 @@ class ArchiveFilters {
     this.favoritesOnly = false,
     this.hideFailed = false,
     this.hideDuplicates = false,
+    this.awaitingVerdictOnly = false,
     this.fileType = ArchiveFileType.all,
     this.sort = ArchiveSort.dateDesc,
   });
@@ -50,6 +51,10 @@ class ArchiveFilters {
   final bool favoritesOnly;
   final bool hideFailed;
   final bool hideDuplicates;
+
+  /// Only prints still waiting for their outcome verdict — the web's
+  /// "Unconfirmed" filter.
+  final bool awaitingVerdictOnly;
   final ArchiveFileType fileType;
   final ArchiveSort sort;
 
@@ -62,6 +67,7 @@ class ArchiveFilters {
       (favoritesOnly ? 1 : 0) +
       (hideFailed ? 1 : 0) +
       (hideDuplicates ? 1 : 0) +
+      (awaitingVerdictOnly ? 1 : 0) +
       (fileType != ArchiveFileType.all ? 1 : 0);
 
   /// Nullable fields (`printerId`, `material`) can't be cleared through the
@@ -77,6 +83,7 @@ class ArchiveFilters {
     bool? favoritesOnly,
     bool? hideFailed,
     bool? hideDuplicates,
+    bool? awaitingVerdictOnly,
     ArchiveFileType? fileType,
     ArchiveSort? sort,
   }) => ArchiveFilters(
@@ -88,6 +95,7 @@ class ArchiveFilters {
     favoritesOnly: favoritesOnly ?? this.favoritesOnly,
     hideFailed: hideFailed ?? this.hideFailed,
     hideDuplicates: hideDuplicates ?? this.hideDuplicates,
+    awaitingVerdictOnly: awaitingVerdictOnly ?? this.awaitingVerdictOnly,
     fileType: fileType ?? this.fileType,
     sort: sort ?? this.sort,
   );
@@ -130,6 +138,7 @@ List<Archive> applyArchiveFilters(
         a.duplicateSequence > 0) {
       return false;
     }
+    if (filters.awaitingVerdictOnly && !a.awaitsVerdict) return false;
     switch (filters.fileType) {
       case ArchiveFileType.gcode:
         if (!a.isSliced) return false;

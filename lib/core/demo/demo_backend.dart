@@ -586,6 +586,11 @@ class DemoBackend {
     // button in the app, and with it off the pipelines feature showed
     // only its read-only half.
     'use_slicer_api': true,
+    // The outcome prompt (#1898): on by default here, off on a real server,
+    // so the print form's switch visibly starts from what the server says.
+    'default_confirm_outcome': true,
+    'confirm_outcome_external_prints': false,
+    'confirm_default_good_on_plate_clear': false,
     'currency': 'USD',
     // Auto-print snippets, as the real server stores them: a JSON string
     // keyed by printer model. Only the A1 mini has one, so demo shows both
@@ -2274,6 +2279,7 @@ class DemoBackend {
     required String color,
     required int createdDaysAgo,
     bool gcodeInjection = false,
+    bool confirmOutcome = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
@@ -2294,6 +2300,7 @@ class DemoBackend {
     'auto_off_after': false,
     'require_previous_success': false,
     'gcode_injection': gcodeInjection,
+    'confirm_outcome': confirmOutcome,
     'filament_short': false,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
     // arrival emptied the real queue screen. Demo mode is where that
@@ -2352,6 +2359,7 @@ class DemoBackend {
         color: (archive?['filament_color'] as String?) ?? '#808080',
         createdDaysAgo: 0,
         gcodeInjection: body['gcode_injection'] == true,
+        confirmOutcome: body['confirm_outcome'] == true,
         slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
         variants: [
           for (final (position, f) in variantFiles.indexed)
@@ -2485,6 +2493,9 @@ class DemoBackend {
       }
       if (body.containsKey('gcode_injection')) {
         item['gcode_injection'] = body['gcode_injection'];
+      }
+      if (body.containsKey('confirm_outcome')) {
+        item['confirm_outcome'] = body['confirm_outcome'];
       }
       return _ok(item);
     }
@@ -2872,6 +2883,11 @@ class DemoBackend {
       // than a zero.
       double? actualGrams,
       bool noUsageRecorded = false,
+      // The outcome prompt (#1898): whether the run asked for one, and the
+      // verdict it got with where it came from.
+      bool confirmRequested = false,
+      String? verdict,
+      String? verdictSource,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -2927,6 +2943,12 @@ class DemoBackend {
             : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
+        'confirm_requested': confirmRequested,
+        'user_verdict': verdict,
+        'user_verdict_source': verdictSource,
+        'user_verdict_at': verdict == null
+            ? null
+            : _iso(started.add(Duration(seconds: actualSec + 600))),
       };
     }
 
@@ -2943,7 +2965,15 @@ class DemoBackend {
         color: '#000000',
         plateId: 2,
       ),
-      a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
+      a(
+        'Benchy',
+        1,
+        2,
+        estSec: 3540,
+        grams: 15.8,
+        color: '#FF6A13',
+        confirmRequested: true,
+      ),
       a(
         'Raspberry Pi 5 case',
         2,
@@ -2953,7 +2983,17 @@ class DemoBackend {
         type: 'PETG',
         color: '#FFFFFF',
       ),
-      a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
+      a(
+        'Headphone hook',
+        1,
+        4,
+        estSec: 4260,
+        grams: 31.7,
+        color: '#3B3B3B',
+        confirmRequested: true,
+        verdict: 'reject',
+        verdictSource: 'link',
+      ),
       a(
         'Spiral vase',
         2,
@@ -2977,7 +3017,17 @@ class DemoBackend {
       ),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
-      a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
+      a(
+        'Phone stand',
+        3,
+        15,
+        estSec: 8340,
+        grams: 68.9,
+        color: '#FF6A13',
+        confirmRequested: true,
+        verdict: 'good',
+        verdictSource: 'plate_clear',
+      ),
       // Stopped on the first layer, so there is no measured figure at all —
       // the case the archive sheet has a line for.
       a(
@@ -3363,6 +3413,19 @@ class DemoBackend {
         if (s.length == 2 && m == 'PATCH') {
           if (body.containsKey('filament_used_grams')) {
             archive['filament_used_grams'] = body['filament_used_grams'];
+          }
+          if (body.containsKey('user_verdict')) {
+            final verdict = body['user_verdict'];
+            archive['user_verdict'] = verdict;
+            archive['user_verdict_source'] = verdict == null
+                ? null
+                : body['user_verdict_source'] ?? 'api';
+            archive['user_verdict_at'] = verdict == null
+                ? null
+                : _iso(DateTime.now());
+          }
+          if (body.containsKey('failure_reason')) {
+            archive['failure_reason'] = body['failure_reason'];
           }
           return _ok(archive);
         }

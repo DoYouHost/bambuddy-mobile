@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 
+import '../../core/format/stable_digest.dart';
+import '../../core/notifications/alert_ids.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
@@ -20,12 +22,9 @@ import '../../l10n/app_localizations.dart';
 /// tests can control time instead of waiting out a window.
 export '../../core/time/timer_factory.dart' show TimerFactory;
 
-/// Room reserved per event type. The offsets added to a base are server row ids
-/// (a printer, a maintenance task), which grow without bound and are never
-/// reused after a delete — so the band has to be wide enough that no realistic
-/// install reaches the next event type's numbers and starts replacing its
-/// notifications.
-const int alertBandWidth = 1000000;
+/// The band width moved to core so a core isolate can compute its own ids;
+/// re-exported so every caller keeps reading it from here.
+export '../../core/notifications/alert_ids.dart' show alertBandWidth;
 
 /// Alert ID base per event type; add `printer_id` so alerts from different
 /// printers (and types) don't overwrite each other. ID
@@ -221,6 +220,7 @@ class _OngoingKey {
 class PrintMonitor {
   PrintMonitor(
     this._notifications, {
+    required this._serverUrl,
     this._prefs = NotificationPrefs.defaults,
     AppLocalizations Function()? l10n,
     DateTimeFormats Function()? formats,
@@ -234,6 +234,10 @@ class PrintMonitor {
        _hmsDescribe = hmsDescribe;
 
   final NotificationService _notifications;
+
+  /// The server these printers belong to, tagged into the HMS payload so a
+  /// button tapped after a switch is not sent to another server's printer.
+  final String _serverUrl;
   final NotificationPrefs _prefs;
   final AppLocalizations Function() _l10n;
 
@@ -1105,7 +1109,12 @@ class PrintMonitor {
       body: l.notifErrorBody(_printerLabel(status, l), detail),
       payload: fullCode == null
           ? 'printer:$id'
-          : hmsPayload(printerId: id, fullCode: fullCode, jobId: err.jobId),
+          : hmsPayload(
+              printerId: id,
+              fullCode: fullCode,
+              jobId: err.jobId,
+              serverUrl: _serverUrl,
+            ),
       actions: fullCode == null ? null : _errorActions(err, l),
     );
   }
@@ -1132,20 +1141,9 @@ class PrintMonitor {
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
     final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
-    return _errorAlertBase + _stableDigest('$id:$code');
-  }
-
-  /// FNV-1a digest folded into one band, spelled out rather than taken from
-  /// `Object.hash`, whose seed is drawn afresh on every VM start. This isolate
-  /// restarts each time the app is backgrounded, so a seeded id handed the same
-  /// standing fault a new notification after every restart instead of replacing
-  /// the one already on screen.
-  static int _stableDigest(String s) {
-    var h = 0x811c9dc5;
-    for (var i = 0; i < s.length; i++) {
-      h = ((h ^ s.codeUnitAt(i)) * 0x01000193) & 0xffffffff;
-    }
-    return h % alertBandWidth;
+    // Stable, or the same standing fault got a new notification after every
+    // restart of this isolate instead of replacing the one on screen.
+    return _errorAlertBase + stableDigest('$id:$code') % alertBandWidth;
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {

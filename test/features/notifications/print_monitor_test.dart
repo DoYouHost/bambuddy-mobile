@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
+import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
@@ -91,6 +92,7 @@ void main() {
   PrintMonitor monitor(RecordingNotifications fake, {bool use24Hour = true}) =>
       PrintMonitor(
         fake,
+        serverUrl: _server,
         l10n: () => lookupAppLocalizations(const Locale('en')),
         formats: () =>
             DateTimeFormats.forTest(locale: 'en_US', use24Hour: use24Hour),
@@ -150,6 +152,7 @@ void main() {
     final fake = RecordingNotifications();
     PrintMonitor(
       fake,
+      serverUrl: _server,
       l10n: () => lookupAppLocalizations(const Locale('en')),
     ).update({
       1: _status(
@@ -536,6 +539,7 @@ void main() {
     String? Function(HmsError)? hmsDescribe,
   }) => PrintMonitor(
     fake,
+    serverUrl: _server,
     prefs: _allOn,
     l10n: () => lookupAppLocalizations(const Locale('en')),
     timerFactory: timer,
@@ -942,6 +946,7 @@ void main() {
     final m = monitor(fake); // default prefs: plateNotEmpty on, but…
     final off = PrintMonitor(
       fake,
+      serverUrl: _server,
       prefs: const NotificationPrefs(enabled: {}),
       l10n: () => lookupAppLocalizations(const Locale('en')),
     );
@@ -1148,7 +1153,11 @@ void main() {
 
     final alert = errorAlerts(fake).single;
     // The payload is what the background handler rebuilds the command from.
-    expect(alert['payload'], 'hms:1:03008004:746795586');
+    expect(
+      alert['payload'],
+      'hms:1:03008004:746795586:${serverTag(_server)}',
+      reason: 'tagged with its server, so a switch cannot redirect a button',
+    );
     final actions = alert['actions']! as List<NotificationAction>;
     expect(actions.map((a) => a.id), [
       'hms:RESUME_PRINTING',
@@ -1632,6 +1641,7 @@ void main() {
       void Function(int)? onPrintEnded,
     }) => PrintMonitor(
       LoggingNotifications(fake),
+      serverUrl: _server,
       prefs: prefs,
       l10n: () => lookupAppLocalizations(const Locale('en')),
       timerFactory: timer,
@@ -2025,5 +2035,8 @@ class _ThrowingNotifications extends RecordingNotifications {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async => throw StateError('plugin not initialised');
 }
+
+const _server = 'http://printer-monitor.test';

@@ -785,6 +785,7 @@ class RecordingNotifications implements NotificationService {
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool quiet = false,
   }) async {
     alerts.add({
       'event': event,
@@ -797,6 +798,7 @@ class RecordingNotifications implements NotificationService {
       'actionIds': [for (final a in actions ?? const []) a.id],
       'photo': picture?.photoPath,
       'thumb': picture?.thumbnailPath,
+      'quiet': quiet,
     });
     final failure = failWith;
     if (failure != null) throw failure;
@@ -950,6 +952,9 @@ Archive testArchive({
   List<String> photos = const [],
   DateTime? completedAt,
   DateTime? createdAt,
+  bool confirmRequested = false,
+  PrintVerdict? userVerdict,
+  String? userVerdictSource,
 }) => Archive(
   id: id,
   filename: filename,
@@ -960,6 +965,9 @@ Archive testArchive({
   photos: photos,
   completedAt: completedAt,
   createdAt: createdAt,
+  confirmRequested: confirmRequested,
+  userVerdict: userVerdict,
+  userVerdictSource: userVerdictSource,
 );
 
 /// A recorder wired the way the app wires one, for a test that only needs

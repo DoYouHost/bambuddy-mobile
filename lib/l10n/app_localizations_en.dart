@@ -6182,7 +6182,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Scheduling, preheat, and holding a bed warm between prints';
+      'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7063,4 +7063,134 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'One more spool to add';
+
+  @override
+  String get outcomeGoodPart => 'Good part';
+
+  @override
+  String get outcomeRejected => 'Rejected';
+
+  @override
+  String get outcomeAwaiting => 'Awaiting verdict';
+
+  @override
+  String get outcomeNotRecorded => 'No verdict recorded';
+
+  @override
+  String get outcomeSourceDialog => 'Recorded in the app.';
+
+  @override
+  String get outcomeSourceLink => 'Recorded with a one-tap link.';
+
+  @override
+  String get outcomeSourcePlateClear => 'Recorded when the plate was cleared.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Recorded from the printer card.';
+
+  @override
+  String get outcomeSourceApi => 'Recorded through the API.';
+
+  @override
+  String get outcomeSourceReaction => 'Recorded with a reaction in chat.';
+
+  @override
+  String get outcomeTitle => 'How did your print come out?';
+
+  @override
+  String get outcomeGood => 'Good';
+
+  @override
+  String get outcomeReject => 'Reject';
+
+  @override
+  String get outcomeLater => 'Ask me later';
+
+  @override
+  String get outcomeClear => 'Clear verdict';
+
+  @override
+  String get outcomeRejectReason => 'Reject reason (optional)';
+
+  @override
+  String get outcomeNoReason => 'No reason';
+
+  @override
+  String get outcomeSaveReject => 'Save';
+
+  @override
+  String get outcomeRejectAndReprint => 'Print again';
+
+  @override
+  String get outcomeSavedGood => 'Marked as good part';
+
+  @override
+  String get outcomeSavedReject => 'Marked as rejected';
+
+  @override
+  String get outcomeCleared => 'Verdict removed';
+
+  @override
+  String get outcomeUnsupported =>
+      'The server did not store the verdict. Update bambuddy to record print outcomes.';
+
+  @override
+  String get outcomeRate => 'Rate';
+
+  @override
+  String get outcomeChange => 'Change';
+
+  @override
+  String get queueOptConfirmOutcome => 'Ask for outcome';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Ask whether the print came out well after it completes';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Print outcome';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Ask for outcome on new prints';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Also ask about prints started elsewhere';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Count an unanswered print as good once the plate is confirmed clear';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.';
+
+  @override
+  String get notifEvtOutcome => 'Outcome question';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'When a print that asks for its outcome completes — answer Good or Reject from the notification';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'How did $name come out?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Answer here, or tap to see the finish photo first.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'This print already asks for its outcome, and so does every reprint of it';
 }

@@ -402,6 +402,7 @@ class WsProbe {
       completed ? 'print_complete' : 'print_start',
     WsArchiveUpdated() => 'archive_updated',
     WsPipelineRunUpdated() => 'pipeline_run_updated',
+    WsPrintConfirmRequest() => 'print_confirm_request',
     // Both frames the parser folds into one; the log keeps the distinction
     // out of it for the same reason the parser does.
     WsInventoryChanged() => 'inventory_changed',

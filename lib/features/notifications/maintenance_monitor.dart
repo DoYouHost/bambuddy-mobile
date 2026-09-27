@@ -6,7 +6,7 @@ import '../../core/notifications/notification_service.dart';
 import '../../data/maintenance_repository.dart';
 import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
-import 'print_monitor.dart' show alertBandWidth;
+import '../../core/notifications/alert_ids.dart';
 
 /// Base alert IDs for maintenance — the two bands after the print alerts, which
 /// end at 11 × [alertBandWidth] in [PrintMonitor]. Add item ID / printer ID to

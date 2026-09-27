@@ -6244,7 +6244,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planung, Vorheizen und Warmhalten des Druckbetts zwischen Drucken';
+      'Planung, Vorheizen, Warmhalten des Druckbetts zwischen Drucken und die Frage nach dem Druckergebnis';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7130,4 +7130,135 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryQuantityMore => 'Eine Spule mehr anlegen';
+
+  @override
+  String get outcomeGoodPart => 'Gutteil';
+
+  @override
+  String get outcomeRejected => 'Ausschuss';
+
+  @override
+  String get outcomeAwaiting => 'Bewertung ausstehend';
+
+  @override
+  String get outcomeNotRecorded => 'Keine Bewertung erfasst';
+
+  @override
+  String get outcomeSourceDialog => 'In der App erfasst.';
+
+  @override
+  String get outcomeSourceLink => 'Über einen Ein-Tipp-Link erfasst.';
+
+  @override
+  String get outcomeSourcePlateClear =>
+      'Bei der Freigabe der Druckplatte erfasst.';
+
+  @override
+  String get outcomeSourcePrinterCard => 'Über die Druckerkarte erfasst.';
+
+  @override
+  String get outcomeSourceApi => 'Über die API erfasst.';
+
+  @override
+  String get outcomeSourceReaction => 'Über eine Reaktion im Chat erfasst.';
+
+  @override
+  String get outcomeTitle => 'Wie ist Ihr Druck geworden?';
+
+  @override
+  String get outcomeGood => 'Gut';
+
+  @override
+  String get outcomeReject => 'Ausschuss';
+
+  @override
+  String get outcomeLater => 'Später fragen';
+
+  @override
+  String get outcomeClear => 'Bewertung entfernen';
+
+  @override
+  String get outcomeRejectReason => 'Ausschussgrund (optional)';
+
+  @override
+  String get outcomeNoReason => 'Kein Grund';
+
+  @override
+  String get outcomeSaveReject => 'Speichern';
+
+  @override
+  String get outcomeRejectAndReprint => 'Erneut drucken';
+
+  @override
+  String get outcomeSavedGood => 'Als Gutteil markiert';
+
+  @override
+  String get outcomeSavedReject => 'Als Ausschuss markiert';
+
+  @override
+  String get outcomeCleared => 'Bewertung entfernt';
+
+  @override
+  String get outcomeUnsupported =>
+      'Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.';
+
+  @override
+  String get outcomeRate => 'Bewerten';
+
+  @override
+  String get outcomeChange => 'Ändern';
+
+  @override
+  String get queueOptConfirmOutcome => 'Nach Ergebnis fragen';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Nach Abschluss fragen, ob der Druck gut geworden ist';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Druckergebnis';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Bei neuen Drucken nach dem Ergebnis fragen';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Neue Aufträge fragen standardmäßig nach ihrem Ergebnis – im Druckformular, wo jeder Auftrag das noch ändern kann, und dort, wo es kein Formular gibt, etwa beim Hinzufügen mehrerer Dateien zur Warteschlange oder bei einem Pipeline-Lauf.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Auch bei Drucken fragen, die nicht über Bambuddy gestartet wurden';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Ein Druck, der am Drucker, in Bambu Studio oder in Bambu Handy gestartet und von Bambuddy archiviert wird, bekommt die Ergebnisabfrage ebenfalls.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Unbeantwortete Drucke nach bestätigter freier Druckplatte als gut zählen';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Wenn jemand bestätigt, dass die Druckplatte frei ist – oder, wenn diese Bestätigung aus ist, sobald der nächste Auftrag aus der Warteschlange an diesen Drucker geht –, wird ein fertiger Druck, der noch auf seine Bewertung wartet, als Gutteil erfasst. Ein danach geöffneter Link aus der Benachrichtigung zeigt nur noch das gespeicherte Ergebnis.';
+
+  @override
+  String get notifEvtOutcome => 'Ergebnisabfrage';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Wie ist $name geworden?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso';
 }

@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
+import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_actions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -51,16 +52,22 @@ void main() {
   group('notification payload', () {
     test('round-trips the fault a button applies to', () {
       final parsed = parseHmsPayload(
-        hmsPayload(printerId: 7, fullCode: '03008004', jobId: '746795586'),
+        hmsPayload(
+          printerId: 7,
+          fullCode: '03008004',
+          jobId: '746795586',
+          serverUrl: 'http://a',
+        ),
       );
       expect(parsed?.printerId, 7);
       expect(parsed?.fullCode, '03008004');
       expect(parsed?.jobId, '746795586');
+      expect(parsed?.server, serverTag('http://a'));
     });
 
     test('an idle-state fault travels without a job id', () {
       final parsed = parseHmsPayload(
-        hmsPayload(printerId: 7, fullCode: '03008004'),
+        hmsPayload(printerId: 7, fullCode: '03008004', serverUrl: 'http://a'),
       );
       expect(parsed?.jobId, isNull);
     });
@@ -74,6 +81,9 @@ void main() {
         'printer:1',
         'hms:1:03008004',
         'hms:x::',
+        // Written before the server tag: it cannot say whose printer it means.
+        'hms:1:03008004:746795586',
+        'hms:1:03008004:746795586:',
       ]) {
         expect(parseHmsPayload(payload), isNull, reason: 'payload: $payload');
       }

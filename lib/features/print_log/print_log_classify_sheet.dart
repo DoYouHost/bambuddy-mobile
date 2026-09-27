@@ -216,38 +216,16 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               initialSelection: _reason,
               textStyle: t.body,
               onSelected: (v) => setState(() => _reason = v ?? ''),
-              entries: [
-                DropdownMenuEntry(
-                  value: '',
-                  label: l10n.printLogNoClassification,
-                  labelWidget: logTag(
-                    'print_log.classify.reason.none',
-                    Text(l10n.printLogNoClassification),
-                  ),
+              entries: failureReasonEntries(
+                l10n,
+                none: l10n.printLogNoClassification,
+                carries: entry.failureReason,
+                ids: (
+                  none: 'print_log.classify.reason.none',
+                  option: 'print_log.classify.reason.option',
+                  legacy: 'print_log.classify.reason.legacy',
                 ),
-                for (final key in printLogFailureReasons)
-                  DropdownMenuEntry(
-                    value: key,
-                    label: failureReasonLabel(l10n, key),
-                    labelWidget: logTag(
-                      'print_log.classify.reason.option',
-                      Text(failureReasonLabel(l10n, key)),
-                    ),
-                  ),
-                // A cause stored outside the vocabulary — an older web build
-                // saved translated labels. Offered so the field shows what the
-                // row actually holds instead of reading as unclassified.
-                if (entry.failureReason != null &&
-                    !printLogFailureReasons.contains(entry.failureReason))
-                  DropdownMenuEntry(
-                    value: entry.failureReason!,
-                    label: failureReasonLabel(l10n, entry.failureReason),
-                    labelWidget: logTag(
-                      'print_log.classify.reason.legacy',
-                      Text(failureReasonLabel(l10n, entry.failureReason)),
-                    ),
-                  ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
 

@@ -162,4 +162,10 @@ abstract final class Permissions {
   static const queueDeleteAll = 'queue:delete_all';
   static const queueUpdateOwn = 'queue:update_own';
   static const queueUpdateAll = 'queue:update_all';
+
+  /// Recording an outcome verdict (`PATCH /archives/{id}`): update-own on the
+  /// caller's own prints, update-all on anyone's. An API key's
+  /// `can_manage_archives` covers both.
+  static const archivesUpdateOwn = 'archives:update_own';
+  static const archivesUpdateAll = 'archives:update_all';
 }

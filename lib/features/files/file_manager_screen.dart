@@ -14,6 +14,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
+import '../../data/queue_repository.dart' show QueueCreateOptions;
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
@@ -732,6 +733,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// priority order. A group that vanished between listing and tap comes back
   /// as null, which is the same "nothing to queue" as an ungrouped file.
   Future<void> _queueAsVariants(LibraryFile file) async {
+    // Taken before the first await: the gates below are read after it.
+    final providers = ProviderScope.containerOf(context, listen: false);
     try {
       final group = await ref
           .read(libraryRepositoryProvider)
@@ -741,9 +744,24 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         _snack(_l10n.fmVariantsGone);
         return;
       }
-      await ref.read(queueRepositoryProvider).addCrossModel([
+      // No form here to show the switch, so the job asks exactly when the
+      // server's own default says to — what the server does itself on its
+      // other paths without a dialog (`confirm_outcome_for_new_queue_item`).
+      // Waited for: `POST /queue/` reads no default, so an answer still on
+      // its way would go out as `false`.
+      final supported = await settledGate(
+        providers,
+        queueOutcomeProvider,
+      ).catchError((Object _) => false);
+      final confirmOutcome = supported
+          ? await settledGate(
+              providers,
+              defaultConfirmOutcomeProvider,
+            ).catchError((Object _) => false)
+          : null;
+      await providers.read(queueRepositoryProvider).addCrossModel([
         for (final m in group.members) m.libraryFileId,
-      ]);
+      ], options: QueueCreateOptions(confirmOutcome: confirmOutcome));
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {

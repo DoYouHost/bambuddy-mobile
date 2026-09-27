@@ -183,6 +183,7 @@ void main() {
           ServerFeature.locationHaSensors,
           ServerFeature.spoolModelPresets,
           ServerFeature.libraryFileExtras,
+          ServerFeature.printOutcome,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
