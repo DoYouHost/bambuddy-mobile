@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,7 +94,8 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
       initialDate: seed,
       // A due date that has already passed must still open on its own day.
       firstDate: seed.isBefore(today) ? DateUtils.dateOnly(seed) : today,
-      lastDate: DateTime(now.year + 5),
+      // Far enough for any date the web or an integration may have stored.
+      lastDate: DateTime(math.max(now.year + 5, seed.year + 1)),
     );
     if (picked == null) return;
     // The end of the picked day, so "due today" is not overdue until it ends.
@@ -117,6 +120,10 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
       for (final (i, p) in _b.plates.indexed) _targets[i] != p.quantityTarget,
     ].any((changed) => changed);
 
+    final inFlight = providers.read(ordersInFlightProvider.notifier);
+    // A dispatch or cancel from the list would race the new targets.
+    if (inFlight.state.contains(_b.id)) return;
+    inFlight.state = {...inFlight.state, _b.id};
     setState(() => _saving = true);
     try {
       await providers
@@ -148,12 +155,16 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
         e,
         l10n,
         action: 'order_edit.save',
-        // Both 404s arrive without a detail; a new project is the likelier.
+        // The mapper keeps a detail for a 400 or 422 only, so a 404 for the
+        // project and one for the batch look alike; a changed project is the
+        // likelier of the two.
         message: e.statusCode == 404 && projectChanged
             ? l10n.orderEditErrProject
             : orderRefusal(l10n, e, _editRefusals),
       );
       if (mounted) setState(() => _saving = false);
+    } finally {
+      inFlight.state = {...inFlight.state}..remove(_b.id);
     }
   }
 

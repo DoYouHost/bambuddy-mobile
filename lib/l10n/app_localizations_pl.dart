@@ -7145,9 +7145,6 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get ordersDeleted => 'Zamówienie usunięte';
-
-  @override
   String get queueEditCopies => 'Kopie';
 
   @override
@@ -7157,4 +7154,8 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueEditCopiesOrder =>
       'Więcej niż jedna kopia tworzy zamówienie: nieudana kopia zostaje do zrobienia i można ją ponownie dodać do kolejki z ekranu Zamówienia.';
+
+  @override
+  String get ordersGroupedNone =>
+      'Niczego nie zgrupowano: wybrane zadania zmieniły się w międzyczasie.';
 }

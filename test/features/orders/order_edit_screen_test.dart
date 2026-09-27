@@ -154,6 +154,15 @@ void main() {
     expect(byLogId('order_edit.project.none'), findsNothing);
   });
 
+  testWidgets('a due date years out still opens the calendar', (tester) async {
+    await pumpEdit(tester, _order(due: '2040-06-01T21:59:59'));
+
+    await tester.tap(byLogId('order_edit.due'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+  });
+
   testWidgets('without them there is a none choice and no warning', (
     tester,
   ) async {
@@ -173,25 +182,31 @@ void main() {
     final adapter = await pumpEdit(tester, _order());
     adapter.onPatch(
       _path,
-      data: {
-        'plates': [
-          {
-            'plate_id': 1,
-            'plate_name': 'Tags',
-            'quantity_target': 3,
-            'sort_order': 0,
-          },
-          {'plate_id': null, 'quantity_target': 2, 'sort_order': 1},
-        ],
-      },
+      data: Matchers.any,
       (s) => s.reply(400, {'detail': 'Order must request at least one print'}),
     );
 
-    await tester.tap(byLogId('order_edit.target_down').first);
-    await tester.pump();
+    // 4 and 2 down to nothing: the form lets it through, the server refuses.
+    for (final (row, times) in [(0, 4), (1, 2)]) {
+      for (var i = 0; i < times; i++) {
+        await tester.tap(byLogId('order_edit.target_down').at(row));
+        await tester.pump();
+      }
+    }
     await tester.tap(byLogId('order_edit.save'));
     await tester.pumpAndSettle();
 
+    expect(sent.last.data, {
+      'plates': [
+        {
+          'plate_id': 1,
+          'plate_name': 'Tags',
+          'quantity_target': 0,
+          'sort_order': 0,
+        },
+        {'plate_id': null, 'quantity_target': 0, 'sort_order': 1},
+      ],
+    });
     expect(find.text(l10n(tester).orderEditErrNothingAsked), findsOneWidget);
     expect(find.byType(OrderEditScreen), findsOneWidget);
   });

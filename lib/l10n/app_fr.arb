@@ -3841,8 +3841,8 @@
   "ordersGroupConfirm": "Grouper",
   "ordersGrouped": "{count, plural, =1{1 travail groupé sous {name}} other{{count} travaux groupés sous {name}}}",
   "ordersPlateDispatched": "Impressions restantes de {plate} mises en file ({name})",
-  "ordersDeleted": "Commande supprimée",
   "queueEditCopies": "Copies",
   "queueEditCopiesHint": "Plus d’une copie est mise en file comme lot.",
-  "queueEditCopiesOrder": "Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées."
+  "queueEditCopiesOrder": "Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.",
+  "ordersGroupedNone": "Rien n’a été groupé : les travaux choisis ont changé entre-temps."
 }

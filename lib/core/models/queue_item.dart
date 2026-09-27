@@ -75,6 +75,7 @@ class QueueItem {
     this.slicedForModel,
     this.batchId,
     this.batchName,
+    this.createdById,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -284,6 +285,10 @@ class QueueItem {
   /// nobody grouped by hand.
   final int? batchId;
   final String? batchName;
+
+  /// Who queued it. Grouping someone else's item needs `queue:update_all`;
+  /// without it the server skips the item without a word.
+  final int? createdById;
 
   /// Cross-model alternatives in priority order (server #671) — several sliced
   /// files, one job, whichever printer frees up first. Empty for every ordinary

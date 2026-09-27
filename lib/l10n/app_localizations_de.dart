@@ -7099,9 +7099,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get ordersDeleted => 'Auftrag gelöscht';
-
-  @override
   String get queueEditCopies => 'Kopien';
 
   @override
@@ -7111,4 +7108,8 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueEditCopiesOrder =>
       'Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen.';
+
+  @override
+  String get ordersGroupedNone =>
+      'Nichts gruppiert: Die gewählten Aufträge haben sich inzwischen geändert.';
 }

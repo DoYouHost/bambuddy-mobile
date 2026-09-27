@@ -353,6 +353,24 @@ void main() {
     expect(find.text(l.ordersReopened), findsOneWidget);
   });
 
+  testWidgets('a fulfilled cancelled order is not offered a reopen', (
+    tester,
+  ) async {
+    // The server would mark it completed again on the spot.
+    final fulfilled = PrintBatch.fromJson({
+      ..._batchJson,
+      'status': 'cancelled',
+      'has_targets': true,
+      'target_count': 4,
+      'remaining_count': 0,
+    });
+    await pumpOrders(tester, [fulfilled]);
+
+    await tester.tap(byLogId('orders.actions'));
+    await tester.pumpAndSettle();
+    expect(byLogId('orders.action.reopen'), findsNothing);
+  });
+
   testWidgets('a grouping cannot be reopened: it would owe nothing', (
     tester,
   ) async {

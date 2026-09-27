@@ -7033,9 +7033,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get ordersDeleted => 'Order deleted';
-
-  @override
   String get queueEditCopies => 'Copies';
 
   @override
@@ -7044,4 +7041,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueEditCopiesOrder =>
       'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.';
+
+  @override
+  String get ordersGroupedNone =>
+      'Nothing was grouped: the picked jobs changed in the meantime.';
 }

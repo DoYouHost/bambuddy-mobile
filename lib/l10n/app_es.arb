@@ -3841,8 +3841,8 @@
   "ordersGroupConfirm": "Agrupar",
   "ordersGrouped": "{count, plural, =1{1 trabajo agrupado como {name}} other{{count} trabajos agrupados como {name}}}",
   "ordersPlateDispatched": "Se encolaron las impresiones pendientes de {plate} ({name})",
-  "ordersDeleted": "Pedido eliminado",
   "queueEditCopies": "Copias",
   "queueEditCopiesHint": "Más de una copia se encola como lote.",
-  "queueEditCopiesOrder": "Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes."
+  "queueEditCopiesOrder": "Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes.",
+  "ordersGroupedNone": "No se agrupó nada: los trabajos elegidos cambiaron mientras tanto."
 }

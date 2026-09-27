@@ -132,8 +132,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 /// A refused batch write, in the user's words.
 ///
 /// A 404 is the batch gone — or someone else's, which the server will not
-/// confirm — and arrives without its detail (only a 400 or 422 keeps one), so
-/// it is told by the status. The stranded-plate 400 names the plates, and
+/// confirm. The mapper keeps a detail for a 400 or 422 only, so it is told by
+/// the status. The stranded-plate 400 names the plates, and
 /// that is the part worth keeping. [rules] go before the shared ones.
 String orderRefusal(
   AppLocalizations l10n,
@@ -152,11 +152,6 @@ String orderRefusal(
 /// `print_batch.py::dispatch_remaining`: "Rings, Plate 3 have no queued or
 /// finished run to copy settings from. …"
 final _strandedPlates = RegExp(r'^(.+?) (?:has|have) no queued or finished');
-
-/// Batches with a request in flight, app-wide rather than per card: a filter
-/// switch or a reopened screen builds a new card, and a second dispatch sent
-/// before the first commits counts the same owed runs — and queues them twice.
-final _inFlightProvider = StateProvider<Set<int>>((_) => const {});
 
 class _OrderCard extends ConsumerStatefulWidget {
   const _OrderCard({super.key, required this.batch});
@@ -180,7 +175,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final providers = ProviderScope.containerOf(context, listen: false);
-    final inFlight = providers.read(_inFlightProvider.notifier);
+    final inFlight = providers.read(ordersInFlightProvider.notifier);
     final id = _b.id;
     // Checked and taken in the same turn, so two taps in one frame are one.
     if (inFlight.state.contains(id)) return;
@@ -257,11 +252,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     await _run(
       (repo) => repo.ungroup(_b.id),
       action: 'orders.action.ungroup',
-      // An order whose items have all left the queue ungroups none of them,
-      // and is deleted all the same.
-      done: (count) => count == 0 && _b.hasTargets
-          ? l10n.ordersDeleted
-          : l10n.ordersUngrouped(count as int),
+      done: (count) => l10n.ordersUngrouped(count as int),
     );
   }
 
@@ -270,7 +261,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final b = _b;
-    final busy = ref.watch(_inFlightProvider.select((s) => s.contains(b.id)));
+    final busy = ref.watch(
+      ordersInFlightProvider.select((s) => s.contains(b.id)),
+    );
     final open = b.status != PrintBatchStatus.cancelled;
     // Every write but cancel looks the batch up for its owner, and answers
     // someone else's with a 404 unless the caller may change all of them.
@@ -300,8 +293,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
           label: l10n.ordersEdit,
           onTap: () => context.push('/orders/${b.id}/edit'),
         ),
-      // Only an order: reopening a grouping would bring back nothing to do.
-      if (canUpdate && orders && b.hasTargets && !open)
+      // Only an order that still owes runs: a grouping, or an order already
+      // fulfilled, would be completed again by the server on the spot.
+      if (canUpdate && orders && b.hasTargets && !open && b.remainingCount > 0)
         (
           id: 'orders.action.reopen',
           icon: Icons.restart_alt,

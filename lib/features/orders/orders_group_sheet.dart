@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -15,17 +16,23 @@ import '../queue/queue_providers.dart';
 import 'orders_providers.dart';
 import 'orders_screen.dart';
 
-/// Waiting jobs that are not in a batch — the only ones `POST /queue/batches`
-/// assigns; it skips the rest without saying so.
+/// Waiting jobs this session may group — the only ones `POST /queue/batches`
+/// assigns; it skips the rest without saying so: those already in a batch,
+/// and someone else's unless the caller may change every item.
 final _groupableProvider = FutureProvider.autoDispose<List<QueueItem>>((
   ref,
 ) async {
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  final anyone =
+      me == null || ref.watch(permissionProvider(Permissions.queueUpdateAll));
   final pending = await ref
       .watch(queueRepositoryProvider)
       .fetch(status: 'pending');
   return [
     for (final i in pending)
-      if (i.batchId == null) i,
+      if (i.batchId == null &&
+          (anyone || i.createdById == null || i.createdById == me.id))
+        i,
   ];
 });
 
@@ -67,9 +74,15 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
           .create(name: _name.text.trim(), itemIds: _picked.toList());
       providers.invalidate(batchesProvider);
       unawaited(providers.read(queueProvider.notifier).refresh());
-      // `quantity` is what the server actually assigned: it skips items that
-      // started or were grouped elsewhere since this list was read.
-      messenger.snack(l10n.ordersGrouped(batch.quantity, batch.name));
+      // The items the batch holds now, not `quantity`, which the server
+      // floors at 1: a pick that started or was grouped elsewhere since this
+      // list was read is skipped, and all of them can be.
+      final grouped = batch.pendingCount + batch.printingCount;
+      messenger.snack(
+        grouped == 0
+            ? l10n.ordersGroupedNone
+            : l10n.ordersGrouped(grouped, batch.name),
+      );
       navigator.pop();
     } on AppApiException catch (e) {
       showApiFailure(

@@ -3141,8 +3141,8 @@
   "ordersGroupConfirm": "Grupuj",
   "ordersGrouped": "{count, plural, =1{Zgrupowano 1 zadanie jako {name}} few{Zgrupowano {count} zadania jako {name}} many{Zgrupowano {count} zadań jako {name}} other{Zgrupowano {count} zadania jako {name}}}",
   "ordersPlateDispatched": "Dodano do kolejki brakujące wydruki płyty {plate} ({name})",
-  "ordersDeleted": "Zamówienie usunięte",
   "queueEditCopies": "Kopie",
   "queueEditCopiesHint": "Więcej niż jedna kopia trafi do kolejki jako partia.",
-  "queueEditCopiesOrder": "Więcej niż jedna kopia tworzy zamówienie: nieudana kopia zostaje do zrobienia i można ją ponownie dodać do kolejki z ekranu Zamówienia."
+  "queueEditCopiesOrder": "Więcej niż jedna kopia tworzy zamówienie: nieudana kopia zostaje do zrobienia i można ją ponownie dodać do kolejki z ekranu Zamówienia.",
+  "ordersGroupedNone": "Niczego nie zgrupowano: wybrane zadania zmieniły się w międzyczasie."
 }

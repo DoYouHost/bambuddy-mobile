@@ -40,6 +40,12 @@ final orderProjectsProvider =
       }
     });
 
+/// Batches with a write in flight, app-wide rather than per card: a filter
+/// switch or a reopened screen builds a new card, and a second dispatch sent
+/// before the first commits counts the same owed runs — and queues them twice.
+/// The edit form takes its batch too, so nothing races its save.
+final ordersInFlightProvider = StateProvider<Set<int>>((_) => const {});
+
 /// Grouping by hand and ungrouping (v0.2.4.8).
 final batchGroupingProvider = capabilityGate(
   (ref) => ref.watch(batchRepositoryProvider).groupingCapability,

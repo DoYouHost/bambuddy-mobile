@@ -7191,9 +7191,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get ordersDeleted => 'Commande supprimée';
-
-  @override
   String get queueEditCopies => 'Copies';
 
   @override
@@ -7203,4 +7200,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueEditCopiesOrder =>
       'Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.';
+
+  @override
+  String get ordersGroupedNone =>
+      'Rien n’a été groupé : les travaux choisis ont changé entre-temps.';
 }

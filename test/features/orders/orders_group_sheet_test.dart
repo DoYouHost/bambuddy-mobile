@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/orders/orders_group_sheet.dart';
@@ -9,8 +10,14 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../helpers.dart';
 
-Map<String, dynamic> _item(int id, String name, {int? batchId}) => {
+Map<String, dynamic> _item(
+  int id,
+  String name, {
+  int? batchId,
+  int? createdBy,
+}) => {
   'id': id,
+  'created_by_id': createdBy,
   'position': id,
   'status': 'pending',
   'archive_name': name,
@@ -26,8 +33,9 @@ void main() {
 
   Future<DioAdapter> pumpSheet(
     WidgetTester tester,
-    List<Map<String, dynamic>> pending,
-  ) async {
+    List<Map<String, dynamic>> pending, {
+    CurrentUser? user,
+  }) async {
     final dio = testDio();
     final adapter = DioAdapter(dio: dio)
       ..onGet(
@@ -50,6 +58,7 @@ void main() {
         noServerProfileOverride,
         queueRepositoryProvider.overrideWithValue(QueueRepository(dio)),
         batchRepositoryProvider.overrideWithValue(BatchRepository(dio)),
+        if (user != null) currentUserOverride(user),
       ],
     );
     await tester.tap(find.text('open'));
@@ -84,6 +93,7 @@ void main() {
         'name': 'Hardware',
         'quantity': 2,
         'status': 'active',
+        'pending_count': 2,
       }),
     );
 
@@ -109,6 +119,57 @@ void main() {
       find.text(l10n(tester).ordersGrouped(2, 'Hardware')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('every pick skipped: says nothing was grouped, not "1 job"', (
+    tester,
+  ) async {
+    final adapter = await pumpSheet(tester, [
+      _item(1, 'Clip'),
+      _item(2, 'Hook'),
+    ]);
+    // The server floors `quantity` at 1 for a batch it assigned nothing to.
+    adapter.onPost(
+      '/api/v1/queue/batches',
+      data: Matchers.any,
+      (s) => s.reply(200, {
+        'id': 10,
+        'name': 'Hardware',
+        'quantity': 1,
+        'status': 'active',
+      }),
+    );
+
+    await tester.tap(find.text('Clip'));
+    await tester.tap(find.text('Hook'));
+    await tester.enterText(byLogId('orders_group.name'), 'Hardware');
+    await tester.pump();
+    await tester.tap(byLogId('orders_group.confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n(tester).ordersGroupedNone), findsOneWidget);
+  });
+
+  testWidgets('someone else\'s jobs are not offered without update-all', (
+    tester,
+  ) async {
+    await pumpSheet(
+      tester,
+      [
+        _item(1, 'Mine', createdBy: 1),
+        _item(2, 'Also mine', createdBy: 1),
+        _item(3, 'Theirs', createdBy: 7),
+      ],
+      user: const CurrentUser(
+        id: 1,
+        username: 'me',
+        isAdmin: false,
+        permissions: {'queue:create', 'queue:update_own'},
+      ),
+    );
+
+    expect(find.text('Mine'), findsOneWidget);
+    expect(find.text('Theirs'), findsNothing);
   });
 
   testWidgets('fewer than two ungrouped jobs: says so', (tester) async {
