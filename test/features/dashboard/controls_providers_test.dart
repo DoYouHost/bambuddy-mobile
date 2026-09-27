@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:fake_async/fake_async.dart';
@@ -10,106 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// A stub commands repository: records calls, optionally waits on a gate
-/// and/or throws a configured exception.
-class _FakeCommands implements PrinterCommandsRepository {
-  final List<String> calls = [];
-  Object? error;
-  Completer<void>? gate;
-
-  Future<void> _do(String tag) async {
-    calls.add(tag);
-    if (gate != null) await gate!.future;
-    if (error != null) throw error!;
-  }
-
-  @override
-  Future<Object?> fetchOpenApi() async => null;
-  @override
-  Future<void> pause(int id) => _do('pause:$id');
-  @override
-  Future<void> resume(int id) => _do('resume:$id');
-  @override
-  Future<void> stop(int id) => _do('stop:$id');
-  @override
-  Future<void> clearPlate(int id) => _do('clearPlate:$id');
-  @override
-  Future<void> setChamberLight(int id, {required bool on}) =>
-      _do('light:$id:$on');
-  @override
-  Future<void> setPrintSpeed(int id, int mode) => _do('speed:$id:$mode');
-  @override
-  Future<void> setNozzleTemperature(int id, int target, {int nozzle = 0}) =>
-      _do('nozzle:$id:$target:$nozzle');
-  @override
-  Future<void> setBedTemperature(int id, int target) => _do('bed:$id:$target');
-  @override
-  Future<void> setChamberTemperature(int id, int target) =>
-      _do('chamber:$id:$target');
-  @override
-  Future<void> setAirductMode(int id, {required bool heating}) =>
-      _do('airduct:$id:$heating');
-  @override
-  Future<void> setFanSpeed(int id, String fan, int speed) =>
-      _do('fan:$id:$fan:$speed');
-  @override
-  Future<void> selectExtruder(int id, int extruder) =>
-      _do('extruder:$id:$extruder');
-  @override
-  Future<void> startDrying(
-    int id, {
-    required int amsId,
-    required int temp,
-    required int duration,
-    String filament = '',
-  }) => _do('dryStart:$id:$amsId:$temp:$duration:$filament');
-  @override
-  Future<void> stopDrying(int id, {required int amsId}) =>
-      _do('dryStop:$id:$amsId');
-  @override
-  Future<void> bedJog(int id, double distance, {bool force = false}) =>
-      _do('bedJog:$id:$distance:$force');
-  @override
-  Future<void> xyJog(int id, {double x = 0, double y = 0}) =>
-      _do('xyJog:$id:$x:$y');
-  @override
-  Future<void> extruderJog(int id, double distance) =>
-      _do('extruderJog:$id:$distance');
-  @override
-  Future<void> homeAxes(int id) => _do('homeAxes:$id');
-  @override
-  Future<void> refreshStatus(int id) => _do('refreshStatus:$id');
-  @override
-  void nudgeRepublish(Iterable<int> ids) {
-    for (final id in ids) {
-      unawaited(refreshStatus(id).catchError((Object _) {}));
-    }
-  }
-
-  @override
-  Future<void> amsLoad(int id, int trayId, {int? extruderId}) =>
-      _do('amsLoad:$id:$trayId:${extruderId ?? '-'}');
-  @override
-  Future<void> amsUnload(int id, {int? trayId}) =>
-      _do('amsUnload:$id:${trayId ?? '-'}');
-  @override
-  Future<void> refreshAmsSlot(
-    int id, {
-    required int amsId,
-    required int slotId,
-  }) => _do('amsRfid:$id:$amsId:$slotId');
-  @override
-  Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
-  @override
-  Future<void> executeHmsAction(
-    int id, {
-    required String printError,
-    required String action,
-    String? jobId,
-  }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
-}
-
-ProviderContainer _container(_FakeCommands fake) {
+ProviderContainer _container(RecordingCommands fake) {
   final c = ProviderContainer(
     overrides: [
       fakeServerProfileOverride(),
@@ -124,7 +24,7 @@ void main() {
   test(
     'setLight: optimistically sets state and "in-flight", then success',
     () async {
-      final fake = _FakeCommands()..gate = Completer<void>();
+      final fake = RecordingCommands()..gate = Completer<void>();
       final c = _container(fake);
       final notifier = c.read(controlsProvider.notifier);
 
@@ -151,7 +51,7 @@ void main() {
   );
 
   test('error → rollback: overwrite disappears, no forbidden block', () async {
-    final fake = _FakeCommands()
+    final fake = RecordingCommands()
       ..error = const ApiException(AppErrorCode.badResponse);
     final c = _container(fake);
 
@@ -166,7 +66,7 @@ void main() {
   });
 
   test('an unexpected failure still unlocks and rolls back', () async {
-    final fake = _FakeCommands()..error = StateError('bug');
+    final fake = RecordingCommands()..error = StateError('bug');
     final c = _container(fake);
 
     await expectLater(
@@ -180,7 +80,7 @@ void main() {
   });
 
   test('403 → refusal and a sticky control block', () async {
-    final fake = _FakeCommands()
+    final fake = RecordingCommands()
       ..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
 
@@ -198,7 +98,7 @@ void main() {
   test(
     'rollback is surgical: one action\'s error does not wipe out another',
     () async {
-      final fake = _FakeCommands();
+      final fake = RecordingCommands();
       final c = _container(fake);
       final notifier = c.read(controlsProvider.notifier);
 
@@ -216,7 +116,7 @@ void main() {
   test('an RFID refusal leaves the rest of the controls alone', () async {
     // The re-read has a permission of its own, so its 403 says nothing about
     // whether this key may drive the printer.
-    final fake = _FakeCommands()
+    final fake = RecordingCommands()
       ..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
 
@@ -240,7 +140,7 @@ void main() {
   });
 
   test('load and unload share one in-flight marker for the printer', () async {
-    final fake = _FakeCommands()..gate = Completer<void>();
+    final fake = RecordingCommands()..gate = Completer<void>();
     final c = _container(fake);
     final notifier = c.read(controlsProvider.notifier);
 
@@ -265,7 +165,7 @@ void main() {
     'after success the optimistic overwrite disappears after optimisticHold',
     () {
       fakeAsync((async) {
-        final fake = _FakeCommands();
+        final fake = RecordingCommands();
         final c = _container(fake);
         final notifier = c.read(controlsProvider.notifier);
 

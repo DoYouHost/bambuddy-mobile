@@ -24,10 +24,7 @@ Future<QueueTarget?> showQueueTargetSheet(
     for (final p in printers)
       if (p.isActive != false) p,
   ];
-  final models = <String>{
-    for (final p in active)
-      if (p.model != null && p.model!.isNotEmpty) p.model!,
-  }.toList()..sort();
+  final models = distinctPrinterModels(active);
   return dashSheet<QueueTarget>(
     context,
     builder: (ctx) {

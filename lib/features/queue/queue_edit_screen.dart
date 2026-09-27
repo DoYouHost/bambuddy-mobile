@@ -10,6 +10,7 @@ import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/printer.dart';
 import '../../core/models/plate_list.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/printers/nozzle_rack.dart';
@@ -355,10 +356,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // --- Target: Specific Printer / Any <model> ---
   Widget _targetSection(AppLocalizations l10n, DashTokens t) {
     final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
-    final models = <String>{
-      for (final p in printers)
-        if (p.model != null && p.model!.isNotEmpty) p.model!,
-    }.toList()..sort();
+    final models = distinctPrinterModels(printers);
     final locations = <String>{
       for (final p in printers)
         if (p.location != null && p.location!.isNotEmpty) p.location!,

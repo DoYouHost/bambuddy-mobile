@@ -14,6 +14,7 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
@@ -1001,4 +1002,109 @@ void usePhoneWindow(WidgetTester tester, {double dp = 800}) {
   tester.view.physicalSize = Size(360 * ratio, dp * ratio);
   tester.view.devicePixelRatio = ratio;
   addTearDown(tester.view.reset);
+}
+
+/// A [PrinterCommandsRepository] that records every call as `kind:args`
+/// (`pause:1`, `amsLoad:1:3:-`) and succeeds, unless told otherwise: [gate]
+/// holds every call and [error] fails every call, while [holds] and [errors]
+/// do the same for one kind only — the part of the tag before the first `:`.
+class RecordingCommands implements PrinterCommandsRepository {
+  final List<String> calls = [];
+  Object? error;
+  Completer<void>? gate;
+  final holds = <String, Completer<void>>{};
+  final errors = <String, Object>{};
+
+  Future<void> _do(String tag) async {
+    calls.add(tag);
+    final kind = tag.split(':').first;
+    await (holds[kind] ?? gate)?.future;
+    final failure = errors[kind] ?? error;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<Object?> fetchOpenApi() async => null;
+  @override
+  Future<void> pause(int id) => _do('pause:$id');
+  @override
+  Future<void> resume(int id) => _do('resume:$id');
+  @override
+  Future<void> stop(int id) => _do('stop:$id');
+  @override
+  Future<void> clearPlate(int id) => _do('clearPlate:$id');
+  @override
+  Future<void> setChamberLight(int id, {required bool on}) =>
+      _do('light:$id:$on');
+  @override
+  Future<void> setPrintSpeed(int id, int mode) => _do('speed:$id:$mode');
+  @override
+  Future<void> setNozzleTemperature(int id, int target, {int nozzle = 0}) =>
+      _do('nozzle:$id:$target:$nozzle');
+  @override
+  Future<void> setBedTemperature(int id, int target) => _do('bed:$id:$target');
+  @override
+  Future<void> setChamberTemperature(int id, int target) =>
+      _do('chamber:$id:$target');
+  @override
+  Future<void> setAirductMode(int id, {required bool heating}) =>
+      _do('airduct:$id:$heating');
+  @override
+  Future<void> setFanSpeed(int id, String fan, int speed) =>
+      _do('fan:$id:$fan:$speed');
+  @override
+  Future<void> selectExtruder(int id, int extruder) =>
+      _do('extruder:$id:$extruder');
+  @override
+  Future<void> startDrying(
+    int id, {
+    required int amsId,
+    required int temp,
+    required int duration,
+    String filament = '',
+  }) => _do('dryStart:$id:$amsId:$temp:$duration:$filament');
+  @override
+  Future<void> stopDrying(int id, {required int amsId}) =>
+      _do('dryStop:$id:$amsId');
+  @override
+  Future<void> bedJog(int id, double distance, {bool force = false}) =>
+      _do('bedJog:$id:$distance:$force');
+  @override
+  Future<void> xyJog(int id, {double x = 0, double y = 0}) =>
+      _do('xyJog:$id:$x:$y');
+  @override
+  Future<void> extruderJog(int id, double distance) =>
+      _do('extruderJog:$id:$distance');
+  @override
+  Future<void> homeAxes(int id) => _do('homeAxes:$id');
+  @override
+  Future<void> refreshStatus(int id) => _do('refreshStatus:$id');
+  @override
+  void nudgeRepublish(Iterable<int> ids) {
+    for (final id in ids) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+
+  @override
+  Future<void> amsLoad(int id, int trayId, {int? extruderId}) =>
+      _do('amsLoad:$id:$trayId:${extruderId ?? '-'}');
+  @override
+  Future<void> amsUnload(int id, {int? trayId}) =>
+      _do('amsUnload:$id:${trayId ?? '-'}');
+  @override
+  Future<void> refreshAmsSlot(
+    int id, {
+    required int amsId,
+    required int slotId,
+  }) => _do('amsRfid:$id:$amsId:$slotId');
+  @override
+  Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
+  @override
+  Future<void> executeHmsAction(
+    int id, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
 }
