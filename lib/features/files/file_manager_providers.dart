@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/library_file.dart';
+import '../../core/models/library_file_detail.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/library_stats.dart';
 import '../../core/models/library_tag.dart';
@@ -416,6 +417,18 @@ final libraryTagsProvider = FutureProvider.autoDispose<List<LibraryTag>?>(
 final libraryTagsSupportedProvider = capabilityGate(
   (ref) => ref.watch(libraryRepositoryProvider).tagsCapability,
 );
+
+/// Whether library files have photos, a link and notes here (#3077). The
+/// listing's `photo_count` outranks the version.
+final libraryFileExtrasProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).fileExtrasCapability,
+);
+
+/// The fields of one library file the listing leaves out (#3077).
+final libraryFileDetailProvider = FutureProvider.autoDispose
+    .family<LibraryFileDetail, int>(
+      (ref, fileId) => ref.watch(libraryRepositoryProvider).fileDetail(fileId),
+    );
 
 /// List of files in trash.
 final libraryTrashProvider = FutureProvider.autoDispose<List<TrashFile>>(

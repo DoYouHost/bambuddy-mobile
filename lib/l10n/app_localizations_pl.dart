@@ -3557,9 +3557,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get aboutThirdPartySubtitle => 'Licencje dołączonych bibliotek';
 
   @override
-  String get aboutOpenLinkError => 'Nie udało się otworzyć linku';
-
-  @override
   String get fileManagerMenu => 'Menedżer plików';
 
   @override
@@ -3693,6 +3690,115 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get fmAddedToQueue => 'Dodano do kolejki';
+
+  @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gdzie wydrukować $count pliku?',
+      many: 'Gdzie wydrukować $count plików?',
+      few: 'Gdzie wydrukować $count pliki?',
+      one: 'Gdzie wydrukować ten plik?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Model zapisany w pliku';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Każdy plik czeka na drukarkę tego modelu, pod który go pocięto';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Dodano do kolejki $added z $total plików. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Pocięto pod inny model drukarki.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Nie pocięto — do kolejki trafiają tylko pliki G-code.';
+
+  @override
+  String get fmFileDetails => 'Zdjęcia, link i notatki';
+
+  @override
+  String get fmPhotosEmpty => 'Brak zdjęć wydruku';
+
+  @override
+  String get fmPhotoAdd => 'Dodaj zdjęcie';
+
+  @override
+  String get fmPhotoFromCamera => 'Zrób zdjęcie';
+
+  @override
+  String get fmPhotoFromGallery => 'Wybierz z galerii';
+
+  @override
+  String get fmPhotoFromFiles => 'Wybierz z plików';
+
+  @override
+  String get fmPhotoAdded => 'Dodano zdjęcie';
+
+  @override
+  String get fmPhotoDelete => 'Usuń zdjęcie';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Usunąć to zdjęcie z pliku?';
+
+  @override
+  String get fmPhotoDeleted => 'Usunięto zdjęcie';
+
+  @override
+  String get fmPhotoErrType => 'Można dodać tylko zdjęcia JPG, PNG lub WebP.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'Zdjęcie jest większe niż 10 MB.';
+
+  @override
+  String get fmPhotoPickFailed =>
+      'Nie udało się otworzyć aparatu ani okna wyboru pliku.';
+
+  @override
+  String get fmLink => 'Link';
+
+  @override
+  String get fmLinkNone => 'Brak linku';
+
+  @override
+  String get fmLinkEdit => 'Edytuj link';
+
+  @override
+  String get fmLinkField => 'Adres';
+
+  @override
+  String get fmLinkSaved => 'Zapisano link';
+
+  @override
+  String get fmLinkErrScheme =>
+      'Link musi zaczynać się od http:// lub https://.';
+
+  @override
+  String get linkOpenFailed => 'Nie udało się otworzyć linku.';
+
+  @override
+  String get fmSource => 'Zaimportowano z';
+
+  @override
+  String get fmNotes => 'Notatki';
+
+  @override
+  String get fmNotesNone => 'Brak notatek';
+
+  @override
+  String get fmNotesEdit => 'Edytuj notatki';
+
+  @override
+  String get fmNotesSaved => 'Zapisano notatki';
 
   @override
   String get fmGroupAsVariants => 'Zgrupuj jako warianty';

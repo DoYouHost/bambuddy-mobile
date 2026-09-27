@@ -13,6 +13,7 @@ import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
@@ -28,7 +29,9 @@ import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
+import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
+import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
@@ -367,6 +370,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final canSlice =
         ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
     final tagsSupported = ref.read(libraryTagsSupportedProvider).orFalse;
+    // Settled by the listing this file came from, so one read is the answer.
+    final extrasSupported = ref.read(libraryFileExtrasProvider).orFalse;
     dashSheet<void>(
       context,
       scrollControlled: false,
@@ -497,6 +502,19 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _tagFile(file);
                 },
               ).tagged('file_actions.tags'),
+            // External files too: photos, link and notes live in the server's
+            // database, not in the file on the host's disk.
+            if (extrasSupported)
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(l10n.fmFileDetails),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(
+                    fileDetailsRoute(file.id, name: file.displayName),
+                  );
+                },
+              ).tagged('file_actions.details'),
             if (!file.isExternal) ...[
               ListTile(
                 leading: const Icon(Icons.drive_file_rename_outline),
@@ -749,24 +767,74 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _addSelectedToQueue(FileManagerState s) async {
-    final ids = s.selected.toList();
-    try {
-      await ref.read(libraryRepositoryProvider).addToQueue(ids);
-      if (!mounted) return;
+    final added = await _queueFiles(s.selected.toList(), 'files.add_to_queue');
+    if (added && mounted) {
       ref.read(fileManagerProvider.notifier).clearSelection();
-      _snack(_l10n.fmAddedToQueue);
-    } on AppApiException catch (e) {
-      _failed(e, 'files.add_to_queue');
     }
   }
 
-  Future<void> _addToQueue(LibraryFile file) async {
+  Future<void> _addToQueue(LibraryFile file) =>
+      _queueFiles([file.id], 'file_actions.add_to_queue');
+
+  /// Queues [ids], first asking where when the server can be told (#3112).
+  /// Returns whether anything was queued.
+  Future<bool> _queueFiles(List<int> ids, String action) async {
+    final repo = ref.read(libraryRepositoryProvider);
     try {
-      await ref.read(libraryRepositoryProvider).addToQueue([file.id]);
-      if (!mounted) return;
-      _snack(_l10n.fmAddedToQueue);
+      QueueTarget target = (printerId: null, model: null);
+      final canTarget = await settledGate(
+        ProviderScope.containerOf(context, listen: false),
+        libraryQueueTargetProvider,
+      ).catchError((Object _) => false);
+      if (!mounted) return false;
+      if (canTarget) {
+        final printers = await ref
+            .read(printersRepositoryProvider)
+            .fetchPrinters();
+        if (!mounted) return false;
+        // Nothing active leaves only "from the file", which is what an
+        // unasked add does anyway.
+        if (printers.any((p) => p.isActive != false)) {
+          final picked = await showQueueTargetSheet(
+            context,
+            fileCount: ids.length,
+            printers: printers,
+          );
+          if (picked == null || !mounted) return false;
+          target = picked;
+        }
+      }
+      final outcome = await repo.addToQueue(
+        ids,
+        printerId: target.printerId,
+        targetModel: target.model,
+      );
+      if (!mounted) return true;
+      final l10n = _l10n;
+      _snack(
+        outcome.rejections.isEmpty
+            ? l10n.fmAddedToQueue
+            : l10n.fmAddedToQueuePartial(
+                outcome.added,
+                ids.length,
+                knownRefusal(l10n, outcome.rejections.first, _queueRefusals) ??
+                    outcome.rejections.first,
+              ),
+      );
+      return true;
     } on AppApiException catch (e) {
-      _failed(e, 'file_actions.add_to_queue');
+      if (mounted) {
+        showApiFailure(
+          _messenger,
+          e,
+          _l10n,
+          action: action,
+          message: serverRefusal(_l10n, e, _queueRefusals),
+        );
+      } else {
+        _failed(e, action);
+      }
+      return false;
     }
   }
 
@@ -1275,6 +1343,12 @@ class _FileTile extends StatelessWidget {
                             ],
                           ),
                         ],
+                        if (file.photoCount > 0 ||
+                            file.externalUrl != null ||
+                            file.hasNotes) ...[
+                          const SizedBox(height: 4),
+                          _ExtrasBadges(file: file),
+                        ],
                         if (file.tags.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           // Capped so a file tagged a dozen times keeps the
@@ -1301,6 +1375,47 @@ class _FileTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The per-file reasons a bulk add is likely to meet, worded for the user;
+/// anything else is quoted as the server wrote it.
+final _queueRefusals = <RefusalRule>[
+  (['sliced for', 'cannot be dispatched'], (l10n) => l10n.fmQueueErrWrongModel),
+  (['not a sliced file'], (l10n) => l10n.fmQueueErrNotSliced),
+];
+
+/// Marks what a file carries besides itself (#3077): photos with their count,
+/// a link, notes. Icons only — the details screen has the words.
+class _ExtrasBadges extends StatelessWidget {
+  const _ExtrasBadges({required this.file});
+
+  final LibraryFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    Widget icon(IconData data, String label) => Semantics(
+      label: label,
+      child: Icon(data, size: 12, color: t.textTertiary),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (file.photoCount > 0) ...[
+          icon(Icons.photo_camera_outlined, l10n.archivePhotosTitle),
+          const SizedBox(width: 3),
+          Text('${file.photoCount}', style: t.micro),
+          const SizedBox(width: 8),
+        ],
+        if (file.externalUrl != null) ...[
+          icon(Icons.link, l10n.fmLink),
+          const SizedBox(width: 8),
+        ],
+        if (file.hasNotes) icon(Icons.notes, l10n.fmNotes),
+      ],
     );
   }
 }

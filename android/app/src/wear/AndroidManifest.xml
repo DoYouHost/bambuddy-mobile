@@ -107,15 +107,18 @@
             android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
             tools:node="remove" />
 
-        <!-- Two more providers instantiated at process start for features the
-             watch has no screen for: printing a spool label and sharing a file
-             out of the archive. Each parses its own `file_paths` XML on the way
-             up. -->
+        <!-- Three more providers instantiated at process start for features the
+             watch has no screen for: printing a spool label, sharing a file
+             out of the archive, and photographing a print for the library.
+             Each parses its own `file_paths` XML on the way up. -->
         <provider
             android:name="net.nfet.flutter.printing.PrintFileProvider"
             tools:node="remove" />
         <provider
             android:name="dev.fluttercommunity.plus.share.ShareFileProvider"
+            tools:node="remove" />
+        <provider
+            android:name="io.flutter.plugins.imagepicker.ImagePickerFileProvider"
             tools:node="remove" />
 
         <!-- Declared rather than started, so these cost a bigger component table

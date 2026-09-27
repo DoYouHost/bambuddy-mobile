@@ -4,7 +4,6 @@ import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/ams/drying_presets.dart';
 import '../../../core/ams/slot_addressing.dart';
@@ -39,6 +38,7 @@ import '../../common/date_time_picker.dart';
 import '../../common/detached_flow.dart';
 import '../../common/dashed_line.dart';
 import '../../common/plate_clear.dart';
+import '../../common/web_link.dart';
 import '../../files/printer_file_manager_screen.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';

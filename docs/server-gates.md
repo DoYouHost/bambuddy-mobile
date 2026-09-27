@@ -181,6 +181,28 @@ carries for the whole fleet. A route pair, so `InventoryRepository` prefers the
 404. Being early costs a section offering to write where the write would 404, so
 the spool form hides it until this says yes.
 
+### libraryQueueTarget — 1.2.5.6 (server #3112, commit 70b42d1c)
+
+`printer_id` / `target_model` on `POST /library/files/add-to-queue` — a bulk
+add aimed at one printer or one model instead of leaving each row unassigned.
+`AddToQueueRequest` forbids no extra fields, so an older server takes both,
+says nothing, and queues the files exactly as before; its reply carries no
+printer either, so there is nothing to observe. The one release it is not
+early for is 1.2.5.6 itself; a 1.2.6b1 daily older than the commit still reads
+as yes (its base outranks 1.2.5.6) and drops the choice — the unassigned rows
+it queues today, which the queue screen can still assign one by one.
+
+### libraryFileExtras — 1.2.6 (server #3077, commit 12dddada)
+
+Photos of the printed result, a link and notes on a library file:
+`photo_count` / `external_url` / `has_notes` on the listing row, `photos` /
+`source_url` on the detail, and `/library/files/{id}/photos`. Only in 1.2.6
+dailies from 2026-09-26. `LibraryRepository` observes `photo_count` on the
+listing, which is defaulted from that commit on and absent before it, so the
+row only speaks before the first listing — and the details entry lives in the
+per-file sheet, which cannot open before one. Being early would cost a screen
+whose photo routes 404 and whose link is silently dropped by `FileUpdate`.
+
 ## Not a row: the bed-jog sign (server #1334)
 
 `POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up

@@ -5900,12 +5900,6 @@ abstract class AppLocalizations {
   /// **'Licenses of the bundled libraries'**
   String get aboutThirdPartySubtitle;
 
-  /// No description provided for @aboutOpenLinkError.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open the link'**
-  String get aboutOpenLinkError;
-
   /// Drawer entry: File Manager
   ///
   /// In en, this message translates to:
@@ -6127,6 +6121,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added to queue'**
   String get fmAddedToQueue;
+
+  /// No description provided for @fmQueueTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}'**
+  String fmQueueTargetTitle(int count);
+
+  /// No description provided for @fmQueueTargetAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Model from the file'**
+  String get fmQueueTargetAuto;
+
+  /// No description provided for @fmQueueTargetAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each file waits for a printer of the model it was sliced for'**
+  String get fmQueueTargetAutoHint;
+
+  /// No description provided for @fmAddedToQueuePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {added} of {total} files to the queue. {reason}'**
+  String fmAddedToQueuePartial(int added, int total, String reason);
+
+  /// No description provided for @fmQueueErrWrongModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for a different printer model.'**
+  String get fmQueueErrWrongModel;
+
+  /// No description provided for @fmQueueErrNotSliced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sliced — only G-code files can be queued.'**
+  String get fmQueueErrNotSliced;
+
+  /// No description provided for @fmFileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, link and notes'**
+  String get fmFileDetails;
+
+  /// No description provided for @fmPhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos of the print yet'**
+  String get fmPhotosEmpty;
+
+  /// No description provided for @fmPhotoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get fmPhotoAdd;
+
+  /// No description provided for @fmPhotoFromCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get fmPhotoFromCamera;
+
+  /// No description provided for @fmPhotoFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get fmPhotoFromGallery;
+
+  /// No description provided for @fmPhotoFromFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from files'**
+  String get fmPhotoFromFiles;
+
+  /// No description provided for @fmPhotoAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo added'**
+  String get fmPhotoAdded;
+
+  /// No description provided for @fmPhotoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo'**
+  String get fmPhotoDelete;
+
+  /// No description provided for @fmPhotoDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this photo from the file?'**
+  String get fmPhotoDeleteConfirm;
+
+  /// No description provided for @fmPhotoDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo deleted'**
+  String get fmPhotoDeleted;
+
+  /// No description provided for @fmPhotoErrType.
+  ///
+  /// In en, this message translates to:
+  /// **'Only JPG, PNG or WebP photos can be added.'**
+  String get fmPhotoErrType;
+
+  /// No description provided for @fmPhotoErrTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo is larger than 10 MB.'**
+  String get fmPhotoErrTooLarge;
+
+  /// No description provided for @fmPhotoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the camera or the picker.'**
+  String get fmPhotoPickFailed;
+
+  /// No description provided for @fmLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get fmLink;
+
+  /// No description provided for @fmLinkNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No link'**
+  String get fmLinkNone;
+
+  /// No description provided for @fmLinkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit link'**
+  String get fmLinkEdit;
+
+  /// No description provided for @fmLinkField.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get fmLinkField;
+
+  /// No description provided for @fmLinkSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Link saved'**
+  String get fmLinkSaved;
+
+  /// No description provided for @fmLinkErrScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'The link has to start with http:// or https://.'**
+  String get fmLinkErrScheme;
+
+  /// No description provided for @linkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link.'**
+  String get linkOpenFailed;
+
+  /// No description provided for @fmSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported from'**
+  String get fmSource;
+
+  /// No description provided for @fmNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get fmNotes;
+
+  /// No description provided for @fmNotesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes'**
+  String get fmNotesNone;
+
+  /// No description provided for @fmNotesEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get fmNotesEdit;
+
+  /// No description provided for @fmNotesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes saved'**
+  String get fmNotesSaved;
 
   /// No description provided for @fmGroupAsVariants.
   ///

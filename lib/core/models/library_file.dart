@@ -31,6 +31,9 @@ class LibraryFile {
     this.tags = const [],
     this.variantGroupId,
     this.variantCount = 0,
+    this.externalUrl,
+    this.hasNotes = false,
+    this.photoCount = 0,
   });
 
   factory LibraryFile.fromJson(Map<String, dynamic> json) =>
@@ -97,6 +100,19 @@ class LibraryFile {
   /// [LibraryRepository] tells the two generations apart.
   @JsonKey(defaultValue: 0)
   final int variantCount;
+
+  /// The user's link for this file (#3077) — a design page, a shop. Only
+  /// `http`/`https` is accepted by the server's `FileUpdate`.
+  final String? externalUrl;
+
+  /// Whether the file carries notes; the listing never ships the text itself.
+  @JsonKey(defaultValue: false)
+  final bool hasNotes;
+
+  /// Photos of the printed result. Absent (→ 0) before #3077, which is how
+  /// [LibraryRepository] tells the generations apart, as with [variantCount].
+  @JsonKey(defaultValue: 0)
+  final int photoCount;
 
   /// Whether this file is one of several alternatives for the same job.
   ///

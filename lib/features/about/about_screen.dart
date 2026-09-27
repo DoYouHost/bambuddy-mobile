@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
@@ -8,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_icon_tile.dart';
 import '../common/server_version_text.dart';
+import '../common/web_link.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
@@ -79,7 +79,7 @@ class AboutScreen extends StatelessWidget {
                 _AboutRow(
                   icon: Icons.gavel_outlined,
                   title: l10n.aboutViewLicense,
-                  onTap: () => _open(context, _licenseUrl, l10n),
+                  onTap: () => openWebLink(context, _licenseUrl),
                   id: 'about.license',
                 ),
               ],
@@ -93,7 +93,7 @@ class AboutScreen extends StatelessWidget {
                   icon: Icons.code,
                   title: l10n.aboutSourceLink,
                   subtitle: 'github.com/DoYouHost/bambuddy-mobile',
-                  onTap: () => _open(context, _sourceUrl, l10n),
+                  onTap: () => openWebLink(context, _sourceUrl),
                   id: 'about.source',
                 ),
               ],
@@ -114,20 +114,6 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _open(
-    BuildContext context,
-    String url,
-    AppLocalizations l10n,
-  ) async {
-    final ok = await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).snack(l10n.aboutOpenLinkError);
-    }
   }
 
   Future<void> _showLicenses(BuildContext context) async {

@@ -5032,6 +5032,13 @@ class DemoBackend {
     'sliced_for_model': model,
     'variant_group_id': null,
     'variant_count': 0,
+    // #3077 — the listing and the detail are one map here, so both halves
+    // of the contract ride on it.
+    'external_url': null,
+    'has_notes': false,
+    'notes': null,
+    'photo_count': 0,
+    'photos': const <String>[],
   };
 
   /// Cross-model variant groups (server #671), served because the demo now
@@ -5185,12 +5192,18 @@ class DemoBackend {
         }
         if (s.length >= 3 && s[2] == 'add-to-queue' && m == 'POST') {
           final ids = (body['file_ids'] as List?) ?? const [];
+          final added = <Map<String, dynamic>>[];
           for (final f in _libraryFiles) {
             if (!ids.contains(f['id'])) continue;
+            added.add({
+              'file_id': f['id'],
+              'filename': f['filename'],
+              'queue_item_id': _nextQueueId,
+            });
             _queue.add(
               _queueItem(
                 id: _nextQueueId++,
-                printerId: null,
+                printerId: body['printer_id'] as int?,
                 position: _queue.length + 1,
                 name: '${f['print_name']}',
                 status: 'pending',
@@ -5202,7 +5215,7 @@ class DemoBackend {
               ),
             );
           }
-          return _ok(const {'ok': true});
+          return _ok({'added': added, 'errors': const <Object>[]});
         }
         final fileId = int.tryParse(s.length > 2 ? s[2] : '');
         final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
@@ -5212,6 +5225,14 @@ class DemoBackend {
           if (m == 'PUT') {
             if (body.containsKey('filename')) {
               file['filename'] = body['filename'];
+            }
+            // An empty string clears either, as on the server.
+            final url = body['external_url'];
+            if (url is String) file['external_url'] = url.isEmpty ? null : url;
+            final notes = body['notes'];
+            if (notes is String) {
+              file['notes'] = notes.isEmpty ? null : notes;
+              file['has_notes'] = notes.isNotEmpty;
             }
             return _ok(file);
           }
@@ -5226,6 +5247,9 @@ class DemoBackend {
             });
             return _ok(const {'ok': true});
           }
+        }
+        if (s.length >= 4 && s[3] == 'photos' && m == 'POST') {
+          return (status: 501, body: {'detail': 'Upload unavailable in demo'});
         }
         if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
         if (s.length >= 4 && s[3] == 'filament-requirements') {

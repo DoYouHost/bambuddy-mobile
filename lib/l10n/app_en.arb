@@ -2191,7 +2191,6 @@
   "aboutSourceLink": "Open source repository",
   "aboutThirdParty": "Open-source licenses",
   "aboutThirdPartySubtitle": "Licenses of the bundled libraries",
-  "aboutOpenLinkError": "Could not open the link",
   "fileManagerMenu": "File Manager",
   "@fileManagerMenu": {
     "description": "Drawer entry: File Manager"
@@ -2260,6 +2259,57 @@
   "fmPrint": "Print",
   "fmAddToQueue": "Add to queue",
   "fmAddedToQueue": "Added to queue",
+  "fmQueueTargetTitle": "{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}",
+  "@fmQueueTargetTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fmQueueTargetAuto": "Model from the file",
+  "fmQueueTargetAutoHint": "Each file waits for a printer of the model it was sliced for",
+  "fmAddedToQueuePartial": "Added {added} of {total} files to the queue. {reason}",
+  "@fmAddedToQueuePartial": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "fmQueueErrWrongModel": "Sliced for a different printer model.",
+  "fmQueueErrNotSliced": "Not sliced — only G-code files can be queued.",
+  "fmFileDetails": "Photos, link and notes",
+  "fmPhotosEmpty": "No photos of the print yet",
+  "fmPhotoAdd": "Add photo",
+  "fmPhotoFromCamera": "Take a photo",
+  "fmPhotoFromGallery": "Choose from gallery",
+  "fmPhotoFromFiles": "Choose from files",
+  "fmPhotoAdded": "Photo added",
+  "fmPhotoDelete": "Delete photo",
+  "fmPhotoDeleteConfirm": "Delete this photo from the file?",
+  "fmPhotoDeleted": "Photo deleted",
+  "fmPhotoErrType": "Only JPG, PNG or WebP photos can be added.",
+  "fmPhotoErrTooLarge": "The photo is larger than 10 MB.",
+  "fmPhotoPickFailed": "Couldn't open the camera or the picker.",
+  "fmLink": "Link",
+  "fmLinkNone": "No link",
+  "fmLinkEdit": "Edit link",
+  "fmLinkField": "Address",
+  "fmLinkSaved": "Link saved",
+  "fmLinkErrScheme": "The link has to start with http:// or https://.",
+  "linkOpenFailed": "Couldn't open the link.",
+  "fmSource": "Imported from",
+  "fmNotes": "Notes",
+  "fmNotesNone": "No notes",
+  "fmNotesEdit": "Edit notes",
+  "fmNotesSaved": "Notes saved",
   "fmGroupAsVariants": "Group as alternatives",
   "fmQueueAsVariants": "Queue as one job",
   "fmUngroupVariants": "Ungroup alternatives",

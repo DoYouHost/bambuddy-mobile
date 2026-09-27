@@ -713,6 +713,12 @@ final labelStartingPositionProvider = capabilityGate(
       ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
 );
 
+/// Whether "Add to queue" in the file manager may ask which printer or model
+/// the files are for (server #3112). Version-only, like the label sheet's.
+final libraryQueueTargetProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).queueTargetCapability,
+);
+
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(

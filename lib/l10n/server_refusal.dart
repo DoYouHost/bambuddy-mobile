@@ -26,13 +26,26 @@ String serverRefusal(
   AppApiException error,
   List<RefusalRule> rules,
 ) {
-  final detail = error.detail?.toLowerCase();
+  final detail = error.detail;
   if (detail == null || detail.trim().isEmpty) return error.localized(l10n);
-  for (final (needles, say) in rules) {
-    if (needles.every(detail.contains)) return say(l10n);
-  }
+  final known = knownRefusal(l10n, detail, rules);
+  if (known != null) return known;
   if (error.code != AppErrorCode.badResponse) return error.localized(l10n);
-  return error.detail!;
+  return detail;
+}
+
+/// What the first of [rules] matching [detail] says, or null when none does —
+/// for a reason that arrives in a response body rather than as a failure.
+String? knownRefusal(
+  AppLocalizations l10n,
+  String detail,
+  List<RefusalRule> rules,
+) {
+  final folded = detail.toLowerCase();
+  for (final (needles, say) in rules) {
+    if (needles.every(folded.contains)) return say(l10n);
+  }
+  return null;
 }
 
 /// [serverRefusal] for an outcome, which is how a notifier hands one back.

@@ -182,12 +182,22 @@ void main() {
           ServerFeature.archivePrinterMedia,
           ServerFeature.locationHaSensors,
           ServerFeature.spoolModelPresets,
+          ServerFeature.libraryFileExtras,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
         }
       },
     );
+  });
+
+  test('a bulk add may name its target from 1.2.5.6 (#3112)', () {
+    expect(
+      parse('1.2.5.5').supports(ServerFeature.libraryQueueTarget),
+      isFalse,
+    );
+    expect(parse('1.2.5.6').supports(ServerFeature.libraryQueueTarget), isTrue);
+    expect(parse('1.2.6b1').supports(ServerFeature.libraryQueueTarget), isTrue);
   });
 
   group('1.2.6 gates', () {

@@ -4,7 +4,6 @@ import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
@@ -39,6 +38,7 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
+import '../common/web_link.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -673,10 +673,7 @@ class _No3mfBanner extends ConsumerWidget {
                     logTag(
                       'archive.no3mf_docs',
                       TextButton.icon(
-                        onPressed: () => launchUrl(
-                          Uri.parse(docs),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onPressed: () => openWebLink(context, docs),
                         icon: const Icon(Icons.open_in_new, size: 14),
                         label: Text(
                           reason == No3mfReason.internalStorage

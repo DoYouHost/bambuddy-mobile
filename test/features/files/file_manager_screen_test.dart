@@ -2,11 +2,14 @@ import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +31,8 @@ LibraryFile _file({
   String fileType = '3mf',
   bool isExternal = false,
   int variantCount = 0,
+  int photoCount = 0,
+  String? externalUrl,
 }) => LibraryFile(
   id: id,
   filename: filename,
@@ -36,6 +41,8 @@ LibraryFile _file({
   printCount: 0,
   isExternal: isExternal,
   variantCount: variantCount,
+  photoCount: photoCount,
+  externalUrl: externalUrl,
 );
 
 void main() {
@@ -48,6 +55,7 @@ void main() {
     bool slicerEnabled = true,
     bool canRunPipelines = true,
     List<LibraryTag>? tags = const [],
+    bool fileExtras = false,
     Size size = const Size(411, 866),
   }) async {
     tester.view.physicalSize = size;
@@ -68,6 +76,7 @@ void main() {
         libraryTagsSupportedProvider.overrideWithValue(AsyncData(tags != null)),
         slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
         canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
+        libraryFileExtrasProvider.overrideWithValue(AsyncData(fileExtras)),
       ],
     );
     await tester.pumpAndSettle();
@@ -223,6 +232,245 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(byLogId('files.group_variants'), findsOneWidget);
+    });
+  });
+
+  group('add to queue (#3112)', () {
+    AppLocalizations l10n(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(FileManagerScreen)));
+    const queuePath = '/api/v1/library/files/add-to-queue';
+
+    /// Selection mode over one file, both repositories real on [dio].
+    Future<void> pumpQueueing(
+      WidgetTester tester, {
+      required Dio dio,
+      required bool canTarget,
+      Set<int> selected = const {1},
+    }) async {
+      final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
+          printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
+          libraryQueueTargetProvider.overrideWithValue(AsyncData(canTarget)),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(
+                files: [file],
+                selectionMode: true,
+                selected: selected,
+              ),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks where, offering only active printers and their models', (
+      tester,
+    ) async {
+      final dio = testDio();
+      DioAdapter(dio: dio)
+        ..onGet(
+          '/api/v1/printers/',
+          (s) => s.reply(200, [
+            {'id': 7, 'name': 'Lab', 'model': 'X1C', 'is_active': true},
+            {'id': 8, 'name': 'Shed', 'model': 'P1S', 'is_active': false},
+          ]),
+        )
+        ..onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+            'printer_id': 7,
+          },
+        );
+      await pumpQueueing(tester, dio: dio, canTarget: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).queueEditAnyModel('X1C')), findsOneWidget);
+      expect(find.text(l10n(tester).queueEditAnyModel('P1S')), findsNothing);
+      expect(find.text('Shed'), findsNothing);
+
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets('only inactive printers: nothing to choose, nothing asked', (
+      tester,
+    ) async {
+      final dio = testDio();
+      DioAdapter(dio: dio)
+        ..onGet(
+          '/api/v1/printers/',
+          (s) => s.reply(200, [
+            {'id': 8, 'name': 'Shed', 'model': 'P1S', 'is_active': false},
+          ]),
+        )
+        ..onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+          },
+        );
+      await pumpQueueing(tester, dio: dio, canTarget: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_target'), findsNothing);
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets(
+      'a partial batch counts what was selected, not what came back',
+      (tester) async {
+        final dio = testDio();
+        DioAdapter(dio: dio).onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [
+              {
+                'file_id': 2,
+                'error':
+                    'File was sliced for P1S and cannot be dispatched to X1C '
+                    'printers',
+              },
+              // Unreadable, so it is no reason — but it is still a file.
+              {'file_id': 3},
+            ],
+          }),
+          data: {
+            'file_ids': [1, 2, 3],
+          },
+        );
+        await pumpQueueing(
+          tester,
+          dio: dio,
+          canTarget: false,
+          selected: {1, 2, 3},
+        );
+
+        await tester.tap(byLogId('files.add_to_queue'));
+        await tester.pumpAndSettle();
+
+        final l = l10n(tester);
+        expect(
+          find.text(l.fmAddedToQueuePartial(1, 3, l.fmQueueErrWrongModel)),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('an older server is not asked, and gets the plain request', (
+      tester,
+    ) async {
+      final dio = testDio();
+      DioAdapter(dio: dio).onPost(
+        queuePath,
+        (s) => s.reply(200, {
+          'added': [{}],
+          'errors': [],
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+      await pumpQueueing(tester, dio: dio, canTarget: false);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_target'), findsNothing);
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets('a batch that queued nothing says why, in the user\'s words', (
+      tester,
+    ) async {
+      // Before #3112 this was a 200, and the screen said "Added to queue".
+      final dio = testDio();
+      DioAdapter(dio: dio).onPost(
+        queuePath,
+        (s) => s.reply(200, {
+          'added': [],
+          'errors': [
+            {
+              'file_id': 1,
+              'filename': 'thing.3mf',
+              'error':
+                  'Not a sliced file. Only .gcode or .gcode.3mf files can be '
+                  'printed.',
+            },
+          ],
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+      await pumpQueueing(tester, dio: dio, canTarget: false);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).fmAddedToQueue), findsNothing);
+      expect(find.text(l10n(tester).fmQueueErrNotSliced), findsOneWidget);
+    });
+  });
+
+  group('photos, link and notes (#3077)', () {
+    testWidgets('the sheet offers the details where the server has them', (
+      tester,
+    ) async {
+      final file = _file();
+      await pump(tester, file: file, fileExtras: true);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsOneWidget);
+    });
+
+    testWidgets('an older server gets no details entry', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsNothing);
+    });
+
+    testWidgets('the tile marks photos and a link', (tester) async {
+      await pump(
+        tester,
+        file: _file(photoCount: 3, externalUrl: 'https://example.com'),
+      );
+
+      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.byIcon(Icons.link), findsOneWidget);
+      expect(find.byIcon(Icons.notes), findsNothing);
     });
   });
 
