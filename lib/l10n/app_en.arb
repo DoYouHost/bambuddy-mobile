@@ -2191,7 +2191,6 @@
   "aboutSourceLink": "Open source repository",
   "aboutThirdParty": "Open-source licenses",
   "aboutThirdPartySubtitle": "Licenses of the bundled libraries",
-  "aboutOpenLinkError": "Could not open the link",
   "fileManagerMenu": "File Manager",
   "@fileManagerMenu": {
     "description": "Drawer entry: File Manager"

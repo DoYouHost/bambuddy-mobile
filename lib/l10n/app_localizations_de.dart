@@ -3540,9 +3540,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get aboutThirdPartySubtitle => 'Lizenzen der verwendeten Bibliotheken';
 
   @override
-  String get aboutOpenLinkError => 'Link konnte nicht geöffnet werden';
-
-  @override
   String get fileManagerMenu => 'Dateimanager';
 
   @override

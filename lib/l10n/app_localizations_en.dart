@@ -3503,9 +3503,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutThirdPartySubtitle => 'Licenses of the bundled libraries';
 
   @override
-  String get aboutOpenLinkError => 'Could not open the link';
-
-  @override
   String get fileManagerMenu => 'File Manager';
 
   @override

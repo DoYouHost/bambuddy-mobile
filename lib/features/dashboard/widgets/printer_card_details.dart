@@ -331,12 +331,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
               Expanded(child: Text(error.displayCode, style: t.monoMicro)),
               if (url != null)
                 InkWell(
-                  onTap: () => unawaited(
-                    launchUrl(
-                      Uri.parse(url),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                  ),
+                  onTap: () => unawaited(openWebLink(context, url)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

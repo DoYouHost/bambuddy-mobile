@@ -5900,12 +5900,6 @@ abstract class AppLocalizations {
   /// **'Licenses of the bundled libraries'**
   String get aboutThirdPartySubtitle;
 
-  /// No description provided for @aboutOpenLinkError.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open the link'**
-  String get aboutOpenLinkError;
-
   /// Drawer entry: File Manager
   ///
   /// In en, this message translates to:

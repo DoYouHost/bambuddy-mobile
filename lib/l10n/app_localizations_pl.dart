@@ -3557,9 +3557,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get aboutThirdPartySubtitle => 'Licencje dołączonych bibliotek';
 
   @override
-  String get aboutOpenLinkError => 'Nie udało się otworzyć linku';
-
-  @override
   String get fileManagerMenu => 'Menedżer plików';
 
   @override

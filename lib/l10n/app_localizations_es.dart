@@ -3550,9 +3550,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Licencias de las bibliotecas incluidas';
 
   @override
-  String get aboutOpenLinkError => 'No se pudo abrir el enlace';
-
-  @override
   String get fileManagerMenu => 'Gestor de archivos';
 
   @override
