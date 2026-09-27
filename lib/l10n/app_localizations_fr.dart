@@ -7218,8 +7218,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'La commande n’a pas pu être créée, les copies ont donc été mises en file comme un simple lot.';
 
   @override
-  String get inventoryQuantityLess => 'Une bobine de moins';
+  String get inventoryQuantityLess => 'Une bobine de moins à ajouter';
 
   @override
-  String get inventoryQuantityMore => 'Une bobine de plus';
+  String get inventoryQuantityMore => 'Une bobine de plus à ajouter';
 }

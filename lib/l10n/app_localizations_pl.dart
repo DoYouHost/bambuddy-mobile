@@ -7172,8 +7172,8 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.';
 
   @override
-  String get inventoryQuantityLess => 'O jedną szpulę mniej';
+  String get inventoryQuantityLess => 'O jedną szpulę mniej do dodania';
 
   @override
-  String get inventoryQuantityMore => 'O jedną szpulę więcej';
+  String get inventoryQuantityMore => 'O jedną szpulę więcej do dodania';
 }

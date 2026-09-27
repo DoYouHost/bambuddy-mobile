@@ -3149,6 +3149,6 @@
   "orderEditTargetLess": "O jeden wydruk mniej",
   "orderEditTargetMore": "O jeden wydruk więcej",
   "queueEditOrderRefused": "Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.",
-  "inventoryQuantityLess": "O jedną szpulę mniej",
-  "inventoryQuantityMore": "O jedną szpulę więcej"
+  "inventoryQuantityLess": "O jedną szpulę mniej do dodania",
+  "inventoryQuantityMore": "O jedną szpulę więcej do dodania"
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,11 +89,15 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
 
   Future<void> _pickDue() async {
     final now = DateTime.now();
+    final due = _due;
     final picked = await pickDate(
       context,
-      initial: _due ?? now.add(const Duration(days: 7)),
-      firstDate: now,
-      lastDate: DateTime(now.year + 5),
+      initial: due ?? now.add(const Duration(days: 7)),
+      // The range reaches the stored date, whichever side of it: a due date
+      // that has passed, or one an integration set years ahead, must still be
+      // the day the calendar shows and can keep.
+      firstDate: due != null && due.isBefore(now) ? due : now,
+      lastDate: DateTime(math.max(now.year + 5, (due?.year ?? now.year) + 1)),
     );
     if (picked == null) return;
     // The end of the picked day, so "due today" is not overdue until it ends.

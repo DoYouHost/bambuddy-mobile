@@ -7149,8 +7149,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo crear el pedido, así que las copias se encolaron como un lote simple.';
 
   @override
-  String get inventoryQuantityLess => 'Una bobina menos';
+  String get inventoryQuantityLess => 'Una bobina menos por añadir';
 
   @override
-  String get inventoryQuantityMore => 'Una bobina más';
+  String get inventoryQuantityMore => 'Una bobina más por añadir';
 }

@@ -4201,6 +4201,6 @@
   "orderEditTargetLess": "One fewer run",
   "orderEditTargetMore": "One more run",
   "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch.",
-  "inventoryQuantityLess": "One fewer spool",
-  "inventoryQuantityMore": "One more spool"
+  "inventoryQuantityLess": "One spool fewer to add",
+  "inventoryQuantityMore": "One more spool to add"
 }

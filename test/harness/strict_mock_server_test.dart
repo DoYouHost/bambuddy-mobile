@@ -17,8 +17,11 @@ void main() {
               .listSync(recursive: true)
               .whereType<File>()
               .where((f) => f.path.endsWith('.dart'))
-              .where((f) => !f.path.endsWith('test/helpers.dart'))
-              .where((f) => !f.path.endsWith('strict_mock_server_test.dart'))
+              .where((f) {
+                final path = f.path.replaceAll(r'\', '/');
+                return !path.endsWith('test/helpers.dart') &&
+                    !path.endsWith('strict_mock_server_test.dart');
+              })
               .where((f) => adapter.hasMatch(f.readAsStringSync()))
               .map((f) => f.path),
     ];

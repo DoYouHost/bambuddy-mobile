@@ -7059,8 +7059,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'The order could not be made, so the copies were queued as a plain batch.';
 
   @override
-  String get inventoryQuantityLess => 'One fewer spool';
+  String get inventoryQuantityLess => 'One spool fewer to add';
 
   @override
-  String get inventoryQuantityMore => 'One more spool';
+  String get inventoryQuantityMore => 'One more spool to add';
 }

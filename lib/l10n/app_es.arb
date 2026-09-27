@@ -3849,6 +3849,6 @@
   "orderEditTargetLess": "Una impresión menos",
   "orderEditTargetMore": "Una impresión más",
   "queueEditOrderRefused": "No se pudo crear el pedido, así que las copias se encolaron como un lote simple.",
-  "inventoryQuantityLess": "Una bobina menos",
-  "inventoryQuantityMore": "Una bobina más"
+  "inventoryQuantityLess": "Una bobina menos por añadir",
+  "inventoryQuantityMore": "Una bobina más por añadir"
 }

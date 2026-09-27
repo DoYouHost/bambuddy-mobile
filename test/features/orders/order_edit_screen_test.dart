@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/core/models/project.dart';
 import 'package:bambuddy_mobile/data/batch_repository.dart';
@@ -169,6 +170,23 @@ void main() {
 
     expect(sent.requests, isEmpty);
     expect(find.byType(OrderEditScreen), findsOneWidget);
+  });
+
+  testWidgets('a past due date opens on its own day and survives an OK', (
+    tester,
+  ) async {
+    final adapter = await pumpEdit(tester, _order(due: '2020-01-10T12:00:00'));
+    adapter.onPatch(_path, data: Matchers.any, (s) => s.reply(200, _reply));
+
+    await tester.tap(byLogId('order_edit.due'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final shown = DateTimeFormats.of(
+      tester.element(find.byType(OrderEditScreen)),
+    ).date(DateTime(2020, 1, 10));
+    expect(find.text(shown), findsOneWidget);
   });
 
   testWidgets('a due date years out still opens the calendar', (tester) async {

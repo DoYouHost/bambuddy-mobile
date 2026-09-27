@@ -7126,8 +7126,8 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.';
 
   @override
-  String get inventoryQuantityLess => 'Eine Spule weniger';
+  String get inventoryQuantityLess => 'Eine Spule weniger anlegen';
 
   @override
-  String get inventoryQuantityMore => 'Eine Spule mehr';
+  String get inventoryQuantityMore => 'Eine Spule mehr anlegen';
 }

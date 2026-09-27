@@ -11873,13 +11873,13 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryQuantityLess.
   ///
   /// In en, this message translates to:
-  /// **'One fewer spool'**
+  /// **'One spool fewer to add'**
   String get inventoryQuantityLess;
 
   /// No description provided for @inventoryQuantityMore.
   ///
   /// In en, this message translates to:
-  /// **'One more spool'**
+  /// **'One more spool to add'**
   String get inventoryQuantityMore;
 }
 

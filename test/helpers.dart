@@ -538,13 +538,15 @@ const fakeServerBaseUrl = 'http://s.local:8000';
 /// agreeing.
 Dio testDio() => Dio(BaseOptions(baseUrl: fakeServerBaseUrl));
 
-/// The mock server a test hangs off a Dio: `data:` must **equal** the body the
-/// app sent.
+/// The mock server a test hangs off a Dio: a map in `data:` must **equal** the
+/// map body the app sent, nested maps and list values included.
 ///
 /// The adapter's own default takes a body that merely *contains* the mocked
 /// keys, so a mocked `{}` matched every request and a test named "sends only
-/// what changed" passed with extra keys going out. Queries and headers still
-/// match as subsets, as the default does.
+/// what changed" passed with extra keys going out. Still subsets: queries,
+/// headers, and the elements of a body that is itself a list
+/// (`matches_request.dart` does not pass the flag down into one) — assert
+/// those on `captureRequests`.
 DioAdapter mockServer(Dio dio) => DioAdapter(
   dio: dio,
   matcher: const FullHttpRequestMatcher(needsExactBody: true),

@@ -3849,6 +3849,6 @@
   "orderEditTargetLess": "Une impression de moins",
   "orderEditTargetMore": "Une impression de plus",
   "queueEditOrderRefused": "La commande n’a pas pu être créée, les copies ont donc été mises en file comme un simple lot.",
-  "inventoryQuantityLess": "Une bobine de moins",
-  "inventoryQuantityMore": "Une bobine de plus"
+  "inventoryQuantityLess": "Une bobine de moins à ajouter",
+  "inventoryQuantityMore": "Une bobine de plus à ajouter"
 }
