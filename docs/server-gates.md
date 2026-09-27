@@ -203,6 +203,21 @@ row only speaks before the first listing — and the details entry lives in the
 per-file sheet, which cannot open before one. Being early would cost a screen
 whose photo routes 404 and whose link is silently dropped by `FileUpdate`.
 
+### batchOrders — 1.2.5.3 (server #342)
+
+Orders: per-plate targets on `/queue/batches`, `PATCH` and `/dispatch` on one
+batch. The routes themselves are older — a plain grouping (list, get, cancel,
+ungroup, create from `item_ids`) exists since v0.2.3 and is not gated; its
+list's 404 or 403 is watched by `BatchRepository.listCapability` instead.
+`BatchRepository` observes `has_targets` on any batch row, which the response
+schema defaults from 1.2.5.3 on, so an observation outranks the row as soon as
+one batch exists. Being early costs the worst kind of drop on create:
+`PrintBatchCreate` ignores `plates` / `due_date` / `notes` / `project_id`, and
+the "order" comes back as a grouping that owes nothing, while `PATCH` answers
+405 (the path exists for `GET`) and `/dispatch` 404. `can_dispatch` and `dispatchable_count` (#2960) came a
+release later, in 1.2.5.4 — not a row: the model reads their absence as "every
+owed run can be queued", which is what 1.2.5.3 itself assumed.
+
 ## Not a row: the bed-jog sign (server #1334)
 
 `POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up

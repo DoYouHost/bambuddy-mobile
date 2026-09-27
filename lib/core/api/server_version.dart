@@ -57,6 +57,10 @@ enum ServerFeature {
   /// `photo_count` / `external_url` / `has_notes` on a library listing, and
   /// `/library/files/{id}/photos`.
   libraryFileExtras,
+
+  /// Per-plate targets on `/queue/batches` plus `PATCH` and `/dispatch` on a
+  /// batch; `plates` on create is taken and ignored below it.
+  batchOrders,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -151,6 +155,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),
+    ServerFeature.batchOrders: (1, 2, 5, 3),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

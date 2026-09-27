@@ -466,6 +466,9 @@ class DemoBackend {
         return _notFound();
 
       case 'queue':
+        if (s.length >= 2 && s[1] == 'batches') {
+          return _batchRoute(m, s, q, body);
+        }
         return _queueRoute(m, s, body);
 
       case 'archives':
@@ -2191,6 +2194,8 @@ class DemoBackend {
       type: 'PETG',
       color: '#FFFFFF',
       createdDaysAgo: 1,
+      batchId: 1,
+      batchName: 'Cable clips ×8',
     ),
     _queueItem(
       id: 102,
@@ -2271,8 +2276,12 @@ class DemoBackend {
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
+    int? batchId,
+    String? batchName,
   }) => {
     'id': id,
+    'batch_id': batchId,
+    'batch_name': batchName,
     'printer_id': printerId,
     'archive_id': null,
     'library_file_id': null,
@@ -2420,6 +2429,336 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  // --- Batches and orders (#342) ---
+
+  /// Stored as the server stores them: targets per plate plus how each plate's
+  /// runs ended. Everything else the response carries is derived in
+  /// [_batchResponse], as `load_progress` derives it.
+  late final List<Map<String, dynamic>> _batches = [
+    {
+      'id': 1,
+      'name': 'Cable clips ×8',
+      'library_file_id': null,
+      'status': 'active',
+      'created_at': _iso(_daysAgo(2)),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': 1,
+      'due_date': _iso(_daysAgo(-3)),
+      'notes': 'Two bags of four for the workshop drawers.',
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': true,
+      'plates': [
+        _demoPlate(null, null, target: 8, completed: 5, failed: 1, pending: 1),
+      ],
+    },
+    // A shop order: the integration pair and a stranded plate, whose last
+    // queue item was deleted, so only the other two can be dispatched.
+    {
+      'id': 2,
+      'name': 'Keychain set · 3 plates',
+      'library_file_id': 3,
+      'status': 'active',
+      'created_at': _iso(_daysAgo(4)),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': _iso(_daysAgo(1)),
+      'notes': null,
+      'external_source': 'shopify',
+      'external_ref': '#1042',
+      'has_targets': true,
+      'plates': [
+        _demoPlate(1, 'Tags', target: 4, completed: 4),
+        _demoPlate(2, 'Rings', target: 4, completed: 1, failed: 1),
+        _demoPlate(3, 'Charms', target: 2, canDispatch: false),
+      ],
+    },
+    // What `POST /queue/` with `quantity: 3` makes on its own: a grouping.
+    {
+      'id': 3,
+      'name': 'Phone stand ×3',
+      'library_file_id': null,
+      'status': 'completed',
+      'created_at': _iso(_daysAgo(9)),
+      'completed_at': _iso(_daysAgo(8)),
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': null,
+      'notes': null,
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': false,
+      'plates': [_demoPlate(null, null, target: 0, completed: 3)],
+    },
+  ];
+
+  int _nextBatchId = 10;
+
+  Map<String, dynamic> _demoPlate(
+    int? plateId,
+    String? name, {
+    required int target,
+    int completed = 0,
+    int failed = 0,
+    int pending = 0,
+    bool canDispatch = true,
+  }) => {
+    'plate_id': plateId,
+    'plate_name': name,
+    'quantity_target': target,
+    'completed_count': completed,
+    'failed_count': failed,
+    'pending_count': pending,
+    'printing_count': 0,
+    'cancelled_count': 0,
+    'can_dispatch': canDispatch,
+  };
+
+  Map<String, dynamic> _batchResponse(Map<String, dynamic> b) {
+    final hasTargets = b['has_targets'] == true;
+    final plates = [
+      for (final p in (b['plates'] as List).cast<Map<String, dynamic>>())
+        () {
+          final target = p['quantity_target'] as int;
+          final dispatched =
+              (p['completed_count'] as int) +
+              (p['pending_count'] as int) +
+              (p['printing_count'] as int);
+          final remaining = (target - dispatched).clamp(0, 999);
+          return {
+            ...p,
+            'dispatched': dispatched,
+            'remaining': remaining,
+            'skipped_count': 0,
+            'actual_cost': (p['completed_count'] as int) == 0
+                ? null
+                : (p['completed_count'] as int) * 0.42,
+            'estimated_remaining_cost': remaining * 0.42,
+            'filament_used_grams': (p['completed_count'] as int) * 5.3,
+            'print_time_seconds': (p['completed_count'] as int) * 1380,
+            'can_dispatch': remaining > 0 && p['can_dispatch'] == true,
+          };
+        }(),
+    ];
+    int sum(String key) => plates.fold(0, (a, p) => a + (p[key] as int));
+    final remaining = hasTargets ? sum('remaining') : 0;
+    final dispatchable = hasTargets
+        ? plates
+              .where((p) => p['can_dispatch'] == true)
+              .fold(0, (a, p) => a + (p['remaining'] as int))
+        : 0;
+    double? costOf(String key) {
+      final values = [for (final p in plates) p[key] as double?].nonNulls;
+      return values.isEmpty ? null : values.fold<double>(0, (a, v) => a + v);
+    }
+
+    return {
+      for (final e in b.entries)
+        if (e.key != 'plates') e.key: e.value,
+      'archive_id': null,
+      'quantity': hasTargets ? sum('quantity_target') : sum('completed_count'),
+      'created_by_id': 1,
+      'pending_count': sum('pending_count'),
+      'printing_count': sum('printing_count'),
+      'completed_count': sum('completed_count'),
+      'failed_count': sum('failed_count'),
+      'cancelled_count': sum('cancelled_count'),
+      'skipped_count': 0,
+      'target_count': hasTargets ? sum('quantity_target') : 0,
+      'remaining_count': remaining,
+      'dispatchable_count': dispatchable,
+      'actual_cost': costOf('actual_cost'),
+      'estimated_remaining_cost': hasTargets
+          ? costOf('estimated_remaining_cost')
+          : null,
+      'filament_used_grams': costOf('filament_used_grams'),
+      'print_time_seconds': sum('print_time_seconds'),
+      'plates': hasTargets ? plates : const <Object>[],
+    };
+  }
+
+  DemoResult? _batchRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final status = q['status'];
+        return _ok([
+          for (final b in _batches.reversed)
+            if (status == null || b['status'] == status) _batchResponse(b),
+        ]);
+      }
+      if (m == 'POST') return _createBatch(body);
+      return _fallback(m);
+    }
+    final batch = _batches.where((b) => b['id'] == int.tryParse(s[2]));
+    if (batch.isEmpty) {
+      return (status: 404, body: {'detail': 'Batch not found'});
+    }
+    final b = batch.first;
+    final plates = (b['plates'] as List).cast<Map<String, dynamic>>();
+    if (s.length == 3 && m == 'GET') return _ok(_batchResponse(b));
+    if (s.length == 3 && m == 'PATCH') {
+      for (final key in ['name', 'notes', 'due_date', 'project_id', 'status']) {
+        if (body[key] != null) b[key] = body[key];
+      }
+      final targets = body['plates'];
+      if (targets is List) {
+        final old = {for (final p in plates) p['plate_id']: p};
+        b['plates'] = [
+          for (final t in targets.whereType<Map>())
+            {
+              ...?old[t['plate_id']],
+              if (old[t['plate_id']] == null)
+                ..._demoPlate(
+                  t['plate_id'] as int?,
+                  t['plate_name'] as String?,
+                  target: 0,
+                ),
+              'quantity_target': t['quantity_target'],
+            },
+        ];
+      }
+      return _ok(_batchResponse(b));
+    }
+    if (s.length == 3 && m == 'DELETE') {
+      b['status'] = 'cancelled';
+      for (final p in plates) {
+        p['cancelled_count'] =
+            (p['cancelled_count'] as int) + (p['pending_count'] as int);
+        p['pending_count'] = 0;
+      }
+      _queue.removeWhere(
+        (i) => i['batch_id'] == b['id'] && i['status'] == 'pending',
+      );
+      return _ok({'message': 'Batch cancelled'});
+    }
+    if (s.length == 4 && s[3] == 'ungroup' && m == 'POST') {
+      final members = _queue.where((i) => i['batch_id'] == b['id']).toList();
+      for (final i in members) {
+        i['batch_id'] = null;
+        i['batch_name'] = null;
+      }
+      _batches.remove(b);
+      return _ok({
+        'ungrouped_count': members.length,
+        'message': 'Ungrouped ${members.length} item(s)',
+      });
+    }
+    if (s.length == 4 && s[3] == 'dispatch' && m == 'POST') {
+      if (b['status'] == 'cancelled') {
+        return (
+          status: 400,
+          body: {'detail': 'Cannot dispatch a cancelled batch'},
+        );
+      }
+      final onlyPlate = body['only_plate'] == true;
+      final response = _batchResponse(b);
+      final owed = [
+        for (final (i, p) in (response['plates'] as List).indexed)
+          if ((p as Map)['remaining'] as int > 0 &&
+              (!onlyPlate || p['plate_id'] == body['plate_id']))
+            (plates[i], p),
+      ];
+      final stranded = [
+        for (final (_, p) in owed)
+          if (p['can_dispatch'] != true) p,
+      ];
+      if (owed.isNotEmpty && stranded.length == owed.length) {
+        final names = stranded
+            .map((p) => p['plate_name'] ?? 'Plate ${p['plate_id'] ?? 1}')
+            .join(', ');
+        return (
+          status: 400,
+          body: {
+            'detail':
+                '$names has no queued or finished run to copy settings '
+                'from. Queue the plate once from the file, then dispatch the '
+                'rest from here.',
+          },
+        );
+      }
+      for (final (stored, p) in owed) {
+        if (p['can_dispatch'] != true) continue;
+        final runs = p['remaining'] as int;
+        stored['pending_count'] = (stored['pending_count'] as int) + runs;
+        for (var n = 0; n < runs; n++) {
+          _queue.add(
+            _queueItem(
+              id: _nextQueueId++,
+              printerId: null,
+              position: _queue.length + 1,
+              name: '${b['name']}',
+              status: 'pending',
+              timeSec: 1380,
+              grams: 5.3,
+              type: 'PLA',
+              color: '#1F8F4D',
+              createdDaysAgo: 0,
+              batchId: b['id'] as int,
+              batchName: b['name'] as String,
+            ),
+          );
+        }
+      }
+      return _ok(_batchResponse(b));
+    }
+    return _fallback(m);
+  }
+
+  DemoResult _createBatch(Map<String, dynamic> body) {
+    final name = (body['name'] as String?)?.trim() ?? '';
+    if (name.isEmpty) {
+      return (status: 400, body: {'detail': 'Batch name is required'});
+    }
+    final id = _nextBatchId++;
+    final itemIds = (body['item_ids'] as List?)?.whereType<int>().toSet();
+    var grouped = 0;
+    for (final i in _queue) {
+      if (itemIds != null &&
+          itemIds.contains(i['id']) &&
+          i['status'] == 'pending' &&
+          i['batch_id'] == null) {
+        i['batch_id'] = id;
+        i['batch_name'] = name;
+        grouped++;
+      }
+    }
+    final targets = (body['plates'] as List?)?.whereType<Map>().toList();
+    _batches.add({
+      'id': id,
+      'name': name,
+      'library_file_id': body['library_file_id'],
+      'status': 'active',
+      'created_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': body['project_id'],
+      'due_date': body['due_date'],
+      'notes': body['notes'],
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': targets != null,
+      'plates': [
+        if (targets == null)
+          _demoPlate(null, null, target: 0, pending: grouped)
+        else
+          for (final t in targets)
+            _demoPlate(
+              t['plate_id'] as int?,
+              t['plate_name'] as String?,
+              target: t['quantity_target'] as int,
+            ),
+      ],
+    });
+    return _ok(_batchResponse(_batches.last));
+  }
 
   // --- Archives + stats ---
 

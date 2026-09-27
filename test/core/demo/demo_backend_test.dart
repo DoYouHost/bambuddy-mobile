@@ -14,7 +14,9 @@ import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
+import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
+import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/location_sensor.dart';
@@ -85,6 +87,39 @@ void main() {
       expect(items.length, greaterThanOrEqualTo(2));
       expect(items.first.statusKind, QueueItemStatusKind.pending);
     });
+
+    test(
+      'batches: an order, a shop order with a stranded plate, a grouping',
+      () async {
+        final repo = BatchRepository(dio);
+        final batches = await repo.list();
+
+        expect(batches, hasLength(3));
+        expect(repo.ordersCapability.observedAnswer, isTrue);
+        final shop = batches.firstWhere((b) => b.externalSource != null);
+        expect(shop.stranded, 2);
+        expect(shop.plates.last.dispatchable, isFalse);
+        expect(batches.where((b) => !b.hasTargets), hasLength(1));
+        expect(
+          (await repo.list(
+            status: PrintBatchStatus.completed,
+          )).single.hasTargets,
+          isFalse,
+        );
+
+        // Refused, so the shared dataset is left as it was.
+        await expectLater(
+          repo.dispatch(shop.id, plate: shop.plates.last),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Charms'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('the queue speaks the 1.2.5 contract, including auto', () async {
       // The demo is the only place tri-state calibrations can be exercised
