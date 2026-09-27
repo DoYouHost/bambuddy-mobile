@@ -153,11 +153,13 @@ abstract final class Permissions {
   /// LDAP and MQTT credentials.
   static const settingsUpdate = 'settings:update';
 
-  /// The three the web's orders tab gates on: queueing an order's owed runs
-  /// (`POST …/dispatch` asks for create), cancelling one (`DELETE` asks for
-  /// delete-all, even on the caller's own batch) and ungrouping or editing it.
-  /// An API key's `can_queue` covers all three.
+  /// What the batch routes ask for: create to group items or queue an
+  /// order's owed runs, delete-all to cancel one (even the caller's own),
+  /// update-own to edit, reopen or ungroup one — and update-all on top for
+  /// any of those on a batch someone else created. An API key's `can_queue`
+  /// covers them all.
   static const queueCreate = 'queue:create';
   static const queueDeleteAll = 'queue:delete_all';
   static const queueUpdateOwn = 'queue:update_own';
+  static const queueUpdateAll = 'queue:update_all';
 }

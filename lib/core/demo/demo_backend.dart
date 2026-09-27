@@ -2559,7 +2559,15 @@ class DemoBackend {
       for (final e in b.entries)
         if (e.key != 'plates') e.key: e.value,
       'archive_id': null,
-      'quantity': hasTargets ? sum('quantity_target') : sum('completed_count'),
+      'quantity': hasTargets
+          ? sum('quantity_target')
+          : [
+              'completed_count',
+              'pending_count',
+              'printing_count',
+              'failed_count',
+              'cancelled_count',
+            ].fold(0, (a, key) => a + sum(key)),
       'created_by_id': 1,
       'pending_count': sum('pending_count'),
       'printing_count': sum('printing_count'),
@@ -2634,9 +2642,11 @@ class DemoBackend {
             (p['cancelled_count'] as int) + (p['pending_count'] as int);
         p['pending_count'] = 0;
       }
-      _queue.removeWhere(
-        (i) => i['batch_id'] == b['id'] && i['status'] == 'pending',
-      );
+      for (final i in _queue) {
+        if (i['batch_id'] == b['id'] && i['status'] == 'pending') {
+          i['status'] = 'cancelled';
+        }
+      }
       return _ok({'message': 'Batch cancelled'});
     }
     if (s.length == 4 && s[3] == 'ungroup' && m == 'POST') {
@@ -2678,7 +2688,8 @@ class DemoBackend {
           status: 400,
           body: {
             'detail':
-                '$names has no queued or finished run to copy settings '
+                '$names ${stranded.length > 1 ? 'have' : 'has'} no queued or '
+                'finished run to copy settings '
                 'from. Queue the plate once from the file, then dispatch the '
                 'rest from here.',
           },

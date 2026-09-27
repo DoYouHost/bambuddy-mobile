@@ -85,6 +85,22 @@ void main() {
     expect(b.plates.single.dispatchable, isTrue);
   });
 
+  test('a cancelled order owes runs but offers none, and none are stuck', () {
+    final b = PrintBatch.fromJson({
+      'id': 1,
+      'name': 'x',
+      'quantity': 4,
+      'status': 'cancelled',
+      'has_targets': true,
+      'target_count': 4,
+      'remaining_count': 3,
+      'dispatchable_count': 3,
+    });
+
+    expect(b.dispatchable, 0);
+    expect(b.stranded, 0);
+  });
+
   test('a status this app does not know is unknown, not a parse failure', () {
     final b = PrintBatch.fromJson({
       'id': 1,

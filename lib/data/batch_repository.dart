@@ -34,41 +34,59 @@ class BatchRepository {
   final Dio _dio;
   final ServerVersionService? _serverVersion;
 
-  /// Whether the route exists here. Unversioned: it predates the 1.x servers
-  /// this app mostly meets, and a 404 or 403 on the list is the answer.
-  late final listCapability = ObservedCapability.unversioned();
+  /// Whether the route exists here: the list's own answer, else the version.
+  late final listCapability = ObservedCapability(
+    ServerFeature.batchListing,
+    _serverVersion,
+  );
+
+  /// Grouping by hand and ungrouping (v0.2.4.8). Nothing in a batch row tells
+  /// 0.2.4.7 from 0.2.4.8, so only an order — which is newer still — settles
+  /// it before the version does.
+  late final groupingCapability = ObservedCapability(
+    ServerFeature.batchGrouping,
+    _serverVersion,
+  );
 
   /// Orders (#342): targets, editing and dispatch. The list outranks the
   /// version: a batch row either carries `has_targets` or predates it.
   ///
   /// **Callers check it before sending `plates`, `due_date`, `notes` or
-  /// `project_id` on [create]** — an older server drops them without a word
-  /// and makes a plain grouping.
+  /// `project_id` on [create]** — from v0.2.4.8 an older server drops them
+  /// without a word and makes a plain grouping.
   late final ordersCapability = ObservedCapability(
     ServerFeature.batchOrders,
     _serverVersion,
   );
 
   void _observe(Object? row) {
-    if (row is Map) {
-      ordersCapability.observe(present: row.containsKey('has_targets'));
-    }
+    if (row is! Map) return;
+    final orders = row.containsKey('has_targets');
+    ordersCapability.observe(present: orders);
+    if (orders) groupingCapability.observe(present: true);
   }
 
   /// GET /queue/batches — newest first. [status] null lists every status.
   ///
   /// The server leaves out batches with neither items nor targets.
   Future<List<PrintBatch>> list({PrintBatchStatus? status}) async {
-    final body = await listCapability.watching(
-      observing: treat404AsAbsent,
-      () async {
-        final res = await _dio.get<List<dynamic>>(
-          Endpoints.queueBatches,
-          queryParameters: status == null ? null : {'status': status.name},
-        );
-        return res.data ?? const [];
-      },
-    );
+    final List<dynamic> body;
+    try {
+      body = await listCapability.watching(
+        observing: treat404AsAbsent,
+        () async {
+          final res = await _dio.get<List<dynamic>>(
+            Endpoints.queueBatches,
+            queryParameters: status == null ? null : {'status': status.name},
+          );
+          return res.data ?? const [];
+        },
+      );
+    } on ApiException catch (e) {
+      // Before v0.2.3: `GET /queue/{item_id}` refusing "batches" as an id.
+      if (e.statusCode == 422) listCapability.observe(present: false);
+      rethrow;
+    }
     _observe(body.firstOrNull);
     return parseJsonList(body, PrintBatch.fromJson);
   }
@@ -85,9 +103,10 @@ class BatchRepository {
     return PrintBatch.fromJson(body);
   }
 
-  /// POST /queue/batches. With [itemIds] it groups those pending items (the
-  /// ones already in a batch, not pending or not the caller's are skipped);
-  /// without, it makes an empty batch to pass as `batch_id` on queue creates.
+  /// POST /queue/batches (v0.2.4.8+, see [groupingCapability]). With
+  /// [itemIds] it groups those pending items (the ones already in a batch, not
+  /// pending or not the caller's are skipped); without, it makes an empty
+  /// batch to pass as `batch_id` on queue creates.
   ///
   /// Keeps the detail: the 400s ("Duplicate plate in order", "Order must
   /// request at least one print") are the only explanation of a refusal.
@@ -126,8 +145,9 @@ class BatchRepository {
   /// [notes] clears only to `""`.
   ///
   /// [plates] replaces the whole target set: a plate left out loses its row.
-  /// [status] takes `active` (reopen) or `cancelled`; cancelling through here
-  /// leaves the pending items queued, unlike [cancel].
+  /// [reopen] makes a cancelled order active again. The route also takes
+  /// `cancelled`, which this app does not send: it would close the order and
+  /// leave its pending items queued — [cancel] is the one that stops them.
   Future<PrintBatch> update(
     int batchId, {
     String? name,
@@ -135,7 +155,7 @@ class BatchRepository {
     DateTime? dueDate,
     int? projectId,
     List<BatchPlateTarget>? plates,
-    PrintBatchStatus? status,
+    bool reopen = false,
   }) async {
     final body = await guardKeepingDetail(() async {
       final res = await _dio.patch<Map<String, dynamic>>(
@@ -146,7 +166,7 @@ class BatchRepository {
           'due_date': ?(dueDate == null ? null : instantToJson(dueDate)),
           'project_id': ?projectId,
           'plates': ?(plates == null ? null : _platesWire(plates)),
-          'status': ?status?.name,
+          if (reopen) 'status': 'active',
         },
       );
       return res.data ?? const <String, dynamic>{};
@@ -175,8 +195,9 @@ class BatchRepository {
     return PrintBatch.fromJson(body);
   }
 
-  /// POST /queue/batches/{id}/ungroup — how many items left the batch. The
-  /// row survives while it still holds items this caller may not touch.
+  /// POST /queue/batches/{id}/ungroup (v0.2.4.8+) — how many items left the
+  /// batch. The row survives while it still holds items this caller may not
+  /// touch.
   Future<int> ungroup(int batchId) async {
     final body = await guardKeepingDetail(() async {
       final res = await _dio.post<Map<String, dynamic>>(

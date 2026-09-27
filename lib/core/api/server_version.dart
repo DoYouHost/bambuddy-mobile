@@ -58,6 +58,13 @@ enum ServerFeature {
   /// `/library/files/{id}/photos`.
   libraryFileExtras,
 
+  /// `GET /queue/batches` — the orders screen at all.
+  batchListing,
+
+  /// `POST /queue/batches` (grouping queue items by hand) and `…/ungroup`;
+  /// below it a batch only comes from a `quantity > 1` create.
+  batchGrouping,
+
   /// Per-plate targets on `/queue/batches` plus `PATCH` and `/dispatch` on a
   /// batch; `plates` on create is taken and ignored below it.
   batchOrders,
@@ -155,6 +162,9 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
     ServerFeature.libraryFileExtras: (1, 2, 6, 0),
+    // Old numbering, as for the heater history: every 1.x outranks it.
+    ServerFeature.batchListing: (0, 2, 3, 0),
+    ServerFeature.batchGrouping: (0, 2, 4, 8),
     ServerFeature.batchOrders: (1, 2, 5, 3),
   };
 

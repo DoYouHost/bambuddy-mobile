@@ -37,6 +37,7 @@ PrintBatch _$PrintBatchFromJson(Map<String, dynamic> json) => PrintBatch(
   quantity: (json['quantity'] as num?)?.toInt() ?? 1,
   createdAt: dateTimeFromJson(json['created_at']),
   completedAt: dateTimeFromJson(json['completed_at']),
+  createdById: (json['created_by_id'] as num?)?.toInt(),
   createdByUsername: json['created_by_username'] as String?,
   projectId: (json['project_id'] as num?)?.toInt(),
   dueDate: dateTimeFromJson(json['due_date']),

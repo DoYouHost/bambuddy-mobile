@@ -58,9 +58,9 @@ class PrintBatchPlate {
   @JsonKey(defaultValue: 0)
   final int printTimeSeconds;
 
-  /// False when the plate owes runs but its last queue item is gone, so there
-  /// is nothing to clone a new run from (#2960). Absent before 1.2.5.4 — null
-  /// here, read by [dispatchable] as "try it".
+  /// True when the plate owes runs and still has a queue item to clone them
+  /// from; false when it owes none, or its last item is gone (#2960). Absent
+  /// before 1.2.5.4 — null here, read by [dispatchable] as "try it".
   final bool? canDispatch;
 
   bool get dispatchable => remaining > 0 && (canDispatch ?? true);
@@ -84,6 +84,7 @@ class PrintBatch {
     this.quantity = 1,
     this.createdAt,
     this.completedAt,
+    this.createdById,
     this.createdByUsername,
     this.projectId,
     this.dueDate,
@@ -127,12 +128,17 @@ class PrintBatch {
   final DateTime? createdAt;
   @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? completedAt;
+
+  /// Whose batch it is. A write on someone else's needs `queue:update_all`,
+  /// and without it the server answers 404 rather than 403.
+  final int? createdById;
   final String? createdByUsername;
 
   final int? projectId;
 
-  /// An instant, not a calendar date: the column is a datetime, and the app
-  /// writes the end of the picked day (see `BatchRepository.update`).
+  /// An instant, not a calendar date: the column is a datetime. The edit form
+  /// sends the end of the picked day, so an order due today is not overdue
+  /// until the day is over.
   @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? dueDate;
   final String? notes;
@@ -176,12 +182,16 @@ class PrintBatch {
   @JsonKey(defaultValue: <PrintBatchPlate>[])
   final List<PrintBatchPlate> plates;
 
-  /// Runs a dispatch would queue now — zero for a grouping, which owes nothing.
-  int get dispatchable =>
-      hasTargets ? (dispatchableCount ?? remainingCount) : 0;
+  /// Runs a dispatch would queue now — zero for a grouping, which owes
+  /// nothing, and for a cancelled order, which the server refuses to dispatch.
+  int get dispatchable => hasTargets && status != PrintBatchStatus.cancelled
+      ? (dispatchableCount ?? remainingCount)
+      : 0;
 
-  /// Runs the order owes that nothing can produce any more (#2960).
-  int get stranded => hasTargets ? remainingCount - dispatchable : 0;
+  /// Runs the order owes that nothing can produce any more (#2960) — never
+  /// on 1.2.5.3, which cannot say.
+  int get stranded =>
+      hasTargets ? remainingCount - (dispatchableCount ?? remainingCount) : 0;
 
   /// What progress is measured against: the target for an order, and what
   /// happened to be queued for a grouping — the web's denominator.

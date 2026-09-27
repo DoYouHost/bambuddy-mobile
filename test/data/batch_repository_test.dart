@@ -27,10 +27,14 @@ void main() {
   late Dio dio;
   late DioAdapter adapter;
   late BatchRepository repo;
+  // The mock matches a body that merely *contains* the mocked keys, so an
+  // exact body is asserted on what really left.
+  late RequestLog sent;
 
   setUp(() {
     dio = testDio();
     adapter = DioAdapter(dio: dio);
+    sent = captureRequests(dio);
     repo = BatchRepository(dio);
   });
 
@@ -72,6 +76,42 @@ void main() {
       expect(repo.listCapability.observedAnswer, isFalse);
     });
 
+    test(
+      '422 is a server before v0.2.3, where the path is a queue id',
+      () async {
+        adapter.onGet(
+          _path,
+          (s) => s.reply(422, {
+            'detail': [
+              {
+                'loc': ['path', 'item_id'],
+                'msg': 'Input should be a valid integer',
+              },
+            ],
+          }),
+        );
+
+        await expectLater(repo.list(), throwsA(isA<AppApiException>()));
+        expect(repo.listCapability.observedAnswer, isFalse);
+      },
+    );
+
+    test('an order row also proves grouping by hand', () async {
+      adapter.onGet(_path, (s) => s.reply(200, [_batch()]));
+
+      await repo.list();
+
+      expect(repo.groupingCapability.observedAnswer, isTrue);
+    });
+
+    test('a grouping row cannot tell 0.2.4.7 from 0.2.4.8', () async {
+      adapter.onGet(_path, (s) => s.reply(200, [_batch(order: false)]));
+
+      await repo.list();
+
+      expect(repo.groupingCapability.observedAnswer, isNull);
+    });
+
     test('500 settles nothing', () async {
       adapter.onGet(_path, (s) => s.reply(500, {'detail': 'boom'}));
 
@@ -100,6 +140,10 @@ void main() {
 
       final b = await repo.create(name: 'Clips', itemIds: [3, 4]);
       expect(b.hasTargets, isFalse);
+      expect(sent.last.data, {
+        'name': 'Clips',
+        'item_ids': [3, 4],
+      });
     });
 
     test('an order keeps the whole-file plate and numbers the rows', () async {
@@ -163,7 +207,8 @@ void main() {
       (s) => s.reply(200, _batch()),
     );
 
-    await repo.update(1, notes: '', status: PrintBatchStatus.active);
+    await repo.update(1, notes: '', reopen: true);
+    expect(sent.last.data, {'notes': '', 'status': 'active'});
   });
 
   group('dispatch', () {
@@ -175,6 +220,9 @@ void main() {
       );
 
       await repo.dispatch(1);
+      // Anything more would narrow — or, as `only_plate`, redirect — the
+      // dispatch.
+      expect(sent.last.data, <String, dynamic>{});
     });
 
     test('the whole-file plate is named as null, with only_plate', () async {
@@ -185,6 +233,7 @@ void main() {
       );
 
       await repo.dispatch(1, plate: const PrintBatchPlate());
+      expect(sent.last.data, {'plate_id': null, 'only_plate': true});
     });
 
     test('a stranded refusal keeps the plate names', () async {
