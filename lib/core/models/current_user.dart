@@ -152,4 +152,12 @@ abstract final class Permissions {
   /// (`core/auth.py`), because rewriting settings reaches the stored SMTP,
   /// LDAP and MQTT credentials.
   static const settingsUpdate = 'settings:update';
+
+  /// The three the web's orders tab gates on: queueing an order's owed runs
+  /// (`POST …/dispatch` asks for create), cancelling one (`DELETE` asks for
+  /// delete-all, even on the caller's own batch) and ungrouping or editing it.
+  /// An API key's `can_queue` covers all three.
+  static const queueCreate = 'queue:create';
+  static const queueDeleteAll = 'queue:delete_all';
+  static const queueUpdateOwn = 'queue:update_own';
 }

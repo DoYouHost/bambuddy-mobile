@@ -6916,4 +6916,177 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Réduire la carte';
+
+  @override
+  String get ordersTitle => 'Commandes groupées';
+
+  @override
+  String get ordersEmpty => 'Aucune commande avec ce statut.';
+
+  @override
+  String get ordersFilterActive => 'Actives';
+
+  @override
+  String get ordersFilterCompleted => 'Terminées';
+
+  @override
+  String get ordersFilterCancelled => 'Annulées';
+
+  @override
+  String get ordersFilterAll => 'Toutes';
+
+  @override
+  String get ordersStatusActive => 'Active';
+
+  @override
+  String get ordersStatusCompleted => 'Terminée';
+
+  @override
+  String get ordersStatusCancelled => 'Annulée';
+
+  @override
+  String get ordersStatusUnknown => 'Statut inconnu';
+
+  @override
+  String get ordersGroupingOnly => 'Regroupement seul';
+
+  @override
+  String ordersBy(String name) {
+    return 'Ajoutée par $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Échéance : $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed sur $total faits';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count en impression';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count en attente';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count échoués',
+      one: '1 échoué',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count restants';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return '$amount jusqu’ici';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return 'Reste $amount';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return 'Impossible de mettre en file $runs des $owed impressions restantes : leur plateau n’a plus d’impression en file ni terminée dont copier les réglages. Mettez ce plateau une fois en file depuis le fichier, ou annulez la commande.';
+  }
+
+  @override
+  String get ordersStrandedPlate => 'Plus rien dont copier les réglages';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed sur $target faits';
+  }
+
+  @override
+  String get ordersWholeFile => 'Fichier entier';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mettre en file $count impressions restantes',
+      one: 'Mettre en file 1 impression restante',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Mettre en file';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Impressions restantes de $name mises en file';
+  }
+
+  @override
+  String get ordersCancel => 'Annuler la commande';
+
+  @override
+  String get ordersCancelTitle => 'Annuler cette commande ?';
+
+  @override
+  String get ordersCancelBody =>
+      'Les impressions encore en file sont annulées, et la commande cesse de réclamer ce qui n’a pas été produit. Une impression déjà en cours continue.';
+
+  @override
+  String get ordersCancelled => 'Commande annulée';
+
+  @override
+  String get ordersUngroup => 'Dégrouper';
+
+  @override
+  String get ordersUngroupTitle => 'Dégrouper ce lot ?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Ses éléments restent dans la file comme travaux séparés.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Ses éléments restent dans la file comme travaux séparés, et la commande est supprimée avec ses objectifs et sa progression.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count éléments dégroupés',
+      one: '1 élément dégroupé',
+      zero: 'Rien à dégrouper',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersErrStranded =>
+      'Aucun plateau avec des impressions restantes n’a d’impression en file ou terminée dont copier les réglages. Mettez le plateau une fois en file depuis le fichier.';
+
+  @override
+  String get ordersErrCancelled => 'Cette commande est annulée.';
+
+  @override
+  String get ordersErrGone => 'Cette commande n’existe plus.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Lot : $name';
+  }
 }

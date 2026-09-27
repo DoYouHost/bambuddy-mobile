@@ -6764,4 +6764,171 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Collapse card';
+
+  @override
+  String get ordersTitle => 'Batch orders';
+
+  @override
+  String get ordersEmpty => 'No batch orders with this status.';
+
+  @override
+  String get ordersFilterActive => 'Active';
+
+  @override
+  String get ordersFilterCompleted => 'Completed';
+
+  @override
+  String get ordersFilterCancelled => 'Cancelled';
+
+  @override
+  String get ordersFilterAll => 'All';
+
+  @override
+  String get ordersStatusActive => 'Active';
+
+  @override
+  String get ordersStatusCompleted => 'Completed';
+
+  @override
+  String get ordersStatusCancelled => 'Cancelled';
+
+  @override
+  String get ordersStatusUnknown => 'Unknown status';
+
+  @override
+  String get ordersGroupingOnly => 'Grouping only';
+
+  @override
+  String ordersBy(String name) {
+    return 'Added by $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Due on $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed of $total done';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count printing';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count waiting';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    return '$count failed';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count still owed';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return '$amount so far';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return '$amount to go';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return 'Cannot queue $runs of the $owed runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.';
+  }
+
+  @override
+  String get ordersStrandedPlate => 'Nothing left to copy settings from';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed of $target done';
+  }
+
+  @override
+  String get ordersWholeFile => 'Whole file';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Queue $count remaining runs',
+      one: 'Queue 1 remaining run',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Queue owed';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Queued the remaining runs of $name';
+  }
+
+  @override
+  String get ordersCancel => 'Cancel order';
+
+  @override
+  String get ordersCancelTitle => 'Cancel this order?';
+
+  @override
+  String get ordersCancelBody =>
+      'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.';
+
+  @override
+  String get ordersCancelled => 'Order cancelled';
+
+  @override
+  String get ordersUngroup => 'Ungroup';
+
+  @override
+  String get ordersUngroupTitle => 'Ungroup this batch?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Its items stay in the queue as separate jobs.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Its items stay in the queue as separate jobs, and the order is deleted with its targets and progress.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items ungrouped',
+      one: '1 item ungrouped',
+      zero: 'Nothing to ungroup',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersErrStranded =>
+      'No plate that still owes runs has a queued or finished run to copy settings from. Queue the plate once from the file.';
+
+  @override
+  String get ordersErrCancelled => 'This order is cancelled.';
+
+  @override
+  String get ordersErrGone => 'This order no longer exists.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Batch: $name';
+  }
 }

@@ -6847,4 +6847,178 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Contraer tarjeta';
+
+  @override
+  String get ordersTitle => 'Pedidos por lotes';
+
+  @override
+  String get ordersEmpty => 'No hay pedidos con este estado.';
+
+  @override
+  String get ordersFilterActive => 'Activos';
+
+  @override
+  String get ordersFilterCompleted => 'Completados';
+
+  @override
+  String get ordersFilterCancelled => 'Cancelados';
+
+  @override
+  String get ordersFilterAll => 'Todos';
+
+  @override
+  String get ordersStatusActive => 'Activo';
+
+  @override
+  String get ordersStatusCompleted => 'Completado';
+
+  @override
+  String get ordersStatusCancelled => 'Cancelado';
+
+  @override
+  String get ordersStatusUnknown => 'Estado desconocido';
+
+  @override
+  String get ordersGroupingOnly => 'Solo agrupación';
+
+  @override
+  String ordersBy(String name) {
+    return 'Añadido por $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Vence el $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed de $total hechos';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count imprimiendo';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count en espera';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fallidos',
+      one: '1 fallido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count pendientes';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return '$amount hasta ahora';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return 'Faltan $amount';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return 'No se pueden encolar $runs de las $owed impresiones pendientes: su placa ya no tiene ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola esa placa una vez desde el archivo o cancela el pedido.';
+  }
+
+  @override
+  String get ordersStrandedPlate =>
+      'No queda nada de lo que copiar los ajustes';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed de $target hechos';
+  }
+
+  @override
+  String get ordersWholeFile => 'Archivo completo';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Encolar $count impresiones pendientes',
+      one: 'Encolar 1 impresión pendiente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Encolar pendientes';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Se encolaron las impresiones pendientes de $name';
+  }
+
+  @override
+  String get ordersCancel => 'Cancelar pedido';
+
+  @override
+  String get ordersCancelTitle => '¿Cancelar este pedido?';
+
+  @override
+  String get ordersCancelBody =>
+      'Las impresiones que esperan en la cola se cancelan y el pedido deja de pedir lo que no se ha producido. Una impresión en curso continúa.';
+
+  @override
+  String get ordersCancelled => 'Pedido cancelado';
+
+  @override
+  String get ordersUngroup => 'Desagrupar';
+
+  @override
+  String get ordersUngroupTitle => '¿Desagrupar este lote?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Sus elementos siguen en la cola como trabajos sueltos.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Sus elementos siguen en la cola como trabajos sueltos, y el pedido se elimina con sus objetivos y su progreso.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementos desagrupados',
+      one: '1 elemento desagrupado',
+      zero: 'Nada que desagrupar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersErrStranded =>
+      'Ninguna placa con impresiones pendientes tiene una impresión en cola o terminada de la que copiar los ajustes. Encola la placa una vez desde el archivo.';
+
+  @override
+  String get ordersErrCancelled => 'Este pedido está cancelado.';
+
+  @override
+  String get ordersErrGone => 'Este pedido ya no existe.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Lote: $name';
+  }
 }

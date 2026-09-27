@@ -6829,4 +6829,172 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Karte einklappen';
+
+  @override
+  String get ordersTitle => 'Sammelaufträge';
+
+  @override
+  String get ordersEmpty => 'Keine Sammelaufträge mit diesem Status.';
+
+  @override
+  String get ordersFilterActive => 'Aktiv';
+
+  @override
+  String get ordersFilterCompleted => 'Abgeschlossen';
+
+  @override
+  String get ordersFilterCancelled => 'Storniert';
+
+  @override
+  String get ordersFilterAll => 'Alle';
+
+  @override
+  String get ordersStatusActive => 'Aktiv';
+
+  @override
+  String get ordersStatusCompleted => 'Abgeschlossen';
+
+  @override
+  String get ordersStatusCancelled => 'Storniert';
+
+  @override
+  String get ordersStatusUnknown => 'Unbekannter Status';
+
+  @override
+  String get ordersGroupingOnly => 'Nur Gruppierung';
+
+  @override
+  String ordersBy(String name) {
+    return 'Hinzugefügt von $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Fällig am $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed von $total fertig';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count im Druck';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count wartend';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    return '$count fehlgeschlagen';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count noch offen';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return 'Bisher $amount';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return 'Noch $amount';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return '$runs der $owed offenen Drucke können nicht eingereiht werden: Für ihre Platte gibt es keinen eingereihten oder fertigen Druck mehr, von dem die Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein oder storniere den Auftrag.';
+  }
+
+  @override
+  String get ordersStrandedPlate =>
+      'Nichts mehr, von dem Einstellungen übernommen werden können';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed von $target fertig';
+  }
+
+  @override
+  String get ordersWholeFile => 'Ganze Datei';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count offene Drucke einreihen',
+      one: '1 offenen Druck einreihen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Offene einreihen';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Offene Drucke von $name eingereiht';
+  }
+
+  @override
+  String get ordersCancel => 'Auftrag stornieren';
+
+  @override
+  String get ordersCancelTitle => 'Diesen Auftrag stornieren?';
+
+  @override
+  String get ordersCancelBody =>
+      'Noch wartende Drucke werden storniert, und der Auftrag verlangt nicht mehr, was noch nicht gefertigt ist. Ein bereits laufender Druck läuft weiter.';
+
+  @override
+  String get ordersCancelled => 'Auftrag storniert';
+
+  @override
+  String get ordersUngroup => 'Gruppierung aufheben';
+
+  @override
+  String get ordersUngroupTitle => 'Gruppierung aufheben?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange, und der Auftrag wird samt Zielen und Fortschritt gelöscht.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge gelöst',
+      one: '1 Eintrag gelöst',
+      zero: 'Nichts aufzulösen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersErrStranded =>
+      'Keine Platte mit offenen Drucken hat einen eingereihten oder fertigen Druck, von dem Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein.';
+
+  @override
+  String get ordersErrCancelled => 'Dieser Auftrag ist storniert.';
+
+  @override
+  String get ordersErrGone => 'Dieser Auftrag existiert nicht mehr.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Gruppe: $name';
+  }
 }
