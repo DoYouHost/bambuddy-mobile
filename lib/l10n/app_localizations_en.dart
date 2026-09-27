@@ -7156,7 +7156,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'Where the “Ask for outcome” switch starts on every new job. Each job can still change it.';
+      'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
@@ -7164,15 +7164,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'Anything started on the printer, in Bambu Studio or in Bambu Handy is archived too. With this on, it gets the same outcome question as a queued job.';
+      'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
-      'Count an unanswered print as good once the plate is clear';
+      'Count an unanswered print as good once the plate is confirmed clear';
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.';
+      'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.';
 
   @override
   String get notifEvtOutcome => 'Outcome question';

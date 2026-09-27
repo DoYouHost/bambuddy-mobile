@@ -7242,11 +7242,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get queueSettingsOutcomeHeader => 'Resultado de la impresión';
 
   @override
-  String get queueSettingsOutcomeDefaultTitle => 'Preguntar el resultado';
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Preguntar el resultado de las impresiones nuevas';
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'Así empieza el interruptor «Preguntar el resultado» en cada trabajo nuevo. En cada trabajo se puede seguir cambiando.';
+      'Los trabajos nuevos preguntan por su resultado de forma predeterminada: en el formulario de impresión, donde cada trabajo aún puede cambiarlo, y donde no hay formulario, como al añadir varios archivos a la cola o en una ejecución de pipeline.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
@@ -7254,15 +7255,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'Las impresiones iniciadas en la impresora, en Bambu Studio o en Bambu Handy también se archivan. Con esta opción reciben la misma pregunta de resultado que los trabajos de la cola.';
+      'Una impresión iniciada en la impresora, en Bambu Studio o en Bambu Handy que Bambuddy archiva también recibe la pregunta por el resultado.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
-      'Contar resultados sin responder como buenos al despejar la cama';
+      'Contar impresiones sin responder como buenas al confirmar la placa vacía';
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado.';
+      'Cuando alguien confirma que la placa está vacía —o, si esa confirmación está desactivada, cuando el siguiente trabajo de la cola se envía a esta impresora—, una impresión terminada que sigue esperando su veredicto se registra como pieza buena. Un enlace de notificación abierto después solo muestra el resultado registrado.';
 
   @override
   String get notifEvtOutcome => 'Pregunta por el resultado';

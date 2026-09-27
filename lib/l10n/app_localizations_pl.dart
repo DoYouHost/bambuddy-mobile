@@ -7270,23 +7270,23 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'Tak ustawiony jest przełącznik „Zapytaj o wynik” w każdym nowym zadaniu. W samym zadaniu nadal można go zmienić.';
+      'Nowe zadania domyślnie pytają o wynik — w formularzu druku, gdzie każde zadanie może to zmienić, i tam, gdzie formularza nie ma, jak przy dodaniu kilku plików naraz do kolejki czy uruchomieniu pipeline’u.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
-      'Pytaj też o wydruki spoza bambuddy';
+      'Pytaj też o wydruki spoza Bambuddy';
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'Wydruki uruchomione na drukarce, w Bambu Studio albo w Bambu Handy też trafiają do archiwum. Po włączeniu dostają to samo pytanie o wynik co zadania z kolejki.';
+      'Wydruk uruchomiony na drukarce, w Bambu Studio albo w Bambu Handy, który Bambuddy zapisuje w archiwum, też dostaje pytanie o wynik.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
-      'Uznaj wydruk bez oceny za udany po zwolnieniu płyty';
+      'Uznaj wydruk bez oceny za udany po potwierdzeniu pustego stołu';
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.';
+      'Gdy ktoś potwierdzi, że stół jest pusty — a przy wyłączonym potwierdzaniu, gdy na tę drukarkę trafi kolejne zadanie z kolejki — ukończony wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.';
 
   @override
   String get notifEvtOutcome => 'Pytanie o wynik';

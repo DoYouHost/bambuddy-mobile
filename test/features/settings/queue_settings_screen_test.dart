@@ -234,11 +234,14 @@ void main() {
 
       await tester.tap(find.text(l10n.queueSettingsOutcomeDefaultTitle));
       await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.queueSettingsOutcomeExternalTitle));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.queueSettingsOutcomePlateClearTitle));
       await tester.pumpAndSettle();
 
       expect(repo.writes, [
         {'default_confirm_outcome': true},
+        {'confirm_outcome_external_prints': false},
         {'confirm_default_good_on_plate_clear': true},
       ]);
     });

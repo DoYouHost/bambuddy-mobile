@@ -7313,11 +7313,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get queueSettingsOutcomeHeader => 'Résultat de l\'impression';
 
   @override
-  String get queueSettingsOutcomeDefaultTitle => 'Demander le résultat';
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Demander le résultat des nouvelles impressions';
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'Position de départ de l\'interrupteur « Demander le résultat » pour chaque nouveau travail. Chaque travail peut encore le changer.';
+      'Les nouveaux travaux demandent leur résultat par défaut : dans le formulaire d\'impression, où chaque travail peut encore le changer, et là où il n\'y a pas de formulaire, comme l\'ajout de plusieurs fichiers à la file d\'attente ou l\'exécution d\'un pipeline.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
@@ -7325,15 +7326,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'Les impressions lancées sur l\'imprimante, dans Bambu Studio ou dans Bambu Handy sont également archivées. Avec cette option, elles reçoivent la même demande de résultat que les travaux de la file d\'attente.';
+      'Une impression lancée sur l\'imprimante, dans Bambu Studio ou dans Bambu Handy et archivée par Bambuddy reçoit aussi la demande de résultat.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
-      'Compter les résultats sans réponse comme bons à la libération du plateau';
+      'Compter les impressions sans réponse comme bonnes une fois le plateau confirmé vide';
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'Lorsque le plateau est libéré (manuellement ou par l\'impression suivante en file d\'attente) et que la demande de résultat reste sans réponse, l\'impression est enregistrée comme bonne pièce. Une réponse ultérieure par lien affiche seulement le résultat enregistré.';
+      'Quand quelqu\'un confirme que le plateau est vide — ou, si cette confirmation est désactivée, quand le travail suivant de la file d\'attente part vers cette imprimante —, une impression terminée qui attend encore son verdict est enregistrée comme bonne pièce. Un lien de notification ouvert ensuite affiche seulement le résultat enregistré.';
 
   @override
   String get notifEvtOutcome => 'Demande de résultat';

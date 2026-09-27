@@ -288,8 +288,9 @@ class QueueSettingsScreen extends ConsumerWidget {
           const [QueueSetting.keepWarmBedTemp],
         ),
       ),
-      // Three independent switches, no master: the default only seeds the
-      // print form, and the other two apply whatever it says.
+      // Three independent switches, no master: the default decides for new
+      // jobs (seeding the form, deciding outright where there is none), the
+      // other two have triggers of their own.
       ..._section(l10n.queueSettingsOutcomeHeader, [
         if (has(QueueSetting.confirmOutcomeDefault))
           SettingsSwitchRow(

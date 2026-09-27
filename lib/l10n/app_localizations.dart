@@ -12056,10 +12056,10 @@ abstract class AppLocalizations {
   /// **'Ask for outcome on new prints'**
   String get queueSettingsOutcomeDefaultTitle;
 
-  /// Explains default_confirm_outcome: it only sets where the print form's switch starts
+  /// Explains default_confirm_outcome: where the print form's switch starts, and whether jobs queued without a form (bulk add, pipelines, webhook, virtual printer) ask
   ///
   /// In en, this message translates to:
-  /// **'Where the “Ask for outcome” switch starts on every new job. Each job can still change it.'**
+  /// **'New jobs ask for their outcome by default — in the print form, where each job can still change it, and where there is no form, such as adding several files to the queue at once or a pipeline run.'**
   String get queueSettingsOutcomeDefaultDesc;
 
   /// Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start
@@ -12071,19 +12071,19 @@ abstract class AppLocalizations {
   /// Explains confirm_outcome_external_prints
   ///
   /// In en, this message translates to:
-  /// **'Anything started on the printer, in Bambu Studio or in Bambu Handy is archived too. With this on, it gets the same outcome question as a queued job.'**
+  /// **'A print started on the printer, in Bambu Studio or in Bambu Handy that Bambuddy archives gets the outcome question too.'**
   String get queueSettingsOutcomeExternalDesc;
 
   /// Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear
   ///
   /// In en, this message translates to:
-  /// **'Count an unanswered print as good once the plate is clear'**
+  /// **'Count an unanswered print as good once the plate is confirmed clear'**
   String get queueSettingsOutcomePlateClearTitle;
 
   /// Explains confirm_default_good_on_plate_clear
   ///
   /// In en, this message translates to:
-  /// **'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.'**
+  /// **'When someone confirms the plate is clear — or, with that confirmation off, when the next queued job is sent to this printer — a completed print still awaiting its verdict is recorded as a good part. A notification link opened after that only shows what was recorded.'**
   String get queueSettingsOutcomePlateClearDesc;
 
   /// Notification settings switch: the question asked when a print that opted in completes

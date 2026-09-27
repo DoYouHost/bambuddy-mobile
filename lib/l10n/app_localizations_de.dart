@@ -7219,11 +7219,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get queueSettingsOutcomeHeader => 'Druckergebnis';
 
   @override
-  String get queueSettingsOutcomeDefaultTitle => 'Nach Ergebnis fragen';
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Bei neuen Drucken nach dem Ergebnis fragen';
 
   @override
   String get queueSettingsOutcomeDefaultDesc =>
-      'So steht der Schalter „Nach Ergebnis fragen“ bei jedem neuen Auftrag. Im Auftrag selbst lässt er sich weiterhin ändern.';
+      'Neue Aufträge fragen standardmäßig nach ihrem Ergebnis – im Druckformular, wo jeder Auftrag das noch ändern kann, und dort, wo es kein Formular gibt, etwa beim Hinzufügen mehrerer Dateien zur Warteschlange oder bei einem Pipeline-Lauf.';
 
   @override
   String get queueSettingsOutcomeExternalTitle =>
@@ -7231,15 +7232,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get queueSettingsOutcomeExternalDesc =>
-      'Drucke, die am Drucker, in Bambu Studio oder in Bambu Handy gestartet wurden, landen ebenfalls im Archiv. Mit dieser Option bekommen sie dieselbe Ergebnisabfrage wie Aufträge aus der Warteschlange.';
+      'Ein Druck, der am Drucker, in Bambu Studio oder in Bambu Handy gestartet und von Bambuddy archiviert wird, bekommt die Ergebnisabfrage ebenfalls.';
 
   @override
   String get queueSettingsOutcomePlateClearTitle =>
-      'Unbeantwortete Ergebnisse bei Druckplatten-Freigabe als gut zählen';
+      'Unbeantwortete Drucke nach bestätigter freier Druckplatte als gut zählen';
 
   @override
   String get queueSettingsOutcomePlateClearDesc =>
-      'Wenn die Druckplatte freigegeben wird (manuell oder durch den nächsten geplanten Druck) und die Ergebnisabfrage des Drucks noch unbeantwortet ist, wird er automatisch als Gutteil erfasst. Eine Antwort über einen Link danach zeigt nur noch das gespeicherte Ergebnis.';
+      'Wenn jemand bestätigt, dass die Druckplatte frei ist – oder, wenn diese Bestätigung aus ist, sobald der nächste Auftrag aus der Warteschlange an diesen Drucker geht –, wird ein fertiger Druck, der noch auf seine Bewertung wartet, als Gutteil erfasst. Ein danach geöffneter Link aus der Benachrichtigung zeigt nur noch das gespeicherte Ergebnis.';
 
   @override
   String get notifEvtOutcome => 'Ergebnisabfrage';
