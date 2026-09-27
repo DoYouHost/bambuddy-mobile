@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -75,8 +77,61 @@ void main() {
     expect(capturedBody?['confirm_outcome'], true);
   });
 
+  // The key is left out rather than resent: another client may have changed
+  // it while the form was open.
+  testWidgets('an edit that does not touch the switch does not send it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        QueueItem.fromJson({
+          'id': 5,
+          'position': 1,
+          'status': 'pending',
+          'archive_id': 77,
+          'printer_id': 1,
+          'confirm_outcome': true,
+        }),
+        schedule: QueueScheduleType.queue,
+        mode: QueueEditMode.edit,
+        extra: outcome(supported: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await submitQueueForm(tester, edit: true);
+    expect(capturedBody?.containsKey('confirm_outcome'), isFalse);
+  });
+
+  testWidgets('a job submitted before the default arrives waits for it', (
+    tester,
+  ) async {
+    final settings = Completer<bool>();
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        extra: [
+          queueOutcomeProvider.overrideWithValue(const AsyncData(true)),
+          defaultConfirmOutcomeProvider.overrideWith(
+            (ref) => ref.watch(_heldDefault(settings)),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(
+      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
+    );
+    await tester.pump();
+    settings.complete(true);
+    await tester.pumpAndSettle();
+
+    expect(capturedBody?['confirm_outcome'], true);
+  });
+
   // The item's own flag, not the server default: editing is about THIS job.
-  testWidgets('editing shows and keeps the flag the item has', (tester) async {
+  testWidgets('editing starts from the flag the item has', (tester) async {
     await tester.pumpWidget(
       queueFormScreen(
         QueueItem.fromJson({
@@ -99,3 +154,9 @@ void main() {
     expect(capturedBody?['confirm_outcome'], false);
   });
 }
+
+/// A default that answers when [answer] completes — `/settings` still out when
+/// the form opens.
+final _heldDefault = FutureProvider.family<bool, Completer<bool>>(
+  (ref, answer) => answer.future,
+);

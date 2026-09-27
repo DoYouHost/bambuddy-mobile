@@ -1195,7 +1195,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               title: l10n.queueOptConfirmOutcome,
               subtitle: l10n.queueOptConfirmOutcomeDesc,
               value: _confirmOutcome(watch: true),
-              onChanged: (v) => setState(() => _confirmOutcomeChoice = v),
+              // Held while a new job's default is on its way: a switch that
+              // moves by itself after the first look is one tapped wrong.
+              onChanged: _confirmOutcomeUnanswered
+                  ? null
+                  : (v) => setState(() => _confirmOutcomeChoice = v),
             ),
           if (_showNozzleOffset)
             _CalibrationRow(
@@ -1440,11 +1444,33 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return server.valueOrNull ?? false;
   }
 
-  /// The flag as it may ship, or null to leave the key out — which on create
-  /// is the server's own default and on update leaves the stored flag alone.
-  bool? get _confirmOutcomePayload => ref.read(queueOutcomeProvider).orFalse
-      ? _confirmOutcome(watch: false)
-      : null;
+  bool get _confirmOutcomeUnanswered =>
+      widget._isCreate &&
+      _confirmOutcomeChoice == null &&
+      ref.watch(defaultConfirmOutcomeProvider).isUnanswered;
+
+  /// The flag for a new job, or null to leave the key out where the server
+  /// would drop it. `POST /queue/` does not read the server's default itself
+  /// (only the paths without a dialog do), so an untouched switch sends the
+  /// default — waited for, since a job submitted before it arrived would
+  /// otherwise go out as `false`.
+  Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
+    if (!providers.read(queueOutcomeProvider).orFalse) return null;
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    return settledGate(
+      providers,
+      defaultConfirmOutcomeProvider,
+    ).catchError((Object _) => false);
+  }
+
+  /// The flag for a PATCH, sent only when it changed — as the calibrations
+  /// are ([_calibrationUpdate]) — so a save about something else cannot
+  /// rewrite what another client set meanwhile.
+  bool? get _confirmOutcomeUpdate {
+    final choice = _confirmOutcomeChoice;
+    if (!ref.read(queueOutcomeProvider).orFalse) return null;
+    return choice == widget.item.confirmOutcome ? null : choice;
+  }
 
   /// The injection flag as it may ship, or null to leave the key out.
   ///
@@ -1539,7 +1565,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? _calibrationUpdate(_nozzleOffsetCali, widget.item.nozzleOffsetCali)
         : null,
     gcodeInjection: _gcodeInjectionPayload,
-    confirmOutcome: _confirmOutcomePayload,
+    confirmOutcome: _confirmOutcomeUpdate,
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
@@ -1560,6 +1586,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final it = widget.item;
     final providers = ProviderScope.containerOf(context, listen: false);
     final orderId = await _createOrder(providers);
+    final confirmOutcome = await _confirmOutcomeForCreate(providers);
     final plate = _plate;
     final options = QueueCreateOptions(
       // Into an order, the item carries the plate its target names.
@@ -1580,7 +1607,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       timelapse: _timelapse,
       nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
       gcodeInjection: _gcodeInjectionPayload,
-      confirmOutcome: _confirmOutcomePayload,
+      confirmOutcome: confirmOutcome,
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
@@ -1937,7 +1964,9 @@ class _OptionSwitch extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

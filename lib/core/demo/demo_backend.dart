@@ -586,6 +586,11 @@ class DemoBackend {
     // button in the app, and with it off the pipelines feature showed
     // only its read-only half.
     'use_slicer_api': true,
+    // The outcome prompt (#1898): on by default here, off on a real server,
+    // so the print form's switch visibly starts from what the server says.
+    'default_confirm_outcome': true,
+    'confirm_outcome_external_prints': false,
+    'confirm_default_good_on_plate_clear': false,
     'currency': 'USD',
     // Auto-print snippets, as the real server stores them: a JSON string
     // keyed by printer model. Only the A1 mini has one, so demo shows both

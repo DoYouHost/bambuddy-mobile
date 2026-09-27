@@ -14,6 +14,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/server_refusal.dart';
+import '../../data/queue_repository.dart' show QueueCreateOptions;
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
@@ -741,9 +742,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         _snack(_l10n.fmVariantsGone);
         return;
       }
+      // No form here to show the switch, so the job asks exactly when the
+      // server's own default says to — what the server does itself on its
+      // other paths without a dialog (`confirm_outcome_for_new_queue_item`).
+      final confirmOutcome = ref.read(queueOutcomeProvider).orFalse
+          ? ref.read(defaultConfirmOutcomeProvider).valueOrNull
+          : null;
       await ref.read(queueRepositoryProvider).addCrossModel([
         for (final m in group.members) m.libraryFileId,
-      ]);
+      ], options: QueueCreateOptions(confirmOutcome: confirmOutcome));
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {

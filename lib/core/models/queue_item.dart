@@ -265,9 +265,11 @@ class QueueItem {
   @JsonKey(defaultValue: false)
   final bool gcodeInjection;
 
-  /// Ask how the print came out once it completes (#1898). Copied onto the
-  /// archive as `confirm_requested` when the job is dispatched. Absent (false)
-  /// on an older server; its presence is what
+  /// Ask how the print came out once it completes (#1898). A `true` is copied
+  /// onto the archive as `confirm_requested` at dispatch; a `false` is not,
+  /// and the archive's flag is never cleared (`print_scheduler.py`) — so a
+  /// reprint of an archive that asked once asks again whatever this says.
+  /// Absent (false) on an older server; its presence is what
   /// `QueueRepository.outcomeCapability` observes.
   @JsonKey(defaultValue: false)
   final bool confirmOutcome;
