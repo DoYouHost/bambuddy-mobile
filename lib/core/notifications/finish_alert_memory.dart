@@ -36,10 +36,12 @@ class PostedAlert {
   /// is no photo left to look for.
   final AlertPicture? picture;
 
+  /// [clearPicture] drops a photo whose file is gone, so the poll looks again.
   PostedAlert copyWith({
     String? payload,
     List<NotificationAction>? actions,
     AlertPicture? picture,
+    bool clearPicture = false,
   }) => PostedAlert(
     event: event,
     printerId: printerId,
@@ -49,7 +51,7 @@ class PostedAlert {
     postedAt: postedAt,
     payload: payload ?? this.payload,
     actions: actions ?? this.actions,
-    picture: picture ?? this.picture,
+    picture: clearPicture ? null : picture ?? this.picture,
   );
 
   Map<String, dynamic> toJson() => {

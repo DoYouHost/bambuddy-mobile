@@ -240,21 +240,26 @@ class FinishPhotoNotifier {
     // notification swiped away inside that window would be brought back by the
     // post below, and Android counts a post after a cancel as a new one, so it
     // would ring a second time for a print already dealt with.
-    if (await _gone(archiveId, alert)) return;
+    //
+    // Read again, too: the other isolate may have put the outcome buttons on
+    // while this one was downloading, and re-posting the entry as it was
+    // before would take them off.
+    final current = await _memory.recall(alert.printerId, clock.now()) ?? alert;
+    if (current.id != alert.id || await _gone(archiveId, current)) return;
     await _notifications.showAlert(
-      event: alert.event,
-      printerId: alert.printerId,
-      id: alert.id,
-      title: alert.title,
-      body: alert.body,
-      payload: alert.payload,
+      event: current.event,
+      printerId: current.printerId,
+      id: current.id,
+      title: current.title,
+      body: current.body,
+      payload: current.payload,
       // The outcome buttons, when they got here first.
-      actions: alert.actions,
+      actions: current.actions,
       picture: picture,
     );
     // Kept, with the photo on it, rather than dropped: the outcome buttons
     // may still come and have to re-post the photo along with them.
-    await _memory.remember(alert.copyWith(picture: picture));
+    await _memory.remember(current.copyWith(picture: picture));
     NotifProbe.finishPhoto(
       archiveId: archiveId,
       printerId: alert.printerId,
@@ -305,7 +310,13 @@ class FinishPhotoNotifier {
       return false;
     }
     if (await _gone(archiveId, alert)) return false;
-    final updated = alert.copyWith(payload: payload, actions: actions);
+    final picture = _stillOnDisk(alert.picture);
+    final updated = alert.copyWith(
+      payload: payload,
+      actions: actions,
+      picture: picture,
+      clearPicture: picture == null,
+    );
     await _notifications.showAlert(
       event: updated.event,
       printerId: updated.printerId,
@@ -314,7 +325,7 @@ class FinishPhotoNotifier {
       body: updated.body,
       payload: updated.payload,
       actions: updated.actions,
-      picture: _stillOnDisk(updated.picture),
+      picture: updated.picture,
       quiet: true,
     );
     await _memory.remember(updated);

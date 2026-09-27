@@ -340,6 +340,22 @@ void main() {
       expect(notifications.alerts.last['actionIds'], hasLength(2));
     });
 
+    // The other isolate put the buttons on while this one downloaded the
+    // photo; re-posting what it read before the download would take them off.
+    testAt('buttons added during the photo download survive it', (_) async {
+      await memory.remember(_alert());
+      duringPictureFetch = () => unawaited(
+        memory.remember(
+          _alert().copyWith(payload: 'outcome:82:ab', actions: buttons),
+        ),
+      );
+
+      await send(photoFrame);
+
+      expect(notifications.alerts.last['actionIds'], hasLength(2));
+      expect(notifications.alerts.last['payload'], 'outcome:82:ab');
+    });
+
     // The photo is the app's cache; a post naming a file that is gone is one
     // the platform refuses whole.
     testAt('a photo cleared from the cache is left off, not the buttons', (
@@ -352,6 +368,11 @@ void main() {
 
       expect(notifications.alerts.last['photo'], isNull);
       expect(notifications.alerts.last['actionIds'], hasLength(2));
+      expect(
+        await memory.recallAll(_now),
+        hasLength(1),
+        reason: 'no photo on it any more, so the poll looks again',
+      );
     });
   });
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
+import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_alert.dart';
@@ -121,6 +122,32 @@ void main() {
       expect(saved.isOn(NotifEvent.outcomeRequest), isTrue);
     });
   });
+
+  // Answered in the app or by a button: the entry goes, or a photo landing
+  // later would bring the answered notification back. Here the plugin is
+  // missing and every cancel throws, which must not stop the forgetting.
+  test(
+    'an answer forgets the finished alert that carried the buttons',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final memory = FinishAlertMemory(await SharedPreferences.getInstance());
+      await memory.remember(
+        PostedAlert(
+          event: NotifEvent.printFinished,
+          printerId: 3,
+          id: 1000003,
+          title: 't',
+          body: 'b',
+          payload: outcomePayload(82, _server),
+          postedAt: DateTime.now(),
+        ),
+      );
+
+      await cancelOutcomeAlert(82, memory: memory);
+
+      expect(await memory.entries(), isEmpty);
+    },
+  );
 
   group('payload and action ids', () {
     test('round-trip, and refuse anything else', () {

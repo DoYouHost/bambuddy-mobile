@@ -142,13 +142,20 @@ Future<void> cancelOutcomeAlert(
   int archiveId, {
   FinishAlertMemory? memory,
 }) async {
+  final plugin = FlutterLocalNotificationsPlugin();
   try {
-    final plugin = FlutterLocalNotificationsPlugin();
     await plugin.cancel(id: outcomeAlertId(archiveId));
-    for (final alert in await memory?.entries() ?? const <PostedAlert>[]) {
+  } on Object {
+    // Nothing on screen to take away.
+  }
+  if (memory == null) return;
+  try {
+    for (final alert in await memory.entries()) {
       if (parseOutcomePayload(alert.payload)?.archiveId != archiveId) continue;
+      // Forgotten before the cancel: a photo landing later must find no
+      // entry to bring the answered notification back with.
+      await memory.forget(alert.printerId);
       await plugin.cancel(id: alert.id);
-      await memory!.forget(alert.printerId);
     }
   } on Object {
     // Nothing on screen to take away.

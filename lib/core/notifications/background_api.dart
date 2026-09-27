@@ -12,6 +12,7 @@ import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import 'finish_alert_memory.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
 import 'outcome_alert.dart';
@@ -169,7 +170,7 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
     }
     if (outcomeServerTag(profile.baseUrl) != target.server) {
       NotifProbe.actionFailed(const OutcomeServerChanged(), items: 1);
-      await _dismiss(response.id);
+      await _dismiss(response.id, target.archiveId);
       return;
     }
     final api = await buildBackgroundApiClient(prefs);
@@ -185,11 +186,11 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
     if (!result.applied) {
       NotifProbe.actionFailed(const VerdictNotStored(), items: 1);
     }
-    await _dismiss(response.id);
+    await _dismiss(response.id, target.archiveId);
   } on AppApiException catch (error) {
     // "I pressed Good and the print still waits for a verdict" — on the record.
     NotifProbe.actionFailed(error, items: 1);
-    if (_isRefusal(error)) await _dismiss(response.id);
+    if (_isRefusal(error)) await _dismiss(response.id, target.archiveId);
   } on Object catch (error) {
     NotifProbe.actionFailed(error, items: 1);
   } finally {
@@ -214,10 +215,15 @@ bool _isRefusal(AppApiException error) =>
     error.code == AppErrorCode.forbidden ||
     (error is ApiException && (error.statusCode ?? 500) < 500);
 
-Future<void> _dismiss(int? id) async {
-  if (id == null) return;
+/// Takes the tapped notification away, and with it the memory entry that
+/// would let a photo landing later bring an answered alert back.
+Future<void> _dismiss(int? id, int archiveId) async {
   try {
-    await FlutterLocalNotificationsPlugin().cancel(id: id);
+    await cancelOutcomeAlert(
+      archiveId,
+      memory: FinishAlertMemory(await SharedPreferences.getInstance()),
+    );
+    if (id != null) await FlutterLocalNotificationsPlugin().cancel(id: id);
   } on Object {
     // Gone already, or no plugin to ask.
   }
