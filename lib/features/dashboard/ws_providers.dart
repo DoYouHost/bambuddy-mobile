@@ -10,6 +10,7 @@ import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
+import '../../core/notifications/outcome_prompt.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
@@ -149,6 +150,12 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       (_) => ref.read(archiveChangedProvider.notifier).bump(),
     );
     ref.onDispose(archiveSub.cancel);
+
+    // The shell owns the sheet; this only hands it the question.
+    final confirmSub = client.confirmRequests.listen(
+      (request) => postOutcomePrompt(request.archiveId),
+    );
+    ref.onDispose(confirmSub.cancel);
 
     // Primary trigger: explicit print_start/print_complete frames.
     final printSub = client.printEvents.listen(

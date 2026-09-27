@@ -7255,4 +7255,50 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get outcomeSourceReaction =>
       'Enregistré par une réaction dans le chat.';
+
+  @override
+  String get outcomeTitle => 'Comment votre impression est-elle sortie ?';
+
+  @override
+  String get outcomeGood => 'Bonne';
+
+  @override
+  String get outcomeReject => 'Rebut';
+
+  @override
+  String get outcomeLater => 'Me redemander plus tard';
+
+  @override
+  String get outcomeClear => 'Effacer le verdict';
+
+  @override
+  String get outcomeRejectReason => 'Raison du rebut (facultatif)';
+
+  @override
+  String get outcomeNoReason => 'Aucune raison';
+
+  @override
+  String get outcomeSaveReject => 'Enregistrer';
+
+  @override
+  String get outcomeRejectAndReprint => 'Réimprimer';
+
+  @override
+  String get outcomeSavedGood => 'Marquée comme bonne pièce';
+
+  @override
+  String get outcomeSavedReject => 'Marquée comme rebut';
+
+  @override
+  String get outcomeCleared => 'Verdict effacé';
+
+  @override
+  String get outcomeUnsupported =>
+      'Le serveur n\'a pas enregistré le verdict. Mettez bambuddy à jour pour consigner le résultat des impressions.';
+
+  @override
+  String get outcomeRate => 'Évaluer';
+
+  @override
+  String get outcomeChange => 'Modifier';
 }

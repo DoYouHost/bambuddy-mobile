@@ -7161,4 +7161,50 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get outcomeSourceReaction => 'Über eine Reaktion im Chat erfasst.';
+
+  @override
+  String get outcomeTitle => 'Wie ist Ihr Druck geworden?';
+
+  @override
+  String get outcomeGood => 'Gut';
+
+  @override
+  String get outcomeReject => 'Ausschuss';
+
+  @override
+  String get outcomeLater => 'Später fragen';
+
+  @override
+  String get outcomeClear => 'Bewertung entfernen';
+
+  @override
+  String get outcomeRejectReason => 'Ausschussgrund (optional)';
+
+  @override
+  String get outcomeNoReason => 'Kein Grund';
+
+  @override
+  String get outcomeSaveReject => 'Speichern';
+
+  @override
+  String get outcomeRejectAndReprint => 'Erneut drucken';
+
+  @override
+  String get outcomeSavedGood => 'Als Gutteil markiert';
+
+  @override
+  String get outcomeSavedReject => 'Als Ausschuss markiert';
+
+  @override
+  String get outcomeCleared => 'Bewertung entfernt';
+
+  @override
+  String get outcomeUnsupported =>
+      'Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.';
+
+  @override
+  String get outcomeRate => 'Bewerten';
+
+  @override
+  String get outcomeChange => 'Ändern';
 }

@@ -1,3 +1,4 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -91,9 +92,16 @@ class ArchiveVerdictBadge extends StatelessWidget {
 /// verdicts — on one that cannot hold one it would be a question nobody can
 /// answer.
 class ArchiveOutcomeRow extends ConsumerWidget {
-  const ArchiveOutcomeRow({super.key, required this.archive});
+  const ArchiveOutcomeRow({
+    super.key,
+    required this.archive,
+    required this.onRate,
+  });
 
   final Archive archive;
+
+  /// Opens the outcome sheet. Offered only where a verdict can be written.
+  final VoidCallback onRate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,6 +116,7 @@ class ArchiveOutcomeRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final verdict = archive.userVerdict;
     final at = archive.userVerdictAt;
+    final writable = ref.watch(printOutcomeSupportedProvider).orFalse;
     final details = [
       if (verdict != null) ?verdictSourceLabel(l10n, archive.userVerdictSource),
       if (verdict != null && at != null)
@@ -140,6 +149,16 @@ class ArchiveOutcomeRow extends ConsumerWidget {
               ],
             ),
           ),
+          if (writable)
+            logTag(
+              'archive.rate_outcome',
+              TextButton(
+                onPressed: onRate,
+                child: Text(
+                  verdict == null ? l10n.outcomeRate : l10n.outcomeChange,
+                ),
+              ),
+            ),
         ],
       ),
     );

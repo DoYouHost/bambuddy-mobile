@@ -52,6 +52,7 @@ class Archive {
     this.userVerdictSource,
     this.userVerdictAt,
     this.confirmRequested = false,
+    this.failureReason,
   });
 
   factory Archive.fromJson(Map<String, dynamic> json) =>
@@ -204,6 +205,11 @@ class Archive {
   /// `ArchiveRepository.outcomeCapability` observes.
   @JsonKey(defaultValue: false)
   final bool confirmRequested;
+
+  /// Why the print failed, or why a completed one was rejected — an i18n key
+  /// from the failure-reason list, or free text an older web build wrote (see
+  /// `failureReasonLabel`).
+  final String? failureReason;
 
   /// The question is still open: the web's "unconfirmed" badge. Only a
   /// completed print is asked — a failed one already has its answer.

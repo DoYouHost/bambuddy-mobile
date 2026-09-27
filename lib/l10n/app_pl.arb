@@ -3160,5 +3160,20 @@
   "outcomeSourcePlateClear": "Zapisano przy oznaczeniu płyty jako pustej.",
   "outcomeSourcePrinterCard": "Zapisano z karty drukarki.",
   "outcomeSourceApi": "Zapisano przez API.",
-  "outcomeSourceReaction": "Zapisano reakcją na czacie."
+  "outcomeSourceReaction": "Zapisano reakcją na czacie.",
+  "outcomeTitle": "Jak wyszedł wydruk?",
+  "outcomeGood": "Udany",
+  "outcomeReject": "Odrzucony",
+  "outcomeLater": "Zapytaj później",
+  "outcomeClear": "Usuń ocenę",
+  "outcomeRejectReason": "Powód odrzucenia (opcjonalnie)",
+  "outcomeNoReason": "Bez powodu",
+  "outcomeSaveReject": "Zapisz",
+  "outcomeRejectAndReprint": "Drukuj ponownie",
+  "outcomeSavedGood": "Oznaczono jako udany",
+  "outcomeSavedReject": "Oznaczono jako odrzucony",
+  "outcomeCleared": "Usunięto ocenę",
+  "outcomeUnsupported": "Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.",
+  "outcomeRate": "Oceń",
+  "outcomeChange": "Zmień"
 }

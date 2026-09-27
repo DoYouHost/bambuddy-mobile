@@ -7207,4 +7207,50 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get outcomeSourceReaction => 'Zapisano reakcją na czacie.';
+
+  @override
+  String get outcomeTitle => 'Jak wyszedł wydruk?';
+
+  @override
+  String get outcomeGood => 'Udany';
+
+  @override
+  String get outcomeReject => 'Odrzucony';
+
+  @override
+  String get outcomeLater => 'Zapytaj później';
+
+  @override
+  String get outcomeClear => 'Usuń ocenę';
+
+  @override
+  String get outcomeRejectReason => 'Powód odrzucenia (opcjonalnie)';
+
+  @override
+  String get outcomeNoReason => 'Bez powodu';
+
+  @override
+  String get outcomeSaveReject => 'Zapisz';
+
+  @override
+  String get outcomeRejectAndReprint => 'Drukuj ponownie';
+
+  @override
+  String get outcomeSavedGood => 'Oznaczono jako udany';
+
+  @override
+  String get outcomeSavedReject => 'Oznaczono jako odrzucony';
+
+  @override
+  String get outcomeCleared => 'Usunięto ocenę';
+
+  @override
+  String get outcomeUnsupported =>
+      'Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.';
+
+  @override
+  String get outcomeRate => 'Oceń';
+
+  @override
+  String get outcomeChange => 'Zmień';
 }

@@ -3860,5 +3860,20 @@
   "outcomeSourcePlateClear": "Registrado al despejar la cama.",
   "outcomeSourcePrinterCard": "Registrado desde la tarjeta de la impresora.",
   "outcomeSourceApi": "Registrado a través de la API.",
-  "outcomeSourceReaction": "Registrado con una reacción en el chat."
+  "outcomeSourceReaction": "Registrado con una reacción en el chat.",
+  "outcomeTitle": "¿Cómo ha salido su impresión?",
+  "outcomeGood": "Buena",
+  "outcomeReject": "Rechazar",
+  "outcomeLater": "Preguntar más tarde",
+  "outcomeClear": "Quitar el veredicto",
+  "outcomeRejectReason": "Motivo del rechazo (opcional)",
+  "outcomeNoReason": "Sin motivo",
+  "outcomeSaveReject": "Guardar",
+  "outcomeRejectAndReprint": "Imprimir de nuevo",
+  "outcomeSavedGood": "Marcada como pieza buena",
+  "outcomeSavedReject": "Marcada como rechazada",
+  "outcomeCleared": "Veredicto eliminado",
+  "outcomeUnsupported": "El servidor no guardó el veredicto. Actualice bambuddy para registrar el resultado de las impresiones.",
+  "outcomeRate": "Valorar",
+  "outcomeChange": "Cambiar"
 }

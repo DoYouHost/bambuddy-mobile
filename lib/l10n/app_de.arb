@@ -3860,5 +3860,20 @@
   "outcomeSourcePlateClear": "Bei der Freigabe der Druckplatte erfasst.",
   "outcomeSourcePrinterCard": "Über die Druckerkarte erfasst.",
   "outcomeSourceApi": "Über die API erfasst.",
-  "outcomeSourceReaction": "Über eine Reaktion im Chat erfasst."
+  "outcomeSourceReaction": "Über eine Reaktion im Chat erfasst.",
+  "outcomeTitle": "Wie ist Ihr Druck geworden?",
+  "outcomeGood": "Gut",
+  "outcomeReject": "Ausschuss",
+  "outcomeLater": "Später fragen",
+  "outcomeClear": "Bewertung entfernen",
+  "outcomeRejectReason": "Ausschussgrund (optional)",
+  "outcomeNoReason": "Kein Grund",
+  "outcomeSaveReject": "Speichern",
+  "outcomeRejectAndReprint": "Erneut drucken",
+  "outcomeSavedGood": "Als Gutteil markiert",
+  "outcomeSavedReject": "Als Ausschuss markiert",
+  "outcomeCleared": "Bewertung entfernt",
+  "outcomeUnsupported": "Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.",
+  "outcomeRate": "Bewerten",
+  "outcomeChange": "Ändern"
 }

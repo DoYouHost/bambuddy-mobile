@@ -11941,6 +11941,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recorded with a reaction in chat.'**
   String get outcomeSourceReaction;
+
+  /// Heading of the sheet that asks for a finished print's outcome verdict
+  ///
+  /// In en, this message translates to:
+  /// **'How did your print come out?'**
+  String get outcomeTitle;
+
+  /// Button: record the print as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get outcomeGood;
+
+  /// Button: record the print as scrap (then asks for an optional reason)
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get outcomeReject;
+
+  /// Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me later'**
+  String get outcomeLater;
+
+  /// Button: remove the verdict a print already has, so it has none again
+  ///
+  /// In en, this message translates to:
+  /// **'Clear verdict'**
+  String get outcomeClear;
+
+  /// Label of the dropdown for why a print was rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Reject reason (optional)'**
+  String get outcomeRejectReason;
+
+  /// Dropdown entry: reject without naming a reason
+  ///
+  /// In en, this message translates to:
+  /// **'No reason'**
+  String get outcomeNoReason;
+
+  /// Button: save the reject with the chosen reason
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get outcomeSaveReject;
+
+  /// Button: save the reject and open the print form to print the same file again
+  ///
+  /// In en, this message translates to:
+  /// **'Print again'**
+  String get outcomeRejectAndReprint;
+
+  /// Confirmation after a print was recorded as a good part
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as good part'**
+  String get outcomeSavedGood;
+
+  /// Confirmation after a print was recorded as rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as rejected'**
+  String get outcomeSavedReject;
+
+  /// Confirmation after a print's verdict was removed
+  ///
+  /// In en, this message translates to:
+  /// **'Verdict removed'**
+  String get outcomeCleared;
+
+  /// Shown when the server answered but did not store the verdict (a server older than the feature)
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not store the verdict. Update bambuddy to record print outcomes.'**
+  String get outcomeUnsupported;
+
+  /// Button in the archive detail sheet: open the outcome sheet for a print with no verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get outcomeRate;
+
+  /// Button in the archive detail sheet: open the outcome sheet to change a verdict
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get outcomeChange;
 }
 
 class _AppLocalizationsDelegate

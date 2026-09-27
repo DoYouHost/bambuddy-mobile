@@ -11,7 +11,10 @@ import 'core/format/system_clock_sync.dart';
 import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
+import 'core/notifications/outcome_prompt.dart';
+import 'core/models/current_user.dart';
 import 'core/theme/dash_theme.dart';
+import 'features/archive/outcome_sheet.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
@@ -30,10 +33,15 @@ class BambuddyApp extends ConsumerStatefulWidget {
 class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   StreamSubscription<Uri?>? _widgetClickSub;
   StreamSubscription<HmsStopRequest>? _hmsStopSub;
+  StreamSubscription<int>? _outcomeSub;
   // Guard against multiple scanner triggers from one widget tap (cold start may
   // get URI from both initiallyLaunched and stream).
   bool _scanInFlight = false;
   bool _hmsStopInFlight = false;
+
+  /// One outcome sheet at a time. A second print finishing while it is open
+  /// keeps its badge in the archive rather than stacking a sheet on a sheet.
+  bool _outcomeInFlight = false;
 
   @override
   void initState() {
@@ -46,6 +54,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // widget above: the stream while the app runs, the launch intent when the
     // tap is what started it.
     _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
+    _outcomeSub = outcomePrompts.listen(_onOutcomePrompt);
     unawaited(_onNotificationLaunch());
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
@@ -61,6 +70,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   void dispose() {
     _widgetClickSub?.cancel();
     _hmsStopSub?.cancel();
+    _outcomeSub?.cancel();
     super.dispose();
   }
 
@@ -80,6 +90,30 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // and nothing to recover — the live paths above are unaffected.
     }
     _onHmsStopRequest(takeHmsStop());
+    _onOutcomePrompt(takeOutcomePrompt());
+  }
+
+  /// Asks how a print came out — for a session that may record the answer.
+  /// The route checks update-own or update-all against the print's owner, so
+  /// for anyone holding neither the sheet could only end in a refusal.
+  void _onOutcomePrompt(int? archiveId) {
+    if (archiveId == null || _outcomeInFlight) return;
+    if (ref.read(serverProfileProvider) == null) return;
+    if (!ref.read(permissionProvider(Permissions.archivesUpdateAll)) &&
+        !ref.read(permissionProvider(Permissions.archivesUpdateOwn))) {
+      return;
+    }
+    _outcomeInFlight = true;
+    // Post-frame for the same reason as the stop request: a cold start gets
+    // here before there is a navigator to put a sheet on.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = rootNavigatorKey.currentContext;
+      try {
+        if (context != null) await showOutcomeSheet(context, archiveId);
+      } finally {
+        _outcomeInFlight = false;
+      }
+    });
   }
 
   /// Ask before abandoning the print, then send the action the notification

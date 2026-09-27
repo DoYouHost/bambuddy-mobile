@@ -48,6 +48,7 @@ abstract class _$ArchiveCWProxy {
     String? userVerdictSource,
     DateTime? userVerdictAt,
     bool confirmRequested,
+    String? failureReason,
   });
 }
 
@@ -100,6 +101,7 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
     Object? userVerdictSource = const $CopyWithPlaceholder(),
     Object? userVerdictAt = const $CopyWithPlaceholder(),
     Object? confirmRequested = const $CopyWithPlaceholder(),
+    Object? failureReason = const $CopyWithPlaceholder(),
   }) {
     return Archive(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -242,6 +244,10 @@ class _$ArchiveCWProxyImpl implements _$ArchiveCWProxy {
           ? _value.confirmRequested
           // ignore: cast_nullable_to_non_nullable
           : confirmRequested as bool,
+      failureReason: failureReason == const $CopyWithPlaceholder()
+          ? _value.failureReason
+          // ignore: cast_nullable_to_non_nullable
+          : failureReason as String?,
     );
   }
 }
@@ -292,4 +298,5 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   userVerdictSource: json['user_verdict_source'] as String?,
   userVerdictAt: dateTimeFromJson(json['user_verdict_at']),
   confirmRequested: json['confirm_requested'] as bool? ?? false,
+  failureReason: json['failure_reason'] as String?,
 );

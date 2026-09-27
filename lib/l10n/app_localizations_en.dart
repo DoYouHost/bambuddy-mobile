@@ -7093,4 +7093,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outcomeSourceReaction => 'Recorded with a reaction in chat.';
+
+  @override
+  String get outcomeTitle => 'How did your print come out?';
+
+  @override
+  String get outcomeGood => 'Good';
+
+  @override
+  String get outcomeReject => 'Reject';
+
+  @override
+  String get outcomeLater => 'Ask me later';
+
+  @override
+  String get outcomeClear => 'Clear verdict';
+
+  @override
+  String get outcomeRejectReason => 'Reject reason (optional)';
+
+  @override
+  String get outcomeNoReason => 'No reason';
+
+  @override
+  String get outcomeSaveReject => 'Save';
+
+  @override
+  String get outcomeRejectAndReprint => 'Print again';
+
+  @override
+  String get outcomeSavedGood => 'Marked as good part';
+
+  @override
+  String get outcomeSavedReject => 'Marked as rejected';
+
+  @override
+  String get outcomeCleared => 'Verdict removed';
+
+  @override
+  String get outcomeUnsupported =>
+      'The server did not store the verdict. Update bambuddy to record print outcomes.';
+
+  @override
+  String get outcomeRate => 'Rate';
+
+  @override
+  String get outcomeChange => 'Change';
 }

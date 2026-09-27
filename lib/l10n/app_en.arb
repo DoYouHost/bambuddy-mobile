@@ -4242,5 +4242,65 @@
   "outcomeSourceReaction": "Recorded with a reaction in chat.",
   "@outcomeSourceReaction": {
     "description": "How an outcome verdict was recorded: with a reaction to the chat message"
+  },
+  "outcomeTitle": "How did your print come out?",
+  "@outcomeTitle": {
+    "description": "Heading of the sheet that asks for a finished print's outcome verdict"
+  },
+  "outcomeGood": "Good",
+  "@outcomeGood": {
+    "description": "Button: record the print as a good part"
+  },
+  "outcomeReject": "Reject",
+  "@outcomeReject": {
+    "description": "Button: record the print as scrap (then asks for an optional reason)"
+  },
+  "outcomeLater": "Ask me later",
+  "@outcomeLater": {
+    "description": "Button: close the outcome sheet without answering; the print keeps its 'awaiting verdict' badge"
+  },
+  "outcomeClear": "Clear verdict",
+  "@outcomeClear": {
+    "description": "Button: remove the verdict a print already has, so it has none again"
+  },
+  "outcomeRejectReason": "Reject reason (optional)",
+  "@outcomeRejectReason": {
+    "description": "Label of the dropdown for why a print was rejected"
+  },
+  "outcomeNoReason": "No reason",
+  "@outcomeNoReason": {
+    "description": "Dropdown entry: reject without naming a reason"
+  },
+  "outcomeSaveReject": "Save",
+  "@outcomeSaveReject": {
+    "description": "Button: save the reject with the chosen reason"
+  },
+  "outcomeRejectAndReprint": "Print again",
+  "@outcomeRejectAndReprint": {
+    "description": "Button: save the reject and open the print form to print the same file again"
+  },
+  "outcomeSavedGood": "Marked as good part",
+  "@outcomeSavedGood": {
+    "description": "Confirmation after a print was recorded as a good part"
+  },
+  "outcomeSavedReject": "Marked as rejected",
+  "@outcomeSavedReject": {
+    "description": "Confirmation after a print was recorded as rejected"
+  },
+  "outcomeCleared": "Verdict removed",
+  "@outcomeCleared": {
+    "description": "Confirmation after a print's verdict was removed"
+  },
+  "outcomeUnsupported": "The server did not store the verdict. Update bambuddy to record print outcomes.",
+  "@outcomeUnsupported": {
+    "description": "Shown when the server answered but did not store the verdict (a server older than the feature)"
+  },
+  "outcomeRate": "Rate",
+  "@outcomeRate": {
+    "description": "Button in the archive detail sheet: open the outcome sheet for a print with no verdict"
+  },
+  "outcomeChange": "Change",
+  "@outcomeChange": {
+    "description": "Button in the archive detail sheet: open the outcome sheet to change a verdict"
   }
 }
