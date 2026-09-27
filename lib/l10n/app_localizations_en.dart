@@ -6182,7 +6182,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Scheduling, preheat, and holding a bed warm between prints';
+      'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7146,4 +7146,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeDesc =>
       'Ask whether the print came out well after it completes';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Print outcome';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Ask for outcome on new prints';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Where the “Ask for outcome” switch starts on every new job. Each job can still change it.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Also ask about prints started elsewhere';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Anything started on the printer, in Bambu Studio or in Bambu Handy is archived too. With this on, it gets the same outcome question as a queued job.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Count an unanswered print as good once the plate is clear';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.';
 }

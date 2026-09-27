@@ -6244,7 +6244,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planung, Vorheizen und Warmhalten des Druckbetts zwischen Drucken';
+      'Planung, Vorheizen, Warmhalten des Druckbetts zwischen Drucken und die Frage nach dem Druckergebnis';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7214,4 +7214,30 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeDesc =>
       'Nach Abschluss fragen, ob der Druck gut geworden ist';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Druckergebnis';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle => 'Nach Ergebnis fragen';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'So steht der Schalter „Nach Ergebnis fragen“ bei jedem neuen Auftrag. Im Auftrag selbst lässt er sich weiterhin ändern.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Auch bei Drucken fragen, die nicht über Bambuddy gestartet wurden';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Drucke, die am Drucker, in Bambu Studio oder in Bambu Handy gestartet wurden, landen ebenfalls im Archiv. Mit dieser Option bekommen sie dieselbe Ergebnisabfrage wie Aufträge aus der Warteschlange.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Unbeantwortete Ergebnisse bei Druckplatten-Freigabe als gut zählen';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Wenn die Druckplatte freigegeben wird (manuell oder durch den nächsten geplanten Druck) und die Ergebnisabfrage des Drucks noch unbeantwortet ist, wird er automatisch als Gutteil erfasst. Eine Antwort über einen Link danach zeigt nur noch das gespeicherte Ergebnis.';
 }

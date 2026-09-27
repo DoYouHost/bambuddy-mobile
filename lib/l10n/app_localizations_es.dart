@@ -6260,7 +6260,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Programación, precalentamiento y mantenimiento de la cama caliente entre impresiones';
+      'Programación, precalentamiento, mantenimiento de la cama caliente entre impresiones y la pregunta por el resultado';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7237,4 +7237,30 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeDesc =>
       'Preguntar si la impresión ha salido bien después de completarse';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Resultado de la impresión';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle => 'Preguntar el resultado';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Así empieza el interruptor «Preguntar el resultado» en cada trabajo nuevo. En cada trabajo se puede seguir cambiando.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Preguntar también por impresiones iniciadas fuera de Bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Las impresiones iniciadas en la impresora, en Bambu Studio o en Bambu Handy también se archivan. Con esta opción reciben la misma pregunta de resultado que los trabajos de la cola.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Contar resultados sin responder como buenos al despejar la cama';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado.';
 }

@@ -3700,7 +3700,7 @@
   "groupsAdvancedHint": "Users, API keys, settings, backups — everything the app itself has no screen for.",
   "serverSettingsMenu": "Server settings",
   "serverSettingsTitle": "Server settings",
-  "serverSettingsQueueSubtitle": "Scheduling, preheat, and holding a bed warm between prints",
+  "serverSettingsQueueSubtitle": "Scheduling, preheat, holding a bed warm between prints, and asking how prints came out",
   "serverSettingsMaintenanceSubtitle": "Task types and per-printer intervals",
   "serverSettingsAdminSubtitle": "Accounts, groups and API keys",
   "serverSettingsCloudSubtitle": "The Bambu account the server downloads with",
@@ -4310,5 +4310,33 @@
   "queueOptConfirmOutcomeDesc": "Ask whether the print came out well after it completes",
   "@queueOptConfirmOutcomeDesc": {
     "description": "Explains the ask-for-outcome switch in the print form"
+  },
+  "queueSettingsOutcomeHeader": "Print outcome",
+  "@queueSettingsOutcomeHeader": {
+    "description": "Section header on the server's queue settings screen: asking how prints came out (#1898)"
+  },
+  "queueSettingsOutcomeDefaultTitle": "Ask for outcome on new prints",
+  "@queueSettingsOutcomeDefaultTitle": {
+    "description": "Server setting default_confirm_outcome: whether new jobs ask for their outcome by default"
+  },
+  "queueSettingsOutcomeDefaultDesc": "Where the “Ask for outcome” switch starts on every new job. Each job can still change it.",
+  "@queueSettingsOutcomeDefaultDesc": {
+    "description": "Explains default_confirm_outcome: it only sets where the print form's switch starts"
+  },
+  "queueSettingsOutcomeExternalTitle": "Also ask about prints started elsewhere",
+  "@queueSettingsOutcomeExternalTitle": {
+    "description": "Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start"
+  },
+  "queueSettingsOutcomeExternalDesc": "Anything started on the printer, in Bambu Studio or in Bambu Handy is archived too. With this on, it gets the same outcome question as a queued job.",
+  "@queueSettingsOutcomeExternalDesc": {
+    "description": "Explains confirm_outcome_external_prints"
+  },
+  "queueSettingsOutcomePlateClearTitle": "Count an unanswered print as good once the plate is clear",
+  "@queueSettingsOutcomePlateClearTitle": {
+    "description": "Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear"
+  },
+  "queueSettingsOutcomePlateClearDesc": "When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.",
+  "@queueSettingsOutcomePlateClearDesc": {
+    "description": "Explains confirm_default_good_on_plate_clear"
   }
 }

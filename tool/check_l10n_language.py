@@ -125,7 +125,7 @@ KNOWN_WORDS = {
     # Units and file extensions as they appear mid-sentence: "6 h", ".gcode.3mf".
     'h', 'gcode',
     # Brands and licences the copy names outright, and the US paper size.
-    'Dymo', 'Affero', 'Keystore', 'Letter',
+    'Dymo', 'Affero', 'Keystore', 'Letter', 'Handy',
     # Additional brands, products, technical terms and UI acronyms
     'Lab', 'Studio', 'Cloud', 'Brother', 'Authenticator', 'Ludicrous',
     'US', 'Aux', 'Temp', 'Z', 'hash', 'hex', 'proxy', 'relay', 'robin', 'Keys', 'code',

@@ -2799,7 +2799,7 @@
   "groupsAdvancedHint": "Użytkownicy, klucze API, ustawienia, kopie zapasowe — to, na co sama apka nie ma ekranów.",
   "serverSettingsMenu": "Ustawienia serwera",
   "serverSettingsTitle": "Ustawienia serwera",
-  "serverSettingsQueueSubtitle": "Planowanie, nagrzewanie i trzymanie ciepłego stołu",
+  "serverSettingsQueueSubtitle": "Planowanie, nagrzewanie, trzymanie ciepłego stołu i pytanie o wynik wydruku",
   "serverSettingsMaintenanceSubtitle": "Typy zadań i interwały dla poszczególnych drukarek",
   "serverSettingsAdminSubtitle": "Konta, grupy i klucze API",
   "serverSettingsCloudSubtitle": "Konto Bambu, z którego serwer pobiera modele",
@@ -3177,5 +3177,12 @@
   "outcomeRate": "Oceń",
   "outcomeChange": "Zmień",
   "queueOptConfirmOutcome": "Zapytaj o wynik",
-  "queueOptConfirmOutcomeDesc": "Po zakończeniu zapyta, czy wydruk wyszedł dobrze"
+  "queueOptConfirmOutcomeDesc": "Po zakończeniu zapyta, czy wydruk wyszedł dobrze",
+  "queueSettingsOutcomeHeader": "Ocena wydruku",
+  "queueSettingsOutcomeDefaultTitle": "Pytaj o wynik nowych wydruków",
+  "queueSettingsOutcomeDefaultDesc": "Tak ustawiony jest przełącznik „Zapytaj o wynik” w każdym nowym zadaniu. W samym zadaniu nadal można go zmienić.",
+  "queueSettingsOutcomeExternalTitle": "Pytaj też o wydruki spoza bambuddy",
+  "queueSettingsOutcomeExternalDesc": "Wydruki uruchomione na drukarce, w Bambu Studio albo w Bambu Handy też trafiają do archiwum. Po włączeniu dostają to samo pytanie o wynik co zadania z kolejki.",
+  "queueSettingsOutcomePlateClearTitle": "Uznaj wydruk bez oceny za udany po zwolnieniu płyty",
+  "queueSettingsOutcomePlateClearDesc": "Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik."
 }

@@ -6281,7 +6281,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planowanie, nagrzewanie i trzymanie ciepłego stołu';
+      'Planowanie, nagrzewanie, trzymanie ciepłego stołu i pytanie o wynik wydruku';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7260,4 +7260,31 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeDesc =>
       'Po zakończeniu zapyta, czy wydruk wyszedł dobrze';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Ocena wydruku';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle =>
+      'Pytaj o wynik nowych wydruków';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Tak ustawiony jest przełącznik „Zapytaj o wynik” w każdym nowym zadaniu. W samym zadaniu nadal można go zmienić.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Pytaj też o wydruki spoza bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Wydruki uruchomione na drukarce, w Bambu Studio albo w Bambu Handy też trafiają do archiwum. Po włączeniu dostają to samo pytanie o wynik co zadania z kolejki.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Uznaj wydruk bez oceny za udany po zwolnieniu płyty';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.';
 }

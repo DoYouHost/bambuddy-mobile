@@ -10421,7 +10421,7 @@ abstract class AppLocalizations {
   /// No description provided for @serverSettingsQueueSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Scheduling, preheat, and holding a bed warm between prints'**
+  /// **'Scheduling, preheat, holding a bed warm between prints, and asking how prints came out'**
   String get serverSettingsQueueSubtitle;
 
   /// No description provided for @serverSettingsMaintenanceSubtitle.
@@ -12043,6 +12043,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask whether the print came out well after it completes'**
   String get queueOptConfirmOutcomeDesc;
+
+  /// Section header on the server's queue settings screen: asking how prints came out (#1898)
+  ///
+  /// In en, this message translates to:
+  /// **'Print outcome'**
+  String get queueSettingsOutcomeHeader;
+
+  /// Server setting default_confirm_outcome: whether new jobs ask for their outcome by default
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome on new prints'**
+  String get queueSettingsOutcomeDefaultTitle;
+
+  /// Explains default_confirm_outcome: it only sets where the print form's switch starts
+  ///
+  /// In en, this message translates to:
+  /// **'Where the “Ask for outcome” switch starts on every new job. Each job can still change it.'**
+  String get queueSettingsOutcomeDefaultDesc;
+
+  /// Server setting confirm_outcome_external_prints: also ask about prints bambuddy did not start
+  ///
+  /// In en, this message translates to:
+  /// **'Also ask about prints started elsewhere'**
+  String get queueSettingsOutcomeExternalTitle;
+
+  /// Explains confirm_outcome_external_prints
+  ///
+  /// In en, this message translates to:
+  /// **'Anything started on the printer, in Bambu Studio or in Bambu Handy is archived too. With this on, it gets the same outcome question as a queued job.'**
+  String get queueSettingsOutcomeExternalDesc;
+
+  /// Server setting confirm_default_good_on_plate_clear: an unanswered outcome counts as good once the plate is marked clear
+  ///
+  /// In en, this message translates to:
+  /// **'Count an unanswered print as good once the plate is clear'**
+  String get queueSettingsOutcomePlateClearTitle;
+
+  /// Explains confirm_default_good_on_plate_clear
+  ///
+  /// In en, this message translates to:
+  /// **'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.'**
+  String get queueSettingsOutcomePlateClearDesc;
 }
 
 class _AppLocalizationsDelegate

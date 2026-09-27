@@ -6325,7 +6325,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get serverSettingsQueueSubtitle =>
-      'Planification, préchauffage et maintien du plateau chaud entre les impressions';
+      'Planification, préchauffage, maintien du plateau chaud entre les impressions et demande du résultat';
 
   @override
   String get serverSettingsMaintenanceSubtitle =>
@@ -7308,4 +7308,30 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeDesc =>
       'Demander si l\'impression est bien sortie une fois terminée';
+
+  @override
+  String get queueSettingsOutcomeHeader => 'Résultat de l\'impression';
+
+  @override
+  String get queueSettingsOutcomeDefaultTitle => 'Demander le résultat';
+
+  @override
+  String get queueSettingsOutcomeDefaultDesc =>
+      'Position de départ de l\'interrupteur « Demander le résultat » pour chaque nouveau travail. Chaque travail peut encore le changer.';
+
+  @override
+  String get queueSettingsOutcomeExternalTitle =>
+      'Demander aussi pour les impressions lancées hors de Bambuddy';
+
+  @override
+  String get queueSettingsOutcomeExternalDesc =>
+      'Les impressions lancées sur l\'imprimante, dans Bambu Studio ou dans Bambu Handy sont également archivées. Avec cette option, elles reçoivent la même demande de résultat que les travaux de la file d\'attente.';
+
+  @override
+  String get queueSettingsOutcomePlateClearTitle =>
+      'Compter les résultats sans réponse comme bons à la libération du plateau';
+
+  @override
+  String get queueSettingsOutcomePlateClearDesc =>
+      'Lorsque le plateau est libéré (manuellement ou par l\'impression suivante en file d\'attente) et que la demande de résultat reste sans réponse, l\'impression est enregistrée comme bonne pièce. Une réponse ultérieure par lien affiche seulement le résultat enregistré.';
 }

@@ -14,7 +14,11 @@ enum QueueSetting {
   preheatSoakSeconds('preheat_soak_seconds', min: 0, max: 1800),
   keepBedWarm('queue_keep_bed_warm'),
   keepWarmBedTemp('queue_keep_warm_bed_temp', min: 40, max: 110),
-  keepWarmMaxMinutes('queue_keep_warm_max_minutes', min: 5, max: 480);
+  keepWarmMaxMinutes('queue_keep_warm_max_minutes', min: 5, max: 480),
+  // Post-print outcome confirmation (#1898), Settings → Workflow on the web.
+  confirmOutcomeDefault('default_confirm_outcome'),
+  confirmOutcomeExternal('confirm_outcome_external_prints'),
+  confirmGoodOnPlateClear('confirm_default_good_on_plate_clear');
 
   const QueueSetting(this.key, {this.min, this.max});
 

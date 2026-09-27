@@ -3499,7 +3499,7 @@
   "groupsAdvancedHint": "Usuarios, claves API, ajustes, copias de seguridad — todo para lo que la propia aplicación no tiene pantalla.",
   "serverSettingsMenu": "Ajustes del servidor",
   "serverSettingsTitle": "Ajustes del servidor",
-  "serverSettingsQueueSubtitle": "Programación, precalentamiento y mantenimiento de la cama caliente entre impresiones",
+  "serverSettingsQueueSubtitle": "Programación, precalentamiento, mantenimiento de la cama caliente entre impresiones y la pregunta por el resultado",
   "serverSettingsMaintenanceSubtitle": "Tipos de tareas e intervalos por impresora",
   "serverSettingsAdminSubtitle": "Cuentas, grupos y claves API",
   "serverSettingsCloudSubtitle": "La cuenta de Bambu que utiliza el servidor para descargar",
@@ -3877,5 +3877,12 @@
   "outcomeRate": "Valorar",
   "outcomeChange": "Cambiar",
   "queueOptConfirmOutcome": "Preguntar el resultado",
-  "queueOptConfirmOutcomeDesc": "Preguntar si la impresión ha salido bien después de completarse"
+  "queueOptConfirmOutcomeDesc": "Preguntar si la impresión ha salido bien después de completarse",
+  "queueSettingsOutcomeHeader": "Resultado de la impresión",
+  "queueSettingsOutcomeDefaultTitle": "Preguntar el resultado",
+  "queueSettingsOutcomeDefaultDesc": "Así empieza el interruptor «Preguntar el resultado» en cada trabajo nuevo. En cada trabajo se puede seguir cambiando.",
+  "queueSettingsOutcomeExternalTitle": "Preguntar también por impresiones iniciadas fuera de Bambuddy",
+  "queueSettingsOutcomeExternalDesc": "Las impresiones iniciadas en la impresora, en Bambu Studio o en Bambu Handy también se archivan. Con esta opción reciben la misma pregunta de resultado que los trabajos de la cola.",
+  "queueSettingsOutcomePlateClearTitle": "Contar resultados sin responder como buenos al despejar la cama",
+  "queueSettingsOutcomePlateClearDesc": "Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado."
 }
