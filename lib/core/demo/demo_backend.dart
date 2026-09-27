@@ -2324,6 +2324,96 @@ class DemoBackend {
     'variants': variants,
   };
 
+  /// One queued copy for `POST /queue/`, into [batch] when there is one.
+  void _addQueued(
+    Map<String, dynamic> body,
+    List<Map<String, dynamic>> variantFiles,
+    Map<String, dynamic>? archive,
+    Map<String, dynamic>? lead,
+    String name,
+    Map<String, dynamic>? batch,
+  ) {
+    _queue.add(
+      _queueItem(
+        id: _nextQueueId++,
+        printerId: body['printer_id'] as int?,
+        position: _queue.length + 1,
+        name: name,
+        status: 'pending',
+        timeSec:
+            (lead?['print_time_seconds'] as int?) ??
+            (archive?['print_time_seconds'] as int?) ??
+            3600,
+        grams:
+            (lead?['filament_used_grams'] as num?)?.toDouble() ??
+            (archive?['filament_used_grams'] as num?)?.toDouble() ??
+            20,
+        type: (archive?['filament_type'] as String?) ?? 'PLA',
+        color: (archive?['filament_color'] as String?) ?? '#808080',
+        createdDaysAgo: 0,
+        gcodeInjection: body['gcode_injection'] == true,
+        slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+        variants: [
+          for (final (position, f) in variantFiles.indexed)
+            {
+              'library_file_id': f['id'],
+              'filename': f['filename'],
+              'target_model': f['sliced_for_model'],
+              'position': position,
+            },
+        ],
+        batchId: batch?['id'] as int?,
+        batchName: batch?['name'] as String?,
+      ),
+    );
+
+    if (batch == null) return;
+    final plates = (batch['plates'] as List).cast<Map<String, dynamic>>();
+    final plate =
+        plates.where((p) => p['plate_id'] == body['plate_id']).firstOrNull ??
+        plates.first;
+    plate['pending_count'] = (plate['pending_count'] as int) + 1;
+    plate['can_dispatch'] = true;
+  }
+
+  /// The batch `POST /queue/` puts its copies in: the one [batchId] names
+  /// (404 / 400 as the server refuses it), a new grouping for several copies,
+  /// or none.
+  Object? _batchForCopies(int? batchId, int copies, String name) {
+    if (batchId != null) {
+      final batch = _batches.where((b) => b['id'] == batchId).firstOrNull;
+      if (batch == null) {
+        return (status: 404, body: {'detail': 'Batch not found'});
+      }
+      if (batch['status'] != 'active') {
+        return (
+          status: 400,
+          body: {'detail': 'Cannot add items to a non-active batch'},
+        );
+      }
+      return batch;
+    }
+    if (copies < 2) return null;
+    final batch = <String, dynamic>{
+      'id': _nextBatchId++,
+      'name': '$name ×$copies',
+      'library_file_id': null,
+      'status': 'active',
+      'created_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': null,
+      'notes': null,
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': false,
+      'plates': [_demoPlate(null, null, target: 0)],
+    };
+    _batches.add(batch);
+    return batch;
+  }
+
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
       if (m == 'GET') return _ok(_queue);
@@ -2343,40 +2433,19 @@ class DemoBackend {
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
         final lead = variantFiles.firstOrNull;
-        _queue.add(
-          _queueItem(
-            id: _nextQueueId++,
-            printerId: body['printer_id'] as int?,
-            position: _queue.length + 1,
-            name:
-                (lead?['print_name'] as String?) ??
-                (archive?['print_name'] as String?) ??
-                'Reprint',
-            status: 'pending',
-            timeSec:
-                (lead?['print_time_seconds'] as int?) ??
-                (archive?['print_time_seconds'] as int?) ??
-                3600,
-            grams:
-                (lead?['filament_used_grams'] as num?)?.toDouble() ??
-                (archive?['filament_used_grams'] as num?)?.toDouble() ??
-                20,
-            type: (archive?['filament_type'] as String?) ?? 'PLA',
-            color: (archive?['filament_color'] as String?) ?? '#808080',
-            createdDaysAgo: 0,
-            gcodeInjection: body['gcode_injection'] == true,
-            slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
-            variants: [
-              for (final (position, f) in variantFiles.indexed)
-                {
-                  'library_file_id': f['id'],
-                  'filename': f['filename'],
-                  'target_model': f['sliced_for_model'],
-                  'position': position,
-                },
-            ],
-          ),
-        );
+        // As the server does: copies into the batch named by `batch_id`, or
+        // into a new grouping when there are several and none was named.
+        final copies = ((body['quantity'] as int?) ?? 1).clamp(1, 999);
+        final name =
+            (lead?['print_name'] as String?) ??
+            (archive?['print_name'] as String?) ??
+            'Reprint';
+        final batch = _batchForCopies(body['batch_id'] as int?, copies, name);
+        if (batch case DemoResult refused) return refused;
+        final batchMap = batch as Map<String, dynamic>?;
+        for (var n = 0; n < copies; n++) {
+          _addQueued(body, variantFiles, archive, lead, name, batchMap);
+        }
         return _ok(_queue.last);
       }
     }

@@ -264,7 +264,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
               Text(l10n.orderEditTargetsHint, style: t.bodySoft),
               for (final (i, p) in _b.plates.indexed)
                 _TargetRow(
-                  label: plateLabel(l10n, p),
+                  label: batchPlateLabel(l10n, p),
                   done: p.completedCount,
                   value: _targets[i],
                   onChanged: (v) => setState(() => _targets[i] = v),

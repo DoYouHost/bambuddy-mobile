@@ -7034,4 +7034,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ordersDeleted => 'Order deleted';
+
+  @override
+  String get queueEditCopies => 'Copies';
+
+  @override
+  String get queueEditCopiesHint => 'More than one copy is queued as a batch.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.';
 }

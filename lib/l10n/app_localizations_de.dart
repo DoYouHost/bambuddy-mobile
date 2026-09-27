@@ -7100,4 +7100,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ordersDeleted => 'Auftrag gelöscht';
+
+  @override
+  String get queueEditCopies => 'Kopien';
+
+  @override
+  String get queueEditCopiesHint =>
+      'Mehr als eine Kopie wird als Gruppe eingereiht.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen.';
 }

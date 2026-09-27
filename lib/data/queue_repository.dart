@@ -58,6 +58,7 @@ class QueueCreateOptions {
     this.preheatOverride,
     this.preheatChamberTargetOverride,
     this.nozzleRackChoice,
+    this.batchId,
   });
 
   final String? targetModel;
@@ -96,6 +97,10 @@ class QueueCreateOptions {
   /// form only offers the pick once a printer has reported a rack.
   final Map<int, int>? nozzleRackChoice;
 
+  /// An existing batch to add the copies into (v0.2.4.8+) — how an order made
+  /// beforehand gets its runs. Without it, `quantity > 1` makes a grouping.
+  final int? batchId;
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
@@ -122,6 +127,7 @@ class QueueCreateOptions {
     'preheat_override': ?preheatOverride,
     'preheat_chamber_target_override': ?preheatChamberTargetOverride,
     'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
+    'batch_id': ?batchId,
   };
 }
 

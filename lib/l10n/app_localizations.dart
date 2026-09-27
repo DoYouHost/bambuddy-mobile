@@ -11827,6 +11827,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Order deleted'**
   String get ordersDeleted;
+
+  /// No description provided for @queueEditCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get queueEditCopies;
+
+  /// No description provided for @queueEditCopiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'More than one copy is queued as a batch.'**
+  String get queueEditCopiesHint;
+
+  /// No description provided for @queueEditCopiesOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.'**
+  String get queueEditCopiesOrder;
 }
 
 class _AppLocalizationsDelegate

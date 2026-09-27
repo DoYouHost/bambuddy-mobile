@@ -121,6 +121,32 @@ void main() {
       },
     );
 
+    test('copies go into the named order, or into a new grouping', () async {
+      final batches = BatchRepository(dio);
+      final queue = QueueRepository(dio);
+      final order = await batches.create(
+        name: 'Stand ×2',
+        archiveId: 1,
+        plates: const [(plateId: null, plateName: null, quantity: 2)],
+      );
+
+      await queue.addFromArchive(
+        1,
+        quantity: 2,
+        options: QueueCreateOptions(batchId: order.id),
+      );
+      await queue.addFromArchive(1, quantity: 3);
+
+      final after = await batches.list();
+      final filled = after.firstWhere((b) => b.id == order.id);
+      expect(filled.pendingCount, 2);
+      expect(filled.remainingCount, 0);
+      expect(
+        after.where((b) => !b.hasTargets && b.pendingCount == 3),
+        hasLength(1),
+      );
+    });
+
     test('the queue speaks the 1.2.5 contract, including auto', () async {
       // The demo is the only place tri-state calibrations can be exercised
       // without a 1.2.5 server — ours runs on 0.2.5b2 and sends booleans.

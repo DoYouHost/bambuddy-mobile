@@ -81,7 +81,12 @@ const printerH2C = Printer(id: 1, name: 'H2C-1', model: 'H2C');
 /// repository reads it from the version endpoint exactly as it does in
 /// production, so the form and the request body cannot disagree about what the
 /// server can store.
-QueueRepository queueFormRepo({required bool triState}) {
+///
+/// [createStatus] is what `POST /queue/` answers.
+QueueRepository queueFormRepo({
+  required bool triState,
+  int createStatus = 200,
+}) {
   final dio = testDio();
   _sent = captureRequests(dio);
   DioAdapter(dio: dio)
@@ -94,7 +99,10 @@ QueueRepository queueFormRepo({required bool triState}) {
     )
     ..onPost(
       '/api/v1/queue/',
-      (server) => server.reply(200, null),
+      (server) => server.reply(
+        createStatus,
+        createStatus == 200 ? null : {'detail': 'Printer not found'},
+      ),
       data: Matchers.any,
     )
     ..onPatch(
@@ -133,11 +141,13 @@ Widget queueFormScreen(
   List<FilamentRequirement> requirements = const [],
   List<NozzleRackSlot>? nozzleRack,
   List<AvailableFilament> availableFilaments = const [],
+  int createStatus = 200,
+  List<Override> extra = const [],
 }) => ProviderScope(
   overrides: [
     noServerProfileOverride,
     queueRepositoryProvider.overrideWithValue(
-      queueFormRepo(triState: triState),
+      queueFormRepo(triState: triState, createStatus: createStatus),
     ),
     allPrintersProvider.overrideWith((ref) async => printers),
     sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
@@ -149,6 +159,7 @@ Widget queueFormScreen(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
     ),
     availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
+    ...extra,
   ],
   child: plApp(
     QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),

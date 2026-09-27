@@ -210,7 +210,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
       action: plate == null ? 'orders.dispatch' : 'orders.dispatch_plate',
       done: (_) => plate == null
           ? l10n.ordersDispatched(_b.name)
-          : l10n.ordersPlateDispatched(plateLabel(l10n, plate), _b.name),
+          : l10n.ordersPlateDispatched(batchPlateLabel(l10n, plate), _b.name),
     );
   }
 
@@ -587,7 +587,7 @@ class _PlateRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  plateLabel(l10n, p),
+                  batchPlateLabel(l10n, p),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.bodyStrong,
@@ -614,7 +614,7 @@ class _PlateRow extends StatelessWidget {
 
 /// A plate's name as the order stored it, else its number, else "whole file"
 /// for the single-plate file whose `plate_id` is null.
-String plateLabel(AppLocalizations l10n, PrintBatchPlate p) =>
+String batchPlateLabel(AppLocalizations l10n, PrintBatchPlate p) =>
     p.plateName ??
     (p.plateId != null ? l10n.archivePlate(p.plateId!) : l10n.ordersWholeFile);
 

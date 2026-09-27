@@ -7192,4 +7192,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get ordersDeleted => 'Commande supprimée';
+
+  @override
+  String get queueEditCopies => 'Copies';
+
+  @override
+  String get queueEditCopiesHint =>
+      'Plus d’une copie est mise en file comme lot.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.';
 }

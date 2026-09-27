@@ -7124,4 +7124,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ordersDeleted => 'Pedido eliminado';
+
+  @override
+  String get queueEditCopies => 'Copias';
+
+  @override
+  String get queueEditCopiesHint => 'Más de una copia se encola como lote.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes.';
 }

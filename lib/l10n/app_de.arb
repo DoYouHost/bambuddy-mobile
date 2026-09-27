@@ -3841,5 +3841,8 @@
   "ordersGroupConfirm": "Gruppieren",
   "ordersGrouped": "{count, plural, =1{1 Auftrag als {name} gruppiert} other{{count} Aufträge als {name} gruppiert}}",
   "ordersPlateDispatched": "Offene Drucke von {plate} eingereiht ({name})",
-  "ordersDeleted": "Auftrag gelöscht"
+  "ordersDeleted": "Auftrag gelöscht",
+  "queueEditCopies": "Kopien",
+  "queueEditCopiesHint": "Mehr als eine Kopie wird als Gruppe eingereiht.",
+  "queueEditCopiesOrder": "Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen."
 }

@@ -228,6 +228,10 @@ server older than the route does not show an entry that leads to an error
 page — a probe would cost every session a request for the sake of servers
 that old. Being early costs that error page, nothing silent.
 
+The same row gates the print form's copies field: `quantity` on
+`POST /queue/` arrived with batches, and a server before it queues one copy
+without a word.
+
 ### batchGrouping — 0.2.4.8 (server commit eb5154f6)
 
 `POST /queue/batches` (group pending items by hand, or an empty batch to fill

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
@@ -20,12 +21,14 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/date_time_picker.dart';
 import '../common/inline_note.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
+import '../orders/orders_providers.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -138,6 +141,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _gcodeInjection;
 
   bool _saving = false;
+
+  /// Copies to queue (create only). See [_copiesSection].
+  int _copies = 1;
+  static const _maxCopies = 999;
 
   @override
   void initState() {
@@ -298,6 +305,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               _targetSection(l10n, t),
               const SizedBox(height: 16),
               ?_plateSection(l10n, t),
+              ?_copiesSection(l10n, t),
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
                 const SizedBox(height: 16),
@@ -504,6 +512,56 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       if (p.id == printerId) return p.name;
     }
     return null;
+  }
+
+  // --- Copies (create only) ---
+
+  /// How many copies to queue. More than one is grouped server-side; with
+  /// orders (1.2.5.3+) it becomes an order whose target is the copies, as the
+  /// web's print dialog makes it, so a failed copy stays owed.
+  ///
+  /// Absent below v0.2.3, whose create takes no `quantity` and would queue one
+  /// copy without a word — the same row that gates the orders screen.
+  Widget? _copiesSection(AppLocalizations l10n, DashTokens t) {
+    if (!widget._isCreate || !ref.watch(batchListingProvider).orFalse) {
+      return null;
+    }
+    final order = ref.watch(batchOrdersProvider).orFalse;
+    void set(int v) => setState(() => _copies = v.clamp(1, _maxCopies));
+    return Column(
+      children: [
+        _SectionCard(
+          title: l10n.queueEditCopies,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  order ? l10n.queueEditCopiesOrder : l10n.queueEditCopiesHint,
+                  style: t.bodySoft,
+                ),
+              ),
+              IconButton(
+                onPressed: _copies > 1 ? () => set(_copies - 1) : null,
+                icon: const Icon(Icons.remove),
+              ).tagged('queue_edit.copies_down'),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '$_copies',
+                  textAlign: TextAlign.center,
+                  style: t.monoValue,
+                ),
+              ),
+              IconButton(
+                onPressed: _copies < _maxCopies ? () => set(_copies + 1) : null,
+                icon: const Icon(Icons.add),
+              ).tagged('queue_edit.copies_up'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
   }
 
   // --- Filament mapping (printer mode) ---
@@ -1445,8 +1503,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return picked.isEmpty ? null : picked;
   }
 
-  Future<void> _create(QueueRepository repo) {
+  Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
+    final providers = ProviderScope.containerOf(context, listen: false);
+    final l10n = AppLocalizations.of(context);
+    final orderId = await _createOrder(providers, l10n);
     final options = QueueCreateOptions(
       plateId: _plateId,
       targetModel: _modelMode ? _targetModel : null,
@@ -1468,25 +1529,78 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
+      batchId: orderId,
     );
     // ASAP is a position at insertion, not a stored field — the web sends it the
     // same way, and it is what makes "reprint" print next.
     final insertAtTop = _scheduleType == QueueScheduleType.asap;
     final printerId = _modelMode ? null : _printerId;
-    return it.archiveId != null
-        ? repo.addFromArchive(
-            it.archiveId!,
-            printerId: printerId,
-            insertAtTop: insertAtTop,
-            options: options,
-          )
-        : repo.addFromLibraryFile(
-            it.libraryFileId!,
-            printerId: printerId,
-            insertAtTop: insertAtTop,
-            options: options,
-          );
+    try {
+      await (it.archiveId != null
+          ? repo.addFromArchive(
+              it.archiveId!,
+              printerId: printerId,
+              quantity: _copies,
+              insertAtTop: insertAtTop,
+              options: options,
+            )
+          : repo.addFromLibraryFile(
+              it.libraryFileId!,
+              printerId: printerId,
+              quantity: _copies,
+              insertAtTop: insertAtTop,
+              options: options,
+            ));
+    } on Object {
+      // An order with targets and no runs is listed, owes every copy and has
+      // nothing to clone them from. Ungrouping an empty one deletes it.
+      if (orderId != null) {
+        try {
+          await providers.read(batchRepositoryProvider).ungroup(orderId);
+        } on AppApiException {
+          // The create's own error is the one the user has to see.
+        }
+      }
+      rethrow;
+    }
   }
+
+  /// The order the copies go into, made first — the web's print dialog does
+  /// the same. Null for one copy, on a server without orders, and when the
+  /// order is refused: the copies then go in as a plain grouping, which is
+  /// what `quantity` alone makes, so the print is not lost over its tracking.
+  Future<int?> _createOrder(
+    ProviderContainer providers,
+    AppLocalizations l10n,
+  ) async {
+    if (_copies < 2) return null;
+    final supported = await settledGate(
+      providers,
+      batchOrdersProvider,
+    ).catchError((Object _) => false);
+    if (!supported) return null;
+    final it = widget.item;
+    try {
+      final order = await providers
+          .read(batchRepositoryProvider)
+          .create(
+            name: '${_baseName(it.displayName)} ×$_copies',
+            archiveId: it.archiveId,
+            libraryFileId: it.archiveId == null ? it.libraryFileId : null,
+            // The runs are matched to the target by plate, so the target
+            // names the plate the item will carry — null for a whole file.
+            plates: [(plateId: _plateId, plateName: null, quantity: _copies)],
+          );
+      return order.id;
+    } on AppApiException catch (e) {
+      showApiFailure(null, e, l10n, action: 'queue_create.order');
+      return null;
+    }
+  }
+
+  /// A file name as the server names a batch after it (`print_queue.py`).
+  static String _baseName(String name) =>
+      name.replaceAll('.gcode.3mf', '').replaceAll('.3mf', '');
 }
 
 /// Imperative entry: open the Edit Queue Item screen for [item].
