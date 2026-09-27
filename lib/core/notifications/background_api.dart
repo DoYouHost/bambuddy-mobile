@@ -306,7 +306,11 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   if (action == hmsStopAction) {
     // Checked here too: the shell confirms and sends the stop to whichever
     // server the app is on now.
-    if (!await _asksThisServer(fault.server)) return;
+    if (!await _asksThisServer(fault.server)) {
+      NotifProbe.actionFailed(const ServerChanged(), items: 1);
+      await _cancel(response.id);
+      return;
+    }
     hmsStopRequests.post(
       HmsStopRequest(
         printerId: fault.printerId,
