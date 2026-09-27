@@ -153,49 +153,83 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
     if (response.notificationResponseType ==
             NotificationResponseType.selectedNotification &&
         await _asksThisServer(target.server)) {
-      postOutcomePrompt(target.archiveId);
+      outcomePrompts.post(target.archiveId);
     }
     return;
   }
 
+  await _runAction(
+    actionId,
+    items: 1,
+    failedItems: 1,
+    run: (prefs, api) async {
+      final profile = SettingsRepository(prefs).loadProfile();
+      if (profile == null ||
+          outcomeServerTag(profile.baseUrl) != target.server) {
+        NotifProbe.actionFailed(const OutcomeServerChanged(), items: 1);
+        await _dismiss(response.id, target.archiveId);
+        return;
+      }
+      final bool applied;
+      try {
+        applied = (await ArchiveRepository(
+          api.dio,
+        ).setVerdict(target.archiveId, verdict)).applied;
+      } on AppApiException catch (error) {
+        // "I pressed Good and the print still waits" goes on the record
+        // either way; only a refusal makes the button pointless.
+        if (_isRefusal(error)) await _dismiss(response.id, target.archiveId);
+        rethrow;
+      }
+      // A server older than the feature answers 200 and keeps nothing; the
+      // tap did not do what the button said, and no second tap will.
+      if (!applied) {
+        NotifProbe.actionFailed(const VerdictNotStored(), items: 1);
+      }
+      await _dismiss(response.id, target.archiveId);
+    },
+  );
+}
+
+/// One button tap, run in whichever isolate the plugin delivered it to: the
+/// recording opened first, so everything after it is on the record; the tap
+/// recorded; a client for the saved server, from preferences re-read off disk
+/// (the other isolate may have switched servers since this one opened them);
+/// and every failure recorded rather than thrown — the callback cannot crash,
+/// and a swallowed error is "I pressed it and nothing happened".
+///
+/// [failedItems] is what the failure record says was still pending when the
+/// whole handler broke; null where [run] records its items one by one.
+Future<void> _runAction(
+  String actionId, {
+  required int items,
+  int? failedItems,
+  required Future<void> Function(SharedPreferences prefs, ApiClient api) run,
+}) async {
   BackgroundRecording? recording;
   try {
     recording = await startActionRecording();
-    NotifProbe.action(id: actionId, items: 1);
+    NotifProbe.action(id: actionId, items: items);
     final prefs = await SharedPreferences.getInstance();
-    final profile = (await SettingsRepository(prefs).reloaded()).loadProfile();
-    if (profile == null) {
-      NotifProbe.noClient();
-      return;
-    }
-    if (outcomeServerTag(profile.baseUrl) != target.server) {
-      NotifProbe.actionFailed(const OutcomeServerChanged(), items: 1);
-      await _dismiss(response.id, target.archiveId);
-      return;
-    }
+    await prefs.reload();
     final api = await buildBackgroundApiClient(prefs);
     if (api == null) {
       NotifProbe.noClient();
       return;
     }
-    final result = await ArchiveRepository(
-      api.dio,
-    ).setVerdict(target.archiveId, verdict);
-    // A server older than the feature answers 200 and keeps nothing; the tap
-    // did not do what the button said, and no second tap will.
-    if (!result.applied) {
-      NotifProbe.actionFailed(const VerdictNotStored(), items: 1);
-    }
-    await _dismiss(response.id, target.archiveId);
-  } on AppApiException catch (error) {
-    // "I pressed Good and the print still waits for a verdict" — on the record.
-    NotifProbe.actionFailed(error, items: 1);
-    if (_isRefusal(error)) await _dismiss(response.id, target.archiveId);
+    await run(prefs, api);
   } on Object catch (error) {
-    NotifProbe.actionFailed(error, items: 1);
+    NotifProbe.actionFailed(error, items: failedItems);
   } finally {
+    // Best effort: the plugin's entry point cannot await this handler (its
+    // signature returns void), so the engine may go away first. It costs at
+    // most the last line — every one before it was flushed as it was written.
     await recording?.stop();
   }
+}
+
+Future<void> _cancel(int? id) async {
+  if (id != null) await FlutterLocalNotificationsPlugin().cancel(id: id);
 }
 
 /// Whether the saved profile is the server a payload's [tag] names.
@@ -245,7 +279,7 @@ class OutcomeServerChanged implements Exception {
 /// Stopping a print is the exception: it never runs from here, because a tap
 /// that abandons hours of printing has to be confirmed and a notification has
 /// nowhere to ask. That button brings the app up instead, and the request is
-/// parked in [postHmsStopRequest] for the shell to pick up.
+/// parked in [hmsStopRequests] for the shell to pick up.
 Future<void> handleHmsAction(NotificationResponse response) async {
   final actionId = response.actionId;
   if (actionId == null || !actionId.startsWith(hmsActionIdPrefix)) return;
@@ -253,7 +287,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   final fault = parseHmsPayload(response.payload);
   if (fault == null) return;
   if (action == hmsStopAction) {
-    postHmsStopRequest(
+    hmsStopRequests.post(
       HmsStopRequest(
         printerId: fault.printerId,
         fullCode: fault.fullCode,
@@ -263,35 +297,23 @@ Future<void> handleHmsAction(NotificationResponse response) async {
     return;
   }
 
-  BackgroundRecording? recording;
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    recording = await startActionRecording();
-    NotifProbe.action(id: actionId, items: 1);
-
-    final api = await buildBackgroundApiClient(prefs);
-    if (api == null) {
-      NotifProbe.noClient();
-      return;
-    }
-    await PrinterCommandsRepository(api.dio).executeHmsAction(
-      fault.printerId,
-      printError: fault.fullCode,
-      action: action,
-      jobId: fault.jobId,
-    );
-    final id = response.id;
-    if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id: id);
-    }
-  } on Object catch (error) {
-    // The callback isolate cannot crash — but from the user's side this is "I
-    // pressed Resume and the printer stayed paused", so it goes on the record.
-    // A 502 lands here too: the command went out, the printer never answered.
-    NotifProbe.actionFailed(error, items: 1);
-  } finally {
-    await recording?.stop();
-  }
+  // From the user's side a failure here is "I pressed Resume and the printer
+  // stayed paused" — a 502 too: the command went out, the printer never
+  // answered.
+  await _runAction(
+    actionId,
+    items: 1,
+    failedItems: 1,
+    run: (prefs, api) async {
+      await PrinterCommandsRepository(api.dio).executeHmsAction(
+        fault.printerId,
+        printError: fault.fullCode,
+        action: action,
+        jobId: fault.jobId,
+      );
+      await _cancel(response.id);
+    },
+  );
 }
 
 /// Handles tapping the "Mark Done" action on a maintenance notification.
@@ -304,54 +326,35 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
   final itemIds = parseMaintenancePayload(response.payload);
   if (itemIds.isEmpty) return;
 
-  BackgroundRecording? recording;
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    recording = await startActionRecording();
-    NotifProbe.action(id: maintenancePerformActionId, items: itemIds.length);
-
-    final api = await buildBackgroundApiClient(prefs);
-    if (api == null) {
-      NotifProbe.noClient();
-      return;
-    }
-    final repo = MaintenanceRepository(api.dio);
-    var anyPerformed = false;
-    for (final id in itemIds) {
-      try {
-        await repo.perform(id);
-        anyPerformed = true;
-      } on Object catch (error) {
-        // Isolate callback cannot crash. The request itself is in the HTTP lane;
-        // this says the counter the user tapped was not reset.
-        NotifProbe.actionFailed(error, items: 1);
+  await _runAction(
+    maintenancePerformActionId,
+    items: itemIds.length,
+    run: (prefs, api) async {
+      final repo = MaintenanceRepository(api.dio);
+      var anyPerformed = false;
+      for (final id in itemIds) {
+        try {
+          await repo.perform(id);
+          anyPerformed = true;
+        } on Object catch (error) {
+          // The request itself is in the HTTP lane; this says the counter the
+          // user tapped was not reset.
+          NotifProbe.actionFailed(error, items: 1);
+        }
       }
-    }
-    // Read-modify-write on a set the service isolate also writes.
-    final settings = await SettingsRepository(prefs).reloaded();
-    // Failed resets are re-armed too: being *in* this set suppresses the alert,
-    // and the button already took the notification away
-    // (`cancelNotification: true`), so a re-alert is the only way the user
-    // learns the counter never reset.
-    final notified = settings.loadNotifiedMaintenanceDueIds()
-      ..removeAll(itemIds);
-    await settings.saveNotifiedMaintenanceDueIds(notified);
-    // Signal to UI: server state changed outside the app.
-    // Maintenance screen will fetch fresh data on return instead of polling.
-    if (anyPerformed) await settings.setMaintenanceDirty(true);
-
-    final id = response.id;
-    if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id: id);
-    }
-  } on Object catch (error) {
-    // Prevent callback isolate crash — but say so, because from the user's side
-    // this is "I pressed Mark Done and nothing happened".
-    NotifProbe.actionFailed(error);
-  } finally {
-    // Best effort: the plugin's entry point cannot await this handler (its
-    // signature returns void), so the engine may go away first. It costs at most
-    // the last line — every one before it was flushed as it was written.
-    await recording?.stop();
-  }
+      // Read-modify-write on a set the service isolate also writes.
+      final settings = await SettingsRepository(prefs).reloaded();
+      // Failed resets are re-armed too: being *in* this set suppresses the
+      // alert, and the button already took the notification away
+      // (`cancelNotification: true`), so a re-alert is the only way the user
+      // learns the counter never reset.
+      final notified = settings.loadNotifiedMaintenanceDueIds()
+        ..removeAll(itemIds);
+      await settings.saveNotifiedMaintenanceDueIds(notified);
+      // Signal to UI: server state changed outside the app.
+      // Maintenance screen will fetch fresh data on return instead of polling.
+      if (anyPerformed) await settings.setMaintenanceDirty(true);
+      await _cancel(response.id);
+    },
+  );
 }

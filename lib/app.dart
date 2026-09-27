@@ -53,12 +53,12 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // "Stop printing" tapped on an HMS notification. Same two entrances as the
     // widget above: the stream while the app runs, the launch intent when the
     // tap is what started it.
-    _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
-    // Taken off the slot as well: `_onNotificationLaunch` reads it after
-    // replaying the tap that launched the app, which reaches this listener
-    // first, and one tap must ask once.
-    _outcomeSub = outcomePrompts.listen((archiveId) {
-      takeOutcomePrompt();
+    _hmsStopSub = hmsStopRequests.stream.listen((request) {
+      hmsStopRequests.take();
+      _onHmsStopRequest(request);
+    });
+    _outcomeSub = outcomePrompts.stream.listen((archiveId) {
+      outcomePrompts.take();
       _onOutcomePrompt(archiveId);
     });
     unawaited(_onNotificationLaunch());
@@ -95,8 +95,8 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // A platform without the plugin (tests, desktop) has no launch details
       // and nothing to recover — the live paths above are unaffected.
     }
-    _onHmsStopRequest(takeHmsStop());
-    _onOutcomePrompt(takeOutcomePrompt());
+    _onHmsStopRequest(hmsStopRequests.take());
+    _onOutcomePrompt(outcomePrompts.take());
   }
 
   /// Asks how a print came out — for a session that may record the answer.

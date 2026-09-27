@@ -6,15 +6,15 @@ void main() {
     'a prompt reaches a listener and waits for a shell that is not',
     () async {
       final heard = <int>[];
-      final sub = outcomePrompts.listen(heard.add);
+      final sub = outcomePrompts.stream.listen(heard.add);
       addTearDown(sub.cancel);
 
-      postOutcomePrompt(82);
+      outcomePrompts.post(82);
       await Future<void>.delayed(Duration.zero);
 
       expect(heard, [82]);
-      expect(takeOutcomePrompt(), 82);
-      expect(takeOutcomePrompt(), isNull, reason: 'one tap, one sheet');
+      expect(outcomePrompts.take(), 82);
+      expect(outcomePrompts.take(), isNull, reason: 'one tap, one sheet');
     },
   );
 }

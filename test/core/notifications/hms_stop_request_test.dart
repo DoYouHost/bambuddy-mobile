@@ -22,13 +22,13 @@ void main() {
     // No server profile → the handler cannot build a client and stops before
     // any network call. That is exactly the path under test here.
     SharedPreferences.setMockInitialValues({});
-    takeHmsStop();
+    hmsStopRequests.take();
   });
 
   test('a stop tap is parked for the app instead of being sent', () async {
     await handleHmsAction(_tap('STOP_PRINTING'));
 
-    final parked = takeHmsStop();
+    final parked = hmsStopRequests.take();
     expect(parked?.printerId, 3);
     expect(parked?.fullCode, '03008004');
     expect(parked?.jobId, '746795586');
@@ -37,18 +37,22 @@ void main() {
   test('the parked request is handed out once', () async {
     await handleHmsAction(_tap('STOP_PRINTING'));
 
-    expect(takeHmsStop(), isNotNull);
-    expect(takeHmsStop(), isNull, reason: 'one tap must not ask twice');
+    expect(hmsStopRequests.take(), isNotNull);
+    expect(
+      hmsStopRequests.take(),
+      isNull,
+      reason: 'one tap must not ask twice',
+    );
   });
 
   test('every other action goes straight through, parking nothing', () async {
     await handleHmsAction(_tap('RESUME_PRINTING'));
-    expect(takeHmsStop(), isNull);
+    expect(hmsStopRequests.take(), isNull);
   });
 
   test('a tap whose payload names no fault is dropped', () async {
     await handleHmsAction(_tap('STOP_PRINTING', payload: 'printer:3'));
-    expect(takeHmsStop(), isNull);
+    expect(hmsStopRequests.take(), isNull);
   });
 
   test('a maintenance tap is none of this handler\'s business', () async {
@@ -61,6 +65,6 @@ void main() {
         payload: '4',
       ),
     );
-    expect(takeHmsStop(), isNull);
+    expect(hmsStopRequests.take(), isNull);
   });
 }

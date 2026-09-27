@@ -153,7 +153,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
     // The shell owns the sheet; this only hands it the question.
     final confirmSub = client.confirmRequests.listen(
-      (request) => postOutcomePrompt(request.archiveId),
+      (request) => outcomePrompts.post(request.archiveId),
     );
     ref.onDispose(confirmSub.cancel);
 

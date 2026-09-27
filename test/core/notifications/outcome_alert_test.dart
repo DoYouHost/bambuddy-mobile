@@ -192,7 +192,7 @@ void main() {
       ).saveProfile(
         const ServerProfile(baseUrl: _server, authMode: AuthMode.none),
       );
-      takeOutcomePrompt();
+      outcomePrompts.take();
     });
 
     NotificationResponse response({
@@ -212,19 +212,19 @@ void main() {
     test('asked by another server, it asks nothing here', () async {
       await handleOutcomeAction(response(server: 'http://other:8000'));
 
-      expect(takeOutcomePrompt(), isNull);
+      expect(outcomePrompts.take(), isNull);
     });
 
     test('on the body hands the question to the app', () async {
       await handleOutcomeAction(response());
 
-      expect(takeOutcomePrompt(), 82);
+      expect(outcomePrompts.take(), 82);
     });
 
     test('on a button answers it where it was tapped', () async {
       await handleOutcomeAction(response(actionId: 'outcome:good'));
 
-      expect(takeOutcomePrompt(), isNull);
+      expect(outcomePrompts.take(), isNull);
     });
 
     test(
@@ -239,7 +239,7 @@ void main() {
           ),
         );
 
-        expect(takeOutcomePrompt(), isNull);
+        expect(outcomePrompts.take(), isNull);
       },
     );
   });

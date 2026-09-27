@@ -43,15 +43,8 @@ class ArchiveRepository {
     _serverVersion,
   );
 
-  /// Reads the raw row rather than the model, which cannot tell an absent
-  /// `confirm_requested` from the `false` it defaults to. Answers what it saw:
-  /// null for no row at all.
-  bool? _observeOutcome(Object? row) {
-    if (row is! Map) return null;
-    final present = row.containsKey('confirm_requested');
-    outcomeCapability.observe(present: present);
-    return present;
-  }
+  bool? _observeOutcome(Object? row) =>
+      outcomeCapability.observeKey(row, 'confirm_requested');
 
   /// GET /archives/ — paginated archive list.
   ///

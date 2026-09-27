@@ -216,9 +216,7 @@ class QueueRepository {
       return res.data ?? const [];
     });
     _observeCalibrationWire(body);
-    if (body.firstOrNull case final Map<Object?, Object?> row) {
-      outcomeCapability.observe(present: row.containsKey('confirm_outcome'));
-    }
+    outcomeCapability.observeKey(body.firstOrNull, 'confirm_outcome');
     return parseJsonList(body, QueueItem.fromJson);
   }
 

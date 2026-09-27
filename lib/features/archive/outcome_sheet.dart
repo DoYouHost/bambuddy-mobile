@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
-import '../../core/models/print_run.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/notifications/finish_alert_memory.dart';
 import '../../core/notifications/outcome_alert.dart';
@@ -184,38 +183,16 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
       label: Text(l10n.outcomeRejectReason),
       initialSelection: _reason ?? '',
       onSelected: (v) => setState(() => _reason = v),
-      entries: [
-        DropdownMenuEntry(
-          value: '',
-          label: l10n.outcomeNoReason,
-          labelWidget: logTag(
-            'outcome.reason.none',
-            Text(l10n.outcomeNoReason),
-          ),
+      entries: failureReasonEntries(
+        l10n,
+        none: l10n.outcomeNoReason,
+        carries: archive.failureReason,
+        ids: (
+          none: 'outcome.reason.none',
+          option: 'outcome.reason.option',
+          legacy: 'outcome.reason.legacy',
         ),
-        for (final key in printLogFailureReasons)
-          DropdownMenuEntry(
-            value: key,
-            label: failureReasonLabel(l10n, key),
-            labelWidget: logTag(
-              'outcome.reason.option',
-              Text(failureReasonLabel(l10n, key)),
-            ),
-          ),
-        // A cause stored outside the vocabulary — an older web build saved
-        // translated labels — so the field shows what the print carries
-        // instead of reading as empty.
-        if (archive.failureReason case final legacy?
-            when !printLogFailureReasons.contains(legacy))
-          DropdownMenuEntry(
-            value: legacy,
-            label: failureReasonLabel(l10n, legacy),
-            labelWidget: logTag(
-              'outcome.reason.legacy',
-              Text(failureReasonLabel(l10n, legacy)),
-            ),
-          ),
-      ],
+      ),
     ),
     const SizedBox(height: 12),
     ButtonPair(

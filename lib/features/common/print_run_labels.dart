@@ -1,3 +1,7 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/models/print_run.dart';
 import '../../l10n/app_localizations.dart';
 
 /// The label for a run's failure cause.
@@ -48,3 +52,35 @@ String printRunStatusLabel(AppLocalizations l10n, String status) =>
       'aborted' => l10n.printLogStatusAborted,
       _ => status,
     };
+
+/// The entries of a failure-cause picker: [none] (value `''`), the vocabulary
+/// the server validates, and the cause a row already [carries] when it is
+/// outside that list — an older web build saved translated labels, and
+/// without its own entry the field would read as empty.
+///
+/// [ids] are the log identifiers of the three kinds of row, taken whole from
+/// the call site: interpolated ones are invisible to the coverage scanner.
+List<DropdownMenuEntry<String>> failureReasonEntries(
+  AppLocalizations l10n, {
+  required String none,
+  required String? carries,
+  required ({String none, String option, String legacy}) ids,
+}) => [
+  DropdownMenuEntry(
+    value: '',
+    label: none,
+    labelWidget: logTag(ids.none, Text(none)),
+  ),
+  for (final key in printLogFailureReasons)
+    DropdownMenuEntry(
+      value: key,
+      label: failureReasonLabel(l10n, key),
+      labelWidget: logTag(ids.option, Text(failureReasonLabel(l10n, key))),
+    ),
+  if (carries != null && !printLogFailureReasons.contains(carries))
+    DropdownMenuEntry(
+      value: carries,
+      label: failureReasonLabel(l10n, carries),
+      labelWidget: logTag(ids.legacy, Text(failureReasonLabel(l10n, carries))),
+    ),
+];
