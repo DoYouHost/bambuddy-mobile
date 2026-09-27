@@ -64,80 +64,6 @@ const _runoutWithActions = HmsError(
   actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
 );
 
-/// Records HMS commands instead of sending them. Only the two routes the panel
-/// can reach are implemented; anything else would be a test reaching somewhere
-/// it did not mean to, and says so.
-class _RecordingCommands implements PrinterCommandsRepository {
-  final List<String> calls = [];
-
-  /// Thrown by [refreshAmsSlot] instead of succeeding — the tag re-read is the
-  /// one route with a permission of its own, so its refusal is worth staging.
-  Object? rfidError;
-
-  /// Thrown by [clearPlate] instead of succeeding — a pre-#2864 server that
-  /// refuses to release the gate on a printer it cannot reach.
-  Object? clearPlateError;
-
-  /// Holds the answer back, so a test can land it after the card is gone.
-  Completer<void>? clearPlateHeld;
-
-  @override
-  Future<void> clearHmsErrors(int printerId) async =>
-      calls.add('clear:$printerId');
-
-  @override
-  Future<void> clearPlate(int printerId) async {
-    calls.add('clearPlate:$printerId');
-    await clearPlateHeld?.future;
-    if (clearPlateError != null) throw clearPlateError!;
-  }
-
-  @override
-  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) async =>
-      calls.add('amsLoad:$printerId:$trayId:${extruderId ?? '-'}');
-
-  @override
-  Future<void> amsUnload(int printerId, {int? trayId}) async =>
-      calls.add('amsUnload:$printerId:${trayId ?? '-'}');
-
-  @override
-  Future<void> refreshAmsSlot(
-    int printerId, {
-    required int amsId,
-    required int slotId,
-  }) async {
-    calls.add('rfid:$printerId:$amsId:$slotId');
-    if (rfidError != null) throw rfidError!;
-  }
-
-  @override
-  Future<void> executeHmsAction(
-    int printerId, {
-    required String printError,
-    required String action,
-    String? jobId,
-  }) async => calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
-
-  @override
-  Future<void> startDrying(
-    int printerId, {
-    required int amsId,
-    required int temp,
-    required int duration,
-    String filament = '',
-  }) async =>
-      calls.add('startDrying:$printerId:$amsId:$temp:$duration:$filament');
-
-  @override
-  Future<void> setChamberTemperature(int printerId, int target) async =>
-      calls.add('chamber:$printerId:$target');
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-    '${invocation.memberName} is not part of this test',
-  );
-}
-
 /// The slot sheet reads the inventory to offer spools; these tests care about
 /// the printer-side actions above that list, so it stays empty and offline.
 class _EmptyInventory extends InventoryNotifier {
@@ -866,10 +792,10 @@ void main() {
 
     /// Opens the sheet behind the second slot of AMS 1 and hands back the
     /// commands it sent. [state] decides whether the printer is mid-job.
-    Future<_RecordingCommands> openSlotSheet(
+    Future<RecordingCommands> openSlotSheet(
       WidgetTester tester, {
       required String state,
-      _RecordingCommands? withCommands,
+      RecordingCommands? withCommands,
       bool stocked = false,
       bool tagged = false,
       InventoryNotifier Function()? inventory,
@@ -886,7 +812,7 @@ void main() {
         filaSwitch: filaSwitch,
         extruderSlots: extruderSlots,
       ).mergedWith(item.status!);
-      final commands = withCommands ?? _RecordingCommands();
+      final commands = withCommands ?? RecordingCommands();
 
       await tester.pumpWidget(
         _scope(
@@ -924,14 +850,14 @@ void main() {
       // `printers:ams_rfid` is a permission of its own: being refused it says
       // nothing about whether this key may load filament, so load and unload
       // have to survive.
-      final commands = _RecordingCommands()
-        ..rfidError = const AuthException(AppErrorCode.forbidden);
+      final commands = RecordingCommands()
+        ..errors['amsRfid'] = const AuthException(AppErrorCode.forbidden);
       await openSlotSheet(tester, state: 'IDLE', withCommands: commands);
 
       await tester.tap(find.text('Odczytaj tag'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(commands.calls, ['rfid:1:0:0']);
+      expect(commands.calls, ['amsRfid:1:0:0']);
 
       await tapSlotRow(tester);
       expect(find.text('Odczytaj tag'), findsNothing);
@@ -2212,7 +2138,7 @@ void main() {
       (tester) async {
         // The ceiling reads 60 until the server version lands; a sheet opened
         // before that used to clamp the printer's 65 °C to 60 and send it.
-        final commands = _RecordingCommands();
+        final commands = RecordingCommands();
         await tester.pumpWidget(
           _cardWithProviders(
             const PrinterWithStatus(
@@ -2386,7 +2312,7 @@ void main() {
     testWidgets('an action sends the full code verbatim, with its job id', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2400,13 +2326,15 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
       await tester.pumpAndSettle();
 
-      expect(commands.calls, ['action:9:03008004:RESUME_PRINTING:746795586']);
+      expect(commands.calls, [
+        'hmsAction:9:03008004:RESUME_PRINTING:746795586',
+      ]);
     });
 
     testWidgets('stopping the print is confirmed before anything is sent', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2432,7 +2360,7 @@ void main() {
     testWidgets('dismiss-all clears the printer, not one error', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2446,7 +2374,7 @@ void main() {
       await tester.tap(find.text('Odrzuć wszystkie'));
       await tester.pumpAndSettle();
 
-      expect(commands.calls, ['clear:9']);
+      expect(commands.calls, ['hmsClear:9']);
     });
 
     testWidgets('a long description is cut to two lines until tapped', (
@@ -2508,7 +2436,7 @@ void main() {
       // The command succeeds, the next status frame drops the fault, and the
       // card that would have shown the snackbar is gone by then — the user
       // still has to be told it went through.
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       final item = ValueNotifier<PrinterWithStatus>(
         itemWith(const [_runoutWithActions]),
       );
@@ -2583,7 +2511,7 @@ void main() {
     );
 
     Widget cards(
-      _RecordingCommands commands, {
+      RecordingCommands commands, {
       List<PrinterWithStatus> items = const [awaitingOffline],
     }) => _scope(
       Scaffold(
@@ -2603,7 +2531,7 @@ void main() {
     testWidgets('the collapsed OFFLINE card still offers the acknowledgement', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(cards(commands));
       await tester.pumpAndSettle();
 
@@ -2624,8 +2552,8 @@ void main() {
         // response says which contract the server serves and the version cannot
         // tell (every 1.2.6 daily build reports 1.2.6b1), so the refusal itself
         // is the answer: the offline button withdraws, the online one does not.
-        final commands = _RecordingCommands()
-          ..clearPlateError = const ApiException(
+        final commands = RecordingCommands()
+          ..errors['clearPlate'] = const ApiException(
             AppErrorCode.badResponse,
             statusCode: 400,
             detail: 'Printer not connected',
@@ -2657,9 +2585,9 @@ void main() {
       // ("Cannot use ref after the widget was disposed"), so the latch is read
       // out before the request, and the observation outlives the widget.
       final held = Completer<void>();
-      final commands = _RecordingCommands()
-        ..clearPlateHeld = held
-        ..clearPlateError = const ApiException(
+      final commands = RecordingCommands()
+        ..holds['clearPlate'] = held
+        ..errors['clearPlate'] = const ApiException(
           AppErrorCode.badResponse,
           statusCode: 400,
           detail: 'Printer not connected',
@@ -2705,7 +2633,7 @@ void main() {
     testWidgets(
       'nothing is offered while the scheduler does not gate on the plate',
       (tester) async {
-        final commands = _RecordingCommands();
+        final commands = RecordingCommands();
         await tester.pumpWidget(
           _cardWithProviders(
             awaitingOffline,
@@ -3311,7 +3239,7 @@ void main() {
       tester,
     ) async {
       final repo = _StubScheduledDrying();
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
 
       await tester.pumpWidget(
         _cardWithProviders(
@@ -3330,7 +3258,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.created, isEmpty);
-      expect(commands.calls, contains('startDrying:3:1:45:12:PLA'));
+      expect(commands.calls, contains('dryStart:3:1:45:12:PLA'));
     });
   });
 

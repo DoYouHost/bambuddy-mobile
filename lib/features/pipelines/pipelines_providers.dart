@@ -261,10 +261,6 @@ final pipelineTargetPrintersProvider =
 final pipelinePrinterClassesProvider = FutureProvider.autoDispose<List<String>>(
   (ref) async {
     final printers = await ref.watch(pipelineTargetPrintersProvider.future);
-    final models = <String>{
-      for (final p in printers)
-        if (p.model != null && p.model!.isNotEmpty) p.model!,
-    };
-    return models.toList()..sort();
+    return distinctPrinterModels(printers);
   },
 );

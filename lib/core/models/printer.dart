@@ -26,3 +26,12 @@ class Printer {
   final String? location;
   final bool? isActive;
 }
+
+/// The distinct models of [printers], sorted, spelled exactly as the server
+/// stores them: `target_model` and a pipeline's printer class are matched
+/// against `Printer.model` with plain equality, so a normalised value would
+/// match nothing.
+List<String> distinctPrinterModels(Iterable<Printer> printers) => {
+  for (final p in printers)
+    if (p.model != null && p.model!.isNotEmpty) p.model!,
+}.toList()..sort();
