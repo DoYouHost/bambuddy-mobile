@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
-import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/media_image.dart';
+import '../common/photo_pager.dart';
 import '../common/dash_async.dart';
 import 'archive_providers.dart';
 
@@ -34,23 +33,7 @@ class ArchivePhotosScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: loggedAppBar(
-        AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            title ?? l10n.archivePhotosTitle,
-            style: const TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
+      appBar: photoViewerAppBar(title ?? l10n.archivePhotosTitle),
       body: dashAsync(
         context,
         archive,
@@ -58,7 +41,12 @@ class ArchivePhotosScreen extends ConsumerWidget {
         skipLoadingOnReload: false,
         skipLoadingOnRefresh: false,
         data: (a) => a.hasPhotos
-            ? _PhotoPager(archive: a)
+            ? PhotoPager(
+                paths: [
+                  for (final name in a.photos)
+                    Endpoints.archivePhoto(a.id, name),
+                ],
+              )
             : EmptyStateView(
                 message: l10n.archivePhotosEmpty,
                 icon: Icons.photo_camera_outlined,
@@ -66,98 +54,4 @@ class ArchivePhotosScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Swipeable pages, one photo each, with the position shown while there is
-/// more than one to swipe through.
-class _PhotoPager extends StatefulWidget {
-  const _PhotoPager({required this.archive});
-
-  final Archive archive;
-
-  @override
-  State<_PhotoPager> createState() => _PhotoPagerState();
-}
-
-class _PhotoPagerState extends State<_PhotoPager> {
-  int _page = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final photos = widget.archive.photos;
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        PageView.builder(
-          itemCount: photos.length,
-          onPageChanged: (i) => setState(() => _page = i),
-          itemBuilder: (_, i) =>
-              _Photo(archiveId: widget.archive.id, filename: photos[i]),
-        ),
-        if (photos.length > 1)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Text(
-                  '${_page + 1} / ${photos.length}',
-                  style: const TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// One photo, pinch-zoomable. A lapsed media token fails the same way a
-/// missing file does, so [MediaImage] re-mints once and the new URL reloads
-/// the picture.
-class _Photo extends StatelessWidget {
-  const _Photo({required this.archiveId, required this.filename});
-
-  final int archiveId;
-  final String filename;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return InteractiveViewer(
-      maxScale: 5,
-      child: MediaImage(
-        path: Endpoints.archivePhoto(archiveId, filename),
-        fit: BoxFit.contain,
-        width: double.infinity,
-        height: double.infinity,
-        placeholder: (status) => status == MediaImageStatus.loading
-            ? const DashLoading()
-            : _message(l10n.archivePhotoFailed),
-      ),
-    );
-  }
-
-  Widget _message(String text) => Center(
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white70),
-      ),
-    ),
-  );
 }

@@ -3727,6 +3727,83 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie pocięto — do kolejki trafiają tylko pliki G-code.';
 
   @override
+  String get fmFileDetails => 'Zdjęcia, link i notatki';
+
+  @override
+  String get fmPhotosEmpty => 'Brak zdjęć wydruku';
+
+  @override
+  String get fmPhotoAdd => 'Dodaj zdjęcie';
+
+  @override
+  String get fmPhotoFromCamera => 'Zrób zdjęcie';
+
+  @override
+  String get fmPhotoFromGallery => 'Wybierz z galerii';
+
+  @override
+  String get fmPhotoFromFiles => 'Wybierz z plików';
+
+  @override
+  String get fmPhotoAdded => 'Dodano zdjęcie';
+
+  @override
+  String get fmPhotoDelete => 'Usuń zdjęcie';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Usunąć to zdjęcie z pliku?';
+
+  @override
+  String get fmPhotoDeleted => 'Usunięto zdjęcie';
+
+  @override
+  String get fmPhotoErrType => 'Można dodać tylko zdjęcia JPG, PNG lub WebP.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'Zdjęcie jest większe niż 10 MB.';
+
+  @override
+  String get fmPhotoPickFailed =>
+      'Nie udało się otworzyć aparatu ani wyboru plików.';
+
+  @override
+  String get fmLink => 'Link';
+
+  @override
+  String get fmLinkNone => 'Brak linku';
+
+  @override
+  String get fmLinkEdit => 'Edytuj link';
+
+  @override
+  String get fmLinkField => 'Adres';
+
+  @override
+  String get fmLinkSaved => 'Zapisano link';
+
+  @override
+  String get fmLinkErrScheme =>
+      'Link musi zaczynać się od http:// lub https://.';
+
+  @override
+  String get fmLinkOpenFailed => 'Nie udało się otworzyć linku.';
+
+  @override
+  String get fmSource => 'Zaimportowano z';
+
+  @override
+  String get fmNotes => 'Notatki';
+
+  @override
+  String get fmNotesNone => 'Brak notatek';
+
+  @override
+  String get fmNotesEdit => 'Edytuj notatki';
+
+  @override
+  String get fmNotesSaved => 'Zapisano notatki';
+
+  @override
   String get fmGroupAsVariants => 'Zgrupuj jako warianty';
 
   @override

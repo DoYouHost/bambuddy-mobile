@@ -6164,6 +6164,156 @@ abstract class AppLocalizations {
   /// **'Not sliced — only G-code files can be queued.'**
   String get fmQueueErrNotSliced;
 
+  /// No description provided for @fmFileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, link and notes'**
+  String get fmFileDetails;
+
+  /// No description provided for @fmPhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos of the print yet'**
+  String get fmPhotosEmpty;
+
+  /// No description provided for @fmPhotoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get fmPhotoAdd;
+
+  /// No description provided for @fmPhotoFromCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get fmPhotoFromCamera;
+
+  /// No description provided for @fmPhotoFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get fmPhotoFromGallery;
+
+  /// No description provided for @fmPhotoFromFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from files'**
+  String get fmPhotoFromFiles;
+
+  /// No description provided for @fmPhotoAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo added'**
+  String get fmPhotoAdded;
+
+  /// No description provided for @fmPhotoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo'**
+  String get fmPhotoDelete;
+
+  /// No description provided for @fmPhotoDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this photo from the file?'**
+  String get fmPhotoDeleteConfirm;
+
+  /// No description provided for @fmPhotoDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo deleted'**
+  String get fmPhotoDeleted;
+
+  /// No description provided for @fmPhotoErrType.
+  ///
+  /// In en, this message translates to:
+  /// **'Only JPG, PNG or WebP photos can be added.'**
+  String get fmPhotoErrType;
+
+  /// No description provided for @fmPhotoErrTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo is larger than 10 MB.'**
+  String get fmPhotoErrTooLarge;
+
+  /// No description provided for @fmPhotoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the camera or the picker.'**
+  String get fmPhotoPickFailed;
+
+  /// No description provided for @fmLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get fmLink;
+
+  /// No description provided for @fmLinkNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No link'**
+  String get fmLinkNone;
+
+  /// No description provided for @fmLinkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit link'**
+  String get fmLinkEdit;
+
+  /// No description provided for @fmLinkField.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get fmLinkField;
+
+  /// No description provided for @fmLinkSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Link saved'**
+  String get fmLinkSaved;
+
+  /// No description provided for @fmLinkErrScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'The link has to start with http:// or https://.'**
+  String get fmLinkErrScheme;
+
+  /// No description provided for @fmLinkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link.'**
+  String get fmLinkOpenFailed;
+
+  /// No description provided for @fmSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported from'**
+  String get fmSource;
+
+  /// No description provided for @fmNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get fmNotes;
+
+  /// No description provided for @fmNotesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes'**
+  String get fmNotesNone;
+
+  /// No description provided for @fmNotesEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get fmNotesEdit;
+
+  /// No description provided for @fmNotesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes saved'**
+  String get fmNotesSaved;
+
   /// No description provided for @fmGroupAsVariants.
   ///
   /// In en, this message translates to:

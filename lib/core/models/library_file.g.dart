@@ -25,4 +25,7 @@ LibraryFile _$LibraryFileFromJson(Map<String, dynamic> json) => LibraryFile(
   tags: json['tags'] == null ? const [] : _tagsFromJson(json['tags']),
   variantGroupId: (json['variant_group_id'] as num?)?.toInt(),
   variantCount: (json['variant_count'] as num?)?.toInt() ?? 0,
+  externalUrl: json['external_url'] as String?,
+  hasNotes: json['has_notes'] as bool? ?? false,
+  photoCount: (json['photo_count'] as num?)?.toInt() ?? 0,
 );

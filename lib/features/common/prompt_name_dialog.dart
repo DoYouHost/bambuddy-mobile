@@ -8,7 +8,8 @@ import '../../l10n/app_localizations.dart';
 /// screen, and each copy had to remember to dispose its controller.
 ///
 /// Returns the trimmed text, or `null` when cancelled/dismissed. An empty
-/// result is returned as `null` too, so callers don't each re-check it.
+/// result is returned as `null` too, so callers don't each re-check it —
+/// unless [allowEmpty], for a value that saving empty clears.
 ///
 /// [id] names the field and both buttons in the diagnostic log
 /// (`<id>.field` / `<id>.save` / `<id>.cancel`). The default keeps the wire
@@ -20,6 +21,9 @@ Future<String?> promptName(
   String? initial,
   String? confirmLabel,
   String id = 'name_prompt',
+  bool allowEmpty = false,
+  int maxLines = 1,
+  TextInputType? keyboardType,
 }) async {
   final name = await showDialog<String>(
     context: context,
@@ -29,10 +33,13 @@ Future<String?> promptName(
       initial: initial,
       confirmLabel: confirmLabel,
       id: id,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
     ),
   );
   final trimmed = name?.trim();
-  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  if (trimmed == null || (trimmed.isEmpty && !allowEmpty)) return null;
+  return trimmed;
 }
 
 /// A StatefulWidget so it owns and disposes its own controller in the State
@@ -45,6 +52,8 @@ class _PromptNameDialog extends StatefulWidget {
     required this.id,
     this.initial,
     this.confirmLabel,
+    this.maxLines = 1,
+    this.keyboardType,
   });
 
   final String title;
@@ -52,6 +61,8 @@ class _PromptNameDialog extends StatefulWidget {
   final String id;
   final String? initial;
   final String? confirmLabel;
+  final int maxLines;
+  final TextInputType? keyboardType;
 
   @override
   State<_PromptNameDialog> createState() => _PromptNameDialogState();
@@ -76,6 +87,8 @@ class _PromptNameDialogState extends State<_PromptNameDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true,
+        maxLines: widget.maxLines,
+        keyboardType: widget.keyboardType,
         decoration: InputDecoration(labelText: widget.label),
         onSubmitted: (v) => Navigator.pop(context, v.trim()),
       ).tagged('${widget.id}.field'),

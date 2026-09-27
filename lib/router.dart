@@ -16,6 +16,7 @@ import 'features/archive/timelapse_editor_screen.dart';
 import 'features/archive/timelapse_screen.dart';
 import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/files/file_details_screen.dart';
 import 'features/files/file_manager_screen.dart';
 import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_route.dart';
@@ -149,6 +150,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const FileManagerScreen(),
         routes: [
           GoRoute(path: 'trash', builder: (_, _) => const TrashScreen()),
+          // Photos, link and notes of one file (#3077). After `trash`, which
+          // would otherwise read as an id.
+          GoRoute(
+            path: ':id',
+            redirect: (_, state) =>
+                int.tryParse(state.pathParameters['id'] ?? '') == null
+                ? '/files'
+                : null,
+            builder: (_, state) => FileDetailsScreen(
+              fileId: int.parse(state.pathParameters['id']!),
+              title: state.uri.queryParameters['name'],
+            ),
+            routes: [
+              GoRoute(
+                path: 'photos',
+                builder: (_, state) {
+                  final q = state.uri.queryParameters;
+                  return FilePhotosScreen(
+                    fileId: int.parse(state.pathParameters['id']!),
+                    start: int.tryParse(q['start'] ?? '') ?? 0,
+                    title: q['name'],
+                  );
+                },
+              ),
+            ],
+          ),
         ],
       ),
 

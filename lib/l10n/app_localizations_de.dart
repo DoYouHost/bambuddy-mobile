@@ -3704,6 +3704,84 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht geslict – nur G-Code-Dateien können in die Warteschlange.';
 
   @override
+  String get fmFileDetails => 'Fotos, Link und Notizen';
+
+  @override
+  String get fmPhotosEmpty => 'Noch keine Fotos vom Druck';
+
+  @override
+  String get fmPhotoAdd => 'Foto hinzufügen';
+
+  @override
+  String get fmPhotoFromCamera => 'Foto aufnehmen';
+
+  @override
+  String get fmPhotoFromGallery => 'Aus der Galerie wählen';
+
+  @override
+  String get fmPhotoFromFiles => 'Aus Dateien wählen';
+
+  @override
+  String get fmPhotoAdded => 'Foto hinzugefügt';
+
+  @override
+  String get fmPhotoDelete => 'Foto löschen';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Dieses Foto von der Datei löschen?';
+
+  @override
+  String get fmPhotoDeleted => 'Foto gelöscht';
+
+  @override
+  String get fmPhotoErrType =>
+      'Nur JPG-, PNG- oder WebP-Fotos können hinzugefügt werden.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'Das Foto ist größer als 10 MB.';
+
+  @override
+  String get fmPhotoPickFailed =>
+      'Kamera oder Auswahl konnte nicht geöffnet werden.';
+
+  @override
+  String get fmLink => 'Link';
+
+  @override
+  String get fmLinkNone => 'Kein Link';
+
+  @override
+  String get fmLinkEdit => 'Link bearbeiten';
+
+  @override
+  String get fmLinkField => 'Adresse';
+
+  @override
+  String get fmLinkSaved => 'Link gespeichert';
+
+  @override
+  String get fmLinkErrScheme =>
+      'Der Link muss mit http:// oder https:// beginnen.';
+
+  @override
+  String get fmLinkOpenFailed => 'Der Link konnte nicht geöffnet werden.';
+
+  @override
+  String get fmSource => 'Importiert von';
+
+  @override
+  String get fmNotes => 'Notizen';
+
+  @override
+  String get fmNotesNone => 'Keine Notizen';
+
+  @override
+  String get fmNotesEdit => 'Notizen bearbeiten';
+
+  @override
+  String get fmNotesSaved => 'Notizen gespeichert';
+
+  @override
   String get fmGroupAsVariants => 'Als Alternativen gruppieren';
 
   @override

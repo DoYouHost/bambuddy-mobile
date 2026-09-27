@@ -591,4 +591,113 @@ void main() {
       expect(outcome.rejections, isEmpty);
     });
   });
+
+  group('photos, link and notes (#3077)', () {
+    Map<String, dynamic> row({bool extras = true}) => {
+      'id': 1,
+      'filename': 'benchy.gcode.3mf',
+      'file_type': 'gcode',
+      'file_size': 10,
+      'print_count': 0,
+      'created_at': '2026-09-26T10:00:00',
+      if (extras) ...{
+        'photo_count': 2,
+        'external_url': 'https://example.com',
+        'has_notes': true,
+      },
+    };
+
+    test('the listing decides whether the server has them', () async {
+      adapter
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, [row()]),
+          queryParameters: {'include_root': true},
+        )
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, [row(extras: false)]),
+          queryParameters: {'include_root': false, 'folder_id': 9},
+        );
+
+      final files = await repo.listFiles();
+      expect(repo.fileExtrasCapability.observedAnswer, isTrue);
+      expect(files.single.photoCount, 2);
+      expect(files.single.hasNotes, isTrue);
+      expect(files.single.externalUrl, 'https://example.com');
+
+      final older = await repo.listFiles(folderId: 9);
+      expect(repo.fileExtrasCapability.observedAnswer, isFalse);
+      expect(older.single.photoCount, 0);
+      expect(older.single.hasNotes, isFalse);
+    });
+
+    test('the detail carries the photo names and the import source', () async {
+      adapter.onGet(
+        '/api/v1/library/files/1',
+        (s) => s.reply(200, {
+          'id': 1,
+          'notes': 'PETG',
+          'external_url': null,
+          'source_url': 'https://makerworld.com/models/1',
+          'photos': ['a1b2c3d4.jpg'],
+        }),
+      );
+
+      final d = await repo.fileDetail(1);
+
+      expect(d.notes, 'PETG');
+      expect(d.externalUrl, isNull);
+      expect(d.sourceUrl, 'https://makerworld.com/models/1');
+      expect(d.photos, ['a1b2c3d4.jpg']);
+    });
+
+    test('an older detail without the fields reads as empty', () async {
+      adapter.onGet(
+        '/api/v1/library/files/1',
+        (s) => s.reply(200, {'id': 1, 'notes': null}),
+      );
+
+      final d = await repo.fileDetail(1);
+
+      expect(d.photos, isEmpty);
+      expect(d.sourceUrl, isNull);
+    });
+
+    test('a refused link keeps the server sentence', () async {
+      adapter.onPut(
+        '/api/v1/library/files/1',
+        (s) => s.reply(422, {
+          'detail': [
+            {
+              'msg':
+                  'Value error, external_url must start with http:// or '
+                  'https://',
+            },
+          ],
+        }),
+        data: {'external_url': 'ftp://x'},
+      );
+
+      await expectLater(
+        repo.setFileLink(1, 'ftp://x'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'external_url must start with http:// or https://',
+          ),
+        ),
+      );
+    });
+
+    test('a photo is deleted by its own name', () async {
+      adapter.onDelete(
+        '/api/v1/library/files/1/photos/a1b2c3d4.jpg',
+        (s) => s.reply(200, {'photos': []}),
+      );
+
+      await repo.deleteFilePhoto(1, 'a1b2c3d4.jpg');
+    });
+  });
 }

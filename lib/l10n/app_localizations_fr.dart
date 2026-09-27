@@ -3734,6 +3734,84 @@ class AppLocalizationsFr extends AppLocalizations {
       'Non découpé : seuls les fichiers G-code peuvent être mis en file d\'attente.';
 
   @override
+  String get fmFileDetails => 'Photos, lien et notes';
+
+  @override
+  String get fmPhotosEmpty => 'Pas encore de photo de l\'impression';
+
+  @override
+  String get fmPhotoAdd => 'Ajouter une photo';
+
+  @override
+  String get fmPhotoFromCamera => 'Prendre une photo';
+
+  @override
+  String get fmPhotoFromGallery => 'Choisir dans la galerie';
+
+  @override
+  String get fmPhotoFromFiles => 'Choisir dans les fichiers';
+
+  @override
+  String get fmPhotoAdded => 'Photo ajoutée';
+
+  @override
+  String get fmPhotoDelete => 'Supprimer la photo';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Supprimer cette photo du fichier ?';
+
+  @override
+  String get fmPhotoDeleted => 'Photo supprimée';
+
+  @override
+  String get fmPhotoErrType =>
+      'Seules les photos JPG, PNG ou WebP peuvent être ajoutées.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'La photo dépasse 10 Mo.';
+
+  @override
+  String get fmPhotoPickFailed =>
+      'Impossible d\'ouvrir l\'appareil photo ou le sélecteur.';
+
+  @override
+  String get fmLink => 'Lien';
+
+  @override
+  String get fmLinkNone => 'Aucun lien';
+
+  @override
+  String get fmLinkEdit => 'Modifier le lien';
+
+  @override
+  String get fmLinkField => 'Adresse';
+
+  @override
+  String get fmLinkSaved => 'Lien enregistré';
+
+  @override
+  String get fmLinkErrScheme =>
+      'Le lien doit commencer par http:// ou https://.';
+
+  @override
+  String get fmLinkOpenFailed => 'Impossible d\'ouvrir le lien.';
+
+  @override
+  String get fmSource => 'Importé depuis';
+
+  @override
+  String get fmNotes => 'Notes';
+
+  @override
+  String get fmNotesNone => 'Aucune note';
+
+  @override
+  String get fmNotesEdit => 'Modifier les notes';
+
+  @override
+  String get fmNotesSaved => 'Notes enregistrées';
+
+  @override
   String get fmGroupAsVariants => 'Regrouper comme alternatives';
 
   @override

@@ -192,6 +192,17 @@ early for is 1.2.5.6 itself; a 1.2.6b1 daily older than the commit still reads
 as yes (its base outranks 1.2.5.6) and drops the choice — the unassigned rows
 it queues today, which the queue screen can still assign one by one.
 
+### libraryFileExtras — 1.2.6 (server #3077, commit 12dddada)
+
+Photos of the printed result, a link and notes on a library file:
+`photo_count` / `external_url` / `has_notes` on the listing row, `photos` /
+`source_url` on the detail, and `/library/files/{id}/photos`. Only in 1.2.6
+dailies from 2026-09-26. `LibraryRepository` observes `photo_count` on the
+listing, which is defaulted from that commit on and absent before it, so the
+row only speaks before the first listing — and the details entry lives in the
+per-file sheet, which cannot open before one. Being early would cost a screen
+whose photo routes 404 and whose link is silently dropped by `FileUpdate`.
+
 ## Not a row: the bed-jog sign (server #1334)
 
 `POST /printers/{id}/bed-jog` takes a signed nozzle-bed gap. From v0.2.4.1 up

@@ -7,6 +7,7 @@ import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/library_file.dart';
+import '../core/models/library_file_detail.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';
 import '../core/models/library_tag.dart';
@@ -43,6 +44,14 @@ class LibraryRepository {
     _serverVersion,
   );
 
+  /// Whether files here carry photos, a link and notes (#3077). Observed on
+  /// the listing like [variantsCapability]: `photo_count` is a defaulted field
+  /// of the listing row from that commit on and absent before it.
+  late final fileExtrasCapability = ObservedCapability(
+    ServerFeature.libraryFileExtras,
+    _serverVersion,
+  );
+
   /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
   /// the raw rows rather than the model, because the model cannot distinguish
   /// "absent" from the `0` it defaults to. A listing with no rows at all is
@@ -51,6 +60,7 @@ class LibraryRepository {
     final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
     if (firstMap == null) return;
     variantsCapability.observe(present: firstMap.containsKey('variant_count'));
+    fileExtrasCapability.observe(present: firstMap.containsKey('photo_count'));
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).
@@ -322,6 +332,55 @@ class LibraryRepository {
       Endpoints.libraryFile(fileId),
       data: <String, dynamic>{'filename': filename},
     ),
+  );
+
+  // --- Photos, link, notes (#3077) ---
+
+  /// GET /library/files/{id} — the fields the listing leaves out.
+  Future<LibraryFileDetail> fileDetail(int fileId) => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.libraryFile(fileId),
+    );
+    return LibraryFileDetail.fromJson(res.data ?? const {});
+  });
+
+  /// PUT /library/files/{id} — [url] `""` clears the link. The 422 for a
+  /// scheme other than http(s) keeps its sentence.
+  Future<void> setFileLink(int fileId, String url) => guardKeepingDetail(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFile(fileId),
+      data: <String, dynamic>{'external_url': url},
+    ),
+  );
+
+  /// PUT /library/files/{id} — [notes] `""` clears them.
+  Future<void> setFileNotes(int fileId, String notes) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFile(fileId),
+      data: <String, dynamic>{'notes': notes},
+    ),
+  );
+
+  /// POST /library/files/{id}/photos — attach a photo; [filename] carries the
+  /// extension the server checks.
+  Future<void> addFilePhoto(
+    int fileId, {
+    required String filePath,
+    required String filename,
+  }) => guardKeepingDetail(() async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    await _dio.post<dynamic>(
+      Endpoints.libraryFilePhotos(fileId),
+      data: form,
+      options: uploadOptions(),
+    );
+  });
+
+  /// DELETE /library/files/{id}/photos/{filename}.
+  Future<void> deleteFilePhoto(int fileId, String filename) => guard(
+    () => _dio.delete<dynamic>(Endpoints.libraryFilePhoto(fileId, filename)),
   );
 
   /// POST /library/files/move — move files to folder [folderId] (null = root).

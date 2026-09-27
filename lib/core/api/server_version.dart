@@ -53,6 +53,10 @@ enum ServerFeature {
   /// `printer_id` / `target_model` on `POST /library/files/add-to-queue`,
   /// taken and ignored below it.
   libraryQueueTarget,
+
+  /// `photo_count` / `external_url` / `has_notes` on a library listing, and
+  /// `/library/files/{id}/photos`.
+  libraryFileExtras,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -146,6 +150,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.locationHaSensors: (1, 2, 6, 0),
     ServerFeature.spoolModelPresets: (1, 2, 6, 0),
     ServerFeature.libraryQueueTarget: (1, 2, 5, 6),
+    ServerFeature.libraryFileExtras: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

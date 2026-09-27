@@ -82,6 +82,7 @@ FORBIDDEN_COMPONENTS = [
     "com.google.mlkit.common.internal.MlKitComponentDiscoveryService",
     "net.nfet.flutter.printing.PrintFileProvider",
     "dev.fluttercommunity.plus.share.ShareFileProvider",
+    "io.flutter.plugins.imagepicker.ImagePickerFileProvider",
     "androidx.glance.appwidget.GlanceRemoteViewsService",
     "androidx.glance.appwidget.action.ActionCallbackBroadcastReceiver",
     "androidx.camera.core.impl.MetadataHolderService",

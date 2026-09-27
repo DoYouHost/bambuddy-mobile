@@ -5032,6 +5032,13 @@ class DemoBackend {
     'sliced_for_model': model,
     'variant_group_id': null,
     'variant_count': 0,
+    // #3077 — the listing and the detail are one map here, so both halves
+    // of the contract ride on it.
+    'external_url': null,
+    'has_notes': false,
+    'notes': null,
+    'photo_count': 0,
+    'photos': const <String>[],
   };
 
   /// Cross-model variant groups (server #671), served because the demo now
@@ -5219,6 +5226,14 @@ class DemoBackend {
             if (body.containsKey('filename')) {
               file['filename'] = body['filename'];
             }
+            // An empty string clears either, as on the server.
+            final url = body['external_url'];
+            if (url is String) file['external_url'] = url.isEmpty ? null : url;
+            final notes = body['notes'];
+            if (notes is String) {
+              file['notes'] = notes.isEmpty ? null : notes;
+              file['has_notes'] = notes.isNotEmpty;
+            }
             return _ok(file);
           }
           if (m == 'DELETE') {
@@ -5232,6 +5247,9 @@ class DemoBackend {
             });
             return _ok(const {'ok': true});
           }
+        }
+        if (s.length >= 4 && s[3] == 'photos' && m == 'POST') {
+          return (status: 501, body: {'detail': 'Upload unavailable in demo'});
         }
         if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
         if (s.length >= 4 && s[3] == 'filament-requirements') {

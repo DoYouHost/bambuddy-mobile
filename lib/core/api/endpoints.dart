@@ -1035,8 +1035,24 @@ abstract final class Endpoints {
   static const libraryFiles = '$apiPrefix/library/files';
 
   /// Single file: `GET` (details), `PUT` (edit `FileUpdate`:
-  /// filename/folder_id/notes), `DELETE` (to trash).
+  /// filename/folder_id/notes, and `external_url` from #3077 — `""` clears
+  /// it, `null` leaves it), `DELETE` (to trash).
   static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
+
+  /// Photos of the printed result (#3077): `POST` multipart `file` (.jpg,
+  /// .jpeg, .png, .webp, at most 10 MB — 400 / 413 otherwise). Answers
+  /// `{filename, photos}`. `library.py::upload_file_photo`.
+  static String libraryFilePhotos(int fileId) =>
+      '$apiPrefix/library/files/$fileId/photos';
+
+  /// One photo: `GET` via `?token=` ([mediaToken]) like
+  /// [libraryFileThumbnail], `DELETE` with the Bearer header (answers
+  /// `{photos}`). [filename] comes from the file's `photos` list; the server
+  /// serves nothing that is not on it.
+  static String libraryFilePhoto(int fileId, String filename) {
+    final name = Uri.encodeComponent(filename);
+    return '$apiPrefix/library/files/$fileId/photos/$name';
+  }
 
   /// File thumbnail — authenticated via `?token=` ([mediaToken]), NOT the
   /// Bearer header, similar to [archiveThumbnail].

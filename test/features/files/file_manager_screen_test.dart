@@ -31,6 +31,8 @@ LibraryFile _file({
   String fileType = '3mf',
   bool isExternal = false,
   int variantCount = 0,
+  int photoCount = 0,
+  String? externalUrl,
 }) => LibraryFile(
   id: id,
   filename: filename,
@@ -39,6 +41,8 @@ LibraryFile _file({
   printCount: 0,
   isExternal: isExternal,
   variantCount: variantCount,
+  photoCount: photoCount,
+  externalUrl: externalUrl,
 );
 
 void main() {
@@ -51,6 +55,7 @@ void main() {
     bool slicerEnabled = true,
     bool canRunPipelines = true,
     List<LibraryTag>? tags = const [],
+    bool fileExtras = false,
     Size size = const Size(411, 866),
   }) async {
     tester.view.physicalSize = size;
@@ -71,6 +76,7 @@ void main() {
         libraryTagsSupportedProvider.overrideWithValue(AsyncData(tags != null)),
         slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
         canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
+        libraryFileExtrasProvider.overrideWithValue(AsyncData(fileExtras)),
       ],
     );
     await tester.pumpAndSettle();
@@ -433,6 +439,38 @@ void main() {
 
       expect(find.text(l10n(tester).fmAddedToQueue), findsNothing);
       expect(find.text(l10n(tester).fmQueueErrNotSliced), findsOneWidget);
+    });
+  });
+
+  group('photos, link and notes (#3077)', () {
+    testWidgets('the sheet offers the details where the server has them', (
+      tester,
+    ) async {
+      final file = _file();
+      await pump(tester, file: file, fileExtras: true);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsOneWidget);
+    });
+
+    testWidgets('an older server gets no details entry', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsNothing);
+    });
+
+    testWidgets('the tile marks photos and a link', (tester) async {
+      await pump(
+        tester,
+        file: _file(photoCount: 3, externalUrl: 'https://example.com'),
+      );
+
+      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.byIcon(Icons.link), findsOneWidget);
+      expect(find.byIcon(Icons.notes), findsNothing);
     });
   });
 

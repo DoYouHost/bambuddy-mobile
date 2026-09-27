@@ -29,6 +29,7 @@ import '../pipelines/pipeline_run_screen.dart';
 import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
+import 'file_details_screen.dart';
 import 'library_thumbnail.dart';
 import 'queue_target_sheet.dart';
 import 'tag_sheets.dart';
@@ -369,6 +370,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final canSlice =
         ref.read(slicerEnabledProvider).orFalse && !file.isPrintable;
     final tagsSupported = ref.read(libraryTagsSupportedProvider).orFalse;
+    // Settled by the listing this file came from, so one read is the answer.
+    final extrasSupported = ref.read(libraryFileExtrasProvider).orFalse;
     dashSheet<void>(
       context,
       scrollControlled: false,
@@ -499,6 +502,19 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _tagFile(file);
                 },
               ).tagged('file_actions.tags'),
+            // External files too: photos, link and notes live in the server's
+            // database, not in the file on the host's disk.
+            if (extrasSupported)
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(l10n.fmFileDetails),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(
+                    fileDetailsRoute(file.id, name: file.displayName),
+                  );
+                },
+              ).tagged('file_actions.details'),
             if (!file.isExternal) ...[
               ListTile(
                 leading: const Icon(Icons.drive_file_rename_outline),
@@ -1327,6 +1343,12 @@ class _FileTile extends StatelessWidget {
                             ],
                           ),
                         ],
+                        if (file.photoCount > 0 ||
+                            file.externalUrl != null ||
+                            file.hasNotes) ...[
+                          const SizedBox(height: 4),
+                          _ExtrasBadges(file: file),
+                        ],
                         if (file.tags.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           // Capped so a file tagged a dozen times keeps the
@@ -1363,3 +1385,37 @@ final _queueRefusals = <RefusalRule>[
   (['sliced for', 'cannot be dispatched'], (l10n) => l10n.fmQueueErrWrongModel),
   (['not a sliced file'], (l10n) => l10n.fmQueueErrNotSliced),
 ];
+
+/// Marks what a file carries besides itself (#3077): photos with their count,
+/// a link, notes. Icons only — the details screen has the words.
+class _ExtrasBadges extends StatelessWidget {
+  const _ExtrasBadges({required this.file});
+
+  final LibraryFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    Widget icon(IconData data, String label) => Semantics(
+      label: label,
+      child: Icon(data, size: 12, color: t.textTertiary),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (file.photoCount > 0) ...[
+          icon(Icons.photo_camera_outlined, l10n.archivePhotosTitle),
+          const SizedBox(width: 3),
+          Text('${file.photoCount}', style: t.micro),
+          const SizedBox(width: 8),
+        ],
+        if (file.externalUrl != null) ...[
+          icon(Icons.link, l10n.fmLink),
+          const SizedBox(width: 8),
+        ],
+        if (file.hasNotes) icon(Icons.notes, l10n.fmNotes),
+      ],
+    );
+  }
+}

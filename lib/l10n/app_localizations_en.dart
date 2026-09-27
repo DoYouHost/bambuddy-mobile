@@ -3667,6 +3667,82 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not sliced — only G-code files can be queued.';
 
   @override
+  String get fmFileDetails => 'Photos, link and notes';
+
+  @override
+  String get fmPhotosEmpty => 'No photos of the print yet';
+
+  @override
+  String get fmPhotoAdd => 'Add photo';
+
+  @override
+  String get fmPhotoFromCamera => 'Take a photo';
+
+  @override
+  String get fmPhotoFromGallery => 'Choose from gallery';
+
+  @override
+  String get fmPhotoFromFiles => 'Choose from files';
+
+  @override
+  String get fmPhotoAdded => 'Photo added';
+
+  @override
+  String get fmPhotoDelete => 'Delete photo';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Delete this photo from the file?';
+
+  @override
+  String get fmPhotoDeleted => 'Photo deleted';
+
+  @override
+  String get fmPhotoErrType => 'Only JPG, PNG or WebP photos can be added.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'The photo is larger than 10 MB.';
+
+  @override
+  String get fmPhotoPickFailed => 'Couldn\'t open the camera or the picker.';
+
+  @override
+  String get fmLink => 'Link';
+
+  @override
+  String get fmLinkNone => 'No link';
+
+  @override
+  String get fmLinkEdit => 'Edit link';
+
+  @override
+  String get fmLinkField => 'Address';
+
+  @override
+  String get fmLinkSaved => 'Link saved';
+
+  @override
+  String get fmLinkErrScheme =>
+      'The link has to start with http:// or https://.';
+
+  @override
+  String get fmLinkOpenFailed => 'Couldn\'t open the link.';
+
+  @override
+  String get fmSource => 'Imported from';
+
+  @override
+  String get fmNotes => 'Notes';
+
+  @override
+  String get fmNotesNone => 'No notes';
+
+  @override
+  String get fmNotesEdit => 'Edit notes';
+
+  @override
+  String get fmNotesSaved => 'Notes saved';
+
+  @override
   String get fmGroupAsVariants => 'Group as alternatives';
 
   @override
