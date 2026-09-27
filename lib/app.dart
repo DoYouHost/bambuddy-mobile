@@ -54,7 +54,12 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // widget above: the stream while the app runs, the launch intent when the
     // tap is what started it.
     _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
-    _outcomeSub = outcomePrompts.listen(_onOutcomePrompt);
+    // A prompt handled live is taken off the pending slot too, or the next
+    // launch would ask it again.
+    _outcomeSub = outcomePrompts.listen((archiveId) {
+      takeOutcomePrompt();
+      _onOutcomePrompt(archiveId);
+    });
     unawaited(_onNotificationLaunch());
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
@@ -96,25 +101,43 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   /// Asks how a print came out — for a session that may record the answer.
   /// The route checks update-own or update-all against the print's owner, so
   /// for anyone holding neither the sheet could only end in a refusal.
+  ///
+  /// Waits for `/auth/me` first: while it is out, every permission reads as
+  /// held, which would open the sheet for exactly the user this spares. A read
+  /// that fails is presumed, like every permission here.
   void _onOutcomePrompt(int? archiveId) {
     if (archiveId == null || _outcomeInFlight) return;
     if (ref.read(serverProfileProvider) == null) return;
-    if (!ref.read(permissionProvider(Permissions.archivesUpdateAll)) &&
-        !ref.read(permissionProvider(Permissions.archivesUpdateOwn))) {
-      return;
-    }
     _outcomeInFlight = true;
-    // Post-frame for the same reason as the stop request: a cold start gets
-    // here before there is a navigator to put a sheet on.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final context = rootNavigatorKey.currentContext;
+    unawaited(() async {
       try {
-        if (context != null) await showOutcomeSheet(context, archiveId);
+        try {
+          await ref.read(currentUserProvider.future);
+        } on Object {
+          // Presumed, as above.
+        }
+        if (!mounted || !_mayRecordVerdict()) return;
+        // Post-frame for the same reason as the stop request: a cold start
+        // gets here before there is a navigator to put a sheet on.
+        final shown = Completer<void>();
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final context = rootNavigatorKey.currentContext;
+          try {
+            if (context != null) await showOutcomeSheet(context, archiveId);
+          } finally {
+            shown.complete();
+          }
+        });
+        await shown.future;
       } finally {
         _outcomeInFlight = false;
       }
-    });
+    }());
   }
+
+  bool _mayRecordVerdict() =>
+      ref.read(permissionProvider(Permissions.archivesUpdateAll)) ||
+      ref.read(permissionProvider(Permissions.archivesUpdateOwn));
 
   /// Ask before abandoning the print, then send the action the notification
   /// carried. Runs on a post-frame callback for the same reason the scanner

@@ -134,7 +134,8 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
             label: Text(l10n.outcomeGood),
             onPressed: _saving || verdict == PrintVerdict.good
                 ? null
-                : () => _save(archive, PrintVerdict.good),
+                : () =>
+                      _save(archive, PrintVerdict.good, logId: 'outcome.good'),
           ),
         ),
         secondary: logTag(
@@ -164,7 +165,9 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         logTag(
           'outcome.clear',
           TextButton(
-            onPressed: _saving ? null : () => _save(archive, null),
+            onPressed: _saving
+                ? null
+                : () => _save(archive, null, logId: 'outcome.clear'),
             child: Text(l10n.outcomeClear),
           ),
         ),
@@ -191,10 +194,22 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
           DropdownMenuEntry(
             value: key,
             label: failureReasonLabel(l10n, key),
-            // The key is a wire value from a fixed list, never user text.
             labelWidget: logTag(
-              'outcome.reason.$key',
+              'outcome.reason.option',
               Text(failureReasonLabel(l10n, key)),
+            ),
+          ),
+        // A cause stored outside the vocabulary — an older web build saved
+        // translated labels — so the field shows what the print carries
+        // instead of reading as empty.
+        if (archive.failureReason case final legacy?
+            when !printLogFailureReasons.contains(legacy))
+          DropdownMenuEntry(
+            value: legacy,
+            label: failureReasonLabel(l10n, legacy),
+            labelWidget: logTag(
+              'outcome.reason.legacy',
+              Text(failureReasonLabel(l10n, legacy)),
             ),
           ),
       ],
@@ -208,7 +223,12 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         FilledButton(
           onPressed: _saving
               ? null
-              : () => _save(archive, PrintVerdict.reject, reason: _reason),
+              : () => _save(
+                  archive,
+                  PrintVerdict.reject,
+                  reason: _reason,
+                  logId: 'outcome.reject_save',
+                ),
           child: Text(l10n.outcomeSaveReject),
         ),
       ),
@@ -224,6 +244,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
                   PrintVerdict.reject,
                   reason: _reason,
                   reprint: true,
+                  logId: 'outcome.reject_reprint',
                 ),
         ),
       ),
@@ -246,9 +267,13 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
   Future<void> _save(
     Archive archive,
     PrintVerdict? verdict, {
+    required String logId,
     String? reason,
     bool reprint = false,
   }) async {
+    // Two taps in one frame both get here before the rebuild disables the
+    // buttons, and two verdicts in flight land in whichever order they like.
+    if (_saving) return;
     final l10n = AppLocalizations.of(context);
     final chosen = (reason ?? '').isEmpty ? null : reason;
     final carried = archive.failureReason != null;
@@ -275,7 +300,6 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
       if (providers.exists(archiveProvider)) {
         providers.read(archiveProvider.notifier).replace(result.archive);
       }
-      providers.invalidate(archiveDetailProvider(archive.id));
       // Answered here, so the notification asking the same thing has nothing
       // left to ask.
       if (result.applied) unawaited(cancelOutcomeAlert(archive.id));
@@ -288,17 +312,14 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
                 null => l10n.outcomeCleared,
               },
       );
-      if (navigator.mounted) navigator.pop();
+      // Only while this sheet is still the route: dismissed during the
+      // request, the navigator's top is somebody else's screen.
+      if (mounted) navigator.pop();
       if (reprint && result.applied && host.mounted) {
         unawaited(openQueueCreate(host, draft: archiveQueueDraft(archive)));
       }
     } on AppApiException catch (e) {
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'outcome.${verdict?.wire ?? 'clear'}',
-      );
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       if (mounted) setState(() => _saving = false);
     }
   }

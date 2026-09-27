@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/features/archive/print_outcome.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations_pl.dart';
@@ -13,8 +14,13 @@ import '../../helpers.dart';
 late SharedPreferences _prefs;
 final _l10n = AppLocalizationsPl();
 
-Widget _screen(List<Archive> items, {bool supported = true}) => ProviderScope(
+Widget _screen(
+  List<Archive> items, {
+  bool supported = true,
+  CurrentUser? user,
+}) => ProviderScope(
   overrides: [
+    if (user != null) currentUserOverride(user),
     archiveListOverride(items),
     sharedPreferencesProvider.overrideWithValue(_prefs),
     noServerProfileOverride,
@@ -97,6 +103,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(_l10n.outcomeSourceApi), findsOneWidget);
+  });
+
+  testWidgets('who may not write a verdict is not offered to', (tester) async {
+    await tester.pumpWidget(
+      _screen([
+        testArchive(confirmRequested: true),
+      ], user: const CurrentUser(id: 2, username: 'viewer', isAdmin: false)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Benchy'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_l10n.outcomeAwaiting), findsWidgets);
+    expect(find.text(_l10n.outcomeRate), findsNothing);
   });
 
   testWidgets('a server without verdicts has no line for one', (tester) async {

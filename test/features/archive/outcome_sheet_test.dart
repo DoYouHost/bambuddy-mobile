@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
@@ -157,6 +159,47 @@ void main() {
     expect(find.text(_l10n.outcomeSavedGood), findsNothing);
   });
 
+  // The sheet's navigator outlives the sheet: popping it after a dismissal
+  // closed whatever screen the user had gone back to.
+  testWidgets('a sheet dismissed during the save leaves the screen alone', (
+    tester,
+  ) async {
+    await open(tester, testArchive(confirmRequested: true));
+    repo.held = Completer<void>();
+
+    await tester.tap(find.text(_l10n.outcomeGood).last);
+    await tester.pump();
+    Navigator.of(tester.element(find.byType(OutcomeSheet))).pop();
+    await tester.pumpAndSettle();
+    repo.held!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.text('open'), findsOneWidget);
+  });
+
+  testWidgets('two taps in one frame send one verdict', (tester) async {
+    await open(tester, testArchive(confirmRequested: true));
+    repo.held = Completer<void>();
+
+    await tester.tap(find.text(_l10n.outcomeGood).last);
+    await tester.tap(find.text(_l10n.outcomeGood).last, warnIfMissed: false);
+    repo.held!.complete();
+    await tester.pumpAndSettle();
+
+    expect(repo.sent, hasLength(1));
+  });
+
+  testWidgets('a cause outside the list is shown, not blanked', (tester) async {
+    await open(
+      tester,
+      _withReason(testArchive(userVerdict: PrintVerdict.reject), 'Stringy'),
+    );
+
+    await tapText(tester, _l10n.outcomeReject);
+
+    expect(find.text('Stringy'), findsWidgets);
+  });
+
   testWidgets('print again opens the form on the same file', (tester) async {
     await open(tester, testArchive(confirmRequested: true));
 
@@ -185,6 +228,7 @@ class _FakeArchives implements ArchiveRepository {
   Archive archive;
   bool applied = true;
   AppApiException? error;
+  Completer<void>? held;
   final sent = <({PrintVerdict? verdict, String? reason, bool clearReason})>[];
 
   @override
@@ -199,6 +243,7 @@ class _FakeArchives implements ArchiveRepository {
   }) async {
     if (error != null) throw error!;
     sent.add((verdict: verdict, reason: reason, clearReason: clearReason));
+    if (held != null) await held!.future;
     return (archive: archive, applied: applied);
   }
 

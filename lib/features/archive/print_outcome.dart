@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/current_user.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -100,7 +101,9 @@ class ArchiveOutcomeRow extends ConsumerWidget {
 
   final Archive archive;
 
-  /// Opens the outcome sheet. Offered only where a verdict can be written.
+  /// Opens the outcome sheet. Offered where the server keeps verdicts and the
+  /// session holds a permission to write one; the route still checks the
+  /// print's owner against update-own.
   final VoidCallback onRate;
 
   @override
@@ -116,7 +119,10 @@ class ArchiveOutcomeRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final verdict = archive.userVerdict;
     final at = archive.userVerdictAt;
-    final writable = ref.watch(printOutcomeSupportedProvider).orFalse;
+    final writable =
+        ref.watch(printOutcomeSupportedProvider).orFalse &&
+        (ref.watch(permissionProvider(Permissions.archivesUpdateAll)) ||
+            ref.watch(permissionProvider(Permissions.archivesUpdateOwn)));
     final details = [
       if (verdict != null) ?verdictSourceLabel(l10n, archive.userVerdictSource),
       if (verdict != null && at != null)
