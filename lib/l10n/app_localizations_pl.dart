@@ -7145,15 +7145,18 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get queueEditCopiesLabel => 'Ile razy wydrukować';
+
+  @override
   String get queueEditCopies => 'Kopie';
 
   @override
   String get queueEditCopiesHint =>
-      'Więcej niż jedna kopia trafi do kolejki jako partia.';
+      'Kopie trafią do kolejki jako jedna partia.';
 
   @override
   String get queueEditCopiesOrder =>
-      'Więcej niż jedna kopia tworzy zamówienie: nieudana kopia zostaje do zrobienia i można ją ponownie dodać do kolejki z ekranu Zamówienia.';
+      'Powstanie zamówienie: nieudaną kopię dodasz ponownie w Zamówieniach.';
 
   @override
   String get ordersGroupedNone => 'Nie udało się zgrupować żadnego zadania.';

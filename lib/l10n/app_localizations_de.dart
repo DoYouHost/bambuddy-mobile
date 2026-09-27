@@ -7099,15 +7099,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get queueEditCopiesLabel => 'Wie oft drucken';
+
+  @override
   String get queueEditCopies => 'Kopien';
 
   @override
   String get queueEditCopiesHint =>
-      'Mehr als eine Kopie wird als Gruppe eingereiht.';
+      'Die Kopien werden als eine Gruppe eingereiht.';
 
   @override
   String get queueEditCopiesOrder =>
-      'Mehr als eine Kopie wird ein Sammelauftrag: Eine fehlgeschlagene Kopie bleibt offen und lässt sich unter Sammelaufträge erneut einreihen.';
+      'Daraus wird ein Sammelauftrag: Eine fehlgeschlagene Kopie lässt sich unter Sammelaufträge erneut einreihen.';
 
   @override
   String get ordersGroupedNone => 'Kein Auftrag ließ sich gruppieren.';

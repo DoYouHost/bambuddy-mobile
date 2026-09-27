@@ -4193,9 +4193,10 @@
       }
     }
   },
+  "queueEditCopiesLabel": "How many times to print it",
   "queueEditCopies": "Copies",
-  "queueEditCopiesHint": "More than one copy is queued as a batch.",
-  "queueEditCopiesOrder": "More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.",
+  "queueEditCopiesHint": "The copies are queued as one batch.",
+  "queueEditCopiesOrder": "This becomes an order: a failed copy can be queued again from Batch orders.",
   "ordersGroupedNone": "No job could be grouped.",
   "orderEditTargetLess": "One fewer run",
   "orderEditTargetMore": "One more run",

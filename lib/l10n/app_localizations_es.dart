@@ -7123,14 +7123,17 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get queueEditCopiesLabel => 'Cuántas veces imprimir';
+
+  @override
   String get queueEditCopies => 'Copias';
 
   @override
-  String get queueEditCopiesHint => 'Más de una copia se encola como lote.';
+  String get queueEditCopiesHint => 'Las copias se encolan como un solo lote.';
 
   @override
   String get queueEditCopiesOrder =>
-      'Más de una copia se convierte en un pedido: una copia fallida sigue pendiente y puede volver a encolarse desde Pedidos por lotes.';
+      'Se crea un pedido: una copia fallida puede volver a encolarse desde Pedidos por lotes.';
 
   @override
   String get ordersGroupedNone => 'No se pudo agrupar ningún trabajo.';

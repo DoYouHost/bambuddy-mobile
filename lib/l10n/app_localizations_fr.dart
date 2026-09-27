@@ -7191,15 +7191,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get queueEditCopiesLabel => 'Nombre d’impressions';
+
+  @override
   String get queueEditCopies => 'Copies';
 
   @override
   String get queueEditCopiesHint =>
-      'Plus d’une copie est mise en file comme lot.';
+      'Les copies sont mises en file comme un seul lot.';
 
   @override
   String get queueEditCopiesOrder =>
-      'Plus d’une copie devient une commande : une copie échouée reste due et peut être remise en file depuis Commandes groupées.';
+      'Une commande est créée : une copie échouée peut être remise en file depuis Commandes groupées.';
 
   @override
   String get ordersGroupedNone => 'Aucun travail n’a pu être groupé.';

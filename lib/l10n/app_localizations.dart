@@ -11822,6 +11822,12 @@ abstract class AppLocalizations {
   /// **'Queued the owed runs of {plate} ({name})'**
   String ordersPlateDispatched(String plate, String name);
 
+  /// No description provided for @queueEditCopiesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How many times to print it'**
+  String get queueEditCopiesLabel;
+
   /// No description provided for @queueEditCopies.
   ///
   /// In en, this message translates to:
@@ -11831,13 +11837,13 @@ abstract class AppLocalizations {
   /// No description provided for @queueEditCopiesHint.
   ///
   /// In en, this message translates to:
-  /// **'More than one copy is queued as a batch.'**
+  /// **'The copies are queued as one batch.'**
   String get queueEditCopiesHint;
 
   /// No description provided for @queueEditCopiesOrder.
   ///
   /// In en, this message translates to:
-  /// **'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.'**
+  /// **'This becomes an order: a failed copy can be queued again from Batch orders.'**
   String get queueEditCopiesOrder;
 
   /// No description provided for @ordersGroupedNone.

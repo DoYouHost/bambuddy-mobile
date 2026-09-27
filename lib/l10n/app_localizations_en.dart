@@ -7033,14 +7033,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get queueEditCopiesLabel => 'How many times to print it';
+
+  @override
   String get queueEditCopies => 'Copies';
 
   @override
-  String get queueEditCopiesHint => 'More than one copy is queued as a batch.';
+  String get queueEditCopiesHint => 'The copies are queued as one batch.';
 
   @override
   String get queueEditCopiesOrder =>
-      'More than one copy becomes an order: a failed copy stays owed and can be queued again from Batch orders.';
+      'This becomes an order: a failed copy can be queued again from Batch orders.';
 
   @override
   String get ordersGroupedNone => 'No job could be grouped.';

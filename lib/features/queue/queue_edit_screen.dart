@@ -536,33 +536,49 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         _SectionCard(
           title: l10n.queueEditCopies,
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  order ? l10n.queueEditCopiesOrder : l10n.queueEditCopiesHint,
-                  style: t.bodySoft,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(l10n.queueEditCopiesLabel, style: t.body),
+                  ),
+                  IconButton(
+                    // Without a tooltip a minus beside a number has no name.
+                    tooltip: l10n.pipelineCopiesLess,
+                    onPressed: _copies > 1 ? () => set(_copies - 1) : null,
+                    icon: const Icon(Icons.remove),
+                  ).tagged('queue_edit.copies_down'),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      '$_copies',
+                      textAlign: TextAlign.center,
+                      style: t.monoValue,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.pipelineCopiesMore,
+                    onPressed: _copies < _maxCopies
+                        ? () => set(_copies + 1)
+                        : null,
+                    icon: const Icon(Icons.add),
+                  ).tagged('queue_edit.copies_up'),
+                ],
               ),
-              IconButton(
-                // Without a tooltip a minus beside a number has no name.
-                tooltip: l10n.pipelineCopiesLess,
-                onPressed: _copies > 1 ? () => set(_copies - 1) : null,
-                icon: const Icon(Icons.remove),
-              ).tagged('queue_edit.copies_down'),
-              SizedBox(
-                width: 40,
-                child: Text(
-                  '$_copies',
-                  textAlign: TextAlign.center,
-                  style: t.monoValue,
+              // What more than one copy turns into — said only once it does,
+              // and across the card rather than squeezed beside the stepper.
+              if (_copies > 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    order
+                        ? l10n.queueEditCopiesOrder
+                        : l10n.queueEditCopiesHint,
+                    style: t.bodySoft,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: l10n.pipelineCopiesMore,
-                onPressed: _copies < _maxCopies ? () => set(_copies + 1) : null,
-                icon: const Icon(Icons.add),
-              ).tagged('queue_edit.copies_up'),
             ],
           ),
         ),
