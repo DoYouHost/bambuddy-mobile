@@ -37,6 +37,7 @@ void main() {
     Completer<ArchiveCapabilities>? capabilities,
     bool sliceable = true,
     bool failing = false,
+    AsyncValue<bool> pipelines = const AsyncData(false),
   }) async {
     capabilityReads = 0;
     SharedPreferences.setMockInitialValues({});
@@ -52,7 +53,7 @@ void main() {
         slicerEnabledProvider.overrideWithValue(sidecar),
         // Its own routes are a separate question; this keeps the second button
         // out of the way.
-        canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        canRunPipelinesProvider.overrideWithValue(pipelines),
         archiveCapabilitiesProvider(archive.id).overrideWith((ref) {
           capabilityReads++;
           if (failing) throw StateError('capabilities unreachable');
@@ -71,8 +72,38 @@ void main() {
   Finder sliceButton() =>
       find.widgetWithText(OutlinedButton, 'Potnij').hitTestable();
 
+  /// The reason a disabled button gives, which now rides on the button as a
+  /// tooltip rather than as a line under it — the line grew the sheet half a
+  /// second after it opened.
+  Finder reason(String part) => find.byWidgetPredicate(
+    (w) => w is Tooltip && (w.message ?? '').contains(part),
+  );
+
   bool enabled(WidgetTester tester) =>
       tester.widget<OutlinedButton>(sliceButton()).onPressed != null;
+
+  Finder pipelineButton() =>
+      find.widgetWithText(OutlinedButton, 'Uruchom').hitTestable();
+
+  testWidgets('an unanswered pipeline gate holds the button greyed, in place', (
+    tester,
+  ) async {
+    // Absent and then suddenly there pushed the whole sheet down on a phone.
+    await openSheet(
+      tester,
+      sidecar: const AsyncValue.data(true),
+      pipelines: const AsyncLoading(),
+    );
+
+    expect(pipelineButton(), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(pipelineButton()).onPressed, isNull);
+  });
+
+  testWidgets('pipelines the server has not: no button at all', (tester) async {
+    await openSheet(tester, sidecar: const AsyncValue.data(true));
+
+    expect(pipelineButton(), findsNothing);
+  });
 
   testWidgets('a print that can be re-sliced offers the button', (
     tester,
@@ -81,7 +112,7 @@ void main() {
 
     expect(sliceButton(), findsOneWidget);
     expect(enabled(tester), isTrue);
-    expect(find.textContaining('nie da się go pociąć'), findsNothing);
+    expect(reason('nie da się go pociąć'), findsNothing);
   });
 
   testWidgets('a print that cannot stays on screen, disabled, with a reason', (
@@ -97,7 +128,14 @@ void main() {
 
     expect(sliceButton(), findsOneWidget);
     expect(enabled(tester), isFalse);
+    expect(reason('nie da się go pociąć'), findsOneWidget);
+
+    // A tap on the greyed button says why.
+    await tester.tap(sliceButton());
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('nie da się go pociąć'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('a server with no slicer draws none of it, and is not asked', (
@@ -109,7 +147,7 @@ void main() {
     await openSheet(tester, sidecar: const AsyncValue.data(false));
 
     expect(sliceButton(), findsNothing);
-    expect(find.textContaining('nie da się go pociąć'), findsNothing);
+    expect(reason('nie da się go pociąć'), findsNothing);
     expect(capabilityReads, 0);
   });
 
@@ -141,7 +179,7 @@ void main() {
 
     expect(sliceButton(), findsOneWidget);
     expect(enabled(tester), isFalse);
-    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(reason('Nie udało się połączyć z serwerem'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -159,7 +197,7 @@ void main() {
 
     expect(sliceButton(), findsOneWidget);
     expect(enabled(tester), isFalse);
-    expect(find.textContaining('nie da się go pociąć'), findsNothing);
+    expect(reason('nie da się go pociąć'), findsNothing);
 
     held.complete(const ArchiveCapabilities(hasSource: true));
     await tester.pumpAndSettle();
