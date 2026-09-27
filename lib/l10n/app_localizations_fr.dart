@@ -7350,4 +7350,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get outcomeNotifBody =>
       'Répondez ici ou touchez pour voir d\'abord la photo de fin.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Cette impression demande déjà son résultat et chaque réimpression aussi';
 }

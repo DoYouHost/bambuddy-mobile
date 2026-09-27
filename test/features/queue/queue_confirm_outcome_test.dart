@@ -130,6 +130,57 @@ void main() {
     expect(capturedBody?['confirm_outcome'], true);
   });
 
+  // The server copies only a `true` onto the archive and never clears it, so a
+  // switch that could be turned off here would promise a silence that never
+  // comes.
+  testWidgets('a reprint of an archive that asks says it will ask again', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        QueueItem.draft(
+          archiveId: 77,
+          name: 'cube.3mf',
+          printerId: 1,
+          slicedForModel: 'X2D',
+          confirmOutcome: true,
+        ),
+        extra: outcome(supported: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(formL10n.queueOptConfirmOutcomeSticky), findsOneWidget);
+    await submitQueueForm(tester);
+    expect(capturedBody?['confirm_outcome'], true);
+  });
+
+  testWidgets('a choice survives the gate reloading before submit', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        extra: [
+          queueOutcomeProvider.overrideWith((ref) => ref.watch(_gate)),
+          defaultConfirmOutcomeProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapSwitch(tester);
+    ProviderScope.containerOf(
+      tester.element(find.byType(QueueEditScreen)),
+    ).read(_gate.notifier).state = const AsyncLoading();
+    await tester.pump();
+    await submitQueueForm(tester);
+
+    expect(capturedBody?['confirm_outcome'], true);
+  });
+
   // The item's own flag, not the server default: editing is about THIS job.
   testWidgets('editing starts from the flag the item has', (tester) async {
     await tester.pumpWidget(
@@ -160,3 +211,5 @@ void main() {
 final _heldDefault = FutureProvider.family<bool, Completer<bool>>(
   (ref, answer) => answer.future,
 );
+
+final _gate = StateProvider<AsyncValue<bool>>((ref) => const AsyncData(true));

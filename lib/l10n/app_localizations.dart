@@ -12109,6 +12109,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Answer here, or tap to see the finish photo first.'**
   String get outcomeNotifBody;
+
+  /// Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off
+  ///
+  /// In en, this message translates to:
+  /// **'This print already asks for its outcome, and so does every reprint of it'**
+  String get queueOptConfirmOutcomeSticky;
 }
 
 class _AppLocalizationsDelegate

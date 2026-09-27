@@ -7303,4 +7303,8 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get outcomeNotifBody =>
       'Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk';
 }

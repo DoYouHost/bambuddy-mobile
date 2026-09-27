@@ -7256,4 +7256,8 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get outcomeNotifBody =>
       'Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso';
 }

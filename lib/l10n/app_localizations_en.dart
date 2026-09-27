@@ -7189,4 +7189,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get outcomeNotifBody =>
       'Answer here, or tap to see the finish photo first.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'This print already asks for its outcome, and so does every reprint of it';
 }

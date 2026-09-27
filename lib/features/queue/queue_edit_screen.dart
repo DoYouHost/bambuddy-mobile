@@ -1193,11 +1193,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             _OptionSwitch(
               id: 'queue_edit.confirm_outcome',
               title: l10n.queueOptConfirmOutcome,
-              subtitle: l10n.queueOptConfirmOutcomeDesc,
+              subtitle: _confirmOutcomeSticky
+                  ? l10n.queueOptConfirmOutcomeSticky
+                  : l10n.queueOptConfirmOutcomeDesc,
               value: _confirmOutcome(watch: true),
               // Held while a new job's default is on its way: a switch that
               // moves by itself after the first look is one tapped wrong.
-              onChanged: _confirmOutcomeUnanswered
+              onChanged: _confirmOutcomeUnanswered || _confirmOutcomeSticky
                   ? null
                   : (v) => setState(() => _confirmOutcomeChoice = v),
             ),
@@ -1436,6 +1438,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// What the switch shows: the user's choice, else the item's own flag when
   /// editing, else the server's default for a new job.
   bool _confirmOutcome({required bool watch}) {
+    if (_confirmOutcomeSticky) return true;
     if (_confirmOutcomeChoice case final choice?) return choice;
     if (!widget._isCreate) return widget.item.confirmOutcome;
     final server = watch
@@ -1454,9 +1457,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// (only the paths without a dialog do), so an untouched switch sends the
   /// default — waited for, since a job submitted before it arrived would
   /// otherwise go out as `false`.
+  ///
+  /// A choice the user made stands unless the gate has since settled on no:
+  /// it was made on a switch that was on screen, and a gate briefly reloading
+  /// must not throw it away.
   Future<bool?> _confirmOutcomeForCreate(ProviderContainer providers) async {
-    if (!providers.read(queueOutcomeProvider).orFalse) return null;
+    final gate = providers.read(queueOutcomeProvider);
+    if (gate.valueOrNull == false) return null;
     if (_confirmOutcomeChoice case final choice?) return choice;
+    if (_confirmOutcomeSticky) return true;
+    if (!gate.orFalse) return null;
     return settledGate(
       providers,
       defaultConfirmOutcomeProvider,
@@ -1468,9 +1478,17 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// rewrite what another client set meanwhile.
   bool? get _confirmOutcomeUpdate {
     final choice = _confirmOutcomeChoice;
-    if (!ref.read(queueOutcomeProvider).orFalse) return null;
+    if (ref.read(queueOutcomeProvider).valueOrNull == false) return null;
     return choice == widget.item.confirmOutcome ? null : choice;
   }
+
+  /// A reprint of an archive that already asks: the server copies only a
+  /// `true` onto the archive and never clears it (`print_scheduler.py`), so
+  /// this job asks whatever the switch says — which is why it says so.
+  bool get _confirmOutcomeSticky =>
+      widget._isCreate &&
+      widget.item.archiveId != null &&
+      widget.item.confirmOutcome;
 
   /// The injection flag as it may ship, or null to leave the key out.
   ///

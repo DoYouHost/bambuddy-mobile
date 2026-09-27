@@ -4359,5 +4359,9 @@
   "outcomeNotifBody": "Answer here, or tap to see the finish photo first.",
   "@outcomeNotifBody": {
     "description": "Body of the outcome notification: what tapping it and its two buttons do"
+  },
+  "queueOptConfirmOutcomeSticky": "This print already asks for its outcome, and so does every reprint of it",
+  "@queueOptConfirmOutcomeSticky": {
+    "description": "Replaces the ask-for-outcome description on a reprint of an archive that already asks — the server keeps asking for every reprint of it, so the switch cannot turn it off"
   }
 }

@@ -106,6 +106,7 @@ class QueueItem {
     String? slicedForModel,
     int? plateId,
     bool manualStart = false,
+    bool confirmOutcome = false,
   }) {
     final isArchive = archiveId != null;
     return QueueItem(
@@ -125,6 +126,7 @@ class QueueItem {
       slicedForModel: slicedForModel,
       plateId: plateId,
       manualStart: manualStart,
+      confirmOutcome: confirmOutcome,
     );
   }
 

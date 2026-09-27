@@ -3188,5 +3188,6 @@
   "notifEvtOutcome": "Pytanie o wynik",
   "notifEvtOutcomeDesc": "Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia",
   "outcomeNotifTitle": "Jak wyszedł wydruk {name}?",
-  "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku."
+  "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.",
+  "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk"
 }

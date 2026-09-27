@@ -733,6 +733,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   /// priority order. A group that vanished between listing and tap comes back
   /// as null, which is the same "nothing to queue" as an ungrouped file.
   Future<void> _queueAsVariants(LibraryFile file) async {
+    // Taken before the first await: the gates below are read after it.
+    final providers = ProviderScope.containerOf(context, listen: false);
     try {
       final group = await ref
           .read(libraryRepositoryProvider)
@@ -745,10 +747,19 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       // No form here to show the switch, so the job asks exactly when the
       // server's own default says to — what the server does itself on its
       // other paths without a dialog (`confirm_outcome_for_new_queue_item`).
-      final confirmOutcome = ref.read(queueOutcomeProvider).orFalse
-          ? ref.read(defaultConfirmOutcomeProvider).valueOrNull
+      // Waited for: `POST /queue/` reads no default, so an answer still on
+      // its way would go out as `false`.
+      final supported = await settledGate(
+        providers,
+        queueOutcomeProvider,
+      ).catchError((Object _) => false);
+      final confirmOutcome = supported
+          ? await settledGate(
+              providers,
+              defaultConfirmOutcomeProvider,
+            ).catchError((Object _) => false)
           : null;
-      await ref.read(queueRepositoryProvider).addCrossModel([
+      await providers.read(queueRepositoryProvider).addCrossModel([
         for (final m in group.members) m.libraryFileId,
       ], options: QueueCreateOptions(confirmOutcome: confirmOutcome));
       if (!mounted) return;

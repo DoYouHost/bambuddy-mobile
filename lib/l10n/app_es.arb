@@ -3888,5 +3888,6 @@
   "notifEvtOutcome": "Pregunta por el resultado",
   "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
   "outcomeNotifTitle": "¿Cómo ha salido {name}?",
-  "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado."
+  "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado.",
+  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión"
 }

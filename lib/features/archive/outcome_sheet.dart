@@ -41,6 +41,8 @@ QueueItem archiveQueueDraft(Archive archive, {bool manualStart = false}) =>
       // what the form and the server both read as plate 1.
       plateId: archive.plateId,
       manualStart: manualStart,
+      // Sticky on the server: a reprint of an archive that asked asks again.
+      confirmOutcome: archive.confirmRequested,
     );
 
 /// "How did your print come out?" for one archive: the finish photo, Good or

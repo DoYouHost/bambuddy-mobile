@@ -3888,5 +3888,6 @@
   "notifEvtOutcome": "Ergebnisabfrage",
   "notifEvtOutcomeDesc": "Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung",
   "outcomeNotifTitle": "Wie ist {name} geworden?",
-  "outcomeNotifBody": "Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen."
+  "outcomeNotifBody": "Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.",
+  "queueOptConfirmOutcomeSticky": "Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso"
 }

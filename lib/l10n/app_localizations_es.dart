@@ -7279,4 +7279,8 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get outcomeNotifBody =>
       'Responda aquí o toque para ver primero la foto del acabado.';
+
+  @override
+  String get queueOptConfirmOutcomeSticky =>
+      'Esta impresión ya pregunta por su resultado, y también cada reimpresión';
 }
