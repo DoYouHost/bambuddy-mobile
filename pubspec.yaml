@@ -2,7 +2,7 @@ name: bambuddy_mobile
 description: "Native Android app for bambuddy, the self-hosted Bambu Lab printer manager."
 publish_to: 'none'
 
-version: 0.14.1+2028020
+version: 0.15.0+2030000
 
 environment:
   sdk: ^3.12.2
