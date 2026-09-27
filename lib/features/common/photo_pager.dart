@@ -50,6 +50,16 @@ class _PhotoPagerState extends State<PhotoPager> {
   late final _controller = PageController(initialPage: widget.initialPage);
 
   @override
+  void didUpdateWidget(PhotoPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The list can shrink under an open viewer (a photo deleted elsewhere);
+    // the PageView settles on its last page, the counter has to follow.
+    if (_page >= widget.paths.length && widget.paths.isNotEmpty) {
+      _page = widget.paths.length - 1;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();

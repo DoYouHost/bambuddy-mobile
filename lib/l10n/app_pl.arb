@@ -1535,7 +1535,7 @@
   "fmPhotoDeleted": "Usunięto zdjęcie",
   "fmPhotoErrType": "Można dodać tylko zdjęcia JPG, PNG lub WebP.",
   "fmPhotoErrTooLarge": "Zdjęcie jest większe niż 10 MB.",
-  "fmPhotoPickFailed": "Nie udało się otworzyć aparatu ani wyboru plików.",
+  "fmPhotoPickFailed": "Nie udało się otworzyć aparatu ani okna wyboru pliku.",
   "fmLink": "Link",
   "fmLinkNone": "Brak linku",
   "fmLinkEdit": "Edytuj link",

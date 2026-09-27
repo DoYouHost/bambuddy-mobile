@@ -3728,7 +3728,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fmPhotoDelete => 'Foto löschen';
 
   @override
-  String get fmPhotoDeleteConfirm => 'Dieses Foto von der Datei löschen?';
+  String get fmPhotoDeleteConfirm => 'Dieses Foto aus der Datei löschen?';
 
   @override
   String get fmPhotoDeleted => 'Foto gelöscht';

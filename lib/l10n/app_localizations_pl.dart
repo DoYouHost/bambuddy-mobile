@@ -3764,7 +3764,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get fmPhotoPickFailed =>
-      'Nie udało się otworzyć aparatu ani wyboru plików.';
+      'Nie udało się otworzyć aparatu ani okna wyboru pliku.';
 
   @override
   String get fmLink => 'Link';

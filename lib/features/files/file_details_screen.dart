@@ -244,18 +244,21 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
     }
     if (photo == null || !mounted) return;
     setState(() => _uploading = true);
-    await _write(
-      () => ref
-          .read(libraryRepositoryProvider)
-          .addFilePhoto(
-            widget.fileId,
-            filePath: photo!.path,
-            filename: photo.name,
-          ),
-      done: _l10n.fmPhotoAdded,
-      action: 'file_details.add_photo',
-    );
-    if (mounted) setState(() => _uploading = false);
+    try {
+      await _write(
+        () => ref
+            .read(libraryRepositoryProvider)
+            .addFilePhoto(
+              widget.fileId,
+              filePath: photo!.path,
+              filename: photo.name,
+            ),
+        done: _l10n.fmPhotoAdded,
+        action: 'file_details.add_photo',
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<_PhotoSource?> _pickSource() => dashSheet<_PhotoSource>(
@@ -314,19 +317,21 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
   }
 
   /// Runs one write, then re-reads this file and the listing whose badges
-  /// show what it carries.
+  /// show what it carries — through the container, so a screen left while
+  /// the write was out still leaves the badges right.
   Future<void> _write(
     Future<void> Function() body, {
     required String done,
     required String action,
   }) async {
     final messenger = ScaffoldMessenger.of(context);
+    final providers = ProviderScope.containerOf(context, listen: false);
     final l10n = _l10n;
     try {
       await body();
     } on AppApiException catch (e) {
       showApiFailure(
-        messenger,
+        mounted ? messenger : null,
         e,
         l10n,
         action: action,
@@ -335,13 +340,16 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
       return;
     }
     messenger.snack(done);
-    if (!mounted) return;
-    ref.invalidate(libraryFileDetailProvider(widget.fileId));
-    await ref.read(fileManagerProvider.notifier).refresh();
+    await _reread(providers, widget.fileId);
   }
 }
 
 enum _PhotoSource { camera, gallery, files }
+
+Future<void> _reread(ProviderContainer providers, int fileId) {
+  providers.invalidate(libraryFileDetailProvider(fileId));
+  return providers.read(fileManagerProvider.notifier).refresh();
+}
 
 /// What to say when a photo, link or notes write was refused.
 String fileWriteMessage(AppLocalizations l10n, AppApiException e) =>
@@ -407,14 +415,16 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
                 icon: Icons.photo_camera_outlined,
               )
             : PhotoPager(
-                // A new key per list, so a deletion rebuilds the pager on the
-                // page that is still there rather than past the end.
+                // A new key per list rebuilds the pager on `_page`, so the page
+                // shown and the one the delete button names never part.
                 key: ValueKey(d.photos.join('/')),
                 paths: [
                   for (final name in d.photos)
                     Endpoints.libraryFilePhoto(widget.fileId, name),
                 ],
-                initialPage: _page.clamp(0, d.photos.length - 1),
+                // Kept inside the list, so a later list does not reopen past
+                // the photo that took the deleted one's place.
+                initialPage: _page = _page.clamp(0, d.photos.length - 1),
                 onPageChanged: (i) => _page = i,
               ),
       ),
@@ -424,6 +434,7 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
   Future<void> _delete(String name) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final providers = ProviderScope.containerOf(context, listen: false);
     final confirmed = await confirmDialog(
       context,
       title: l10n.fmPhotoDelete,
@@ -438,12 +449,15 @@ class _FilePhotosScreenState extends ConsumerState<FilePhotosScreen> {
           .read(libraryRepositoryProvider)
           .deleteFilePhoto(widget.fileId, name);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'file_photos.delete');
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'file_photos.delete',
+      );
       return;
     }
     messenger.snack(l10n.fmPhotoDeleted);
-    if (!mounted) return;
-    ref.invalidate(libraryFileDetailProvider(widget.fileId));
-    await ref.read(fileManagerProvider.notifier).refresh();
+    await _reread(providers, widget.fileId);
   }
 }

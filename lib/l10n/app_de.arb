@@ -2127,7 +2127,7 @@
   "fmPhotoFromFiles": "Aus Dateien wählen",
   "fmPhotoAdded": "Foto hinzugefügt",
   "fmPhotoDelete": "Foto löschen",
-  "fmPhotoDeleteConfirm": "Dieses Foto von der Datei löschen?",
+  "fmPhotoDeleteConfirm": "Dieses Foto aus der Datei löschen?",
   "fmPhotoDeleted": "Foto gelöscht",
   "fmPhotoErrType": "Nur JPG-, PNG- oder WebP-Fotos können hinzugefügt werden.",
   "fmPhotoErrTooLarge": "Das Foto ist größer als 10 MB.",
