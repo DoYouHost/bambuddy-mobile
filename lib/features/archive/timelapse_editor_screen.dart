@@ -3,18 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/timelapse.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
-import '../common/section_heading.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
 import 'timelapse_trim.dart';
@@ -85,7 +81,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     try {
       final source = await timelapseSource(ref, widget.archiveId);
       if (source == null || !mounted) return;
-      controller = VideoPlayerController.networkUrl(Uri.parse(source.url));
+      controller = timelapsePlayer(source);
       await controller.initialize().timeout(_previewTimeout);
     } catch (_) {
       // No preview, no editor failure: trim and speed are numbers the server

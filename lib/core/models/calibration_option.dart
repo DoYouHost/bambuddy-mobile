@@ -6,7 +6,7 @@
 /// `auto` is BambuStudio's "let the printer decide — skip if it was done
 /// recently". The change shipped without a CHANGELOG entry, and the generated
 /// `as bool?` cast it broke threw on every queue record, so a correct 200 left
-/// the queue screen empty (`docs/plans/07-queue-cali-enum.md`).
+/// the queue screen empty.
 ///
 /// Older servers keep sending and expecting booleans, so both wire forms have to
 /// work in both directions — see [calibrationFromJson] and [toWire].

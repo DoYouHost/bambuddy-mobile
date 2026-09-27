@@ -1,4 +1,3 @@
-import 'package:bambuddy_mobile/core/models/archive_stats.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
@@ -7,6 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// The live half of a per-printer label. What happens when it cannot name an
+/// id — because the printer was deleted, or because this credential may not
+/// read `/printers` at all — is `printerLabelsProvider`'s question, and is
+/// covered in `printer_labels_provider_test.dart`.
 class _FakePrintersRepo extends PrintersRepository {
   _FakePrintersRepo(this._printers) : super(Dio());
 
@@ -16,92 +19,51 @@ class _FakePrintersRepo extends PrintersRepository {
   Future<List<Printer>> fetchPrinters() async => _printers;
 }
 
-class _FakeStatsNotifier extends StatsNotifier {
-  _FakeStatsNotifier(this._stats);
-
-  final ArchiveStats _stats;
+class _RefusingPrintersRepo extends PrintersRepository {
+  _RefusingPrintersRepo() : super(Dio());
 
   @override
-  Future<ArchiveStats> build() async => _stats;
+  Future<List<Printer>> fetchPrinters() async => throw StateError('403');
 }
 
 void main() {
-  Future<Map<int, String>> resolve({
-    required List<Printer> printers,
-    required Map<String, String> recorded,
-  }) async {
+  ProviderContainer containerWith(PrintersRepository repo) {
     final container = ProviderContainer(
-      overrides: [
-        printersRepositoryProvider.overrideWithValue(
-          _FakePrintersRepo(printers),
-        ),
-        statsProvider.overrideWith(
-          () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
-        ),
-      ],
+      overrides: [printersRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(container.dispose);
-    // Auto-dispose: something has to hold them the way the Stats screen does.
-    container.listen(statsProvider, (_, _) {});
-    container.listen(printerNamesProvider, (_, _) {});
-    // The stats have to land first, or the first computation sees no names at
-    // all — which is the older-server case covered separately below.
-    await container.read(statsProvider.future);
-    return container.read(printerNamesProvider.future);
+    // Auto-dispose: something has to hold it the way the Stats screen does.
+    container.listen(livePrinterNamesProvider, (_, _) {});
+    return container;
   }
 
-  test(
-    'a live printer is named from the live record, so a rename shows up',
-    () async {
-      final names = await resolve(
-        printers: const [Printer(id: 1, name: 'Ultron mk2')],
-        recorded: const {'1': 'Ultron'},
-      );
-
-      expect(names[1], 'Ultron mk2');
-    },
-  );
-
-  test(
-    'an id the live list does not cover is named from the recorded names',
-    () async {
-      final names = await resolve(
-        printers: const [Printer(id: 1, name: 'Ultron')],
-        recorded: const {'1': 'Ultron', '7': 'Vision'},
-      );
-
-      expect(names[1], 'Ultron');
-      expect(names[7], 'Vision');
-    },
-  );
-
-  test('a caller that cannot read /printers still gets names', () async {
-    final names = await resolve(
-      printers: const [],
-      recorded: const {'1': 'Ultron', '7': 'Vision'},
+  test('every live printer is named by its current name', () async {
+    final container = containerWith(
+      _FakePrintersRepo(const [
+        Printer(id: 1, name: 'Ultron mk2'),
+        Printer(id: 7, name: 'Vision'),
+      ]),
     );
 
-    expect(names, {1: 'Ultron', 7: 'Vision'});
+    expect(await container.read(livePrinterNamesProvider.future), {
+      1: 'Ultron mk2',
+      7: 'Vision',
+    });
   });
 
-  test('a non-numeric key is ignored rather than crashing the map', () async {
-    final names = await resolve(
-      printers: const [],
-      recorded: const {'not-an-id': 'Nobody', '3': 'Jarvis'},
+  test('no printers at all is an empty map, not an error', () async {
+    final container = containerWith(_FakePrintersRepo(const []));
+
+    expect(await container.read(livePrinterNamesProvider.future), isEmpty);
+  });
+
+  test('a refused listing surfaces as the error state', () async {
+    final container = containerWith(_RefusingPrintersRepo());
+
+    await expectLater(
+      container.read(livePrinterNamesProvider.future),
+      throwsStateError,
     );
-
-    expect(names, {3: 'Jarvis'});
+    expect(container.read(livePrinterNamesProvider).valueOrNull, isNull);
   });
-
-  test(
-    'without printer_names the map is the live printers, as before',
-    () async {
-      final names = await resolve(
-        printers: const [Printer(id: 2, name: 'Wanda')],
-        recorded: const {},
-      );
-
-      expect(names, {2: 'Wanda'});
-    },
-  );
 }

@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:app_util/app_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models/failure_analysis.dart';
-import '../core/models/json_utils.dart';
 import '../features/stats/stats_providers.dart';
 
 /// Failure analysis cache entry: an aggregate plus the extent of coverage.
@@ -33,7 +33,17 @@ class FailureCacheEntry {
     if (a is! Map<String, dynamic>) return null;
     return FailureCacheEntry(
       analysis: FailureAnalysis.fromJson(a),
-      coveredThrough: _parseDate(json['covered_through']),
+      coveredThrough: calendarDateFromJson(json['covered_through']),
+      // Deliberately not `dateTimeFromJson`: this instant is ours, not the
+      // server's. `toIso8601String` on a local `DateTime` writes no zone, and
+      // that reader would read the absence as UTC and shift it by the device's
+      // offset — which on the "all time" bucket decides whether a day counts as
+      // banked. Plain `tryParse` is the exact inverse of how it was written.
+      //
+      // An unreadable one falls back to a date far enough in the past that
+      // stale-while-revalidate refetches on sight. Deliberately not a cache
+      // miss: the aggregate beside it is intact, and throwing away good numbers
+      // over a broken timestamp costs a round trip for nothing.
       fetchedAt: DateTime.tryParse('${json['fetched_at']}') ?? DateTime(2000),
     );
   }
@@ -93,8 +103,3 @@ class FailureAnalysisCache {
 }
 
 String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
-
-DateTime? _parseDate(Object? v) {
-  if (v is! String || v.isEmpty) return null;
-  return DateTime.tryParse(v);
-}

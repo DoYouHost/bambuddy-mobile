@@ -1,9 +1,9 @@
 # Recipe naming: a bare verb is earned by the ones typed weekly and safe to run
 # twice (test, run, build, ship); a variant appends only what differs from the
-# silent defaults — phone, APK, stable channel, this machine (build-wear-aab,
-# run-remote). Machines and objects read <subject>-<verb> (emu-boot,
-# release-publish). Anything irreversible on GitHub is purge-<deepest thing lost>,
-# so `just purge<TAB>` enumerates every no-undo command and nothing else.
+# silent defaults — phone, APK, stable channel (build-wear-aab, ship-dev).
+# Machines and objects read <subject>-<verb> (emu-boot, release-publish).
+# Anything irreversible on GitHub is purge-<deepest thing lost>, so
+# `just purge<TAB>` enumerates every no-undo command and nothing else.
 #
 # The listed description is the [doc] attribute, not the comment above it: just
 # shows only the LAST comment line, which is how half this file used to advertise
@@ -22,10 +22,6 @@ aab := "build/dist/app-mobile-release.aab"
 wear_aab := "build/dist/app-wear-release.aab"
 repo := "DoYouHost/bambuddy-mobile"
 
-# Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
-emu_host := "192.168.2.208"
-emu := emu_host + ":5555"
-emu_web := "http://" + emu_host + ":8000"
 emulator_bin := "$HOME/Android/Sdk/emulator/emulator"
 # Default local AVD (Pixel 7, API 35). Every local recipe takes an `avd=`
 # argument, so `just emu-list` shows the alternatives (e.g. small360, a 360dp
@@ -49,6 +45,78 @@ default:
 test:
     flutter test
 
+# The tests a host `flutter test` cannot run. Its binding replaces the HTTP
+# client, so nothing there ever reads a byte off a socket — which is how a
+# camera view that showed a spinner forever passed a green suite. These boot the
+# AVD, serve an MJPEG stream from the device's own loopback and assert on what
+# reaches the screen.
+# usage: just test-device [AVD]
+[doc('run the on-device integration tests (boots the AVD first)')]
+[group('1-develop')]
+test-device avd=avd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just emu-boot {{avd}}
+    serial=$(just _emu-serial {{avd}})
+    # One file per `flutter test`, each preceded by an install with -g. Android
+    # 13+ gates notifications behind a runtime permission that no test can grant
+    # for itself, and a run uninstalls the app when it ends — so a whole-folder
+    # run reaches the notification file with the permission already gone. An
+    # install with -g grants it, and the reinstall `flutter test` does on top is
+    # an update, which keeps it.
+    flutter build apk --debug --flavor mobile
+    apk=build/app/outputs/flutter-apk/app-mobile-debug.apk
+    failed=0
+    # Without this an empty integration_test/ hands `flutter test` the pattern
+    # itself, which fails as a missing file rather than as "nothing to run".
+    shopt -s nullglob
+    for file in integration_test/*_test.dart; do
+        adb -s "$serial" install -r -g "$apk" >/dev/null
+        flutter test "$file" -d "$serial" --flavor mobile || failed=1
+    done
+    exit $failed
+
+# core.hooksPath is per-clone local config, so a fresh clone has no hooks until
+# this runs. Points git at .githooks/, which holds the commit-message check.
+[doc('point this clone at the versioned git hooks')]
+[group('1-develop')]
+hooks:
+    git config core.hooksPath .githooks
+    @echo "hooks: core.hooksPath = $(git config core.hooksPath)"
+
+# Spelling and grammar for the strings the user actually reads. Checks only what
+# this branch changed; `just l10n-check-all` sweeps every locale file. Set
+# LANGUAGETOOL_URL to a self-hosted instance to skip the public rate limit and
+# keep the copy off someone else's server.
+# usage: just l10n-check [BASE_REF]
+[doc('spell-check the .arb strings this branch changed')]
+[group('1-develop')]
+l10n-check base='dev':
+    python3 tool/check_l10n_language.py --base {{base}}
+
+# What ships in the watch APK is decided by Gradle and the manifest merger, so
+# no Dart test can see it: the per-flavor asset prune and the stripped startup
+# components are both silent when they break. Checks the debug APK the compile
+# step already produces; pass the phone one too and it also verifies the prune
+# is flavor-scoped rather than global.
+# usage: just check-wear-apk [WEAR_APK] [MOBILE_APK]
+[doc('check the built watch APK: pruned assets and stripped components')]
+[group('1-develop')]
+check-wear-apk wear='build/app/outputs/flutter-apk/app-wear-debug.apk' mobile='':
+    python3 tool/check_wear_apk.py {{wear}} {{ if mobile != '' { '--mobile ' + mobile } else { '' } }}
+
+[doc('spell-check every .arb string, not only this branch')]
+[group('1-develop')]
+l10n-check-all:
+    python3 tool/check_l10n_language.py --all
+
+# Compare .arb files against the English template: find missing, outdated or mismatched keys.
+# usage: just l10n-status [*ARGS]
+[doc('check translation status and missing keys against app_en.arb')]
+[group('1-develop')]
+l10n-status *args:
+    python3 tool/check_l10n_sync.py {{args}}
+
 # Boots the AVD first if needed, then builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
 # usage: just run [AVD]
@@ -67,24 +135,6 @@ run-wear avd=wear_avd: (emu-boot avd)
     #!/usr/bin/env bash
     set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor wear --target lib/wear/main_wear.dart
-
-[doc('run the app on the shared LAN emulator')]
-[group('1-develop')]
-run-remote: emu-connect
-    flutter run -d {{emu}} --flavor mobile
-
-# usage: just test-integration [AVD]
-[doc('run integration tests on a local AVD')]
-[group('1-develop')]
-test-integration avd=avd: (emu-boot avd)
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flutter test integration_test/ --flavor mobile -d "$(just _emu-serial {{avd}})"
-
-[doc('run integration tests on the shared LAN emulator')]
-[group('1-develop')]
-test-integration-remote: emu-connect
-    flutter test integration_test/ --flavor mobile
 
 # ---- 2-emulator — boots the emulator and puts its screen on your desk ----
 
@@ -146,34 +196,6 @@ emu-list:
             printf '  %-16s stopped\n' "$name"
         fi
     done
-
-[doc('adb connect to the shared LAN emulator')]
-[group('2-emulator')]
-emu-connect:
-    adb connect {{emu}}
-
-# ws-scrcpy deep-link skips the device list (MSE player, fixed scrcpy port 8886,
-# stable across restarts). URL is single-quoted so the shell keeps the &/#/%.
-# A dedicated --user-data-dir forces a separate Chrome instance so --window-size
-# is actually honored (a window in an already-running Chrome ignores size flags).
-[doc('open the shared emulator screen in a browser window')]
-[group('2-emulator')]
-emu-view:
-    flatpak run com.google.Chrome \
-      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
-      --window-size=500,1000 \
-      --app='{{emu_web}}/#!action=stream&udid=android-emulator%3A5555&player=mse&ws=ws%3A%2F%2F{{emu_host}}%3A8000%2F%3Faction%3Dproxy-adb%26remote%3Dtcp%253A8886%26udid%3Dandroid-emulator%253A5555' \
-      >/dev/null 2>&1 &
-
-# Opens the device list in emu-view's own Chrome profile so that "Fit to screen"
-# + Save persists there (localStorage, per player=mse). Configure -> keep Fit to
-# screen ON -> Save, and `just emu-view` picks it up afterwards.
-[doc('one-time Chrome profile setup that emu-view reuses')]
-[group('2-emulator')]
-emu-view-setup:
-    flatpak run com.google.Chrome \
-      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
-      --app='{{emu_web}}' >/dev/null 2>&1 &
 
 # ---- 3-build — produces the bytes that get published ----
 #
@@ -238,6 +260,13 @@ _build kind flavor name code:
         --build-name="$name" --build-number="$code"
     mkdir -p build/dist
     cp "$src" "build/dist/app-{{flavor}}-release.$ext"
+    # The watch APK is the one artifact whose contents nothing else checks, and
+    # a release build is the only one that can answer the reachability half —
+    # CI builds debug, where nothing has been tree-shaken yet. An .aab is a
+    # different container, so it is left to the APK build.
+    if [ '{{flavor}}' = wear ] && [ "$ext" = apk ]; then
+        python3 tool/check_wear_apk.py "build/dist/app-wear-release.apk"
+    fi
     echo "-> build/dist/app-{{flavor}}-release.$ext"
 
 [doc('build the phone release APK')]
@@ -259,20 +288,25 @@ build-wear-aab name='' code='': (_build "appbundle" "wear" name code)
 # Reads the manifest out of each bundle instead of echoing back what we handed
 # to gradle: the flavor offset is applied on the gradle side, so what it baked in
 # is the only number Play will judge — and a wrong one stays invisible until the
-# upload is rejected. Takes explicit paths from `ship`/`ship-dev` so it can only
-# ever report the bundles that run just built, never a leftover in build/dist.
+# upload is rejected. `play-internal` reads the same manifest before it uploads.
 # usage: just aab-show [BUNDLE...]
 [doc('print the versions baked into the built Play bundles')]
 [group('3-build')]
 aab-show *paths:
     @python3 tool/aab_versions.py {{paths}}
 
+# Read-only. Needs uv and the service-account key (tool/play_internal.py says where).
+[doc('list the Google Play tracks and the releases on them')]
+[group('3-build')]
+play-tracks:
+    @uv run --quiet tool/play_internal.py tracks
+
 [doc('delete local build outputs')]
 [group('3-build')]
 clean:
     flutter clean
 
-# ---- 4-release — writes to the checked-out branch and to GitHub ----
+# ---- 4-release — writes to the checked-out branch, to GitHub and to Google Play ----
 #
 # `ship` and `ship-dev` produce the same four artifacts in the same order; they
 # differ only in where the version comes from. Both build the Play bundles
@@ -376,8 +410,8 @@ _upload-assets tag file_a file_b:
     done
 
 # Produces everything a stable version needs: APKs for the GitHub release (and
-# Obtainium), plus both Play bundles in build/dist/, which you upload to Play by
-# hand.
+# Obtainium), plus both Play bundles released to internal testing. Promoting
+# them to production stays a click in the Play Console.
 # usage: just ship X.Y.Z
 [doc('bump, test, build and publish a stable release')]
 [group('4-release')]
@@ -389,7 +423,7 @@ ship ver:
     just build-aab
     just build-wear-aab
     just release-publish {{ver}}
-    just aab-show {{aab}} {{wear_aab}}
+    just play-internal
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
 #
@@ -405,7 +439,7 @@ ship ver:
 # points at a SHA. Obtainium hides prereleases by default, so a tester opts in with one
 # switch and everyone else keeps seeing stable only.
 #
-# The Play bundles stay in build/dist/ for the internal testing track; pass
+# The Play bundles go out to internal testing as the last step; pass
 # `bundles=no` when a build is only meant for Obtainium. The parameter is
 # `bundles` and not `aab` because a parameter shadows the global of the same name
 # for the whole recipe, which would expand `{{aab}}` to `yes`.
@@ -541,8 +575,7 @@ ship-dev target='' bundles='yes':
     git fetch --tags origin
     echo "Published $tag"
     if [ '{{bundles}}' != 'no' ]; then
-        echo "Upload to Play internal testing ($name):"
-        just aab-show {{aab}} {{wear_aab}}
+        just play-internal
     fi
 
 # Assumes both APKs are already built. Phone and watch share an applicationId but
@@ -573,6 +606,15 @@ release-publish ver:
     just _upload-assets "v{{ver}}" {{apk}} {{wear_apk}}
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
+
+# Releases the two Play bundles in build/dist to internal testing, phone and
+# watch in one edit. Safe to re-run: what is already on its track is skipped.
+# Needs uv and the service-account key (tool/play_internal.py says where).
+# usage: just play-internal [--dry-run]
+[doc('release the built Play bundles to internal testing')]
+[group('4-release')]
+play-internal *flags:
+    uv run --quiet tool/play_internal.py internal {{flags}} {{aab}} {{wear_aab}}
 
 # ---- 5-danger — deletes what cannot be restored ----
 #

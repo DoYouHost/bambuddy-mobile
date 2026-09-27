@@ -1,0 +1,58 @@
+#!/bin/sh
+# Holds a commit message to the shape this repo has always used: one
+# Conventional Commits line, nothing after it.
+#
+# Install (once per clone): just hooks
+
+set -eu
+
+types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+subject_re="^(${types})(\([a-z0-9._, /-]+\))?!?: [^[:space:]]"
+
+# What git will keep. `stripspace` drops the comment lines using whatever
+# core.commentChar is set to; the scissors line is a comment, but the --verbose
+# diff below it is not, so that goes first and needs the character spelled out.
+char=$(git config core.commentChar 2>/dev/null || true)
+case "$char" in '' | auto) char='#' ;; esac
+kept=$(sed "/^${char} *-\{1,\} >8 -\{1,\}/,\$d" "$1" | git stripspace --strip-comments)
+
+# Lines git writes into a message on the author's behalf. They are not a second
+# line anybody typed, so they do not count as one.
+kept=$(printf '%s\n' "$kept" |
+	grep -vE '^\(cherry picked from commit [0-9a-f]{7,}\)$' || true)
+
+subject=$(printf '%s\n' "$kept" | grep -m1 '[^[:space:]]' || true)
+extra=$(printf '%s\n' "$kept" | grep -c '[^[:space:]]' || true)
+
+# An empty message is git's own business — it aborts the commit itself.
+[ -n "$subject" ] || exit 0
+
+# Messages git writes, and the ones an interactive rebase folds away.
+case "$subject" in
+Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ * | "Squashed commit of the following:") exit 0 ;;
+esac
+
+fail() {
+	echo "commit-msg: $1" >&2
+	echo >&2
+	echo "  got:      $subject" >&2
+	echo "  expected: <type>[(scope)][!]: <description>   — one line, nothing else" >&2
+	echo "  types:    $(echo "$types" | tr '|' ' ')" >&2
+	echo >&2
+	echo "  e.g.  fix(auth): stop logging out on 403" >&2
+	exit 1
+}
+
+# Named before the line count, so the reason given is the real one.
+if printf '%s\n' "$kept" | grep -Eqi '^(co-authored-by|signed-off-by):|generated with'; then
+	fail "attribution trailers do not go in a commit message"
+fi
+
+[ "$extra" -eq 1 ] || fail "a commit message is one line; this one has $extra"
+
+printf '%s\n' "$subject" | grep -Eq "$subject_re" ||
+	fail "not a Conventional Commits subject"
+
+case "$subject" in
+*.) fail "a subject does not end in a full stop" ;;
+esac

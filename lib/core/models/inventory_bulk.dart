@@ -4,7 +4,7 @@
 /// single-spool path to work.
 library;
 
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// A partial spool edit applied to a whole selection.
 ///

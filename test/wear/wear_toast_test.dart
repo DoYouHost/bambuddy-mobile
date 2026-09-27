@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_screen.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -256,7 +257,7 @@ void main() {
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: transport),
         ),
-        requirePlateClearProvider.overrideWith((ref) async => false),
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(false)),
       ],
     );
 
@@ -293,7 +294,7 @@ void main() {
         wearTransportProvider.overrideWith(
           (ref) => HybridWearTransport(relay: _TimeoutTransport()),
         ),
-        requirePlateClearProvider.overrideWith((ref) async => true),
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
       ],
     );
 

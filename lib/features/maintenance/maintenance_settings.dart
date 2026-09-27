@@ -1,21 +1,16 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
-import '../../core/format/user_number.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/maintenance.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
-import '../common/section_heading.dart';
+import '../common/dash_icon_tile.dart';
+import '../common/dash_input.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -65,25 +60,23 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
               _SectionHeader(
                 title: l10n.maintenanceTypesTitle,
                 subtitle: l10n.maintenanceTypesSubtitle,
-                trailing: Wrap(
-                  spacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: t.textPrimary,
-                        side: BorderSide(color: t.cardBorder),
-                      ),
-                      onPressed: () => _restoreDefaults(context, ref, l10n),
-                      icon: const Icon(Icons.restart_alt),
-                      label: Text(l10n.maintenanceRestoreDefaults),
-                    ).tagged('maintenance_settings.restore_defaults'),
-                    FilledButton.icon(
-                      style: dashPrimaryButtonStyle(t),
-                      onPressed: () => openTypeForm(context),
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.maintenanceAddType),
-                    ).tagged('maintenance_settings.add_type'),
-                  ],
+                trailing: ButtonPair(
+                  primaryLabel: l10n.maintenanceAddType,
+                  secondaryLabel: l10n.maintenanceRestoreDefaults,
+                  primaryStyle: dashPrimaryButtonStyle(t),
+                  secondaryStyle: _restoreButtonStyle(t),
+                  primary: FilledButton.icon(
+                    style: dashPrimaryButtonStyle(t),
+                    onPressed: () => openTypeForm(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.maintenanceAddType),
+                  ).tagged('maintenance_settings.add_type'),
+                  secondary: OutlinedButton.icon(
+                    style: _restoreButtonStyle(t),
+                    onPressed: () => _restoreDefaults(context, ref, l10n),
+                    icon: const Icon(Icons.restart_alt),
+                    label: Text(l10n.maintenanceRestoreDefaults),
+                  ).tagged('maintenance_settings.restore_defaults'),
                 ),
               ),
               const SizedBox(height: 8),
@@ -125,6 +118,13 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Quiet chrome for the destructive-ish action beside the primary one. Named
+  /// because [ButtonPair] measures the same style the button renders with.
+  ButtonStyle _restoreButtonStyle(DashTokens t) => OutlinedButton.styleFrom(
+    foregroundColor: t.textPrimary,
+    side: BorderSide(color: t.cardBorder),
+  );
 
   Future<void> _restoreDefaults(
     BuildContext context,
@@ -186,11 +186,7 @@ class _DashCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
@@ -215,18 +211,11 @@ class _TypeTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return ListTile(
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: t.accentGreen.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          maintenanceIcon(type.icon),
-          size: 18,
-          color: t.accentGreenInk,
-        ),
+      leading: DashIconTile(
+        icon: maintenanceIcon(type.icon),
+        size: 40,
+        radius: 12,
+        iconSize: 18,
       ),
       title: Text(type.name, style: t.titleSm),
       subtitle: Text(
@@ -442,6 +431,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final printers = _availablePrinters();
@@ -465,11 +455,10 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
+              decoration: dashDecoration(
+                t,
                 labelText: l10n.maintenanceFieldName,
                 hintText: l10n.maintenanceFieldNameHint,
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
               validator: (v) =>
                   (v ?? '').trim().isEmpty ? l10n.inventoryFieldRequired : null,
@@ -479,32 +468,32 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _intervalType,
-                    decoration: InputDecoration(
-                      labelText: l10n.maintenanceFieldIntervalType,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      DropdownMenuItem(
+                  child: dashCombo<String>(
+                    context,
+                    id: 'maintenance_type_form.interval_type',
+                    label: Text(l10n.maintenanceFieldIntervalType),
+                    initialSelection: _intervalType,
+                    onSelected: (v) =>
+                        setState(() => _intervalType = v ?? 'hours'),
+                    entries: [
+                      DropdownMenuEntry(
                         value: 'hours',
-                        child: logTag(
+                        label: l10n.maintenanceIntervalHours,
+                        labelWidget: logTag(
                           'maintenance_type_form.interval_type.hours',
                           Text(l10n.maintenanceIntervalHours),
                         ),
                       ),
-                      DropdownMenuItem(
+                      DropdownMenuEntry(
                         value: 'days',
-                        child: logTag(
+                        label: l10n.maintenanceIntervalDays,
+                        labelWidget: logTag(
                           'maintenance_type_form.interval_type.days',
                           Text(l10n.maintenanceIntervalDays),
                         ),
                       ),
                     ],
-                    onChanged: (v) =>
-                        setState(() => _intervalType = v ?? 'hours'),
-                  ).tagged('maintenance_type_form.interval_type'),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
@@ -512,10 +501,9 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                   child: TextFormField(
                     controller: _interval,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
+                    decoration: dashDecoration(
+                      t,
                       labelText: l10n.maintenanceFieldInterval,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
                     ),
                     validator: (v) {
                       final n = parseUserDecimal(v);
@@ -547,11 +535,10 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             TextFormField(
               controller: _wiki,
               keyboardType: TextInputType.url,
-              decoration: InputDecoration(
+              decoration: dashDecoration(
+                t,
                 labelText: l10n.maintenanceFieldDocLink,
                 hintText: 'https://…',
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
             ).tagged('maintenance_type_form.description'),
             if (!_isEdit && printers.isNotEmpty) ...[
@@ -683,11 +670,7 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: unit,
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
+            decoration: InputDecoration(labelText: unit),
           ).tagged('interval_edit.value'),
         ],
       ),

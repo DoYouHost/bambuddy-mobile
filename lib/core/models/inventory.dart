@@ -8,6 +8,8 @@
 /// ignored, numbers accept int/num/string.
 library;
 
+import 'package:app_util/app_util.dart';
+
 import '../ams/slot_addressing.dart';
 import 'json_utils.dart';
 

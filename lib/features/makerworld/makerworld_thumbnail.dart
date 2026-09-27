@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
+import '../common/thumbnail_box.dart';
 import '../../providers.dart';
 
 /// MakerWorld cover thumbnail. Rendered via public server proxy (`/makerworld/thumbnail?url=`) —
@@ -19,19 +20,10 @@ class MakerWorldThumbnail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final radius = BorderRadius.circular(size < 64 ? 8 : 10);
+    final radius = thumbnailRadius(size);
 
     Widget placeholder([IconData icon = Icons.view_in_ar_outlined]) =>
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
-            borderRadius: radius,
-          ),
-          child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
-        );
+        ThumbnailPlaceholder(size: size, icon: icon);
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     final cover = coverUrl;

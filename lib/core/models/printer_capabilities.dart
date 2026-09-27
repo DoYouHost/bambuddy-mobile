@@ -50,3 +50,20 @@ bool supportsChamberHeater(String? model) =>
 
 /// Whether the model has a cooling/heating airduct flap that can be toggled.
 bool supportsAirduct(String? model) => _airductModels.contains(_norm(model));
+
+/// Models whose Z axis carries the toolhead rather than the plate — mirrors
+/// `frontend/src/utils/bedSlinger.ts` (the backend has no such table since
+/// #1334), normalised the way it does: upper case, letters and digits only.
+/// An explicit list on purpose: a prefix match would sweep in the next
+/// A-series machine, and a wrong answer points an arrow at the plate.
+const _bedSlingerModels = {
+  'A1', 'A1MINI', 'A2L', 'A1M', // display names, cloud short code
+  'N1', 'N2S', 'N9', 'A04', 'A11', 'A12', // internal MQTT / SSDP codes
+};
+
+/// Whether the Z axis moves the toolhead (A1 family, A2L) rather than the plate.
+bool isBedSlinger(String? model) =>
+    model != null &&
+    _bedSlingerModels.contains(
+      model.toUpperCase().replaceAll(RegExp('[^A-Z0-9]'), ''),
+    );

@@ -22,8 +22,29 @@ const _workshop = ServerProfile(
   label: 'Workshop',
 );
 
+const _garage = ServerProfile(
+  baseUrl: 'http://garage.local:8000',
+  authMode: AuthMode.apiKey,
+  label: 'Garage',
+);
+
 WatchConfig _configFor(ServerProfile profile, {String key = 'bb_secret'}) =>
     WatchConfig(profile: profile, apiKey: key);
+
+/// Counts how often the profile is read back, which is what an invalidate
+/// costs — every provider built on it goes with it.
+class _CountingProfile extends ServerProfileNotifier {
+  _CountingProfile(this._profile);
+
+  final ServerProfile? _profile;
+  int builds = 0;
+
+  @override
+  ServerProfile? build() {
+    builds++;
+    return _profile;
+  }
+}
 
 void main() {
   late FakeWatchConfigSync sync;
@@ -36,12 +57,16 @@ void main() {
   Future<ProviderContainer> pumpApp(
     WidgetTester tester, {
     ServerProfile? profile,
+    ServerProfileNotifier? notifier,
   }) => pumpWear(
     tester,
     const WearApp(),
     wrapInApp: false,
     overrides: [
-      serverProfileOverride(profile),
+      if (notifier != null)
+        serverProfileProvider.overrideWith(() => notifier)
+      else
+        serverProfileOverride(profile),
       watchConfigSyncProvider.overrideWithValue(sync),
       // The fake's empty fleet keeps `WearHome` off the network: it renders
       // its "no printers" message instead of polling.
@@ -70,19 +95,43 @@ void main() {
   ) async {
     final container = await pumpApp(tester, profile: _workshop);
 
-    sync.pushes.add(
-      _configFor(
-        const ServerProfile(
-          baseUrl: 'http://garage.local:8000',
-          authMode: AuthMode.apiKey,
-          label: 'Garage',
-        ),
-      ),
-    );
+    sync.pushes.add(_configFor(_garage));
     await tester.pumpAndSettle();
 
     expect(sync.applied, isEmpty);
     expect(container.read(pendingWatchConfigProvider)?.profile.label, 'Garage');
+  });
+
+  testWidgets('the config it is already running is not re-read', (
+    tester,
+  ) async {
+    final profile = _CountingProfile(_workshop);
+    await pumpApp(tester, notifier: profile);
+    expect(profile.builds, 1);
+
+    // Re-reading the profile rebuilds `wearTransportProvider` with it, which
+    // disposes the relay's reply listener under whatever request is on the
+    // bridge — and the phone pushes this same config at every launch, so that
+    // was a relay timeout charged to every cold start. The rotated secret it
+    // carries needs no re-read: `authHeaders` reads the store per request.
+    sync.pushes.add(_configFor(_workshop, key: 'bb_rotated'));
+    await tester.pumpAndSettle();
+
+    expect(sync.applied.single.apiKey, 'bb_rotated');
+    expect(profile.builds, 1, reason: 'nothing about the server changed');
+  });
+
+  testWidgets('adopting a different server does re-read it', (tester) async {
+    final profile = _CountingProfile(_workshop);
+    final container = await pumpApp(tester, notifier: profile);
+
+    // The switch the setup screen offers, taken.
+    await container
+        .read(pendingWatchConfigProvider.notifier)
+        .adopt(_configFor(_garage));
+    await tester.pumpAndSettle();
+
+    expect(profile.builds, 2);
   });
 
   testWidgets('with nothing configured the push still waits for a tap', (

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Konfiguracja widgetu: zmienny rozmiar, minimum 2x2 komórki (~110x110dp).
-     Aktualizacje pcha apka (updateWidget), więc updatePeriodMillis=0. -->
+<!-- Widget configuration: resizable, at least 2x2 cells (~110x110dp).
+     The app pushes updates itself (updateWidget), hence updatePeriodMillis=0. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="110dp"

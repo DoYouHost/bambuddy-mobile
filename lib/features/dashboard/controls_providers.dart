@@ -7,6 +7,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/printers/bed_jog.dart';
 import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
@@ -426,15 +427,13 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// can be shown but not named.
   ///
   /// Ids are **local** to the unit here, unlike [amsLoad]: the external spool is
-  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), which is the same pair the
-  /// inventory assignment already uses.
+  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), the pair the inventory
+  /// assignment already uses.
   ///
-  /// The mapping is saved separately and cannot fail the write: it needs
-  /// `printers:update`, a permission of its own, and by the time it runs the
-  /// filament is already set on the printer. Failing the whole action over the
-  /// label would report a change that did happen as one that did not.
-  ///
-  /// See [SlotNameOutcome] for the three ways that second call can end.
+  /// The mapping is saved separately and cannot fail the write — it needs
+  /// `printers:update` of its own, and by then the filament is already set, so
+  /// failing over the label would report a change that happened as one that did
+  /// not. [SlotNameOutcome] has the three ways that second call ends.
   Future<SlotConfigOutcome> configureSlot(
     int id, {
     required int amsId,
@@ -495,7 +494,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// actions with no persistent status field to preview. All share
   /// [ControlAction.move], so the movement sheet locks while one is in flight.
 
-  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
+  /// Relative nozzle-bed gap jog (mm); the sign comes from [bedJogDistance].
   Future<ActionOutcome> bedJog(int id, double distance, {bool force = false}) =>
       _run(
         id,
@@ -515,13 +514,13 @@ class ControlsNotifier extends Notifier<ControlsState> {
   Future<ActionOutcome> homeAxes(int id) =>
       _run(id, ControlAction.move, () => _repo.homeAxes(id));
 
-  /// Runs a command with optimistic apply + rollback-on-error. [apply] overlays
-  /// the optimistic override; [rollback] restores the touched field from
-  /// [before] (surgically, preserving any concurrent different action);
-  /// [clearKey] schedules discarding the override once real status catches up.
+  /// Optimistic apply with rollback on error: [apply] overlays the override,
+  /// [rollback] restores the touched field from [before] surgically, so a
+  /// concurrent different action survives, and [clearKey] discards the override
+  /// once real status catches up.
   ///
-  /// [permission] is the server gate this route sits behind, and decides what a
-  /// 403 costs: only the buttons that need the same permission go away.
+  /// [permission] decides what a 403 costs: only the buttons needing that same
+  /// permission go away.
   Future<ActionOutcome> _run(
     int id,
     ControlAction action,
@@ -545,11 +544,14 @@ class ControlsNotifier extends Notifier<ControlsState> {
       _setPending(id, _withoutInFlight(state.pendingFor(id), action));
       if (clearKey != null) _scheduleClear(id, clearKey);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
+    } catch (e) {
       // Rollback: remove "in flight" and restore override to pre-action state.
+      // On any failure — a lock left behind keeps the button dead until the
+      // server profile changes.
       var rolled = _withoutInFlight(state.pendingFor(id), action);
       if (rollback != null) rolled = rollback(before, rolled);
       _setPending(id, rolled);
+      if (e is! AppApiException) rethrow;
 
       final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
       // One refusal answers for every route behind the same gate, and for none
@@ -606,3 +608,26 @@ class ControlsNotifier extends Notifier<ControlsState> {
     _clearTimers.clear();
   }
 }
+
+/// Which bed-jog sign the connected server expects. The version settles it for
+/// every build but `1.2.6b1`; only then, and only once a movement sheet for an
+/// A1 / A1 Mini reads this, is `/openapi.json` fetched.
+///
+/// Asked again after every regained contact, and the version read fresh rather
+/// than from [ServerVersionService]'s cache: a server upgraded in place from
+/// 1.2.5.5 would otherwise still read as flipping, and a stale "flipped" sends
+/// the nozzle into the plate. A failed read is unknown, never the old answer.
+final bedJogConventionProvider = FutureProvider<BedJogConvention>((ref) async {
+  ref.watch(serverContactEpochProvider);
+  final byVersion = bedJogConventionFor(
+    await ref.watch(serverVersionServiceProvider).refresh(),
+  );
+  if (byVersion != BedJogConvention.unknown) return byVersion;
+  try {
+    return bedJogConventionFromOpenApi(
+      await ref.watch(printerCommandsRepositoryProvider).fetchOpenApi(),
+    );
+  } on AppApiException {
+    return BedJogConvention.unknown;
+  }
+});

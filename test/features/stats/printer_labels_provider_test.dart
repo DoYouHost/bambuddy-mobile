@@ -27,7 +27,7 @@ void main() {
         statsProvider.overrideWith(
           () => _FakeStatsNotifier(ArchiveStats(printerNames: recorded)),
         ),
-        printerNamesProvider.overrideWith((ref) async => live),
+        livePrinterNamesProvider.overrideWith((ref) async => live),
       ],
     );
     addTearDown(container.dispose);
@@ -35,7 +35,7 @@ void main() {
     // have to have landed before it is read at all.
     container.listen(printerLabelsProvider, (_, _) {});
     await container.read(statsProvider.future);
-    await container.read(printerNamesProvider.future);
+    await container.read(livePrinterNamesProvider.future);
     return container.read(printerLabelsProvider);
   }
 
@@ -91,4 +91,31 @@ void main() {
       );
     },
   );
+
+  test('a caller that may not read /printers still gets names', () async {
+    // An API key reaches the archives but not the printer list, so the live
+    // half never resolves. The recorded names are the whole label then —
+    // without them every bar on the screen reads as a bare `#id`.
+    final container = ProviderContainer(
+      overrides: [
+        statsProvider.overrideWith(
+          () => _FakeStatsNotifier(
+            ArchiveStats(printerNames: const {'1': 'Ultron', '7': 'Vision'}),
+          ),
+        ),
+        livePrinterNamesProvider.overrideWith(
+          (ref) async => throw StateError('403'),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(printerLabelsProvider, (_, _) {});
+    await container.read(statsProvider.future);
+    await expectLater(
+      container.read(livePrinterNamesProvider.future),
+      throwsStateError,
+    );
+
+    expect(container.read(printerLabelsProvider), {1: 'Ultron', 7: 'Vision'});
+  });
 }

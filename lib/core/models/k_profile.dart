@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One pressure-advance calibration stored **on the printer**.
 ///

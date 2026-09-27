@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/skip_objects_repository.dart';
 import 'package:dio/dio.dart';
@@ -57,30 +58,52 @@ void main() {
   );
 
   test(
-    'fetchPickMask: asks for the pick view with the camera token in query',
+    'fetchPickMask: asks for the pick view with the media token in query',
     () async {
       setUpWithReply((_) => ResponseBody.fromBytes([1, 2, 3], 200));
 
-      final bytes = await repo.fetchPickMask(1, 'cam-token');
+      final bytes = await repo.fetchPickMask(
+        1,
+        const MediaAuth(queryToken: 'media-token'),
+      );
 
       final req = adapter.requests.single;
       expect(req.path, '/api/v1/printers/1/cover');
-      expect(req.queryParameters, {'view': 'pick', 'token': 'cam-token'});
+      expect(req.queryParameters, {'view': 'pick', 'token': 'media-token'});
       expect(bytes, [1, 2, 3]);
+    },
+  );
+
+  test(
+    'fetchPickMask: an API key travels as a header, not in the query',
+    () async {
+      setUpWithReply((_) => ResponseBody.fromBytes([1, 2, 3], 200));
+
+      await repo.fetchPickMask(
+        1,
+        const MediaAuth(headers: {'X-API-Key': 'bb_key'}),
+      );
+
+      final req = adapter.requests.single;
+      expect(req.queryParameters, {'view': 'pick'});
+      expect(req.headers['X-API-Key'], 'bb_key');
     },
   );
 
   test('fetchPickMask: 404 is no mask, not an error', () async {
     setUpWithReply((_) => _empty(404));
 
-    expect(await repo.fetchPickMask(1, 'cam-token'), isNull);
+    expect(
+      await repo.fetchPickMask(1, const MediaAuth(queryToken: 'media-token')),
+      isNull,
+    );
   });
 
   test('fetchPickMask: 500 flows out as an API error', () async {
     setUpWithReply((_) => _empty(500));
 
     await expectLater(
-      repo.fetchPickMask(1, 'cam-token'),
+      repo.fetchPickMask(1, const MediaAuth(queryToken: 'media-token')),
       throwsA(isA<ApiException>()),
     );
   });

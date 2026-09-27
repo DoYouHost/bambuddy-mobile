@@ -1,7 +1,12 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
+import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/current_user.dart';
@@ -9,6 +14,7 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/features/admin/users_providers.dart';
@@ -23,6 +29,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:dio/dio.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,9 +71,7 @@ final inertTotalPrintHoursOverride = printerTotalPrintHoursProvider
 /// `/updates/version` and leaves a hanging Dio timer — the same trap as
 /// [inertFirmwareOverride]. 60 is what an unknown version resolves to anyway,
 /// so gauges and sliders behave exactly as they do before the probe lands.
-final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWith(
-  (ref) async => 60,
-);
+final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWithValue(60);
 
 /// Inert history gating for widget tests. The temperature tiles and the AMS
 /// humidity/temperature chips ask whether the server keeps history, which reads
@@ -74,8 +79,8 @@ final inertChamberMaxOverride = chamberMaxTargetProvider.overrideWith(
 /// [inertFirmwareOverride]. `true` is what any current server answers, so the
 /// shortcuts render exactly as they do in the app.
 final inertHistorySupportOverrides = [
-  heaterHistorySupportedProvider.overrideWith((ref) async => true),
-  amsHistorySupportedProvider.overrideWith((ref) async => true),
+  heaterHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
+  amsHistorySupportedProvider.overrideWithValue(const AsyncData(true)),
 ];
 
 /// Wraps a widget in a MaterialApp with Polish localization — the tests assert
@@ -86,10 +91,56 @@ final inertHistorySupportOverrides = [
 /// as `home`.
 Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
   locale: const Locale('pl'),
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  localizationsDelegates: [
+    ...AppLocalizations.localizationsDelegates,
+    ReportLocalizations.delegate,
+  ],
   supportedLocales: AppLocalizations.supportedLocales,
   builder: builder,
   home: child,
+);
+
+/// A clock the test moves by hand, handed to the body of [testWithClock].
+class TestClock {
+  TestClock(this.now);
+
+  DateTime now;
+
+  void tick(Duration by) => now = now.add(by);
+}
+
+/// A test whose body runs on a clock it controls, starting at [start].
+///
+/// The app reads the time through `package:clock`'s ambient clock and nothing
+/// in it takes a clock of its own, so this is the one way a test fakes time:
+/// build the subject inside the body, and move the clock with
+/// [TestClock.tick] rather than rebuilding anything.
+void testWithClock(
+  String description,
+  DateTime start,
+  dynamic Function(TestClock time) body,
+) => test(description, () {
+  final time = TestClock(start);
+  return withClock(Clock(() => time.now), () => body(time));
+});
+
+/// Every diagnostic identifier in the pumped tree — the `logTag` / `.tagged`
+/// names a bug report will quote.
+///
+/// A control that lost its id is invisible to the rest of the suite: it still
+/// renders, still taps, and only the log goes quiet. Written out in four test
+/// files before it lived here.
+Iterable<String> identifiersIn(WidgetTester tester) => tester
+    .widgetList<Semantics>(find.byType(Semantics))
+    .map((s) => s.properties.identifier)
+    .whereType<String>();
+
+/// The node carrying one diagnostic identifier.
+///
+/// The id is the only thing that tells three identical tiles apart — which is
+/// the same reason the app logs it rather than the label.
+Finder byLogId(String id) => find.byWidgetPredicate(
+  (w) => w is Semantics && w.properties.identifier == id,
 );
 
 /// Pumps a fixed span in place of `pumpAndSettle`, for the screens it can never
@@ -487,6 +538,20 @@ const fakeServerBaseUrl = 'http://s.local:8000';
 /// agreeing.
 Dio testDio() => Dio(BaseOptions(baseUrl: fakeServerBaseUrl));
 
+/// The mock server a test hangs off a Dio: a map in `data:` must **equal** the
+/// map body the app sent, nested maps and list values included.
+///
+/// The adapter's own default takes a body that merely *contains* the mocked
+/// keys, so a mocked `{}` matched every request and a test named "sends only
+/// what changed" passed with extra keys going out. Still subsets: queries,
+/// headers, and the elements of a body that is itself a list
+/// (`matches_request.dart` does not pass the flag down into one) — assert
+/// those on `captureRequests`.
+DioAdapter mockServer(Dio dio) => DioAdapter(
+  dio: dio,
+  matcher: const FullHttpRequestMatcher(needsExactBody: true),
+);
+
 /// `serverProfileProvider` answering with [profile], or with "nothing
 /// configured yet" when it is null.
 ///
@@ -516,6 +581,30 @@ Override fakeServerProfileOverride({AuthMode authMode = AuthMode.none}) =>
     serverProfileOverride(
       ServerProfile(baseUrl: fakeServerBaseUrl, authMode: authMode),
     );
+
+/// The media credential every thumbnail, cover and photo URL is built with —
+/// stubbed so a widget test renders the `Image.network` instead of the
+/// placeholder it shows while the mint is in flight.
+Override mediaAuthOverride({String token = 'tok'}) =>
+    mediaAuthProvider.overrideWith((ref) async => MediaAuth(queryToken: token));
+
+/// `serverSettingsProvider` answering with [settings] and never touching the
+/// network — what a screen that only reads a flag or the currency out of it
+/// wants, since building the real one needs an API client and a profile.
+Override serverSettingsOverride(Map<String, dynamic> settings) =>
+    serverSettingsProvider.overrideWith(() => _FixedServerSettings(settings));
+
+class _FixedServerSettings extends ServerSettingsNotifier {
+  _FixedServerSettings(this._settings);
+
+  final Map<String, dynamic> _settings;
+
+  @override
+  Future<Map<String, dynamic>> build() async => _settings;
+
+  @override
+  Future<void> refresh() async {}
+}
 
 class _FixedServerProfile extends ServerProfileNotifier {
   _FixedServerProfile(this._profile);
@@ -557,7 +646,11 @@ class _FixedArchiveList extends ArchiveNotifier {
 /// happened to think of. Assert the whole list, not a `contains`, and that
 /// property holds.
 class FakeWearTransport implements WearTransport {
-  FakeWearTransport({this.fleet = const WearFleet(printers: []), this.error});
+  FakeWearTransport({
+    this.fleet = const WearFleet(printers: []),
+    this.error,
+    this.serverVersion,
+  });
 
   /// What every `getFleet` answers.
   final WearFleet fleet;
@@ -565,17 +658,21 @@ class FakeWearTransport implements WearTransport {
   /// Thrown by every call when set — the phone refusing, or out of reach.
   final Exception? error;
 
-  /// Every call in order, oldest first — [getFleet] included, which is what the
+  /// What every `getServerVersion` answers; `null` is the unknown a phone too
+  /// old for the action leaves behind.
+  final String? serverVersion;
+
+  /// Every call in order, oldest first — the reads included, which is what the
   /// transport's own tests are about.
   final List<String> calls = [];
 
-  /// The commands only, without the fleet polls a screen runs on mount and
-  /// again after every action. This is what a screen test means by "what did
-  /// the watch send", and it still shows a stray command rather than swallowing
+  /// The commands only, without the reads a screen runs on mount and again
+  /// after every action. This is what a screen test means by "what did the
+  /// watch send", and it still shows a stray command rather than swallowing
   /// it.
   List<String> get commands => [
     for (final call in calls)
-      if (call != 'getFleet') call,
+      if (call != 'getFleet' && call != 'getServerVersion') call,
   ];
 
   Future<T> _log<T>(String call, T value) {
@@ -587,6 +684,9 @@ class FakeWearTransport implements WearTransport {
 
   @override
   Future<WearFleet> getFleet() => _log('getFleet', fleet);
+
+  @override
+  Future<String?> getServerVersion() => _log('getServerVersion', serverVersion);
 
   @override
   Future<void> pause(int printerId) => _log('pause:$printerId', null);
@@ -642,6 +742,10 @@ class RecordingNotifications implements NotificationService {
   String? lastBody;
   int? lastProgress;
 
+  /// Whether the last bar was the indeterminate one (a null progress).
+  bool get lastIndeterminate => _lastWasIndeterminate;
+  bool _lastWasIndeterminate = false;
+
   /// Thrown by [showAlert] when set — the platform channel refusing.
   Object? failWith;
 
@@ -659,12 +763,13 @@ class RecordingNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {
     ongoingCount++;
     lastTitle = title;
     lastBody = body;
     lastProgress = progress;
+    _lastWasIndeterminate = progress == null;
   }
 
   @override
@@ -856,3 +961,165 @@ Archive testArchive({
   completedAt: completedAt,
   createdAt: createdAt,
 );
+
+/// A recorder wired the way the app wires one, for a test that only needs
+/// *something* recording so a probe has a store to write into.
+///
+/// Memory-only by default: most callers assert on what `stop()` returns, not on
+/// what reached the disk. Pass [directory] for the ones that do.
+///
+/// Exists because the five arguments below are the same five in every such
+/// test, and three of them (`redactor`, the two ceilings) are the app's answers
+/// rather than the test's — a test that picked its own would be asserting
+/// against a session bambuddy never records.
+DiagnosticRecorder testRecorder({
+  DiagnosticsSessionStore? sessions,
+  SessionFacts facts = const SessionFacts(
+    app: '0.12.1+1201000',
+    extra: {'flavor': 'mobile'},
+  ),
+  Future<Directory?> Function()? directory,
+}) => DiagnosticRecorder(
+  sessions: sessions ?? MemorySessionStore(),
+  redactor: bambuddyRedactor,
+  loadFacts: () async => facts,
+  sessionDuration: recordingLimit,
+  sessionBytes: recordingSizeLimit,
+  resolveDirectory: directory ?? () async => null,
+);
+
+/// The session id in memory. The real one is `SettingsSessionStore` over
+/// SharedPreferences; nothing in a test needs it to survive the process.
+class MemorySessionStore implements DiagnosticsSessionStore {
+  String? _session;
+
+  @override
+  String? loadSession() => _session;
+
+  @override
+  Future<void> saveSession(String? session) async => _session = session;
+}
+
+/// Gives the test a phone-shaped window instead of the default 800×600.
+///
+/// The default is **wider than it is tall**, which is not a shape any screen in
+/// this app is designed for: a square preview claims the whole viewport and the
+/// list underneath it never builds, and a settings screen builds only its first
+/// section. Three test files had worked this out separately.
+///
+/// [dp] is the logical height, which is what a test actually reasons about —
+/// the pixel ratio is an implementation detail of the window. **A tap below
+/// 1200 dp of content silently misses**: `WidgetTester.tap` warns "would not
+/// hit test" on stdout and passes anyway, so a test that scrolls to a row far
+/// down the page must ask for the height it needs rather than assume it.
+void usePhoneWindow(WidgetTester tester, {double dp = 800}) {
+  const ratio = 3.0;
+  tester.view.physicalSize = Size(360 * ratio, dp * ratio);
+  tester.view.devicePixelRatio = ratio;
+  addTearDown(tester.view.reset);
+}
+
+/// A [PrinterCommandsRepository] that records every call as `kind:args`
+/// (`pause:1`, `amsLoad:1:3:-`) and succeeds, unless told otherwise: [gate]
+/// holds every call and [error] fails every call, while [holds] and [errors]
+/// do the same for one kind only — the part of the tag before the first `:`.
+class RecordingCommands implements PrinterCommandsRepository {
+  final List<String> calls = [];
+  Object? error;
+  Completer<void>? gate;
+  final holds = <String, Completer<void>>{};
+  final errors = <String, Object>{};
+
+  Future<void> _do(String tag) async {
+    calls.add(tag);
+    final kind = tag.split(':').first;
+    await (holds[kind] ?? gate)?.future;
+    final failure = errors[kind] ?? error;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<Object?> fetchOpenApi() async => null;
+  @override
+  Future<void> pause(int id) => _do('pause:$id');
+  @override
+  Future<void> resume(int id) => _do('resume:$id');
+  @override
+  Future<void> stop(int id) => _do('stop:$id');
+  @override
+  Future<void> clearPlate(int id) => _do('clearPlate:$id');
+  @override
+  Future<void> setChamberLight(int id, {required bool on}) =>
+      _do('light:$id:$on');
+  @override
+  Future<void> setPrintSpeed(int id, int mode) => _do('speed:$id:$mode');
+  @override
+  Future<void> setNozzleTemperature(int id, int target, {int nozzle = 0}) =>
+      _do('nozzle:$id:$target:$nozzle');
+  @override
+  Future<void> setBedTemperature(int id, int target) => _do('bed:$id:$target');
+  @override
+  Future<void> setChamberTemperature(int id, int target) =>
+      _do('chamber:$id:$target');
+  @override
+  Future<void> setAirductMode(int id, {required bool heating}) =>
+      _do('airduct:$id:$heating');
+  @override
+  Future<void> setFanSpeed(int id, String fan, int speed) =>
+      _do('fan:$id:$fan:$speed');
+  @override
+  Future<void> selectExtruder(int id, int extruder) =>
+      _do('extruder:$id:$extruder');
+  @override
+  Future<void> startDrying(
+    int id, {
+    required int amsId,
+    required int temp,
+    required int duration,
+    String filament = '',
+  }) => _do('dryStart:$id:$amsId:$temp:$duration:$filament');
+  @override
+  Future<void> stopDrying(int id, {required int amsId}) =>
+      _do('dryStop:$id:$amsId');
+  @override
+  Future<void> bedJog(int id, double distance, {bool force = false}) =>
+      _do('bedJog:$id:$distance:$force');
+  @override
+  Future<void> xyJog(int id, {double x = 0, double y = 0}) =>
+      _do('xyJog:$id:$x:$y');
+  @override
+  Future<void> extruderJog(int id, double distance) =>
+      _do('extruderJog:$id:$distance');
+  @override
+  Future<void> homeAxes(int id) => _do('homeAxes:$id');
+  @override
+  Future<void> refreshStatus(int id) => _do('refreshStatus:$id');
+  @override
+  void nudgeRepublish(Iterable<int> ids) {
+    for (final id in ids) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+
+  @override
+  Future<void> amsLoad(int id, int trayId, {int? extruderId}) =>
+      _do('amsLoad:$id:$trayId:${extruderId ?? '-'}');
+  @override
+  Future<void> amsUnload(int id, {int? trayId}) =>
+      _do('amsUnload:$id:${trayId ?? '-'}');
+  @override
+  Future<void> refreshAmsSlot(
+    int id, {
+    required int amsId,
+    required int slotId,
+  }) => _do('amsRfid:$id:$amsId:$slotId');
+  @override
+  Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
+  @override
+  Future<void> executeHmsAction(
+    int id, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) => _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
+}

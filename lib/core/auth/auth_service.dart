@@ -1,10 +1,10 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../diagnostics/auth_probe.dart';
 import '../models/current_user.dart';
-import '../settings/server_profile.dart';
 import '../settings/sign_in_reason.dart';
 import 'credentials_store.dart';
 import 'two_factor.dart';
@@ -73,7 +73,7 @@ class AuthService {
       return (
         authEnabled: body['auth_enabled'] == true,
         requiresSetup: body['requires_setup'] == true,
-        baseUrl: ServerProfile.baseUrlFromReached(
+        baseUrl: baseUrlFromReached(
           res.realUri,
           requested: baseUrl,
           endpointSuffix: Endpoints.authStatus,
@@ -93,7 +93,7 @@ class AuthService {
       return (
         authEnabled: false,
         requiresSetup: false,
-        baseUrl: ServerProfile.baseUrlFromReached(
+        baseUrl: baseUrlFromReached(
           res.realUri,
           requested: baseUrl,
           endpointSuffix: Endpoints.printers,
@@ -105,7 +105,7 @@ class AuthService {
         return (
           authEnabled: true,
           requiresSetup: false,
-          baseUrl: ServerProfile.baseUrlFromReached(
+          baseUrl: baseUrlFromReached(
             e.response?.realUri,
             requested: baseUrl,
             endpointSuffix: Endpoints.printers,
@@ -117,13 +117,26 @@ class AuthService {
   }
 
   /// Stores the JWT on success, plus username and password when [remember] is
-  /// set — that pair is what [silentReLogin] runs on. A `requires_2fa` answer
-  /// stores nothing and comes back as [LoginNeedsTwoFactor].
+  /// set — that pair is what [silentReLogin] runs on. Without [remember] a pair
+  /// saved by an earlier sign-in is dropped: it may belong to another account
+  /// or another server, and silent re-login would replay it there. A
+  /// `requires_2fa` answer stores nothing and comes back as
+  /// [LoginNeedsTwoFactor].
   Future<LoginResult> login({
     required String baseUrl,
     required String username,
     required String password,
     bool remember = false,
+  }) => _login(baseUrl, username, password, remember: remember);
+
+  /// [remember] `null` leaves the saved pair as it is — the silent renewal,
+  /// which runs on that very pair and would otherwise rewrite the keystore on
+  /// every expiry.
+  Future<LoginResult> _login(
+    String baseUrl,
+    String username,
+    String password, {
+    required bool? remember,
   }) async {
     final Response<Map<String, dynamic>> res;
     try {
@@ -159,8 +172,13 @@ class AuthService {
     }
 
     await _credentials.writeJwt(token);
-    if (remember) {
-      await _credentials.writeRememberedLogin(username, password);
+    switch (remember) {
+      case true:
+        await _credentials.writeRememberedLogin(username, password);
+      case false:
+        await _credentials.clearRememberedLogin();
+      case null:
+        break;
     }
     return LoginCompleted(token, user: _userOrNull(body['user']));
   }
@@ -203,7 +221,7 @@ class AuthService {
   ///
   /// Deliberately has no "remember me": a saved password cannot renew a 2FA
   /// session on its own, and a stored secret that buys nothing is pure
-  /// liability. `docs/plans/10-two-factor-login.md` §2.
+  /// liability.
   Future<LoginCompleted> verifyTwoFactor({
     required String baseUrl,
     required TwoFactorChallenge challenge,
@@ -238,6 +256,9 @@ class AuthService {
     }
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
+    // Same reason as a login without "remember me": an older pair would be
+    // replayed against this session.
+    await _credentials.clearRememberedLogin();
     // `TwoFAVerifyResponse` carries the same `user` as the one-step login
     // (`backend/app/schemas/auth.py::TwoFAVerifyRequest`), so this costs no
     // `GET /auth/me`.
@@ -323,6 +344,7 @@ class AuthService {
       throw mapDioException(e);
     }
     await _credentials.writeApiKey(apiKey);
+    await _credentials.clearRememberedLogin();
   }
 
   Future<String?>? _pendingSilentReLogin;
@@ -353,10 +375,11 @@ class AuthService {
     final saved = await _credentials.readRememberedLogin();
     if (saved == null) return null;
     try {
-      final result = await login(
-        baseUrl: baseUrl,
-        username: saved.username,
-        password: saved.password,
+      final result = await _login(
+        baseUrl,
+        saved.username,
+        saved.password,
+        remember: null,
       );
       switch (result) {
         case LoginCompleted(:final token):

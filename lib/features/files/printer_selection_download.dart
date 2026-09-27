@@ -8,25 +8,20 @@ import 'printer_download_job.dart';
 /// One file in a selection: where it is on the printer, and how big the listing
 /// said it was.
 ///
-/// A record rather than a shared model class, because the two screens that
-/// download a selection hold different things — the file manager a
-/// `PrinterFile`, the archive's media sheet an `ArchiveMediaFile` — and the
-/// download only ever needs these two fields of either.
+/// A record rather than a model class: the two screens that download a selection
+/// hold different things (a `PrinterFile`, an `ArchiveMediaFile`) and the
+/// download needs only these two fields of either.
 typedef PrinterDownloadItem = ({String path, int size});
 
 /// Pulls a selection of a printer's files down into a cache file.
 ///
-/// Everything between "the user pressed Download" and "there is a file on disk"
-/// is the same wherever the selection came from, and it is the part that is
-/// easy to get subtly wrong: which route this server has, what a single file
-/// means, and streaming into the cache rather than through memory — a printer's
-/// card holds gigabytes, and reading a bundle into a list of bytes first costs
-/// that size in RAM and then copies it into the file, peaking at twice it.
+/// Everything between "the user pressed Download" and "there is a file on disk":
+/// which route this server has, what a single file means, and streaming into the
+/// cache rather than through memory, since a printer's card holds gigabytes.
 ///
-/// What is deliberately **not** here is everything after: the save dialog, the
-/// message, and the diagnostic record. Those differ by screen — the record's id
-/// is a wire value that a report is correlated on — and none of them is where
-/// the mistakes were.
+/// Deliberately **not** here: the save dialog, the message and the diagnostic
+/// record, which differ by screen — and the record's id is a wire value a report
+/// is correlated on.
 ///
 /// One instance per download; it holds the job it started, so [cancel] has
 /// something to name.
@@ -38,25 +33,21 @@ class PrinterSelectionDownload {
 
   PrinterDownloadRun? _run;
 
-  /// A Cancel that arrived before there was a run to name.
-  ///
-  /// [_asJob] awaits the capability latch before it builds one, and on the
-  /// first download of a session that latch may itself be waiting on the
-  /// server's version. A sheet dismissed inside that window used to leave the
-  /// preparation to start afterwards and run to completion — the server pulling
-  /// gigabytes off a printer for a screen that had gone.
+  /// A Cancel that arrived before there was a run to name. [_asJob] awaits the
+  /// capability latch first, and on a session's first download that latch may be
+  /// waiting on the server's version — a sheet dismissed inside that window used
+  /// to leave the preparation running for a screen that had gone.
   bool _cancelled = false;
 
   /// Downloads [files] under [fileName] and answers with the cache copy.
   ///
   /// [scratchName] is the part-file's name while the transfer runs; naming it
-  /// after what is being downloaded means an interrupted transfer leaves one
-  /// stale part-file rather than one per attempt.
+  /// after what is downloaded leaves one stale part-file rather than one per
+  /// attempt.
   ///
-  /// Throws [PrinterDownloadFailure] when a server-side preparation ends any
-  /// way other than ready, and the repository's own exception for a transfer
-  /// that fails. Either way nothing is left in the cache — [downloadToCacheFile]
-  /// drops the part-file on the way out.
+  /// Throws [PrinterDownloadFailure] when a server-side preparation ends any way
+  /// other than ready, and the repository's own exception for a failed transfer.
+  /// Either way nothing is left in the cache.
   ///
   /// [onJob] fires on every state a preparation reports, for a bar that can say
   /// "3 of 7 files" while nothing is transferring yet; [onProgress] is the byte

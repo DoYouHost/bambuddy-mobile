@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/group_write.dart';
 import '../../core/models/permission_catalog.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
@@ -80,11 +77,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           context,
           title: widget.isEdit ? l10n.groupsEditTitle : l10n.groupsCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('group_form.save'),
+            dashSaveAction(
+              id: 'group_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

@@ -1,23 +1,24 @@
 import 'dart:math' as math;
 
+import 'package:app_util/app_util.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
-import '../common/hex_color.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
+import '../dashboard/widgets/history_chart_parts.dart';
 
 // ── Failure Analysis ────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ class FailureAnalysisCard extends ConsumerWidget {
           // Inks: this paints the rate itself, in monoDisplay.
           final rateColor = f.failureRate <= 5
               ? t.accentGreenInk
-              : (f.failureRate <= 15 ? t.accentOrangeInk : t.danger);
+              : (f.failureRate <= 15 ? t.accentOrangeInk : t.dangerInk);
           final reasons = f.failuresByReason.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
           return Column(
@@ -126,7 +127,7 @@ class FailureAnalysisCard extends ConsumerWidget {
   }
 }
 
-// ── Print Activity (heatmapa) ───────────────────────────────────────────────
+// ── Print Activity (heatmap) ───────────────────────────────────────────────
 
 class PrintActivityCard extends StatelessWidget {
   const PrintActivityCard({super.key, required this.data, required this.fmt});
@@ -443,14 +444,10 @@ class BarList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: rows[i].fraction.clamp(0, 1).toDouble(),
-                  minHeight: 8,
-                  color: rows[i].color ?? t.accentGreen,
-                  backgroundColor: t.gaugeTrack,
-                ),
+              DashProgressBar(
+                value: rows[i].fraction.clamp(0, 1).toDouble(),
+                height: 8,
+                color: rows[i].color,
               ),
             ],
           ),
@@ -694,20 +691,7 @@ class _OverTimeChart extends StatelessWidget {
                 ),
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: spots,
-                isCurved: true,
-                preventCurveOverShooting: true,
-                color: color,
-                barWidth: 2,
-                dotData: const FlDotData(show: false),
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: color.withValues(alpha: 0.15),
-                ),
-              ),
-            ],
+            lineBarsData: [dashLineSeries(spots, color)],
           ),
         ),
       ),

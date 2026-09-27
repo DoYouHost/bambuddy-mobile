@@ -1,16 +1,16 @@
 import 'dart:math' as math;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/models/heater_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
-import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// One selectable sensor: the server's key plus the label the card already
@@ -37,11 +37,10 @@ final heaterHistoryDataProvider = FutureProvider.autoDispose
     });
 
 /// Whether the temperature tiles offer their chart shortcut at all: the server
-/// has the route and this session may read it. Invalidated by the sheet after a
-/// failed fetch, so a 404 or a 403 takes the icon away instead of leaving a
-/// shortcut that can only ever show an error.
-final heaterHistorySupportedProvider = FutureProvider<bool>(
-  (ref) => ref.watch(heaterHistoryRepositoryProvider).supportsHistory(),
+/// has the route and this session may read it. A 404 or a 403 inside the sheet
+/// takes the icon away as soon as the latch records it.
+final heaterHistorySupportedProvider = capabilityGate(
+  (ref) => ref.watch(heaterHistoryRepositoryProvider).historyCapability,
 );
 
 /// Opens the heater history chart (nozzle / bed / chamber) as a bottom sheet.
@@ -92,11 +91,6 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final query = (printerId: widget.printerId, hours: _hours, kind: _kind);
-    // A failure is also an observation about the route: re-ask whether the
-    // shortcut should still be on the tiles.
-    ref.listen(heaterHistoryDataProvider(query), (_, next) {
-      if (next.hasError) ref.invalidate(heaterHistorySupportedProvider);
-    });
     final async = ref.watch(heaterHistoryDataProvider(query));
 
     return logTag(
@@ -306,18 +300,7 @@ class _Content extends StatelessWidget {
             dashArray: const [5, 5],
             dotData: const FlDotData(show: false),
           ),
-        LineChartBarData(
-          spots: values,
-          isCurved: true,
-          preventCurveOverShooting: true,
-          color: color,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            color: color.withValues(alpha: 0.15),
-          ),
-        ),
+        dashLineSeries(values, color),
       ],
     );
   }

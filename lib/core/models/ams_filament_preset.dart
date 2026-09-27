@@ -9,7 +9,7 @@ library;
 
 import 'dart:convert';
 
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Where a preset came from. The order is the picker's own — a preset the user
 /// imported outranks one Bambu happens to ship.

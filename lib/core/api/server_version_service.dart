@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
@@ -7,7 +8,7 @@ import 'server_version.dart';
 /// Reads and caches the connected server's version, for the queue write path
 /// (which needs to know whether tri-state calibration can be stored) and the
 /// bug-report log header — the one line that would have turned the queue-enum
-/// diagnosis (`docs/plans/07-queue-cali-enum.md`) into a lookup.
+/// diagnosis into a lookup.
 ///
 /// Never throws: an unreachable or unrecognisable server reads as unknown, and
 /// every caller treats unknown as the older, more conservative contract.
@@ -23,12 +24,27 @@ class ServerVersionService {
   static const _retryAfter = Duration(minutes: 5);
 
   ServerVersion? _version;
+
+  /// What the server answered, verbatim, even when [ServerVersion.tryParse]
+  /// made nothing of it. Displaying a numbering scheme this build has never
+  /// seen beats displaying nothing, and the capability table stays out of it —
+  /// that one keeps reading [_version], which such an answer leaves null.
+  String? _rawVersion;
+
   DateTime? _failedAt;
   Future<ServerVersion?>? _pending;
 
   /// For callers on a synchronous path, a `build`. `null` means "not read yet",
   /// which is not "old server" — prefer [current] wherever an await is possible.
   ServerVersion? get cached => _version;
+
+  /// [reportedVersion] for a synchronous path; `null` also means "not read
+  /// yet". See [_rawVersion] for why this is not `cached?.raw`.
+  String? get cachedRaw => _rawVersion;
+
+  /// Lets the next [current] ask at once instead of waiting out [_retryAfter] —
+  /// for when contact with the server has just been regained.
+  void forgetFailure() => _failedAt = null;
 
   /// Concurrent callers share one in-flight request.
   Future<ServerVersion?> current() async {
@@ -51,36 +67,37 @@ class ServerVersionService {
     }
   }
 
-  /// Whether the connected server has [feature], per
-  /// [ServerVersion.introducedIn].
-  ///
-  /// Unknown → `false` for every feature, which is always the older contract: a
-  /// hidden control costs a new-server user one feature until the version read
-  /// lands, while a shown one costs an old-server user a 422 — or, for the
-  /// slice fields, a switch that silently does nothing.
-  Future<bool> supports(ServerFeature feature) async =>
-      (await current())?.supports(feature) ?? false;
+  /// Reads the version again even when one is known, for the caller that must
+  /// not act on a server upgraded in place since the last read. `null` when
+  /// this read fails — the earlier answer stays cached for everyone else.
+  Future<ServerVersion?> refresh() => _read();
 
-  /// Unknown → 60, the ceiling every server generation accepts. See
-  /// [ServerVersion.chamberMaxTargetC] for why this one cannot be observed.
-  Future<int> chamberMaxTargetC() async =>
-      (await current())?.chamberMaxTargetC ?? 60;
-
-  Future<String?> reportedVersion() async => (await current())?.raw;
+  /// The server's own version string, for the bug-report header and the two
+  /// screens that show it. `null` until a read succeeds, and after one that
+  /// could not reach the server at all.
+  Future<String?> reportedVersion() async {
+    await current();
+    return _rawVersion;
+  }
 
   Future<ServerVersion?> _read() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.updatesVersion,
       );
-      final parsed = ServerVersion.tryParse(res.data?['version'] as String?);
+      final raw = toStringOrNull(res.data?['version']);
+      final parsed = ServerVersion.tryParse(raw);
       if (parsed == null) {
+        // Still worth showing: only the version→capability comparison needs
+        // the parse to have worked.
+        _rawVersion = raw;
         // Reached the server but got a proxy's error page, or a numbering
         // scheme from the future. Retry later rather than never.
         _failedAt = clock.now();
         return null;
       }
       _version = parsed;
+      _rawVersion = raw;
       _failedAt = null;
       return parsed;
     } on Object {

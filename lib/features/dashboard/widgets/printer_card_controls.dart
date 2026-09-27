@@ -168,21 +168,28 @@ class _LightSwitchRow extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        on ? Icons.lightbulb : Icons.lightbulb_outline,
-                        size: 18,
-                        color: t.accentGreenInk,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.ctrlLight,
-                        style: t.titleSm.copyWith(color: t.accentGreenInk),
-                      ),
-                    ],
+                  // Flexible so a long label wraps at a large text size instead
+                  // of pushing the switch off the card.
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          on ? Icons.lightbulb : Icons.lightbulb_outline,
+                          size: 18,
+                          color: t.accentGreenInk,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            l10n.ctrlLight,
+                            style: t.titleSm.copyWith(color: t.accentGreenInk),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   busy
                       ? const DashSpinner(size: 20)
                       : _PillSwitch(on: on, tokens: t),

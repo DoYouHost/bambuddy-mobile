@@ -151,31 +151,23 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
   }
 }
 
-/// Map `printer_id → name` to label "by printer" breakdown. Config only
-/// (no statuses) — cheap. Missing entry → UI shows `#id`.
+/// The current name of every printer the server still has, `printer_id →
+/// name`. Config only (no statuses) — cheap.
 ///
-/// Two sources, live printers last so a rename shows up immediately. Underneath
-/// them sit the names `/archives/stats` recorded per run, which cover an id the
-/// live list does not: a key that may read archives but not `/printers` sees
-/// every bar labelled `#id` without them. They do **not** bring back a deleted
-/// printer's bars — the breakdown is aggregated from `/archives/slim`, and
-/// deleting a printer either deletes its archives or clears their `printer_id`,
-/// so those runs are not in the aggregate to label. A server that does not send
-/// `printer_names` leaves that layer empty and the map is what it always was.
-final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
+/// Live names only: what to do when the live list cannot name an id is a
+/// question with one answer, and it is [printerLabelsProvider] that gives it.
+/// This used to merge in the recorded names itself as well, which meant the
+/// same merge was written twice and the two spellings had already drifted —
+/// only the one below drops a blank name.
+///
+/// Errors are not caught: a key that may read archives but not `/printers`
+/// leaves this in its error state, and the merge below reads it through
+/// `valueOrNull`, so the labels fall back to what the print log recorded.
+final livePrinterNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
   ref,
 ) async {
-  final recorded = ref.watch(statsProvider).valueOrNull?.printerNames;
   final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
-  final names = <int, String>{};
-  for (final entry in (recorded ?? const <String, String>{}).entries) {
-    final id = int.tryParse(entry.key);
-    if (id != null) names[id] = entry.value;
-  }
-  for (final printer in printers) {
-    names[printer.id] = printer.name;
-  }
-  return names;
+  return {for (final printer in printers) printer.id: printer.name};
 });
 
 /// Labels for the per-printer breakdowns: the live printer's current name
@@ -184,7 +176,7 @@ final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>((
 /// a printer that has since been deleted — the live list has no row for it,
 /// which is why its history used to read as a bare `#id`.
 final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
-  final live = ref.watch(printerNamesProvider).valueOrNull ?? const {};
+  final live = ref.watch(livePrinterNamesProvider).valueOrNull ?? const {};
   final recorded =
       ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
   final labels = <int, String>{};

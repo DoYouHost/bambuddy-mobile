@@ -67,9 +67,7 @@ class _GaugeTile extends ConsumerWidget {
     // the server's version is known — see [chamberMaxTargetProvider].
     final chamberMax = reading.kind != _TempKind.chamber
         ? 60
-        : ref
-              .watch(chamberMaxTargetProvider)
-              .maybeWhen(data: (v) => v, orElse: () => 60);
+        : ref.watch(chamberMaxTargetProvider);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command
@@ -90,13 +88,11 @@ class _GaugeTile extends ConsumerWidget {
         : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     final editable = _isEditable && !forbidden;
-    // Hidden until the server is known to have the route: a shortcut that can
-    // only ever error is worse than no shortcut.
+    // Shown until the server says otherwise (see the latch): a glyph that
+    // appeared once the version landed shifted the label beside it.
     final hasHistory =
         historyKinds.any((k) => k.kind == reading.raw) &&
-        ref
-            .watch(heaterHistorySupportedProvider)
-            .maybeWhen(data: (v) => v, orElse: () => false);
+        ref.watch(heaterHistorySupportedProvider).orFalse;
 
     // The sensor label, preceded by the chart glyph when this sensor is
     // recorded. The whole strip is the history button, not just the glyph: a
@@ -277,6 +273,14 @@ List<HeaterKindOption> _heaterKindOptions(
       (kind: r.raw, label: r.label(l10n)),
 ];
 
+/// What the status pill says for a printer the card does not show as offline:
+/// the server's own state, or a word for its absence.
+String _stateChipLabel(AppLocalizations l10n, PrinterStatus? status) {
+  if (status == null) return l10n.statusUnavailable;
+  return status.state ??
+      ((status.connected ?? false) ? l10n.online : l10n.offline);
+}
+
 /// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
 /// green; offline → red tinted with a vivid border.
 ///
@@ -316,6 +320,9 @@ class _StateChip extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
         style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
       ),
     );
@@ -524,16 +531,15 @@ class _TempControlSheet extends ConsumerStatefulWidget {
 }
 
 class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
-  /// The server's chamber ceiling, read once: the sheet is short-lived and the
-  /// server cannot change underneath it. 60 until the version is known, which
-  /// is the value every generation accepts.
-  late final int _chamberMax = ref
-      .read(chamberMaxTargetProvider)
-      .maybeWhen(data: (v) => v, orElse: () => 60);
+  /// The server's chamber ceiling — 60 until the version is known, so it is
+  /// watched: a sheet opened in the first moments of a cold start would
+  /// otherwise keep the lower ceiling for its whole life.
+  int get _chamberMax => ref.watch(chamberMaxTargetProvider);
 
-  late int _target = widget.initialTarget
-      .clamp(0, widget.reading.maxTarget(_chamberMax))
-      .toInt();
+  /// Not clamped: a target set elsewhere above this sheet's range (65 °C while
+  /// the ceiling still reads 60, a nozzle above 300) is the printer's current
+  /// setting, and applying the sheet untouched must not lower it.
+  late int _target = widget.initialTarget;
   late bool? _airductHeating = widget.reading.airductIsHeating;
   bool _busy = false;
 
@@ -545,7 +551,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
   void _bump(int delta) => setState(
     () => _target = (_target + delta)
-        .clamp(0, _reading.maxTarget(_chamberMax))
+        .clamp(0, _reading.maxTarget(ref.read(chamberMaxTargetProvider)))
         .toInt(),
   );
 
@@ -709,164 +715,143 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final chamberGated = _reading.kind == _TempKind.chamber && showAirduct;
     final tempEnabled = !chamberGated || (_airductHeating ?? false);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: t.overlaySurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: t.subCardBorder)),
-        ),
+    return FittedSheetSurface(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.textTertiary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
+            Row(
+              children: [
+                Text(_reading.label(l10n), style: t.titleLg),
+                const Spacer(),
+                Text(
+                  _reading.actual == null
+                      ? '—'
+                      : '${_reading.actual!.toStringAsFixed(0)}°',
+                  style: t.monoTitle.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: t.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(_reading.label(l10n), style: t.titleLg),
-                      const Spacer(),
-                      Text(
-                        _reading.actual == null
-                            ? '—'
-                            : '${_reading.actual!.toStringAsFixed(0)}°',
-                        style: t.monoTitle.copyWith(
-                          fontWeight: FontWeight.w400,
-                          color: t.textSecondary,
+            if (showNozzleSwitch) ...[
+              const SizedBox(height: 12),
+              _nozzleSwitch(
+                t,
+                l10n,
+                isActive: isActiveNozzle,
+                busy: switching,
+                enabled: !widget.printing && !switching,
+              ),
+            ],
+            const SizedBox(height: 16),
+            // Dim + block the target editor when a chamber target can't
+            // take effect (airduct not in Heating).
+            Opacity(
+              opacity: tempEnabled ? 1 : 0.35,
+              child: IgnorePointer(
+                ignoring: !tempEnabled,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Text(
+                        _target == 0 ? l10n.ctrlOff : '$_target°',
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 44,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
                         ),
                       ),
-                    ],
-                  ),
-                  if (showNozzleSwitch) ...[
-                    const SizedBox(height: 12),
-                    _nozzleSwitch(
-                      t,
-                      l10n,
-                      isActive: isActiveNozzle,
-                      busy: switching,
-                      enabled: !widget.printing && !switching,
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  // Dim + block the target editor when a chamber target can't
-                  // take effect (airduct not in Heating).
-                  Opacity(
-                    opacity: tempEnabled ? 1 : 0.35,
-                    child: IgnorePointer(
-                      ignoring: !tempEnabled,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Center(
-                            child: Text(
-                              _target == 0 ? l10n.ctrlOff : '$_target°',
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 44,
-                                fontWeight: FontWeight.w700,
-                                color: accent,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _StepButton(
+                          icon: Icons.remove,
+                          id: 'temperature.step_down',
+                          onTap: () => _bump(-step),
+                        ),
+                        Expanded(
+                          // No `divisions`: tick marks would be far denser
+                          // on the wide nozzle range (0–300) than the bed
+                          // (0–120) and look inconsistent. The slider stays
+                          // smooth and the value snaps to `step` here.
+                          child: Slider(
+                            value: _target.clamp(0, max).toDouble(),
+                            max: max.toDouble(),
+                            activeColor: accent,
+                            onChanged: (v) => setState(
+                              () => _target = ((v / step).round() * step).clamp(
+                                0,
+                                max,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _StepButton(
-                                icon: Icons.remove,
-                                id: 'temperature.step_down',
-                                onTap: () => _bump(-step),
-                              ),
-                              Expanded(
-                                // No `divisions`: tick marks would be far denser
-                                // on the wide nozzle range (0–300) than the bed
-                                // (0–120) and look inconsistent. The slider stays
-                                // smooth and the value snaps to `step` here.
-                                child: Slider(
-                                  value: _target.clamp(0, max).toDouble(),
-                                  max: max.toDouble(),
-                                  activeColor: accent,
-                                  onChanged: (v) => setState(
-                                    () => _target = ((v / step).round() * step)
-                                        .clamp(0, max),
-                                  ),
-                                ).tagged('temperature.slider'),
-                              ),
-                              _StepButton(
-                                icon: Icons.add,
-                                id: 'temperature.step_up',
-                                onTap: () => _bump(step),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Quick-pick presets — tapping one moves the slider;
-                          // the change is committed with the Set button below.
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final p in _reading.presets(_chamberMax))
-                                _PresetChip(
-                                  label: '$p°',
-                                  id: 'temperature.preset',
-                                  selected: _target == p,
-                                  onTap: () => setState(() => _target = p),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                          ).tagged('temperature.slider'),
+                        ),
+                        _StepButton(
+                          icon: Icons.add,
+                          id: 'temperature.step_up',
+                          onTap: () => _bump(step),
+                        ),
+                      ],
                     ),
-                  ),
-                  if (showAirduct) ...[
                     const SizedBox(height: 12),
-                    _AirductToggle(
-                      heating: _airductHeating,
-                      onChanged: _busy ? null : _setAirduct,
+                    // Quick-pick presets — tapping one moves the slider;
+                    // the change is committed with the Set button below.
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final p in _reading.presets(_chamberMax))
+                          _PresetChip(
+                            label: '$p°',
+                            id: 'temperature.preset',
+                            selected: _target == p,
+                            onTap: () => setState(() => _target = p),
+                          ),
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlOff,
-                          id: 'temperature.off',
-                          onTap: _busy ? null : () => _apply(0),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlSet,
-                          id: 'temperature.set',
-                          filled: true,
-                          busy: _busy,
-                          onTap: (_busy || !tempEnabled)
-                              ? null
-                              : () => _apply(_target),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
+            ),
+            if (showAirduct) ...[
+              const SizedBox(height: 12),
+              _AirductToggle(
+                heating: _airductHeating,
+                onChanged: _busy ? null : _setAirduct,
+              ),
+            ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _SheetButton(
+                    label: l10n.ctrlOff,
+                    id: 'temperature.off',
+                    onTap: _busy ? null : () => _apply(0),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _SheetButton(
+                    label: l10n.ctrlSet,
+                    id: 'temperature.set',
+                    filled: true,
+                    busy: _busy,
+                    onTap: (_busy || !tempEnabled)
+                        ? null
+                        : () => _apply(_target),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

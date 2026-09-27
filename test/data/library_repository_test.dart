@@ -14,7 +14,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = LibraryRepository(dio);
   });
 
@@ -25,7 +25,7 @@ void main() {
         (s) => s.reply(200, [
           {'id': 1, 'name': 'zabawki', 'file_count': 3},
           'junk',
-          {'id': 2, 'name': 'petg'}, // brak file_count → 0
+          {'id': 2, 'name': 'petg'}, // no file_count → 0
         ]),
       );
 
@@ -44,6 +44,7 @@ void main() {
       );
 
       expect(await repo.listTags(), isNull);
+      expect(repo.tagsCapability.observedAnswer, isFalse);
     });
 
     test('500 is an error, not a missing feature', () async {
@@ -256,7 +257,7 @@ void main() {
 
       await repo.listFiles();
 
-      expect(await repo.supportsCrossModelVariants(), isTrue);
+      expect(await repo.variantsCapability.supported, isTrue);
     });
 
     test('variant_count absent from the listing turns support off', () async {
@@ -268,7 +269,23 @@ void main() {
 
       await repo.listFiles();
 
-      expect(await repo.supportsCrossModelVariants(), isFalse);
+      expect(await repo.variantsCapability.supported, isFalse);
+    });
+
+    test('a tag-filtered listing answers it too', () async {
+      // The same handler and response model as the folder listing; a session
+      // that opened the library on a tag filter learned nothing before.
+      adapter.onGet(
+        '/api/v1/library/files',
+        (s) => s.reply(200, [row126()]),
+        queryParameters: {
+          'tag_ids': [4],
+        },
+      );
+
+      await repo.listFilesByTags([4]);
+
+      expect(repo.variantsCapability.observedAnswer, isTrue);
     });
 
     test('an empty listing settles nothing — the cautious no stands', () async {
@@ -284,7 +301,7 @@ void main() {
 
       // With no ServerVersionService the fallback is false — what matters is
       // that an empty list did not pin the answer.
-      expect(await repo.supportsCrossModelVariants(), isFalse);
+      expect(await repo.variantsCapability.supported, isFalse);
     });
 
     test('parses a file group', () async {
@@ -398,6 +415,289 @@ void main() {
 
       expect((await repo.plates(9)).embedded.isAvailable, isFalse);
       expect((await repo.plates(8)).plates, isEmpty);
+    });
+  });
+
+  group('addToQueue', () {
+    const path = '/api/v1/library/files/add-to-queue';
+
+    test('sends no target unless one was chosen', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {
+          'added': [{}, {}],
+          'errors': [],
+        }),
+        data: {
+          'file_ids': [1, 2],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1, 2]);
+
+      expect(outcome.added, 2);
+      expect(outcome.rejections, isEmpty);
+    });
+
+    test('names the printer or the model it was given', () async {
+      adapter
+        ..onPost(
+          path,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+            'printer_id': 7,
+          },
+        )
+        ..onPost(
+          path,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [2],
+            'target_model': 'X1C',
+          },
+        );
+
+      expect((await repo.addToQueue([1], printerId: 7)).added, 1);
+      expect((await repo.addToQueue([2], targetModel: 'X1C')).added, 1);
+    });
+
+    test('a partial batch reports what was skipped and why', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {
+          'added': [{}],
+          'errors': [
+            {'file_id': 2, 'filename': 'b', 'error': 'Not a sliced file.'},
+            'junk',
+          ],
+        }),
+        data: {
+          'file_ids': [1, 2],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1, 2]);
+
+      expect(outcome.added, 1);
+      expect(outcome.rejections, ['Not a sliced file.']);
+    });
+
+    test(
+      'nothing queued throws the first reason, in both server shapes',
+      () async {
+        const reasons = [
+          {'file_id': 1, 'filename': 'a', 'error': 'File was sliced for P1S'},
+        ];
+        // Before #3112: a 200 whose body lists the refusals.
+        adapter.onPost(
+          path,
+          (s) => s.reply(200, {'added': [], 'errors': reasons}),
+          data: {
+            'file_ids': [1],
+          },
+        );
+        // From #3112: the same list inside a 400's detail.
+        adapter.onPost(
+          path,
+          (s) => s.reply(400, {
+            'detail': {
+              'message': 'No files could be added.',
+              'errors': reasons,
+            },
+          }),
+          data: {
+            'file_ids': [2],
+          },
+        );
+
+        for (final id in [1, 2]) {
+          await expectLater(
+            repo.addToQueue([id]),
+            throwsA(
+              isA<ApiException>().having(
+                (e) => e.detail,
+                'detail',
+                'File was sliced for P1S',
+              ),
+            ),
+          );
+        }
+      },
+    );
+
+    test('a 400 with no readable reasons is still a failure', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(400, {
+          'detail': {'message': 'No files could be added.', 'errors': []},
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+
+      await expectLater(
+        repo.addToQueue([1]),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'No files could be added.',
+          ),
+        ),
+      );
+    });
+
+    test('a batch-level 400 keeps its sentence', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(400, {'detail': 'No active printers for model: H2D'}),
+        data: {
+          'file_ids': [1],
+          'target_model': 'H2D',
+        },
+      );
+
+      await expectLater(
+        repo.addToQueue([1], targetModel: 'H2D'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'No active printers for model: H2D',
+          ),
+        ),
+      );
+    });
+
+    test('an unreadable 200 is a success with nothing to report', () async {
+      adapter.onPost(
+        path,
+        (s) => s.reply(200, {'ok': true}),
+        data: {
+          'file_ids': [1],
+        },
+      );
+
+      final outcome = await repo.addToQueue([1]);
+
+      expect(outcome.rejections, isEmpty);
+    });
+  });
+
+  group('photos, link and notes (#3077)', () {
+    Map<String, dynamic> row({bool extras = true}) => {
+      'id': 1,
+      'filename': 'benchy.gcode.3mf',
+      'file_type': 'gcode',
+      'file_size': 10,
+      'print_count': 0,
+      'created_at': '2026-09-26T10:00:00',
+      if (extras) ...{
+        'photo_count': 2,
+        'external_url': 'https://example.com',
+        'has_notes': true,
+      },
+    };
+
+    test('the listing decides whether the server has them', () async {
+      adapter
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, [row()]),
+          queryParameters: {'include_root': true},
+        )
+        ..onGet(
+          '/api/v1/library/files',
+          (s) => s.reply(200, [row(extras: false)]),
+          queryParameters: {'include_root': false, 'folder_id': 9},
+        );
+
+      final files = await repo.listFiles();
+      expect(repo.fileExtrasCapability.observedAnswer, isTrue);
+      expect(files.single.photoCount, 2);
+      expect(files.single.hasNotes, isTrue);
+      expect(files.single.externalUrl, 'https://example.com');
+
+      final older = await repo.listFiles(folderId: 9);
+      expect(repo.fileExtrasCapability.observedAnswer, isFalse);
+      expect(older.single.photoCount, 0);
+      expect(older.single.hasNotes, isFalse);
+    });
+
+    test('the detail carries the photo names and the import source', () async {
+      adapter.onGet(
+        '/api/v1/library/files/1',
+        (s) => s.reply(200, {
+          'id': 1,
+          'notes': 'PETG',
+          'external_url': null,
+          'source_url': 'https://makerworld.com/models/1',
+          'photos': ['a1b2c3d4.jpg'],
+        }),
+      );
+
+      final d = await repo.fileDetail(1);
+
+      expect(d.notes, 'PETG');
+      expect(d.externalUrl, isNull);
+      expect(d.sourceUrl, 'https://makerworld.com/models/1');
+      expect(d.photos, ['a1b2c3d4.jpg']);
+    });
+
+    test('an older detail without the fields reads as empty', () async {
+      adapter.onGet(
+        '/api/v1/library/files/1',
+        (s) => s.reply(200, {'id': 1, 'notes': null}),
+      );
+
+      final d = await repo.fileDetail(1);
+
+      expect(d.photos, isEmpty);
+      expect(d.sourceUrl, isNull);
+    });
+
+    test('a refused link keeps the server sentence', () async {
+      adapter.onPut(
+        '/api/v1/library/files/1',
+        (s) => s.reply(422, {
+          'detail': [
+            {
+              'msg':
+                  'Value error, external_url must start with http:// or '
+                  'https://',
+            },
+          ],
+        }),
+        data: {'external_url': 'ftp://x'},
+      );
+
+      await expectLater(
+        repo.setFileLink(1, 'ftp://x'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'external_url must start with http:// or https://',
+          ),
+        ),
+      );
+    });
+
+    test('a photo is deleted by its own name', () async {
+      adapter.onDelete(
+        '/api/v1/library/files/1/photos/a1b2c3d4.jpg',
+        (s) => s.reply(200, {'photos': []}),
+      );
+
+      await repo.deleteFilePhoto(1, 'a1b2c3d4.jpg');
     });
   });
 }

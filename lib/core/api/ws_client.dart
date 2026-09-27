@@ -5,6 +5,7 @@ import 'dart:io' show WebSocketException;
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../diagnostics/auth_probe.dart';
 import '../diagnostics/ws_probe.dart';
 import '../models/printer_status.dart';
 import 'ws_backoff.dart';
@@ -148,6 +149,7 @@ class WsClient {
   final _archiveController = StreamController<WsArchiveUpdated>.broadcast();
   final _pipelineRunController =
       StreamController<WsPipelineRunUpdated>.broadcast();
+  final _inventoryController = StreamController<WsInventoryChanged>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -187,6 +189,11 @@ class WsClient {
   Stream<WsPipelineRunUpdated> get pipelineRunUpdates =>
       _pipelineRunController.stream;
 
+  /// The spool inventory changed somewhere — another client, a SpoolBuddy
+  /// scale, the printer loading a tray.
+  Stream<WsInventoryChanged> get inventoryChanges =>
+      _inventoryController.stream;
+
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
     if (_disposed || _running) return;
@@ -225,6 +232,7 @@ class WsClient {
     await _statusController.close();
     await _plateController.close();
     await _printController.close();
+    await _inventoryController.close();
     await _archiveController.close();
     await _pipelineRunController.close();
   }
@@ -328,6 +336,8 @@ class WsClient {
     } else if (msg is WsPipelineRunUpdated &&
         !_pipelineRunController.isClosed) {
       _pipelineRunController.add(msg);
+    } else if (msg is WsInventoryChanged && !_inventoryController.isClosed) {
+      _inventoryController.add(msg);
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.
@@ -345,7 +355,18 @@ class WsClient {
         !_authRefreshed &&
         _isAuthError(error)) {
       _authRefreshed = true;
-      final refreshed = await _refreshAuth();
+      bool refreshed;
+      try {
+        refreshed = await _refreshAuth();
+      } on Object catch (e) {
+        // Let out, this ended the attempt with no retry scheduled, and the
+        // background service never suspends to start another. Unlike a refusal
+        // a throw (a keystore read) says nothing about the credentials, so the
+        // next attempt may log in again.
+        AuthProbe.refreshStepFailed(e);
+        _authRefreshed = false;
+        refreshed = false;
+      }
       if (generation != _generation || !_running || _disposed) return;
       if (refreshed) {
         _backoff.reset();

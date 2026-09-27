@@ -4,19 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/section_heading.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -138,7 +133,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
     _snack(l10n.swatchImported(incoming.length));
   }
 
-  // --- Tworzenie / edycja / usuwanie ---
+  // --- Create / edit / delete ---
 
   /// Open create sheet (initial == null) or edit existing code.
   Future<void> _openForm({SwatchCode? initial}) async {
@@ -485,7 +480,10 @@ class _SwatchTile extends StatelessWidget {
                     'swatches.delete',
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: Icon(Icons.delete_outline_rounded, color: t.danger),
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: t.dangerInk,
+                      ),
                       onPressed: onDelete,
                     ),
                   ),

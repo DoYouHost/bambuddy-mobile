@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'calibration_option.dart';
@@ -72,6 +73,9 @@ class QueueItem {
     this.nozzleMapping,
     this.nozzleRackChoice,
     this.slicedForModel,
+    this.batchId,
+    this.batchName,
+    this.createdById,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -275,6 +279,16 @@ class QueueItem {
   /// Model the file was sliced for, e.g. "X2D". Drives the `Any <model>` label
   /// and dual-nozzle option visibility.
   final String? slicedForModel;
+
+  /// The batch this item belongs to and its name, from server v0.2.3. A
+  /// `quantity > 1` create makes one on its own, so an item can be in a batch
+  /// nobody grouped by hand.
+  final int? batchId;
+  final String? batchName;
+
+  /// Who queued it. Grouping someone else's item needs `queue:update_all`;
+  /// without it the server skips the item without a word.
+  final int? createdById;
 
   /// Cross-model alternatives in priority order (server #671) — several sliced
   /// files, one job, whichever printer frees up first. Empty for every ordinary

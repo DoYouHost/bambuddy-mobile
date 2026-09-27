@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
@@ -8,6 +10,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
 /// Used by the queue filament-mapping sheet to list loaded AMS filaments.
@@ -40,14 +43,15 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     return _activeSorted(all);
   }
 
+  static int _printingFirst(QueueItem i) =>
+      i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
+
   List<QueueItem> _activeSorted(List<QueueItem> items) {
     // Printing always on top (pinned, non-reorderable in UI), then rest by
     // `position` with `id` as tiebreaker: server defaults all to `position == 1`
     // until queue is arranged, so stable tiebreaker is needed or order is undefined.
-    int printingFirst(QueueItem i) =>
-        i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
     return items.where((i) => i.isActive).toList()..sort((a, b) {
-      final byPrinting = printingFirst(a).compareTo(printingFirst(b));
+      final byPrinting = _printingFirst(a).compareTo(_printingFirst(b));
       if (byPrinting != 0) return byPrinting;
       final byPos = a.position.compareTo(b.position);
       return byPos != 0 ? byPos : a.id.compareTo(b.id);
@@ -71,28 +75,76 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// `oldIndex`, so insert without additional correction. Send SEQUENTIAL positions
   /// 1..N in new order to server — "bulk update positions" endpoint expects target
   /// values, and all items default to `position == 1` (verified live, see reorder in
-  /// contract). Error → rollback to pre-drag state.
+  /// contract). Error → the dragged row goes back, see [_placedBack].
+  ///
+  /// One at a time: the payload is the whole list, so a second drag sent while
+  /// the first is out would carry the first one's order to the server even if
+  /// that one is refused. A drag meanwhile is dropped and the row snaps back.
   Future<ActionOutcome> reorder(int oldIndex, int newIndex) async {
     final current = state.valueOrNull;
     // No rows are rendered while the queue is unloaded, so there was nothing
-    // to drag: nothing was sent and there is nothing to report.
-    if (current == null || oldIndex == newIndex) return ActionOutcome.ok;
+    // to drag: nothing was sent and there is nothing to report. Indices past
+    // the end come from a list a poll shortened after it was drawn.
+    if (current == null ||
+        _reordering ||
+        oldIndex == newIndex ||
+        oldIndex < 0 ||
+        newIndex < 0 ||
+        oldIndex >= current.length ||
+        newIndex >= current.length) {
+      return ActionOutcome.ok;
+    }
 
     final list = [...current];
     final moved = list.removeAt(oldIndex);
     list.insert(newIndex, moved);
-    state = AsyncValue.data(list); // optymistycznie
+    state = AsyncValue.data(list); // optimistic
 
     final payload = [
       for (var i = 0; i < list.length; i++) (id: list[i].id, position: i + 1),
     ];
+    _reordering = true;
     try {
       await ref.read(queueRepositoryProvider).reorder(payload);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      state = AsyncValue.data(current); // rollback
+    } catch (e) {
+      final live = state.valueOrNull;
+      final row = live?.where((i) => i.id == moved.id).firstOrNull;
+      // Gone meanwhile (deleted, finished): there is no row left to move.
+      if (row != null) {
+        state = AsyncValue.data(_placedBack(row, current, live!));
+      }
+      if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: 'queue.reorder');
+    } finally {
+      _reordering = false;
     }
+  }
+
+  bool _reordering = false;
+
+  /// [rows] with [item] moved to where [before] had it: just below the lowest
+  /// of the rows that stood above it there. Only that one row moves — the rest
+  /// keep the order they have *now*, so a delete, a reorder or a refresh that
+  /// landed while the request was out survives its rollback.
+  ///
+  /// Not [_activeSorted]: a reorder that succeeded leaves the rows' `position`
+  /// fields as they were, so sorting by them would undo it.
+  List<QueueItem> _placedBack(
+    QueueItem item,
+    List<QueueItem> before,
+    List<QueueItem> rows,
+  ) {
+    final out = [...rows]..removeWhere((i) => i.id == item.id);
+    // The neighbour walk is shared with the other two optimistic removals; only
+    // the pin below is the queue's own.
+    var at = restoredPositionOf(out, item, before, idOf: (i) => i.id);
+    // Printing rows stay pinned on top whatever the rows around them did.
+    final pinned = out.takeWhile((i) => _printingFirst(i) == 0).length;
+    at = _printingFirst(item) == 0
+        ? math.min(at, pinned)
+        : math.max(at, pinned);
+    return out..insert(at, item);
   }
 
   /// Optimistic delete (swipe-to-delete). Error → restore item.
@@ -107,12 +159,20 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     final current = state.valueOrNull;
     if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
-    state = AsyncValue.data(current.where((i) => i.id != itemId).toList());
+    final index = current.indexWhere((i) => i.id == itemId);
+
+    if (index >= 0) state = AsyncValue.data([...current]..removeAt(index));
     try {
       await ref.read(queueRepositoryProvider).delete(itemId);
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      state = AsyncValue.data(current); // rollback
+    } catch (e) {
+      // Any failure puts the row back; only a refusal is an answer.
+      final live = state.valueOrNull;
+      // A refresh that landed meanwhile already holds the row the server kept.
+      if (index >= 0 && live != null && !live.any((i) => i.id == itemId)) {
+        state = AsyncValue.data(_placedBack(current[index], current, live));
+      }
+      if (e is! AppApiException) rethrow;
       return ActionOutcome.failed(e, action: logId);
     }
   }
@@ -148,22 +208,21 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
         'queue.save_mapping',
       );
 
-  /// Assign indicated (free) printer and start item — triggers physical print.
-  /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
-  /// [amsMapping] (optional) sets the filament→AMS-slot mapping before starting;
-  /// `-1` entries mean "auto". On success, refresh list.
+  /// Put [item] on the indicated (free) printer and start it — triggers a
+  /// physical print. See [QueueRepository.startOnPrinter], which also undoes the
+  /// assignment when the start is refused. [amsMapping] (optional) sets the
+  /// filament→AMS-slot mapping before starting; `-1` entries mean "auto". On
+  /// success, refresh list.
   Future<ActionOutcome> startOnPrinter(
-    int itemId,
+    QueueItem item,
     int printerId, {
     List<int>? amsMapping,
-  }) => _serverAction(() async {
-    final repo = ref.read(queueRepositoryProvider);
-    await repo.assignPrinter(itemId, printerId);
-    if (amsMapping != null && amsMapping.isNotEmpty) {
-      await repo.setAmsMapping(itemId, amsMapping);
-    }
-    await repo.start(itemId);
-  }, 'queue.start_on_printer');
+  }) => _serverAction(
+    () => ref
+        .read(queueRepositoryProvider)
+        .startOnPrinter(item, printerId, amsMapping: amsMapping),
+    'queue.start_on_printer',
+  );
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via

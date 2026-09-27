@@ -153,4 +153,67 @@ void main() {
 
     expect(answer.at, DateTime(2026, 9, 2, 18));
   });
+
+  /// The other end of the range: a time stored further ahead than the calendar
+  /// reaches used to trip the same assert.
+  testWidgets('an instant past the last day opens on that day', (tester) async {
+    final answer = _Answer();
+
+    await withClock(Clock.fixed(now), () async {
+      await open(tester, answer, initial: DateTime(2040, 1, 1, 7));
+      await accept(tester);
+      await accept(tester);
+    });
+
+    expect(tester.takeException(), isNull);
+    expect(answer.at, DateTime(2031, 1, 1, 7));
+  });
+
+  group('pickDate', () {
+    Future<DateTime?> pickOn(WidgetTester tester, DateTime initial) async {
+      DateTime? picked;
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async => picked = await pickDate(
+                    context,
+                    initial: initial,
+                    firstDate: DateTime(2026, 9, 3),
+                    lastDate: DateTime(2027, 9, 3),
+                  ),
+                  child: const Text('go'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+      await accept(tester);
+      expect(tester.takeException(), isNull);
+      return picked;
+    }
+
+    // An expired API key being edited, a project due date set years ago.
+    testWidgets('a day before the range opens on its first day', (
+      tester,
+    ) async {
+      expect(await pickOn(tester, DateTime(2024, 1, 1)), DateTime(2026, 9, 3));
+    });
+
+    testWidgets('a day after it opens on its last', (tester) async {
+      expect(await pickOn(tester, DateTime(2035, 1, 1)), DateTime(2027, 9, 3));
+    });
+
+    testWidgets('a day inside it opens where it is', (tester) async {
+      expect(
+        await pickOn(tester, DateTime(2026, 12, 24)),
+        DateTime(2026, 12, 24),
+      );
+    });
+  });
 }

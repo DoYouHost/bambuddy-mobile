@@ -5,27 +5,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
+import '../common/refresh_when_shown.dart';
 import '../common/detached_flow.dart';
 import '../common/plate_clear.dart';
 import '../gcode/gcode_viewer_route.dart';
-import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
+import '../orders/orders_providers.dart';
 import 'queue_edit_screen.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
@@ -135,6 +132,12 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
           context,
           title: l10n.navQueue,
           actions: [
+            if (ref.watch(batchListingProvider).orFalse)
+              IconButton(
+                tooltip: l10n.ordersTitle,
+                icon: const Icon(Icons.inventory_2_outlined),
+                onPressed: () => context.push('/orders'),
+              ).tagged('queue.orders'),
             if (queued.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 16),
@@ -160,18 +163,21 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                   label: Text(l10n.queueStartNext),
                 ),
               ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () => ref.read(queueProvider.notifier).refresh(),
-          data: (items) => RefreshIndicator(
-            onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-            child: items.isEmpty
-                ? EmptyStateView(
-                    message: l10n.queueEmpty,
-                    icon: Icons.playlist_add_check,
-                  )
-                : _QueueList(items: items),
+        body: RefreshWhenShown(
+          onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () => ref.read(queueProvider.notifier).refresh(),
+            data: (items) => RefreshIndicator(
+              onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+              child: items.isEmpty
+                  ? EmptyStateView(
+                      message: l10n.queueEmpty,
+                      icon: Icons.playlist_add_check,
+                    )
+                  : _QueueList(items: items),
+            ),
           ),
         ),
       ),
@@ -385,7 +391,7 @@ class _QueueCard extends ConsumerWidget {
           color: t.danger.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
         ),
-        child: Icon(Icons.delete_outline, color: t.danger),
+        child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
       // Dialog here only; actual delete in onDismissed (notifier removes from state) —
       // else Dismissible conflicts with list rebuild.
@@ -428,6 +434,9 @@ class _Subtitle extends StatelessWidget {
           [for (final v in item.variants) v.targetModel].join(', '),
         ),
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
+      // Which order or grouping the run belongs to — the only link from a
+      // queue row to its order's progress.
+      if (item.batchName != null) l10n.queueInBatch(item.batchName!),
       // Says the print will land in the exact trays the slicer picked, rather
       // than trays the scheduler works out from the file's type and colour.
       // Server ≥ 1.2.5.2; false everywhere else, so the marker just never
@@ -720,6 +729,12 @@ class _QueueActions extends ConsumerWidget {
 /// assign a printer if the item has none, then the filament-mapping screen
 /// (pre-filled, not enforced), then start. Aborts silently if the user backs
 /// out of either step.
+/// Starts [item], and makes sure a failure is something the user can see.
+///
+/// The flow runs from a button callback, so anything that escapes it goes to
+/// the zone: the print does not start, and the user — who has just picked a
+/// printer and mapped the AMS — is told nothing at all. Every step inside words
+/// its own refusals; this is the net under the ones nobody predicted.
 Future<void> _startQueueItem(
   BuildContext context,
   WidgetRef ref,
@@ -730,7 +745,36 @@ Future<void> _startQueueItem(
   // requests, and the row that started it can be gone before any of those come
   // back: the list rebuilds on every WS refresh, and a removed item shrinks it.
   // See [detachFrom].
-  final (:providers, :messenger) = detachFrom(context);
+  final handles = detachFrom(context);
+  try {
+    await _sendQueuedPrint(context, ref, item, l10n, handles);
+  } on AppApiException catch (error) {
+    showApiFailure(handles.messenger, error, l10n, action: 'queue.start');
+  } on Object catch (error, stack) {
+    handles.messenger.snack(l10n.connectFailed);
+    // Reported rather than swallowed: `ErrorProbe` writes the `err/uncaught`
+    // record a bug report about this is read from, and it is the only thing
+    // that says *what* failed. Catching without this would trade a silent
+    // failure for an unexplainable one, and take the debug console with it.
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'bambuddy queue',
+        context: ErrorDescription('starting a queued print'),
+      ),
+    );
+  }
+}
+
+Future<void> _sendQueuedPrint(
+  BuildContext context,
+  WidgetRef ref,
+  QueueItem item,
+  AppLocalizations l10n,
+  DetachedHandles handles,
+) async {
+  final (:providers, :messenger) = handles;
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
@@ -793,7 +837,7 @@ Future<void> _startQueueItem(
   // it listened to.
   final result = await providers
       .read(queueProvider.notifier)
-      .startOnPrinter(item.id, printerId, amsMapping: mapping);
+      .startOnPrinter(item, printerId, amsMapping: mapping);
   messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 
@@ -816,7 +860,7 @@ Future<bool> _awaitingPlateClear(
   ProviderContainer providers,
   int printerId,
 ) async {
-  final gateEnabled = await providers.read(requirePlateClearProvider.future);
+  final gateEnabled = await settledGate(providers, requirePlateClearProvider);
   if (!gateEnabled) return false;
   final cached = providers.read(printerStatusesProvider)[printerId];
   if (cached != null) {

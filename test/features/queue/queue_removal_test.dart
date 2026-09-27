@@ -97,11 +97,13 @@ void main() {
     });
 
     test('each route\'s refusal reads as the row having moved on', () {
-      // Three routes, three wordings, one thing the user has to do.
+      // One wording per route, one thing the user has to do.
       const details = [
         "Cannot cancel item with status 'printing'",
         "Can only stop items that are printing, current status: 'pending'",
         'Cannot delete item that is currently printing',
+        'Can only update pending items',
+        "Can only start pending items, current status: 'printing'",
       ];
       for (final detail in details) {
         expect(

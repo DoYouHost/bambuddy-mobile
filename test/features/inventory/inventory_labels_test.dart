@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -67,6 +68,7 @@ void main() {
   Future<_CapturingRepository> openTemplatePicker(
     WidgetTester tester, {
     required bool startingPositionSupported,
+    AsyncValue<bool>? gate,
   }) async {
     final repo = _CapturingRepository();
     await pumpPhone(
@@ -76,8 +78,8 @@ void main() {
         inventoryProvider.overrideWith(_CapturingInventory.new),
         serverProfileProvider.overrideWith(_NullProfile.new),
         inventoryRepositoryProvider.overrideWithValue(repo),
-        labelStartingPositionProvider.overrideWith(
-          (ref) async => startingPositionSupported,
+        labelStartingPositionProvider.overrideWithValue(
+          gate ?? AsyncData(startingPositionSupported),
         ),
       ],
     );
@@ -154,4 +156,21 @@ void main() {
     expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
     expect(repo.request!.startingPosition, 1);
   });
+
+  testWidgets(
+    'a gate that failed prints from 1 rather than failing the print',
+    (tester) async {
+      // The flow waits on the gate outside a build; an error let through there
+      // would end the print with nothing sent and nothing said.
+      final repo = await openTemplatePicker(
+        tester,
+        startingPositionSupported: true,
+        gate: AsyncError(StateError('no profile'), StackTrace.empty),
+      );
+      await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
+
+      expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
+      expect(repo.request!.startingPosition, 1);
+    },
+  );
 }

@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'json_utils.dart';
@@ -30,6 +31,9 @@ class LibraryFile {
     this.tags = const [],
     this.variantGroupId,
     this.variantCount = 0,
+    this.externalUrl,
+    this.hasNotes = false,
+    this.photoCount = 0,
   });
 
   factory LibraryFile.fromJson(Map<String, dynamic> json) =>
@@ -56,7 +60,6 @@ class LibraryFile {
   /// with token — this field only checks "does it exist".
   final String? thumbnailPath;
 
-  /// Print count for this file.
   final int printCount;
 
   /// Duplicate count (same hash elsewhere in library).
@@ -98,6 +101,19 @@ class LibraryFile {
   @JsonKey(defaultValue: 0)
   final int variantCount;
 
+  /// The user's link for this file (#3077) — a design page, a shop. Only
+  /// `http`/`https` is accepted by the server's `FileUpdate`.
+  final String? externalUrl;
+
+  /// Whether the file carries notes; the listing never ships the text itself.
+  @JsonKey(defaultValue: false)
+  final bool hasNotes;
+
+  /// Photos of the printed result. Absent (→ 0) before #3077, which is how
+  /// [LibraryRepository] tells the generations apart, as with [variantCount].
+  @JsonKey(defaultValue: 0)
+  final int photoCount;
+
   /// Whether this file is one of several alternatives for the same job.
   ///
   /// Compared against 1 rather than 0 only as belt-and-braces: the server never
@@ -106,7 +122,6 @@ class LibraryFile {
   /// [variantGroupId] being set.
   bool get hasVariants => variantCount > 1;
 
-  /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
 
   /// Tag names in catalog order, for the one-line summary under an action row.

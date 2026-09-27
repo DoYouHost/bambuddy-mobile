@@ -1,20 +1,15 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/trash_file.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
-import '../common/format_bytes.dart';
-import '../common/state_views.dart';
-import '../common/system_insets.dart';
 import 'file_manager_providers.dart';
 
 /// Library trash: list of deleted files with restore, permanent delete, and empty trash.
@@ -213,7 +208,7 @@ class _TrashTile extends StatelessWidget {
               ).tagged('trash.restore'),
               IconButton(
                 tooltip: l10n.fmHardDelete,
-                icon: Icon(Icons.delete_forever_outlined, color: t.danger),
+                icon: Icon(Icons.delete_forever_outlined, color: t.dangerInk),
                 onPressed: onDelete,
               ).tagged('trash.delete'),
             ],

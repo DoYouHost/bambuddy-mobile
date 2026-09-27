@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
@@ -14,28 +16,14 @@ const treat404AsAbsent = {404, 403};
 
 /// A server capability the app settles by watching what the server actually
 /// answers, with [ServerVersion.introducedIn] behind it for before anything has
-/// been seen.
+/// been seen — a version number cannot always answer the question (see
+/// [ServerVersion]), while a route's 403 or 404 can. In order: a refusal, then
+/// what was observed, then the version table and [whenUnknown] behind it.
 ///
-/// The shape was written out six times before it lived here, always because a
-/// version number cannot always answer the question — bambuddy renumbered the
-/// 0.2.5 cycle to 1.2.5 partway through, and every 1.2.6 daily build reports
-/// `1.2.6b1` — while a field's type or a route's 404 can. Three answers, in
-/// this order:
-///
-/// 1. **A refusal outranks everything.** A 403 says the route is there and this
-///    session may not use it: a question no version can answer, and one that
-///    must not be recorded as an observation about the route itself.
-/// 2. **What was observed outranks the version**, being the same question
-///    answered outright rather than inferred from a number.
-/// 3. **The version table, and [whenUnknown] behind it** — for before the first
-///    reply, and for callers with no version service at all (the watch relay
-///    and the background isolate never build one).
-///
-/// Every latch lives as long as the instance, which is the intended lifetime:
-/// the repositories are rebuilt when `apiClientProvider` changes, and the ones
-/// behind a chart also on the dashboard's pull-to-refresh — the only in-app way
-/// to notice a permission granted server-side, since a control that hid itself
-/// never calls its route again.
+/// A latch lives as long as the instance. That is the intended lifetime: the
+/// repositories are rebuilt when `apiClientProvider` changes, which is the only
+/// in-app way to notice a permission granted server-side — a control that hid
+/// itself never calls its route again.
 ///
 /// Two gates deliberately stay outside it: `StatsRepository._hasSlimListing`
 /// (its version row must not be consulted — see
@@ -44,42 +32,116 @@ const treat404AsAbsent = {404, 403};
 class ObservedCapability {
   /// [version] is nullable rather than optional so that a caller which has one
   /// cannot forget to pass it: every construction states its fallback.
-  ObservedCapability(this._feature, this._version, {this.whenUnknown = false});
+  ObservedCapability(this._feature, this._version, {this.whenUnknown = false})
+    : _probe = null;
 
-  /// A capability with no version row behind it, because its route predates
-  /// every server this app talks to: a threshold could then only ever hide it
-  /// from a healthy server whose version read failed. What is still worth
-  /// watching is the permission (`AmsHistoryRepository`).
-  ObservedCapability.unversioned({this.whenUnknown = true})
+  /// No version row behind it, for a route that predates every server this app
+  /// talks to: a threshold could then only hide it from a healthy server whose
+  /// version read failed. The permission is still worth watching.
+  ///
+  /// [probe] is a request that settles this latch — it must go through
+  /// [watching] — for a gate that cannot wait until a screen happens to call
+  /// the route (see [probeIfUnknown]).
+  ObservedCapability.unversioned({this.whenUnknown = true, this._probe})
     : _feature = null,
       _version = null;
 
   final ServerFeature? _feature;
   final ServerVersionService? _version;
+  final Future<void> Function()? _probe;
 
-  /// The answer while nothing has been observed and no version is known.
-  /// `false` where offering a control an older server would refuse — or, worse,
-  /// silently ignore — costs more than hiding one; `true` where hiding it takes
-  /// a working feature off a server whose version read merely failed.
+  /// The answer while nothing has been observed and no version is known:
+  /// `false` where offering a control an older server would silently ignore
+  /// costs more than hiding one, `true` where hiding it costs more.
   final bool whenUnknown;
 
   bool? _observed;
   bool _refused = false;
+  int? _refusalsForgottenAt;
+  bool _probing = false;
+  bool _probeFailed = false;
+  int? _failedAtEpoch;
+  final _listeners = <void Function()>[];
 
-  /// Records what a reply showed. A reply that arrived at all also says this
-  /// caller is not refused, so `present: true` clears [observeRefusal].
-  void observe({required bool present}) {
-    _observed = present;
-    if (present) _refused = false;
+  /// The version row a synchronous reader should consult, or `null` when there
+  /// is none to consult — no row, or no version service, which [supported]
+  /// also answers with [whenUnknown].
+  ServerFeature? get feature => _version == null ? null : _feature;
+
+  /// What the server itself said: `false` after a refusal, the observation
+  /// otherwise, `null` while it has said nothing.
+  bool? get observedAnswer => _refused ? false : _observed;
+
+  bool get canProbe => _probe != null;
+
+  /// The last probe ended without the server saying anything (no network, 5xx,
+  /// 401). Stays set while a re-probe is in flight, so a gate keeps its
+  /// settled answer rather than going back to loading.
+  bool get probeFailed => _probeFailed;
+
+  /// Called after [observedAnswer] or [probeFailed] changed. Never from inside
+  /// a call a provider build makes: observations land after an `await`, and a
+  /// probe reports on completion.
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _update(void Function() change) {
+    final before = (observedAnswer, _probeFailed);
+    change();
+    if ((observedAnswer, _probeFailed) == before) return;
+    for (final listener in List.of(_listeners)) {
+      listener();
+    }
   }
 
-  /// The route is there, but this session may not use it (403).
-  void observeRefusal() => _refused = true;
+  void observe({required bool present}) => _update(() {
+    _observed = present;
+    _probeFailed = false;
+    if (present) _refused = false;
+  });
 
-  /// Records what [status] said about the route: a **404** is the route not
-  /// being there, a **403** is it not being for this caller, and anything else
-  /// (401, 5xx, no response at all) says nothing about either and must pin
-  /// neither latch.
+  void observeRefusal() => _update(() {
+    _refused = true;
+    _probeFailed = false;
+  });
+
+  /// Drops a refusal recorded before [epoch] ([refusalsForgottenProvider]).
+  /// The first call only marks where this latch starts, so a refusal heard
+  /// before it stands. Silent: a gate calls this from its build and derives
+  /// from the new state anyway.
+  void forgetRefusalsBefore(int epoch) {
+    final since = _refusalsForgottenAt;
+    _refusalsForgottenAt = epoch;
+    if (since != null && epoch > since) _refused = false;
+  }
+
+  /// Sends the probe unless something has already been heard, one is in flight,
+  /// or one already went unanswered at this [epoch] — the count of regained
+  /// contacts. Without that last condition a failed probe would notify, the
+  /// gate would rebuild and probe again, as fast as the network can fail.
+  void probeIfUnknown({required int epoch}) {
+    final probe = _probe;
+    if (probe == null || observedAnswer != null) return;
+    if (_probing || _failedAtEpoch == epoch) return;
+    _probing = true;
+    unawaited(_runProbe(probe, epoch));
+  }
+
+  Future<void> _runProbe(Future<void> Function() probe, int epoch) async {
+    try {
+      await probe();
+    } on Object {
+      // Whatever the status said, [watching] has already recorded it.
+    }
+    _probing = false;
+    if (observedAnswer != null) return;
+    _failedAtEpoch = epoch;
+    _update(() => _probeFailed = true);
+  }
+
+  /// A **404** is the route not being there, a **403** is it not being for this
+  /// caller; anything else (401, 5xx, no response) says nothing about either.
   void observeFailure(int? status) {
     switch (status) {
       case 404:
@@ -89,34 +151,16 @@ class ObservedCapability {
     }
   }
 
-  /// Runs [request] with this latch watching what came back, and maps a
-  /// failure the way every repository here maps one.
+  /// Runs [request] with this latch watching what came back, and maps a failure
+  /// the way every repository here maps one.
   ///
-  /// The wrapper is for the middle of it. The two statuses [observeFailure]
-  /// reads are also the two a caller usually has a plain answer for, and the
-  /// try/catch that says so was written out at ten call sites in seven
-  /// repositories — which is how one of them ends up recording a 403 and
-  /// another forgetting to.
-  ///
-  /// [absent] is what to answer with instead of throwing for the statuses in
-  /// [absentOn]. Passing none throws everything, which is right where the latch
-  /// only hides a control: the request is then one the user asked for, and a
-  /// refusal has to reach them.
-  ///
-  /// [absentOn] drops to `{404}` for exactly that reason — a route behind a
-  /// button the user pressed. A 403 there does not mean "nothing to show", it
-  /// means "you may not", and answering it with [absent] leaves a control that
-  /// does nothing and never says why.
-  ///
-  /// [observing] narrows which statuses may *settle* the latch, where
-  /// [absentOn] only picks what to answer with. It defaults to `{403}`, a
-  /// refusal only, because most of these routes are addressed by a row id and
-  /// there a 404 is that row being gone. Pass [treat404AsAbsent] on one that
-  /// looks no row up.
-  ///
-  /// Fail-safe in the direction that costs least: never recording absence
-  /// leaves the version table answering, while recording it wrongly takes a
-  /// working feature away with nothing on screen to say why.
+  /// [absent] answers instead of throwing for the statuses in [absentOn];
+  /// passing none throws everything, which is right behind a button the user
+  /// pressed — a refusal has to reach them rather than leave a control that
+  /// does nothing. [observing] narrows which statuses may *settle* the latch,
+  /// and defaults to a refusal only: most of these routes are addressed by a
+  /// row id, where a 404 is that row being gone, not the route. Pass
+  /// [treat404AsAbsent] on one that looks no row up.
   Future<T> watching<T>(
     Future<T> Function() request, {
     T Function()? absent,

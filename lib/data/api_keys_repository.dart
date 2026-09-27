@@ -1,9 +1,9 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/api_key.dart';
-import '../core/models/json_utils.dart';
 
 /// REST data source for API keys — the credentials handed to things that are
 /// not this app (Home Assistant, SpoolBuddy, a script).

@@ -101,7 +101,7 @@ void main() {
     await openRemoval(tester);
     await tester.tap(find.widgetWithText(ListTile, 'Zatrzymaj wydruk'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Anuluj'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Anuluj'));
     await tester.pumpAndSettle();
 
     expect(queue.stopped, isEmpty);

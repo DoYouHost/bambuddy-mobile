@@ -3,6 +3,7 @@ import 'package:bambuddy_mobile/core/watch/wear_relay_claim.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +19,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     watch = FakeWatchConnectivity();
   });
 
@@ -225,6 +226,108 @@ void main() {
     expect(res.ok, isTrue);
   });
 
+  test('getServerVersion: the server\'s own string, verbatim', () async {
+    adapter.onGet(
+      '/api/v1/updates/version',
+      (s) => s.reply(200, {'version': '1.2.6b1', 'repo': 'maziggy/bambuddy'}),
+    );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.getServerVersion),
+    );
+
+    expect(res.ok, isTrue);
+    expect(res.data!['version'], '1.2.6b1');
+  });
+
+  test('getServerVersion: a server without the route answers empty', () async {
+    // An older bambuddy is not a failed request — the watch is told "nobody
+    // knows", which is a footer line, not an error.
+    adapter.onGet('/api/v1/updates/version', (s) => s.reply(404, null));
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.getServerVersion),
+    );
+
+    expect(res.ok, isTrue);
+    expect(res.data?['version'], isNull);
+  });
+
+  test('getServerVersion: asked twice, the server is read once', () async {
+    // The watch polls; the version does not move without a restart that drops
+    // the connection anyway, so a cached service is the point of holding one.
+    var reads = 0;
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          reads++;
+          handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'version': '1.2.6', 'repo': 'x/y'},
+            ),
+          );
+        },
+      ),
+    );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+    await handler.start();
+
+    for (var i = 0; i < 2; i++) {
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+    }
+
+    expect(watch.sent, hasLength(2));
+    expect(reads, 1);
+  });
+
+  test(
+    'getServerVersion: a server switch is not answered from the old one',
+    () async {
+      // The provider hands the handler a *callback*, and deliberately reads
+      // rather than watches the profile so a server change does not tear the
+      // listener down — which means the client under it is swapped while this
+      // object lives. Caching the service without checking that would keep
+      // answering with the version of a server the phone left.
+      final other = testDio();
+      mockServer(other).onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '0.2.4.9', 'repo': 'x/y'}),
+      );
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (s) => s.reply(200, {'version': '1.2.6', 'repo': 'x/y'}),
+      );
+      var current = dio;
+      final handler = WearRelayHandler(watch: watch, dio: () => current);
+      await handler.start();
+
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+      current = other;
+      watch.deliver(
+        WearRpcRequest.create(WearRpcAction.getServerVersion).encode(),
+      );
+      await pumpEventQueue();
+
+      final answers = [
+        for (final sent in watch.sent)
+          WearRpcResponse.decode(sent)!.data?['version'],
+      ];
+      expect(answers, ['1.2.6', '0.2.4.9']);
+    },
+  );
+
   test('no profile → phone-unconfigured', () async {
     final handler = WearRelayHandler(watch: watch, dio: () => null);
 
@@ -276,6 +379,30 @@ void main() {
 
     expect(res.ok, isFalse);
     expect(res.error, 'empty-queue');
+  });
+
+  test('any other StateError is a phone-error, not a code', () async {
+    // Only `empty-queue` is an outcome; a stray "Bad state" message used to
+    // reach the watch as if it were one. And it is a bug, so it is reported
+    // with its stack rather than swallowed.
+    final reported = <FlutterErrorDetails>[];
+    final previous = FlutterError.onError;
+    FlutterError.onError = reported.add;
+    addTearDown(() => FlutterError.onError = previous);
+    final handler = WearRelayHandler(
+      watch: watch,
+      dio: () => throw StateError('No element'),
+    );
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.pause, printerId: 1),
+    );
+
+    expect(res.ok, isFalse);
+    expect(res.error, 'phone-error');
+    expect(reported.single.exception, isA<StateError>());
+    expect(reported.single.stack, isNotNull);
   });
 
   test('hmsAction relays the fault verbatim to the server', () async {

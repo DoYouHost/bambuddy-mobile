@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
@@ -16,6 +14,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
+
+/// The instant every case here runs on: the ETAs in the assertions are spelled
+/// from it, and the cases that care about elapsed time move on from it with
+/// `time.tick`.
+final _start = DateTime(2026, 6, 12, 20, 0);
 
 PrinterStatus _status({
   int id = 1,
@@ -75,20 +79,26 @@ void main() {
   // lookupAppLocalizations inside the monitor needs an initialised binding.
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Fixed clock and a pinned 24-hour formatter → a deterministic ETA time in
-  // the assertions, independent of the host's own clock preference.
+  /// A case in this file, on the ambient clock pinned to [_start]. The monitor
+  /// takes no clock of its own; a case that needs time to pass moves it with
+  /// `time.tick`.
+  void testAt(String description, dynamic Function(TestClock time) body) =>
+      testWithClock(description, _start, body);
+
+  // A pinned 24-hour formatter → a deterministic ETA time in the assertions,
+  // independent of the host's own clock preference. The instant itself is
+  // `_start`, installed as the ambient clock by `testWithClock`.
   PrintMonitor monitor(RecordingNotifications fake, {bool use24Hour = true}) =>
       PrintMonitor(
         fake,
         l10n: () => lookupAppLocalizations(const Locale('en')),
-        clock: () => DateTime(2026, 6, 12, 20, 0),
         formats: () =>
             DateTimeFormats.forTest(locale: 'en_US', use24Hour: use24Hour),
       );
 
-  test(
+  testAt(
     'entering a print shows the ongoing notification once; a repeat throttles',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       final m = monitor(fake);
 
@@ -113,7 +123,7 @@ void main() {
     },
   );
 
-  test('the ongoing ETA follows the system clock preference', () {
+  testAt('the ongoing ETA follows the system clock preference', (_) {
     final fake = RecordingNotifications();
     monitor(fake, use24Hour: false).update({
       1: _status(
@@ -127,7 +137,9 @@ void main() {
     expect(fake.lastBody, contains('ETA 9:20 PM'));
   });
 
-  test('the service isolate spells the ETA on the clock the app published', () {
+  testAt('the service isolate spells the ETA on the clock the app published', (
+    _,
+  ) {
     // The regression, on the path that had it: built without a formatter, the
     // way the foreground service builds it. That isolate's engine is never told
     // what the 12/24-hour switch says, so it used to fall back to a 12-hour
@@ -139,7 +151,6 @@ void main() {
     PrintMonitor(
       fake,
       l10n: () => lookupAppLocalizations(const Locale('en')),
-      clock: () => DateTime(2026, 6, 12, 20, 0),
     ).update({
       1: _status(
         state: 'RUNNING',
@@ -152,7 +163,7 @@ void main() {
     expect(fake.lastBody, contains('ETA 21:20'));
   });
 
-  test('a progress change updates the notification', () {
+  testAt('a progress change updates the notification', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({1: _status(state: 'RUNNING', progress: 42, remaining: 80)});
@@ -161,7 +172,291 @@ void main() {
     expect(fake.lastProgress, 43);
   });
 
-  test('RUNNING → FINISH: one "finished" alert and a clean-up', () {
+  group('several printers at once', () {
+    // One notification, one print: the count is the headline, and the machine
+    // that finishes first owns the bar, the line and the ETA. No second figure
+    // for the shelf — the headline count already says there is more running.
+    testAt('the headline counts, the bar and the line follow the lead', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 80,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      expect(fake.lastTitle, '2 printing');
+      expect(fake.lastProgress, 80, reason: "the lead's own figure");
+      // The lead is the one finishing first, and it is named by machine: with
+      // two printers the job name no longer says which one this is.
+      expect(fake.lastBody, contains('P1S (80%'));
+      expect(fake.lastBody, contains('ETA'));
+      // The same words the dashboard's chip uses, from the same string: under a
+      // "2 printing" headline a bare machine name does not say why that one.
+      expect(fake.lastBody, startsWith('Next available: '));
+      // The other machine's 40% is nowhere in the notification, averaged or
+      // otherwise: this notification is about one print.
+      expect(fake.lastBody, isNot(contains('40')));
+    });
+
+    testAt('a printer that reports no progress does not draw a bar', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', remaining: 12, name: 'P1S'),
+      });
+
+      // The silent printer has the nearer ETA, so it leads — and a lead with no
+      // measured position gets the indeterminate bar, not one pinned at zero.
+      // The mean still exists for the log (`overall_pct`), where silence is left
+      // out rather than counted as zero.
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
+    });
+
+    testAt('a printer reporting zero leads on its ETA, and its bar animates', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // Twelve minutes against eighty, so P1S leads with its own zero. The text
+      // still says 0% — that is where the print stands — but the bar has nothing
+      // to draw, so it animates instead of sitting empty.
+      expect(fake.lastBody, contains('P1S (0%'));
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
+    });
+
+    testAt('one machine out of range does not move the bar past 100', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 900,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // A frame out of range is clamped, not passed through: the bar is a
+      // fraction of 100 and 900 would leave it undrawable.
+      expect(fake.lastProgress, 100);
+    });
+
+    testAt('a printer that is not the lead does not redraw the notification', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      expect(fake.ongoingCount, 1);
+
+      // Printer 1 advanced twenty points, and not one of them is on screen: the
+      // notification is the lead's, and the lead's frame is unchanged. Redrawing
+      // here would re-post an identical notification on every WS frame.
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 60, remaining: 70),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      expect(fake.ongoingCount, 1);
+      expect(fake.lastProgress, 80);
+    });
+
+    testAt('dropping back to one printer restores the job as the headline', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(id: 1, state: 'RUNNING', progress: 40, remaining: 80),
+        2: _status(id: 2, state: 'RUNNING', progress: 80, remaining: 12),
+      });
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          job: 'cube.3mf',
+        ),
+        2: _status(id: 2, state: 'IDLE'),
+      });
+
+      expect(fake.lastTitle, 'cube.3mf');
+      expect(fake.lastProgress, 40);
+    });
+  });
+
+  // `remaining_time` is zero in three different situations and the server never
+  // sends null for a printing machine (`PrinterState` defaults it to 0), so the
+  // number alone cannot say which one this is. Progress is the second half of
+  // the answer, and each group below pins one reading of the pair.
+  group('a zero in remaining_time', () {
+    testAt('heating does not take the lead from a print about to finish', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'PREPARE',
+          progress: 0,
+          remaining: 0,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 87,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // Sorted on the raw minutes, the heating machine's zero would put it in
+      // front of the one twelve minutes from done.
+      expect(fake.lastBody, contains('P1S (87%'));
+      expect(fake.lastProgress, 87);
+    });
+
+    testAt('heating alone shows no ETA rather than the current time', (_) {
+      final fake = RecordingNotifications();
+      monitor(fake).update({
+        1: _status(state: 'PREPARE', progress: 0, remaining: 0, job: 'cube'),
+      });
+
+      // The zero means "nothing estimated yet". Rendered as a clock it used to
+      // put the current time on the notification as the finish time.
+      expect(fake.lastBody, isNot(contains('ETA')));
+      expect(fake.lastBody, isNot(contains('soon')));
+    });
+
+    testAt('the last minute of a print keeps the lead', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 99,
+          remaining: 0,
+          name: 'P1S',
+        ),
+      });
+
+      // The same zero as the heating case above, and the opposite answer: this
+      // one really is the next to finish.
+      expect(fake.lastBody, contains('P1S (99%'));
+      expect(fake.lastProgress, 99);
+    });
+
+    testAt('the last minute of a print reads "soon", not a clock time', (_) {
+      final fake = RecordingNotifications();
+      monitor(fake).update({
+        1: _status(state: 'RUNNING', progress: 99, remaining: 0, job: 'cube'),
+      });
+
+      expect(fake.lastBody, contains('ETA soon'));
+    });
+
+    testAt('one printer, still heating: the bar animates, the ETA stays', (_) {
+      final fake = RecordingNotifications();
+      // Straight off a real phone: a single machine at 0% with an estimate
+      // already reported. The bar used to sit empty across the full width and
+      // read as "nothing is happening" on a printer that is heating its bed.
+      monitor(fake).update({
+        1: _status(
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 29,
+          job: 'gridfinitystoragebox_5xy_handle',
+        ),
+      });
+
+      expect(fake.lastProgress, isNull);
+      expect(fake.lastIndeterminate, isTrue);
+      // The estimate is a separate fact from the position, and it survives.
+      expect(fake.lastBody, contains('0%'));
+      expect(fake.lastBody, contains('ETA'));
+    });
+
+    testAt('the bar stops animating on the first measured percent', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({1: _status(state: 'RUNNING', progress: 0, remaining: 29)});
+      expect(fake.lastIndeterminate, isTrue);
+
+      m.update({1: _status(state: 'RUNNING', progress: 1, remaining: 28)});
+      expect(fake.lastProgress, 1);
+      expect(fake.lastIndeterminate, isFalse);
+    });
+
+    testAt('a first layer keeps the estimate it already reported', (_) {
+      final fake = RecordingNotifications();
+      final m = monitor(fake);
+      m.update({
+        1: _status(
+          id: 1,
+          state: 'RUNNING',
+          progress: 40,
+          remaining: 80,
+          name: 'X1 Carbon',
+        ),
+        2: _status(
+          id: 2,
+          state: 'RUNNING',
+          progress: 0,
+          remaining: 12,
+          name: 'P1S',
+        ),
+      });
+
+      // The third reading of a zero, and the one a rule written on
+      // `isPreparing` alone gets wrong: zero percent with a real estimate is a
+      // first layer, not a machine that has said nothing. Twelve minutes beats
+      // eighty and the ETA is a clock time.
+      expect(fake.lastBody, contains('P1S (0%'));
+      expect(fake.lastBody, isNot(contains('soon')));
+      expect(fake.lastBody, contains('ETA'));
+    });
+  });
+
+  testAt('RUNNING → FINISH: one "finished" alert and a clean-up', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({
@@ -183,7 +478,7 @@ void main() {
     expect(fake.alerts.length, 1);
   });
 
-  test('RUNNING → FAILED: a "failed" alert', () {
+  testAt('RUNNING → FAILED: a "failed" alert', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({
@@ -196,34 +491,35 @@ void main() {
     expect(fake.alerts.single['body'], 'y failed');
   });
 
-  test(
-    'two printers: the ongoing one tracks the nearest ETA, with a +1 note',
-    () {
-      final fake = RecordingNotifications();
-      final m = monitor(fake);
-      m.update({
-        1: _status(
-          id: 1,
-          state: 'RUNNING',
-          progress: 10,
-          remaining: 200,
-          job: 'long',
-        ),
-        2: _status(
-          id: 2,
-          state: 'RUNNING',
-          progress: 80,
-          remaining: 15,
-          job: 'soon',
-        ),
-      });
-      expect(fake.lastTitle, 'soon'); // finishes soonest
-      expect(fake.lastProgress, 80);
-      expect(fake.lastBody, contains('+1'));
-    },
-  );
+  testAt('two printers: the line and the bar both follow the nearest ETA', (_) {
+    final fake = RecordingNotifications();
+    final m = monitor(fake);
+    m.update({
+      1: _status(
+        id: 1,
+        state: 'RUNNING',
+        progress: 10,
+        remaining: 200,
+        job: 'long',
+        name: 'X1C',
+      ),
+      2: _status(
+        id: 2,
+        state: 'RUNNING',
+        progress: 80,
+        remaining: 15,
+        job: 'soon',
+        name: 'P1S',
+      ),
+    });
 
-  test('the end of every print clears the ongoing notification', () {
+    expect(fake.lastBody, contains('P1S (80%')); // finishes soonest
+    // The bar belongs to the same print as the line and the ETA.
+    expect(fake.lastProgress, 80);
+    expect(fake.lastTitle, '2 printing');
+  });
+
+  testAt('the end of every print clears the ongoing notification', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake);
     m.update({1: _status(state: 'RUNNING', progress: 50, remaining: 30)});
@@ -237,13 +533,11 @@ void main() {
   PrintMonitor monitorAll(
     RecordingNotifications fake, {
     TimerFactory? timer,
-    DateTime Function()? clock,
     String? Function(HmsError)? hmsDescribe,
   }) => PrintMonitor(
     fake,
     prefs: _allOn,
     l10n: () => lookupAppLocalizations(const Locale('en')),
-    clock: clock ?? () => DateTime(2026, 6, 12, 20, 0),
     timerFactory: timer,
     hmsDescribe: hmsDescribe,
   );
@@ -276,7 +570,7 @@ void main() {
       if (a['title'] == errorTitle) a,
   ];
 
-  test('starting a print fires the "started" alert (when enabled)', () {
+  testAt('starting a print fires the "started" alert (when enabled)', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'IDLE')});
@@ -285,7 +579,7 @@ void main() {
     expect(alertById(fake, bandId(3))?['title'], 'Print started');
   });
 
-  test('first layer DONE: alerts once, only when layer_num reaches 2', () {
+  testAt('first layer DONE: alerts once, only when layer_num reaches 2', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 0)});
@@ -332,7 +626,7 @@ void main() {
       });
     }
 
-    test("the finished job's layer does not announce a first layer", () {
+    testAt("the finished job's layer does not announce a first layer", (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // A ends on layer 8 — inside the [2, 10] window, so the window alone
@@ -369,7 +663,9 @@ void main() {
       );
     });
 
-    test('a layer ticked by the pre-print sequence is not the first layer', () {
+    testAt('a layer ticked by the pre-print sequence is not the first layer', (
+      _,
+    ) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       finishPrintA(m, layer: 8);
@@ -397,7 +693,7 @@ void main() {
       expect(alertById(fake, bandId(4))?['body'], contains('B.3mf'));
     });
 
-    test('a counter far past the first layer is not news', () {
+    testAt('a counter far past the first layer is not news', (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The same window bambuddy uses: [2, 10]. Above it the number belongs to
@@ -413,7 +709,7 @@ void main() {
       expect(alertById(fake, bandId(4)), isNull);
     });
 
-    test('a server that reports no stage still gets the alert', () {
+    testAt('a server that reports no stage still gets the alert', (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // `stg_cur` has been in every status the server sends since v0.1.6, older
@@ -425,7 +721,7 @@ void main() {
       expect(alertById(fake, bandId(4)), isNotNull);
     });
 
-    test("the finished job's percentage does not fire milestones", () {
+    testAt("the finished job's percentage does not fire milestones", (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The other half of the same stale frame: 100% from the print that just
@@ -455,9 +751,9 @@ void main() {
     // this monitor ever sees — the one it primes from, firing nothing — can be
     // the stale one. Priming records the printer as already printing, so no
     // print-start edge follows to clear a latch set from that frame.
-    test(
+    testAt(
       "a monitor primed mid-dispatch still announces the new print's first layer",
-      () {
+      (_) {
         final fake = RecordingNotifications();
         final m = monitorAll(fake);
         // Layer 3 with the bed being scanned (stage 9), under A's name: the
@@ -476,7 +772,7 @@ void main() {
       },
     );
 
-    test('a monitor primed mid-dispatch keeps the new thresholds', () {
+    testAt('a monitor primed mid-dispatch keeps the new thresholds', (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // A's 100% as a baseline would latch all three thresholds at once.
@@ -501,9 +797,9 @@ void main() {
       expect(alertById(fake, bandId(5))?['title'], '25% printed');
     });
 
-    test(
+    testAt(
       'a stage entered mid-print holds a threshold back, it does not drop it',
-      () {
+      (_) {
         final fake = RecordingNotifications();
         final m = monitorAll(fake);
         m.update({1: _status(state: 'IDLE')});
@@ -546,7 +842,7 @@ void main() {
     );
   });
 
-  test('milestones: 25/50/75 once each', () {
+  testAt('milestones: 25/50/75 once each', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 10)});
@@ -560,7 +856,9 @@ void main() {
     expect(fake.alerts, isEmpty); // nothing new was crossed
   });
 
-  test('milestones: the prep-phase percentage does not fire the thresholds', () {
+  testAt('milestones: the prep-phase percentage does not fire the thresholds', (
+    _,
+  ) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // Calibration reports its own percentage at layer_num == 0 — an observed jump
@@ -584,9 +882,9 @@ void main() {
     expect(alertById(fake, bandId(5))?['title'], '25% printed');
   });
 
-  test(
+  testAt(
     'milestones: priming on a calibration frame does not eat the thresholds',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The first frame is calibration at 60% — used as the baseline it would latch
@@ -605,7 +903,7 @@ void main() {
     },
   );
 
-  test('milestones: priming mid-print still latches the thresholds', () {
+  testAt('milestones: priming mid-print still latches the thresholds', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({
@@ -621,9 +919,9 @@ void main() {
     expect(alertById(fake, bandId(5))?['title'], '75% printed');
   });
 
-  test(
+  testAt(
     'plate not empty: alerts from the WS plate_not_empty frame, not the status',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake);
       // The end of a print raises awaiting_plate_clear in the status — that must NOT
@@ -639,14 +937,13 @@ void main() {
     },
   );
 
-  test('plate not empty: respects the event being disabled in prefs', () {
+  testAt('plate not empty: respects the event being disabled in prefs', (_) {
     final fake = RecordingNotifications();
     final m = monitor(fake); // default prefs: plateNotEmpty on, but…
     final off = PrintMonitor(
       fake,
       prefs: const NotificationPrefs(enabled: {}),
       l10n: () => lookupAppLocalizations(const Locale('en')),
-      clock: () => DateTime(2026, 6, 12, 20, 0),
     );
     off.onPlateNotEmpty(1, 'X1C');
     expect(alertById(fake, bandId(6)), isNull);
@@ -655,9 +952,9 @@ void main() {
     expect(alertById(fake, bandId(6)), isNotNull);
   });
 
-  test(
+  testAt(
     'offline: alerts only once the grace runs out; coming back online cancels it',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       final timers = <FakeTimer>[];
       final m = monitorAll(
@@ -698,13 +995,12 @@ void main() {
     },
   );
 
-  test(
+  testAt(
     'HMS fault: a new code alerts, a repeat does not; after the grace it alerts '
     'again',
-    () {
+    (time) {
       final fake = RecordingNotifications();
-      var t = DateTime(2026, 6, 12, 20, 0);
-      final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+      final m = monitorAll(fake, hmsDescribe: describeAll);
       const err = HmsError(code: 'A', severity: 2);
       m.update({1: _status(state: 'RUNNING')}); // priming — no faults
       m.update({
@@ -718,7 +1014,7 @@ void main() {
       expect(errorAlerts(fake), isEmpty); // the same code
       // A short gap (< grace) and back → still the same fault, no second alert.
       m.update({1: _status(state: 'RUNNING', hms: const [])});
-      t = t.add(const Duration(seconds: 5));
+      time.tick(const Duration(seconds: 5));
       m.update({
         1: _status(state: 'RUNNING', hms: [err]),
       });
@@ -727,7 +1023,7 @@ void main() {
       // Frames keep arriving throughout — silence across the whole feed is a
       // different situation and has its own test below.
       for (var i = 0; i < 4; i++) {
-        t = t.add(const Duration(seconds: 10));
+        time.tick(const Duration(seconds: 10));
         m.update({1: _status(state: 'RUNNING', hms: const [])});
       }
       m.update({
@@ -737,11 +1033,10 @@ void main() {
     },
   );
 
-  test('HMS fault: silence in the feed does not clear the memory — a reconnect '
-      'does not alert again', () {
+  testAt('HMS fault: silence in the feed does not clear the memory — a reconnect '
+      'does not alert again', (time) {
     final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+    final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
 
     m.update({1: _status(state: 'RUNNING')}); // priming
@@ -754,7 +1049,7 @@ void main() {
     // The socket dies and nothing arrives for two minutes. The socket watchdog is
     // longer than the grace, so every detected drop looks exactly like this — and
     // the fault still stands, because the first frame back still carries it.
-    t = t.add(const Duration(minutes: 2));
+    time.tick(const Duration(minutes: 2));
     m.update({
       1: _status(state: 'RUNNING', hms: [err]),
     });
@@ -762,45 +1057,48 @@ void main() {
     expect(errorAlerts(fake), isEmpty);
   });
 
-  test('HMS fault: an offline printer does not alert; a code known from before the '
-      'disconnect does not alert on return, a fresh one does', () {
-    final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
-    const err = HmsError(code: 'A', severity: 2);
-    const other = HmsError(code: 'B', severity: 3);
-    // Online with fault A → one alert (the edge). Remembered afterwards.
-    m.update({1: _status(state: 'IDLE', connected: true)}); // priming
-    m.update({
-      1: _status(state: 'IDLE', connected: true, hms: [err]),
-    });
-    expect(errorAlerts(fake), hasLength(1));
-    fake.alerts.clear();
-    // Offline: mergedWith carries the old hms_errors forward — no alert even
-    // though the code "vanished and came back", and even though the grace elapsed
-    // (the memory is frozen).
-    m.update({1: _status(state: 'IDLE', connected: false, hms: const [])});
-    t = t.add(const Duration(seconds: 60));
-    m.update({
-      1: _status(state: 'IDLE', connected: false, hms: [err]),
-    });
-    expect(errorAlerts(fake), isEmpty);
-    // Back online: the same code A from before the disconnect does NOT alert again…
-    m.update({
-      1: _status(state: 'IDLE', connected: true, hms: [err]),
-    });
-    expect(errorAlerts(fake), isEmpty);
-    // …but a genuinely new code B after the return does.
-    m.update({
-      1: _status(state: 'IDLE', connected: true, hms: [err, other]),
-    });
-    expect(errorAlerts(fake), hasLength(1));
-  });
+  testAt(
+    'HMS fault: an offline printer does not alert; a code known from before the '
+    'disconnect does not alert on return, a fresh one does',
+    (time) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake, hmsDescribe: describeAll);
+      const err = HmsError(code: 'A', severity: 2);
+      const other = HmsError(code: 'B', severity: 3);
+      // Online with fault A → one alert (the edge). Remembered afterwards.
+      m.update({1: _status(state: 'IDLE', connected: true)}); // priming
+      m.update({
+        1: _status(state: 'IDLE', connected: true, hms: [err]),
+      });
+      expect(errorAlerts(fake), hasLength(1));
+      fake.alerts.clear();
+      // Offline: mergedWith carries the old hms_errors forward — no alert even
+      // though the code "vanished and came back", and even though the grace elapsed
+      // (the memory is frozen).
+      m.update({1: _status(state: 'IDLE', connected: false, hms: const [])});
+      time.tick(const Duration(seconds: 60));
+      m.update({
+        1: _status(state: 'IDLE', connected: false, hms: [err]),
+      });
+      expect(errorAlerts(fake), isEmpty);
+      // Back online: the same code A from before the disconnect does NOT alert again…
+      m.update({
+        1: _status(state: 'IDLE', connected: true, hms: [err]),
+      });
+      expect(errorAlerts(fake), isEmpty);
+      // …but a genuinely new code B after the return does.
+      m.update({
+        1: _status(state: 'IDLE', connected: true, hms: [err, other]),
+      });
+      expect(errorAlerts(fake), hasLength(1));
+    },
+  );
 
-  test('an HMS fault first seen after the disconnect alerts on return', () {
+  testAt('an HMS fault first seen after the disconnect alerts on return', (
+    time,
+  ) {
     final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+    final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
 
     m.update({1: _status(state: 'RUNNING', connected: true)}); // priming
@@ -815,7 +1113,7 @@ void main() {
     // first printer's state, so the grace would never elapse if the code were
     // latched.
     for (var i = 0; i < 3; i++) {
-      t = t.add(const Duration(seconds: 45));
+      time.tick(const Duration(seconds: 45));
       m.update({
         1: _status(state: 'RUNNING', connected: false, hms: [err]),
       });
@@ -824,7 +1122,7 @@ void main() {
 
     // The printer comes back still carrying that fault — now the user must hear
     // about it.
-    t = t.add(const Duration(seconds: 45));
+    time.tick(const Duration(seconds: 45));
     m.update({
       1: _status(state: 'RUNNING', connected: true, hms: [err]),
     });
@@ -832,7 +1130,7 @@ void main() {
     expect(errorAlerts(fake), hasLength(1));
   });
 
-  test('an HMS alert carries the fault it is about, and its buttons', () {
+  testAt('an HMS alert carries the fault it is about, and its buttons', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(
@@ -860,7 +1158,7 @@ void main() {
     expect(actions.map((a) => a.opensApp), [false, true]);
   });
 
-  test('an HMS alert lands on the same id in every isolate', () {
+  testAt('an HMS alert lands on the same id in every isolate', (_) {
     // Pinned to literals on purpose: this isolate restarts on every trip to the
     // background, and an id derived from a per-run seed handed the same standing
     // fault a second notification each time instead of replacing the first. A
@@ -878,7 +1176,7 @@ void main() {
     expect(errorAlerts(fake).map((a) => a['id']), [8544723, 8921897]);
   });
 
-  test('an HMS alert offers no buttons the app could not send', () {
+  testAt('an HMS alert offers no buttons the app could not send', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     // No full_code (server pre-0.2.4.8): nothing identifies the fault to the
@@ -907,7 +1205,7 @@ void main() {
     expect(alerts.first['payload'], 'printer:1');
   });
 
-  test('an alert never grows more buttons than Android draws', () {
+  testAt('an alert never grows more buttons than Android draws', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     const err = HmsError(
@@ -932,24 +1230,27 @@ void main() {
     expect(actions, hasLength(3));
   });
 
-  test('HMS fault: several new codes in one frame → separate alerts (different '
-      'ids)', () {
-    final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
-    const a = HmsError(code: 'A', severity: 2);
-    const b = HmsError(code: 'B', severity: 3);
-    m.update({1: _status(state: 'RUNNING')}); // priming
-    m.update({
-      1: _status(state: 'RUNNING', hms: [a, b]),
-    });
-    final alerts = errorAlerts(fake);
-    expect(alerts, hasLength(2)); // both codes, none lost
-    expect(alerts.map((e) => e['id']).toSet(), hasLength(2)); // different ids
-  });
+  testAt(
+    'HMS fault: several new codes in one frame → separate alerts (different '
+    'ids)',
+    (_) {
+      final fake = RecordingNotifications();
+      final m = monitorAll(fake, hmsDescribe: describeAll);
+      const a = HmsError(code: 'A', severity: 2);
+      const b = HmsError(code: 'B', severity: 3);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a, b]),
+      });
+      final alerts = errorAlerts(fake);
+      expect(alerts, hasLength(2)); // both codes, none lost
+      expect(alerts.map((e) => e['id']).toSet(), hasLength(2)); // different ids
+    },
+  );
 
-  test(
+  testAt(
     'HMS fault: a code with no known description is skipped (bambuddy parity)',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       // No description resolver → an undocumented code; same for X2D sev 6 noise.
       final m = monitorAll(fake);
@@ -978,9 +1279,9 @@ void main() {
     },
   );
 
-  test(
+  testAt(
     'HMS fault: a server-side description is enough even without the catalog',
-    () {
+    (_) {
       final fake = RecordingNotifications();
       final m = monitorAll(fake); // no catalog resolver
       m.update({1: _status(state: 'RUNNING')});
@@ -996,7 +1297,7 @@ void main() {
     },
   );
 
-  test('HMS fault: a cancel echo (0500_400E) does not alert', () {
+  testAt('HMS fault: a cancel echo (0500_400E) does not alert', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
     m.update({1: _status(state: 'RUNNING')});
@@ -1017,7 +1318,7 @@ void main() {
     expect(errorAlerts(fake), isEmpty);
   });
 
-  test('low filament: hysteresis per tray', () {
+  testAt('low filament: hysteresis per tray', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     final unitFull = [
@@ -1038,7 +1339,7 @@ void main() {
     expect(alertById(fake, bandId(9)), isNotNull); // dropped again
   });
 
-  test('high AMS humidity: the edge above the threshold', () {
+  testAt('high AMS humidity: the edge above the threshold', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     m.update({
@@ -1051,47 +1352,45 @@ void main() {
     expect(alertById(fake, bandId(10)), isNotNull);
   });
 
-  test(
-    'AMS humidity: two units crossing in one frame report the worse reading',
-    () {
-      // There is one humidity notification per printer, so the frame that latches
-      // both units has to spend it on the wetter one — the other is latched too and
-      // stays quiet for the whole cooldown, so an under-reported value is not
-      // corrected later.
-      final fake = RecordingNotifications();
-      final m = monitorAll(fake);
+  testAt('AMS humidity: two units crossing in one frame report the worse reading', (
+    _,
+  ) {
+    // There is one humidity notification per printer, so the frame that latches
+    // both units has to spend it on the wetter one — the other is latched too and
+    // stays quiet for the whole cooldown, so an under-reported value is not
+    // corrected later.
+    final fake = RecordingNotifications();
+    final m = monitorAll(fake);
 
-      m.update({
-        1: _status(
-          state: 'IDLE',
-          ams: [
-            const AmsUnit(id: 0, humidity: 40),
-            const AmsUnit(id: 1, humidity: 40),
-          ],
-        ),
-      });
-      m.update({
-        1: _status(
-          state: 'IDLE',
-          ams: [
-            const AmsUnit(id: 0, humidity: 88),
-            const AmsUnit(id: 1, humidity: 65),
-          ],
-        ),
-      });
+    m.update({
+      1: _status(
+        state: 'IDLE',
+        ams: [
+          const AmsUnit(id: 0, humidity: 40),
+          const AmsUnit(id: 1, humidity: 40),
+        ],
+      ),
+    });
+    m.update({
+      1: _status(
+        state: 'IDLE',
+        ams: [
+          const AmsUnit(id: 0, humidity: 88),
+          const AmsUnit(id: 1, humidity: 65),
+        ],
+      ),
+    });
 
-      expect(alertById(fake, bandId(10))?['body'], contains('88'));
-    },
-  );
+    expect(alertById(fake, bandId(10))?['body'], contains('88'));
+  });
 
-  test(
+  testAt(
     'AMS humidity: jitter around the threshold does not ring on every crossing',
-    () {
+    (time) {
       // The server looks every five minutes, we look at every frame — roughly once a
       // second. A reading sitting on the threshold crosses it endlessly.
       final fake = RecordingNotifications();
-      var t = DateTime(2026, 6, 12, 20, 0);
-      final m = monitorAll(fake, clock: () => t);
+      final m = monitorAll(fake);
       AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
 
       m.update({
@@ -1103,7 +1402,7 @@ void main() {
       expect(fake.alerts, hasLength(1));
 
       for (final h in [60, 61, 59, 61, 58, 61]) {
-        t = t.add(const Duration(seconds: 5));
+        time.tick(const Duration(seconds: 5));
         m.update({
           1: _status(state: 'IDLE', ams: [at(h)]),
         });
@@ -1113,10 +1412,11 @@ void main() {
     },
   );
 
-  test('AMS humidity: a real drop re-arms it, but no more than once an hour', () {
+  testAt('AMS humidity: a real drop re-arms it, but no more than once an hour', (
+    time,
+  ) {
     final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t);
+    final m = monitorAll(fake);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
 
     m.update({
@@ -1132,7 +1432,7 @@ void main() {
     m.update({
       1: _status(state: 'IDLE', ams: [at(56)]),
     });
-    t = t.add(const Duration(minutes: 20));
+    time.tick(const Duration(minutes: 20));
     m.update({
       1: _status(state: 'IDLE', ams: [at(70)]),
     });
@@ -1142,17 +1442,18 @@ void main() {
     m.update({
       1: _status(state: 'IDLE', ams: [at(56)]),
     });
-    t = t.add(const Duration(minutes: 45));
+    time.tick(const Duration(minutes: 45));
     m.update({
       1: _status(state: 'IDLE', ams: [at(70)]),
     });
     expect(fake.alerts, hasLength(2));
   });
 
-  test('AMS humidity: a rise muted by the cooldown is deferred, not lost', () {
+  testAt('AMS humidity: a rise muted by the cooldown is deferred, not lost', (
+    time,
+  ) {
     final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t);
+    final m = monitorAll(fake);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
 
     m.update({
@@ -1168,7 +1469,7 @@ void main() {
     m.update({
       1: _status(state: 'IDLE', ams: [at(56)]),
     });
-    t = t.add(const Duration(minutes: 10));
+    time.tick(const Duration(minutes: 10));
     m.update({
       1: _status(state: 'IDLE', ams: [at(70)]),
     });
@@ -1177,7 +1478,7 @@ void main() {
     // And it never comes down again. The latch must not eat an alert nobody ever
     // said out loud — once the hour is up, it is owed.
     for (var i = 0; i < 3; i++) {
-      t = t.add(const Duration(minutes: 20));
+      time.tick(const Duration(minutes: 20));
       m.update({
         1: _status(state: 'IDLE', ams: [at(70)]),
       });
@@ -1186,12 +1487,13 @@ void main() {
     expect(fake.alerts, hasLength(2));
   });
 
-  test('AMS humidity: a steady high reading says it once, not every hour', () {
+  testAt('AMS humidity: a steady high reading says it once, not every hour', (
+    time,
+  ) {
     // A deliberate difference from the server, which reminds every hour: here every
     // other event alerts on the edge, not off a clock.
     final fake = RecordingNotifications();
-    var t = DateTime(2026, 6, 12, 20, 0);
-    final m = monitorAll(fake, clock: () => t);
+    final m = monitorAll(fake);
     AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
 
     m.update({
@@ -1203,7 +1505,7 @@ void main() {
     expect(fake.alerts, hasLength(1));
 
     for (var i = 0; i < 5; i++) {
-      t = t.add(const Duration(minutes: 30));
+      time.tick(const Duration(minutes: 30));
       m.update({
         1: _status(state: 'IDLE', ams: [at(70)]),
       });
@@ -1212,7 +1514,9 @@ void main() {
     expect(fake.alerts, hasLength(1));
   });
 
-  test('bed cooled: only after a finished print and below the threshold', () {
+  testAt('bed cooled: only after a finished print and below the threshold', (
+    _,
+  ) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // A cold bed with no print before it → no alert.
@@ -1234,7 +1538,7 @@ void main() {
     expect(alertById(fake, bandId(11))?['title'], 'Bed cooled');
   });
 
-  test('priming: the first frame mid-flight does NOT fire past events', () {
+  testAt('priming: the first frame mid-flight does NOT fire past events', (_) {
     final fake = RecordingNotifications();
     final m = monitorAll(fake);
     // A fresh monitor (as after the background isolate restarts) meets the printer
@@ -1259,18 +1563,17 @@ void main() {
     expect(alertById(fake, bandId(5))?['title'], '50% printed');
   });
 
-  test(
-    'gating: default prefs let through neither "started" nor milestones',
-    () {
-      final fake = RecordingNotifications();
-      final m = monitor(fake); // default prefs
-      m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
-      expect(alertById(fake, bandId(3)), isNull); // started OFF
-      expect(alertById(fake, bandId(5)), isNull); // milestones OFF
-    },
-  );
+  testAt('gating: default prefs let through neither "started" nor milestones', (
+    _,
+  ) {
+    final fake = RecordingNotifications();
+    final m = monitor(fake); // default prefs
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
+    expect(alertById(fake, bandId(3)), isNull); // started OFF
+    expect(alertById(fake, bandId(5)), isNull); // milestones OFF
+  });
 
-  // --- Tor diagnostyczny (src:notif) ---
+  // --- Diagnostic lane (src:notif) ---
 
   group('diagnostics', () {
     late DiagnosticRecorder recorder;
@@ -1278,9 +1581,12 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        sessions: MemorySessionStore(),
+        redactor: bambuddyRedactor,
+        sessionDuration: recordingLimit,
+        sessionBytes: recordingSizeLimit,
         loadFacts: () async =>
-            const SessionFacts(app: '0.11.3+1103', flavor: 'mobile'),
+            const SessionFacts(app: '0.11.3+1103', extra: {'flavor': 'mobile'}),
         // Memory instead of disk: we check the records, not a mirror on a file.
         resolveDirectory: () async => null,
       );
@@ -1289,7 +1595,7 @@ void main() {
     // Resets the `DiagnosticRecorder.active` static between tests.
     tearDown(() => recorder.discard());
 
-    /// Uruchamia nagrywanie, wykonuje [body] i zwraca surowy JSONL sesji.
+    /// Starts a recording, runs [body] and returns the session's raw JSONL.
     Future<String> raw(FutureOr<void> Function() body) async {
       await recorder.start();
       await body();
@@ -1328,7 +1634,6 @@ void main() {
       LoggingNotifications(fake),
       prefs: prefs,
       l10n: () => lookupAppLocalizations(const Locale('en')),
-      clock: () => DateTime(2026, 6, 12, 20, 0),
       timerFactory: timer,
       hmsDescribe: hmsDescribe,
       onPrintEnded: onPrintEnded,
@@ -1336,7 +1641,7 @@ void main() {
 
     const firstLayerOff = NotificationPrefs(enabled: {NotifEvent.printStarted});
 
-    test('first layer disabled: one record, not one per frame', () async {
+    testAt('first layer disabled: one record, not one per frame', (_) async {
       // The `_on` gate was evaluated per frame, so a record inside the condition
       // would give one entry per frame until the print ended.
       final fake = RecordingNotifications();
@@ -1357,7 +1662,7 @@ void main() {
       expect(skips.single['printer_id'], 1);
     });
 
-    test('milestones disabled: one record per threshold', () async {
+    testAt('milestones disabled: one record per threshold', (_) async {
       final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
@@ -1374,7 +1679,7 @@ void main() {
       expect([for (final r in skips) r['pct']], [25, 50, 75]);
     });
 
-    test('prep phase: one record per print, not one per frame', () async {
+    testAt('prep phase: one record per print, not one per frame', (_) async {
       final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
@@ -1397,7 +1702,7 @@ void main() {
       expect(skips.single['pct'], 60);
     });
 
-    test('nowy wydruk uzbraja zatrzaski ponownie', () async {
+    testAt('a new print arms the latches again', (_) async {
       final fake = RecordingNotifications();
       final m = logged(fake, prefs: firstLayerOff);
       final all = await rows(() {
@@ -1415,7 +1720,9 @@ void main() {
       expect(skips, hasLength(2));
     });
 
-    test('nazwa pliku ani drukarki nie trafia do logu', () async {
+    testAt('neither the file name nor the printer name reaches the log', (
+      _,
+    ) async {
       final fake = RecordingNotifications();
       final m = logged(fake, hmsDescribe: describeAll);
       final jsonl = await raw(() {
@@ -1451,7 +1758,9 @@ void main() {
       expect(only(await rows(() {}), 'posted'), isEmpty); // sanity
     });
 
-    test('a posted alert carries the type, the printer and our id', () async {
+    testAt('a posted alert carries the type, the printer and our id', (
+      _,
+    ) async {
       final fake = RecordingNotifications();
       final m = logged(fake);
       final all = await rows(() {
@@ -1467,29 +1776,30 @@ void main() {
       expect(posted.containsKey('body'), isFalse);
     });
 
-    test(
-      'an HMS alert carries the printer, even though its id is a hash',
-      () async {
-        final fake = RecordingNotifications();
-        final m = logged(fake, hmsDescribe: describeAll);
-        final all = await rows(() {
-          m.update({7: _status(id: 7, connected: true)});
-          m.update({
-            7: _status(
-              id: 7,
-              connected: true,
-              hms: [const HmsError(code: '0300_400C', severity: 2)],
-            ),
-          });
+    testAt('an HMS alert carries the printer, even though its id is a hash', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final m = logged(fake, hmsDescribe: describeAll);
+      final all = await rows(() {
+        m.update({7: _status(id: 7, connected: true)});
+        m.update({
+          7: _status(
+            id: 7,
+            connected: true,
+            hms: [const HmsError(code: '0300_400C', severity: 2)],
+          ),
         });
+      });
 
-        final posted = only(all, 'posted').single;
-        expect(posted['event'], 'printerError');
-        expect(posted['printer_id'], 7);
-      },
-    );
+      final posted = only(all, 'posted').single;
+      expect(posted['event'], 'printerError');
+      expect(posted['printer_id'], 7);
+    });
 
-    test('a platform rejection gives the exception class, not the message', () async {
+    testAt('a platform rejection gives the exception class, not the message', (
+      _,
+    ) async {
       // The decorator is checked directly: the exception is **rethrown** so it does
       // not vanish from the isolate, so going through the monitor (which does not
       // await the future) it would surface as an unhandled error and fail the test.
@@ -1518,9 +1828,9 @@ void main() {
       expect(jsonEncode(error), isNot(contains('secret-model')));
     });
 
-    test(
+    testAt(
       'progress notification: a record per content change, not per frame',
-      () async {
+      (_) async {
         final fake = RecordingNotifications();
         final m = logged(fake);
         final all = await rows(() {
@@ -1539,27 +1849,26 @@ void main() {
       },
     );
 
-    test(
-      'koniec druku w nieznanym stanie: rekord ostrzegawczy bez alertu',
-      () async {
-        final fake = RecordingNotifications();
-        final ended = <int>[];
-        final m = logged(fake, onPrintEnded: ended.add);
-        final all = await rows(() {
-          m.update({1: _status(state: 'RUNNING', progress: 50)});
-          m.update({1: _status(state: 'IDLE', progress: 50)});
-        });
+    testAt('print end in an unknown state: a warning record, no alert', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final ended = <int>[];
+      final m = logged(fake, onPrintEnded: ended.add);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 50)});
+        m.update({1: _status(state: 'IDLE', progress: 50)});
+      });
 
-        final end = only(all, 'print_end').single;
-        expect(end['state'], 'IDLE');
-        expect(end['lvl'], 'warn');
-        expect(only(all, 'posted'), isEmpty);
-        // The same branch eats the maintenance reminder — that is what the record says.
-        expect(ended, isEmpty);
-      },
-    );
+      final end = only(all, 'print_end').single;
+      expect(end['state'], 'IDLE');
+      expect(end['lvl'], 'warn');
+      expect(only(all, 'posted'), isEmpty);
+      // The same branch eats the maintenance reminder — that is what the record says.
+      expect(ended, isEmpty);
+    });
 
-    test('koniec druku w FINISH: rekord informacyjny obok alertu', () async {
+    testAt('print end in FINISH: an info record next to the alert', (_) async {
       final fake = RecordingNotifications();
       final ended = <int>[];
       final m = logged(fake, onPrintEnded: ended.add);
@@ -1570,11 +1879,11 @@ void main() {
 
       final end = only(all, 'print_end').single;
       expect(end['state'], 'FINISH');
-      expect(end.containsKey('lvl'), isFalse); // info nie jest wypisywane
+      expect(end.containsKey('lvl'), isFalse); // info is not written out
       expect(ended, [1]);
     });
 
-    test('priming records a baseline that implies nothing', () async {
+    testAt('priming records a baseline that implies nothing', (_) async {
       final fake = RecordingNotifications();
       final m = logged(fake);
       final all = await rows(() {
@@ -1593,105 +1902,101 @@ void main() {
       expect(only(all, 'suppressed'), isEmpty);
     });
 
-    test(
-      'HMS: the reasons are kept apart, and a known code stays silent',
-      () async {
-        final fake = RecordingNotifications();
-        // Bez opisu w katalogu i z severity 1 → kod niedokumentowany.
-        final m = logged(fake, hmsDescribe: (_) => null);
-        final all = await rows(() {
-          m.update({1: _status(connected: true)});
-          for (var i = 0; i < 5; i++) {
-            m.update({
-              1: _status(
-                connected: true,
-                hms: [const HmsError(code: '0500_400E', severity: 1)],
-              ),
-            });
-          }
-        });
-
-        final skips = only(all, 'suppressed');
-        expect(skips, hasLength(1));
-        expect(skips.single['reason'], 'undocumented');
-        expect(skips.single['sev'], 1);
-      },
-    );
-
-    test(
-      'HMS on a disconnected printer: reason offline, not typeOff',
-      () async {
-        final fake = RecordingNotifications();
-        final m = logged(fake, hmsDescribe: describeAll);
-        final all = await rows(() {
-          m.update({1: _status(connected: true)});
+    testAt('HMS: the reasons are kept apart, and a known code stays silent', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      // No catalog description and severity 1 → an undocumented code.
+      final m = logged(fake, hmsDescribe: (_) => null);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        for (var i = 0; i < 5; i++) {
           m.update({
             1: _status(
-              connected: false,
-              hms: [const HmsError(code: '0300_400C', severity: 2)],
+              connected: true,
+              hms: [const HmsError(code: '0500_400E', severity: 1)],
             ),
           });
+        }
+      });
+
+      final skips = only(all, 'suppressed');
+      expect(skips, hasLength(1));
+      expect(skips.single['reason'], 'undocumented');
+      expect(skips.single['sev'], 1);
+    });
+
+    testAt('HMS on a disconnected printer: reason offline, not typeOff', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final m = logged(fake, hmsDescribe: describeAll);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        m.update({
+          1: _status(
+            connected: false,
+            hms: [const HmsError(code: '0300_400C', severity: 2)],
+          ),
         });
+      });
 
-        final skips = [
-          for (final r in only(all, 'suppressed'))
-            if (r['event'] == 'printerError') r,
-        ];
-        expect(skips.single['reason'], 'offline');
-      },
-    );
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'printerError') r,
+      ];
+      expect(skips.single['reason'], 'offline');
+    });
 
-    test(
-      'a printer returning before the grace runs out leaves a trace',
-      () async {
-        final fake = RecordingNotifications();
-        final timers = <FakeTimer>[];
-        final m = logged(
-          fake,
-          timer: (d, cb) {
-            final t = FakeTimer(Duration.zero, cb);
-            timers.add(t);
-            return t;
-          },
+    testAt('a printer returning before the grace runs out leaves a trace', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final timers = <FakeTimer>[];
+      final m = logged(
+        fake,
+        timer: (d, cb) {
+          final t = FakeTimer(Duration.zero, cb);
+          timers.add(t);
+          return t;
+        },
+      );
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        m.update({1: _status(connected: false)});
+        m.update({1: _status(connected: true)}); // back before it fires
+        m.update({1: _status(connected: true)}); // no timer → no record
+      });
+
+      final skips = only(all, 'suppressed');
+      expect(skips, hasLength(1));
+      expect(skips.single['reason'], 'reconnected');
+      expect(timers.single.isActive, isFalse);
+    });
+
+    testAt('the prefs snapshot lists the disabled types and the system state', (
+      _,
+    ) async {
+      final all = await rows(() async {
+        await NotifProbe.openSession(
+          const NotificationPrefs(
+            enabled: {NotifEvent.printFinished},
+            alertsEnabled: false,
+          ),
+          permission: () async => false,
+          channelImportance: () async => 0,
         );
-        final all = await rows(() {
-          m.update({1: _status(connected: true)});
-          m.update({1: _status(connected: false)});
-          m.update({1: _status(connected: true)}); // back before it fires
-          m.update({1: _status(connected: true)}); // bez timera → bez rekordu
-        });
+      });
 
-        final skips = only(all, 'suppressed');
-        expect(skips, hasLength(1));
-        expect(skips.single['reason'], 'reconnected');
-        expect(timers.single.isActive, isFalse);
-      },
-    );
+      final prefs = only(all, 'prefs').single;
+      expect(prefs['alerts'], false);
+      expect(prefs['perm'], false);
+      expect(prefs['chan_imp'], 0);
+      expect(prefs['off'], isNot(contains('printFinished')));
+      expect(prefs['off'], contains('milestones'));
+    });
 
-    test(
-      'the prefs snapshot lists the disabled types and the system state',
-      () async {
-        final all = await rows(() async {
-          await NotifProbe.openSession(
-            const NotificationPrefs(
-              enabled: {NotifEvent.printFinished},
-              alertsEnabled: false,
-            ),
-            permission: () async => false,
-            channelImportance: () async => 0,
-          );
-        });
-
-        final prefs = only(all, 'prefs').single;
-        expect(prefs['alerts'], false);
-        expect(prefs['perm'], false);
-        expect(prefs['chan_imp'], 0);
-        expect(prefs['off'], isNot(contains('printFinished')));
-        expect(prefs['off'], contains('milestones'));
-      },
-    );
-
-    test('an unresponsive platform does not break the snapshot', () async {
+    testAt('an unresponsive platform does not break the snapshot', (_) async {
       final all = await rows(() async {
         await NotifProbe.openSession(
           NotificationPrefs.defaults,
@@ -1701,7 +2006,7 @@ void main() {
       });
 
       final prefs = only(all, 'prefs').single;
-      // Brak pola znaczy „nie odpowiedziano", nie „zabronione".
+      // A missing field means "no answer", not "denied".
       expect(prefs.containsKey('perm'), isFalse);
       expect(prefs.containsKey('chan_imp'), isFalse);
     });

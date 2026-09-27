@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_backend.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
-import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
@@ -14,7 +14,9 @@ import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
+import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
+import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/location_sensor.dart';
@@ -35,6 +37,7 @@ import 'package:bambuddy_mobile/data/pipelines_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
+import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
@@ -50,7 +53,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// against drifting away from the real parsers.
 void main() {
   final dio = Dio(BaseOptions(baseUrl: DemoConfig.baseUrl))
-    ..httpClientAdapter = DemoHttpClientAdapter(latency: Duration.zero);
+    ..httpClientAdapter = DemoHttpClientAdapter(
+      DemoBackend.instance.handle,
+      latency: Duration.zero,
+    );
 
   group('printers', () {
     test('list + statuses parse; simulated print is running', () async {
@@ -82,11 +88,70 @@ void main() {
       expect(items.first.statusKind, QueueItemStatusKind.pending);
     });
 
+    test(
+      'batches: an order, a shop order with a stranded plate, a grouping',
+      () async {
+        final repo = BatchRepository(dio);
+        final batches = await repo.list();
+
+        expect(batches, hasLength(3));
+        expect(repo.ordersCapability.observedAnswer, isTrue);
+        final shop = batches.firstWhere((b) => b.externalSource != null);
+        expect(shop.stranded, 2);
+        expect(shop.plates.last.dispatchable, isFalse);
+        expect(batches.where((b) => !b.hasTargets), hasLength(1));
+        expect(
+          (await repo.list(
+            status: PrintBatchStatus.completed,
+          )).single.hasTargets,
+          isFalse,
+        );
+
+        // Refused, so the shared dataset is left as it was.
+        await expectLater(
+          repo.dispatch(shop.id, plate: shop.plates.last),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Charms'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('copies go into the named order, or into a new grouping', () async {
+      final batches = BatchRepository(dio);
+      final queue = QueueRepository(dio);
+      final order = await batches.create(
+        name: 'Stand ×2',
+        archiveId: 1,
+        plates: const [(plateId: null, plateName: null, quantity: 2)],
+      );
+
+      await queue.addFromArchive(
+        1,
+        quantity: 2,
+        options: QueueCreateOptions(batchId: order.id),
+      );
+      await queue.addFromArchive(1, quantity: 3);
+
+      final after = await batches.list();
+      final filled = after.firstWhere((b) => b.id == order.id);
+      expect(filled.pendingCount, 2);
+      expect(filled.remainingCount, 0);
+      expect(
+        after.where((b) => !b.hasTargets && b.pendingCount == 3),
+        hasLength(1),
+      );
+    });
+
     test('the queue speaks the 1.2.5 contract, including auto', () async {
       // The demo is the only place tri-state calibrations can be exercised
       // without a 1.2.5 server — ours runs on 0.2.5b2 and sends booleans.
       // If this payload ever reverted to booleans, the demo would stop
-      // catching the regression it was changed for (docs/plans/07), silently.
+      // catching the regression it was changed for, silently.
       final items = await QueueRepository(dio).fetch();
 
       expect(
@@ -108,7 +173,10 @@ void main() {
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);
-      expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
+      expect(
+        (await version.current())?.supports(ServerFeature.triStateCalibration),
+        isTrue,
+      );
     });
 
     test(
@@ -120,12 +188,12 @@ void main() {
         final version = ServerVersionService(dio);
 
         expect(
-          await version.supports(ServerFeature.printLogCostEnergy),
+          (await version.current())?.supports(ServerFeature.printLogCostEnergy),
           isTrue,
           reason: 'the print log serves cost, energy and sorting',
         );
         expect(
-          await version.supports(ServerFeature.crossModelVariants),
+          (await version.current())?.supports(ServerFeature.crossModelVariants),
           isTrue,
           reason: 'library variant groups are served below',
         );
@@ -454,7 +522,7 @@ void main() {
     });
 
     test('the copies ceiling comes from the server, not a built-in', () async {
-      final settings = await SlicerRepository(dio).serverSettings();
+      final settings = await ServerSettingsRepository(dio).fetch();
 
       expect(
         settings['pipeline_max_copies'],
@@ -791,7 +859,7 @@ void main() {
   group('storage-location sensors', () {
     test('bindings and readings parse, with all three pill states', () async {
       final repo = LocationSensorsRepository(dio, ServerVersionService(dio));
-      expect(await repo.supportsLocationSensors(), isTrue);
+      expect(await repo.sensorsCapability.supported, isTrue);
 
       final bindings = await repo.listBindings();
       expect(bindings, hasLength(3));
@@ -829,6 +897,38 @@ void main() {
       expect(bom, hasLength(2));
       expect(await repo.timeline(1), isEmpty);
     });
+
+    test('uploads are refused the way the screens expect', () async {
+      // Each route used to fall through to a 200 with an empty body. The import
+      // screen's parse threw a TypeError past its AppApiException catch; the
+      // attachment and cover screens announced a file saved that went nowhere.
+      final dir = await Directory.systemTemp.createTemp('demo_upload');
+      addTearDown(() => dir.delete(recursive: true));
+      final file = File('${dir.path}/upload.zip')..writeAsBytesSync([0]);
+      final repo = ProjectsRepository(dio);
+
+      final uploads = <String, Future<void> Function()>{
+        'import': () =>
+            repo.importFile(filePath: file.path, filename: 'upload.zip'),
+        'attachment': () => repo.uploadAttachment(
+          1,
+          filePath: file.path,
+          filename: 'upload.zip',
+        ),
+        'cover': () => repo.uploadCoverImage(
+          1,
+          filePath: file.path,
+          filename: 'cover.png',
+        ),
+      };
+      for (final MapEntry(:key, :value) in uploads.entries) {
+        await expectLater(
+          value(),
+          throwsA(isA<AppApiException>()),
+          reason: key,
+        );
+      }
+    });
   });
 
   group('library', () {
@@ -860,7 +960,7 @@ void main() {
       final cloud = await CloudRepository(dio).status();
       expect(cloud.isAuthenticated, isFalse);
 
-      final settings = await SlicerRepository(dio).serverSettings();
+      final settings = await ServerSettingsRepository(dio).fetch();
       expect(settings['require_plate_clear'], isFalse);
       expect(
         settings['use_slicer_api'],
@@ -983,6 +1083,51 @@ void main() {
       expect(messages.whereType<WsPrinterStatus>(), hasLength(2));
       final status = messages.whereType<WsPrinterStatus>().first.status;
       expect(status.id, isPositive);
+    });
+
+    test('every printer in the fleet gets a frame, not just the first two', () {
+      // A real server broadcasts per printer. Naming two of them here meant a
+      // change on any other machine reached the dashboard only with the next
+      // REST poll, and the service isolate — which polls no statuses of its
+      // own — never: the notification said "2 printing" while the dashboard
+      // said three.
+      expect(DemoBackend.printerIds, hasLength(5));
+      expect(DemoBackend.printerIds, containsAll([1, 2, 3, 4, 5]));
+    });
+
+    test('a poke broadcasts now, instead of at the next tick', () async {
+      // Three seconds between ticks is long enough that a settings knob looks
+      // broken while you wait for one.
+      final conn = DemoWsConnection();
+      final seen = <Object?>[];
+      final sub = conn.stream.listen(seen.add);
+      await Future<void>.delayed(Duration.zero);
+      final afterOpen = seen.length;
+      expect(afterOpen, greaterThan(0), reason: 'the burst on listen');
+
+      DemoBackend.pokeSockets();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(seen.length, greaterThan(afterOpen));
+      await sub.cancel();
+      await conn.close();
+    });
+
+    test('the fleet frames cover the machines the count can pick', () async {
+      DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
+      addTearDown(() => DemoBackend.printingPrinters = 1);
+
+      final conn = DemoWsConnection();
+      final frames = await conn.stream
+          .take(DemoBackend.printerIds.length)
+          .toList();
+      await conn.close();
+
+      final ids = [
+        for (final f in frames)
+          (parseWsMessage(f as String) as WsPrinterStatus).status.id,
+      ];
+      expect(ids, containsAll([1, 2, 4, 5]));
     });
   });
 
@@ -1437,5 +1582,71 @@ void main() {
         expect(resliced.runCount, 0);
       },
     );
+  });
+
+  group('how many printers print at once', () {
+    // A demo-only knob (app settings), so the screens that behave differently
+    // with several machines running can be looked at at all.
+    tearDown(() => DemoBackend.printingPrinters = 1);
+
+    String? stateOf(int id) =>
+        DemoBackend.instance.statusJson(id)['state'] as String?;
+
+    test('one by default, so the other machines stand idle', () {
+      expect(DemoBackend.printingPrinters, 1);
+      for (final idle in [2, 4, 5]) {
+        expect(stateOf(idle), 'IDLE', reason: 'printer $idle');
+      }
+    });
+
+    test('raising it takes machines in order, and never the offline one', () {
+      DemoBackend.printingPrinters = 3;
+
+      // Printer 1 is left out of this one on purpose: it carries the demo's
+      // own print, which another case in this file may have stopped, and the
+      // order is what is being checked here.
+      expect([stateOf(2), stateOf(5)], everyElement('RUNNING'));
+      expect(stateOf(4), 'IDLE', reason: 'fourth in line, not asked for yet');
+      // Printer 3 is the fixture that must stay unreachable: the offline card
+      // and its grace window have nothing to show without it.
+      expect(stateOf(3), isNull);
+      expect(DemoBackend.instance.statusJson(3)['connected'], isFalse);
+    });
+
+    test('zero stands the simulation down too', () {
+      DemoBackend.printingPrinters = 0;
+
+      expect(stateOf(1), 'IDLE');
+      expect(DemoBackend.instance.statusJson(1)['current_print'], isNull);
+    });
+
+    test('each machine sits at its own point in the cycle', () {
+      DemoBackend.printingPrinters = DemoBackend.maxPrintingPrinters;
+
+      final percents = [
+        for (final id in [2, 4, 5])
+          DemoBackend.instance.statusJson(id)['progress'] as num,
+      ];
+      // Identical numbers would hide what several printers are here to show:
+      // a different ETA on each, and an average that is none of them.
+      expect(percents.toSet(), hasLength(percents.length));
+      for (final p in percents) {
+        expect(p, inInclusiveRange(0, 100));
+      }
+    });
+
+    test('a machine put to work reports a print, not just a state', () {
+      DemoBackend.printingPrinters = 2;
+      final status = DemoBackend.instance.statusJson(2);
+
+      expect(status['current_print'], 'Bracket v2.3mf');
+      expect(status['subtask_name'], 'Bracket v2');
+      expect(status['total_layers'], greaterThan(0));
+      expect(status['remaining_time'], greaterThan(0));
+      // The card reads a target to call it heating rather than cooling.
+      final temps = status['temperatures'] as Map;
+      expect(temps['nozzle_target'], greaterThan(0));
+      expect(temps['bed_target'], greaterThan(0));
+    });
   });
 }

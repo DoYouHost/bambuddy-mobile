@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
@@ -58,6 +59,50 @@ void main() {
       expect(find.textContaining('X2D-3DP'), findsOneWidget);
     },
   );
+
+  testWidgets('a run in a batch names it, and the bar opens the orders', (
+    tester,
+  ) async {
+    final json = readFixture('queue_item.json') as Map<String, dynamic>;
+    final item = QueueItem.fromJson({
+      ...json,
+      'batch_id': 4,
+      'batch_name': 'Keychains ×6',
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
+          noServerProfileOverride,
+          batchListingProvider.overrideWithValue(const AsyncData(true)),
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Partia: Keychains ×6'), findsOneWidget);
+    expect(byLogId('queue.orders'), findsOneWidget);
+  });
+
+  testWidgets('no orders entry once the server has no batch list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
+          noServerProfileOverride,
+          batchListingProvider.overrideWithValue(const AsyncData(false)),
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(byLogId('queue.orders'), findsNothing);
+  });
 
   testWidgets('an empty queue shows a message', (tester) async {
     await tester.pumpWidget(_screen(const []));
@@ -120,7 +165,7 @@ void main() {
     late _MutableQueueNotifier queue;
     late _HeldCommands commands;
 
-    Widget screen() {
+    Widget screen({AsyncValue<bool> gate = const AsyncValue.data(true)}) {
       queue = _MutableQueueNotifier([pending]);
       commands = _HeldCommands();
       return ProviderScope(
@@ -130,7 +175,7 @@ void main() {
           printerCommandsRepositoryProvider.overrideWithValue(commands),
           // The scheduler gates on the plate, and this printer's is dirty —
           // the branch that sends a request before the start does.
-          requirePlateClearProvider.overrideWith((ref) async => true),
+          requirePlateClearProvider.overrideWithValue(gate),
           printerStatusesProvider.overrideWith(_DirtyPlateStatuses.new),
           // The mapping sheet with nothing to map: one confirm button.
           filamentRequirementsProvider.overrideWith(
@@ -160,6 +205,35 @@ void main() {
       await tester.pumpAndSettle();
       expect(commands.acks, 1, reason: 'the acknowledgement is on the wire');
     }
+
+    testWidgets('a failure nobody predicted still reaches the user', (
+      tester,
+    ) async {
+      // A settings read that broke outright: no step in the flow words this
+      // one, so without the net the user picks a printer, maps the AMS, and
+      // then nothing happens at all — no print and no explanation.
+      await tester.pumpWidget(
+        screen(
+          gate: AsyncValue.error(StateError('unreadable'), StackTrace.empty),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Uruchom teraz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+      expect(queue.started, isEmpty, reason: 'nothing reached the server');
+      expect(
+        tester.takeException(),
+        isStateError,
+        reason: 'still reported, so a bug report keeps what actually broke',
+      );
+    });
 
     testWidgets('the print still starts when the row goes mid-request', (
       tester,
@@ -222,11 +296,11 @@ class _MutableQueueNotifier extends QueueNotifier {
 
   @override
   Future<ActionOutcome> startOnPrinter(
-    int itemId,
+    QueueItem item,
     int printerId, {
     List<int>? amsMapping,
   }) async {
-    started.add((item: itemId, printer: printerId));
+    started.add((item: item.id, printer: printerId));
     return ActionOutcome.ok;
   }
 }

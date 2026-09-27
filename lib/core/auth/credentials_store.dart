@@ -1,5 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../diagnostics/auth_probe.dart';
+
 /// Secrets store. Abstraction so pure-Dart core (AuthService, interceptor)
 /// is testable with mock without plugin.
 abstract class CredentialsStore {
@@ -23,9 +25,33 @@ abstract class CredentialsStore {
 }
 
 /// Implementation using Android Keystore via flutter_secure_storage.
+///
+/// **Reads never delete and never throw.** The plugin's own answer to a failed
+/// decrypt is to wipe the entry and carry on (`resetOnError`, true by default
+/// since version 10), which turns a Keystore that is briefly unavailable — after
+/// a reboot, on an OEM build having a bad day — into a session the user can
+/// never get back. Here the data stays where it is and the read answers `null`,
+/// the same as a key that was never written: the app asks for a sign-in, and if
+/// the Keystore comes back the credential is still there to be read.
+///
+/// Writes are left to throw. A silently dropped write would leave someone
+/// believing they are signed in while nothing was stored.
 class SecureCredentialsStore implements CredentialsStore {
   SecureCredentialsStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(
+              resetOnError: false,
+              // Every install that predates plugin version 10 re-encrypts its
+              // entries on the first read after the update, and a process
+              // killed in the middle of that leaves one half-written. With
+              // `resetOnError` off nothing clears it afterwards either, so the
+              // credential would be unreadable for good; the backup costs one
+              // extra write, once.
+              migrateWithBackup: true,
+            ),
+          );
 
   static const _jwtKey = 'jwt';
   static const _apiKeyKey = 'api_key';
@@ -34,15 +60,47 @@ class SecureCredentialsStore implements CredentialsStore {
 
   final FlutterSecureStorage _storage;
 
+  /// A read that cannot be decrypted is reported as absent, not as an error:
+  /// every caller already handles "no credential", and none handles a throw.
+  ///
+  /// Retried once, because the failure this exists for is usually a Keystore
+  /// that is not ready rather than a key that is gone — it happens seconds
+  /// after a reboot, and by the second attempt it is over. Once, not a loop:
+  /// a key that is really gone must not cost a retry budget on every read.
+  Future<String?> _read(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } on Object {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    try {
+      return await _storage.read(key: key);
+    } on Object catch (error) {
+      AuthProbe.credentialUnreadable(key, error);
+      return null;
+    }
+  }
+
+  /// Deleting is best-effort for the same reason reading is: the caller is
+  /// usually in the middle of telling the user to sign in again, and a throw
+  /// from here would take that message with it.
+  Future<void> _delete(String key) async {
+    try {
+      await _storage.delete(key: key);
+    } on Object catch (error) {
+      AuthProbe.credentialUnreadable(key, error);
+    }
+  }
+
   @override
-  Future<String?> readJwt() => _storage.read(key: _jwtKey);
+  Future<String?> readJwt() => _read(_jwtKey);
 
   @override
   Future<void> writeJwt(String token) =>
       _storage.write(key: _jwtKey, value: token);
 
   @override
-  Future<String?> readApiKey() => _storage.read(key: _apiKeyKey);
+  Future<String?> readApiKey() => _read(_apiKeyKey);
 
   @override
   Future<void> writeApiKey(String key) =>
@@ -50,9 +108,13 @@ class SecureCredentialsStore implements CredentialsStore {
 
   @override
   Future<({String username, String password})?> readRememberedLogin() async {
-    final username = await _storage.read(key: _usernameKey);
-    final password = await _storage.read(key: _passwordKey);
-    if (username == null || password == null) return null;
+    final username = await _read(_usernameKey);
+    // No second read when the first came up empty: on a failing Keystore that
+    // is another wait and another warning in the log for an answer already
+    // known.
+    if (username == null) return null;
+    final password = await _read(_passwordKey);
+    if (password == null) return null;
     return (username: username, password: password);
   }
 
@@ -64,10 +126,28 @@ class SecureCredentialsStore implements CredentialsStore {
 
   @override
   Future<void> clearRememberedLogin() async {
-    await _storage.delete(key: _usernameKey);
-    await _storage.delete(key: _passwordKey);
+    await _delete(_usernameKey);
+    await _delete(_passwordKey);
   }
 
+  /// Best-effort, like [_delete] and for the same reason: the caller is signing
+  /// out, and it has already cleared the profile by the time it gets here. A
+  /// throw would leave the app holding a profile it has forgotten how to reach
+  /// — gone from disk, still on screen — so a Keystore that cannot delete is
+  /// reported and the sign-out finishes.
   @override
-  Future<void> clearAll() => _storage.deleteAll();
+  Future<void> clearAll() async {
+    try {
+      await _storage.deleteAll();
+      return;
+    } on Object catch (error) {
+      AuthProbe.credentialUnreadable('all', error);
+    }
+    // Key by key, because `deleteAll` is one operation that either happens or
+    // does not: the entry that cannot be decrypted must not keep the other
+    // three on disk.
+    for (final key in const [_jwtKey, _apiKeyKey, _usernameKey, _passwordKey]) {
+      await _delete(key);
+    }
+  }
 }

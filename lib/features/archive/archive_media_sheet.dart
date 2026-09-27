@@ -1,39 +1,33 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/diagnostic_recorder.dart';
-import '../../core/diagnostics/log_event.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_media.dart';
 import '../../core/models/printer_download_job.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
-import '../common/format_bytes.dart';
 import '../common/inline_note.dart';
-import '../common/section_heading.dart';
 import '../files/printer_download_job.dart';
 import '../files/printer_selection_download.dart';
+import '../../data/streamed_download.dart';
 
 /// Whether this server can be asked what a print left on its printer.
 ///
 /// Only the printer half of the sheet rests on this — the timelapse and the
 /// photos are the archive's own, and every server generation serves them.
-final archiveMediaSupportedProvider = FutureProvider<bool>(
-  (ref) => ref.watch(archiveRepositoryProvider).supportsPrinterMedia(),
+final archiveMediaSupportedProvider = capabilityGate(
+  (ref) => ref.watch(archiveRepositoryProvider).printerMediaCapability,
 );
 
 /// Whether a print has anything for the sheet to show at all.
@@ -129,9 +123,15 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   Future<void> _search() async {
     // The same gate the entry point watches, so the button and the section it
     // opens cannot disagree about whether this server can be asked.
+    final providers = ProviderScope.containerOf(context, listen: false);
     final searchable =
         widget.archive.printerId != null &&
-        await ref.read(archiveMediaSupportedProvider.future);
+        // Started unawaited from initState: a gate that failed is "no", not
+        // an error with nobody to catch it.
+        await settledGate(
+          providers,
+          archiveMediaSupportedProvider,
+        ).catchError((Object _) => false);
     if (!mounted) return;
     if (!searchable) {
       setState(() {
@@ -296,7 +296,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
   /// indeterminate rather than inventing a fraction.
   void _onProgress(int received, int total) {
     if (!mounted) return;
-    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    final next = transferPercentStep(received, total);
     if (next == _progress) return;
     setState(() => _progress = next);
   }
@@ -453,7 +453,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       if (_loading)
         _Searching(label: l10n.archiveMediaSearching, t: t)
       else if (_error case final error?) ...[
-        Text(error, style: t.body.copyWith(color: t.danger)),
+        Text(error, style: t.body.copyWith(color: t.dangerInk)),
         // A search over five FTP listings fails for reasons that pass — the
         // printer busy, the phone's Wi-Fi dropping. Without this the only way
         // to try again is to dismiss the sheet and find the button again.

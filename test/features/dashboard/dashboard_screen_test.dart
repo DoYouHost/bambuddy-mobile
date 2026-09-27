@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
@@ -18,11 +21,16 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/data/pipelines_repository.dart';
+import 'package:bambuddy_mobile/features/shell/root_scaffold.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/core/api/server_reachability.dart';
+import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
@@ -43,7 +51,7 @@ class _NoopNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {}
   @override
   Future<void> clearOngoing() async {}
@@ -88,7 +96,12 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   @override
   Future<bool> start() async => true;
   @override
-  Future<void> stop() async => stops++;
+  Future<bool> stop() async {
+    stops++;
+    // What the real one answers: whether there was a service to stop.
+    return running;
+  }
+
   @override
   Future<bool> isRunning() async => running;
   @override
@@ -106,6 +119,24 @@ class _InertWearRelay extends WearRelayHandler {
 
 /// Counts the hand-off alone; what the notifier does inside is covered by its
 /// own test.
+/// A store whose reads park until the test lets them through — a Keystore
+/// taking its time, which is the window a resume can land in.
+class _GatedCredentialsStore extends InMemoryCredentialsStore {
+  final gate = Completer<void>();
+
+  /// Counts the sign-in check and nothing else: the remembered login is the
+  /// second half of `credentialMissing`, and no other caller in this screen
+  /// asks for it.
+  var checks = 0;
+
+  @override
+  Future<({String username, String password})?> readRememberedLogin() async {
+    checks++;
+    await gate.future;
+    return super.readRememberedLogin();
+  }
+}
+
 class _SpyFinishPhoto extends FinishPhotoNotifier {
   _SpyFinishPhoto()
     : super(
@@ -145,16 +176,23 @@ List<Override> _overrides(DashboardState state) => [
   ),
 ];
 
-Widget _app(DashboardState state, {List<Override> extra = const []}) =>
-    ProviderScope(
-      overrides: [..._overrides(state), ...extra],
-      child: MaterialApp(
-        locale: const Locale('pl'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const DashboardScreen(),
-      ),
-    );
+Widget _app(
+  DashboardState state, {
+  List<Override> extra = const [],
+  TextScaler textScaler = TextScaler.noScaling,
+}) => ProviderScope(
+  overrides: [..._overrides(state), ...extra],
+  child: MaterialApp(
+    locale: const Locale('pl'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+      child: child!,
+    ),
+    home: const DashboardScreen(),
+  ),
+);
 
 /// Same dashboard, but reachable through a router — for the paths that navigate
 /// away (`context.go('/setup')`).
@@ -190,10 +228,14 @@ void main() {
     // no test depends on another having run first.
     await _prefs.setBool('notif_onboarded', true);
     await _prefs.remove('sign_in_required');
+    // The reason outlives the flag in SharedPreferences, and since the screen
+    // reads it to decide whether a credential coming back should lower the
+    // flag, a leftover from the test before changes what this one does.
+    await _prefs.remove('sign_in_reason');
   });
 
   testWidgets(
-    'pad pollingu pokazuje baner NAD ostatnimi danymi, nie zamiast nich',
+    'a failed poll shows the banner above the last data, not instead of it',
     (tester) async {
       await tester.pumpWidget(
         _app(
@@ -211,6 +253,35 @@ void main() {
     },
   );
 
+  testWidgets('a cold start with the server out of reach says so at once', (
+    tester,
+  ) async {
+    // Before, this screen sat on its spinner until its own request timed out —
+    // and so did every tab the user opened next.
+    addTearDown(ServerReachability.instance.forget);
+
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+    expect(find.byType(DashLoading), findsOneWidget, reason: 'nothing tried');
+
+    // What the first failed request records, wherever in the app it was made.
+    ServerReachability.instance.reachable.value = false;
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsNothing);
+    expect(find.text('Nie udało się połączyć z serwerem'), findsOneWidget);
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+  });
+
+  testWidgets('while the server may still answer, the spinner stays', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await tester.pump();
+
+    expect(find.byType(DashLoading), findsOneWidget);
+  });
+
   testWidgets('a first-load failure shows the error and a retry button', (
     tester,
   ) async {
@@ -225,6 +296,234 @@ void main() {
     expect(find.textContaining('Serwer nieosiągalny'), findsOneWidget);
     expect(find.text('Spróbuj ponownie'), findsOneWidget);
     expect(find.byType(ConnectionBanner), findsNothing);
+  });
+
+  /// Opens the drawer of a dashboard whose server version read answers
+  /// [version] — `null` being "the server never told us".
+  Future<void> openDrawer(
+    WidgetTester tester, {
+    DashboardState state = const DashboardState(),
+    String? version,
+    TextScaler textScaler = TextScaler.noScaling,
+  }) async {
+    await tester.pumpWidget(
+      _app(
+        state,
+        extra: [serverVersionLabelProvider.overrideWith((ref) => version)],
+        textScaler: textScaler,
+      ),
+    );
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    // `settle`, not `pumpAndSettle`: the dashboard keeps an animation
+    // running, so waiting for a still frame never returns.
+    await settle(tester);
+  }
+
+  testWidgets(
+    'the drawer list does not stretch, the printer list still does',
+    (tester) async {
+      await openDrawer(
+        tester,
+        state: const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+      );
+
+      expect(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsNothing,
+      );
+      // Proves the lookup above can find one at all: the switch is the drawer's
+      // alone, not an app-wide change of overscroll look.
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsOneWidget,
+      );
+    },
+    // Stretch is Android's overscroll look; on any other platform neither
+    // assertion would say anything about it.
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
+
+  testWidgets('pull-to-refresh tells every gate to forget its refusals', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+        ),
+      ),
+    );
+    await settle(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DashboardScreen)),
+    );
+
+    await tester.fling(find.text('X1C'), const Offset(0, 400), 1000);
+    await settle(tester);
+
+    expect(container.read(refusalsForgottenProvider), 1);
+  });
+
+  testWidgets('the drawer icon decodes to its tile, not to 1024 px', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await openDrawer(tester);
+
+    // `.first` outside the descendant finder: inside `matching` it would pick
+    // the first Image of the whole tree and only then ask whether it is in the
+    // drawer — a cover thumbnail on a card behind it would fail the lookup.
+    final icon = tester.widget<Image>(
+      find
+          .descendant(of: find.byType(Drawer), matching: find.byType(Image))
+          .first,
+    );
+    // 52 dp of tile at this ratio. The asset behind it is the 1024x1024
+    // launcher source, which is what used to be decoded and held in the cache.
+    expect((icon.image as ResizeImage).width, 156);
+  });
+
+  group('the drawer footer names both versions', () {
+    testWidgets('the server version the app is talking to', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'bambuddy',
+        packageName: 'page.codeberg.morganmlgman.bambuddy_mobile',
+        version: '0.14.0',
+        buildNumber: '2028000',
+        buildSignature: '',
+      );
+      await openDrawer(tester, version: '1.2.6b1');
+
+      // One phrasing for the pair. The app line used to read `Bambuddy
+      // v0.14.0+2028000` over an unprefixed `Serwer 1.2.6`, which read as two
+      // answers to two different questions.
+      expect(find.text('Aplikacja 0.14.0+2028000'), findsOneWidget);
+      expect(find.text('Serwer 1.2.6b1'), findsOneWidget);
+    });
+
+    testWidgets('a daily build at double text size still fits', (tester) async {
+      // Deliberately no `maxLines`/`overflow` on the phone, unlike the watch:
+      // the footer sits above an `Expanded` list, so a wrapped line takes its
+      // room from the list rather than overflowing — and truncating would cost
+      // the build number, which is the half a report is filed with. This is
+      // what makes "it wraps, it does not overflow" a checked claim: the test
+      // framework turns any RenderFlex overflow into a failure.
+      await openDrawer(
+        tester,
+        version: '1.2.6b1-daily.20260729',
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(find.text('Serwer 1.2.6b1-daily.20260729'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an older server that has no version route', (tester) async {
+      // `/updates/version` answering 404 is not an error worth a red line —
+      // the footer says the number is unknown and the drawer is otherwise the
+      // drawer.
+      await openDrawer(tester);
+
+      expect(find.text('Nieznana wersja serwera'), findsOneWidget);
+      expect(find.textContaining('Serwer '), findsNothing);
+    });
+  });
+
+  testWidgets(
+    'the Pipelines tile is in the first frame of a drawer the shell warmed',
+    (tester) async {
+      // The report: on a cold start the drawer opened without the tile, which
+      // then appeared and pushed the five tiles under it down. The drawer is
+      // not built while closed, so it was the first thing to ask.
+      final dio = testDio();
+      mockServer(dio).onGet(
+        '/api/v1/slicer-pipelines/',
+        (s) => s.reply(200, {'pipelines': []}),
+      );
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(),
+          extra: [
+            pipelinesRepositoryProvider.overrideWithValue(
+              PipelinesRepository(dio),
+            ),
+            serverSettingsOverride(const {}),
+            serverVersionProvider.overrideWith((ref) => null),
+            serverVersionLabelProvider.overrideWith((ref) => null),
+          ],
+        ),
+      );
+      final shell = ProviderScope.containerOf(
+        tester.element(find.byType(DashboardScreen)),
+      );
+      warmServerAnswers((answer) => shell.listen(answer, (_, _) {}));
+      await settle(tester);
+
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await tester.pump();
+
+      expect(byLogId('drawer.pipelines'), findsOneWidget);
+    },
+  );
+
+  testWidgets('the drawer leads to app settings, not to notifications', (
+    tester,
+  ) async {
+    await openDrawer(tester);
+
+    expect(find.text('Ustawienia aplikacji'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('Zdarzenia powiadomień'),
+      ),
+      findsNothing,
+      reason: 'the entry moved into app settings',
+    );
+  });
+
+  testWidgets('a card toggled by hand keeps it after leaving the list', (
+    tester,
+  ) async {
+    // The list builds lazily, so a card that leaves it is disposed — here by
+    // the search, on a phone by scrolling — and has to come back as it was.
+    await _prefs.setBool('printer_cards_collapsed', true);
+    addTearDown(() => _prefs.remove('printer_cards_collapsed'));
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [
+            PrinterWithStatus(printer: Printer(id: 1, name: 'X1C Warsztat')),
+            PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini')),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Rozwiń kartę'), findsNWidgets(2));
+
+    await tester.tap(find.byTooltip('Rozwiń kartę').first);
+    await tester.pump();
+    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'mini');
+    await tester.pumpAndSettle();
+    expect(find.text('X1C Warsztat'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+    expect(find.byTooltip('Rozwiń kartę'), findsOneWidget);
   });
 
   testWidgets('the search box filters the list by name', (tester) async {
@@ -273,6 +572,51 @@ void main() {
 
     expect(find.text('1 drukuje'), findsOneWidget);
     expect(find.textContaining('Następna wolna'), findsOneWidget);
+  });
+
+  testWidgets('a printer still heating is not the next one free', (
+    tester,
+  ) async {
+    // The server's `remaining_time` defaults to zero and stays there until the
+    // firmware sends its first estimate, so a machine that has just started
+    // reports the same zero as one a minute from done. Ordered on that number
+    // alone, the one that had barely begun was announced as the next to free
+    // up — ahead of a print with twelve minutes left.
+    await tester.pumpWidget(
+      _app(
+        const DashboardState(
+          printers: [
+            PrinterWithStatus(
+              printer: Printer(id: 1, name: 'X1C Warsztat'),
+              status: PrinterStatus(
+                id: 1,
+                connected: true,
+                state: 'PREPARE',
+                progress: 0,
+                remainingTime: 0,
+              ),
+            ),
+            PrinterWithStatus(
+              printer: Printer(id: 2, name: 'A1 mini'),
+              status: PrinterStatus(
+                id: 2,
+                connected: true,
+                state: 'RUNNING',
+                progress: 87,
+                remainingTime: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.textContaining('A1 mini'), findsWidgets);
+    expect(
+      find.textContaining('Następna wolna: X1C Warsztat'),
+      findsNothing,
+      reason: 'heating, so nothing is known about when it frees up',
+    );
   });
 
   testWidgets('a service that outlived the previous launch is stopped', (
@@ -393,6 +737,73 @@ void main() {
     await drive(toBackground);
   });
 
+  group('the service lane in the log', () {
+    /// One record per thing that actually happened to the service. The verb
+    /// `ui_stop` used to be written for having *asked*, and the app asks on
+    /// every resume whether or not monitoring is on — so a user with the
+    /// feature switched off collected a stop per foreground/background cycle
+    /// for a service that had never run.
+    Future<String> resumeWith(WidgetTester tester, bool running) async {
+      final recorder = testRecorder();
+      addTearDown(recorder.discard);
+      await recorder.start();
+
+      await tester.pumpWidget(
+        _app(
+          const DashboardState(
+            printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+          ),
+          extra: [
+            backgroundMonitorProvider.overrideWithValue(
+              _FakeBackgroundMonitor(running: running),
+            ),
+            wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // AppLifecycleListener recognises transitions, not states.
+      Future<void> drive(List<AppLifecycleState> states) async {
+        for (final state in states) {
+          tester.binding.handleAppLifecycleStateChanged(state);
+        }
+        await tester.pumpAndSettle();
+      }
+
+      const toBackground = [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ];
+
+      await drive(toBackground);
+      await drive(const [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]);
+
+      final raw = await recorder.stop();
+      // Resuming restarted polling; parked again so its timers do not outlive
+      // the widget tree. After the recording, so the second pause adds nothing
+      // to what is asserted.
+      await drive(toBackground);
+      return raw;
+    }
+
+    // The exact field, not the bare word: `ui_stop_survivor` contains it.
+    const stopRecord = '"evt":"ui_stop"';
+
+    testWidgets('a resume that stopped nothing writes no stop', (tester) async {
+      expect(await resumeWith(tester, false), isNot(contains(stopRecord)));
+    });
+
+    testWidgets('a resume that really stopped one writes it', (tester) async {
+      expect(await resumeWith(tester, true), contains(stopRecord));
+    });
+  });
+
   group('rejected-password warning', () {
     const state = DashboardState(
       printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
@@ -439,6 +850,108 @@ void main() {
       expect(find.text('Zaloguj się ponownie'), findsNothing);
     });
 
+    testWidgets('an empty store raises the warning with nobody to raise it', (
+      tester,
+    ) async {
+      // Nothing rejected these credentials — they are gone, which is what a
+      // secure store that cannot read its own older format leaves behind. The
+      // two writers of the flag only ever hear a rejection, so without this the
+      // app keeps sending bare requests and shows their 401s as an empty
+      // dashboard.
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(
+        find.textContaining('aktualizacja zabezpieczeń'),
+        findsOneWidget,
+        reason:
+            'the wording names the cause; blaming a password nobody '
+            'rejected sends the user to reset a working one',
+      );
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that comes back lowers the flag again', (
+      tester,
+    ) async {
+      // What a Keystore that was briefly unavailable looks like afterwards: the
+      // flag is up from the last launch, and the store answers again. Signing
+      // in is the only other thing that lowers it, so without this the app
+      // would keep asking for a session it already has.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsMissing');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'back-again',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
+    testWidgets('a rejection is not lowered by a readable credential', (
+      tester,
+    ) async {
+      // The other half: the server said no to this password. The credential
+      // reads fine — that was never the problem — so the warning stays.
+      await _prefs.setBool('sign_in_required', true);
+      await _prefs.setString('sign_in_reason', 'credentialsRejected');
+
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+      expect(_prefs.getBool('sign_in_required'), isTrue);
+    });
+
+    testWidgets('a credential that is there raises nothing', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          state,
+          extra: [
+            fakeServerProfileOverride(authMode: AuthMode.jwt),
+            credentialsStoreProvider.overrideWithValue(
+              InMemoryCredentialsStore()..jwt = 'still-here',
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsNothing);
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
     testWidgets('"Sign in" leads to the setup screen', (tester) async {
       await _prefs.setBool('sign_in_required', true);
 
@@ -451,21 +964,80 @@ void main() {
     });
 
     testWidgets(
-      '"Later" closes the dialog, but the flag stays for the next launch',
+      'a resume in the middle of the check opens one dialog, not two',
       (tester) async {
-        // The app cannot load anything until the user signs in, so postponing
-        // must not be mistaken for resolving it.
-        await _prefs.setBool('sign_in_required', true);
+        // The dialog cannot be dismissed, so a second one on top of it is an app
+        // the user cannot leave: the button under the top copy leads to /setup,
+        // and the one below is still there afterwards.
+        final store = _GatedCredentialsStore();
+        await tester.pumpWidget(
+          _app(
+            state,
+            extra: [
+              fakeServerProfileOverride(authMode: AuthMode.jwt),
+              credentialsStoreProvider.overrideWithValue(store),
+              wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
+            ],
+          ),
+        );
+        // Far enough for the check after the first frame to reach the store and
+        // park there, and no further.
+        await tester.pump();
+        await tester.pump();
+        expect(
+          store.checks,
+          1,
+          reason: 'the first check is waiting on the store',
+        );
 
-        await tester.pumpWidget(_app(state));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(TextButton, 'Później'));
+        // AppLifecycleListener recognises transitions, not states.
+        for (final lifecycle in const [
+          AppLifecycleState.inactive,
+          AppLifecycleState.resumed,
+        ]) {
+          tester.binding.handleAppLifecycleStateChanged(lifecycle);
+        }
+        await tester.pump();
+
+        store.gate.complete();
         await tester.pumpAndSettle();
 
-        expect(find.text('Zaloguj się ponownie'), findsNothing);
-        expect(find.text('X1C'), findsOneWidget);
-        expect(_prefs.getBool('sign_in_required'), isTrue);
+        expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+        expect(
+          store.checks,
+          1,
+          reason: 'the resume found a check already running and left it to it',
+        );
+
+        // The resume restarted polling; parked again so its timers do not
+        // outlive the widget tree.
+        for (final lifecycle in const [
+          AppLifecycleState.inactive,
+          AppLifecycleState.hidden,
+          AppLifecycleState.paused,
+        ]) {
+          tester.binding.handleAppLifecycleStateChanged(lifecycle);
+        }
+        await tester.pumpAndSettle();
       },
     );
+
+    testWidgets('the warning cannot be waved away', (tester) async {
+      // There is no "later" any more: every screen behind this dialog needs a
+      // session, so dismissing it would buy a dashboard of empty lists. Back
+      // and the barrier are shut for the same reason.
+      await _prefs.setBool('sign_in_required', true);
+
+      await tester.pumpWidget(_routedApp(state));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(FilledButton, 'Później'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Zaloguj'), findsOneWidget);
+
+      // The barrier is not a way out.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+    });
   });
 }

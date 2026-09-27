@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Slice job from `GET /slice-jobs/{id}` — the background job spawned by a
 /// `POST .../slice`. The client enqueues, then polls this until terminal.

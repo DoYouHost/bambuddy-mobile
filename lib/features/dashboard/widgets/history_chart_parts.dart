@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -93,3 +94,25 @@ String sensorRangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
   168 => l10n.sensorHistoryRange7d,
   _ => l10n.sensorHistoryRange24h,
 };
+
+/// One plotted series, in the app's line-chart style.
+///
+/// The three charts that draw a value over time — AMS humidity, heater
+/// temperature, the statistics screen's trend — had this written out
+/// identically, down to the 0.15 fill alpha. `preventCurveOverShooting` is the
+/// one that matters and the one easiest to forget: without it a curved series
+/// dips below its own minimum between two close points, which on a humidity or
+/// temperature chart draws a reading that was never recorded.
+LineChartBarData dashLineSeries(List<FlSpot> spots, Color color) =>
+    LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      preventCurveOverShooting: true,
+      color: color,
+      barWidth: 2,
+      dotData: const FlDotData(show: false),
+      belowBarData: BarAreaData(
+        show: true,
+        color: color.withValues(alpha: 0.15),
+      ),
+    );

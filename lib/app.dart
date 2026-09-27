@@ -5,15 +5,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:app_report_ui/app_report_ui.dart';
 
 import 'core/format/system_clock_sync.dart';
 import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
 import 'core/theme/dash_theme.dart';
-import 'features/bug_report/recording_banner.dart';
-import 'features/common/confirm_dialog.dart';
-import 'features/common/dash_snack.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
@@ -196,7 +194,10 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // App follows system setting; dark theme like PWA.
       themeMode: ThemeMode.system,
       // Locale auto-detected from system; en = fallback.
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: [
+        ...AppLocalizations.localizationsDelegates,
+        ReportLocalizations.delegate,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
       // Recording controls have to outlive the report screen — the bug gets
@@ -210,4 +211,5 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   }
 }
 
-ThemeData _theme(Brightness brightness) => buildDashThemeData(brightness);
+ThemeData _theme(Brightness brightness) =>
+    buildDashThemeData(brightness, brand: bambuddyBrand);

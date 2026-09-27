@@ -5,15 +5,10 @@ import '../wear_shape.dart';
 
 /// The rectangle inscribed in the watch face, for content that does not scroll.
 ///
-/// [WearScrollView] is how a scrolling screen gets the same thing, and it is
-/// still the answer for anything that scrolls — the insets have to go on the
-/// viewport there, which is a different problem than this one. What was left
-/// over is the handful of screens that paint a fixed block on the glass, and
-/// each of them had to know all three moving parts: ask the platform for the
-/// shape, ask the media query for the size, and only then compute the insets.
-/// Three calls remembered in three places is how one of them ends up forgotten,
-/// which is what the printer-unavailable state was until it got its own line
-/// here.
+/// Anything that scrolls goes through [WearScrollView] instead, where the insets
+/// belong on the viewport. This is for the screens that paint a fixed block, and
+/// it exists because each of them otherwise had to remember all three moving
+/// parts — the platform's shape, the media query's size, then the insets.
 class WearFace extends StatelessWidget {
   const WearFace({super.key, required this.child, this.widthFraction});
 

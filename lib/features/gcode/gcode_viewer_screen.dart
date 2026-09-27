@@ -7,15 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
-import '../../core/diagnostics/diagnostic_recorder.dart';
-import '../../core/diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/settings/server_profile.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_progress.dart';
-import '../common/state_views.dart';
 import 'gcode_viewer_page.dart';
 
 /// Full-screen 3D G-code preview, drawn by the app.

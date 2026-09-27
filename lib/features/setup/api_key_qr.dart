@@ -12,23 +12,17 @@ class ScannedApiKeyConfig {
 
 /// Decodes a bambuddy configuration QR code into a [ScannedApiKeyConfig].
 ///
-/// The server encodes both the base URL and a freshly-created key in one code so
-/// a mobile client can configure everything from a single scan (payload contract
-/// `reference/.../apiKeyQr.ts`):
+/// The payload contract is `reference/.../apiKeyQr.ts`:
 ///
 ///   `bambuddy://config?v=1&url=<encoded baseUrl>&key=<encoded apiKey>`
 ///
-/// Parsing is version-tolerant (the `v` is ignored — a bumped payload that still
-/// carries `url`/`key` keeps working) and lenient about hand-made codes:
+/// The `v` is ignored, so a bumped payload still carrying `url`/`key` keeps
+/// working, and hand-made codes are read leniently: a query param
+/// (`key`/`api_key`/`token`), then a `bb_…` token anywhere in the text, then the
+/// whole value if it is one whitespace-free token.
 ///
-///  1. any URL/deep-link with a `key`/`api_key`/`token` query param (plus an
-///     optional `url` param → [baseUrl]);
-///  2. otherwise a `bb_…` token found anywhere in the text;
-///  3. otherwise the whole value, if it's a single whitespace-free token.
-///
-/// Returns null when nothing key-shaped can be read. The caller drops the result
-/// into the (editable) fields, so a user can still correct a loose match.
-/// Top-level (pure function) — testable without UI.
+/// Null when nothing key-shaped can be read. The caller drops the result into
+/// editable fields, so a loose match is still correctable.
 ScannedApiKeyConfig? parseScannedApiKey(String raw) {
   final s = raw.trim();
   if (s.isEmpty) return null;
@@ -54,14 +48,11 @@ ScannedApiKeyConfig? parseScannedApiKey(String raw) {
   final match = RegExp(r'bb_[A-Za-z0-9._-]+').firstMatch(s);
   if (match != null) return ScannedApiKeyConfig(apiKey: match.group(0)!);
 
-  // Bare token: accept only if it carries no whitespace (rejects prose/labels)
-  // and carries no URI scheme. Anything scannable ends up in front of this
-  // parser, and a `scheme:` payload that got this far had no key parameter and no
-  // `bb_` token — a shop link, a `WIFI:` share, an `otpauth:` seed. Without the
-  // scheme test its whole text would quietly become the "key" and the server
-  // would answer "key rejected", which reads as a bad key rather than a wrong
-  // code. Cost of the rule: a custom key containing a colon has to be typed in
-  // by hand, which the (editable) field allows.
+  // A bare token needs no whitespace (rejects prose) and no URI scheme: a
+  // `scheme:` payload this far down had no key param and no `bb_` token — a shop
+  // link, a `WIFI:` share — and without the test its whole text would become the
+  // "key", which the server answers as "key rejected" rather than "wrong code".
+  // The cost is a custom key containing a colon, which has to be typed in.
   final looksLikeLink = uri != null && uri.hasScheme;
   if (!looksLikeLink && !s.contains(RegExp(r'\s'))) {
     return ScannedApiKeyConfig(apiKey: s);

@@ -1,15 +1,13 @@
 /// Narrowing a filament preset list to what the user is actually looking for.
 ///
-/// A cloud account holds every preset for every printer and every material the
-/// user has ever had, and the picker shows all of them in one flat list. Two
-/// facts are usually already known where it opens — which printer model the
-/// preset is being chosen for, and what the spool is made of — and each of them
-/// cuts the list by an order of magnitude.
+/// A cloud account holds every preset for every printer and material the user
+/// has ever had, in one flat list. Two facts are usually known where the picker
+/// opens — the printer model and the spool's material — and each cuts the list
+/// by an order of magnitude.
 ///
-/// Both filters **fail open**, the same rule
-/// [presetFitsPrinterModel] is written to: a preset the evidence does not
-/// cover stays in the list. Hiding one we merely failed to classify is worse
-/// than showing one too many, and the user can switch either filter off.
+/// Both filters **fail open**, like [presetFitsPrinterModel]: a preset the
+/// evidence does not cover stays in. Hiding one we merely failed to classify is
+/// worse than showing one too many.
 library;
 
 import '../ams/printer_model_match.dart';
@@ -19,10 +17,8 @@ import '../models/slicer_preset.dart';
 ///
 /// [query] matches the visible name or the preset id. [printerModel] is the
 /// short code on `Printer.model`, and [printerModels] the registry from
-/// `GET /slicer/printer-models` that [presetPrinterModel] reads the other two
-/// name shapes through — worth passing, but not required: without it Bambu's
-/// own `@BBL <code>` suffix still decides.
-/// [material] is the spool's material as the user spells it.
+/// `GET /slicer/printer-models` — worth passing, but without it Bambu's own
+/// `@BBL <code>` suffix still decides. [material] is spelled as the user does.
 List<SlicerPreset> filterFilamentPresets(
   List<SlicerPreset> presets, {
   String query = '',
@@ -44,13 +40,10 @@ List<SlicerPreset> filterFilamentPresets(
 /// Whether [preset] is for [material], as far as anything on it says.
 ///
 /// The declared `filament_type` settles it **either way** where the preset has
-/// one — the same shape as the model filter, where evidence of a mismatch is
-/// what hides a preset. Reading the name after a declared type had already
-/// disagreed would let a PETG preset that merely mentions PLA pass as one.
-///
-/// The name is the fallback because the cloud and standard tiers leave the
-/// type null, which is most of the list. Matched on a word boundary: a plain
-/// substring test makes every `PCTG` preset a `PC` one.
+/// one: reading the name after a declared type disagreed would let a PETG preset
+/// that merely mentions PLA pass as one. The name is the fallback because the
+/// cloud and standard tiers leave the type null, which is most of the list.
+/// Matched on a word boundary — a substring test makes every `PCTG` a `PC`.
 bool presetFitsMaterial(SlicerPreset preset, String? material) {
   final wanted = material?.trim() ?? '';
   if (wanted.isEmpty) return true;

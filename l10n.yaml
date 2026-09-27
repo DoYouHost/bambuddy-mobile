@@ -3,3 +3,6 @@ template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 nullable-getter: false
+# Flutter falls back to the first supported locale; without this gen-l10n sorts
+# `de` to the front and every untranslated system language gets German.
+preferred-supported-locales: [en]

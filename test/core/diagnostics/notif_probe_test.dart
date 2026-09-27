@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,11 +15,11 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async =>
-          const SessionFacts(app: '0.12.1+1201000', flavor: 'mobile'),
-      resolveDirectory: () async => null,
+    recorder = testRecorder(
+      facts: const SessionFacts(
+        app: '0.12.1+1201000',
+        extra: {'flavor': 'mobile'},
+      ),
     );
     addTearDown(recorder.discard);
     await recorder.start();
@@ -123,14 +121,24 @@ void main() {
     test(
       'the ongoing record carries numbers, not the job it describes',
       () async {
-        // The notification's own text is the job name; these four fields are
+        // The notification's own text is the job name; these five fields are
         // what the monitor collapses frames on, and all of them are the
         // printer's or ours.
-        NotifProbe.ongoing(printerId: 3, percent: 42, etaMin: 18, active: 1);
+        NotifProbe.ongoing(
+          printerId: 3,
+          percent: 42,
+          etaMin: 18,
+          active: 2,
+          overall: 30,
+        );
 
         final rows = await notifRows();
         expect(rows.single['pct'], 42);
         expect(rows.single['eta_min'], 18);
+        // The lead's figure and the bar's are different numbers once a second
+        // printer is running; a report that carries only one cannot say which
+        // the user saw.
+        expect(rows.single['overall_pct'], 30);
         expect(rows.single.keys, isNot(contains('title')));
         expect(rows.single.keys, isNot(contains('body')));
       },

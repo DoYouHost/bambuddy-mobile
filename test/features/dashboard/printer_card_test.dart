@@ -11,9 +11,12 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
+import 'package:bambuddy_mobile/core/printers/bed_jog.dart';
+import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
+import 'package:bambuddy_mobile/core/api/media_auth.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
@@ -60,76 +63,6 @@ const _runoutWithActions = HmsError(
   jobId: '746795586',
   actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
 );
-
-/// Records HMS commands instead of sending them. Only the two routes the panel
-/// can reach are implemented; anything else would be a test reaching somewhere
-/// it did not mean to, and says so.
-class _RecordingCommands implements PrinterCommandsRepository {
-  final List<String> calls = [];
-
-  /// Thrown by [refreshAmsSlot] instead of succeeding — the tag re-read is the
-  /// one route with a permission of its own, so its refusal is worth staging.
-  Object? rfidError;
-
-  /// Thrown by [clearPlate] instead of succeeding — a pre-#2864 server that
-  /// refuses to release the gate on a printer it cannot reach.
-  Object? clearPlateError;
-
-  /// Holds the answer back, so a test can land it after the card is gone.
-  Completer<void>? clearPlateHeld;
-
-  @override
-  Future<void> clearHmsErrors(int printerId) async =>
-      calls.add('clear:$printerId');
-
-  @override
-  Future<void> clearPlate(int printerId) async {
-    calls.add('clearPlate:$printerId');
-    await clearPlateHeld?.future;
-    if (clearPlateError != null) throw clearPlateError!;
-  }
-
-  @override
-  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) async =>
-      calls.add('amsLoad:$printerId:$trayId:${extruderId ?? '-'}');
-
-  @override
-  Future<void> amsUnload(int printerId, {int? trayId}) async =>
-      calls.add('amsUnload:$printerId:${trayId ?? '-'}');
-
-  @override
-  Future<void> refreshAmsSlot(
-    int printerId, {
-    required int amsId,
-    required int slotId,
-  }) async {
-    calls.add('rfid:$printerId:$amsId:$slotId');
-    if (rfidError != null) throw rfidError!;
-  }
-
-  @override
-  Future<void> executeHmsAction(
-    int printerId, {
-    required String printError,
-    required String action,
-    String? jobId,
-  }) async => calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
-
-  @override
-  Future<void> startDrying(
-    int printerId, {
-    required int amsId,
-    required int temp,
-    required int duration,
-    String filament = '',
-  }) async =>
-      calls.add('startDrying:$printerId:$amsId:$temp:$duration:$filament');
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-    '${invocation.memberName} is not part of this test',
-  );
-}
 
 /// The slot sheet reads the inventory to offer spools; these tests care about
 /// the printer-side actions above that list, so it stays empty and offline.
@@ -241,18 +174,22 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
   _StubScheduledDrying({
     List<ScheduledDrying> rows = const [],
     this.supported = true,
+    this.refuseCreate = false,
   }) : rows = [...rows],
-       super(Dio());
+       super(Dio()) {
+    schedulingCapability.observe(present: supported);
+  }
 
   final List<ScheduledDrying> rows;
   final bool supported;
 
+  /// Answers a schedule the way a session without `printers:control` is
+  /// answered: a 403, recorded on the latch as the real repository does.
+  final bool refuseCreate;
+
   final List<ScheduledDrying> created = [];
   final List<int> cancelled = [];
   int listCalls = 0;
-
-  @override
-  Future<bool> supportsScheduling() async => supported;
 
   @override
   Future<List<ScheduledDrying>> list({int? printerId}) async {
@@ -270,6 +207,10 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
     bool rotateTray = false,
     DateTime? startAfter,
   }) async {
+    if (refuseCreate) {
+      schedulingCapability.observeRefusal();
+      throw const AuthException(AppErrorCode.forbidden);
+    }
     final row = ScheduledDrying(
       id: 100 + created.length,
       printerId: printerId,
@@ -346,7 +287,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
     ProviderScope(
       overrides: [
         fakeServerProfileOverride(),
-        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        mediaAuthOverride(),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
@@ -376,19 +317,25 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 
 /// Wraps the tree in a ProviderScope — the card now contains an interactive
 /// controls bar (`_ControlsActions`, ConsumerWidget), so every render of a
-/// card with a status needs a scope. Profile = no auth, camera token stubbed.
+/// card with a status needs a scope. Profile = no auth, media credential
+/// stubbed.
+///
+/// [media] is a parameter rather than something [extra] can add: the first
+/// override of a provider is the one the scope uses, so a second one for the
+/// same provider is silently ignored.
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
   InventoryBackend backend = InventoryBackend.native,
   bool apiKeySession = false,
+  MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
   overrides: [
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
     inventoryBackendProvider.overrideWith(() => _FixedBackendNotifier(backend)),
-    cameraTokenProvider.overrideWith((ref) async => 'tok'),
+    mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
@@ -402,11 +349,13 @@ Widget _scope(
 Widget _cardWithProviders(
   PrinterWithStatus item, {
   List<Override> extra = const [],
+  MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => _scope(
   Scaffold(
     body: SingleChildScrollView(child: PrinterCard(item: item)),
   ),
   extra: extra,
+  media: media,
 );
 
 /// A stable scope with a swappable item (same card key → State reuse,
@@ -421,7 +370,7 @@ Widget _cardSwap(
 }) => ProviderScope(
   overrides: [
     fakeServerProfileOverride(),
-    cameraTokenProvider.overrideWith((ref) async => 'tok'),
+    mediaAuthOverride(),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
     inertChamberMaxOverride,
@@ -585,11 +534,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.byWidgetPredicate(
-        (w) =>
-            w is Semantics &&
-            w.properties.identifier == 'printer.temperature_history_nozzle',
-      ),
+      byLogId('printer.temperature_history_nozzle'),
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
@@ -647,7 +592,9 @@ void main() {
           ),
         ),
         extra: [
-          heaterHistorySupportedProvider.overrideWith((ref) async => false),
+          heaterHistorySupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
         ],
       ),
     );
@@ -795,11 +742,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 250));
           return tester.widgetList<InkWell>(
             find.descendant(
-              of: find.byWidgetPredicate(
-                (w) =>
-                    w is Semantics &&
-                    w.properties.identifier == 'printer.ams_meta',
-              ),
+              of: byLogId('printer.ams_meta'),
               matching: find.byType(InkWell),
             ),
           );
@@ -811,7 +754,9 @@ void main() {
               body: SingleChildScrollView(child: PrinterCard(item: realItem())),
             ),
             extra: [
-              amsHistorySupportedProvider.overrideWith((ref) async => false),
+              amsHistorySupportedProvider.overrideWithValue(
+                const AsyncData(false),
+              ),
             ],
           ),
         );
@@ -847,10 +792,10 @@ void main() {
 
     /// Opens the sheet behind the second slot of AMS 1 and hands back the
     /// commands it sent. [state] decides whether the printer is mid-job.
-    Future<_RecordingCommands> openSlotSheet(
+    Future<RecordingCommands> openSlotSheet(
       WidgetTester tester, {
       required String state,
-      _RecordingCommands? withCommands,
+      RecordingCommands? withCommands,
       bool stocked = false,
       bool tagged = false,
       InventoryNotifier Function()? inventory,
@@ -867,7 +812,7 @@ void main() {
         filaSwitch: filaSwitch,
         extruderSlots: extruderSlots,
       ).mergedWith(item.status!);
-      final commands = withCommands ?? _RecordingCommands();
+      final commands = withCommands ?? RecordingCommands();
 
       await tester.pumpWidget(
         _scope(
@@ -905,14 +850,14 @@ void main() {
       // `printers:ams_rfid` is a permission of its own: being refused it says
       // nothing about whether this key may load filament, so load and unload
       // have to survive.
-      final commands = _RecordingCommands()
-        ..rfidError = const AuthException(AppErrorCode.forbidden);
+      final commands = RecordingCommands()
+        ..errors['amsRfid'] = const AuthException(AppErrorCode.forbidden);
       await openSlotSheet(tester, state: 'IDLE', withCommands: commands);
 
       await tester.tap(find.text('Odczytaj tag'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(commands.calls, ['rfid:1:0:0']);
+      expect(commands.calls, ['amsRfid:1:0:0']);
 
       await tapSlotRow(tester);
       expect(find.text('Odczytaj tag'), findsNothing);
@@ -1295,7 +1240,7 @@ void main() {
       return ProviderScope(
         overrides: [
           fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          mediaAuthOverride(),
           inertFirmwareOverride,
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
@@ -1353,11 +1298,7 @@ void main() {
     });
 
     /// The registration button, by the name it carries in the diagnostic log.
-    Finder registerButton() => find.byWidgetPredicate(
-      (w) =>
-          w is Semantics &&
-          w.properties.identifier == 'assign_spool.add_to_inventory',
-    );
+    Finder registerButton() => byLogId('assign_spool.add_to_inventory');
 
     testWidgets('a tagged slot the shelf does not know offers to register it', (
       tester,
@@ -1546,13 +1487,7 @@ void main() {
       await openSlotSheet(tester, state: 'IDLE', stocked: true);
       await reveal(tester, find.byType(TextField));
 
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics && w.properties.identifier == 'assign_spool.scan',
-        ),
-        findsOneWidget,
-      );
+      expect(byLogId('assign_spool.scan'), findsOneWidget);
     });
   });
 
@@ -1927,6 +1862,17 @@ void main() {
     });
   });
 
+  /// The cover's [NetworkImage], unwrapped from the [ResizeImage] the card
+  /// puts around it to cap the decode resolution.
+  NetworkImage coverSource(WidgetTester tester) {
+    final image = tester.widget<Image>(
+      find.byKey(const ValueKey('cover_network')),
+    );
+    final provider = image.image;
+    return (provider is ResizeImage ? provider.imageProvider : provider)
+        as NetworkImage;
+  }
+
   group('_CoverThumbnail', () {
     testWidgets('printer with coverUrl: shows Image when token available', (
       tester,
@@ -1948,6 +1894,40 @@ void main() {
 
       // We attempt to load the cover (network image), not the placeholder.
       expect(find.byKey(const ValueKey('cover_network')), findsOneWidget);
+      expect(
+        coverSource(tester).url,
+        '$fakeServerBaseUrl/api/v1/printers/1/cover?token=tok',
+      );
+    });
+
+    testWidgets('an API key signs the cover with a header, not a token', (
+      tester,
+    ) async {
+      // The media routes refuse a token minted by an API key (it names no
+      // principal), so the credential has to reach them as a header instead —
+      // and an `Image.network` is the only place the app can attach one.
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C Warsztat'),
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          progress: 43,
+          remainingTime: 137,
+          coverUrl: '/api/v1/printers/1/cover',
+        ),
+      );
+
+      await tester.pumpWidget(
+        _cardWithProviders(
+          item,
+          media: const MediaAuth(headers: {'X-API-Key': 'bb_key'}),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final source = coverSource(tester);
+      expect(source.url, '$fakeServerBaseUrl/api/v1/printers/1/cover');
+      expect(source.headers, {'X-API-Key': 'bb_key'});
     });
 
     testWidgets(
@@ -2001,7 +1981,7 @@ void main() {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
       overrides: [
         fakeServerProfileOverride(),
-        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        mediaAuthOverride(),
         inertSmartPlugsOverride,
         printerFirmwareProvider(1).overrideWithValue(info),
       ],
@@ -2071,7 +2051,7 @@ void main() {
         ),
         overrides: [
           fakeServerProfileOverride(),
-          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          mediaAuthOverride(),
           inertSmartPlugsOverride,
           inertFirmwareOverride, // returns null
           inertTotalPrintHoursOverride,
@@ -2094,11 +2074,6 @@ void main() {
     /// identically to "Set", and from three nozzle tiles it wasn't clear which
     /// the user touched. This is the same class as shifted confirmation-dialog
     /// ids — the log claims the user did something other than what they did.
-    Iterable<String> identifiersIn(WidgetTester tester) => tester
-        .widgetList<Semantics>(find.byType(Semantics))
-        .map((s) => s.properties.identifier)
-        .whereType<String>();
-
     testWidgets('every sensor has its own tile identifier', (tester) async {
       await tester.pumpWidget(
         _cardWithProviders(
@@ -2158,6 +2133,45 @@ void main() {
       );
     });
 
+    testWidgets(
+      'a chamber target above the ceiling still read is applied as it is',
+      (tester) async {
+        // The ceiling reads 60 until the server version lands; a sheet opened
+        // before that used to clamp the printer's 65 °C to 60 and send it.
+        final commands = RecordingCommands();
+        await tester.pumpWidget(
+          _cardWithProviders(
+            const PrinterWithStatus(
+              printer: Printer(id: 1, name: 'H2D'),
+              status: PrinterStatus(
+                id: 1,
+                model: 'H2D',
+                connected: true,
+                state: 'IDLE',
+                // Heating: on a cooling flap the sheet locks the target.
+                airductMode: 1,
+                temperatures: {'chamber': 40, 'chamber_target': 65},
+              ),
+            ),
+            extra: [
+              printerCommandsRepositoryProvider.overrideWithValue(commands),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          byLogId('printer.temperature_chamber'),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(byLogId('temperature.set'));
+        await tester.pumpAndSettle();
+
+        expect(commands.calls, ['chamber:1:65']);
+      },
+    );
+
     testWidgets('"turn off" and "set" in the sheet are two different names', (
       tester,
     ) async {
@@ -2179,11 +2193,7 @@ void main() {
       // Tap the tile by its own identifier — the same thing
       // the probe will write to the log.
       await tester.tap(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'printer.temperature_nozzle',
-        ),
+        byLogId('printer.temperature_nozzle'),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
@@ -2302,7 +2312,7 @@ void main() {
     testWidgets('an action sends the full code verbatim, with its job id', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2316,13 +2326,15 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
       await tester.pumpAndSettle();
 
-      expect(commands.calls, ['action:9:03008004:RESUME_PRINTING:746795586']);
+      expect(commands.calls, [
+        'hmsAction:9:03008004:RESUME_PRINTING:746795586',
+      ]);
     });
 
     testWidgets('stopping the print is confirmed before anything is sent', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2348,7 +2360,7 @@ void main() {
     testWidgets('dismiss-all clears the printer, not one error', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(
         _cardWithProviders(
           itemWith(const [_runoutWithActions]),
@@ -2362,7 +2374,7 @@ void main() {
       await tester.tap(find.text('Odrzuć wszystkie'));
       await tester.pumpAndSettle();
 
-      expect(commands.calls, ['clear:9']);
+      expect(commands.calls, ['hmsClear:9']);
     });
 
     testWidgets('a long description is cut to two lines until tapped', (
@@ -2424,7 +2436,7 @@ void main() {
       // The command succeeds, the next status frame drops the fault, and the
       // card that would have shown the snackbar is gone by then — the user
       // still has to be told it went through.
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       final item = ValueNotifier<PrinterWithStatus>(
         itemWith(const [_runoutWithActions]),
       );
@@ -2499,7 +2511,7 @@ void main() {
     );
 
     Widget cards(
-      _RecordingCommands commands, {
+      RecordingCommands commands, {
       List<PrinterWithStatus> items = const [awaitingOffline],
     }) => _scope(
       Scaffold(
@@ -2510,7 +2522,7 @@ void main() {
         ),
       ),
       extra: [
-        requirePlateClearProvider.overrideWith((ref) async => true),
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
         printerCommandsRepositoryProvider.overrideWithValue(commands),
         printerStatusesProvider.overrideWith(_InertStatuses.new),
       ],
@@ -2519,7 +2531,7 @@ void main() {
     testWidgets('the collapsed OFFLINE card still offers the acknowledgement', (
       tester,
     ) async {
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
       await tester.pumpWidget(cards(commands));
       await tester.pumpAndSettle();
 
@@ -2540,8 +2552,8 @@ void main() {
         // response says which contract the server serves and the version cannot
         // tell (every 1.2.6 daily build reports 1.2.6b1), so the refusal itself
         // is the answer: the offline button withdraws, the online one does not.
-        final commands = _RecordingCommands()
-          ..clearPlateError = const ApiException(
+        final commands = RecordingCommands()
+          ..errors['clearPlate'] = const ApiException(
             AppErrorCode.badResponse,
             statusCode: 400,
             detail: 'Printer not connected',
@@ -2573,9 +2585,9 @@ void main() {
       // ("Cannot use ref after the widget was disposed"), so the latch is read
       // out before the request, and the observation outlives the widget.
       final held = Completer<void>();
-      final commands = _RecordingCommands()
-        ..clearPlateHeld = held
-        ..clearPlateError = const ApiException(
+      final commands = RecordingCommands()
+        ..holds['clearPlate'] = held
+        ..errors['clearPlate'] = const ApiException(
           AppErrorCode.badResponse,
           statusCode: 400,
           detail: 'Printer not connected',
@@ -2596,7 +2608,7 @@ void main() {
             ),
           ),
           extra: [
-            requirePlateClearProvider.overrideWith((ref) async => true),
+            requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
             printerCommandsRepositoryProvider.overrideWithValue(commands),
           ],
         ),
@@ -2621,12 +2633,14 @@ void main() {
     testWidgets(
       'nothing is offered while the scheduler does not gate on the plate',
       (tester) async {
-        final commands = _RecordingCommands();
+        final commands = RecordingCommands();
         await tester.pumpWidget(
           _cardWithProviders(
             awaitingOffline,
             extra: [
-              requirePlateClearProvider.overrideWith((ref) async => false),
+              requirePlateClearProvider.overrideWithValue(
+                AsyncValue.data(false),
+              ),
               printerCommandsRepositoryProvider.overrideWithValue(commands),
             ],
           ),
@@ -2684,13 +2698,7 @@ void main() {
     );
 
     Future<void> openDetails(WidgetTester tester) async {
-      await tester.tap(
-        find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'printer.details_toggle',
-        ),
-      );
+      await tester.tap(byLogId('printer.details_toggle'));
       await tester.pumpAndSettle();
     }
 
@@ -2891,6 +2899,26 @@ void main() {
       expect(find.text('Suszenie zaplanowane'), findsOneWidget);
     });
 
+    testWidgets('a refused schedule takes the mode away with the picker', (
+      tester,
+    ) async {
+      // The picker vanishes when the 403 lands; a mode left on "later" kept
+      // the button saying "Zaplanuj" with nothing above it to say when.
+      final repo = _StubScheduledDrying(refuseCreate: true);
+
+      await pumpCard(tester, repo);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Później'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zaplanuj'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Później'), findsNothing);
+      expect(find.text('Zaplanuj'), findsNothing);
+      expect(find.text('Start'), findsOneWidget);
+    });
+
     testWidgets('"at time" with nothing picked schedules nothing', (
       tester,
     ) async {
@@ -2921,7 +2949,7 @@ void main() {
             scheduledDryingRepositoryProvider.overrideWithValue(
               _StubScheduledDrying(),
             ),
-            serverSettingsProvider.overrideWith((ref) async => settings),
+            serverSettingsOverride(settings),
           ],
         ),
       );
@@ -2974,12 +3002,7 @@ void main() {
               '"n3s_hours":6}}',
         });
 
-        await tester.tap(
-          find.byWidgetPredicate(
-            (w) =>
-                w is Semantics && w.properties.identifier == 'drying.filament',
-          ),
-        );
+        await tester.tap(byLogId('drying.filament'));
         await tester.pumpAndSettle();
 
         // Counted through the option tag rather than by text: the AMS row on
@@ -3027,13 +3050,11 @@ void main() {
             dryable(),
             extra: [
               scheduledDryingRepositoryProvider.overrideWithValue(repo),
-              serverSettingsProvider.overrideWith(
-                (ref) async => const {
-                  'drying_presets':
-                      '{"PETG":{"n3f":60,"n3s":72,'
-                      '"n3f_hours":8,"n3s_hours":6}}',
-                },
-              ),
+              serverSettingsOverride(const {
+                'drying_presets':
+                    '{"PETG":{"n3f":60,"n3s":72,'
+                    '"n3f_hours":8,"n3s_hours":6}}',
+              }),
             ],
           ),
         );
@@ -3130,11 +3151,8 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      SemanticsNode node(WidgetTester tester, String id) => tester.getSemantics(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.identifier == id,
-        ),
-      );
+      SemanticsNode node(WidgetTester tester, String id) =>
+          tester.getSemantics(byLogId(id));
 
       /// A `Semantics(identifier:)` forms a node *around* the control rather
       /// than on it — the same shape `InteractionProbe` carries an id down
@@ -3221,7 +3239,7 @@ void main() {
       tester,
     ) async {
       final repo = _StubScheduledDrying();
-      final commands = _RecordingCommands();
+      final commands = RecordingCommands();
 
       await tester.pumpWidget(
         _cardWithProviders(
@@ -3240,7 +3258,576 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.created, isEmpty);
-      expect(commands.calls, contains('startDrying:3:1:45:12:PLA'));
+      expect(commands.calls, contains('dryStart:3:1:45:12:PLA'));
     });
   });
+
+  group('collapsed card', () {
+    // The fault icon only appears for a code the catalog can describe, and it
+    // resolves through the real asset like the panel does.
+    setUpAll(() => HmsCatalog.instance.load(const Locale('pl')));
+
+    final printing = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+        readFixture('printer_status_printing.json') as Map<String, dynamic>,
+      ),
+    );
+
+    Widget card(
+      PrinterWithStatus item, {
+      ValueChanged<bool>? onCollapsedChanged,
+      List<Override> extra = const [],
+    }) => _scope(
+      Scaffold(
+        body: SingleChildScrollView(
+          child: PrinterCard(
+            item: item,
+            collapsed: true,
+            onCollapsedChanged: onCollapsedChanged ?? (_) {},
+          ),
+        ),
+      ),
+      extra: extra,
+    );
+
+    testWidgets(
+      'a printing card keeps name, status and progress, nothing else',
+      (tester) async {
+        await tester.pumpWidget(card(printing));
+
+        expect(find.text('X1C Warsztat'), findsOneWidget);
+        expect(find.text('RUNNING'), findsOneWidget);
+        expect(find.text('43%'), findsOneWidget);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(find.text('benchy.3mf'), findsNothing);
+        expect(find.text('DYSZA'), findsNothing);
+        expect(find.text('Szczegóły'), findsNothing);
+        expect(find.byTooltip('Pliki na drukarce'), findsNothing);
+      },
+    );
+
+    /// A card the test can toggle through its own button, the way the
+    /// dashboard does.
+    Future<List<bool>> pumpToggleable(
+      WidgetTester tester,
+      PrinterWithStatus item,
+    ) async {
+      var collapsed = true;
+      final asked = <bool>[];
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setState) => PrinterCard(
+                  item: item,
+                  collapsed: collapsed,
+                  onCollapsedChanged: (value) {
+                    asked.add(value);
+                    setState(() => collapsed = value);
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return asked;
+    }
+
+    /// Where everything on the card's first line sits. The name's rectangle
+    /// covers its font as well: the same string in another size or weight
+    /// measures differently.
+    Map<String, Rect> firstLine(
+      WidgetTester tester, {
+      required String name,
+      required String chip,
+      required String button,
+    }) => {
+      'glyph': tester.getRect(find.byIcon(Icons.print_outlined)),
+      'name': tester.getRect(find.text(name)),
+      'chip': tester.getRect(find.text(chip)),
+      'button': tester.getRect(find.byTooltip(button)),
+    };
+
+    void expectSameLine(Map<String, Rect> before, Map<String, Rect> after) {
+      for (final part in before.keys) {
+        expect(
+          after[part],
+          rectMoreOrLessEquals(before[part]!),
+          reason: '$part moved when the card was toggled',
+        );
+      }
+    }
+
+    testWidgets('toggling a printing card moves nothing on its first line', (
+      tester,
+    ) async {
+      final asked = await pumpToggleable(tester, printing);
+      final collapsed = firstLine(
+        tester,
+        name: 'X1C Warsztat',
+        chip: 'RUNNING',
+        button: 'Rozwiń kartę',
+      );
+
+      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.pump();
+
+      expect(asked, [false]);
+      expect(find.text('DYSZA'), findsOneWidget);
+      expectSameLine(
+        collapsed,
+        firstLine(
+          tester,
+          name: 'X1C Warsztat',
+          chip: 'RUNNING',
+          button: 'Zwiń kartę',
+        ),
+      );
+
+      await tester.tap(find.byTooltip('Zwiń kartę'));
+      await tester.pump();
+
+      expect(asked, [false, true]);
+      expect(find.text('DYSZA'), findsNothing);
+    });
+
+    testWidgets('toggling an offline card moves nothing on its first line', (
+      tester,
+    ) async {
+      const offline = PrinterWithStatus(
+        printer: Printer(id: 4, name: 'X1C Hala'),
+        status: PrinterStatus(id: 4, connected: false),
+      );
+      await pumpToggleable(tester, offline);
+      final collapsed = firstLine(
+        tester,
+        name: 'X1C Hala',
+        chip: 'OFFLINE',
+        button: 'Rozwiń kartę',
+      );
+
+      await tester.tap(find.byTooltip('Rozwiń kartę'));
+      await tester.pump();
+
+      expectSameLine(
+        collapsed,
+        firstLine(
+          tester,
+          name: 'X1C Hala',
+          chip: 'OFFLINE',
+          button: 'Zwiń kartę',
+        ),
+      );
+    });
+
+    group('at the largest text size on a 360 dp phone', () {
+      // Any overflow fails the test on its own. The test font is wider than
+      // Manrope, so a card that fits here fits on a device.
+      Future<void> pumpNarrow(
+        WidgetTester tester,
+        PrinterWithStatus item, {
+        required bool collapsed,
+        List<Override> extra = const [],
+      }) async {
+        tester.view.physicalSize = const Size(360, 2000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _scope(
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(2)),
+                child: Scaffold(
+                  body: SingleChildScrollView(
+                    child: PrinterCard(
+                      item: item,
+                      collapsed: collapsed,
+                      onCollapsedChanged: (_) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            extra: extra,
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('a printing card drops the percentage, not the layout', (
+        tester,
+      ) async {
+        await pumpNarrow(tester, printing, collapsed: true);
+
+        expect(find.text('43%'), findsNothing);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(find.text('X1C Warsztat'), findsOneWidget);
+      });
+
+      testWidgets('the chamber light row wraps its label', (tester) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+        );
+        await pumpNarrow(tester, item, collapsed: false);
+
+        expect(find.text('Światło komory'), findsOneWidget);
+      });
+
+      testWidgets('an offline card keeps plug, status and toggle on one line', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: false),
+        );
+        await pumpNarrow(
+          tester,
+          item,
+          collapsed: false,
+          extra: [
+            smartPlugsProvider.overrideWith(
+              () => _StubSmartPlugsNotifier(_plugState()),
+            ),
+          ],
+        );
+
+        expect(find.text('OFFLINE'), findsOneWidget);
+        expect(find.byTooltip('Zwiń kartę'), findsOneWidget);
+      });
+
+      // The header reserves the leading square's width by name, and this is the
+      // case that spends every pixel of what is left: plug, status and toggle
+      // take their whole budget, so the name lands exactly on its floor. A
+      // square built to a number the budget does not know about comes out of
+      // this 48 — it was 46 while the tile said 36 and the budget said 34.
+      testWidgets('the name keeps its floor when the buttons take it all', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(id: 1, connected: false),
+        );
+        await pumpNarrow(
+          tester,
+          item,
+          collapsed: false,
+          extra: [
+            smartPlugsProvider.overrideWith(
+              () => _StubSmartPlugsNotifier(_plugState()),
+            ),
+          ],
+        );
+
+        expect(
+          tester.getSize(find.text('X1C Warsztat')).width,
+          greaterThanOrEqualTo(48.0),
+          reason: 'the floor the header line promises the name',
+        );
+      });
+    });
+
+    testWidgets('a card nobody can toggle offers no button in either look', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_cardWithProviders(printing));
+
+      expect(find.byTooltip('Zwiń kartę'), findsNothing);
+      expect(find.byTooltip('Rozwiń kartę'), findsNothing);
+    });
+
+    testWidgets('a print still preparing shows no percentage', (tester) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 2, name: 'P1S'),
+        status: PrinterStatus(
+          id: 2,
+          connected: true,
+          state: 'PREPARE',
+          progress: 0,
+          stgCurName: 'Auto bed leveling',
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('0%'), findsNothing);
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .value,
+        isNull,
+      );
+    });
+
+    testWidgets('an idle printer has no progress bar', (tester) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 3, name: 'A1 mini'),
+        status: PrinterStatus(id: 3, connected: true, state: 'IDLE'),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('IDLE'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.byIcon(Icons.print_outlined), findsOneWidget);
+    });
+
+    testWidgets('an offline printer collapses to its name and OFFLINE', (
+      tester,
+    ) async {
+      const item = PrinterWithStatus(
+        printer: Printer(id: 4, name: 'X1C Hala'),
+        status: PrinterStatus(
+          id: 4,
+          connected: false,
+          state: 'RUNNING',
+          progress: 40,
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('RUNNING'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWidgets('an active fault takes the place of the printer glyph', (
+      tester,
+    ) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 9, name: 'X2D Warsztat'),
+        status: const PrinterStatus(
+          id: 9,
+          connected: true,
+          state: 'PAUSE',
+          progress: 40,
+          hmsErrors: [_runout],
+        ),
+      );
+      await tester.pumpWidget(card(item));
+
+      expect(find.byTooltip('1 błąd'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.print_outlined), findsNothing);
+      expect(find.textContaining('Skończył się filament'), findsNothing);
+    });
+
+    group('a plate waiting to be cleared', () {
+      List<Override> gate() => [
+        requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
+        printerStatusesProvider.overrideWith(_InertStatuses.new),
+      ];
+
+      testWidgets('is flagged in place of the glyph, offline too', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 4, name: 'X2D-3DP'),
+          status: PrinterStatus(
+            id: 4,
+            connected: false,
+            awaitingPlateClear: true,
+          ),
+        );
+        await tester.pumpWidget(card(item, extra: gate()));
+        await tester.pumpAndSettle();
+
+        expect(find.text('OFFLINE'), findsOneWidget);
+        expect(find.byTooltip('Płyta niewyczyszczona'), findsOneWidget);
+        expect(find.byIcon(Icons.layers_clear_outlined), findsOneWidget);
+        // The acknowledgement itself stays behind the expand button.
+        expect(find.byTooltip('Oznacz płytę jako pustą'), findsNothing);
+      });
+
+      testWidgets('gives way to a fault when both apply', (tester) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 5, name: 'A1 mini'),
+          status: PrinterStatus(
+            id: 5,
+            connected: true,
+            state: 'FINISH',
+            awaitingPlateClear: true,
+            hmsErrors: [_runout],
+          ),
+        );
+        await tester.pumpWidget(card(item, extra: gate()));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.layers_clear_outlined), findsNothing);
+      });
+
+      testWidgets('is not flagged while the server does not gate on it', (
+        tester,
+      ) async {
+        const item = PrinterWithStatus(
+          printer: Printer(id: 5, name: 'A1 mini'),
+          status: PrinterStatus(
+            id: 5,
+            connected: true,
+            state: 'FINISH',
+            awaitingPlateClear: true,
+          ),
+        );
+        await tester.pumpWidget(
+          card(
+            item,
+            extra: [
+              requirePlateClearProvider.overrideWithValue(
+                AsyncValue.data(false),
+              ),
+              printerStatusesProvider.overrideWith(_InertStatuses.new),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.print_outlined), findsOneWidget);
+      });
+    });
+  });
+
+  group('Z jog direction (#1334)', () {
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    // The model only on the printer row: a status polled over REST has none,
+    // which is how the card once read an A1 as bed-on-Z.
+    PrinterWithStatus idle(String? model) => PrinterWithStatus(
+      printer: Printer(id: 3, name: 'Slinger', model: model),
+      status: const PrinterStatus(id: 3, connected: true, state: 'IDLE'),
+    );
+
+    Future<_JogRecorder> openMovement(
+      WidgetTester tester,
+      String? model,
+      BedJogConvention convention,
+    ) async {
+      final repo = _JogRecorder();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          idle(model),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(repo),
+            bedJogConventionProvider.overrideWith((ref) async => convention),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.move'));
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('A1 mini on a fixed server: up lifts the toolhead', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.direct,
+      );
+      expect(find.text(l10n.ctrlMoveZToolhead), findsOneWidget);
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [10.0]);
+    });
+
+    testWidgets('A1 mini on a flipping server keeps the sign it always had', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.flippedOnA1,
+      );
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [-10.0]);
+    });
+
+    testWidgets('A1 mini with the sign unknown: a note, no Z buttons', (
+      tester,
+    ) async {
+      final repo = await openMovement(
+        tester,
+        'A1 mini',
+        BedJogConvention.unknown,
+      );
+
+      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(find.text(l10n.ctrlMoveZDown), findsNothing);
+      expect(repo.distances, isEmpty);
+    });
+
+    testWidgets('no model: a note, no Z buttons, whatever the server', (
+      tester,
+    ) async {
+      final repo = await openMovement(tester, null, BedJogConvention.direct);
+
+      expect(find.text(l10n.ctrlMoveZNoModel), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+      expect(repo.distances, isEmpty);
+    });
+
+    testWidgets('a convention that failed to resolve reads as unknown', (
+      tester,
+    ) async {
+      final repo = _JogRecorder();
+      await tester.pumpWidget(
+        _cardWithProviders(
+          idle('A1'),
+          extra: [
+            printerCommandsRepositoryProvider.overrideWithValue(repo),
+            bedJogConventionProvider.overrideWith(
+              (ref) => Future.error(StateError('unexpected')),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.details_toggle'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('printer.move'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.ctrlMoveZUnknownDirection), findsOneWidget);
+      expect(find.text(l10n.ctrlMoveZUp), findsNothing);
+    });
+
+    testWidgets('X1C: up raises the plate, whatever the server', (
+      tester,
+    ) async {
+      final repo = await openMovement(tester, 'X1C', BedJogConvention.unknown);
+      expect(find.text(l10n.ctrlMoveZ), findsOneWidget);
+
+      await tester.tap(find.text(l10n.ctrlMoveZUp));
+      await tester.pumpAndSettle();
+      expect(repo.distances, [-10.0]);
+    });
+  });
+}
+
+/// Records bed jogs; anything else the card calls is a test bug.
+class _JogRecorder implements PrinterCommandsRepository {
+  final distances = <double>[];
+
+  @override
+  Future<void> bedJog(int printerId, double distance, {bool force = false}) {
+    distances.add(distance);
+    return Future.value();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }

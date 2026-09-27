@@ -1,16 +1,19 @@
 /// All bambuddy API endpoints in one place.
 ///
 /// Contract: bambuddy v0.2.4.9 … v1.2.5.1 (`/api/v1`) — every path below was
-/// diffed across that range and none of them moved
-/// (`docs/plans/08-server-v1.2.5-migration.md`). When updating the server,
+/// diffed across that range and none of them moved. When updating the server,
 /// compare with `/openapi.json` before changing anything here.
 ///
 /// [usersSlim] is the one exception: it arrives in 1.2.6 and every server
-/// before it refuses the path
-/// (`docs/plans/13-users-slim-and-api-key-identity.md`). Callers probe rather
-/// than check a version number — see [StatsRepository].
+/// before it refuses the path. Callers probe rather than check a version
+/// number — see [StatsRepository].
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
+
+  /// FastAPI's schema document — outside [apiPrefix], so the auth middleware
+  /// never sees it (`main.py::auth_middleware`). Read only to tell which bed-jog
+  /// sign a `1.2.6b1` server expects; ~1 MB, so nowhere else.
+  static const openApi = '/openapi.json';
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
@@ -32,8 +35,7 @@ abstract final class Endpoints {
   /// ownership keeps `id: 0` and the `api-key:` username, but no longer claims
   /// admin.
   ///
-  /// So `permissions` is the field to branch on, never `is_admin` or `role`
-  /// (`docs/plans/13-users-slim-and-api-key-identity.md`).
+  /// So `permissions` is the field to branch on, never `is_admin` or `role`.
   static const authMe = '$apiPrefix/auth/me';
 
   /// Second step of a login that answered `requires_2fa`: exchanges the
@@ -41,8 +43,7 @@ abstract final class Endpoints {
   static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
 
   /// Mails a 6-digit code to the user and answers with a **fresh** pre-auth
-  /// token — the one sent in is consumed. See
-  /// `docs/plans/10-two-factor-login.md`.
+  /// token — the one sent in is consumed.
   static const authTwoFactorEmailSend = '$apiPrefix/auth/2fa/email/send';
 
   /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
@@ -56,6 +57,14 @@ abstract final class Endpoints {
   /// `Authorization`/`X-API-Key` headers, so the server validates this token
   /// before accepting the connection.
   static const wsToken = '$apiPrefix/auth/ws-token';
+
+  /// Mint a short-lived media token (valid ~60 min). Required as `?token=` on
+  /// every image/video route the app loads outside Dio — thumbnails, covers,
+  /// plate renders, photos, timelapses — since server 1.2.5.5 (#3025) took
+  /// those off the camera stream token. **Refused on older servers** (405 from
+  /// the SPA catch-all, not 404), which still want [cameraStreamToken] there;
+  /// `MediaAuthService` picks between the two.
+  static const mediaToken = '$apiPrefix/auth/media-token';
 
   // Trailing slash required: server (FastAPI) has route at `/printers/`,
   // and `/printers` (without slash) returns 404 for authenticated requests.
@@ -112,8 +121,10 @@ abstract final class Endpoints {
   static String printerSensorHistory(int printerId) =>
       '$apiPrefix/printer-sensor-history/$printerId';
 
-  /// Mint camera stream token (valid ~60 min). Required as `?token=`
-  /// for print cover (`cover_url`) and — from M2 — for camera preview.
+  /// Mint camera stream token (valid ~60 min). Required as `?token=` on the
+  /// camera stream and snapshot routes, and — on servers older than 1.2.5.5 —
+  /// on every other `?token=` image route too; see [mediaToken]. Minting it
+  /// costs `camera:view`, which is why #3025 split the rest off.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';
 
   /// MJPEG camera stream (`multipart/x-mixed-replace; boundary=frame`).
@@ -271,12 +282,13 @@ abstract final class Endpoints {
   static String scheduledDrying(int id) => '$scheduledDryings/$id';
 
   // --- Movement / jog (manual control; idle only) --- All POST, empty body,
-  // params in query. Relative moves; the server maps the Z sign per model (A1
-  // bed-slingers are inverted). Require `can_control_printer`.
+  // params in query. Relative moves. Require `can_control_printer`.
 
-  /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200;
-  /// negative = decrease gap / "up"), `force` (bypass soft endstops when Z is
-  /// not homed). Server flips the Z sign on A1 bed-slingers so "up" stays "up".
+  /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200,
+  /// positive opens the gap). v0.2.4.1 up to the #1334 fix (v1.2.5.6) negated it
+  /// on A1 / A1 Mini — which sign to send is `core/printers/bed_jog.dart`.
+  /// `force` is no longer declared (absent in v1.2.5.5 and later, #2579), so
+  /// servers drop it as an unknown param.
   static String bedJog(int printerId) =>
       '$apiPrefix/printers/$printerId/bed-jog';
 
@@ -390,8 +402,8 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/print/skip-objects';
 
   /// Current print cover image. Query `view=top` gives the top-down build-plate
-  /// render used for the skip-objects overlay. Auth via `?token=` (camera
-  /// stream token), NOT via header — same as [PrinterStatus.coverUrl].
+  /// render used for the skip-objects overlay. Auth via `?token=` ([mediaToken])
+  /// or `X-API-Key`, NOT the Bearer header — same as [PrinterStatus.coverUrl].
   static String printerCover(int printerId) =>
       '$apiPrefix/printers/$printerId/cover';
 
@@ -412,6 +424,27 @@ abstract final class Endpoints {
   /// (issue #35 — a print that failed on the machine while the row stayed
   /// `printing`). Present and unchanged since server v0.1.2.
   static String queueItemStop(int itemId) => '$apiPrefix/queue/$itemId/stop';
+
+  /// `GET` since server v0.2.3, `POST` (group by hand) since v0.2.4.8; orders
+  /// with per-plate targets, `PATCH` and [queueBatchDispatch] since 1.2.5.3
+  /// (#342). The list looks no row up, so its 404 is the route missing — and
+  /// before v0.2.3 the path falls through to `GET /queue/{item_id}`, a 422.
+  static const queueBatches = '$apiPrefix/queue/batches';
+
+  /// `GET` / `PATCH` / `DELETE` — the last one cancels the pending items and
+  /// marks the batch cancelled, it does not remove it. A batch that exists but
+  /// is not the caller's is a 404 rather than a 403; a missing permission is
+  /// still a 403.
+  static String queueBatch(int batchId) => '$apiPrefix/queue/batches/$batchId';
+
+  /// Queues the runs an order still owes, cloned from its latest item per plate.
+  static String queueBatchDispatch(int batchId) =>
+      '$apiPrefix/queue/batches/$batchId/dispatch';
+
+  /// Clears `batch_id` from the members and deletes the batch row; the items
+  /// stay queued. Since v0.2.4.8.
+  static String queueBatchUngroup(int batchId) =>
+      '$apiPrefix/queue/batches/$batchId/ungroup';
 
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
@@ -457,14 +490,14 @@ abstract final class Endpoints {
   /// what the single-cause wording used to claim unconditionally.
   static const archivesNo3mfWarning = '$apiPrefix/archives/no-3mf-warning';
 
-  /// Thumbnail authenticated via `?token=` (camera token), NOT via header
-  /// — see cover in printer_card.
+  /// Thumbnail authenticated via `?token=` ([mediaToken]), NOT via the Bearer
+  /// header — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
-  /// The archive's timelapse video, authenticated via `?token=` (camera token)
-  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the camera
-  /// stream token, not the auth header. 404 while the print has no video yet.
+  /// The archive's timelapse video, authenticated via `?token=` ([mediaToken])
+  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the media
+  /// token, not the Bearer header. 404 while the print has no video yet.
   ///
   /// Container is whatever the printer produced: MP4 from most models, AVI from
   /// a P1S until the server's background conversion catches up.
@@ -482,8 +515,9 @@ abstract final class Endpoints {
   static String archivePrinterMedia(int archiveId) =>
       '$apiPrefix/archives/$archiveId/printer-media';
 
-  /// One photo attached to the archive, authenticated via `?token=` (camera
-  /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
+  /// One photo attached to the archive, authenticated via `?token=`
+  /// ([mediaToken]) like [archiveThumbnail]. [filename] comes from
+  /// `Archive.photos` —
   /// `archives.py::get_photo` serves nothing that is not on that list.
   static String archivePhoto(int archiveId, String filename) {
     final name = Uri.encodeComponent(filename);
@@ -549,7 +583,7 @@ abstract final class Endpoints {
   /// does not: `has_gcode` and a per-plate `bed_type`.
   ///
   /// Each plate row carries its own `thumbnail_url` for
-  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` (camera token)
+  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` ([mediaToken])
   /// like [archiveThumbnail], and null when the 3MF has no render for that
   /// plate. That path is read from the row rather than rebuilt here: the archive
   /// and library routes spell it differently and the row knows which one it came
@@ -578,8 +612,9 @@ abstract final class Endpoints {
   /// points at untouched. Both arrived in server 0.2.4.6; older servers 405.
   static String printLogEntry(int entryId) => '$apiPrefix/print-log/$entryId';
 
-  /// Thumbnail authenticated via `?token=` (camera token), NOT via header —
-  /// same as [archiveThumbnail]. 404 once the file behind it is gone, which
+  /// Thumbnail authenticated via `?token=` ([mediaToken]), NOT via the Bearer
+  /// header — same as [archiveThumbnail]. 404 once the file behind it is gone,
+  /// which
   /// also clears `thumbnail_path` on the entry server-side.
   static String printLogThumbnail(int entryId) =>
       '$apiPrefix/print-log/$entryId/thumbnail';
@@ -625,9 +660,30 @@ abstract final class Endpoints {
   /// is what [SlicerRepository] reads as "not supported here".
   static const slicerPresetValues = '$apiPrefix/slicer/preset-values';
 
-  /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
-  /// here to gate the slice UI; full settings management lives on the web.
+  /// Server-wide app settings (`AppSettings`), read. Most of the map is read as
+  /// feature flags scattered across the app (`use_slicer_api`,
+  /// `require_plate_clear`, the AMS thresholds); the queue settings screen is
+  /// the only place that edits any of it.
+  ///
+  /// The response always carries **every** field the server's schema knows,
+  /// defaulted where no row was ever written (`AppSettings(**settings_dict)`,
+  /// `api/routes/settings.py`). That is what makes a missing key a clean
+  /// statement about the server's age rather than about its configuration.
   static const appSettings = '$apiPrefix/settings';
+
+  /// The same settings, written — body `AppSettingsUpdate`, dumped with
+  /// `exclude_unset=True`, so a request carrying three keys changes three rows.
+  ///
+  /// **The trailing slash is load-bearing.** `PUT` is registered only as `"/"`
+  /// (`api/routes/settings.py`), unlike `GET` and `PATCH` which have both
+  /// spellings — without it FastAPI answers a redirect that Dio replays as a
+  /// GET, and the write silently does nothing.
+  ///
+  /// Unknown fields are dropped rather than refused: `AppSettingsUpdate` sets
+  /// no `model_config`, so pydantic's default `extra="ignore"` applies and an
+  /// older server answers **200 having written nothing**. Only send keys
+  /// [appSettings] answered with.
+  static const appSettingsUpdate = '$apiPrefix/settings/';
 
   // --- Slicer pipelines (reusable preset bundles + their runs) ---
 
@@ -638,7 +694,7 @@ abstract final class Endpoints {
   /// **404 on a server older than 0.2.4.9**, which is the whole compatibility
   /// story for this feature: every pipeline route landed in one server commit
   /// and the wire schemas have not moved since, so presence and permission are
-  /// all there is to ask — see [PipelinesRepository.isSupported].
+  /// all there is to ask — see [PipelinesRepository.readCapability].
   static const slicerPipelines = '$apiPrefix/slicer-pipelines/';
 
   /// One pipeline: `GET`, `PUT` (partial — only the keys present are written)
@@ -991,7 +1047,7 @@ abstract final class Endpoints {
   //
   // Print files (3mf/gcode/stl…) organized in folder tree. Auth via header
   // (X-API-Key / Bearer) — except thumbnail, which (like archive cover)
-  // goes via `?token=` camera token.
+  // goes via `?token=` media token.
 
   /// File list. Query (all optional): `folder_id` (null = root level when
   /// `include_root=true`), `project_id`, `include_root` (default true).
@@ -1000,11 +1056,27 @@ abstract final class Endpoints {
   static const libraryFiles = '$apiPrefix/library/files';
 
   /// Single file: `GET` (details), `PUT` (edit `FileUpdate`:
-  /// filename/folder_id/notes), `DELETE` (to trash).
+  /// filename/folder_id/notes, and `external_url` from #3077 — `""` clears
+  /// it, `null` leaves it), `DELETE` (to trash).
   static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
 
-  /// File thumbnail — authenticated via `?token=` (camera token), NOT
-  /// header, similar to [archiveThumbnail].
+  /// Photos of the printed result (#3077): `POST` multipart `file` (.jpg,
+  /// .jpeg, .png, .webp, at most 10 MB — 400 / 413 otherwise). Answers
+  /// `{filename, photos}`. `library.py::upload_file_photo`.
+  static String libraryFilePhotos(int fileId) =>
+      '$apiPrefix/library/files/$fileId/photos';
+
+  /// One photo: `GET` via `?token=` ([mediaToken]) like
+  /// [libraryFileThumbnail], `DELETE` with the Bearer header (answers
+  /// `{photos}`). [filename] comes from the file's `photos` list; the server
+  /// serves nothing that is not on it.
+  static String libraryFilePhoto(int fileId, String filename) {
+    final name = Uri.encodeComponent(filename);
+    return '$apiPrefix/library/files/$fileId/photos/$name';
+  }
+
+  /// File thumbnail — authenticated via `?token=` ([mediaToken]), NOT the
+  /// Bearer header, similar to [archiveThumbnail].
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
@@ -1253,7 +1325,7 @@ abstract final class Endpoints {
       '$apiPrefix/projects/$projectId/attachments/$filename';
 
   /// Cover image: `POST` multipart `{file}` (upload), `GET` (image — auth via
-  /// `?token=` camera token, NOT header), `DELETE`.
+  /// `?token=` [mediaToken], NOT the Bearer header), `DELETE`.
   static String projectCoverImage(int projectId) =>
       '$apiPrefix/projects/$projectId/cover-image';
 
@@ -1290,11 +1362,11 @@ abstract final class Endpoints {
   /// issue #1894.
   ///
   /// **An older server cannot answer this successfully**, so support is probed
-  /// rather than derived from a version number (that numbering is a trap —
-  /// `docs/plans/08-server-v1.2.5-migration.md`). `/{user_id}` is declared
-  /// `int` there, so the path yields **422** for a caller that would otherwise
-  /// pass, and **403** for one refused before the path is even parsed. Never a
-  /// 404 — treat any non-200 as "not supported here" and fall back to [users].
+  /// rather than derived from a version number (that numbering is a trap).
+  /// `/{user_id}` is declared `int` there, so the path yields **422** for a
+  /// caller that would otherwise pass, and **403** for one refused before the
+  /// path is even parsed. Never a 404 — treat any non-200 as "not supported
+  /// here" and fall back to [users].
   ///
   /// No trailing slash: `slim` is a literal segment, not a collection.
   static const usersSlim = '$apiPrefix/users/slim';

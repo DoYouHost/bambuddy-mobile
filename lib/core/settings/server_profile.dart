@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart' as util;
+
 import '../demo/demo_config.dart';
 
 /// Server authentication mode. EVERY code path that touches auth
@@ -40,47 +42,36 @@ class ServerProfile {
     return host == null || host.isEmpty ? baseUrl : host;
   }
 
+  /// Value equality, for the one caller that has to tell "the same server
+  /// again" from "a different server": the watch adopts the config the phone
+  /// pushes at every launch, and invalidating the profile for a config that
+  /// changed nothing tears the relay's reply listener down under whatever
+  /// request is on the bridge. Riverpod itself is unaffected — its
+  /// `updateShouldNotify` compares with `identical`, never with this.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ServerProfile &&
+          other.baseUrl == baseUrl &&
+          other.authMode == authMode &&
+          other.label == label;
+
+  @override
+  int get hashCode => Object.hash(baseUrl, authMode, label);
+
   Map<String, dynamic> toJson() => {
     'baseUrl': baseUrl,
     'authMode': authMode.name,
     if (label != null) 'label': label,
   };
 
-  /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`.
+  /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`
+  /// and a trailing `/api/v1`, which is what a URL copied out of the API docs
+  /// ends in and what every endpoint path already starts with.
   ///
   /// The `http://` default is intentional: local/self-hosted servers are often
   /// plain http, and a public https server redirects the probe so the caller
-  /// adopts the reached URL via [baseUrlFromReached]. See setup flow.
-  static String normalizeBaseUrl(String raw) {
-    var url = raw.trim();
-    if (url.isEmpty) return url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'http://$url';
-    }
-    while (url.endsWith('/')) {
-      url = url.substring(0, url.length - 1);
-    }
-    return url;
-  }
-
-  /// Recover the base URL actually reached by a probe request, honoring any
-  /// http→https (or host) redirect the HTTP client followed transparently.
-  ///
-  /// [reached] is the final URI of the probe (e.g. `Response.realUri`);
-  /// [endpointSuffix] is the path that was appended to the base (e.g.
-  /// `/api/v1/auth/status`). Strips that suffix off `origin + path` so any base
-  /// path prefix survives. Falls back to [requested] when [reached] is null or
-  /// doesn't end with the suffix (unexpected shape, e.g. mocked transport).
-  static String baseUrlFromReached(
-    Uri? reached, {
-    required String requested,
-    required String endpointSuffix,
-  }) {
-    if (reached == null) return requested;
-    final full = reached.origin + reached.path;
-    if (full.endsWith(endpointSuffix)) {
-      return full.substring(0, full.length - endpointSuffix.length);
-    }
-    return requested;
-  }
+  /// adopts the reached URL via `baseUrlFromReached`. See setup flow.
+  static String normalizeBaseUrl(String raw) =>
+      util.normalizeBaseUrl(raw, defaultScheme: 'http', apiPath: '/api/v1');
 }

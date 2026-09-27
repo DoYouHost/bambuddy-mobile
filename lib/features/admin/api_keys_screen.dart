@@ -3,18 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
-import '../common/state_views.dart';
-import '../common/system_insets.dart';
 import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
@@ -112,11 +107,7 @@ class _ApiKeyCard extends ConsumerWidget {
             onTap: canEdit ? () => openApiKeyEdit(context, apiKey) : null,
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -147,7 +138,7 @@ class _ApiKeyCard extends ConsumerWidget {
                           icon: Icon(
                             Icons.delete_outline,
                             size: 20,
-                            color: t.danger,
+                            color: t.dangerInk,
                           ),
                           tooltip: l10n.apiKeysRevoke,
                           onPressed: () => _revoke(context, ref),
@@ -163,12 +154,14 @@ class _ApiKeyCard extends ConsumerWidget {
                         DashPill(
                           label: l10n.apiKeysDisabled,
                           accent: t.danger,
+                          accentInk: t.dangerInk,
                           icon: Icons.pause_circle_outline,
                         )
                       else if (expired)
                         DashPill(
                           label: l10n.apiKeysExpired,
                           accent: t.danger,
+                          accentInk: t.dangerInk,
                           icon: Icons.schedule,
                         ),
                       if (apiKey.expiresAt != null && !expired)

@@ -27,7 +27,7 @@ void main() {
       ),
     );
     sent = captureRequests(dio);
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = PrinterFilesRepository(dio);
   });
 

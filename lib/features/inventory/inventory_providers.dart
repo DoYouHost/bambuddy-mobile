@@ -348,14 +348,11 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
 
 /// Filament consumed since the counters were last reset, over the whole shelf.
 ///
-/// Archived spools are counted in: it is a running total, and what a spool
-/// consumed before being archived is real history — dropping it would make the
-/// number fall for no visible reason (the bug bambuddy's own tile was fixed for,
-/// server issue #1390).
+/// Archived spools are counted in — it is a running total, and dropping what
+/// they consumed makes the number fall for no visible reason (server #1390).
 ///
-/// A provider rather than a sum inside the list header: the header rebuilds on
-/// every search keystroke, and this way the shelf is only walked again when the
-/// shelf itself changes.
+/// A provider rather than a sum in the list header, which rebuilds on every
+/// search keystroke; this way the shelf is walked again only when it changes.
 final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
   final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
   var total = 0.0;
@@ -461,16 +458,14 @@ final filamentPresetsProvider =
 /// The printer models the fleet actually has, spelled exactly as the server
 /// reports them.
 ///
-/// Not `ownedPrinterCodesProvider`, which reads the same fleet for the same
-/// field and upper-cases it: that one narrows a preset *list* by name, where
-/// case cannot matter, while this one is the key the server matches an
-/// override on — `printer_model` is compared for plain string equality
-/// (`services/spool_filament_preset.py::_pick`), so a case-folded key writes a
-/// row nothing will ever resolve to. Two readers, deliberately, and neither is
-/// safe to point at the other.
+/// **Not** `ownedPrinterCodesProvider`, which upper-cases the same field: that
+/// one narrows a preset list by name, where case cannot matter, while this is
+/// the key the server matches an override on by plain string equality
+/// (`spool_filament_preset.py::_pick`) — a case-folded key writes a row nothing
+/// resolves to. Two readers on purpose, neither safe to point at the other.
 ///
-/// Sorted for a stable order in the spool form; a printer that has not reported
-/// a model is left out, having no model to key a row by.
+/// Sorted for a stable order in the spool form; a printer that reported no model
+/// is left out, having nothing to key a row by.
 final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   ref,
 ) async {
@@ -482,13 +477,10 @@ final printerModelsProvider = FutureProvider.autoDispose<List<String>>((
   return models;
 });
 
-/// Whether this server has the per-model preset routes. Cached for the session
-/// — the answer is a property of the server, and the latch behind it already
-/// updates itself from what the routes actually answer.
-final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
-  ref.keepAlive();
-  return ref.watch(inventoryRepositoryProvider).supportsPresetOverrides();
-});
+/// Whether this server has the per-model preset routes.
+final presetOverridesSupportedProvider = capabilityGate(
+  (ref) => ref.watch(inventoryRepositoryProvider).presetOverridesCapability,
+);
 
 /// One spool's per-printer-model preset overrides, as stored right now.
 ///
@@ -498,9 +490,16 @@ final presetOverridesSupportedProvider = FutureProvider<bool>((ref) async {
 /// error state and keeps its section read-only when it is set.
 final spoolPresetOverridesProvider = FutureProvider.autoDispose
     .family<List<SpoolPresetOverride>, int>((ref, spoolId) async {
-      if (!await ref.watch(presetOverridesSupportedProvider.future)) {
-        return const [];
+      // Loading while the gate is unanswered, never `[]`: the form seeds its
+      // editable copy once, and a save replaces the whole list on the server.
+      final supported = ref.watch(presetOverridesSupportedProvider);
+      if (supported.hasError) {
+        return Future.error(supported.error!, supported.stackTrace);
       }
+      if (!supported.hasValue) {
+        return Completer<List<SpoolPresetOverride>>().future;
+      }
+      if (!supported.requireValue) return const [];
       return ref
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);
@@ -536,6 +535,11 @@ class LocationClimate {
   bool get alerting => readings.any((r) => r.alerting);
 }
 
+/// Whether the server has the location sensor routes.
+final locationSensorsSupportedProvider = capabilityGate(
+  (ref) => ref.watch(locationSensorsRepositoryProvider).sensorsCapability,
+);
+
 /// Live readings for every storage location that has a sensor bound to it,
 /// keyed by [StorageLocation.matchKey] so a spool's free-text
 /// `storage_location` can find its own.
@@ -546,8 +550,11 @@ class LocationClimate {
 /// short rather than failing the screen — every surface reading it is additive.
 final locationClimateProvider =
     FutureProvider.autoDispose<Map<String, LocationClimate>>((ref) async {
+      // Empty until the gate says yes, then asked again: display only, and
+      // nothing seeds from it (unlike the spool presets).
+      final supported = ref.watch(locationSensorsSupportedProvider);
+      if (!(supported.valueOrNull ?? false)) return const {};
       final repo = ref.watch(locationSensorsRepositoryProvider);
-      if (!await repo.supportsLocationSensors()) return const {};
 
       final bindings = await repo.listBindings();
       final wanted = <int>{

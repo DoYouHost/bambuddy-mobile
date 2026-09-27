@@ -25,7 +25,7 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   final settings = ref.watch(settingsRepositoryProvider);
   final archives = ref.watch(archiveRepositoryProvider);
-  final tokens = ref.watch(cameraTokenServiceProvider);
+  final media = ref.watch(mediaAuthServiceProvider);
   final dio = ref.watch(bareDioProvider);
 
   final notifier = FinishPhotoNotifier(
@@ -40,8 +40,8 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      token: ({bool forceRefresh = false}) =>
-          tokens.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     ),
     notifications: ref.watch(notificationServiceProvider),
     memory: FinishAlertMemory(prefs),

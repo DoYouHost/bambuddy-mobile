@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/project.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
-import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
+import '../common/web_link.dart';
 
 /// Project detail — a single scrolling page (matching the web): header,
 /// plates/parts progress, stat cards, notes, linked files, attachments, BOM
@@ -168,10 +165,7 @@ class _Header extends ConsumerWidget {
           if (project.url != null && project.url!.isNotEmpty) ...[
             const SizedBox(height: 8),
             InkWell(
-              onTap: () => launchUrl(
-                Uri.parse(project.url!),
-                mode: LaunchMode.externalApplication,
-              ),
+              onTap: () => openWebLink(context, project.url!),
               child: Row(
                 children: [
                   Icon(Icons.link, size: 18, color: t.accentGreenInk),
@@ -365,15 +359,7 @@ class _ProgressRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progressFraction(percent),
-            minHeight: 8,
-            backgroundColor: t.gaugeTrack,
-            valueColor: AlwaysStoppedAnimation(t.accentGreen),
-          ),
-        ),
+        DashProgressBar(value: progressFraction(percent), height: 8),
       ],
     );
   }
@@ -499,12 +485,12 @@ class _NotesSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.notes_outlined,
       title: l10n.projectNotes,
-      action: TextButton.icon(
-        style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-        icon: const Icon(Icons.edit_outlined, size: 18),
-        label: Text(l10n.projectEdit),
+      action: sectionCardAction(
+        id: 'project.edit_notes',
+        icon: Icons.edit_outlined,
+        label: l10n.projectEdit,
         onPressed: () => _editNotes(context, ref),
-      ).tagged('project.edit_notes'),
+      ),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(

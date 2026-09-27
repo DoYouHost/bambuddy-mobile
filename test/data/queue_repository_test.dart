@@ -16,7 +16,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     repo = QueueRepository(dio);
   });
 
@@ -182,6 +182,180 @@ void main() {
     });
   });
 
+  group('startNextPending (the watch button)', () {
+    void mockPending(int printerId, List<dynamic> reply) => adapter.onGet(
+      '/api/v1/queue/',
+      (server) => server.reply(200, reply),
+      queryParameters: {'printer_id': printerId, 'status': 'pending'},
+    );
+
+    // Positions all default to 1 on a real server, so every item here keeps
+    // that unless a test is about position itself.
+    Map<String, dynamic> item(
+      int id, {
+      int position = 1,
+      int? printerId,
+      String? targetModel,
+      String? targetLocation,
+      bool variants = false,
+    }) => {
+      'id': id,
+      'position': position,
+      'status': 'pending',
+      'printer_id': printerId,
+      'target_model': targetModel,
+      'target_location': targetLocation,
+      if (variants)
+        'variants': [
+          {
+            'library_file_id': 1,
+            'filename': 'a.gcode.3mf',
+            'target_model': 'X1C',
+            'position': 0,
+          },
+        ],
+    };
+
+    void mockAssign(int id) => adapter.onPatch(
+      '/api/v1/queue/$id',
+      (server) => server.reply(200, item(id, printerId: 1)),
+      data: {'printer_id': 1, 'target_model': null},
+    );
+
+    void mockStart(int id) => adapter.onPost(
+      '/api/v1/queue/$id/start',
+      (server) => server.reply(200, item(id)),
+    );
+
+    final emptyQueue = throwsA(
+      isA<StateError>().having((e) => e.message, 'message', 'empty-queue'),
+    );
+
+    test('this printer\'s own job beats older unassigned ones', () async {
+      // Same position, and the "any X1C" job has the lower id: an id tiebreak
+      // alone would start it instead of the one queued for this printer. No
+      // unassigned listing is mocked — asking for it would fail the test.
+      mockPending(1, [item(4, targetModel: 'X1C'), item(25, printerId: 1)]);
+      mockStart(25);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls, ['GET /api/v1/queue/', 'POST /api/v1/queue/25/start']);
+    });
+
+    test('an "any model" job for this printer is assigned with its model '
+        'cleared', () async {
+      mockPending(1, [item(4, targetModel: 'X1C')]);
+      mockAssign(4);
+      mockStart(4);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls, [
+        'GET /api/v1/queue/',
+        'PATCH /api/v1/queue/4',
+        'POST /api/v1/queue/4/start',
+      ]);
+      // The model has to go with the assignment, or the server answers 400.
+      expect(sent.requests[1].data, {'printer_id': 1, 'target_model': null});
+    });
+
+    test('a job for the model in another location is left alone', () async {
+      // The printer listing ignores `target_location`; the scheduler does not.
+      mockPending(1, [item(4, targetModel: 'X1C', targetLocation: 'Office')]);
+      adapter.onGet(
+        '/api/v1/printers/',
+        (server) => server.reply(200, [
+          {'id': 1, 'name': 'X1C', 'location': 'Workshop'},
+        ]),
+      );
+      mockPending(-1, [
+        item(4, targetModel: 'X1C', targetLocation: 'Office'),
+        item(9),
+      ]);
+      mockAssign(9);
+      mockStart(9);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls.last, 'POST /api/v1/queue/9/start');
+      expect(sent.calls, isNot(contains('PATCH /api/v1/queue/4')));
+    });
+
+    test('from the unassigned list only jobs with no model and no '
+        'alternatives', () async {
+      mockPending(1, const []);
+      mockPending(-1, [
+        item(6, targetModel: 'A1'),
+        item(7, variants: true),
+        item(8, position: 2),
+      ]);
+      mockAssign(8);
+      mockStart(8);
+      final sent = captureRequests(dio);
+
+      await repo.startNextPending(1);
+
+      expect(sent.calls.skip(2), [
+        'PATCH /api/v1/queue/8',
+        'POST /api/v1/queue/8/start',
+      ]);
+    });
+
+    test('a refused start puts the assignment back', () async {
+      // 409 is the server's filament-deficit answer. Left assigned, the job
+      // would lose "any X1C" for good and no other printer would take it.
+      mockPending(1, [item(4, targetModel: 'X1C')]);
+      mockAssign(4);
+      adapter.onPost(
+        '/api/v1/queue/4/start',
+        (server) => server.reply(409, {
+          'detail': {'code': 'insufficient_filament', 'deficit': <dynamic>[]},
+        }),
+      );
+      adapter.onPatch(
+        '/api/v1/queue/4',
+        (server) => server.reply(200, item(4, targetModel: 'X1C')),
+        data: {'printer_id': null, 'target_model': 'X1C', 'ams_mapping': null},
+      );
+      final sent = captureRequests(dio);
+
+      await expectLater(
+        repo.startNextPending(1),
+        throwsA(isA<AppApiException>()),
+      );
+      expect(sent.calls.last, 'PATCH /api/v1/queue/4');
+      expect(sent.statuses.last, 200);
+    });
+
+    test('a refused listing reaches the watch as the server error', () async {
+      // The relay maps AppApiException to its code; anything else is the
+      // generic `phone-error`, which hides a missing permission.
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(403, {'detail': 'queue:read'}),
+        queryParameters: {'printer_id': 1, 'status': 'pending'},
+      );
+
+      await expectLater(
+        repo.startNextPending(1),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+
+    test('jobs only for other models → empty-queue, nothing written', () async {
+      mockPending(1, const []);
+      mockPending(-1, [item(6, targetModel: 'A1')]);
+      final sent = captureRequests(dio);
+
+      await expectLater(repo.startNextPending(1), emptyQueue);
+      expect(sent.calls.where((c) => !c.startsWith('GET')), isEmpty);
+    });
+  });
+
   test('reorder: sends POST and completes without exception', () async {
     adapter.onPost(
       '/api/v1/queue/reorder',
@@ -196,6 +370,57 @@ void main() {
 
     await repo.reorder([(id: 78, position: 1), (id: 79, position: 2)]);
     // No exception = success.
+  });
+
+  group('a removal refused by the server', () {
+    // All three routes answer 400 by naming the status they found, and that
+    // status is the whole explanation — issue #35 reached the reporter's screen
+    // as "server error 400" because the plain mapper drops a 400's detail.
+    for (final (name, path, call)
+        in <(String, String, Future<void> Function(QueueRepository))>[
+          ('cancel', '/api/v1/queue/78/cancel', (r) => r.cancel(78)),
+          ('stop', '/api/v1/queue/78/stop', (r) => r.stop(78)),
+        ]) {
+      test('$name keeps the sentence naming the status', () async {
+        adapter.onPost(
+          path,
+          (server) => server.reply(400, {
+            'detail': "Cannot cancel item with status 'printing'",
+          }),
+        );
+
+        await expectLater(
+          call(repo),
+          throwsA(
+            isA<AppApiException>().having(
+              (e) => e.detail,
+              'detail',
+              "Cannot cancel item with status 'printing'",
+            ),
+          ),
+        );
+      });
+    }
+
+    test('delete keeps it too', () async {
+      adapter.onDelete(
+        '/api/v1/queue/78',
+        (server) => server.reply(400, {
+          'detail': 'Cannot delete item that is currently printing',
+        }),
+      );
+
+      await expectLater(
+        repo.delete(78),
+        throwsA(
+          isA<AppApiException>().having(
+            (e) => e.detail,
+            'detail',
+            'Cannot delete item that is currently printing',
+          ),
+        ),
+      );
+    });
   });
 
   test(
@@ -450,7 +675,7 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isFalse);
+      expect(await repo.triStateCapability.supported, isFalse);
     });
 
     test('what the server actually sent beats the version number', () async {
@@ -460,7 +685,7 @@ void main() {
       // below it in every ordering.
       final repo = repoFor('0.2.5b2');
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isFalse,
         reason: 'before seeing anything — be cautious',
       );
@@ -479,7 +704,7 @@ void main() {
       await repo.fetch();
 
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isTrue,
         reason: 'strings in the response are proof, not a hint',
       );
@@ -497,7 +722,7 @@ void main() {
       );
       await repo.fetch();
 
-      expect(await repo.supportsTriStateCalibration(), isFalse);
+      expect(await repo.triStateCapability.supported, isFalse);
     });
 
     test('a response without calibration fields settles nothing', () async {
@@ -511,7 +736,7 @@ void main() {
       await repo.fetch();
 
       expect(
-        await repo.supportsTriStateCalibration(),
+        await repo.triStateCapability.supported,
         isTrue,
         reason: 'no observation → version decides',
       );

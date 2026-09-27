@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_tag.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
 
@@ -23,7 +18,7 @@ import 'file_manager_providers.dart';
 /// All four read the catalog from [libraryTagsProvider], so a tag created or
 /// renamed in one of them shows up in the others without any plumbing — and a
 /// server with no tag routes never gets here, because the caller hides the
-/// entry points (see [libraryTagsSupported]).
+/// entry points (see [libraryTagsSupportedProvider]).
 
 /// A tag as it appears on a file tile: label only, no colour and no icon —
 /// upstream deliberately kept tags plain so a file can carry several without

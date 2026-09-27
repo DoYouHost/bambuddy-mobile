@@ -1,23 +1,13 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:app_util/app_util.dart';
+
 import '../models/json_utils.dart';
+import '../models/pipeline_run.dart';
+import '../models/print_run.dart';
 import 'demo_config.dart';
-
-/// Result of a routed demo request: HTTP status + JSON-encodable body.
-typedef DemoResult = ({int status, Object? body});
-
-/// A response that is a file rather than a document.
-///
-/// Carried as the result's `body` so every other route keeps its two-field
-/// shape; `DemoHttpClientAdapter` serves this one as bytes with its own content
-/// type instead of JSON-encoding it.
-class DemoFile {
-  const DemoFile(this.bytes, this.contentType);
-
-  final Uint8List bytes;
-  final String contentType;
-}
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -43,6 +33,28 @@ class DemoBackend {
   /// Simulated job duration; the job loops forever.
   static const _printCycleSec = 5400; // 90 min
   static const _totalLayers = 264;
+
+  /// How many machines the demo runs a print on at once, from app settings.
+  ///
+  /// The demo has always printed on one, and one is what every other fixture
+  /// here assumes (the queue, the archive, the finished-print alert). Raising it
+  /// is for looking at what several printing machines do to a screen — the
+  /// dashboard summary, the ongoing notification — not for making the rest of
+  /// the demo consistent with it.
+  static int printingPrinters = 1;
+
+  /// The order machines are taken in. Printer 3 is the offline fixture and is
+  /// never one of them: something has to stay unreachable, or the offline card
+  /// and its grace window have nothing to show.
+  static const _printOrder = [1, 2, 5, 4];
+
+  /// The most the setting can ask for.
+  static final int maxPrintingPrinters = _printOrder.length;
+
+  bool _printsNow(int id) {
+    final at = _printOrder.indexOf(id);
+    return at >= 0 && at < printingPrinters;
+  }
 
   late int _printAnchor;
   bool _paused = false;
@@ -210,6 +222,17 @@ class DemoBackend {
   /// (already JSON-decoded map/list, or null).
   DemoResult handle(String method, Uri uri, Object? requestBody) {
     var path = uri.path;
+    // Asked because the demo reports 1.2.6b1 and has an A1 mini; answering like
+    // a post-#1334 server keeps its Z jog on the direct sign.
+    if (path == '/openapi.json') {
+      return _ok(const {
+        'paths': {
+          '/api/v1/printers/{printer_id}/bed-jog': {
+            'post': {'summary': 'Bed Jog'},
+          },
+        },
+      });
+    }
     const prefix = '/api/v1';
     if (!path.startsWith(prefix)) return _notFound();
     path = path.substring(prefix.length);
@@ -253,6 +276,10 @@ class DemoBackend {
         if (at(1, 'ws-token') || at(1, 'me')) {
           return at(1, 'me') ? _ok(_demoUser) : _ok({'token': 'demo-ws-token'});
         }
+        // Served because this backend reports 1.2.6b1: a demo that 404'd here
+        // would exercise the pre-#3025 camera-token fallback instead of the
+        // path a current server takes.
+        if (at(1, 'media-token')) return _ok({'token': 'demo-media-token'});
         return _notFound();
 
       case 'updates':
@@ -439,6 +466,9 @@ class DemoBackend {
         return _notFound();
 
       case 'queue':
+        if (s.length >= 2 && s[1] == 'batches') {
+          return _batchRoute(m, s, q, body);
+        }
         return _queueRoute(m, s, body);
 
       case 'archives':
@@ -503,39 +533,11 @@ class DemoBackend {
         return _ok({'filament': _localPresets});
 
       case 'settings':
-        return _ok(const {
-          'require_plate_clear': false,
-          // On, so the slice form is reachable at all: it gates every Slice
-          // button in the app, and with it off the pipelines feature showed
-          // only its read-only half.
-          'use_slicer_api': true,
-          'currency': 'USD',
-          // Auto-print snippets, as the real server stores them: a JSON string
-          // keyed by printer model. Only the A1 mini has one, so demo shows both
-          // halves of the gate — the injection checkbox appears, and picking the
-          // X1C or the P1S says out loud that nothing would be injected.
-          'gcode_snippets':
-              '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
-              '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
-          // Drying presets as the real server stores them: a JSON string, not
-          // an object. Two rows differ from the built-in defaults (PETG 70 °C /
-          // 8 h) so demo shows the customisation actually reaching the sheet
-          // rather than the bundled table that would look identical.
-          'drying_presets':
-              '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
-              '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
-              '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
-          // The server's own drying automation, which the sheet reports and
-          // never offers to change — writing these is settings:update, denied
-          // to every API key.
-          'ambient_drying_enabled': true,
-          'queue_drying_enabled': true,
-          'print_drying_enabled': false,
-          // The ceiling the run form's copies stepper stops at. Deliberately
-          // not the server's own default of 50: a demo that agreed with the
-          // fallback would not show whether the setting is read at all.
-          'pipeline_max_copies': 12,
-        });
+        // The one settings writer in the app is the queue screen, and it sends
+        // a partial body — so the demo has to merge rather than replace, or a
+        // switch would take every other value on the screen down with it.
+        if (m == 'PUT' || m == 'PATCH') _settingsWrites.addAll(body);
+        return _ok({..._settings, ..._settingsWrites});
 
       case 'slice-jobs':
         return _sliceJobRoute(id(1));
@@ -569,6 +571,60 @@ class DemoBackend {
     }
     return (status: 401, body: {'detail': 'Incorrect username or password'});
   }
+
+  /// What `PUT /settings/` has been asked to change this session. Kept apart
+  /// from [_settings] so the fixture stays the const description of a server,
+  /// and a demo restart is a fresh one.
+  final Map<String, dynamic> _settingsWrites = {};
+
+  /// `GET /settings` — the server-wide configuration. Values are deliberately
+  /// not the server's own defaults where a screen reads them: a demo that
+  /// agreed with the fallback would not show whether the setting is read at all.
+  static const _settings = <String, dynamic>{
+    'require_plate_clear': false,
+    // On, so the slice form is reachable at all: it gates every Slice
+    // button in the app, and with it off the pipelines feature showed
+    // only its read-only half.
+    'use_slicer_api': true,
+    'currency': 'USD',
+    // Auto-print snippets, as the real server stores them: a JSON string
+    // keyed by printer model. Only the A1 mini has one, so demo shows both
+    // halves of the gate — the injection checkbox appears, and picking the
+    // X1C or the P1S says out loud that nothing would be injected.
+    'gcode_snippets':
+        '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
+        '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+    // Drying presets as the real server stores them: a JSON string, not
+    // an object. Two rows differ from the built-in defaults (PETG 70 °C /
+    // 8 h) so demo shows the customisation actually reaching the sheet
+    // rather than the bundled table that would look identical.
+    'drying_presets':
+        '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
+        '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+        '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+    // The server's own drying automation, which the sheet reports and
+    // never offers to change — writing these is settings:update, denied
+    // to every API key.
+    'ambient_drying_enabled': true,
+    'queue_drying_enabled': true,
+    'print_drying_enabled': false,
+    // The ceiling the run form's copies stepper stops at. Deliberately
+    // not the server's own default of 50: a demo that agreed with the
+    // fallback would not show whether the setting is read at all.
+    'pipeline_max_copies': 12,
+    // The queue settings screen, which is the app's only settings writer. Every
+    // one of these is off its server default so the screen visibly reads them
+    // rather than falling back — and the two masters are on, so the sliders
+    // they gate are live without a tap.
+    'queue_shortest_first': true,
+    'queue_max_concurrent_uploads': 2,
+    'preheat_enabled': true,
+    'preheat_max_wait_seconds': 1200,
+    'preheat_soak_seconds': 600,
+    'queue_keep_bed_warm': true,
+    'queue_keep_warm_bed_temp': 95,
+    'queue_keep_warm_max_minutes': 45,
+  };
 
   Map<String, dynamic> get _demoUser => {
     'id': 1,
@@ -1109,6 +1165,29 @@ class DemoBackend {
 
   // --- Printers + status ---
 
+  /// Asks every open demo socket to broadcast the fleet now, instead of at its
+  /// next tick.
+  ///
+  /// For the settings that change what the demo *is* rather than what it is
+  /// doing: waiting three seconds to see a knob take effect reads as the knob
+  /// not working.
+  static void pokeSockets() => _pokes.add(null);
+
+  static final _pokes = StreamController<void>.broadcast();
+
+  /// Subscribed to by each open [DemoWsConnection].
+  static Stream<void> get pokes => _pokes.stream;
+
+  /// Every printer the demo's fleet lists.
+  ///
+  /// The fake socket broadcasts one frame per id, the way a real server does.
+  /// It used to name two of them by hand, which is why a change on any other
+  /// machine reached the dashboard only with the next REST poll — and the
+  /// service isolate, which has no status poll of its own, not at all.
+  static List<int> get printerIds => [
+    for (final p in _printers) p['id'] as int,
+  ];
+
   static final List<Map<String, dynamic>> _printers = [
     {
       'id': 1,
@@ -1188,9 +1267,9 @@ class DemoBackend {
   Map<String, dynamic> statusData(int printerId) =>
       _withSlotConfig(printerId, switch (printerId) {
         1 => _statusPrinting(),
-        2 => _statusIdle(),
-        4 => _statusAccessoryFans(),
-        5 => _statusSecondX1c(),
+        2 => _maybePrinting(2, _statusIdle(), 'Bracket v2'),
+        4 => _maybePrinting(4, _statusAccessoryFans(), 'Fan shroud'),
+        5 => _maybePrinting(5, _statusSecondX1c(), 'Hinge plate'),
         // Printer 3, and anything the fleet does not list. Written as the
         // fallback rather than as `3 =>` because an id that reached here at all
         // is one nothing should have asked about.
@@ -1246,8 +1325,42 @@ class DemoBackend {
 
   double _r1(double v) => (v * 10).roundToDouble() / 10;
 
+  /// An idle fixture with a print laid over it, for the machines that only run
+  /// one because the setting asked for several.
+  Map<String, dynamic> _maybePrinting(
+    int id,
+    Map<String, dynamic> idle,
+    String job,
+  ) {
+    if (!_printsNow(id)) return idle;
+    // Each machine sits at its own point in the cycle. Identical percentages
+    // would hide the one thing several printers are here to show: a different
+    // ETA on each, and an average that is none of them.
+    final frac = ((_elapsedSec + id * 900) % _printCycleSec) / _printCycleSec;
+    return {
+      ...idle,
+      'state': 'RUNNING',
+      'current_print': '$job.3mf',
+      'subtask_name': job,
+      'gcode_file': '/data/Metadata/plate_1.gcode',
+      'progress': _r1(frac * 100),
+      'remaining_time': (_printCycleSec * (1 - frac) / 60).ceil(),
+      'layer_num': (frac * _totalLayers).floor(),
+      'total_layers': _totalLayers,
+      'temperatures': {
+        ...idle['temperatures'] as Map<String, dynamic>,
+        'nozzle': _r1(220 + _wiggle(1.4, phase: id * 20)),
+        'nozzle_target': _nozzleTarget[id] ?? 220.0,
+        'bed': _r1(65 + _wiggle(0.6, phase: 30 + id * 20)),
+        'bed_target': _bedTarget[id] ?? 65.0,
+      },
+      'cooling_fan_speed': 85,
+    };
+  }
+
   Map<String, dynamic> _statusPrinting() {
-    final stopped = _stopped;
+    // "Nobody is printing" reaches this fixture as the stop it already knows.
+    final stopped = _stopped || !_printsNow(1);
     final elapsed = _elapsedSec;
     final frac = elapsed / _printCycleSec;
     final printing = !stopped;
@@ -2081,6 +2194,8 @@ class DemoBackend {
       type: 'PETG',
       color: '#FFFFFF',
       createdDaysAgo: 1,
+      batchId: 1,
+      batchName: 'Cable clips ×8',
     ),
     _queueItem(
       id: 102,
@@ -2161,8 +2276,12 @@ class DemoBackend {
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
+    int? batchId,
+    String? batchName,
   }) => {
     'id': id,
+    'batch_id': batchId,
+    'batch_name': batchName,
     'printer_id': printerId,
     'archive_id': null,
     'library_file_id': null,
@@ -2177,9 +2296,9 @@ class DemoBackend {
     'gcode_injection': gcodeInjection,
     'filament_short': false,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
-    // arrival emptied the real queue screen (docs/plans/07). Demo mode is
-    // where that regression should surface first, so it speaks the current
-    // contract and includes an `auto` rather than only the two easy values.
+    // arrival emptied the real queue screen. Demo mode is where that
+    // regression should surface first, so it speaks the current contract and
+    // includes an `auto` rather than only the two easy values.
     'bed_levelling': 'auto',
     'flow_cali': 'off',
     'nozzle_offset_cali': 'auto',
@@ -2205,6 +2324,97 @@ class DemoBackend {
     'variants': variants,
   };
 
+  /// One queued copy for `POST /queue/`, into [batch] when there is one.
+  void _addQueued(
+    Map<String, dynamic> body,
+    List<Map<String, dynamic>> variantFiles,
+    Map<String, dynamic>? archive,
+    Map<String, dynamic>? lead,
+    String name,
+    Map<String, dynamic>? batch,
+  ) {
+    _queue.add(
+      _queueItem(
+        id: _nextQueueId++,
+        printerId: body['printer_id'] as int?,
+        position: _queue.length + 1,
+        name: name,
+        status: 'pending',
+        timeSec:
+            (lead?['print_time_seconds'] as int?) ??
+            (archive?['print_time_seconds'] as int?) ??
+            3600,
+        grams:
+            (lead?['filament_used_grams'] as num?)?.toDouble() ??
+            (archive?['filament_used_grams'] as num?)?.toDouble() ??
+            20,
+        type: (archive?['filament_type'] as String?) ?? 'PLA',
+        color: (archive?['filament_color'] as String?) ?? '#808080',
+        createdDaysAgo: 0,
+        gcodeInjection: body['gcode_injection'] == true,
+        slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+        variants: [
+          for (final (position, f) in variantFiles.indexed)
+            {
+              'library_file_id': f['id'],
+              'filename': f['filename'],
+              'target_model': f['sliced_for_model'],
+              'position': position,
+            },
+        ],
+        batchId: batch?['id'] as int?,
+        batchName: batch?['name'] as String?,
+      ),
+    );
+
+    if (batch == null) return;
+    final plates = (batch['plates'] as List).cast<Map<String, dynamic>>();
+    final plate =
+        plates.where((p) => p['plate_id'] == body['plate_id']).firstOrNull ??
+        plates.first;
+    plate['pending_count'] = (plate['pending_count'] as int) + 1;
+    // A source to clone from, which only an order can use.
+    if (batch['has_targets'] == true) plate['can_dispatch'] = true;
+  }
+
+  /// The batch `POST /queue/` puts its copies in: the one [batchId] names
+  /// (404 / 400 as the server refuses it), a new grouping for several copies,
+  /// or none.
+  Object? _batchForCopies(int? batchId, int copies, String name) {
+    if (batchId != null) {
+      final batch = _batches.where((b) => b['id'] == batchId).firstOrNull;
+      if (batch == null) {
+        return (status: 404, body: {'detail': 'Batch not found'});
+      }
+      if (batch['status'] != 'active') {
+        return (
+          status: 400,
+          body: {'detail': 'Cannot add items to a non-active batch'},
+        );
+      }
+      return batch;
+    }
+    if (copies < 2) return null;
+    final batch = <String, dynamic>{
+      'id': _nextBatchId++,
+      'name': '$name ×$copies',
+      'library_file_id': null,
+      'status': 'active',
+      'created_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': null,
+      'notes': null,
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': false,
+      'plates': [_demoPlate(null, null, target: 0)],
+    };
+    _batches.add(batch);
+    return batch;
+  }
+
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
       if (m == 'GET') return _ok(_queue);
@@ -2224,41 +2434,22 @@ class DemoBackend {
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
         final lead = variantFiles.firstOrNull;
-        _queue.add(
-          _queueItem(
-            id: _nextQueueId++,
-            printerId: body['printer_id'] as int?,
-            position: _queue.length + 1,
-            name:
-                (lead?['print_name'] as String?) ??
-                (archive?['print_name'] as String?) ??
-                'Reprint',
-            status: 'pending',
-            timeSec:
-                (lead?['print_time_seconds'] as int?) ??
-                (archive?['print_time_seconds'] as int?) ??
-                3600,
-            grams:
-                (lead?['filament_used_grams'] as num?)?.toDouble() ??
-                (archive?['filament_used_grams'] as num?)?.toDouble() ??
-                20,
-            type: (archive?['filament_type'] as String?) ?? 'PLA',
-            color: (archive?['filament_color'] as String?) ?? '#808080',
-            createdDaysAgo: 0,
-            gcodeInjection: body['gcode_injection'] == true,
-            slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
-            variants: [
-              for (final (position, f) in variantFiles.indexed)
-                {
-                  'library_file_id': f['id'],
-                  'filename': f['filename'],
-                  'target_model': f['sliced_for_model'],
-                  'position': position,
-                },
-            ],
-          ),
-        );
-        return _ok(_queue.last);
+        // As the server does: copies into the batch named by `batch_id`, or
+        // into a new grouping when there are several and none was named.
+        final copies = ((body['quantity'] as int?) ?? 1).clamp(1, 999);
+        final name =
+            (lead?['print_name'] as String?) ??
+            (archive?['print_name'] as String?) ??
+            'Reprint';
+        final batch = _batchForCopies(body['batch_id'] as int?, copies, name);
+        if (batch case DemoResult refused) return refused;
+        final batchMap = batch as Map<String, dynamic>?;
+        final first = _queue.length;
+        for (var n = 0; n < copies; n++) {
+          _addQueued(body, variantFiles, archive, lead, name, batchMap);
+        }
+        // The server answers with the first copy.
+        return _ok(_queue[first]);
       }
     }
     if (s.length >= 2 && s[1] == 'reorder') {
@@ -2310,6 +2501,347 @@ class DemoBackend {
   }
 
   int _nextQueueId = 200;
+
+  // --- Batches and orders (#342) ---
+
+  /// Stored as the server stores them: targets per plate plus how each plate's
+  /// runs ended. Everything else the response carries is derived in
+  /// [_batchResponse], as `load_progress` derives it.
+  late final List<Map<String, dynamic>> _batches = [
+    {
+      'id': 1,
+      'name': 'Cable clips ×8',
+      'library_file_id': null,
+      'status': 'active',
+      'created_at': _iso(_daysAgo(2)),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': 1,
+      'due_date': _iso(_daysAgo(-3)),
+      'notes': 'Two bags of four for the workshop drawers.',
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': true,
+      'plates': [
+        _demoPlate(null, null, target: 8, completed: 5, failed: 1, pending: 1),
+      ],
+    },
+    // A shop order: the integration pair and a stranded plate, whose last
+    // queue item was deleted, so only the other two can be dispatched.
+    {
+      'id': 2,
+      'name': 'Keychain set · 3 plates',
+      'library_file_id': 3,
+      'status': 'active',
+      'created_at': _iso(_daysAgo(4)),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': _iso(_daysAgo(1)),
+      'notes': null,
+      'external_source': 'shopify',
+      'external_ref': '#1042',
+      'has_targets': true,
+      'plates': [
+        _demoPlate(1, 'Tags', target: 4, completed: 4),
+        _demoPlate(2, 'Rings', target: 4, completed: 1, failed: 1),
+        _demoPlate(3, 'Charms', target: 2, canDispatch: false),
+      ],
+    },
+    // What `POST /queue/` with `quantity: 3` makes on its own: a grouping.
+    {
+      'id': 3,
+      'name': 'Phone stand ×3',
+      'library_file_id': null,
+      'status': 'completed',
+      'created_at': _iso(_daysAgo(9)),
+      'completed_at': _iso(_daysAgo(8)),
+      'created_by_username': 'demo',
+      'project_id': null,
+      'due_date': null,
+      'notes': null,
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': false,
+      'plates': [_demoPlate(null, null, target: 0, completed: 3)],
+    },
+  ];
+
+  int _nextBatchId = 10;
+
+  Map<String, dynamic> _demoPlate(
+    int? plateId,
+    String? name, {
+    required int target,
+    int completed = 0,
+    int failed = 0,
+    int pending = 0,
+    bool canDispatch = true,
+  }) => {
+    'plate_id': plateId,
+    'plate_name': name,
+    'quantity_target': target,
+    'completed_count': completed,
+    'failed_count': failed,
+    'pending_count': pending,
+    'printing_count': 0,
+    'cancelled_count': 0,
+    'can_dispatch': canDispatch,
+  };
+
+  Map<String, dynamic> _batchResponse(Map<String, dynamic> b) {
+    final hasTargets = b['has_targets'] == true;
+    final plates = [
+      for (final p in (b['plates'] as List).cast<Map<String, dynamic>>())
+        () {
+          final target = p['quantity_target'] as int;
+          final dispatched =
+              (p['completed_count'] as int) +
+              (p['pending_count'] as int) +
+              (p['printing_count'] as int);
+          final remaining = (target - dispatched).clamp(0, 999);
+          return {
+            ...p,
+            'dispatched': dispatched,
+            'remaining': remaining,
+            'skipped_count': 0,
+            'actual_cost': (p['completed_count'] as int) == 0
+                ? null
+                : (p['completed_count'] as int) * 0.42,
+            'estimated_remaining_cost': remaining * 0.42,
+            'filament_used_grams': (p['completed_count'] as int) * 5.3,
+            'print_time_seconds': (p['completed_count'] as int) * 1380,
+            'can_dispatch': remaining > 0 && p['can_dispatch'] == true,
+          };
+        }(),
+    ];
+    int sum(String key) => plates.fold(0, (a, p) => a + (p[key] as int));
+    final remaining = hasTargets ? sum('remaining') : 0;
+    final dispatchable = hasTargets
+        ? plates
+              .where((p) => p['can_dispatch'] == true)
+              .fold(0, (a, p) => a + (p['remaining'] as int))
+        : 0;
+    double? costOf(String key) {
+      final values = [for (final p in plates) p[key] as double?].nonNulls;
+      return values.isEmpty ? null : values.fold<double>(0, (a, v) => a + v);
+    }
+
+    return {
+      for (final e in b.entries)
+        if (e.key != 'plates') e.key: e.value,
+      'archive_id': null,
+      'quantity': hasTargets
+          ? sum('quantity_target')
+          : [
+              'completed_count',
+              'pending_count',
+              'printing_count',
+              'failed_count',
+              'cancelled_count',
+            ].fold(0, (a, key) => a + sum(key)),
+      'created_by_id': 1,
+      'pending_count': sum('pending_count'),
+      'printing_count': sum('printing_count'),
+      'completed_count': sum('completed_count'),
+      'failed_count': sum('failed_count'),
+      'cancelled_count': sum('cancelled_count'),
+      'skipped_count': 0,
+      'target_count': hasTargets ? sum('quantity_target') : 0,
+      'remaining_count': remaining,
+      'dispatchable_count': dispatchable,
+      'actual_cost': costOf('actual_cost'),
+      'estimated_remaining_cost': hasTargets
+          ? costOf('estimated_remaining_cost')
+          : null,
+      'filament_used_grams': costOf('filament_used_grams'),
+      'print_time_seconds': sum('print_time_seconds'),
+      'plates': hasTargets ? plates : const <Object>[],
+    };
+  }
+
+  DemoResult? _batchRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final status = q['status'];
+        return _ok([
+          for (final b in _batches.reversed)
+            if (status == null || b['status'] == status) _batchResponse(b),
+        ]);
+      }
+      if (m == 'POST') return _createBatch(body);
+      return _fallback(m);
+    }
+    final batch = _batches.where((b) => b['id'] == int.tryParse(s[2]));
+    if (batch.isEmpty) {
+      return (status: 404, body: {'detail': 'Batch not found'});
+    }
+    final b = batch.first;
+    final plates = (b['plates'] as List).cast<Map<String, dynamic>>();
+    if (s.length == 3 && m == 'GET') return _ok(_batchResponse(b));
+    if (s.length == 3 && m == 'PATCH') {
+      for (final key in ['name', 'notes', 'due_date', 'project_id', 'status']) {
+        if (body[key] != null) b[key] = body[key];
+      }
+      final targets = body['plates'];
+      if (targets is List) {
+        final old = {for (final p in plates) p['plate_id']: p};
+        b['plates'] = [
+          for (final t in targets.whereType<Map>())
+            {
+              ...?old[t['plate_id']],
+              if (old[t['plate_id']] == null)
+                ..._demoPlate(
+                  t['plate_id'] as int?,
+                  t['plate_name'] as String?,
+                  target: 0,
+                ),
+              'quantity_target': t['quantity_target'],
+            },
+        ];
+      }
+      return _ok(_batchResponse(b));
+    }
+    if (s.length == 3 && m == 'DELETE') {
+      b['status'] = 'cancelled';
+      for (final p in plates) {
+        p['cancelled_count'] =
+            (p['cancelled_count'] as int) + (p['pending_count'] as int);
+        p['pending_count'] = 0;
+      }
+      for (final i in _queue) {
+        if (i['batch_id'] == b['id'] && i['status'] == 'pending') {
+          i['status'] = 'cancelled';
+        }
+      }
+      return _ok({'message': 'Batch cancelled'});
+    }
+    if (s.length == 4 && s[3] == 'ungroup' && m == 'POST') {
+      final members = _queue.where((i) => i['batch_id'] == b['id']).toList();
+      for (final i in members) {
+        i['batch_id'] = null;
+        i['batch_name'] = null;
+      }
+      _batches.remove(b);
+      return _ok({
+        'ungrouped_count': members.length,
+        'message': 'Ungrouped ${members.length} item(s)',
+      });
+    }
+    if (s.length == 4 && s[3] == 'dispatch' && m == 'POST') {
+      if (b['status'] == 'cancelled') {
+        return (
+          status: 400,
+          body: {'detail': 'Cannot dispatch a cancelled batch'},
+        );
+      }
+      final onlyPlate = body['only_plate'] == true;
+      final response = _batchResponse(b);
+      final owed = [
+        for (final (i, p) in (response['plates'] as List).indexed)
+          if ((p as Map)['remaining'] as int > 0 &&
+              (!onlyPlate || p['plate_id'] == body['plate_id']))
+            (plates[i], p),
+      ];
+      final stranded = [
+        for (final (_, p) in owed)
+          if (p['can_dispatch'] != true) p,
+      ];
+      if (owed.isNotEmpty && stranded.length == owed.length) {
+        final names = stranded
+            .map((p) => p['plate_name'] ?? 'Plate ${p['plate_id'] ?? 1}')
+            .join(', ');
+        return (
+          status: 400,
+          body: {
+            'detail':
+                '$names ${stranded.length > 1 ? 'have' : 'has'} no queued or '
+                'finished run to copy settings '
+                'from. Queue the plate once from the file, then dispatch the '
+                'rest from here.',
+          },
+        );
+      }
+      for (final (stored, p) in owed) {
+        if (p['can_dispatch'] != true) continue;
+        final runs = p['remaining'] as int;
+        stored['pending_count'] = (stored['pending_count'] as int) + runs;
+        for (var n = 0; n < runs; n++) {
+          _queue.add(
+            _queueItem(
+              id: _nextQueueId++,
+              printerId: null,
+              position: _queue.length + 1,
+              name: '${b['name']}',
+              status: 'pending',
+              timeSec: 1380,
+              grams: 5.3,
+              type: 'PLA',
+              color: '#1F8F4D',
+              createdDaysAgo: 0,
+              batchId: b['id'] as int,
+              batchName: b['name'] as String,
+            ),
+          );
+        }
+      }
+      return _ok(_batchResponse(b));
+    }
+    return _fallback(m);
+  }
+
+  DemoResult _createBatch(Map<String, dynamic> body) {
+    final name = (body['name'] as String?)?.trim() ?? '';
+    if (name.isEmpty) {
+      return (status: 400, body: {'detail': 'Batch name is required'});
+    }
+    final id = _nextBatchId++;
+    final itemIds = (body['item_ids'] as List?)?.whereType<int>().toSet();
+    var grouped = 0;
+    for (final i in _queue) {
+      if (itemIds != null &&
+          itemIds.contains(i['id']) &&
+          i['status'] == 'pending' &&
+          i['batch_id'] == null) {
+        i['batch_id'] = id;
+        i['batch_name'] = name;
+        grouped++;
+      }
+    }
+    final targets = (body['plates'] as List?)?.whereType<Map>().toList();
+    _batches.add({
+      'id': id,
+      'name': name,
+      'library_file_id': body['library_file_id'],
+      'status': 'active',
+      'created_at': _iso(DateTime.now()),
+      'completed_at': null,
+      'created_by_username': 'demo',
+      'project_id': body['project_id'],
+      'due_date': body['due_date'],
+      'notes': body['notes'],
+      'external_source': null,
+      'external_ref': null,
+      'has_targets': targets != null,
+      'plates': [
+        if (targets == null)
+          _demoPlate(null, null, target: 0, pending: grouped)
+        else
+          for (final t in targets)
+            _demoPlate(
+              t['plate_id'] as int?,
+              t['plate_name'] as String?,
+              target: t['quantity_target'] as int,
+            ),
+      ],
+    });
+    return _ok(_batchResponse(_batches.last));
+  }
 
   // --- Archives + stats ---
 
@@ -2582,30 +3114,12 @@ class DemoBackend {
     return null;
   }
 
-  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
-  /// refuses what the real server refuses, or the editor would look like it
-  /// accepts anything.
-  static const _printLogReasons = {
-    '',
-    'adhesionFailure',
-    'spaghettiDetached',
-    'layerShift',
-    'cloggedNozzle',
-    'filamentRunout',
-    'warping',
-    'stringing',
-    'underExtrusion',
-    'powerFailure',
-    'userCancelled',
-    'other',
-  };
-  static const _printLogStatuses = {
-    'completed',
-    'failed',
-    'stopped',
-    'cancelled',
-    'skipped',
-  };
+  /// The demo refuses what the real server refuses, or the editor would look
+  /// like it accepts anything. Both lists are the ones the app itself offers
+  /// (`print_run.dart`), so the demo cannot drift into accepting a value the
+  /// picker no longer shows. `''` is extra here and only here: clearing the
+  /// cause is an action, not a cause, so it is not part of the vocabulary.
+  static final _printLogReasons = {'', ...printLogFailureReasons};
 
   DemoResult? _printLogRoute(
     String m,
@@ -2654,7 +3168,7 @@ class DemoBackend {
       }
       if (body['status'] != null) {
         final status = '${body['status']}';
-        if (!_printLogStatuses.contains(status)) {
+        if (!printLogStatuses.contains(status)) {
           return (status: 400, body: {'detail': "Unknown status: '$status'"});
         }
         entry['status'] = status;
@@ -3648,12 +4162,16 @@ class DemoBackend {
   /// The source every seeded run was sliced from.
   static const _pipelineSourceFileId = 6;
 
-  static const _terminalRunStatuses = {
-    'completed',
-    'failed',
-    'cancelled',
-    'partial_failure',
-  };
+  /// Finished, as the app's own model reads it (`pipeline_run.dart`) — a run
+  /// and one copy of it answer the question with different vocabularies, and
+  /// the demo used the run's for both. Same rule as [_printLogReasons]: the
+  /// demo decides with the constant the screens decide with, or it drifts into
+  /// a state no screen can show.
+  static bool _runFinished(String? status) =>
+      PipelineRunStatus.parse(status).isTerminal;
+
+  static bool _jobFinished(String? status) =>
+      PipelineJobStatus.parse(status).isTerminal;
 
   /// `/pipeline-runs` — the dashboard's list with its four filters, one run,
   /// cancel, retry-failed and the history purge.
@@ -3694,9 +4212,7 @@ class DemoBackend {
 
     if (s.length == 2 && m == 'POST' && s[1] == 'clear') {
       final before = _pipelineRuns.length;
-      _pipelineRuns.removeWhere(
-        (r) => _terminalRunStatuses.contains(r['status']),
-      );
+      _pipelineRuns.removeWhere((r) => _runFinished(r['status']));
       return _ok({'deleted': before - _pipelineRuns.length});
     }
 
@@ -3710,12 +4226,12 @@ class DemoBackend {
     if (s.length == 3 && m == 'POST' && s[2] == 'cancel') {
       // Idempotent: a run already finished comes back untouched rather than
       // refused, which is what lets the button be pressed twice safely.
-      if (_terminalRunStatuses.contains(run['status'])) return _ok(run);
+      if (_runFinished(run['status'])) return _ok(run);
       run['status'] = 'cancelled';
       run['completed_at'] = _iso(DateTime.now());
       run['error_message'] ??= 'Cancelled by operator';
       for (final job in (run['jobs'] as List)) {
-        if (job is Map && !_terminalRunStatuses.contains(job['status'])) {
+        if (job is Map && !_jobFinished(job['status'])) {
           job['status'] = 'cancelled';
         }
       }
@@ -4938,6 +5454,13 @@ class DemoBackend {
     'sliced_for_model': model,
     'variant_group_id': null,
     'variant_count': 0,
+    // #3077 — the listing and the detail are one map here, so both halves
+    // of the contract ride on it.
+    'external_url': null,
+    'has_notes': false,
+    'notes': null,
+    'photo_count': 0,
+    'photos': const <String>[],
   };
 
   /// Cross-model variant groups (server #671), served because the demo now
@@ -5091,12 +5614,18 @@ class DemoBackend {
         }
         if (s.length >= 3 && s[2] == 'add-to-queue' && m == 'POST') {
           final ids = (body['file_ids'] as List?) ?? const [];
+          final added = <Map<String, dynamic>>[];
           for (final f in _libraryFiles) {
             if (!ids.contains(f['id'])) continue;
+            added.add({
+              'file_id': f['id'],
+              'filename': f['filename'],
+              'queue_item_id': _nextQueueId,
+            });
             _queue.add(
               _queueItem(
                 id: _nextQueueId++,
-                printerId: null,
+                printerId: body['printer_id'] as int?,
                 position: _queue.length + 1,
                 name: '${f['print_name']}',
                 status: 'pending',
@@ -5108,7 +5637,7 @@ class DemoBackend {
               ),
             );
           }
-          return _ok(const {'ok': true});
+          return _ok({'added': added, 'errors': const <Object>[]});
         }
         final fileId = int.tryParse(s.length > 2 ? s[2] : '');
         final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
@@ -5118,6 +5647,14 @@ class DemoBackend {
           if (m == 'PUT') {
             if (body.containsKey('filename')) {
               file['filename'] = body['filename'];
+            }
+            // An empty string clears either, as on the server.
+            final url = body['external_url'];
+            if (url is String) file['external_url'] = url.isEmpty ? null : url;
+            final notes = body['notes'];
+            if (notes is String) {
+              file['notes'] = notes.isEmpty ? null : notes;
+              file['has_notes'] = notes.isNotEmpty;
             }
             return _ok(file);
           }
@@ -5132,6 +5669,9 @@ class DemoBackend {
             });
             return _ok(const {'ok': true});
           }
+        }
+        if (s.length >= 4 && s[3] == 'photos' && m == 'POST') {
+          return (status: 501, body: {'detail': 'Upload unavailable in demo'});
         }
         if (s.length >= 4 && s[3] == 'plates') return _ok(_libraryPlates(file));
         if (s.length >= 4 && s[3] == 'filament-requirements') {
@@ -5389,6 +5929,13 @@ class DemoBackend {
       }
     }
     if (s.length >= 2 && s[1] == 'templates') return _ok(const <Object>[]);
+    // Uploads are refused, like the library's. Left to the fallback they would
+    // be a 200 with an empty body: the import screen cannot parse that and does
+    // not catch the TypeError, and the attachment and cover screens would
+    // report a file saved that went nowhere.
+    if (s.length >= 2 && s[1] == 'import' && m == 'POST') {
+      return (status: 501, body: {'detail': 'Upload unavailable in demo'});
+    }
     final pid = int.tryParse(s.length > 1 ? s[1] : '');
     final project = _projects.where((p) => p['id'] == pid).firstOrNull;
     if (project == null) return _fallback(m);
@@ -5451,6 +5998,14 @@ class DemoBackend {
         case 'add-queue':
         case 'create-template':
           return _ok(const {'ok': true});
+        case 'attachments':
+        case 'cover-image':
+          if (m == 'POST') {
+            return (
+              status: 501,
+              body: {'detail': 'Upload unavailable in demo'},
+            );
+          }
       }
     }
     return _fallback(m);

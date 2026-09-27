@@ -2,11 +2,8 @@ import 'package:bambuddy_mobile/core/api/action_failure.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
 import 'package:bambuddy_mobile/core/diagnostics/auth_probe.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/api/api_client.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,14 +35,11 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async => const SessionFacts(
+    recorder = testRecorder(
+      facts: const SessionFacts(
         app: '0.12.1+1201000',
-        flavor: 'mobile',
         secrets: {apiKey: '[APIKEY]', jwt: '[JWT]', host: '[HOST]'},
       ),
-      resolveDirectory: () async => null,
     );
     addTearDown(recorder.discard);
     await recorder.start();

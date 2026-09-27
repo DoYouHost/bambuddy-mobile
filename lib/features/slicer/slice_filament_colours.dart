@@ -1,6 +1,7 @@
+import 'package:app_util/app_util.dart';
+
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slicer_preset.dart';
-import '../common/hex_color.dart';
 import 'slice_providers.dart';
 
 /// The `filament_colours` array of a `SliceRequest`: one `#RRGGBB` per plate

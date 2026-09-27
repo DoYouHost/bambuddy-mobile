@@ -140,6 +140,24 @@ void main() {
       }
     });
 
+    test('the heater-history row stays in the old numbering', () {
+      // It shipped in v0.2.4.8, two releases before the scheme changed to
+      // 1.2.5, and every 1.x outranks that — so the one row covers both
+      // schemes. Written as (1, 2, 4, 8) it would hide the chart on exactly
+      // the 0.2.4.x servers that serve the route.
+      for (final has in ['0.2.4.8', '0.2.4.9', '1.2.5', '1.2.6b1']) {
+        expect(
+          parse(has).supports(ServerFeature.printerSensorHistory),
+          isTrue,
+          reason: has,
+        );
+      }
+      expect(
+        parse('0.2.4.7').supports(ServerFeature.printerSensorHistory),
+        isFalse,
+      );
+    });
+
     test(
       'supports() reads the threshold from the map, not a separate compare',
       () {
@@ -159,12 +177,39 @@ void main() {
           ServerFeature.usersSlimListing,
           ServerFeature.printLogCostEnergy,
           ServerFeature.labelStartingPosition,
+          ServerFeature.printerFilesDownloadJob,
+          ServerFeature.scheduledDryings,
+          ServerFeature.archivePrinterMedia,
+          ServerFeature.locationHaSensors,
+          ServerFeature.spoolModelPresets,
+          ServerFeature.libraryFileExtras,
         ]) {
           expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
           expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
         }
       },
     );
+  });
+
+  test('grouping by hand arrives in 0.2.4.8, in the old numbering', () {
+    expect(parse('0.2.4.7').supports(ServerFeature.batchGrouping), isFalse);
+    expect(parse('0.2.4.8').supports(ServerFeature.batchGrouping), isTrue);
+    expect(parse('1.2.5').supports(ServerFeature.batchGrouping), isTrue);
+  });
+
+  test('orders with per-plate targets arrive in 1.2.5.3 (#342)', () {
+    expect(parse('1.2.5.2').supports(ServerFeature.batchOrders), isFalse);
+    expect(parse('1.2.5.3').supports(ServerFeature.batchOrders), isTrue);
+    expect(parse('0.2.4.9').supports(ServerFeature.batchOrders), isFalse);
+  });
+
+  test('a bulk add may name its target from 1.2.5.6 (#3112)', () {
+    expect(
+      parse('1.2.5.5').supports(ServerFeature.libraryQueueTarget),
+      isFalse,
+    );
+    expect(parse('1.2.5.6').supports(ServerFeature.libraryQueueTarget), isTrue);
+    expect(parse('1.2.6b1').supports(ServerFeature.libraryQueueTarget), isTrue);
   });
 
   group('1.2.6 gates', () {

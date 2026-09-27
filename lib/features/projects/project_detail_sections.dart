@@ -1,28 +1,25 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
-import '../../core/format/user_number.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/device_files.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'projects_providers.dart';
+import '../common/web_link.dart';
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
 /// over its body. Matches the web's stacked-card layout.
@@ -46,11 +43,7 @@ class SectionCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -71,21 +64,21 @@ class SectionCard extends StatelessWidget {
 }
 
 /// Green "ghost" action button used in a [SectionCard] header (link folder,
-/// upload attachment, add BOM item).
-Widget _dashAction({
-  required BuildContext context,
+/// upload attachment, add BOM item, edit the notes).
+///
+/// [id] comes from the call site: the three header actions of this file share
+/// one name in the diagnostic log and the notes action has its own, and both
+/// are wire values that recorded logs are already correlated against.
+Widget sectionCardAction({
+  required String id,
   required IconData icon,
   required String label,
   required VoidCallback onPressed,
-}) {
-  final t = DashTokens.of(context);
-  return TextButton.icon(
-    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-    icon: Icon(icon, size: 18),
-    label: Text(label),
-    onPressed: onPressed,
-  ).tagged('project.section_action');
-}
+}) => TextButton.icon(
+  icon: Icon(icon, size: 18),
+  label: Text(label),
+  onPressed: onPressed,
+).tagged(id);
 
 Widget _emptyHint(BuildContext context, String text) {
   final t = DashTokens.of(context);
@@ -111,8 +104,8 @@ class ProjectFilesSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.folder_open_outlined,
       title: l10n.projectTabFiles,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.create_new_folder_outlined,
         label: l10n.projectLinkFolder,
         onPressed: () => _linkFolder(context, ref),
@@ -352,8 +345,8 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.attach_file,
       title: l10n.projectTabAttachments,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.upload_file,
         label: l10n.projectAttachmentUpload,
         onPressed: () => _upload(context, ref),
@@ -388,7 +381,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                           onPressed: () => _download(context, ref, name),
                         ).tagged('project.attachment_download'),
                         IconButton(
-                          icon: Icon(Icons.delete_outline, color: t.danger),
+                          icon: Icon(Icons.delete_outline, color: t.dangerInk),
                           tooltip: l10n.projectAttachmentDelete,
                           onPressed: () => _delete(context, ref, name),
                         ).tagged('project.attachment_delete'),
@@ -487,8 +480,8 @@ class ProjectBomSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.shopping_cart_outlined,
       title: l10n.projectTabBom,
-      action: _dashAction(
-        context: context,
+      action: sectionCardAction(
+        id: 'project.section_action',
         icon: Icons.add,
         label: l10n.bomAdd,
         onPressed: () => _editItem(context, ref, null),
@@ -546,10 +539,7 @@ class ProjectBomSection extends ConsumerWidget {
         onSelected: (v) {
           if (v == 'edit') _editItem(context, ref, item);
           if (v == 'open' && item.sourcingUrl != null) {
-            launchUrl(
-              Uri.parse(item.sourcingUrl!),
-              mode: LaunchMode.externalApplication,
-            );
+            openWebLink(context, item.sourcingUrl!);
           }
           if (v == 'delete') {
             ref.read(projectBomProvider(projectId).notifier).delete(item.id);

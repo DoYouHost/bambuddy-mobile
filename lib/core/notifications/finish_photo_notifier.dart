@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:clock/clock.dart' as ambient;
+import 'package:clock/clock.dart';
 
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
@@ -34,8 +34,7 @@ class FinishPhotoNotifier {
     required this._notifications,
     required this._memory,
     required this._isEnabled,
-    DateTime Function()? clock,
-  }) : _now = clock ?? (() => ambient.clock.now());
+  });
 
   final Stream<WsArchiveUpdated> _updates;
   final Future<Archive?> Function(int archiveId) _fetchArchive;
@@ -50,7 +49,6 @@ class FinishPhotoNotifier {
   final NotificationService _notifications;
   final FinishAlertMemory _memory;
   final bool Function() _isEnabled;
-  final DateTime Function() _now;
 
   static const pollInterval = Duration(minutes: 1);
 
@@ -108,7 +106,7 @@ class FinishPhotoNotifier {
   /// background service that started it — the entry outlives the isolate.
   Future<void> poll() async {
     if (!_isEnabled()) return;
-    final now = _now();
+    final now = clock.now();
     for (final alert in await _memory.recallAll(now)) {
       if (now.difference(alert.postedAt) > pollWindow) continue;
       // Per printer, so one unreachable lookup does not end the sweep for the
@@ -176,7 +174,7 @@ class FinishPhotoNotifier {
         NotifProbe.finishPhoto(archiveId: frame.archiveId, state: 'no_printer');
         return;
       }
-      final alert = await _memory.recall(printerId, _now());
+      final alert = await _memory.recall(printerId, clock.now());
       if (alert == null) {
         // The ordinary case for anything the user was not alerted about: an
         // archive that gained a photo for a print this device never announced.

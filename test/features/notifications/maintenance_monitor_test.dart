@@ -1,12 +1,10 @@
 import 'dart:convert';
 
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart'
     show alertBandWidth;
@@ -313,11 +311,11 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async =>
-            const SessionFacts(app: '0.11.3+1103', flavor: 'mobile'),
-        resolveDirectory: () async => null,
+      recorder = testRecorder(
+        facts: const SessionFacts(
+          app: '0.11.3+1103',
+          extra: {'flavor': 'mobile'},
+        ),
       );
     });
 

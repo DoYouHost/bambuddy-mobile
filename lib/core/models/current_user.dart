@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// One group the signed-in user belongs to (`GroupBrief` server-side:
@@ -140,4 +142,24 @@ abstract final class Permissions {
   static const pipelinesRead = 'pipelines:read';
   static const pipelinesWrite = 'pipelines:write';
   static const pipelinesRun = 'pipelines:run';
+
+  /// Writing the server's shared configuration (`PUT /settings/`). Reading it
+  /// needs `settings:read`, which every session already has — it rides on an
+  /// API key's `can_read_status` scope — so only the write is ever gated.
+  ///
+  /// **An API-key session never holds this**, on any server version: it is
+  /// outside the key scope allowlist and named on the explicit denylist
+  /// (`core/auth.py`), because rewriting settings reaches the stored SMTP,
+  /// LDAP and MQTT credentials.
+  static const settingsUpdate = 'settings:update';
+
+  /// What the batch routes ask for: create to group items or queue an
+  /// order's owed runs, delete-all to cancel one (even the caller's own),
+  /// update-own to edit, reopen or ungroup one — and update-all on top for
+  /// any of those on a batch someone else created. An API key's `can_queue`
+  /// covers them all.
+  static const queueCreate = 'queue:create';
+  static const queueDeleteAll = 'queue:delete_all';
+  static const queueUpdateOwn = 'queue:update_own';
+  static const queueUpdateAll = 'queue:update_all';
 }

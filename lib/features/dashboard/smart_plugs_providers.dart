@@ -228,8 +228,9 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
       _scheduleClearOptimistic(plugId);
       unawaited(_poll(_generation)); // pull real state + power
       return ActionOutcome.ok;
-    } on AppApiException catch (e) {
-      // Rollback override to pre-action state.
+    } catch (e) {
+      // Rollback override to pre-action state, on any failure: the in-flight
+      // mark would otherwise keep the switch locked for as long as this lives.
       final opt = {...state.optimistic};
       if (before == null) {
         opt.remove(plugId);
@@ -240,6 +241,7 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
         optimistic: opt,
         inFlight: {...state.inFlight}..remove(plugId),
       );
+      if (e is! AppApiException) rethrow;
       final outcome = ActionOutcome.failed(e, action: 'plug.${action.name}');
       // Sticky, like the printer controls: one refusal stops offering the
       // switch rather than letting every tap fail the same way.

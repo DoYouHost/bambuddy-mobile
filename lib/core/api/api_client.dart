@@ -1,9 +1,13 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
+import '../auth/auth_headers.dart';
 import '../auth/credentials_store.dart';
-import '../demo/demo_http_adapter.dart';
-import '../diagnostics/http_probe.dart';
+import '../demo/demo_backend.dart';
+import '../diagnostics/report_config.dart';
 import '../settings/server_profile.dart';
+import 'server_reachability.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
@@ -12,13 +16,22 @@ import '../settings/server_profile.dart';
 /// there is a client — login, the auth/status probe — are logged too. First in
 /// the chain, so its duration covers reading the credentials in
 /// [AuthInterceptor] and it sees a 401 before the retry hides it.
-Dio createBareDio() => Dio(
-  BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 15),
-    sendTimeout: const Duration(seconds: 15),
-  ),
-)..interceptors.add(HttpProbe());
+Dio createBareDio() {
+  // A new Dio is a new server, or a fresh start: what the last one answered
+  // says nothing about this one.
+  ServerReachability.instance.forget();
+  return Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
+      ),
+    )
+    ..interceptors.add(HttpProbe(config: bambuddyHttpProbe))
+    // After the probe, so the log keeps the whole exchange, and on the bare Dio
+    // so the login and the auth probe answer for reachability too.
+    ..interceptors.add(ReachabilityProbe(ServerReachability.instance));
+}
 
 /// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {
@@ -33,7 +46,9 @@ class ApiClient {
     // here covers every ApiClient construction site (providers, background
     // isolate, wear transport) with a single branch.
     if (profile.isDemo) {
-      this.dio.httpClientAdapter = DemoHttpClientAdapter();
+      this.dio.httpClientAdapter = DemoHttpClientAdapter(
+        DemoBackend.instance.handle,
+      );
     }
     this.dio.interceptors.add(
       AuthInterceptor(
@@ -74,21 +89,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    switch (authMode) {
-      case AuthMode.none:
-        // Server requires no auth — never attach stale credentials.
-        break;
-      case AuthMode.jwt:
-        final jwt = await credentials.readJwt();
-        if (jwt != null) {
-          options.headers['Authorization'] = 'Bearer $jwt';
-        }
-      case AuthMode.apiKey:
-        final key = await credentials.readApiKey();
-        if (key != null) {
-          options.headers['X-API-Key'] = key;
-        }
-    }
+    options.headers.addAll(await authHeaders(authMode, credentials));
     handler.next(options);
   }
 

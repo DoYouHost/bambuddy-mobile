@@ -13,9 +13,7 @@
 ///
 /// The inversion in the last column is not a typo and not derivable: it was
 /// verified on a live X2D, where the 254 spool sits physically left and the
-/// printer calls the left nozzle extruder 1. Every conversion between these
-/// columns belongs here — five sites used to spell one out inline, and the
-/// Filament Track Switch bug was one of them being skipped.
+/// printer calls the left nozzle extruder 1.
 library;
 
 /// Unit id the external holder answers to where ids are local. The inventory
@@ -30,39 +28,30 @@ const externalTrayIdBase = 254;
 /// tray each, which is why they cannot fit the `unit * 4 + slot` encoding.
 const amsHtUnitBase = 128;
 
-/// Whether [amsId] names the external holder rather than an AMS unit.
 bool isExternalHolder(int amsId) => amsId >= externalTrayIdBase;
 
-/// Holder side (0 = Ext-L, 1 = Ext-R) for a global tray id, null for anything
-/// that is not one of the two.
+/// Holder side (0 = Ext-L, 1 = Ext-R) for a global tray id.
 int? externalSideOf(int? global) {
   final side = global == null ? null : global - externalTrayIdBase;
   return (side == 0 || side == 1) ? side : null;
 }
 
-/// Global tray id of a holder side — the inverse of [externalSideOf].
 int externalTrayIdOf(int side) => externalTrayIdBase + side;
 
-/// The nozzle a holder side feeds: Ext-L is the left one, which the printer
-/// numbers 1. Null for a side that is neither, rather than a guess.
 int? extruderForExternalSide(int? side) =>
     (side == 0 || side == 1) ? 1 - side! : null;
 
 /// The single number the firmware names a slot by — what `tray_now` reports,
-/// what `ams_mapping` carries and what `POST /ams/load` takes.
-///
-/// Three encodings, mirroring `print_scheduler.py::_build_loaded_filaments` and
-/// the `expected_tray` note in `schemas/printer.py`: the holder passes its side
-/// through as 254/255, an **AMS-HT is its own unit id** (128–135, one tray
-/// each), and every other AMS slot is `unit * 4 + slot`.
+/// what `ams_mapping` carries and what `POST /ams/load` takes. Three encodings,
+/// mirroring `print_scheduler.py::_build_loaded_filaments` and the
+/// `expected_tray` note in `schemas/printer.py`.
 int globalTrayId({required int amsId, required int trayId}) {
   if (isExternalHolder(amsId)) return externalTrayIdBase + trayId;
   if (amsId >= amsHtUnitBase) return amsId;
   return amsId * 4 + trayId;
 }
 
-/// The local (unit, slot) pair behind a global number — the inverse of
-/// [globalTrayId], for labelling a slot the user picked by its global id.
+/// The inverse of [globalTrayId], for labelling a slot picked by its global id.
 ({int amsId, int trayId}) localSlotOf(int global) {
   final side = externalSideOf(global);
   if (side != null) return (amsId: externalHolderUnit, trayId: side);

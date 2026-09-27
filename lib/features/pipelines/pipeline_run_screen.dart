@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/pipeline_run.dart';
 import '../../core/models/slicer_pipeline.dart';
 import '../../core/theme/dash_theme.dart';
@@ -10,7 +10,10 @@ import '../../data/pipelines_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_stepper.dart';
 import 'pipeline_eligibility_view.dart';
+import 'pipeline_picker_sheet.dart';
+import 'pipeline_run_status_labels.dart';
 import 'pipeline_runs_screen.dart';
 import 'pipelines_providers.dart';
 
@@ -54,7 +57,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pipelines = ref.watch(pipelinesProvider).valueOrNull ?? const [];
-    final maxCopies = ref.watch(pipelineMaxCopiesProvider).valueOrNull ?? 50;
+    final maxCopies = ref.watch(pipelineMaxCopiesProvider);
     final report = _report;
 
     // Force is only offered once the server has actually refused: a blind
@@ -155,11 +158,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
                   width: double.infinity,
                   child: FilledButton.icon(
                     icon: _starting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const DashSpinner()
                         : const Icon(Icons.play_arrow_rounded),
                     label: Text(
                       blocked ? l10n.pipelineRunAnyway : l10n.pipelineRunStart,
@@ -195,46 +194,42 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
               : '$_copies',
           style: theme.textTheme.bodyMedium,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            logTag(
-              'pipeline_run.copies_less',
-              IconButton(
-                icon: const Icon(Icons.remove),
-                // An IconButton with no tooltip has no accessible name at all —
-                // a plus and a minus beside a number say nothing on their own.
-                tooltip: l10n.pipelineCopiesLess,
-                onPressed: _copies > 1 && !_starting
-                    ? () => setState(() => _copies--)
-                    : null,
-              ),
-            ),
-            Text('$_copies', style: theme.textTheme.titleMedium),
-            logTag(
-              'pipeline_run.copies_more',
-              IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: l10n.pipelineCopiesMore,
-                // The ceiling is a 422 server-side rather than a clamp, so the
-                // stepper stops at it instead of sending a doomed request.
-                onPressed: _copies < maxCopies && !_starting
-                    ? () => setState(() => _copies++)
-                    : null,
-              ),
-            ),
-          ],
+        // The ceiling is a 422 server-side rather than a clamp, so the stepper
+        // stops at it instead of sending a doomed request.
+        trailing: DashStepper(
+          value: _copies,
+          min: 1,
+          max: maxCopies,
+          onChanged: _starting ? null : (v) => setState(() => _copies = v),
+          lessTooltip: l10n.copiesLess,
+          moreTooltip: l10n.copiesMore,
+          lessId: 'pipeline_run.copies_less',
+          moreId: 'pipeline_run.copies_more',
+          valueStyle: theme.textTheme.titleMedium,
         ),
       ).tagged('pipeline_run.copies'),
     );
   }
 
   Future<void> _pick(List<SlicerPipeline> pipelines) async {
-    final picked = await showModalBottomSheet<SlicerPipeline>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => _RunPipelinePicker(pipelines: pipelines),
+    // Read before the sheet so a row can name its printer rather than its id,
+    // the way the pipeline list does.
+    final printers = ref.read(pipelineTargetPrintersProvider).valueOrNull;
+    final picked = await pickPipeline(
+      context,
+      pipelines: pipelines,
+      tag: 'pipeline_run.option',
+      // An untargeted pipeline stays selectable — picking it is how the
+      // operator finds out it needs an edit, and the row says so.
+      subtitle: (l10n, p) => p.isRunnable
+          ? (p.targetKind == PipelineTargetKind.printerClass
+                ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
+                : l10n.pipelineRunOnPrinter(
+                    targetPrinterName(l10n, printers, p.targetPrinterId),
+                  ))
+          : l10n.pipelineNoTargetChip,
+      subtitleColor: (theme, p) =>
+          p.isRunnable ? null : theme.colorScheme.tertiary,
     );
     if (picked == null || !mounted) return;
     setState(() {
@@ -288,7 +283,7 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
             force: force,
           );
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineRunStarted)));
+      messenger.snack(l10n.pipelineRunStarted);
       // Replace rather than pop-then-push: the run is dispatched, so this
       // screen has nothing left to show, and popping first plays a whole
       // dismissal animation before the dashboard slides in over it. `result`
@@ -313,73 +308,4 @@ class _PipelineRunScreenState extends ConsumerState<_PipelineRunScreen> {
       );
     }
   }
-}
-
-/// Pipelines to run with. An untargeted one stays selectable — picking it is
-/// how the operator finds out it needs an edit, and the screen says so.
-class _RunPipelinePicker extends StatelessWidget {
-  const _RunPipelinePicker({required this.pipelines});
-
-  final List<SlicerPipeline> pipelines;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.95,
-      builder: (ctx, controller) => Column(
-        children: [
-          // The same heading `_PipelinePicker` carries. A sheet that opens
-          // straight into a list gives a screen reader nothing to say about
-          // what the list is for.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Semantics(
-                header: true,
-                child: Text(
-                  l10n.pipelineSection,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-            ),
-          ),
-          Expanded(child: _list(theme, l10n, controller)),
-        ],
-      ),
-    );
-  }
-
-  Widget _list(
-    ThemeData theme,
-    AppLocalizations l10n,
-    ScrollController controller,
-  ) => ListView.builder(
-    controller: controller,
-    itemCount: pipelines.length,
-    itemBuilder: (ctx, i) {
-      final p = pipelines[i];
-      return ListTile(
-        title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: p.isRunnable
-            ? Text(
-                p.targetKind == PipelineTargetKind.printerClass
-                    ? l10n.pipelineRunOnClass(p.targetModelClass ?? '')
-                    : l10n.pipelineRunOnPrinter('#${p.targetPrinterId}'),
-                style: theme.textTheme.bodySmall,
-              )
-            : Text(
-                l10n.pipelineNoTargetChip,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.tertiary,
-                ),
-              ),
-        onTap: () => Navigator.pop(ctx, p),
-      ).tagged('pipeline_run.option');
-    },
-  );
 }

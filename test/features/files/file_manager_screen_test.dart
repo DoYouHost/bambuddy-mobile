@@ -1,13 +1,17 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -26,6 +30,8 @@ LibraryFile _file({
   String fileType = '3mf',
   bool isExternal = false,
   int variantCount = 0,
+  int photoCount = 0,
+  String? externalUrl,
 }) => LibraryFile(
   id: id,
   filename: filename,
@@ -34,6 +40,8 @@ LibraryFile _file({
   printCount: 0,
   isExternal: isExternal,
   variantCount: variantCount,
+  photoCount: photoCount,
+  externalUrl: externalUrl,
 );
 
 void main() {
@@ -46,6 +54,7 @@ void main() {
     bool slicerEnabled = true,
     bool canRunPipelines = true,
     List<LibraryTag>? tags = const [],
+    bool fileExtras = false,
     Size size = const Size(411, 866),
   }) async {
     tester.view.physicalSize = size;
@@ -63,8 +72,10 @@ void main() {
         ),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),
         libraryTagsProvider.overrideWith((ref) async => tags),
-        slicerEnabledProvider.overrideWith((ref) async => slicerEnabled),
-        canRunPipelinesProvider.overrideWith((ref) async => canRunPipelines),
+        libraryTagsSupportedProvider.overrideWithValue(AsyncData(tags != null)),
+        slicerEnabledProvider.overrideWithValue(AsyncValue.data(slicerEnabled)),
+        canRunPipelinesProvider.overrideWithValue(AsyncData(canRunPipelines)),
+        libraryFileExtrasProvider.overrideWithValue(AsyncData(fileExtras)),
       ],
     );
     await tester.pumpAndSettle();
@@ -104,44 +115,361 @@ void main() {
       expect(find.byIcon(Icons.account_tree_outlined), findsNothing);
     });
 
-    testWidgets('appears once the gate settles after the sheet is already open', (
-      tester,
-    ) async {
-      // The sheet is built in its own route, so a gate read from the screen's
-      // `ref` cannot rebuild it. This gate is a FutureProvider — it is
-      // unresolved for the first frames — so reading it at build time hides the
-      // action on a server that does have pipelines.
-      final gate = Completer<bool>();
+    testWidgets(
+      'appears once the gate settles after the sheet is already open',
+      (tester) async {
+        // The sheet is built in its own route, so a gate read from the screen's
+        // `ref` cannot rebuild it. The gate can still be unanswered when the
+        // sheet opens (the probe is out), so reading it once at build time hides
+        // the action on a server that does have pipelines.
+        final gate = StateProvider<AsyncValue<bool>>(
+          (_) => const AsyncLoading(),
+        );
+        final file = _file();
+        await pumpPhone(
+          tester,
+          const FileManagerScreen(),
+          overrides: [
+            noServerProfileOverride,
+            fileManagerProvider.overrideWith(
+              () => _FakeNotifier(FileManagerState(files: [file])),
+            ),
+            libraryStatsProvider.overrideWith(
+              (ref) async => const LibraryStats(),
+            ),
+            libraryTagsProvider.overrideWith((ref) async => const []),
+            slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+            canRunPipelinesProvider.overrideWith((ref) => ref.watch(gate)),
+          ],
+        );
+        await tester.pumpAndSettle();
+        await openFileSheet(tester, file);
+
+        expect(
+          find.byIcon(Icons.account_tree_outlined),
+          findsNothing,
+          reason: 'nothing is claimed before the server has answered',
+        );
+
+        ProviderScope.containerOf(
+          tester.element(find.byType(FileManagerScreen)),
+        ).read(gate.notifier).state = const AsyncData(
+          true,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      },
+    );
+  });
+
+  group('selection mode', () {
+    /// The screen in selection mode, its variants gate the real one over a
+    /// repository whose latch the test drives.
+    Future<LibraryRepository> pumpSelecting(
+      WidgetTester tester, {
+      bool? variantsSeen,
+    }) async {
+      final repo = LibraryRepository(testDio());
+      if (variantsSeen != null) {
+        repo.variantsCapability.observe(present: variantsSeen);
+      }
       final file = _file();
       await pumpPhone(
         tester,
         const FileManagerScreen(),
         overrides: [
           noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
           fileManagerProvider.overrideWith(
-            () => _FakeNotifier(FileManagerState(files: [file])),
+            () => _FakeNotifier(
+              FileManagerState(
+                files: [file],
+                selectionMode: true,
+                selected: {file.id},
+              ),
+            ),
           ),
           libraryStatsProvider.overrideWith(
             (ref) async => const LibraryStats(),
           ),
           libraryTagsProvider.overrideWith((ref) async => const []),
-          slicerEnabledProvider.overrideWith((ref) async => true),
-          canRunPipelinesProvider.overrideWith((ref) => gate.future),
+          // The repository is real here; its tag probe must not go out.
+          libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
         ],
       );
       await tester.pumpAndSettle();
-      await openFileSheet(tester, file);
+      return repo;
+    }
 
-      expect(
-        find.byIcon(Icons.account_tree_outlined),
-        findsNothing,
-        reason: 'nothing is claimed before the server has answered',
-      );
+    testWidgets('a server whose listing had variants offers grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: true);
 
-      gate.complete(true);
+      expect(byLogId('files.group_variants'), findsOneWidget);
+    });
+
+    testWidgets('an older listing, or none yet, offers no grouping', (
+      tester,
+    ) async {
+      await pumpSelecting(tester, variantsSeen: false);
+      expect(byLogId('files.group_variants'), findsNothing);
+    });
+
+    testWidgets('a listing that lands with the bar open updates it', (
+      tester,
+    ) async {
+      // Asked once per opening before; a listing fetched meanwhile only
+      // counted the next time selection mode started.
+      final repo = await pumpSelecting(tester);
+      expect(byLogId('files.group_variants'), findsNothing);
+
+      repo.variantsCapability.observe(present: true);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.account_tree_outlined), findsOneWidget);
+      expect(byLogId('files.group_variants'), findsOneWidget);
+    });
+  });
+
+  group('add to queue (#3112)', () {
+    AppLocalizations l10n(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(FileManagerScreen)));
+    const queuePath = '/api/v1/library/files/add-to-queue';
+
+    /// Selection mode over one file, both repositories real on [dio].
+    Future<void> pumpQueueing(
+      WidgetTester tester, {
+      required Dio dio,
+      required bool canTarget,
+      Set<int> selected = const {1},
+    }) async {
+      final file = _file(filename: 'thing.gcode.3mf', fileType: 'gcode');
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(LibraryRepository(dio)),
+          printersRepositoryProvider.overrideWithValue(PrintersRepository(dio)),
+          libraryQueueTargetProvider.overrideWithValue(AsyncData(canTarget)),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(
+                files: [file],
+                selectionMode: true,
+                selected: selected,
+              ),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(const AsyncData(true)),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks where, offering only active printers and their models', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/printers/',
+          (s) => s.reply(200, [
+            {'id': 7, 'name': 'Lab', 'model': 'X1C', 'is_active': true},
+            {'id': 8, 'name': 'Shed', 'model': 'P1S', 'is_active': false},
+          ]),
+        )
+        ..onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+            'printer_id': 7,
+          },
+        );
+      await pumpQueueing(tester, dio: dio, canTarget: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).queueEditAnyModel('X1C')), findsOneWidget);
+      expect(find.text(l10n(tester).queueEditAnyModel('P1S')), findsNothing);
+      expect(find.text('Shed'), findsNothing);
+
+      await tester.tap(find.text('Lab'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets('only inactive printers: nothing to choose, nothing asked', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio)
+        ..onGet(
+          '/api/v1/printers/',
+          (s) => s.reply(200, [
+            {'id': 8, 'name': 'Shed', 'model': 'P1S', 'is_active': false},
+          ]),
+        )
+        ..onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [],
+          }),
+          data: {
+            'file_ids': [1],
+          },
+        );
+      await pumpQueueing(tester, dio: dio, canTarget: true);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_target'), findsNothing);
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets(
+      'a partial batch counts what was selected, not what came back',
+      (tester) async {
+        final dio = testDio();
+        mockServer(dio).onPost(
+          queuePath,
+          (s) => s.reply(200, {
+            'added': [{}],
+            'errors': [
+              {
+                'file_id': 2,
+                'error':
+                    'File was sliced for P1S and cannot be dispatched to X1C '
+                    'printers',
+              },
+              // Unreadable, so it is no reason — but it is still a file.
+              {'file_id': 3},
+            ],
+          }),
+          data: {
+            'file_ids': [1, 2, 3],
+          },
+        );
+        await pumpQueueing(
+          tester,
+          dio: dio,
+          canTarget: false,
+          selected: {1, 2, 3},
+        );
+
+        await tester.tap(byLogId('files.add_to_queue'));
+        await tester.pumpAndSettle();
+
+        final l = l10n(tester);
+        expect(
+          find.text(l.fmAddedToQueuePartial(1, 3, l.fmQueueErrWrongModel)),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('an older server is not asked, and gets the plain request', (
+      tester,
+    ) async {
+      final dio = testDio();
+      mockServer(dio).onPost(
+        queuePath,
+        (s) => s.reply(200, {
+          'added': [{}],
+          'errors': [],
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+      await pumpQueueing(tester, dio: dio, canTarget: false);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('sheet.queue_target'), findsNothing);
+      expect(find.text(l10n(tester).fmAddedToQueue), findsOneWidget);
+    });
+
+    testWidgets('a batch that queued nothing says why, in the user\'s words', (
+      tester,
+    ) async {
+      // Before #3112 this was a 200, and the screen said "Added to queue".
+      final dio = testDio();
+      mockServer(dio).onPost(
+        queuePath,
+        (s) => s.reply(200, {
+          'added': [],
+          'errors': [
+            {
+              'file_id': 1,
+              'filename': 'thing.3mf',
+              'error':
+                  'Not a sliced file. Only .gcode or .gcode.3mf files can be '
+                  'printed.',
+            },
+          ],
+        }),
+        data: {
+          'file_ids': [1],
+        },
+      );
+      await pumpQueueing(tester, dio: dio, canTarget: false);
+
+      await tester.tap(byLogId('files.add_to_queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n(tester).fmAddedToQueue), findsNothing);
+      expect(find.text(l10n(tester).fmQueueErrNotSliced), findsOneWidget);
+    });
+  });
+
+  group('photos, link and notes (#3077)', () {
+    testWidgets('the sheet offers the details where the server has them', (
+      tester,
+    ) async {
+      final file = _file();
+      await pump(tester, file: file, fileExtras: true);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsOneWidget);
+    });
+
+    testWidgets('an older server gets no details entry', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+
+      expect(byLogId('file_actions.details'), findsNothing);
+    });
+
+    testWidgets('the tile marks photos and a link', (tester) async {
+      await pump(
+        tester,
+        file: _file(photoCount: 3, externalUrl: 'https://example.com'),
+      );
+
+      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.byIcon(Icons.link), findsOneWidget);
+      expect(find.byIcon(Icons.notes), findsNothing);
     });
   });
 
@@ -228,16 +556,69 @@ void main() {
       expect(find.text('Potnij'), findsNothing);
     });
 
+    testWidgets('a server with tags offers the tag action', (tester) async {
+      final file = _file();
+      await pump(tester, file: file);
+      await openFileSheet(tester, file);
+      expect(find.textContaining('Tagi'), findsOneWidget);
+    });
+
     testWidgets('a server with no tag routes hides the tag action', (
       tester,
     ) async {
-      // A loaded null is the 404 gate — see libraryTagsSupported.
       final file = _file();
       await pump(tester, file: file, tags: null);
       await openFileSheet(tester, file);
       expect(find.textContaining('tag'), findsNothing);
       expect(find.textContaining('Tagi'), findsNothing);
     });
+  });
+
+  testWidgets('an older server loses the tag controls once, not every visit', (
+    tester,
+  ) async {
+    // The catalog dies with the screen; the latch lives in the repository.
+    // Before, every visit showed the controls and then took them away.
+    final dio = testDio();
+    mockServer(dio).onGet(
+      '/api/v1/library/tags',
+      (s) => s.reply(404, {'detail': 'Not Found'}),
+    );
+    final sent = captureRequests(dio);
+    final repo = LibraryRepository(dio);
+
+    Future<void> visit() async {
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          libraryRepositoryProvider.overrideWithValue(repo),
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(FileManagerState(files: [_file()])),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          slicerEnabledProvider.overrideWithValue(AsyncValue.data(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await visit();
+    expect(byLogId('files.tag_filter'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await visit();
+
+    expect(byLogId('files.tag_filter'), findsNothing);
+    expect(
+      sent.paths.where((p) => p == '/api/v1/library/tags'),
+      hasLength(1),
+      reason: 'the answer outlives the screen that asked',
+    );
   });
 
   group('the sort sheet fits', () {

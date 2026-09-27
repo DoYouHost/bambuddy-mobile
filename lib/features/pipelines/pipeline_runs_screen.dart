@@ -4,16 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/pipeline_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/state_views.dart';
 import 'pipeline_run_filter_sheet.dart';
 import 'pipeline_run_status_labels.dart';
 import 'pipelines_providers.dart';
@@ -258,9 +256,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
     try {
       final n = await ref.read(pipelinesRepositoryProvider).clearTerminalRuns();
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunsCleared(n))),
-      );
+      messenger.snack(l10n.pipelineRunsCleared(n));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.clear');
     }
@@ -458,9 +454,7 @@ class _RunCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).cancel(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunCancelled)),
-      );
+      messenger.snack(l10n.pipelineRunCancelled);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.cancel');
     }
@@ -476,9 +470,7 @@ class _RunCard extends ConsumerWidget {
     try {
       await ref.read(pipelinesRepositoryProvider).retryFailed(run.id);
       unawaited(ref.read(pipelineRunsProvider.notifier).refreshLoaded());
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.pipelineRunRetryStarted(count))),
-      );
+      messenger.snack(l10n.pipelineRunRetryStarted(count));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'pipeline_runs.retry');
     }

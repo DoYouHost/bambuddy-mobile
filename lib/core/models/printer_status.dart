@@ -1,9 +1,9 @@
+import 'package:app_util/app_util.dart';
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../ams/fts_routing.dart';
 import '../ams/slot_addressing.dart';
-import 'json_utils.dart';
 
 part 'printer_status.g.dart';
 
@@ -91,8 +91,8 @@ class PrinterStatus {
   @JsonKey(fromJson: _toTemperaturesOrNull)
   final Map<String, double>? temperatures;
 
-  /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Requires
-  /// camera stream token as `?token=` parameter on fetch.
+  /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Fetched
+  /// with the media credential, never the Bearer header — see `MediaAuth`.
   final String? coverUrl;
 
   /// Which stage the printer reports it is in: `0` is plain printing, `1`–`254`
@@ -151,7 +151,6 @@ class PrinterStatus {
   @JsonKey(fromJson: toIntOrNull)
   final int? speedLevel;
 
-  /// Whether chamber light is on.
   final bool? chamberLight;
 
   /// Chamber airduct mode: 0 = cooling, 1 = heating. Other values → null
@@ -435,7 +434,10 @@ class PrinterStatus {
   /// only control that releases the gate on exactly the printers that need it —
   /// with Auto Power Off the end of every print is "gate up, printer off" —
   /// and made the queue's pre-start acknowledgement skip a printer that was
-  /// waiting (server #2864).
+  /// waiting (server #2864). Carrying it forward cannot resurrect a stale gate
+  /// on an older server either: those answer the status route for a
+  /// disconnected printer with an explicit `awaiting_plate_clear: false`, which
+  /// wins over the inherited value in [mergedWith] the same as any other field.
   ///
   /// Kept: identity/hardware
   /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`),
@@ -444,15 +446,6 @@ class PrinterStatus {
   /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
   /// outage doesn't re-alert on reconnect.
-  ///
-  /// `awaitingPlateClear` is kept for a different reason: it is not printer
-  /// telemetry at all but a Bambuddy-side gate the server persists, and with
-  /// Auto Power Off "finished, bed still full, printer switched off" is the
-  /// normal end state. Dropping it left the acknowledgement unreachable exactly
-  /// when it is needed. Carrying it forward cannot resurrect a stale gate on an
-  /// older server either: those answer the status route for a disconnected
-  /// printer with an explicit `awaiting_plate_clear: false`, which wins over the
-  /// inherited value in [mergedWith] the same as any other field.
   PrinterStatus _clearedIfOffline() {
     if (connected != false) return this;
     return PrinterStatus(
@@ -549,6 +542,25 @@ class PrinterStatus {
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 
+  /// Ordering key for "which machine frees up first" — sort ascending.
+  ///
+  /// [remainingTime] alone cannot answer it. The server's field defaults to
+  /// zero and stays there until the firmware sends `mc_remaining_time`
+  /// (`PrinterState` in the backend's `bambu_mqtt.py`), so a machine that is
+  /// still heating reports the same zero as one in its final minute — and
+  /// sorted raw, the one that has barely started comes first. Progress breaks
+  /// that tie and only that tie: a first layer reports zero percent with a real
+  /// estimate, and keeps the rank its estimate gives it.
+  ///
+  /// Used by the ongoing notification and by the dashboard's "next available"
+  /// line, which have to name the same printer.
+  int get etaRank {
+    final minutes = remainingTime;
+    if (minutes == null) return 1 << 30;
+    if (minutes > 0) return minutes;
+    return isPreparing ? 1 << 30 : 0;
+  }
+
   /// Whether the printer reports being in a stage of its own rather than
   /// plainly printing: bed levelling, bed scanning, homing, nozzle cleaning, a
   /// pause, a filament change (`STAGE_NAMES` in the server's `bambu_mqtt.py`).
@@ -566,6 +578,57 @@ class PrinterStatus {
     final stage = stgCur;
     return stage != null && stage > 0 && stage < 255;
   }
+
+  /// Whether this frame describes a job actually being laid down, as opposed to
+  /// a printer that is busy with something of its own.
+  ///
+  /// A layer counter of at least 1 and no named stage. The firmware ticks
+  /// `layer_num` through bed levelling, bed scanning and nozzle cleaning, so
+  /// the counter alone says "the printer is doing something", not "the print is
+  /// running" — [inNamedStage] is what separates the two. A frame with no
+  /// counter at all is taken as underway, because a printer mid-job that simply
+  /// omitted the field must not read as idle.
+  ///
+  /// The percentage is the other reason: during bed levelling the firmware
+  /// reports a percentage of *that* phase, observed jumping 6 → 60 in 300 ms at
+  /// `layer_num == 0`. A stage entered **mid**-print (a filament change, a
+  /// pause) is deliberately not excused — it holds a milestone back until the
+  /// stage clears, which is cheaper than a stale 100% crossing three thresholds
+  /// at once, and nothing latches, so the crossing is announced from the next
+  /// frame that describes the job.
+  ///
+  /// Here rather than in the notification monitor because it is a question about
+  /// the frame, and the widget publisher and the watch ask it too.
+  bool get jobUnderway => (layerNum ?? 1) >= 1 && !inNamedStage;
+
+  /// Whether the first layer is behind this frame at all: layer **2** or
+  /// beyond, no upper bound. Layer 1 is it being printed.
+  ///
+  /// The baseline half of a pair with [firstLayerInWindow] — a monitor waking
+  /// up mid-print asks whether the alert is already **spent**, one watching
+  /// asks whether it is **due**. Both lanes spelled `layer >= 2` out for
+  /// themselves once, and the stage condition then reached only one of them:
+  /// an isolate restarting mid-dispatch swallowed a new print's alert for a
+  /// release. One floor in one place.
+  bool get firstLayerPassed => (layerNum ?? 0) >= 2;
+
+  /// Whether the layer counter is inside the window in which "the first layer
+  /// is done" is still news, on the terms bambuddy's own `on_layer_change`
+  /// uses (server #1837).
+  ///
+  /// [firstLayerPassed] plus the ceiling of **10**: a counter far past 2
+  /// belongs either to a print joined halfway or to the job that has just
+  /// ended, and neither is news. The ceiling is the whole of the difference
+  /// between the two readings.
+  ///
+  /// Deliberately says nothing about [inNamedStage]. Whether a printer in a
+  /// stage of its own has laid that layer down is a second question, and the
+  /// caller that asks it also has to record the frame it turned down.
+  bool get firstLayerInWindow =>
+      firstLayerPassed && (layerNum ?? 0) <= firstLayerLayerCeiling;
+
+  /// Upper bound of [firstLayerInWindow], matching bambuddy's `[2, 10]`.
+  static const firstLayerLayerCeiling = 10;
 
   /// Whether "print" is printer built-in calibration (e.g. file
   /// `auto_cali_for_user_param.gcode`). No own cover, so UI doesn't show

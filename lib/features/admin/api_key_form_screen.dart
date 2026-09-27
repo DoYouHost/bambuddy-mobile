@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
 import 'user_messages.dart';
+import '../common/date_time_picker.dart';
 
 /// Issue a new key, or change what an existing one may do.
 ///
@@ -80,11 +78,12 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
               ? l10n.apiKeysEditTitle
               : l10n.apiKeysCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('api_key_form.save'),
+            dashSaveAction(
+              id: 'api_key_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(
@@ -198,9 +197,9 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
 
   Future<void> _pickExpiry() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _expiresAt ?? now.add(const Duration(days: 90)),
+    final picked = await pickDate(
+      context,
+      initial: _expiresAt ?? now.add(const Duration(days: 90)),
       firstDate: now,
       lastDate: DateTime(now.year + 10),
     );

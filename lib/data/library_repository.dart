@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -5,14 +6,15 @@ import '../core/api/endpoints.dart';
 import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/library_file.dart';
+import '../core/models/library_file_detail.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';
 import '../core/models/library_tag.dart';
 import '../core/models/plate_list.dart';
 import '../core/models/trash_file.dart';
 import '../core/models/variant_group.dart';
+import 'streamed_download.dart';
 
 /// REST data source for file manager / library.
 ///
@@ -37,12 +39,18 @@ class LibraryRepository {
   /// its presence answers outright what a version string can only suggest.
   /// Unknown → hidden, so the grouping actions stay away rather than 404ing on
   /// an older server.
-  late final _variants = ObservedCapability(
+  late final variantsCapability = ObservedCapability(
     ServerFeature.crossModelVariants,
     _serverVersion,
   );
 
-  Future<bool> supportsCrossModelVariants() => _variants.supported;
+  /// Whether files here carry photos, a link and notes (#3077). Observed on
+  /// the listing like [variantsCapability]: `photo_count` is a defaulted field
+  /// of the listing row from that commit on and absent before it.
+  late final fileExtrasCapability = ObservedCapability(
+    ServerFeature.libraryFileExtras,
+    _serverVersion,
+  );
 
   /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
   /// the raw rows rather than the model, because the model cannot distinguish
@@ -51,7 +59,8 @@ class LibraryRepository {
   void _observeVariantSupport(List<dynamic> rows) {
     final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
     if (firstMap == null) return;
-    _variants.observe(present: firstMap.containsKey('variant_count'));
+    variantsCapability.observe(present: firstMap.containsKey('variant_count'));
+    fileExtrasCapability.observe(present: firstMap.containsKey('photo_count'));
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).
@@ -101,6 +110,7 @@ class LibraryRepository {
       );
       return res.data ?? const [];
     });
+    _observeVariantSupport(body);
     return parseJsonList(body, LibraryFile.fromJson);
   }
 
@@ -122,25 +132,30 @@ class LibraryRepository {
 
   // --- Tags ---
 
+  /// Whether the server has a tag catalog (the routes arrived in bambuddy
+  /// 1.2.5) this session may read. Unversioned and shown while unknown: the
+  /// controls would otherwise pop into the toolbar a moment late, and an older
+  /// server takes them away once per session. Settled by [listTags].
+  final tagsCapability = ObservedCapability.unversioned();
+
   /// GET /library/tags — the whole catalog, alphabetical, with file counts.
   ///
-  /// Returns `null` when the server has no tag catalog at all (404 — the routes
-  /// arrived in bambuddy 1.2.5). That is the app's feature gate: the tag
-  /// controls stay hidden instead of offering buttons that can only fail. Any
-  /// other failure is a real error and propagates, so a network blip shows as an
-  /// error rather than silently removing the feature.
-  Future<List<LibraryTag>?> listTags() async {
-    try {
-      final body = await guard(() async {
-        final res = await _dio.get<List<dynamic>>(Endpoints.libraryTags);
-        return res.data ?? const [];
-      });
-      return parseJsonList(body, LibraryTag.fromJson);
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) return null;
-      rethrow;
-    }
-  }
+  /// Returns `null` when the server has no tag catalog at all (404), and
+  /// [tagsCapability] records it. Any other failure is a real error and
+  /// propagates, so a network blip shows as an error rather than silently
+  /// removing the feature.
+  ///
+  /// `list_tags` (`routes/library_tags.py`) raises no 404 of its own, so a 404
+  /// is the route.
+  Future<List<LibraryTag>?> listTags() => tagsCapability.watching(
+    () async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.libraryTags);
+      return parseJsonList(res.data ?? const [], LibraryTag.fromJson);
+    },
+    absent: () => null,
+    absentOn: const {404},
+    observing: treat404AsAbsent,
+  );
 
   /// POST /library/tags — create a tag. Names are unique case-insensitively;
   /// a duplicate answers 409, which reaches the caller as [ApiException] with
@@ -186,7 +201,7 @@ class LibraryRepository {
 
   // --- Variant groups (server #671, 1.2.6+) ---
   //
-  // Gate every entry point on [supportsCrossModelVariants]: an older server
+  // Gate every entry point on [variantsCapability]: an older server
   // 404s these paths, which would surface as a generic failure.
 
   /// GET /library/variant-groups/by-file/{id} — the group [fileId] belongs to.
@@ -319,6 +334,55 @@ class LibraryRepository {
     ),
   );
 
+  // --- Photos, link, notes (#3077) ---
+
+  /// GET /library/files/{id} — the fields the listing leaves out.
+  Future<LibraryFileDetail> fileDetail(int fileId) => guard(() async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      Endpoints.libraryFile(fileId),
+    );
+    return LibraryFileDetail.fromJson(res.data ?? const {});
+  });
+
+  /// PUT /library/files/{id} — [url] `""` clears the link. The 422 for a
+  /// scheme other than http(s) keeps its sentence.
+  Future<void> setFileLink(int fileId, String url) => guardKeepingDetail(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFile(fileId),
+      data: <String, dynamic>{'external_url': url},
+    ),
+  );
+
+  /// PUT /library/files/{id} — [notes] `""` clears them.
+  Future<void> setFileNotes(int fileId, String notes) => guard(
+    () => _dio.put<dynamic>(
+      Endpoints.libraryFile(fileId),
+      data: <String, dynamic>{'notes': notes},
+    ),
+  );
+
+  /// POST /library/files/{id}/photos — attach a photo; [filename] carries the
+  /// extension the server checks.
+  Future<void> addFilePhoto(
+    int fileId, {
+    required String filePath,
+    required String filename,
+  }) => guardKeepingDetail(() async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    await _dio.post<dynamic>(
+      Endpoints.libraryFilePhotos(fileId),
+      data: form,
+      options: uploadOptions(),
+    );
+  });
+
+  /// DELETE /library/files/{id}/photos/{filename}.
+  Future<void> deleteFilePhoto(int fileId, String filename) => guard(
+    () => _dio.delete<dynamic>(Endpoints.libraryFilePhoto(fileId, filename)),
+  );
+
   /// POST /library/files/move — move files to folder [folderId] (null = root).
   Future<void> moveFiles(List<int> fileIds, {int? folderId}) => guard(
     () => _dio.post<dynamic>(
@@ -344,12 +408,62 @@ class LibraryRepository {
 
   // --- Print / queue ---
 
-  /// POST /library/files/add-to-queue — add files to queue.
-  Future<void> addToQueue(List<int> fileIds) => guard(
-    () => _dio.post<dynamic>(
-      Endpoints.libraryFilesAddToQueue,
-      data: <String, dynamic>{'file_ids': fileIds},
-    ),
+  /// Whether a bulk add may name the printer or model it is for (server
+  /// #3112). Never observed — see [ServerFeature.libraryQueueTarget].
+  late final queueTargetCapability = ObservedCapability(
+    ServerFeature.libraryQueueTarget,
+    _serverVersion,
+  );
+
+  /// POST /library/files/add-to-queue — add files to queue, aimed at
+  /// [printerId] or [targetModel] (at most one; only when
+  /// [queueTargetCapability] says so).
+  ///
+  /// A batch that queued nothing throws, with the first file's reason as the
+  /// detail. The server answers that 200 with the reasons in the body up to
+  /// #3112 and a 400 carrying the same list from it, so both shapes are read.
+  Future<AddToQueueOutcome> addToQueue(
+    List<int> fileIds, {
+    int? printerId,
+    String? targetModel,
+  }) async {
+    final Object? body;
+    try {
+      final res = await _dio.post<dynamic>(
+        Endpoints.libraryFilesAddToQueue,
+        data: <String, dynamic>{
+          'file_ids': fileIds,
+          'printer_id': ?printerId,
+          'target_model': ?targetModel,
+        },
+      );
+      body = res.data;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final detail = data is Map ? data['detail'] : null;
+      if (e.response?.statusCode != 400 || detail is! Map) {
+        throw mapDioExceptionKeepingDetail(e);
+      }
+      // A 400 is never a success, whatever list it carries.
+      final message = detail['message'];
+      throw _nothingQueued(
+        parseAddToQueueOutcome(detail).rejections.firstOrNull ??
+            (message is String ? message : null),
+      );
+    }
+    final outcome = parseAddToQueueOutcome(body);
+    if (outcome.added == 0 && outcome.rejections.isNotEmpty) {
+      throw _nothingQueued(outcome.rejections.first);
+    }
+    return outcome;
+  }
+
+  ApiException _nothingQueued(String? reason) => ApiException(
+    AppErrorCode.badResponse,
+    statusCode: 400,
+    detail: reason,
+    method: 'POST',
+    path: Endpoints.libraryFilesAddToQueue,
   );
 
   // --- Upload ---
@@ -374,14 +488,10 @@ class LibraryRepository {
         Endpoints.libraryFiles,
         data: form,
         queryParameters: query,
-        // Upload can be large — disable send/receive timeout for this request.
-        options: Options(
-          sendTimeout: Duration.zero,
-          receiveTimeout: Duration.zero,
-        ),
+        options: uploadOptions(),
         onSendProgress: onProgress == null
             ? null
-            : (sent, total) => onProgress(total > 0 ? sent / total : null),
+            : (sent, total) => onProgress(transferFraction(sent, total)),
       );
     });
   }
@@ -408,4 +518,25 @@ class LibraryRepository {
   /// DELETE /library/trash — empty trash (permanent).
   Future<void> emptyTrash() =>
       guard(() => _dio.delete<dynamic>(Endpoints.libraryTrash));
+}
+
+/// What a bulk add did: how many queue rows it created, and the server's reason
+/// for each file it left out.
+typedef AddToQueueOutcome = ({int added, List<String> rejections});
+
+/// Reads an `AddToQueueResponse` (`added[]`, `errors[{error}]`). Anything
+/// unreadable counts as nothing added and nothing refused — the server said
+/// yes, so the caller reports success rather than invent a failure.
+AddToQueueOutcome parseAddToQueueOutcome(Object? body) {
+  final map = body is Map ? body : const {};
+  final added = map['added'];
+  final errors = map['errors'];
+  return (
+    added: added is List ? added.length : 0,
+    rejections: [
+      if (errors is List)
+        for (final e in errors)
+          if (e is Map && e['error'] is String) e['error'] as String,
+    ],
+  );
 }

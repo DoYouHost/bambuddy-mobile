@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/current_user.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
-import '../common/state_views.dart';
 import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
 import 'user_messages.dart';
@@ -105,11 +100,7 @@ class _UserCard extends ConsumerWidget {
             onTap: () => showUserDetailSheet(context, user),
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -174,6 +165,7 @@ class _UserCard extends ConsumerWidget {
                               DashPill(
                                 label: l10n.usersInactive,
                                 accent: t.danger,
+                                accentInk: t.dangerInk,
                                 icon: Icons.block,
                               ),
                             if (user.authSource != 'local')
@@ -357,7 +349,7 @@ class _SheetActions extends ConsumerWidget {
           Expanded(
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: t.danger,
+                foregroundColor: t.dangerInk,
                 side: BorderSide(color: t.danger.withValues(alpha: 0.5)),
               ),
               onPressed: () => _delete(context, ref),

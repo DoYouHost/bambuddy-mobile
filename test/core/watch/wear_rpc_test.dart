@@ -254,11 +254,13 @@ void main() {
     test(
       'every action is classified, and startNext is the destructive one',
       () {
-        expect(WearRpcAction.getFleet.retry, WearRpcRetry.read);
+        const reads = {WearRpcAction.getFleet, WearRpcAction.getServerVersion};
+        for (final action in reads) {
+          expect(action.retry, WearRpcRetry.read, reason: action.name);
+        }
         expect(WearRpcAction.startNext.retry, WearRpcRetry.destructive);
         for (final action in WearRpcAction.values) {
-          if (action == WearRpcAction.getFleet ||
-              action == WearRpcAction.startNext) {
+          if (reads.contains(action) || action == WearRpcAction.startNext) {
             continue;
           }
           expect(action.retry, WearRpcRetry.idempotent, reason: action.name);

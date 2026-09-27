@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
@@ -189,7 +185,7 @@ class _GroupMenu extends ConsumerWidget {
             value: 'delete',
             child: logTag(
               'group_detail.delete',
-              Text(l10n.groupsDelete, style: TextStyle(color: t.danger)),
+              Text(l10n.groupsDelete, style: TextStyle(color: t.dangerInk)),
             ),
           ),
       ],
@@ -237,11 +233,7 @@ class _GroupHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -324,7 +316,7 @@ class _MemberRow extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   l10n.usersInactive,
-                  style: t.micro.copyWith(color: t.danger),
+                  style: t.micro.copyWith(color: t.dangerInk),
                 ),
               ),
             if (onRemove != null)
@@ -332,7 +324,7 @@ class _MemberRow extends StatelessWidget {
                 icon: Icon(
                   Icons.person_remove_outlined,
                   size: 18,
-                  color: t.danger,
+                  color: t.dangerInk,
                 ),
                 tooltip: l10n.groupsRemoveMember,
                 onPressed: onRemove,

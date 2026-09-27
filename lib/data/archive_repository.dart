@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -8,7 +9,6 @@ import '../core/api/server_version_service.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_media.dart';
 import '../core/models/archive_purge.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/no_3mf_warning.dart';
 import '../core/models/plate_list.dart';
 
@@ -21,7 +21,7 @@ class ArchiveRepository {
 
   final Dio _dio;
 
-  /// Answers [supportsPrinterMedia] until a `printer-media` request has.
+  /// Answers [printerMediaCapability] until a `printer-media` request has.
   final ServerVersionService? _serverVersion;
 
   /// Whether this server can look for a print's recordings on the printer.
@@ -29,12 +29,10 @@ class ArchiveRepository {
   /// Unknown → not offered, because here that is not free: the entry point is
   /// a button on the archive sheet, and there is no older route behind it. A
   /// button that opens onto a 404 is worse than one that is absent.
-  late final _printerMedia = ObservedCapability(
+  late final printerMediaCapability = ObservedCapability(
     ServerFeature.archivePrinterMedia,
     _serverVersion,
   );
-
-  Future<bool> supportsPrinterMedia() => _printerMedia.supported;
 
   /// GET /archives/ — paginated archive list.
   ///
@@ -226,7 +224,7 @@ class ArchiveRepository {
   /// over the printer's FTP at 8 seconds each, so anything near the client
   /// default would abort a search that was about to answer.
   Future<ArchivePrinterMedia?> printerMedia(int archiveId) =>
-      _printerMedia.watching(
+      printerMediaCapability.watching(
         () async {
           final res = await _dio.get<Map<String, dynamic>>(
             Endpoints.archivePrinterMedia(archiveId),

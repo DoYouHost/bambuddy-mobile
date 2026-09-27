@@ -1,11 +1,12 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/duration_format.dart';
 import '../common/api_failure_snack.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
@@ -19,11 +20,8 @@ import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../../core/models/slicer_pipeline.dart';
-import '../common/dash_sheet.dart';
-import '../common/hex_color.dart';
 import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
 import 'process_settings_screen.dart';
@@ -126,6 +124,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
     final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
+    // Watched here, not where the cards are built: those only exist once the
+    // presets have loaded, and the schema behind the first one takes its own
+    // time to decode — asked now, both answer during the presets spinner.
+    final processSettings = ref.watch(processSettingsAvailableProvider).orFalse;
+    final layoutOptions = ref.watch(sliceLayoutOptionsProvider).orFalse;
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
@@ -298,9 +301,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // `process_overrides` *and* our own vendored metadata loaded —
                       // `SliceRequest` forbids no extra fields, so an older server
                       // would drop the whole map without a word.
-                      if (ref
-                          .watch(processSettingsAvailableProvider)
-                          .maybeWhen(data: (v) => v, orElse: () => false))
+                      if (processSettings)
                         _dimWhenLocked(
                           !asDesigned,
                           Card(
@@ -347,9 +348,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // Hidden entirely before server 1.2.6: the fields are dropped
                       // without a word there, and a switch that does nothing is worse
                       // than no switch. See [sliceLayoutOptionsProvider].
-                      if (ref
-                          .watch(sliceLayoutOptionsProvider)
-                          .maybeWhen(data: (v) => v, orElse: () => false))
+                      if (layoutOptions)
                         Card(
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: Column(
@@ -1024,6 +1023,12 @@ class _PresetPickerState extends State<_PresetPicker> {
       expand: false,
       initialChildSize: 0.7,
       maxChildSize: 0.95,
+      // Said out loud, or Flutter's 0.25 leaves a quarter-screen stub. 0.5
+      // rather than the 0.4 the sheets without a keyboard use: the search field
+      // above the list keeps the keyboard up, and the two together need the
+      // room the maintenance form — the app's only other keyboard sheet —
+      // settled on.
+      minChildSize: 0.5,
       builder: (ctx, scrollController) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Column(
@@ -1038,11 +1043,23 @@ class _PresetPickerState extends State<_PresetPicker> {
                       style: theme.textTheme.titleMedium,
                     ),
                   ),
-                  Text(l10n.sliceShowAll, style: theme.textTheme.bodySmall),
-                  Switch(
-                    value: _showAll,
-                    onChanged: (v) => setState(() => _showAll = v),
-                  ).tagged('slice.show_all_presets'),
+                  // Merged, or the reader announces a bare "switch": the label
+                  // beside it is a separate node and nothing ties the two.
+                  MergeSemantics(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.sliceShowAll,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Switch(
+                          value: _showAll,
+                          onChanged: (v) => setState(() => _showAll = v),
+                        ).tagged('slice.show_all_presets'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

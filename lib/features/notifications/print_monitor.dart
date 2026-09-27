@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:ui' show PlatformDispatcher;
 
-import 'package:clock/clock.dart' as ambient;
-import 'package:flutter/widgets.dart' show Locale;
+import 'package:clock/clock.dart';
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
@@ -14,11 +12,13 @@ import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/printers/offline_debounce.dart';
+import '../../core/time/timer_factory.dart';
+import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `TimerFactory` is part of this library's surface: the monitor takes one so
 /// tests can control time instead of waiting out a window.
-export '../../core/printers/offline_debounce.dart' show TimerFactory;
+export '../../core/time/timer_factory.dart' show TimerFactory;
 
 /// Room reserved per event type. The offsets added to a base are server row ids
 /// (a printer, a maintenance task), which grow without bound and are never
@@ -85,9 +85,44 @@ const int _humidityRearmMargin = 3;
 const Duration _humidityAlertCooldown = Duration(hours: 1);
 
 /// Highest `layer_num` still worth announcing as "first layer done", matching
-/// bambuddy's own `2 <= layer_num <= 10` window. Above it the counter belongs to
-/// a print we joined halfway or to the one that just ended.
-const int _firstLayerLayerCeiling = 10;
+/// Something that may happen at most once per print.
+///
+/// Four of these were written by hand as bare `bool` fields, and each one has
+/// the same two halves: a latch, and — for the ones that explain a silence —
+/// exactly one record. `docs/logging-guide.md` requires that collapsing ("one
+/// record for a run, not one per frame") and a hand-written latch is where it
+/// gets forgotten: prep lasts minutes at roughly a frame a second.
+class OncePerPrint {
+  bool _fired = false;
+
+  /// Whether it has already happened during this print.
+  bool get fired => _fired;
+
+  /// Latches and runs [body] the first time; does nothing afterwards. Returns
+  /// whether this call was the one that fired.
+  bool claim([void Function()? body]) {
+    if (_fired) return false;
+    _fired = true;
+    body?.call();
+    return true;
+  }
+
+  void reset() => _fired = false;
+}
+
+/// The events this monitor allows itself once per print. Keyed by an enum so
+/// [_PrinterMemo.resetForNewPrint] clears a newly added one without anybody
+/// remembering to add a line — which is the failure this type exists to stop.
+enum PrintOnce {
+  /// The first-layer alert.
+  firstLayer,
+
+  /// The record for progress ignored during the prep phase.
+  prepProgressRecorded,
+
+  /// The record for a frame still describing the *previous* job.
+  previousJobRecorded,
+}
 
 /// Monitor state for one printer — tracks event edges between frames.
 class _PrinterMemo {
@@ -95,7 +130,14 @@ class _PrinterMemo {
     : offline = OfflineDebounce(timerFactory: timerFactory);
 
   bool printing = false;
-  bool firstLayerSent = false;
+
+  /// See [PrintOnce]; read through [once].
+  final Map<PrintOnce, OncePerPrint> _once = {
+    for (final event in PrintOnce.values) event: OncePerPrint(),
+  };
+
+  OncePerPrint once(PrintOnce event) => _once[event]!;
+
   final Set<int> milestonesSent = {};
 
   /// Whether this printer counts as offline, and the wait that keeps a flicker
@@ -112,8 +154,8 @@ class _PrinterMemo {
   /// answers again — held here only so the deferral is recorded once instead of
   /// on every frame of the outage. Cleared the moment it is back.
   final Set<String> hmsDeferredOffline = {};
-  final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
-  final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
+  final Set<int> lowFilamentTrays = {};
+  final Set<int> humidUnits = {};
 
   /// Units whose current stay above the band has already been announced. Kept
   /// apart from [humidUnits] because a rise the cooldown swallowed leaves the
@@ -127,29 +169,19 @@ class _PrinterMemo {
   final Map<int, DateTime> humidAlertedAt = {};
   bool awaitingBedCool = false;
 
-  /// Whether the prep-phase progress was already recorded as ignored for this
-  /// print — calibration reports a percentage on every frame, so without this
-  /// the record would repeat for the whole phase instead of once.
-  bool prepProgressLogged = false;
-
   /// What the frame that started this print said about the job — which, in the
   /// case that matters, is the job that had just ended. Null once a frame has
   /// brought something of its own. See [PrintMonitor._describesThisPrint].
   _JobFrame? previousJob;
 
-  /// Whether that wait has been recorded for this print. Same reason as
-  /// [prepProgressLogged]: the wait can span the whole pre-print sequence at
-  /// roughly a frame a second.
-  bool previousJobLogged = false;
-
   /// Reset print-specific state on starting a new print.
   void resetForNewPrint() {
-    firstLayerSent = false;
+    for (final once in _once.values) {
+      once.reset();
+    }
     milestonesSent.clear();
     awaitingBedCool = false;
-    prepProgressLogged = false;
     previousJob = null;
-    previousJobLogged = false;
   }
 }
 
@@ -158,8 +190,10 @@ class _PrinterMemo {
 /// that the printer has published something about the print that is running now.
 typedef _JobFrame = ({int? layer, int? progress, String? job});
 
-/// Throttling key for ongoing notification: update only when printer, total %,
-/// ETA minute, or active print count changes — else every WS frame would redraw it.
+/// Throttling key for the ongoing notification: one field per thing the
+/// notification actually shows — which printer leads, its whole percent, its ETA
+/// minute and how many are running. Anything else would redraw it on a WS frame
+/// that changes nothing a reader can see.
 class _OngoingKey {
   const _OngoingKey(this.printerId, this.percent, this.etaMinutes, this.count);
   final int printerId;
@@ -189,13 +223,11 @@ class PrintMonitor {
     this._notifications, {
     this._prefs = NotificationPrefs.defaults,
     AppLocalizations Function()? l10n,
-    DateTime Function()? clock,
     DateTimeFormats Function()? formats,
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
   }) : _l10n = l10n ?? systemAppLocalizations,
-       _now = clock ?? (() => ambient.clock.now()),
        _formats = formats ?? DateTimeFormats.system,
        _timer = timerFactory ?? Timer.new,
        // ignore: prefer_initializing_formals — private field with a named param
@@ -204,7 +236,6 @@ class PrintMonitor {
   final NotificationService _notifications;
   final NotificationPrefs _prefs;
   final AppLocalizations Function() _l10n;
-  final DateTime Function() _now;
 
   /// Read per notification rather than cached: the user can flip the system
   /// 24-hour switch while the service runs, and a monitor built at boot would
@@ -227,6 +258,30 @@ class PrintMonitor {
   /// time passing with the feed healthy. Only the second kind may age an HMS code
   /// out of memory.
   DateTime? _lastFrameAt;
+
+  /// Posts [alert], or records the one line that says why it was not posted.
+  ///
+  /// One decision, not two: an alert that never arrives has to leave a trace,
+  /// or a report cannot tell a switched-off preference from a lost event. Ten
+  /// call sites wrote the pair by hand — ten chances to write only the half
+  /// that alerts. [fields] rides on the record only.
+  void _alertOrRecordOff(
+    int id,
+    NotifEvent event,
+    void Function() alert, {
+    Map<String, Object?> fields = const {},
+  }) {
+    if (_on(event)) {
+      alert();
+      return;
+    }
+    NotifProbe.suppressed(
+      _offReason,
+      printerId: id,
+      event: event,
+      fields: fields,
+    );
+  }
 
   bool _on(NotifEvent e) => _prefs.isOn(e);
 
@@ -274,7 +329,7 @@ class PrintMonitor {
   /// them again. The socket's own idle watchdog is longer than the window, so
   /// every disconnect it catches lands here.
   void _carryHmsMemoryOverFeedGap() {
-    final now = _now();
+    final now = clock.now();
     final last = _lastFrameAt;
     _lastFrameAt = now;
     if (last == null || now.difference(last) < _hmsClearGrace) return;
@@ -298,15 +353,11 @@ class PrintMonitor {
   /// Only correct source for this alert — see comment at step 5) in [_processPrinter].
   /// Printer name from frame (status may not be known), with fallback to list title.
   void onPlateNotEmpty(int printerId, String? printerName) {
-    if (!_on(NotifEvent.plateNotEmpty)) {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: printerId,
-        event: NotifEvent.plateNotEmpty,
-      );
-      return;
-    }
-    _alertPlate(printerId, printerName);
+    _alertOrRecordOff(
+      printerId,
+      NotifEvent.plateNotEmpty,
+      () => _alertPlate(printerId, printerName),
+    );
   }
 
   /// Baseline state from first observed frame — record "what's already here" so
@@ -320,7 +371,7 @@ class PrintMonitor {
   void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
     // Nothing job-scoped can be read off a frame that does not describe the job
-    // ([_jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
+    // ([PrinterStatus.jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
     // latch 25 and 50 as already sent and swallow both when the real print
     // reaches them — the mirror image of the burst the gate in step 4) prevents.
     // The dispatch race reaches priming too, through an isolate that restarts
@@ -330,16 +381,13 @@ class PrintMonitor {
     // as already printing, so no print-start edge follows and the new print's
     // first layer would go by in silence. So the frame is recorded as the one to
     // beat instead, exactly as the print-start edge does with it.
-    if (!_jobUnderway(status)) {
+    if (!status.jobUnderway) {
       memo.previousJob = _jobFrame(status);
     } else {
-      // "First layer DONE" = printer is already on layer ≥ 2 (parity with
-      // bambuddy: `on_first_layer_complete` fires at layer_num ≥ 2). If we prime
-      // after completion, just record it — no alert. Deliberately without
-      // [_firstLayerDone]'s upper bound: that window is there to decide whether
-      // an alert is *due*, while a baseline asks whether it is *spent*, and a
-      // counter in the hundreds is the plainest yes there is.
-      if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
+      // If we prime after the first layer, just record it — no alert. The
+      // baseline reading, deliberately without the window's ceiling; the two
+      // are one pair in [PrinterStatus.firstLayerPassed].
+      if (status.firstLayerPassed) memo.once(PrintOnce.firstLayer).claim();
       if (status.progress != null) {
         final pct = status.progress!.round();
         for (final m in _milestones) {
@@ -350,7 +398,7 @@ class PrintMonitor {
     memo.offline.seed(status.connected);
     final errors = status.hmsErrors;
     if (errors != null) {
-      final now = _now();
+      final now = clock.now();
       for (final e in errors) {
         final key = _hmsKey(e);
         if (key != null) memo.hmsLastSeen[key] = now;
@@ -400,15 +448,11 @@ class PrintMonitor {
       // This frame's job numbers are the previous print's until the printer
       // says otherwise — see [_describesThisPrint].
       memo.previousJob = _jobFrame(status);
-      if (_on(NotifEvent.printStarted)) {
-        _alertStarted(id, status);
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.printStarted,
-        );
-      }
+      _alertOrRecordOff(
+        id,
+        NotifEvent.printStarted,
+        () => _alertStarted(id, status),
+      );
     }
 
     // 2) Print end (edge printing → not-printing): success / error.
@@ -418,28 +462,20 @@ class PrintMonitor {
         case 'FINISH':
         case 'FINISHED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFinished)) {
-            _alertFinished(id, status);
-          } else {
-            NotifProbe.suppressed(
-              _offReason,
-              printerId: id,
-              event: NotifEvent.printFinished,
-            );
-          }
+          _alertOrRecordOff(
+            id,
+            NotifEvent.printFinished,
+            () => _alertFinished(id, status),
+          );
           // Maintenance reminder independent of print finish prefs.
           _onPrintEnded?.call(id);
         case 'FAILED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFailed)) {
-            _alertFailed(id, status);
-          } else {
-            NotifProbe.suppressed(
-              _offReason,
-              printerId: id,
-              event: NotifEvent.printFailed,
-            );
-          }
+          _alertOrRecordOff(
+            id,
+            NotifEvent.printFailed,
+            () => _alertFailed(id, status),
+          );
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
       }
@@ -479,43 +515,34 @@ class PrintMonitor {
     // frame could not settle is still owed on the next one. bambuddy holds its
     // own flag the same way (`_first_layer_notified`).
     if (isPrinting &&
-        !memo.firstLayerSent &&
+        !memo.once(PrintOnce.firstLayer).fired &&
         describesThisPrint &&
         _firstLayerDone(id, status)) {
-      memo.firstLayerSent = true;
-      if (_on(NotifEvent.firstLayer)) {
-        _alertFirstLayer(id, status);
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.firstLayer,
-        );
-      }
+      memo.once(PrintOnce.firstLayer).claim();
+      _alertOrRecordOff(
+        id,
+        NotifEvent.firstLayer,
+        () => _alertFirstLayer(id, status),
+      );
     }
 
     // 4) Progress milestones (once per print). Same latch-on-the-edge shape as
-    // the first layer above, plus the prep-phase gate — see [_jobUnderway].
+    // the first layer above, plus the prep-phase gate — see [PrinterStatus.jobUnderway].
     if (isPrinting && status.progress != null && describesThisPrint) {
-      if (!_jobUnderway(status)) {
+      if (!status.jobUnderway) {
         _recordPrepProgress(id, status, memo);
       } else {
         final pct = status.progress!.round();
-        final on = _on(NotifEvent.milestones);
         for (final m in _milestones) {
           // `add` is false when the threshold was already crossed — the same guard
           // as the old `!contains(m)`, with the latch now on the edge.
           if (pct >= m && memo.milestonesSent.add(m)) {
-            if (on) {
-              _alertMilestone(id, status, m);
-            } else {
-              NotifProbe.suppressed(
-                _offReason,
-                printerId: id,
-                event: NotifEvent.milestones,
-                fields: {'pct': m},
-              );
-            }
+            _alertOrRecordOff(
+              id,
+              NotifEvent.milestones,
+              () => _alertMilestone(id, status, m),
+              fields: {'pct': m},
+            );
           }
         }
       }
@@ -542,32 +569,6 @@ class PrintMonitor {
     _processBedCooled(id, status, memo);
   }
 
-  /// Whether the reported `progress` describes the JOB rather than a stage of
-  /// the printer's own. During bed levelling / vibration compensation the
-  /// firmware reports a percentage of THAT phase: observed jumping 6 → 60 in
-  /// 300 ms at `layer_num == 0`, which crossed two milestones at once before a
-  /// single line of plastic was down. The job is underway from the first layer
-  /// on, and only while the printer is not in a stage of its own.
-  ///
-  /// The stage half ([PrinterStatus.inNamedStage]) is what the layer check alone
-  /// cannot cover: Bambu firmware ticks `layer_num` through the pre-print
-  /// sequence, so "layer ≥ 1" is true while the bed is still being scanned. A
-  /// crossing this drops is not lost — nothing latches, so it is announced from
-  /// the next frame that describes the job.
-  ///
-  /// That half is deliberately not narrowed to the pre-print window, so a stage
-  /// the printer enters *mid*-print (a filament change, a user pause) holds a
-  /// threshold back until it clears rather than announcing it on time. The
-  /// alternative — trusting the percentage once the print looks underway — is
-  /// what let a stale 100% cross all three thresholds at once, and a milestone
-  /// arriving a filament change late is the cheaper of the two.
-  ///
-  /// A frame without `layer_num` says nothing about the phase, so it counts as
-  /// underway — a server that omits the field keeps the previous behaviour
-  /// rather than going silent for the whole print.
-  static bool _jobUnderway(PrinterStatus status) =>
-      (status.layerNum ?? 1) >= 1 && !status.inNamedStage;
-
   /// Whether this frame says the first layer is behind us, on the terms
   /// bambuddy's own `on_layer_change` uses (server #1837):
   ///
@@ -576,27 +577,23 @@ class PrintMonitor {
   ///   to a print we joined halfway or to the job that has just ended, and
   ///   neither is news. bambuddy's window is the same `[2, 10]`;
   /// * a printer **in a stage of its own is not laying that layer down**: the
-  ///   firmware ticks `layer_num` through bed levelling, bed scanning and
-  ///   nozzle cleaning, which announced a first layer minutes before the first
-  ///   line of plastic — and, right after a dispatch, under the previous
-  ///   print's name. bambuddy gates on `mc_print_sub_stage`, which the
-  ///   WebSocket does not carry; [PrinterStatus.inNamedStage] asks the same
-  ///   question of the field both lanes do carry.
+  ///   firmware ticks `layer_num` through bed levelling and nozzle cleaning,
+  ///   which announced a first layer minutes early and, right after a dispatch,
+  ///   under the previous print's name. bambuddy gates on `mc_print_sub_stage`,
+  ///   which the WebSocket does not carry, so [PrinterStatus.inNamedStage] asks
+  ///   the same question of the field both lanes do.
   ///
   /// Records the one frame it turns down per print, because "the first layer
   /// went by and nothing arrived" is otherwise indistinguishable from the alert
   /// being switched off.
   bool _firstLayerDone(int id, PrinterStatus status) {
-    final layer = status.layerNum;
-    if (layer == null || layer < 2 || layer > _firstLayerLayerCeiling) {
-      return false;
-    }
+    if (!status.firstLayerInWindow) return false;
     if (!status.inNamedStage) return true;
     NotifProbe.suppressed(
       NotifSkip.prepPhase,
       printerId: id,
       event: NotifEvent.firstLayer,
-      fields: {'layer': layer, 'stage': status.stgCur},
+      fields: {'layer': status.layerNum, 'stage': status.stgCur},
     );
     return false;
   }
@@ -623,21 +620,22 @@ class PrintMonitor {
       memo.previousJob = null;
       return true;
     }
-    if (!memo.previousJobLogged) {
-      memo.previousJobLogged = true;
-      // No `event`: this one reading gates both the first layer and the
-      // milestones, so naming either would describe a narrower decision than
-      // the one that was taken.
-      NotifProbe.suppressed(
-        NotifSkip.previousJob,
-        printerId: id,
-        fields: {
-          'layer': previous.layer,
-          'pct': previous.progress,
-          'stage': status.stgCur,
-        },
-      );
-    }
+    // No `event`: this one reading gates both the first layer and the
+    // milestones, so naming either would describe a narrower decision than the
+    // one that was taken.
+    memo
+        .once(PrintOnce.previousJobRecorded)
+        .claim(
+          () => NotifProbe.suppressed(
+            NotifSkip.previousJob,
+            printerId: id,
+            fields: {
+              'layer': previous.layer,
+              'pct': previous.progress,
+              'stage': status.stgCur,
+            },
+          ),
+        );
     return false;
   }
 
@@ -653,29 +651,30 @@ class PrintMonitor {
   /// and every frame in it carries a percentage, so recording each would bury the
   /// timeline; the first is the one that explains "the app went quiet at 60%".
   void _recordPrepProgress(int id, PrinterStatus status, _PrinterMemo memo) {
-    if (memo.prepProgressLogged) return;
-    memo.prepProgressLogged = true;
-    NotifProbe.suppressed(
-      NotifSkip.prepPhase,
-      printerId: id,
-      event: NotifEvent.milestones,
-      fields: {'pct': status.progress?.round(), 'stage': status.stgCurName},
-    );
+    memo
+        .once(PrintOnce.prepProgressRecorded)
+        .claim(
+          () => NotifProbe.suppressed(
+            NotifSkip.prepPhase,
+            printerId: id,
+            event: NotifEvent.milestones,
+            fields: {
+              'pct': status.progress?.round(),
+              'stage': status.stgCurName,
+            },
+          ),
+        );
   }
 
   void _processOffline(int id, PrinterStatus status, _PrinterMemo memo) {
     memo.offline.observe(
       status.connected,
       onSustained: () {
-        if (_on(NotifEvent.printerOffline)) {
-          _alertOffline(id, status);
-        } else {
-          NotifProbe.suppressed(
-            _offReason,
-            printerId: id,
-            event: NotifEvent.printerOffline,
-          );
-        }
+        _alertOrRecordOff(
+          id,
+          NotifEvent.printerOffline,
+          () => _alertOffline(id, status),
+        );
       },
       // The alert the wait was holding back never happened, which answers both
       // "the offline alert came fifteen seconds late" and "it never came at
@@ -692,7 +691,7 @@ class PrintMonitor {
   void _processHms(int id, PrinterStatus status, _PrinterMemo memo) {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
-    final now = _now();
+    final now = clock.now();
     // An offline printer can't be actively faulting — its `hms_errors` are just
     // the last-known values carried forward by mergedWith. This is the same rule
     // `displayableHmsErrors` applies for every screen; it is spelled out again
@@ -735,7 +734,7 @@ class PrintMonitor {
         }
         continue;
       }
-      memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
+      memo.hmsLastSeen[key] = now;
       // Only ever the first sighting of a code gets this far, so each of the
       // records below is one per code per clear-grace window, not one per frame.
       // A record for the already-known case is deliberately absent: the WebSocket
@@ -811,15 +810,11 @@ class PrintMonitor {
       }
     }
     if (!triggered) return;
-    if (_on(NotifEvent.lowFilament)) {
-      _alertLowFilament(id, status, triggeredRemain ?? threshold);
-    } else {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: id,
-        event: NotifEvent.lowFilament,
-      );
-    }
+    _alertOrRecordOff(
+      id,
+      NotifEvent.lowFilament,
+      () => _alertLowFilament(id, status, triggeredRemain ?? threshold),
+    );
   }
 
   void _processHumidity(int id, PrinterStatus status, _PrinterMemo memo) {
@@ -839,7 +834,7 @@ class PrintMonitor {
         // as done, so a rise the cooldown swallowed is still owed one.
         if (memo.humidAnnounced.contains(key)) continue;
         final last = memo.humidAlertedAt[key];
-        final now = _now();
+        final now = clock.now();
         if (last != null && now.difference(last) < _humidityAlertCooldown) {
           // Only on the rise itself: the frames after it would repeat this
           // record every second until the hour is up.
@@ -868,16 +863,16 @@ class PrintMonitor {
         memo.humidAnnounced.remove(key);
       }
     }
-    if (value == null) return;
-    if (_on(NotifEvent.amsHumidity)) {
-      _alertHumidity(id, status, value, isHt ?? false);
-    } else {
-      NotifProbe.suppressed(
-        _offReason,
-        printerId: id,
-        event: NotifEvent.amsHumidity,
-      );
-    }
+    // Read out of the mutable locals: a closure cannot keep the promotion the
+    // null check just made.
+    final worst = value;
+    final worstIsHt = isHt ?? false;
+    if (worst == null) return;
+    _alertOrRecordOff(
+      id,
+      NotifEvent.amsHumidity,
+      () => _alertHumidity(id, status, worst, worstIsHt),
+    );
   }
 
   void _processBedCooled(int id, PrinterStatus status, _PrinterMemo memo) {
@@ -886,25 +881,37 @@ class PrintMonitor {
     if (bed == null) return;
     if (bed < _prefs.bedCooledTemp) {
       memo.awaitingBedCool = false;
-      if (_on(NotifEvent.bedCooled)) {
-        _alertBedCooled(id, status, bed.round());
-      } else {
-        NotifProbe.suppressed(
-          _offReason,
-          printerId: id,
-          event: NotifEvent.bedCooled,
-        );
-      }
+      _alertOrRecordOff(
+        id,
+        NotifEvent.bedCooled,
+        () => _alertBedCooled(id, status, bed.round()),
+      );
     }
+  }
+
+  /// What goes after "ETA" in the ongoing notification, or null for no ETA at
+  /// all. Branches in the same order as [PrinterStatus.etaRank], so the line
+  /// cannot name a printer the ranking would not have picked.
+  ///
+  /// A concrete finish time (e.g. "21:20"), not "in X", and the date comes
+  /// along when the print runs past midnight.
+  String? _etaText(PrinterStatus s) {
+    final minutes = s.remainingTime;
+    if (minutes == null) return null;
+    if (minutes > 0) {
+      final now = clock.now();
+      return _formats().clockOnDay(
+        now.add(Duration(minutes: minutes)),
+        now: now,
+      );
+    }
+    return s.isPreparing ? null : _l10n().notifEtaSoon;
   }
 
   /// Ongoing notification for currently printing (one, for earliest ETA).
   void _updateOngoing(Map<int, PrinterStatus> statuses) {
     final printing = statuses.values.where((s) => s.isPrinting).toList()
-      ..sort(
-        (a, b) =>
-            (a.remainingTime ?? 1 << 30).compareTo(b.remainingTime ?? 1 << 30),
-      );
+      ..sort((a, b) => a.etaRank.compareTo(b.etaRank));
 
     if (printing.isEmpty) {
       if (_lastOngoing != null) {
@@ -917,13 +924,35 @@ class PrintMonitor {
 
     final lead = printing.first; // Finishes earliest
     final percent = (lead.progress ?? 0).round().clamp(0, 100);
+    // The mean over every printing machine. Nothing on screen shows it — the
+    // notification belongs to the lead alone — and it is kept for the log,
+    // where it answers "how far along was the rest of the shelf" for a report
+    // about a bar that looked wrong.
+    //
+    // Two kinds of zero, and they are not the same fact. A printer that sends
+    // no `progress` at all has not reported yet and is left out — counting it
+    // would drag the mean down for a job nobody has heard from. A printer that
+    // reports 0 is heating or levelling, and 0 is where it genuinely stands, so
+    // it counts. Each figure is clamped before it is averaged: one machine's
+    // out-of-range frame must not move a mean that is then clamped again and
+    // looks plausible.
+    final reported = [for (final s in printing) ?s.progress?.clamp(0, 100)];
+    final overall = reported.isEmpty
+        ? percent
+        : (reported.reduce((a, b) => a + b) / reported.length).round().clamp(
+            0,
+            100,
+          );
+    // Everything the notification shows, and nothing else. The mean used to be
+    // here because the body printed it; now that it does not, keeping it would
+    // re-post a notification whose every visible field is unchanged.
     final key = _OngoingKey(
       lead.id,
       percent,
       lead.remainingTime,
       printing.length,
     );
-    if (key == _lastOngoing) return; // Nothing material changed
+    if (key == _lastOngoing) return;
     _lastOngoing = key;
     // Recorded here rather than in the notification decorator: by the time the
     // service sees it, all of this is baked into a title and body made of the
@@ -934,16 +963,47 @@ class PrintMonitor {
       percent: percent,
       etaMin: lead.remainingTime,
       active: printing.length,
+      overall: overall,
     );
 
     final l = _l10n();
-    final title = _jobName(lead) ?? lead.name ?? l.printersTitle;
-    final eta = _etaClock(lead.remainingTime);
-    var body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
-    if (printing.length > 1) {
-      body = '$body · ${l.notifMorePrints(printing.length - 1)}';
+    final eta = _etaText(lead);
+    final String title;
+    final String body;
+    if (printing.length == 1) {
+      // One printer: the job is what the user is waiting for, and the machine
+      // it runs on needs no saying.
+      title = _jobLabel(lead, l);
+      body = eta == null ? '$percent%' : l.notifOngoingBody(percent, eta);
+    } else {
+      // Several: the headline is how many are running, and the bar, the line
+      // and the ETA all belong to the one that finishes first. One print, one
+      // set of numbers — a second figure for the shelf had nothing to say that
+      // the headline count does not.
+      title = l.printingCount(printing.length);
+      // Not `lead.name ?? …`: a printer named "  " would leave the line with
+      // a gap between two separators.
+      final name = _printerLabel(lead, l);
+      // Prefixed with the dashboard's own label rather than a second string
+      // saying the same thing: a bare machine name under a "3 printing"
+      // headline does not say why that one is named. The label is built for
+      // this (it ends in its own separator) and the two surfaces then pick the
+      // same printer and call it the same thing.
+      final line = eta == null
+          ? l.notifOngoingMultiBodyNoEta(name, percent)
+          : l.notifOngoingMultiBody(name, percent, eta);
+      body = '${l.nextAvailableLabel}$line';
     }
-    _notifications.showOngoing(title: title, body: body, progress: percent);
+    // A preparing machine has nothing to draw: the percent is zero because
+    // nothing has been measured yet, and a bar pinned at zero says "nothing is
+    // happening" about one that is heating its bed. Null asks for the
+    // indeterminate bar instead, which says "running, position unknown" — and
+    // the text beside it still carries the ETA when the firmware sent one.
+    _notifications.showOngoing(
+      title: title,
+      body: body,
+      progress: lead.isPreparing ? null : percent,
+    );
   }
 
   void _alertStarted(int id, PrinterStatus status) {
@@ -1164,24 +1224,4 @@ class PrintMonitor {
     }
     return out;
   }
-
-  /// ETA as concrete finish time (e.g. "21:20"), not "in X".
-  /// If print finishes different day, the date comes along.
-  String? _etaClock(int? minutes) {
-    if (minutes == null) return null;
-    final now = _now();
-    return _formats().clockOnDay(now.add(Duration(minutes: minutes)), now: now);
-  }
-}
-
-/// System locale narrowed to supported ones (en/pl) — `lookupAppLocalizations`
-/// throws on unsupported language, and monitor (and background isolate) runs outside
-/// widget tree, so no `BuildContext` for normal `AppLocalizations.of`.
-AppLocalizations systemAppLocalizations() =>
-    lookupAppLocalizations(systemLocale());
-
-/// System locale narrowed to supported ones (en/pl) — also used by HMS catalog.
-Locale systemLocale() {
-  final lang = PlatformDispatcher.instance.locale.languageCode;
-  return lang == 'pl' ? const Locale('pl') : const Locale('en');
 }

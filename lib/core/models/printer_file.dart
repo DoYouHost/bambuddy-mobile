@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// A single entry (file or directory) on a printer's storage, as returned by

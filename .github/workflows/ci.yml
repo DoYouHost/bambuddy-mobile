@@ -142,3 +142,20 @@ jobs:
         run: |
           flutter build apk --debug --flavor wear \
             --target lib/wear/main_wear.dart --target-platform android-arm64
+
+      # The two things about the watch build that nothing in `flutter test` can
+      # see, because Gradle and the manifest merger decide them: the phone-only
+      # assets pruned out of the APK (~2.2 MB), and the ContentProviders that
+      # would otherwise run in `Application.onCreate` on every cold start. Both
+      # fail silently — the build still succeeds, the weight just comes back.
+      #
+      # Runs against the two APKs the compile steps above have just produced,
+      # so it costs a few seconds and no extra build. The phone APK is the
+      # control: the same assets must still be there, or the prune is matching
+      # the wrong flavor.
+      - name: Watch APK contents
+        if: steps.relevant.outputs.run == 'true'
+        run: |
+          python3 tool/check_wear_apk.py \
+            build/app/outputs/flutter-apk/app-wear-debug.apk \
+            --mobile build/app/outputs/flutter-apk/app-mobile-debug.apk

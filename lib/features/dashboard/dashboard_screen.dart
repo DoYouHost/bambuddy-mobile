@@ -1,36 +1,31 @@
+import '../common/dash_icon_tile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
-import '../../core/diagnostics/diagnostic_recorder.dart';
-import '../../core/diagnostics/log_event.dart';
-import '../../core/diagnostics/log_tag.dart';
+import '../../core/auth/auth_headers.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
-import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
-import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
-import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
+import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
-import '../common/confirm_dialog.dart';
+import '../common/server_version_text.dart';
 import '../common/dash_search_field.dart';
+import 'card_collapse_providers.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
 import 'scheduled_drying_providers.dart';
@@ -60,6 +55,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// otherwise walk past the guard and open a second dialog.
   bool _signInChecking = false;
 
+  /// The generic session-expiry listener already sent the user to `/setup`.
+  /// Set from the listener, read by the warning, so only one of the two speaks.
+  bool _authExpiredHandled = false;
+
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
@@ -82,9 +81,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // write. The service's own stream gives up silently in several
               // cases (no writable directory, a session past its five minutes, a
               // platform read that failed), and each of them looks exactly like
-              // an app that was never backgrounded. `started` separates those
-              // from the case below, where nothing was ever asked to start.
-              _logBgService('start', started: started);
+              // an app that was never backgrounded. `started` false is not one
+              // of those: it means the service was already running (see
+              // `BackgroundMonitor.start`), which is the case below.
+              _logBgService('ui_start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
               // user has swiped the app away once. (The clock format is synced
@@ -104,6 +104,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
         ref.read(cameraTokenRefresherProvider)?.stop();
+        ref.read(mediaAuthRefresherProvider)?.stop();
         // The service isolate carries its own from here. Both would poll the
         // same archives and, worse, both write the shared alert memory — a
         // read-modify-write, so the loser's entry is dropped and its photo never
@@ -112,11 +113,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
-        _logBgService('stop');
         // Take the watch relay and the finish-photo search back only once the
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
-          ref.read(backgroundMonitorProvider).stop().then((_) {
+          ref.read(backgroundMonitorProvider).stop().then((stopped) {
+            // Only when there was something to stop. With background
+            // monitoring switched off the app still asks on every resume, and
+            // logging the asking filed a stop for a service that had never
+            // run — once per foreground/background cycle. That the app was
+            // resumed at all is already recorded: `lifecycle` in the `app`
+            // lane.
+            if (stopped) _logBgService('ui_stop');
             unawaited(ref.read(wearRelayHandlerProvider).start());
             ref.read(finishPhotoNotifierProvider)?.start();
           }),
@@ -126,6 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(smartPlugsProvider.notifier).resumePolling();
         ref.read(tokenRefresherProvider)?.start();
         ref.read(cameraTokenRefresherProvider)?.start();
+        ref.read(mediaAuthRefresherProvider)?.start();
         // The background isolate may have met the rejection while we were away.
         unawaited(_maybeWarnSignInRequired());
       },
@@ -153,7 +161,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _takeOverFromSurvivingService() async {
     final monitor = ref.read(backgroundMonitorProvider);
     if (!await monitor.isRunning()) return;
-    _logBgService('stop_survivor');
+    _logBgService('ui_stop_survivor');
     await monitor.stop();
   }
 
@@ -173,44 +181,134 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // the door open for the next resume.
     if (_signInWarned || _signInChecking || !mounted) return;
     _signInChecking = true;
-    final SettingsRepository settings;
+    // Held across the whole check, dialog included. Everything below awaits,
+    // and `_signInWarned` only goes up at the very end of it: releasing the
+    // latch earlier lets a resume that lands in between open a second copy of
+    // a dialog that cannot be dismissed.
     try {
-      // Both writers are other isolates, so the rejection this asks about is
-      // only on disk.
-      settings = await ref.read(settingsRepositoryProvider).reloaded();
+      await _checkSignInRequired();
     } finally {
       _signInChecking = false;
     }
+  }
+
+  Future<void> _checkSignInRequired() async {
+    // Both writers are other isolates, so the rejection this asks about is
+    // only on disk.
+    final settings = await ref.read(settingsRepositoryProvider).reloaded();
     if (!mounted) return;
-    if (!settings.loadSignInRequired()) return;
+    final reason = settings.loadSignInReason();
+
+    if (!settings.loadSignInRequired()) {
+      // Nobody rejected these credentials — they are not there at all, and the
+      // two places that raise the flag only ever hear a rejection. Raised here
+      // so that a session which ended without a word still ends visibly.
+      if (!await _credentialMissing()) return;
+      await settings.saveSignInRequired(
+        true,
+        reason: SignInReason.credentialsMissing,
+      );
+      return _showSignInRequired(SignInReason.credentialsMissing);
+    }
+
+    // The store answers again, so whatever ate the credential was passing: a
+    // Keystore that was briefly unavailable rather than a key that is gone.
+    // Nothing else lowers the flag but signing in, so without this the app
+    // would keep asking for one it no longer needs.
+    if (reason == SignInReason.credentialsMissing &&
+        !await _credentialMissing()) {
+      await settings.saveSignInRequired(false);
+      return;
+    }
+    return _showSignInRequired(reason);
+  }
+
+  /// Asked only where the answer decides something. On a Keystore that is not
+  /// answering this costs two reads, a 300 ms retry each, and a warning per key
+  /// in the log — on every resume, for a question the branch above may not even
+  /// be asking.
+  Future<bool> _credentialMissing() async {
+    final profile = ref.read(serverProfileProvider);
+    if (profile == null) return false;
+    return credentialMissing(
+      profile.authMode,
+      ref.read(credentialsStoreProvider),
+    );
+  }
+
+  Future<void> _showSignInRequired(SignInReason reason) async {
+    // The generic expiry path got there first and is already on `/setup`;
+    // opening a dialog over it would explain a screen the user has left.
+    if (!mounted || _authExpiredHandled) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
-    final signIn = await confirmDialog(
-      context,
-      title: l10n.signInRequiredTitle,
-      // 2FA gets its own wording: the saved password is fine there, and sending
-      // the user off to reset it would waste their time on the wrong thing.
-      message: switch (settings.loadSignInReason()) {
-        SignInReason.credentialsRejected => l10n.signInRequiredBody,
-        SignInReason.twoFactorRequired => l10n.signInRequiredTwoFactorBody,
-      },
-      confirmLabel: l10n.signInRequiredAction,
-      cancelLabel: l10n.later,
-      icon: Icons.lock_outline,
-      id: 'sign_in_required',
+    // One way out, and no "later": every screen behind this dialog is server
+    // data the app can no longer fetch, so postponing buys a dashboard of empty
+    // lists and 401s. The one thing worth doing without a session — filing a
+    // report about it — is on the setup screen this leads to.
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => logSurface(
+        'sign_in_required',
+        PopScope(
+          canPop: false,
+          child: AlertDialog(
+            // A large system font can make the text taller than the screen.
+            scrollable: true,
+            icon: const Icon(Icons.lock_outline),
+            title: Text(l10n.signInRequiredTitle),
+            // 2FA gets its own wording: the saved password is fine there, and
+            // sending the user off to reset it would waste their time on the
+            // wrong thing.
+            content: Text(
+              switch (reason) {
+                SignInReason.credentialsRejected => l10n.signInRequiredBody,
+                SignInReason.twoFactorRequired =>
+                  l10n.signInRequiredTwoFactorBody,
+                SignInReason.credentialsMissing =>
+                  l10n.signInRequiredMissingBody,
+              },
+              // Centred like the icon and the title above it. Left-aligned text
+              // under a centred heading reads as two dialogs stacked.
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              // Full width, the way `confirmDialog` lays its pair out: the
+              // actions sit in an `OverflowBar`, which hands its widest child
+              // the dialog's whole width. A lone button left at its content
+              // width hugs the right edge and reads as a different app.
+              SizedBox(
+                width: double.maxFinite,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(l10n.signInRequiredAction),
+                ).tagged('sign_in_required.confirm'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-    if (signIn && mounted) context.go('/setup');
+    if (mounted) context.go('/setup');
   }
 
   /// Hands the background service's lifecycle to the log from the UI side, where
   /// there is always a buffer to write into.
-  void _logBgService(String action, {bool? started}) =>
-      DiagnosticRecorder.active?.add(
-        LogSource.app,
-        'bg_service',
-        fields: {'action': action, 'started': started},
-      );
+  ///
+  /// `LogSource.fgs` even though the UI isolate writes it: the source names the
+  /// **subsystem**, not the writer, and a reader who filters the service's lane
+  /// has to see the half of its lifecycle only this side can report. These used
+  /// to file as `app`/`bg_service` with the verb in a field, which split one
+  /// story across two lanes and two grammars.
+  ///
+  /// The `ui_` verbs stay distinct from the service's own `start` / `destroy`:
+  /// "the UI asked" and "the service's start-up ran" are different moments, and
+  /// a report carrying the first without the second is exactly the interesting
+  /// one.
+  void _logBgService(String event, {bool? started}) => DiagnosticRecorder.active
+      ?.add(LogSource.fgs, event, fields: {'started': started});
 
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);
@@ -328,7 +426,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     await ref.read(bgMonitoringEnabledProvider.notifier).set(enabled);
     // Disabling takes effect immediately if service is running; enabling
     // takes effect at next background transition (FGS not needed in foreground).
-    if (!enabled) await ref.read(backgroundMonitorProvider).stop();
+    // Its own verb: a service that ends here ends because the user switched it
+    // off, which is the one explanation the service's own `destroy` cannot
+    // carry.
+    if (!enabled && await ref.read(backgroundMonitorProvider).stop()) {
+      _logBgService('ui_stop_disabled');
+    }
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }
@@ -344,8 +447,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final l10n = AppLocalizations.of(context);
 
     // Session expiry → graceful return to setup, never crash or dead dashboard.
+    //
+    // Skipped once the sign-in warning has taken over: both end at `/setup`,
+    // and a 401 answered by a missing credential raises them together — a
+    // snack bar saying the session expired under a dialog saying the key is
+    // unreadable, with a route change between them.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
-      if (expired) {
+      if (expired && !_signInWarned) {
+        _authExpiredHandled = true;
         ScaffoldMessenger.of(context).snack(l10n.sessionExpired);
         context.go('/setup');
       }
@@ -355,13 +464,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
     final filters = ref.watch(dashboardFiltersProvider);
+    final collapse = ref.watch(printerCardCollapseProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
 
-    // Keep proactive JWT + camera-token refresh alive while dashboard is on
+    // Keep proactive JWT + image-credential refresh alive while dashboard is on
     // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
+    ref.watch(mediaAuthRefresherProvider)?.start();
 
     // Not read — watched so it exists while this screen (and with it the UI's
     // socket) does. It waits for the finish photo the server attaches after a
@@ -433,7 +544,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 message: l10n.wsReconnecting,
                 tone: BannerTone.info,
               ),
-            Expanded(child: _body(context, state, statuses, filters, l10n)),
+            Expanded(
+              child: _body(context, state, statuses, filters, collapse, l10n),
+            ),
           ],
         ),
       ),
@@ -450,35 +563,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     DashboardState state,
     Map<int, PrinterStatus> statuses,
     DashboardFilters filters,
+    PrinterCardCollapse collapse,
     AppLocalizations l10n,
   ) {
+    // Nothing to show yet: the spinner only while the server might still
+    // answer. Once a request has found it unreachable, every screen says so at
+    // once — see [serverReachableProvider].
+    if (state.printers == null) {
+      return ValueListenableBuilder<bool?>(
+        valueListenable: ServerReachability.instance.reachable,
+        builder: (context, reachable, _) {
+          if (state.loading && reachable != false) return const DashLoading();
+          return AsyncErrorView(
+            message: state.error?.localized(l10n) ?? l10n.connectFailed,
+            retryLabel: l10n.retry,
+            onRetry: () {
+              // See [dashAsync]: the try gets its spinner back.
+              ServerReachability.instance.forget();
+              ref.read(dashboardProvider.notifier).refresh();
+            },
+          );
+        },
+      );
+    }
     if (state.loading) {
       return const DashLoading();
-    }
-
-    // Initial load failed — nothing to show but error.
-    if (state.printers == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                state.error?.localized(l10n) ?? l10n.connectFailed,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
-                child: Text(l10n.retry),
-              ).tagged('dashboard.retry'),
-            ],
-          ),
-        ),
-      );
     }
 
     // Printer composition from polling (roster), with status overlaid from
@@ -519,6 +628,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // repositories drops the latch; the "supported" providers watch them.
         ref.invalidate(heaterHistoryRepositoryProvider);
         ref.invalidate(amsHistoryRepositoryProvider);
+        // The same for every other capability a 403 hid (pipelines, archive
+        // media, spool presets, tags…) — the refusal only, not the repository
+        // and the data behind it.
+        ref.read(refusalsForgottenProvider.notifier).bump();
         // Nothing polls the scheduled runs, so this is where a row someone
         // added from the web — or one the scheduler has since picked up —
         // reaches the card.
@@ -560,13 +673,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.only(bottom: 6),
               sliver: SliverList.builder(
                 itemCount: filtered.length,
-                itemBuilder: (_, i) => PrinterCard(
-                  key: ValueKey(filtered[i].printer.id),
-                  item: filtered[i],
-                  inTouchSince: ref
-                      .read(printerStatusesProvider.notifier)
-                      .inTouchSince,
-                ),
+                itemBuilder: (_, i) {
+                  final id = filtered[i].printer.id;
+                  return PrinterCard(
+                    key: ValueKey(id),
+                    item: filtered[i],
+                    inTouchSince: ref
+                        .read(printerStatusesProvider.notifier)
+                        .inTouchSince,
+                    collapsed: collapse.isCollapsed(id),
+                    onCollapsedChanged: (collapsed) => ref
+                        .read(printerCardCollapseProvider.notifier)
+                        .set(id, collapsed),
+                  );
+                },
               ),
             ),
         ],
@@ -583,10 +703,17 @@ class _AppDrawer extends ConsumerWidget {
 
   final String? profileLabel;
 
+  /// Side of the app icon in the header.
+  static const _iconSize = 52.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    // The asset is the 1024x1024 launcher source, so without this it decodes at
+    // full size for a 52 dp tile. Width alone, as in `MediaImage`.
+    final iconDecodeWidth = (_iconSize * MediaQuery.devicePixelRatioOf(context))
+        .round();
     return Drawer(
       backgroundColor: t.overlaySurface,
       child: Column(
@@ -643,8 +770,9 @@ class _AppDrawer extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(15),
                               child: Image.asset(
                                 'assets/icon/icon.png',
-                                width: 52,
-                                height: 52,
+                                width: _iconSize,
+                                height: _iconSize,
+                                cacheWidth: iconDecodeWidth,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -673,154 +801,140 @@ class _AppDrawer extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _DrawerTile(
-                  icon: Icons.folder_outlined,
-                  label: l10n.fileManagerMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/files');
-                  },
-                  id: 'drawer.files',
-                ),
-                _DrawerTile(
-                  icon: Icons.travel_explore_rounded,
-                  label: l10n.makerworldMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/makerworld');
-                  },
-                  id: 'drawer.makerworld',
-                ),
-                _DrawerTile(
-                  icon: Icons.qr_code_2_rounded,
-                  label: l10n.swatchCodesMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/swatches');
-                  },
-                  id: 'drawer.swatches',
-                ),
-                _DrawerTile(
-                  icon: Icons.folder_special_outlined,
-                  label: l10n.projectsMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/projects');
-                  },
-                  id: 'drawer.projects',
-                ),
-                _DrawerTile(
-                  icon: Icons.bar_chart_rounded,
-                  label: l10n.menuStatistics,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/stats');
-                  },
-                  id: 'drawer.stats',
-                ),
-                // Absent until a call has proved the routes are there and this
-                // session may read them: an older server 404s, and an API key
-                // was refused every pipeline permission before server 1.2.5.3.
-                // Probed rather than versioned — the routes predate the
-                // renumbering to 1.2.5, so no threshold reads both schemes.
-                if (ref.watch(pipelinesSupportedProvider).orFalse)
-                  _DrawerTile(
-                    icon: Icons.account_tree_outlined,
-                    label: l10n.pipelinesMenu,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/pipelines');
-                    },
-                    id: 'drawer.pipelines',
-                  ),
-                _DrawerTile(
-                  icon: Icons.tune_rounded,
-                  label: l10n.notifEventsMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/settings/notifications');
-                  },
-                  id: 'drawer.notifications',
-                ),
-                // Administration — accounts, groups and API keys behind one
-                // entry. Only for an identity the server named and granted at
-                // least one of the three read permissions: a server with
-                // authentication off has nobody to show any of it to, and an
-                // API key is refused all three outright.
-                if (ref.watch(canOpenAdminProvider))
-                  _DrawerTile(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: l10n.adminMenu,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/admin');
-                    },
-                    id: 'drawer.admin',
-                  ),
-                const Divider(indent: 16, endIndent: 16, height: 16),
-                _DrawerTile(
-                  icon: Icons.cloud_outlined,
-                  label: l10n.cloudAccountMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/settings/cloud');
-                  },
-                  id: 'drawer.cloud',
-                ),
-                _DrawerTile(
-                  icon: Icons.swap_horiz_rounded,
-                  label: l10n.changeServer,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmChangeServer(context, ref, l10n);
-                  },
-                  id: 'drawer.change_server',
-                ),
-                _DrawerTile(
-                  icon: Icons.bug_report_outlined,
-                  label: l10n.bugReportMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(bugReportRoute);
-                  },
-                  id: 'drawer.bug_report',
-                ),
-                _DrawerTile(
-                  icon: Icons.info_outline_rounded,
-                  label: l10n.aboutMenu,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/about');
-                  },
-                  id: 'drawer.about',
-                ),
-              ],
-            ),
-          ),
-          // Footer with version — read from package metadata (like About screen).
-          const Divider(height: 1),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              child: Row(
+            // No stretch: on Impeller every stretch start allocates an offscreen
+            // copy of the list (a ~30 ms frame), and this list overflows so
+            // little that nearly every swipe starts one.
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(overscroll: false),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  Icon(Icons.print_rounded, size: 14, color: t.textTertiary),
-                  const SizedBox(width: 6),
-                  FutureBuilder<PackageInfo>(
-                    future: PackageInfo.fromPlatform(),
-                    builder: (context, snap) => Text(
-                      snap.hasData
-                          ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
-                          : 'Bambuddy',
-                      style: t.labelSoft,
+                  _DrawerTile(
+                    icon: Icons.folder_outlined,
+                    label: l10n.fileManagerMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/files');
+                    },
+                    id: 'drawer.files',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.travel_explore_rounded,
+                    label: l10n.makerworldMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/makerworld');
+                    },
+                    id: 'drawer.makerworld',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.qr_code_2_rounded,
+                    label: l10n.swatchCodesMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/swatches');
+                    },
+                    id: 'drawer.swatches',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.folder_special_outlined,
+                    label: l10n.projectsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/projects');
+                    },
+                    id: 'drawer.projects',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.bar_chart_rounded,
+                    label: l10n.menuStatistics,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/stats');
+                    },
+                    id: 'drawer.stats',
+                  ),
+                  // Absent until a call has proved the routes are there and this
+                  // session may read them: an older server 404s, and an API key
+                  // was refused every pipeline permission before server 1.2.5.3.
+                  // Probed rather than versioned — the routes predate the
+                  // renumbering to 1.2.5, so no threshold reads both schemes.
+                  if (ref.watch(pipelinesSupportedProvider).orFalse)
+                    _DrawerTile(
+                      icon: Icons.account_tree_outlined,
+                      label: l10n.pipelinesMenu,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/pipelines');
+                      },
+                      id: 'drawer.pipelines',
                     ),
+                  _DrawerTile(
+                    icon: Icons.settings_outlined,
+                    label: l10n.appSettingsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/settings/app');
+                    },
+                    id: 'drawer.app_settings',
+                  ),
+                  // Everything this app changes on the server, behind one entry:
+                  // the queue scheduler, maintenance, the Bambu Cloud account and
+                  // administration. Ungated — an API key and an anonymous session
+                  // both have something to do in there, and the gate that would
+                  // have hidden it (`canOpenAdminProvider`) is about accounts,
+                  // not about settings.
+                  _DrawerTile(
+                    icon: Icons.dns_outlined,
+                    label: l10n.serverSettingsMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/settings/server');
+                    },
+                    id: 'drawer.server_settings',
+                  ),
+                  const Divider(indent: 16, endIndent: 16, height: 16),
+                  _DrawerTile(
+                    icon: Icons.swap_horiz_rounded,
+                    label: l10n.changeServer,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmChangeServer(context, ref, l10n);
+                    },
+                    id: 'drawer.change_server',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.bug_report_outlined,
+                    label: l10n.bugReportMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(bugReportRoute);
+                    },
+                    id: 'drawer.bug_report',
+                  ),
+                  _DrawerTile(
+                    icon: Icons.info_outline_rounded,
+                    label: l10n.aboutMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/about');
+                    },
+                    id: 'drawer.about',
                   ),
                 ],
               ),
+            ),
+          ),
+          // Footer with both versions — this app's, read from package
+          // metadata (like the About screen), and the server's.
+          const Divider(height: 1),
+          const SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: _DrawerVersions(),
             ),
           ),
         ],
@@ -849,6 +963,48 @@ class _AppDrawer extends ConsumerWidget {
     if (confirmed) {
       await profiles.clear();
     }
+  }
+}
+
+/// Drawer footer: this app's version over the connected server's.
+///
+/// Both lines are one phrasing (`App x` / `Server y`) rather than the
+/// `Bambuddy v0.14.0` this used to carry over the unprefixed server line: two
+/// lines answering the same question read as answering different ones when one
+/// of them is spelled differently. The `v` is gone rather than copied onto the
+/// server line — `ServerVersion` strips a leading `v` because the server
+/// sometimes sends one itself, so that line would have read `Server v v1.2.6`.
+/// The name is not repeated either; the drawer header carries it already.
+class _DrawerVersions extends ConsumerWidget {
+  const _DrawerVersions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final app = ref.watch(appVersionProvider).value;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.appVersionLabel(app ?? '…'), style: t.labelSoft),
+              Text(
+                serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+                style: t.labelSoft,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -925,15 +1081,7 @@ class _DrawerTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: t.accentGreen.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, size: 21, color: t.accentGreenInk),
-                  ),
+                  DashIconTile(icon: icon, size: 40, radius: 12, iconSize: 21),
                   const SizedBox(width: 14),
                   Expanded(child: Text(label, style: t.bodyStrong)),
                   Icon(
@@ -1182,11 +1330,11 @@ class _SummaryHeader extends ConsumerWidget {
                   (p.status?.isPrinting ?? false),
             )
             .toList()
-          ..sort(
-            (a, b) => (a.status!.remainingTime ?? 1 << 30).compareTo(
-              b.status!.remainingTime ?? 1 << 30,
-            ),
-          );
+          // Through the model's rule, not on `remainingTime` alone: that field
+          // is zero both for a machine still heating and for one a minute from
+          // done, and sorted raw the heating one was announced as the next to
+          // free up. The ongoing notification names this same printer.
+          ..sort((a, b) => a.status!.etaRank.compareTo(b.status!.etaRank));
 
     final next = active.isEmpty ? null : active.first;
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;

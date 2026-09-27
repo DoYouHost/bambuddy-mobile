@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
 /// Design tokens and the app theme for the watch, the counterpart of the phone's
-/// `DashTokens`/`dashAppTheme`.
-///
-/// The watch has its own scale on purpose: everything here is read at arm's
-/// length on a 1.4" screen, so the phone's sizes are all a step too large and its
-/// colour tokens (layered translucent cards on a gradient) mean nothing on an
-/// OLED face that has to stay black to save battery.
+/// `DashTokens`/`dashAppTheme`. Its own scale on purpose: this is read at arm's
+/// length on a 1.4" screen, and the phone's layered translucent cards mean
+/// nothing on an OLED face that stays black to save battery.
 
 /// Secondary text on the black face. Bright enough to read, dim enough to say
 /// "this is not the thing you came for".
@@ -48,14 +45,9 @@ const wearRadiusCard = 16.0;
 const wearRadiusRow = 20.0;
 
 /// A surface tinted with the colour of whatever it is reporting: a low-alpha
-/// fill, a border of the same colour at a strength that survives the OLED
-/// black, and the accent left to the caller for its text.
-///
-/// The status chip and the fault card are the same design and were written
-/// twice — one deriving both alphas from a state colour, the other with three
-/// hand-mixed hex literals of the destructive red, at 0.2/0.5 against the
-/// chip's 0.15/0.6. Neither pair was anyone's decision; the chip's are kept
-/// because they were the ones tuned against a real face.
+/// fill, a border of the same colour at a strength that survives the OLED black,
+/// and the accent left to the caller for its text. The alphas are the status
+/// chip's, which are the pair that was tuned against a real face.
 BoxDecoration wearTintedBox(Color accent, {double radius = wearRadiusCard}) =>
     BoxDecoration(
       color: accent.withValues(alpha: _tintFill),
@@ -66,19 +58,13 @@ BoxDecoration wearTintedBox(Color accent, {double radius = wearRadiusCard}) =>
 const _tintFill = 0.15;
 const _tintBorder = 0.6;
 
-/// The watch type scale, by role rather than by size.
-///
-/// Reach for a role, not a number: before this, the same heading was 13, 14 and
-/// 15 on three screens and the same fine print was 9 in one place and 10 in
-/// another, because every site picked its own literal. Where a site needs a
-/// colour (a state, an error) it is a `copyWith` on the role, so the size stays
-/// decided here.
-///
-/// Sizes a component theme can carry are not here at all — a text button and an
-/// input label get theirs from [wearTheme], so a screen never styles them.
+/// The watch type scale, by role rather than by size. A site needing a colour
+/// does a `copyWith` on the role, so the size stays decided here — and sizes a
+/// component theme can carry are not here at all: a text button and an input
+/// label get theirs from [wearTheme].
 class WearText {
-  /// The question on a full-screen confirm: alone on the face, so it gets to be
-  /// the largest thing in the app.
+  /// The question on a full-screen confirm — alone on the face, so the
+  /// largest thing in the app.
   static const hero = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
 
   /// The header line at the top of a screen's scroll.
@@ -103,13 +89,10 @@ class WearText {
   static const fine = TextStyle(fontSize: 10, color: wearMuted);
 }
 
-/// Dark, black-background theme (OLED-friendly) with larger tap targets.
-///
-/// Anything with a component theme takes its type from here, so the screens stop
-/// repeating it: text buttons, filled buttons and input labels. There is no
-/// snackbar theme because there are no snackbars: a bar pinned to the bottom of
-/// a round face is mostly off the glass, so the watch says it with `WearToast`
-/// instead.
+/// Dark, black-background theme (OLED-friendly) with larger tap targets. Text
+/// buttons, filled buttons and input labels take their type from here so the
+/// screens stop repeating it. No snackbar theme: a bar pinned to the bottom of a
+/// round face is mostly off the glass, and the watch uses `WearToast`.
 ThemeData wearTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: Colors.green,

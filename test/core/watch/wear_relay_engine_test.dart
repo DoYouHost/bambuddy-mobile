@@ -22,7 +22,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     watch = FakeWatchConnectivity();
     engine = WearRelayEngine(watch: watch, openDio: () async => dio);
   });

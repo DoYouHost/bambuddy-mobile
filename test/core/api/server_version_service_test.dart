@@ -14,7 +14,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     service = ServerVersionService(dio);
   });
 
@@ -51,14 +51,21 @@ void main() {
     replyVersion('1.2.5.1');
 
     expect((await service.current())?.raw, '1.2.5.1');
-    expect(await service.supports(ServerFeature.triStateCalibration), isTrue);
+    expect(
+      (await service.current())?.supports(ServerFeature.triStateCalibration),
+      isTrue,
+    );
     expect(await service.reportedVersion(), '1.2.5.1');
+    expect(service.cachedRaw, '1.2.5.1');
   });
 
   test('an older server: no tri-state', () async {
     replyVersion('0.2.4.9');
 
-    expect(await service.supports(ServerFeature.triStateCalibration), isFalse);
+    expect(
+      (await service.current())?.supports(ServerFeature.triStateCalibration),
+      isFalse,
+    );
   });
 
   test('asks once, then uses the remembered response', () async {
@@ -72,7 +79,7 @@ void main() {
 
     await service.current();
     await service.current();
-    await service.supports(ServerFeature.triStateCalibration);
+    await service.current();
 
     expect(
       calls(),
@@ -116,11 +123,6 @@ void main() {
       );
 
       expect(await service.current(), isNull);
-      expect(
-        await service.supports(ServerFeature.triStateCalibration),
-        isFalse,
-        reason: 'unknown is treated as older',
-      );
       expect(await service.reportedVersion(), isNull);
     });
 
@@ -139,6 +141,35 @@ void main() {
       expect(await service.current(), isNull);
     });
 
+    test('a version this build cannot parse is still reported', () async {
+      // What the capability table can compare and what a screen can print are
+      // two questions: a numbering scheme from the future answers the second
+      // one perfectly well, and telling the user nothing would be worse than
+      // telling them what the server said.
+      replyVersion('nightly-2026-09-11');
+
+      expect(await service.current(), isNull);
+      expect(await service.reportedVersion(), 'nightly-2026-09-11');
+      expect(
+        service.cached,
+        isNull,
+        reason: 'unparseable reaches no version row: the latch answers alone',
+      );
+    });
+
+    test('a version that is not text is unknown, not a crash', () async {
+      // Deliberately not stringified: `2` is not a version anyone can act on,
+      // and printing it would put a number in the footer that matches no
+      // release. Unknown is the honest answer; what matters is that the read
+      // does not throw on the way to it.
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (server) => server.reply(200, {'version': 2, 'repo': 'x/y'}),
+      );
+
+      expect(await service.reportedVersion(), isNull);
+    });
+
     test('body without a version field', () async {
       adapter.onGet(
         '/api/v1/updates/version',
@@ -146,6 +177,7 @@ void main() {
       );
 
       expect(await service.current(), isNull);
+      expect(await service.reportedVersion(), isNull);
     });
 
     test('a failed read is not remembered permanently', () async {
@@ -190,5 +222,45 @@ void main() {
       );
       expect(calls(), 2);
     });
+
+    test('a regained contact retries at once, inside the window', () async {
+      final calls = countingReplies(
+        () => Response(requestOptions: RequestOptions(), statusCode: 500),
+      );
+
+      await service.current();
+      service.forgetFailure();
+      await service.current();
+
+      expect(calls(), 2);
+    });
   });
+
+  test(
+    'refresh reads again past a known version, and a failure keeps it',
+    () async {
+      var answer = '1.2.5.5';
+      var fail = false;
+      final requests = countingReplies(
+        () => fail
+            ? Response(requestOptions: RequestOptions(), statusCode: 502)
+            : Response(
+                requestOptions: RequestOptions(),
+                statusCode: 200,
+                data: {'version': answer},
+              ),
+      );
+
+      expect((await service.current())?.raw, '1.2.5.5');
+      answer = '1.2.5.6';
+      expect((await service.current())?.raw, '1.2.5.5', reason: 'cached');
+      expect((await service.refresh())?.raw, '1.2.5.6');
+      expect(service.cached?.raw, '1.2.5.6');
+
+      fail = true;
+      expect(await service.refresh(), isNull);
+      expect(service.cached?.raw, '1.2.5.6');
+      expect(requests(), 3);
+    },
+  );
 }

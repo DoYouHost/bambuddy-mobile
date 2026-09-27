@@ -147,7 +147,7 @@ void main() {
 
   /// `/auth/me` describes an API-key session differently on either side of
   /// server 1.2.6 (issue #1894), and the app talks to both. Neither shape may
-  /// stop parsing — see `docs/plans/13-users-slim-and-api-key-identity.md`.
+  /// stop parsing.
   group('an API-key session, both server generations', () {
     test('≤ 1.2.5.x: the synthetic admin still parses', () {
       final user = CurrentUser.fromJson(const {

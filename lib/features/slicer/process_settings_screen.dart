@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/process_option.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/slicer/filament_slot_options.dart';
@@ -11,9 +11,7 @@ import '../../core/slicer/process_toggle_rules.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_input.dart';
-import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
-import '../common/system_insets.dart';
 import 'slice_providers.dart';
 
 /// OrcaSlicer's process parameter set, editable before a slice.
@@ -23,7 +21,7 @@ import 'slice_providers.dart';
 /// project's rule that user-visible text goes through [AppLocalizations]: they
 /// are 348 upstream strings, they match what Bambu Studio shows on the desktop,
 /// and hand-translating them is not viable. The screen's own chrome is localised
-/// as usual. See `docs/plans/16-slicer-process-overrides.md` §10.
+/// as usual.
 ///
 /// Edits are reported upward as they happen rather than returned on pop: the
 /// slice sheet below owns the map, so backing out of here keeps them and there

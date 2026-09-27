@@ -8,6 +8,8 @@
 /// the slice form starts untargeted — hence [SlicerPipeline.isRunnable].
 library;
 
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// A `{source, id}` preset reference — how a pipeline, and the slice request it

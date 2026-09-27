@@ -1,31 +1,26 @@
 import 'dart:io';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/diagnostic_recorder.dart';
-import '../../core/diagnostics/log_event.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/printer_download_job.dart';
 import '../../core/models/printer_file.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
-import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_snack.dart';
-import '../common/format_bytes.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
 import 'printer_download_job.dart';
 import 'printer_selection_download.dart';
+import '../../data/streamed_download.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -316,7 +311,7 @@ class _PrinterFileManagerScreenState
   /// and then the bar stays indeterminate rather than inventing a fraction.
   void _onDownloadProgress(int received, int total) {
     if (!mounted) return;
-    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    final next = transferPercentStep(received, total);
     if (next == _downloadProgress) return;
     setState(() => _downloadProgress = next);
   }
@@ -635,7 +630,6 @@ class _PrinterFileManagerScreenState
           'printer_files.select_all',
           TextButton(
             onPressed: _toggleSelectAll,
-            style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
             child: Text(allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll),
           ),
         ),
@@ -875,9 +869,6 @@ class _PrinterFileManagerScreenState
                 'printer_files.download',
                 TextButton.icon(
                   onPressed: _download,
-                  style: TextButton.styleFrom(
-                    foregroundColor: t.accentGreenInk,
-                  ),
                   icon: const Icon(Icons.download),
                   label: Text(l10n.pfmDownload),
                 ),
@@ -887,7 +878,7 @@ class _PrinterFileManagerScreenState
                 'printer_files.delete',
                 TextButton.icon(
                   onPressed: _delete,
-                  style: TextButton.styleFrom(foregroundColor: t.danger),
+                  style: TextButton.styleFrom(foregroundColor: t.dangerInk),
                   icon: const Icon(Icons.delete_outline),
                   label: Text(l10n.pfmDelete),
                 ),

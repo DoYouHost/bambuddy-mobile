@@ -3,13 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
+import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../queue/queue_providers.dart';
+
+/// Starts, once for the whole shell, every server answer a screen asks for the
+/// moment it opens. Each fetch is lazy — so without this the first visit to
+/// the file manager, an archive or the queue form spends its opening frames
+/// unable to say whether a control exists. Warmed here, the answer is in
+/// before any tab is reached.
+///
+/// Only answers something waits on: `/settings` behind every [serverGate], the
+/// version behind every versioned [capabilityGate] (which then derives on the
+/// frame it is read), and a probe-backed gate that hides an entry point.
+void warmServerAnswers(void Function(ProviderListenable<Object?>) keep) {
+  keep(serverSettingsProvider);
+  keep(serverVersionProvider);
+  keep(pipelinesSupportedProvider);
+}
 
 /// Main shell scaffold with the modernized ("2a") bottom navigation bar.
 /// Displayed for all routes inside [StatefulShellRoute].
@@ -32,6 +49,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void initState() {
     super.initState();
     _reportVisibleTab();
+    // A subscription rather than a `read`: "change server" rebuilds the client
+    // these are fetched through, and an unlistened provider is only marked
+    // stale by that — it refetches on the next read, which is the cold first
+    // screen all over again. A listener makes the rebuild eager. It is
+    // `listenManual` rather than `watch` so the whole tab shell does not
+    // rebuild every time a settings write lands.
+    warmServerAnswers((answer) => ref.listenManual(answer, (_, _) {}));
   }
 
   @override
@@ -249,17 +273,17 @@ class _NavItem extends StatelessWidget {
                             minHeight: 15,
                           ),
                           decoration: BoxDecoration(
-                            color: tokens.danger,
+                            color: tokens.dangerInk,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
                               '$badge',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: DashTokens.fontUi,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: tokens.onDanger,
                                 height: 1.2,
                               ),
                             ),

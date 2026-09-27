@@ -1,5 +1,5 @@
+import 'package:app_util/app_util.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
-import 'package:bambuddy_mobile/core/models/json_utils.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,7 +80,7 @@ void main() {
   group('queue contract', () {
     // Regression from production: server 1.2.5 sends strings, the generated
     // cast to bool blew up on EVERY record, parseJsonList dropped them and
-    // the list came out empty on a valid 200 (docs/plans/07-queue-cali-enum.md).
+    // the list came out empty on a valid 200.
     Map<String, dynamic> record(Object bed, Object flow, Object nozzle) => {
       'id': 240,
       'position': 1,

@@ -1,20 +1,19 @@
 import 'dart:async';
 
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
-import '../../core/format/text_measure.dart';
+import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -22,15 +21,13 @@ import 'archive_media_sheet.dart';
 import '../common/api_failure_snack.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
+import '../common/refresh_when_shown.dart';
+import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
-import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
@@ -40,7 +37,7 @@ import '../pipelines/pipelines_providers.dart' show canRunPipelinesProvider;
 import '../slicer/slice_screen.dart';
 import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
-import '../common/hex_color.dart';
+import '../common/web_link.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -184,92 +181,96 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   ),
                 ],
               ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () => ref.read(archiveProvider.notifier).refresh(),
-          data: (all) {
-            final items = applyArchiveFilters(all, filters);
-            return RefreshIndicator(
-              onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  DashSliverSearchBar(
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DashSearchField(
-                              id: 'archive.search',
-                              hintText: l10n.archiveSearchHint,
-                              onChanged: _onSearchChanged,
+        body: RefreshWhenShown(
+          announced: ref.watch(archiveChangedProvider),
+          onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () => ref.read(archiveProvider.notifier).refresh(),
+            data: (all) {
+              final items = applyArchiveFilters(all, filters);
+              return RefreshIndicator(
+                onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    DashSliverSearchBar(
+                      child: SizedBox(
+                        height: 48,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DashSearchField(
+                                id: 'archive.search',
+                                hintText: l10n.archiveSearchHint,
+                                onChanged: _onSearchChanged,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterButton(
-                            count: filters.activeCount,
-                            tooltip: l10n.archiveFilters,
-                            id: 'archive.filters',
-                            onTap: _openFilters,
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            FilterButton(
+                              count: filters.activeCount,
+                              tooltip: l10n.archiveFilters,
+                              id: 'archive.filters',
+                              onTap: _openFilters,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  // Above the list, below the search bar — and never while
-                  // multi-selecting, where the screen is a picker and every row
-                  // pushed down is a row the user has to hunt for again.
-                  if (!_selectionMode)
-                    const SliverToBoxAdapter(child: _No3mfBanner()),
-                  if (all.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message: l10n.archiveEmpty,
-                        icon: Icons.inventory_2_outlined,
+                    // Above the list, below the search bar — and never while
+                    // multi-selecting, where the screen is a picker and every row
+                    // pushed down is a row the user has to hunt for again.
+                    if (!_selectionMode)
+                      const SliverToBoxAdapter(child: _No3mfBanner()),
+                    if (all.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          message: l10n.archiveEmpty,
+                          icon: Icons.inventory_2_outlined,
+                        ),
+                      )
+                    else if (items.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          message: l10n.archiveNoMatches,
+                          icon: Icons.search_off,
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        sliver: SliverList.builder(
+                          itemCount: items.length,
+                          itemBuilder: (context, i) {
+                            final archive = items[i];
+                            final card = _ArchiveCard(
+                              archive: archive,
+                              selected: _selected.contains(archive.id),
+                              onTap: () => _selectionMode
+                                  ? _toggleSelect(archive.id)
+                                  : _openSheet(archive),
+                              onLongPress: () => _toggleSelect(archive.id),
+                              // No favorite toggle while multi-selecting — taps
+                              // there belong to the selection gesture.
+                              onToggleFavorite: _selectionMode
+                                  ? null
+                                  : () => _toggleFavorite(archive),
+                            );
+                            // No swipe-to-delete while multi-selecting.
+                            return _selectionMode
+                                ? card
+                                : _deletable(archive, card);
+                          },
+                        ),
                       ),
-                    )
-                  else if (items.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message: l10n.archiveNoMatches,
-                        icon: Icons.search_off,
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      sliver: SliverList.builder(
-                        itemCount: items.length,
-                        itemBuilder: (context, i) {
-                          final archive = items[i];
-                          final card = _ArchiveCard(
-                            archive: archive,
-                            selected: _selected.contains(archive.id),
-                            onTap: () => _selectionMode
-                                ? _toggleSelect(archive.id)
-                                : _openSheet(archive),
-                            onLongPress: () => _toggleSelect(archive.id),
-                            // No favorite toggle while multi-selecting — taps
-                            // there belong to the selection gesture.
-                            onToggleFavorite: _selectionMode
-                                ? null
-                                : () => _toggleFavorite(archive),
-                          );
-                          // No swipe-to-delete while multi-selecting.
-                          return _selectionMode
-                              ? card
-                              : _deletable(archive, card);
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -321,7 +322,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: t.danger.withValues(alpha: 0.4)),
         ),
-        child: Icon(Icons.delete_outline, color: t.danger),
+        child: Icon(Icons.delete_outline, color: t.dangerInk),
       ),
       confirmDismiss: (_) async {
         final purge = await _askDelete(archive);
@@ -671,10 +672,7 @@ class _No3mfBanner extends ConsumerWidget {
                     logTag(
                       'archive.no3mf_docs',
                       TextButton.icon(
-                        onPressed: () => launchUrl(
-                          Uri.parse(docs),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onPressed: () => openWebLink(context, docs),
                         icon: const Icon(Icons.open_in_new, size: 14),
                         label: Text(
                           reason == No3mfReason.internalStorage
@@ -1020,15 +1018,8 @@ class _ArchiveSheet extends StatelessWidget {
   }
 }
 
-/// The sheet's two primary actions, side by side — but only while both labels
-/// fit on one line. A wrapped label grows just its own button, leaving the pair
-/// mismatched and taller than the full-width buttons below it, so on narrow
-/// screens they stack full-width instead (which also unwraps the labels).
-///
-/// Whether a label fits depends on the locale, the user's text scale and the
-/// button padding this app's theme sets, so the width each button needs for a
-/// single-line label is measured from that resolved style rather than guessed
-/// from a breakpoint.
+/// The sheet's two primary actions. [ButtonPair] owns the measure-then-stack
+/// rule; this only names the buttons and their labels.
 class _SheetPrimaryActions extends StatelessWidget {
   const _SheetPrimaryActions({
     required this.onAddToQueue,
@@ -1038,99 +1029,42 @@ class _SheetPrimaryActions extends StatelessWidget {
   final VoidCallback onAddToQueue;
   final VoidCallback onReprint;
 
-  /// Icon box and icon-to-label gap of a Material `*.icon` button — the only
-  /// parts not exposed through [ButtonStyle].
-  static const double _iconWidth = 18;
-  static const double _iconGap = 8;
-
-  /// A label has to fit with room to spare, not by a hair — measurement and
-  /// rendering can round apart. Borderline pairs stack, which still looks
-  /// right; a wrapped one does not.
-  static const double _slack = 10;
-
-  static const double _gap = 12;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final addToQueue = logTag(
-      'archive.add_to_queue',
-      OutlinedButton.icon(
-        icon: const Icon(Icons.playlist_add),
-        label: Text(l10n.archiveAddToQueue),
-        onPressed: onAddToQueue,
+    return ButtonPair(
+      primaryLabel: l10n.archiveReprint,
+      secondaryLabel: l10n.archiveAddToQueue,
+      primary: logTag(
+        'archive.reprint',
+        FilledButton.icon(
+          icon: const Icon(Icons.print),
+          label: Text(l10n.archiveReprint),
+          onPressed: onReprint,
+        ),
+      ),
+      secondary: logTag(
+        'archive.add_to_queue',
+        OutlinedButton.icon(
+          icon: const Icon(Icons.playlist_add),
+          label: Text(l10n.archiveAddToQueue),
+          onPressed: onAddToQueue,
+        ),
       ),
     );
-    final reprint = logTag(
-      'archive.reprint',
-      FilledButton.icon(
-        icon: const Icon(Icons.print),
-        label: Text(l10n.archiveReprint),
-        onPressed: onReprint,
-      ),
-    );
-    final widthNeeded = [
-      _singleLineWidth(
-        context,
-        l10n.archiveReprint,
-        FilledButtonTheme.of(context).style,
-      ),
-      _singleLineWidth(
-        context,
-        l10n.archiveAddToQueue,
-        OutlinedButtonTheme.of(context).style,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final half = (constraints.maxWidth - _gap) / 2;
-        final fitsSideBySide = widthNeeded.every((w) => w + _slack <= half);
-        if (fitsSideBySide) {
-          return Row(
-            children: [
-              Expanded(child: reprint),
-              const SizedBox(width: _gap),
-              Expanded(child: addToQueue),
-            ],
-          );
-        }
-        return Column(
-          children: [
-            SizedBox(width: double.infinity, child: reprint),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: addToQueue),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Width the button needs to keep [label] on one line, taking the text style
-  /// and padding from [style] — the very [ButtonStyle] the button will render
-  /// with, so a theme tweak can't silently invalidate this.
-  double _singleLineWidth(
-    BuildContext context,
-    String label,
-    ButtonStyle? style,
-  ) {
-    const states = <WidgetState>{};
-    final theme = Theme.of(context);
-    final textStyle = (theme.textTheme.labelLarge ?? const TextStyle()).merge(
-      style?.textStyle?.resolve(states),
-    );
-    final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
-    return padding +
-        _iconWidth +
-        _iconGap +
-        textWidth(context, label, textStyle);
   }
 }
 
-/// Slice button shown only when the slicer sidecar is enabled AND this archive
-/// is actually re-sliceable (retains a source/model — plain gcode.3mf prints
-/// are not). Renders nothing otherwise, so the sheet is unchanged for the
-/// common case.
+/// Slice and run-pipeline buttons, and the two answers behind them.
+///
+/// The sidecar flag decides whether the section exists at all — a server with
+/// no slicer has no such feature, and nothing is drawn. Whether *this* archive
+/// can be re-sliced (it keeps a source or a model; plain gcode.3mf prints do
+/// not) only **disables** the buttons, and says why on them (see
+/// [_ReasonedButton]): showing them and then collapsing the row a moment later
+/// is a flicker the user has to interpret, while a disabled button with a
+/// reason answers the question they opened the entry with. A read that failed is disabled and explained too —
+/// silently dead is the one thing it must never be.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
     required this.archive,
@@ -1144,39 +1078,109 @@ class _SliceArchiveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(slicerEnabledProvider).orFalse;
-    if (!enabled) return const SizedBox.shrink();
-    final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
-    if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    final sidecar = ref.watch(slicerEnabledProvider).offer;
+    if (sidecar == ControlOffer.hidden) return const SizedBox.shrink();
+    // Asked only once the sidecar is not ruled out: this is a request per entry
+    // the user opens, and a server with no slicer must never send it.
+    final caps = sidecar == ControlOffer.offered
+        ? ref.watch(archiveCapabilitiesProvider(archive.id))
+        : null;
+    final sliceable = caps?.valueOrNull?.sliceable;
     final l10n = AppLocalizations.of(context);
+    // The buttons are disabled in three ways, and two of them owe the user a
+    // line. Silence belongs only to the answer that is still on its way.
+    final reason = switch (caps) {
+      null => null,
+      final answer when answer.hasError => l10n.connectFailed,
+      _ => sliceable == false ? l10n.archiveNotSliceable : null,
+    };
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
-    final canRunPipeline = ref.watch(canRunPipelinesProvider).orFalse;
+    // `offer`, not `orFalse`: the button stands greyed while the gate is
+    // unanswered instead of appearing a moment later and pushing the rest of
+    // the sheet down.
+    final pipeline = ref.watch(canRunPipelinesProvider).offer;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.layers_outlined),
-              label: Text(l10n.sliceAction),
-              onPressed: onSlice,
-            ).tagged('archive.slice'),
+          _ReasonedButton(
+            id: 'archive.slice',
+            icon: Icons.layers_outlined,
+            label: l10n.sliceAction,
+            reason: reason,
+            onPressed: sliceable == true ? onSlice : null,
           ),
-          if (canRunPipeline) ...[
+          if (pipeline != ControlOffer.hidden) ...[
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.account_tree_outlined),
-                label: Text(l10n.pipelineRun),
-                onPressed: onRunPipeline,
-              ).tagged('archive.run_pipeline'),
+            // Re-slices the same source, so it needs exactly what the slice
+            // button needs — and owes the same reason.
+            _ReasonedButton(
+              id: 'archive.run_pipeline',
+              icon: Icons.account_tree_outlined,
+              label: l10n.pipelineRun,
+              reason: reason,
+              onPressed: sliceable == true && pipeline == ControlOffer.offered
+                  ? onRunPipeline
+                  : null,
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// A full-width button that, when [reason] says why it is disabled, carries an
+/// ⓘ and shows the reason on a tap.
+///
+/// Not a line underneath: the reason arrives with this entry's own answer,
+/// half a second after the sheet has opened, and a line appearing then grew
+/// the bottom-anchored sheet and pushed everything in it up. An icon inside the
+/// button changes no height.
+class _ReasonedButton extends StatelessWidget {
+  const _ReasonedButton({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.reason,
+    required this.onPressed,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
+  final String? reason;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final why = reason;
+    final button = SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: Icon(icon),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            if (why != null) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.info_outline, size: 18),
+            ],
+          ],
+        ),
+        onPressed: onPressed,
+      ).tagged(id),
+    );
+    if (why == null) return button;
+    // A disabled button takes no taps, so the tooltip's own detector gets
+    // them; its message is also what a screen reader announces.
+    return Tooltip(
+      message: why,
+      triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 5),
+      child: button,
     );
   }
 }
@@ -1300,6 +1304,11 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   bool _purgeStats = false;
   AsyncValue<ArchivePurgePreview> _preview = const AsyncValue.loading();
 
+  /// Only the newest preview may land. Switching 7 → 365 days quickly can bring
+  /// the 7-day answer back last, and the confirm button would then delete a
+  /// year's prints under a count of a week's.
+  int _previewRequest = 0;
+
   @override
   void initState() {
     super.initState();
@@ -1307,14 +1316,21 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   }
 
   Future<void> _fetchPreview() async {
+    final request = ++_previewRequest;
     setState(() => _preview = const AsyncValue.loading());
     try {
       final preview = await ref
           .read(archiveRepositoryProvider)
           .purgePreview(olderThanDays: _days, purgeStats: _purgeStats);
-      if (mounted) setState(() => _preview = AsyncValue.data(preview));
-    } on AppApiException catch (e, st) {
-      if (mounted) setState(() => _preview = AsyncValue.error(e, st));
+      if (mounted && request == _previewRequest) {
+        setState(() => _preview = AsyncValue.data(preview));
+      }
+    } catch (e, st) {
+      // Any failure, not only a refusal: anything else left the dialog on its
+      // loading bar for good, with the confirm button dead.
+      if (mounted && request == _previewRequest) {
+        setState(() => _preview = AsyncValue.error(e, st));
+      }
     }
   }
 
@@ -1330,32 +1346,28 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(l10n.archivePurgeOlderThan)),
-              logTag(
-                'archive_purge.days',
-                DropdownButton<int>(
-                  value: _days,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    setState(() => _days = v);
-                    _fetchPreview();
-                  },
-                  items: [
-                    for (final d in _dayOptions)
-                      DropdownMenuItem(
-                        value: d,
-                        // Named per value: "purged 30 days" and "purged
-                        // everything" are not the same report.
-                        child: logTag(
-                          'archive_purge.days.$d',
-                          Text(l10n.archivePurgeDaysOption(d)),
-                        ),
-                      ),
-                  ],
+          dashCombo<int>(
+            context,
+            id: 'archive_purge.days',
+            label: Text(l10n.archivePurgeOlderThan),
+            initialSelection: _days,
+            onSelected: (v) {
+              if (v == null || v == _days) return;
+              setState(() => _days = v);
+              _fetchPreview();
+            },
+            entries: [
+              for (final d in _dayOptions)
+                DropdownMenuEntry(
+                  value: d,
+                  label: l10n.archivePurgeDaysOption(d),
+                  // Named per value: "purged 30 days" and "purged everything"
+                  // are not the same report.
+                  labelWidget: logTag(
+                    'archive_purge.days.$d',
+                    Text(l10n.archivePurgeDaysOption(d)),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1441,9 +1453,8 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         ref.watch(printersForPickerProvider).valueOrNull ?? const [];
 
     final materials = <String>{
-      for (final a in archives)
-        ...?a.filamentType?.split(', ').map((m) => m.trim()),
-    }..removeWhere((m) => m.isEmpty);
+      for (final a in archives) ...filamentTypeTokens(a.filamentType),
+    };
     final sortedMaterials = materials.toList()..sort();
 
     final colors = <String>{for (final a in archives) ...a.filamentColors};

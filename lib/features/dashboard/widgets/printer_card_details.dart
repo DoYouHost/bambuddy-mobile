@@ -50,9 +50,8 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (!plateClearOffered(ref, widget.status)) {
-      return const SizedBox.shrink();
-    }
+    final offer = plateClearOffer(ref, widget.status);
+    if (offer == ControlOffer.hidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
@@ -87,7 +86,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               tooltip: l10n.plateClearAction,
               color: t.accentBlue,
               borderColor: t.accentBlue.withValues(alpha: 0.5),
-              onPressed: _busy ? null : _clear,
+              onPressed: _busy || offer == ControlOffer.pending ? null : _clear,
             ),
           ],
         ),
@@ -332,12 +331,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
               Expanded(child: Text(error.displayCode, style: t.monoMicro)),
               if (url != null)
                 InkWell(
-                  onTap: () => unawaited(
-                    launchUrl(
-                      Uri.parse(url),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                  ),
+                  onTap: () => unawaited(openWebLink(context, url)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -625,9 +619,7 @@ class _AmsSection extends ConsumerWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
-    final history = ref
-        .watch(amsHistorySupportedProvider)
-        .maybeWhen(data: (v) => v, orElse: () => false);
+    final history = ref.watch(amsHistorySupportedProvider).orFalse;
 
     VoidCallback? openHistory(AmsHistoryMetric metric) => history
         ? () => showAmsHistorySheet(
@@ -1207,64 +1199,41 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
     return logTag(
       'sheet.drying',
-      SafeArea(
-        top: false,
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: t.overlaySurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: t.subCardBorder)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: t.textTertiary.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+      FittedSheetSurface(
+        child: // Scrollable, and `Flexible` so a short sheet still ends where
+            // its content does: filament, two sliders, the start-time picker
+            // and the button are more than a 360×640 screen has room for at a
+            // large system text size, and a sheet that overflows hides its
+            // own Start button.
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(l10n.ctrlDry, style: t.titleLg),
+                        const Spacer(),
+                        Text(
+                          widget.amsLabel,
+                          style: t.body.copyWith(color: t.textSecondary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Above both bodies: it explains a running cycle nobody
+                    // started just as much as it explains one about to be.
+                    const _AutoDryingNote(),
+                    if (drying)
+                      ..._runningBody(t, l10n)
+                    else
+                      ..._setupBody(t, l10n),
+                  ],
                 ),
               ),
-              // Scrollable, and `Flexible` so a short sheet still ends where
-              // its content does: filament, two sliders, the start-time picker
-              // and the button are more than a 360×640 screen has room for at a
-              // large system text size, and a sheet that overflows hides its
-              // own Start button.
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Text(l10n.ctrlDry, style: t.titleLg),
-                          const Spacer(),
-                          Text(
-                            widget.amsLabel,
-                            style: t.body.copyWith(color: t.textSecondary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Above both bodies: it explains a running cycle nobody
-                      // started just as much as it explains one about to be.
-                      const _AutoDryingNote(),
-                      if (drying)
-                        ..._runningBody(t, l10n)
-                      else
-                        ..._setupBody(t, l10n),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   }
@@ -1415,10 +1384,13 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   /// Before any answer the sheet shows nothing rather than a picker that could
   /// vanish under the user's finger; the listing behind it runs whenever a
   /// drying-capable card is built, so by the time this sheet opens it has
-  /// almost always answered. `valueOrNull`, not a `data` match: opening the
-  /// sheet re-asks, and a picker that blinked out during that refresh would be
-  /// the very thing this is avoiding.
+  /// almost always answered.
   List<Widget> _startWhen(AppLocalizations l10n) {
+    // A 403 on scheduling takes the picker away while the sheet is open; the
+    // mode it set has to go with it, or the button below keeps scheduling.
+    ref.listen(scheduledDryingSupportedProvider, (_, next) {
+      if (!next.orFalse) setState(() => _startMode = DryStartMode.now);
+    });
     final offered = ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [

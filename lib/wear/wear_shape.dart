@@ -1,7 +1,6 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-
-import '../core/platform/platform_query.dart';
 
 /// The physical shape of a watch display.
 enum WearShape {

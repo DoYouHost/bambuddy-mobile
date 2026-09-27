@@ -240,8 +240,24 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
       if (epoch != _epoch) return;
       state = AsyncValue.data(next);
     } on AppApiException {
-      if (epoch != _epoch) return;
-      state = AsyncValue.data(current.copyWith(loadingMore: false));
+      // A refused page leaves what is already on screen alone — the list is
+      // still usable, and the user can ask again by scrolling. Anything else
+      // goes up to the error probe (see the archive's delete), and `finally`
+      // is what frees the list on the way past.
+    } finally {
+      // `finally`, not a catch on AppApiException: `PrintLogPage` is built
+      // *outside* the repository's `guard`, so a malformed body throws a plain
+      // TypeError straight through here — and a `loadingMore` left true is a
+      // list that refuses every further scroll until the filters change.
+      //
+      // The flag comes off whatever is on screen now, not off the snapshot
+      // taken before the request: `reclassify` patches rows without moving the
+      // epoch, so reinstating `current` here undid an edit the user had just
+      // made and seen succeed.
+      final now = state.valueOrNull;
+      if (epoch == _epoch && now != null && now.loadingMore) {
+        state = AsyncValue.data(now.copyWith(loadingMore: false));
+      }
     }
   }
 

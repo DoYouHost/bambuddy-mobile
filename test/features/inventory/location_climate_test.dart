@@ -32,16 +32,15 @@ class _FakeSensors extends LocationSensorsRepository {
     required this.bindings,
     required this.readingsByLocation,
     this.supported = true,
-  }) : super(Dio());
+  }) : super(Dio()) {
+    sensorsCapability.observe(present: supported);
+  }
 
   final List<LocationSensorBinding> bindings;
   final Map<int, List<LocationSensorReading>> readingsByLocation;
   final bool supported;
 
   final asked = <int>[];
-
-  @override
-  Future<bool> supportsLocationSensors() async => supported;
 
   @override
   Future<List<LocationSensorBinding>> listBindings() async => bindings;

@@ -1,8 +1,8 @@
 name: bambuddy_mobile
-description: "Natywna aplikacja Android dla bambuddy - self-hosted menedżera drukarek Bambu Lab."
+description: "Native Android app for bambuddy, the self-hosted Bambu Lab printer manager."
 publish_to: 'none'
 
-version: 0.14.0+2028000
+version: 0.14.1+2028020
 
 environment:
   sdk: ^3.12.2
@@ -15,18 +15,51 @@ dependencies:
   # Report transport, outbox and redaction, shared with lubelogger-mobile.
   # Pinned to a tag, the way the OpenTofu modules are: a moving ref would let a
   # change over there reach a release from here without a commit in this repo.
+  #
+  # Must be the same ref `app_diagnostics` names for its own copy: one package
+  # resolved from two refs fails version solving outright.
   app_report_client:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.1.1
+      ref: v0.2.0
       path: packages/app_report_client
+  # The recording session, the log record and the probes, shared with
+  # lubelogger-mobile. Same repository, same pinning rule as above, and the
+  # same ref `app_report_ui` names for its own copy.
+  app_diagnostics:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.11.0
+      path: packages/app_diagnostics
+  # The report screens — the guided flow, the recording bar and the review —
+  # shared with lubelogger-mobile.
+  app_report_ui:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.11.0
+      path: packages/app_report_ui
+  # The design system and the widgets that name themselves in the diagnostic
+  # log, shared with lubelogger-mobile. `dash_kit` re-exports `dash_ui`, so this
+  # is the only one named here; it pins `dash_ui` at the ref `app_report_ui`
+  # names for its own copy.
+  dash_kit:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.11.0
+      path: packages/dash_kit
+  # JSON coercion, user-typed numbers, the demo adapter, the server address and
+  # the request-failure classification, shared with lubelogger-mobile.
+  app_util:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.11.0
+      path: packages/app_util
   clock: ^1.1.2
   collection: ^1.19.0
-  cupertino_icons: ^1.0.8
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1
-  flutter_secure_storage: ^9.2.2
-  go_router: ^16.0.0
+  flutter_secure_storage: ^10.3.4
+  go_router: ^17.5.0
   intl: ^0.20.2
   json_annotation: ^4.12.0
   # Annotations only; the generator behind them is a dev dependency. Both models
@@ -35,28 +68,32 @@ dependencies:
   copy_with_extension: ^17.0.0
   shared_preferences: ^2.3.3
   web_socket_channel: ^3.0.3
-  flutter_mjpeg: ^2.0.4
-  flutter_local_notifications: ^18.0.1
-  flutter_foreground_task: ^9.2.2
+  flutter_local_notifications: ^22.3.1
+  flutter_foreground_task: ^11.0.3
   url_launcher: ^6.3.0
-  flutter_svg: ^2.0.9
+  flutter_svg: ^2.3.0
   mobile_scanner: ^7.2.0
   flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
-  package_info_plus: ^8.0.0
-  home_widget: ^0.7.0
+  package_info_plus: ^9.0.1
+  home_widget: ^0.10.0
   path_provider: ^2.1.5
   webview_flutter: ^4.10.0
-  file_picker: ^8.1.6
+  file_picker: ^10.3.10
   watch_connectivity: ^0.2.9
-  printing: ^5.14.3
+  printing: ^5.15.0
   video_player: ^2.14.0
   gal: ^2.3.3
   share_plus: ^12.0.2
   flutter_file_dialog: ^3.3.2
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # On-device tests (`just test-device`). A mocked adapter never performs a real
+  # read off a socket, which is exactly what the camera stream is.
+  integration_test:
     sdk: flutter
   build_runner: ^2.4.13
   flutter_lints: ^6.0.0
@@ -111,17 +148,39 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-400.ttf
           weight: 400
-        - asset: assets/fonts/JetBrainsMono-500.ttf
-          weight: 500
         - asset: assets/fonts/JetBrainsMono-600.ttf
           weight: 600
         - asset: assets/fonts/JetBrainsMono-700.ttf
           weight: 700
+        # 800 rather than a fifth weight nobody asks for: `DashText.monoTitle`
+        # is w800 in eleven places and, with no face for it, was resolving to
+        # the 700 above — so `monoTitle` and `monoHeadline` rendered identically
+        # while the design asks for two different weights. The 500 this replaces
+        # was the mirror image: shipped, and requested by nothing.
+        #
+        # Taken from the same JetBrains Mono 2.304 release as its siblings,
+        # verified by that release's Bold being byte-for-byte the 700 above.
+        # The OFL travels with the family, not the face (`registerDashFontLicenses`
+        # in dash_ui), so the licence page already covers this one.
+        - asset: assets/fonts/JetBrainsMono-800.ttf
+          weight: 800
 
+# Everything under `android/app/src/main/res` that names an icon comes out of
+# `dart run flutter_launcher_icons`, and nothing there is edited afterwards.
+# The themed icon used to be the exception — a `<monochrome>` block added by
+# hand, which the next regeneration silently dropped — so it is a config key
+# now. `launcher_icon_test.dart` fails if it ever stops being one.
+#
+# `min_sdk_android` is the generator's own floor, not the app's — that one is
+# the literal `minSdk = 24` in `android/app/build.gradle.kts`. Kept in step with
+# it so the two do not tell different stories.
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 24
   adaptive_icon_background: "#1A2233"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  # Android 13+ tints this layer to the wallpaper palette. Same art as the
+  # foreground, because only its alpha silhouette is used.
+  adaptive_icon_monochrome: "assets/icon/icon_foreground.png"

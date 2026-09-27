@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:clock/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'notification_prefs.dart';
@@ -161,11 +162,10 @@ class FinishAlertMemory {
 /// this way the record is written from the one place the alert actually goes
 /// out — including the paths (a re-post, a probe) that never touch the monitor.
 class RememberingNotifications implements NotificationService {
-  const RememberingNotifications(this._inner, this._memory, this._now);
+  const RememberingNotifications(this._inner, this._memory);
 
   final NotificationService _inner;
   final FinishAlertMemory _memory;
-  final DateTime Function() _now;
 
   @override
   Future<void> init() => _inner.init();
@@ -177,7 +177,7 @@ class RememberingNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) => _inner.showOngoing(title: title, body: body, progress: progress);
 
   @override
@@ -218,7 +218,7 @@ class RememberingNotifications implements NotificationService {
         title: title,
         body: body,
         payload: payload,
-        postedAt: _now(),
+        postedAt: clock.now(),
       ),
     );
   }

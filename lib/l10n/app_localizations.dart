@@ -5,7 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_fr.dart';
 import 'app_localizations_pl.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +98,9 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('de'),
+    Locale('es'),
+    Locale('fr'),
     Locale('pl'),
   ];
 
@@ -140,11 +146,11 @@ abstract class AppLocalizations {
   /// **'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.'**
   String get signInRequiredTwoFactorBody;
 
-  /// No description provided for @later.
+  /// Sign-in warning when the profile expects a credential and the secure store has none
   ///
   /// In en, this message translates to:
-  /// **'Later'**
-  String get later;
+  /// **'A security update or a restored backup invalidated the key that encrypted your saved sign-in. Nothing else was lost.'**
+  String get signInRequiredMissingBody;
 
   /// No description provided for @serverUnreachableStale.
   ///
@@ -704,18 +710,6 @@ abstract class AppLocalizations {
   /// **'Chamber light'**
   String get ctrlLight;
 
-  /// No description provided for @ctrlLightOn.
-  ///
-  /// In en, this message translates to:
-  /// **'On'**
-  String get ctrlLightOn;
-
-  /// No description provided for @ctrlLightOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Off'**
-  String get ctrlLightOff;
-
   /// No description provided for @ctrlAirduct.
   ///
   /// In en, this message translates to:
@@ -992,11 +986,23 @@ abstract class AppLocalizations {
   /// **'Down'**
   String get ctrlMoveZDown;
 
-  /// No description provided for @ctrlMoveExtruder.
+  /// No description provided for @ctrlMoveZToolhead.
   ///
   /// In en, this message translates to:
-  /// **'Extruder'**
-  String get ctrlMoveExtruder;
+  /// **'Z (toolhead)'**
+  String get ctrlMoveZToolhead;
+
+  /// No description provided for @ctrlMoveZUnknownDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer\'s Z direction depends on the server version, which could not be confirmed, so Z moves are turned off here. Update the server or reopen this panel once it is reachable.'**
+  String get ctrlMoveZUnknownDirection;
+
+  /// No description provided for @ctrlMoveZNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer has no model set in Bambuddy, so the app cannot tell whether Z moves the plate or the toolhead, and Z moves are turned off here. Set the printer\'s model in Bambuddy to use them.'**
+  String get ctrlMoveZNoModel;
 
   /// No description provided for @ctrlMoveExtrude.
   ///
@@ -1429,12 +1435,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No archived prints'**
   String get archiveEmpty;
-
-  /// No description provided for @archiveSearchFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t search for \"{query}\". Try a different term.'**
-  String archiveSearchFailed(String query);
 
   /// No description provided for @archiveNoMatches.
   ///
@@ -2132,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'Dismiss this notice'**
   String get archiveNo3mfDismiss;
 
+  /// No description provided for @archiveNotSliceable.
+  ///
+  /// In en, this message translates to:
+  /// **'This print has no source file or model, so it cannot be re-sliced.'**
+  String get archiveNotSliceable;
+
   /// No description provided for @archiveDelete.
   ///
   /// In en, this message translates to:
@@ -2263,12 +2269,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a printer'**
   String get pickPrinterTitle;
-
-  /// No description provided for @noPrintersAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'No printers available'**
-  String get noPrintersAvailable;
 
   /// No description provided for @detailsShow.
   ///
@@ -2612,18 +2612,6 @@ abstract class AppLocalizations {
   /// **'R'**
   String get extruderRightShort;
 
-  /// No description provided for @amsHumidityTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS humidity'**
-  String get amsHumidityTooltip;
-
-  /// No description provided for @amsTempTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS temperature'**
-  String get amsTempTooltip;
-
   /// No description provided for @amsHistoryTitle.
   ///
   /// In en, this message translates to:
@@ -2749,12 +2737,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recorded every minute while the printer is connected'**
   String get heaterHistoryRecordingInfo;
-
-  /// No description provided for @wifiTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Wi-Fi signal'**
-  String get wifiTooltip;
 
   /// No description provided for @doorOpen.
   ///
@@ -2887,18 +2869,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} offline'**
   String widgetMultiOfflineCount(int count);
-
-  /// No description provided for @widgetMultiName.
-  ///
-  /// In en, this message translates to:
-  /// **'Bambuddy · Printers'**
-  String get widgetMultiName;
-
-  /// No description provided for @widgetMultiDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'All printers at a glance'**
-  String get widgetMultiDescription;
 
   /// No description provided for @remaining.
   ///
@@ -3302,11 +3272,41 @@ abstract class AppLocalizations {
   /// **'{percent}% · ETA {eta}'**
   String notifOngoingBody(int percent, String eta);
 
-  /// No description provided for @notifMorePrints.
+  /// No description provided for @notifEtaSoon.
   ///
   /// In en, this message translates to:
-  /// **'+{count}'**
-  String notifMorePrints(int count);
+  /// **'soon'**
+  String get notifEtaSoon;
+
+  /// No description provided for @demoSettingsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get demoSettingsSection;
+
+  /// No description provided for @demoPrintingCountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers printing'**
+  String get demoPrintingCountTitle;
+
+  /// No description provided for @demoPrintingCountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'How many of the demo\'s printers run a print at the same time — for seeing what several do to the dashboard and to the ongoing notification.'**
+  String get demoPrintingCountDesc;
+
+  /// No description provided for @notifOngoingMultiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} ({percent}% · ETA {eta})'**
+  String notifOngoingMultiBody(String printer, int percent, String eta);
+
+  /// No description provided for @notifOngoingMultiBodyNoEta.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} ({percent}%)'**
+  String notifOngoingMultiBodyNoEta(String printer, int percent);
 
   /// No description provided for @printFinishedTitle.
   ///
@@ -3656,12 +3656,6 @@ abstract class AppLocalizations {
   /// **'Notification events'**
   String get notifEventsMenu;
 
-  /// No description provided for @hmsErrorsHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Active errors'**
-  String get hmsErrorsHeader;
-
   /// No description provided for @hmsViewInWiki.
   ///
   /// In en, this message translates to:
@@ -3686,23 +3680,11 @@ abstract class AppLocalizations {
   /// **'Errors cleared on the printer'**
   String get hmsDismissed;
 
-  /// No description provided for @hmsDismissFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not clear the errors'**
-  String get hmsDismissFailed;
-
   /// No description provided for @hmsActionSent.
   ///
   /// In en, this message translates to:
   /// **'Sent to the printer'**
   String get hmsActionSent;
-
-  /// No description provided for @hmsActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'The printer refused the action'**
-  String get hmsActionFailed;
 
   /// No description provided for @hmsActionNotAcknowledged.
   ///
@@ -4004,18 +3986,6 @@ abstract class AppLocalizations {
   /// **'Search material, brand, color…'**
   String get inventorySearchHint;
 
-  /// No description provided for @inventoryShowArchived.
-  ///
-  /// In en, this message translates to:
-  /// **'Show archived'**
-  String get inventoryShowArchived;
-
-  /// No description provided for @inventoryArchived.
-  ///
-  /// In en, this message translates to:
-  /// **'Archived'**
-  String get inventoryArchived;
-
   /// No description provided for @inventoryLowStock.
   ///
   /// In en, this message translates to:
@@ -4154,12 +4124,6 @@ abstract class AppLocalizations {
   /// **'Tag'**
   String get inventoryTag;
 
-  /// No description provided for @inventoryId.
-  ///
-  /// In en, this message translates to:
-  /// **'Filament ID'**
-  String get inventoryId;
-
   /// No description provided for @inventoryUsageHistory.
   ///
   /// In en, this message translates to:
@@ -4219,12 +4183,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get inventorySave;
-
-  /// No description provided for @inventoryFieldQuantity.
-  ///
-  /// In en, this message translates to:
-  /// **'Quantity'**
-  String get inventoryFieldQuantity;
 
   /// No description provided for @inventoryQuantityHint.
   ///
@@ -4364,12 +4322,6 @@ abstract class AppLocalizations {
   /// **'Spool weight (g)'**
   String get inventoryFieldLabelWeight;
 
-  /// No description provided for @inventoryFieldWeightUsed.
-  ///
-  /// In en, this message translates to:
-  /// **'Used (g)'**
-  String get inventoryFieldWeightUsed;
-
   /// No description provided for @inventoryFieldCostPerKg.
   ///
   /// In en, this message translates to:
@@ -4387,18 +4339,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage location'**
   String get inventoryFieldLocation;
-
-  /// No description provided for @inventoryFieldNozzleMin.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle min (°C)'**
-  String get inventoryFieldNozzleMin;
-
-  /// No description provided for @inventoryFieldNozzleMax.
-  ///
-  /// In en, this message translates to:
-  /// **'Nozzle max (°C)'**
-  String get inventoryFieldNozzleMax;
 
   /// No description provided for @inventoryFieldNote.
   ///
@@ -4429,24 +4369,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a value of 0 or more'**
   String get inventoryFieldNegative;
-
-  /// No description provided for @inventorySectionBasics.
-  ///
-  /// In en, this message translates to:
-  /// **'Basics'**
-  String get inventorySectionBasics;
-
-  /// No description provided for @inventorySectionWeight.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight & cost'**
-  String get inventorySectionWeight;
-
-  /// No description provided for @inventorySectionDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Details'**
-  String get inventorySectionDetails;
 
   /// No description provided for @inventorySectionFilament.
   ///
@@ -4801,30 +4723,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Point the camera at the spool\'s QR code'**
   String get inventoryScanHint;
-
-  /// No description provided for @inventoryScanPermissionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Camera access needed'**
-  String get inventoryScanPermissionTitle;
-
-  /// No description provided for @inventoryScanPermissionBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow camera access to scan spool QR codes.'**
-  String get inventoryScanPermissionBody;
-
-  /// No description provided for @inventoryScanOpenSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Open settings'**
-  String get inventoryScanOpenSettings;
-
-  /// No description provided for @inventoryScanInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Unrecognized QR code'**
-  String get inventoryScanInvalid;
 
   /// No description provided for @inventoryScanNotFound.
   ///
@@ -5240,12 +5138,6 @@ abstract class AppLocalizations {
   /// **'{count} due'**
   String maintenanceDueBadge(int count);
 
-  /// No description provided for @maintenanceWarningBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} soon'**
-  String maintenanceWarningBadge(int count);
-
   /// No description provided for @maintenanceDueIn.
   ///
   /// In en, this message translates to:
@@ -5294,12 +5186,6 @@ abstract class AppLocalizations {
   /// **'Maintenance marked as done'**
   String get maintenanceDone;
 
-  /// No description provided for @maintenanceFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not update maintenance'**
-  String get maintenanceFailed;
-
   /// No description provided for @maintenanceSaved.
   ///
   /// In en, this message translates to:
@@ -5323,18 +5209,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mute tasks or customize intervals per printer'**
   String get maintenanceOverridesSubtitle;
-
-  /// No description provided for @maintenanceTabStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Status'**
-  String get maintenanceTabStatus;
-
-  /// No description provided for @maintenanceTabSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get maintenanceTabSettings;
 
   /// No description provided for @maintenanceMute.
   ///
@@ -5552,12 +5426,6 @@ abstract class AppLocalizations {
   /// **'Mark done'**
   String get maintenanceNotifAction;
 
-  /// No description provided for @navMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Menu'**
-  String get navMenu;
-
   /// No description provided for @menuStatistics.
   ///
   /// In en, this message translates to:
@@ -5720,23 +5588,11 @@ abstract class AppLocalizations {
   /// **'100% = perfect estimate'**
   String get statsTimeAccuracyHint;
 
-  /// No description provided for @statsByMaterial.
-  ///
-  /// In en, this message translates to:
-  /// **'Prints by material'**
-  String get statsByMaterial;
-
   /// No description provided for @statsByPrinter.
   ///
   /// In en, this message translates to:
   /// **'Prints by printer'**
   String get statsByPrinter;
-
-  /// No description provided for @statsTimeAccuracyByPrinter.
-  ///
-  /// In en, this message translates to:
-  /// **'Time accuracy by printer'**
-  String get statsTimeAccuracyByPrinter;
 
   /// No description provided for @statsPrintsCount.
   ///
@@ -5779,18 +5635,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failure analysis'**
   String get statsFailureAnalysis;
-
-  /// No description provided for @statsFailureRate.
-  ///
-  /// In en, this message translates to:
-  /// **'Failure rate'**
-  String get statsFailureRate;
-
-  /// No description provided for @statsFailurePeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'Last {days} days'**
-  String statsFailurePeriod(int days);
 
   /// No description provided for @statsFailedOfTotal.
   ///
@@ -5990,11 +5834,23 @@ abstract class AppLocalizations {
   /// **'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.'**
   String get aboutTagline;
 
-  /// No description provided for @aboutVersion.
+  /// This app's own build, shown directly above the server's on all three screens that name a version (drawer footer, About, watch settings). Deliberately the same wording in all three and deliberately paired with serverVersionLabel: two lines that answer the same question should not be phrased as if they answered different ones.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}'**
-  String aboutVersion(String version);
+  /// **'App {version}'**
+  String appVersionLabel(String version);
+
+  /// Version of the bambuddy server the app is connected to, shown under the app's own version. A noun phrase ending in a value, not a sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Server {version}'**
+  String serverVersionLabel(String version);
+
+  /// Shown in place of the server version when the server does not answer the version route — an older build, or one that is unreachable right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version unknown'**
+  String get serverVersionUnknown;
 
   /// No description provided for @aboutLicenseHeader.
   ///
@@ -6043,12 +5899,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Licenses of the bundled libraries'**
   String get aboutThirdPartySubtitle;
-
-  /// No description provided for @aboutOpenLinkError.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open the link'**
-  String get aboutOpenLinkError;
 
   /// Drawer entry: File Manager
   ///
@@ -6271,6 +6121,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added to queue'**
   String get fmAddedToQueue;
+
+  /// No description provided for @fmQueueTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Where should this file print?} other{Where should {count} files print?}}'**
+  String fmQueueTargetTitle(int count);
+
+  /// No description provided for @fmQueueTargetAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Model from the file'**
+  String get fmQueueTargetAuto;
+
+  /// No description provided for @fmQueueTargetAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each file waits for a printer of the model it was sliced for'**
+  String get fmQueueTargetAutoHint;
+
+  /// No description provided for @fmAddedToQueuePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {added} of {total} files to the queue. {reason}'**
+  String fmAddedToQueuePartial(int added, int total, String reason);
+
+  /// No description provided for @fmQueueErrWrongModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced for a different printer model.'**
+  String get fmQueueErrWrongModel;
+
+  /// No description provided for @fmQueueErrNotSliced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sliced — only G-code files can be queued.'**
+  String get fmQueueErrNotSliced;
+
+  /// No description provided for @fmFileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, link and notes'**
+  String get fmFileDetails;
+
+  /// No description provided for @fmPhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos of the print yet'**
+  String get fmPhotosEmpty;
+
+  /// No description provided for @fmPhotoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get fmPhotoAdd;
+
+  /// No description provided for @fmPhotoFromCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get fmPhotoFromCamera;
+
+  /// No description provided for @fmPhotoFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get fmPhotoFromGallery;
+
+  /// No description provided for @fmPhotoFromFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from files'**
+  String get fmPhotoFromFiles;
+
+  /// No description provided for @fmPhotoAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo added'**
+  String get fmPhotoAdded;
+
+  /// No description provided for @fmPhotoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo'**
+  String get fmPhotoDelete;
+
+  /// No description provided for @fmPhotoDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this photo from the file?'**
+  String get fmPhotoDeleteConfirm;
+
+  /// No description provided for @fmPhotoDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo deleted'**
+  String get fmPhotoDeleted;
+
+  /// No description provided for @fmPhotoErrType.
+  ///
+  /// In en, this message translates to:
+  /// **'Only JPG, PNG or WebP photos can be added.'**
+  String get fmPhotoErrType;
+
+  /// No description provided for @fmPhotoErrTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo is larger than 10 MB.'**
+  String get fmPhotoErrTooLarge;
+
+  /// No description provided for @fmPhotoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the camera or the picker.'**
+  String get fmPhotoPickFailed;
+
+  /// No description provided for @fmLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get fmLink;
+
+  /// No description provided for @fmLinkNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No link'**
+  String get fmLinkNone;
+
+  /// No description provided for @fmLinkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit link'**
+  String get fmLinkEdit;
+
+  /// No description provided for @fmLinkField.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get fmLinkField;
+
+  /// No description provided for @fmLinkSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Link saved'**
+  String get fmLinkSaved;
+
+  /// No description provided for @fmLinkErrScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'The link has to start with http:// or https://.'**
+  String get fmLinkErrScheme;
+
+  /// No description provided for @linkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link.'**
+  String get linkOpenFailed;
+
+  /// No description provided for @fmSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported from'**
+  String get fmSource;
+
+  /// No description provided for @fmNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get fmNotes;
+
+  /// No description provided for @fmNotesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes'**
+  String get fmNotesNone;
+
+  /// No description provided for @fmNotesEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get fmNotesEdit;
+
+  /// No description provided for @fmNotesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes saved'**
+  String get fmNotesSaved;
 
   /// No description provided for @fmGroupAsVariants.
   ///
@@ -7106,12 +7142,6 @@ abstract class AppLocalizations {
   /// **'Project deleted'**
   String get projectDeleted;
 
-  /// No description provided for @projectDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not delete project'**
-  String get projectDeleteFailed;
-
   /// No description provided for @projectSaved.
   ///
   /// In en, this message translates to:
@@ -7286,29 +7316,11 @@ abstract class AppLocalizations {
   /// **'Urgent'**
   String get projectPriorityUrgent;
 
-  /// No description provided for @projectTabOverview.
-  ///
-  /// In en, this message translates to:
-  /// **'Overview'**
-  String get projectTabOverview;
-
-  /// No description provided for @projectTabArchives.
-  ///
-  /// In en, this message translates to:
-  /// **'Archives'**
-  String get projectTabArchives;
-
   /// No description provided for @projectTabBom.
   ///
   /// In en, this message translates to:
   /// **'BOM'**
   String get projectTabBom;
-
-  /// No description provided for @projectTabQueue.
-  ///
-  /// In en, this message translates to:
-  /// **'Queue'**
-  String get projectTabQueue;
 
   /// No description provided for @projectTabTimeline.
   ///
@@ -7327,12 +7339,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attachments'**
   String get projectTabAttachments;
-
-  /// No description provided for @projectStatsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Statistics'**
-  String get projectStatsTitle;
 
   /// No description provided for @projectStatProgress.
   ///
@@ -7382,12 +7388,6 @@ abstract class AppLocalizations {
   /// **'Queued'**
   String get projectStatQueued;
 
-  /// No description provided for @projectStatInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get projectStatInProgress;
-
   /// No description provided for @projectStatPrintTime.
   ///
   /// In en, this message translates to:
@@ -7412,18 +7412,6 @@ abstract class AppLocalizations {
   /// **'Energy'**
   String get projectStatEnergy;
 
-  /// No description provided for @projectStatEnergyCost.
-  ///
-  /// In en, this message translates to:
-  /// **'Energy cost'**
-  String get projectStatEnergyCost;
-
-  /// No description provided for @projectStatRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'Remaining'**
-  String get projectStatRemaining;
-
   /// No description provided for @projectStatBom.
   ///
   /// In en, this message translates to:
@@ -7436,12 +7424,6 @@ abstract class AppLocalizations {
   /// **'Sub-projects'**
   String get projectChildren;
 
-  /// No description provided for @projectNoDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'No description'**
-  String get projectNoDescription;
-
   /// No description provided for @projectDueOn.
   ///
   /// In en, this message translates to:
@@ -7453,24 +7435,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add archives'**
   String get projectAddArchives;
-
-  /// No description provided for @projectRemoveArchive.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from project'**
-  String get projectRemoveArchive;
-
-  /// No description provided for @projectArchivesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No archives linked'**
-  String get projectArchivesEmpty;
-
-  /// No description provided for @projectArchiveRemoved.
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from project'**
-  String get projectArchiveRemoved;
 
   /// No description provided for @archiveAddToProject.
   ///
@@ -7526,12 +7490,6 @@ abstract class AppLocalizations {
   /// **'Quantity'**
   String get bomQtyNeeded;
 
-  /// No description provided for @bomQtyAcquired.
-  ///
-  /// In en, this message translates to:
-  /// **'Acquired'**
-  String get bomQtyAcquired;
-
   /// No description provided for @bomUnitPrice.
   ///
   /// In en, this message translates to:
@@ -7550,29 +7508,11 @@ abstract class AppLocalizations {
   /// **'Remarks'**
   String get bomRemarks;
 
-  /// No description provided for @bomComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Complete'**
-  String get bomComplete;
-
   /// No description provided for @bomDelete.
   ///
   /// In en, this message translates to:
   /// **'Delete item'**
   String get bomDelete;
-
-  /// No description provided for @bomDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Item deleted'**
-  String get bomDeleted;
-
-  /// No description provided for @projectQueueEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No queue items'**
-  String get projectQueueEmpty;
 
   /// No description provided for @projectTimelineEmpty.
   ///
@@ -7682,35 +7622,11 @@ abstract class AppLocalizations {
   /// **'Create from template'**
   String get projectFromTemplate;
 
-  /// No description provided for @projectTemplateNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No templates'**
-  String get projectTemplateNone;
-
-  /// No description provided for @projectTemplatePickTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a template'**
-  String get projectTemplatePickTitle;
-
-  /// No description provided for @projectTemplateNamePrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'New project name'**
-  String get projectTemplateNamePrompt;
-
   /// No description provided for @projectExported.
   ///
   /// In en, this message translates to:
   /// **'Exported to {path}'**
   String projectExported(String path);
-
-  /// No description provided for @projectExportFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Export failed'**
-  String get projectExportFailed;
 
   /// No description provided for @projectTemplateCreated.
   ///
@@ -8246,12 +8162,6 @@ abstract class AppLocalizations {
   /// **'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.'**
   String get pipelinesEmptyHint;
 
-  /// No description provided for @pipelineProfiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Profiles'**
-  String get pipelineProfiles;
-
   /// No description provided for @pipelineFilamentsCount.
   ///
   /// In en, this message translates to:
@@ -8396,23 +8306,11 @@ abstract class AppLocalizations {
   /// **'Pipeline deleted'**
   String get pipelineDeleted;
 
-  /// No description provided for @pipelineDescriptionNoClear.
-  ///
-  /// In en, this message translates to:
-  /// **'A description cannot be emptied once saved — this server only ever writes a new one.'**
-  String get pipelineDescriptionNoClear;
-
   /// No description provided for @pipelineRun.
   ///
   /// In en, this message translates to:
   /// **'Run'**
   String get pipelineRun;
-
-  /// No description provided for @pipelineRunTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Run \"{name}\"'**
-  String pipelineRunTitle(String name);
 
   /// No description provided for @pipelineRunCopies.
   ///
@@ -8443,12 +8341,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This server allows {max} at most.'**
   String pipelineRunMaxCopies(int max);
-
-  /// No description provided for @pipelineCheckingEligibility.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking printers…'**
-  String get pipelineCheckingEligibility;
 
   /// No description provided for @pipelineEligibilityOk.
   ///
@@ -8576,17 +8468,17 @@ abstract class AppLocalizations {
   /// **'Filter runs'**
   String get pipelineRunsFilter;
 
-  /// No description provided for @pipelineCopiesLess.
+  /// No description provided for @copiesLess.
   ///
   /// In en, this message translates to:
   /// **'One fewer copy'**
-  String get pipelineCopiesLess;
+  String get copiesLess;
 
-  /// No description provided for @pipelineCopiesMore.
+  /// No description provided for @copiesMore.
   ///
   /// In en, this message translates to:
   /// **'One more copy'**
-  String get pipelineCopiesMore;
+  String get copiesMore;
 
   /// No description provided for @pipelineEligible.
   ///
@@ -8869,12 +8761,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filament mapping'**
   String get queueFilamentMapping;
-
-  /// No description provided for @mappingNoPrinter.
-  ///
-  /// In en, this message translates to:
-  /// **'Assign a printer to this item first to map its AMS slots.'**
-  String get mappingNoPrinter;
 
   /// No description provided for @mappingNoSlots.
   ///
@@ -9200,6 +9086,12 @@ abstract class AppLocalizations {
   /// **'Printer unavailable'**
   String get wearPrinterUnavailable;
 
+  /// Watch, under the status chip while the screen is showing the fleet cached from the last run: says why it is dimmed and why every command button is disabled. The buttons come back on the first successful poll. Short because it sits on a line of its own on a 1.4 inch face.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for current state'**
+  String get wearWaitingForState;
+
   /// No description provided for @wearNoActions.
   ///
   /// In en, this message translates to:
@@ -9229,6 +9121,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Started'**
   String get wearStarted;
+
+  /// No description provided for @wearNothingQueuedHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing queued for this printer'**
+  String get wearNothingQueuedHere;
 
   /// No description provided for @wearPhoneUnreachable.
   ///
@@ -9830,30 +9728,6 @@ abstract class AppLocalizations {
   /// **'Report a bug or an idea'**
   String get bugReportTitle;
 
-  /// No description provided for @bugReportIntroHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'How it works'**
-  String get bugReportIntroHeader;
-
-  /// No description provided for @bugReportStepRecord.
-  ///
-  /// In en, this message translates to:
-  /// **'Start recording'**
-  String get bugReportStepRecord;
-
-  /// No description provided for @bugReportStepReproduce.
-  ///
-  /// In en, this message translates to:
-  /// **'Reproduce the problem'**
-  String get bugReportStepReproduce;
-
-  /// No description provided for @bugReportStepFinish.
-  ///
-  /// In en, this message translates to:
-  /// **'Come back and finish'**
-  String get bugReportStepFinish;
-
   /// No description provided for @bugReportLogScreens.
   ///
   /// In en, this message translates to:
@@ -9908,521 +9782,17 @@ abstract class AppLocalizations {
   /// **'Printer serial numbers, or the names of your files, models and spools'**
   String get bugReportLogNoData;
 
-  /// No description provided for @bugReportReviewFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'You read all of it before it leaves the phone.'**
-  String get bugReportReviewFirst;
-
-  /// No description provided for @bugReportPrivacyHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'What ends up in the log'**
-  String get bugReportPrivacyHeader;
-
-  /// No description provided for @bugReportStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Start recording'**
-  String get bugReportStart;
-
-  /// No description provided for @bugReportRecordingHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording'**
-  String get bugReportRecordingHeader;
-
-  /// No description provided for @bugReportRecordingBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Go back to the app and reproduce the problem. The recording bar stays with you — drag it aside or collapse it if it gets in the way, and use it to mark the moment it breaks and to finish.'**
-  String get bugReportRecordingBody;
-
-  /// No description provided for @bugReportMark.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark the moment'**
-  String get bugReportMark;
-
-  /// No description provided for @bugReportMarked.
-  ///
-  /// In en, this message translates to:
-  /// **'Moment marked'**
-  String get bugReportMarked;
-
-  /// No description provided for @bugReportStop.
-  ///
-  /// In en, this message translates to:
-  /// **'Finish recording'**
-  String get bugReportStop;
-
-  /// No description provided for @bugReportStopShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Finish'**
-  String get bugReportStopShort;
-
-  /// No description provided for @bugReportBannerLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording'**
-  String get bugReportBannerLabel;
-
-  /// No description provided for @bugReportBarMove.
-  ///
-  /// In en, this message translates to:
-  /// **'Move the recording bar'**
-  String get bugReportBarMove;
-
-  /// No description provided for @bugReportBarCollapse.
-  ///
-  /// In en, this message translates to:
-  /// **'Collapse the recording bar'**
-  String get bugReportBarCollapse;
-
-  /// No description provided for @bugReportBarExpand.
-  ///
-  /// In en, this message translates to:
-  /// **'Expand the recording bar'**
-  String get bugReportBarExpand;
-
-  /// No description provided for @bugReportReviewHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Review before sending'**
-  String get bugReportReviewHeader;
-
-  /// No description provided for @bugReportReviewBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This is everything that was recorded. Read it through — below you choose whether it stays on the phone or goes out as a public issue.'**
-  String get bugReportReviewBody;
-
-  /// No description provided for @bugReportSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{records} records · {errors} errors · {warnings} warnings'**
-  String bugReportSummary(int records, int errors, int warnings);
-
-  /// No description provided for @bugReportMarkers.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 marked moment} other{{count} marked moments}}'**
-  String bugReportMarkers(int count);
-
-  /// No description provided for @bugReportTruncated.
-  ///
-  /// In en, this message translates to:
-  /// **'The session was long — the oldest records were dropped.'**
-  String get bugReportTruncated;
-
-  /// No description provided for @bugReportEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing was recorded.'**
-  String get bugReportEmpty;
-
-  /// No description provided for @bugReportShowRaw.
-  ///
-  /// In en, this message translates to:
-  /// **'Show raw log'**
-  String get bugReportShowRaw;
-
-  /// No description provided for @bugReportHideRaw.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide raw log'**
-  String get bugReportHideRaw;
-
-  /// No description provided for @bugReportRawClipped.
-  ///
-  /// In en, this message translates to:
-  /// **'The first {kb} kB are not shown here. The file you save holds the whole session.'**
-  String bugReportRawClipped(int kb);
-
-  /// No description provided for @bugReportSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save to a file'**
-  String get bugReportSave;
-
-  /// No description provided for @bugReportSaveShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get bugReportSaveShort;
-
-  /// No description provided for @bugReportSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Log saved to the file'**
-  String get bugReportSaved;
-
-  /// No description provided for @bugReportSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'The log could not be saved.'**
-  String get bugReportSaveFailed;
-
-  /// No description provided for @bugReportDiscard.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard'**
-  String get bugReportDiscard;
-
-  /// No description provided for @bugReportDiscardQuestion.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard this recording?'**
-  String get bugReportDiscardQuestion;
-
-  /// No description provided for @bugReportDiscardBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The log will be deleted from the phone.'**
-  String get bugReportDiscardBody;
-
-  /// No description provided for @bugReportDiscardBodyQueued.
-  ///
-  /// In en, this message translates to:
-  /// **'The log will be deleted from the phone and the queued report cancelled.'**
-  String get bugReportDiscardBodyQueued;
-
-  /// No description provided for @bugReportLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'A recording stops by itself after {minutes} minutes.'**
-  String bugReportLimit(int minutes);
-
-  /// No description provided for @bugReportLimitReached.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording finished — the {minutes} minute limit was reached.'**
-  String bugReportLimitReached(int minutes);
-
-  /// No description provided for @bugReportSizeLimitReached.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording finished — the log reached its {megabytes} MB limit.'**
-  String bugReportSizeLimitReached(int megabytes);
-
-  /// No description provided for @bugReportShow.
-  ///
-  /// In en, this message translates to:
-  /// **'Show'**
-  String get bugReportShow;
-
-  /// No description provided for @bugReportRecoveredHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'A recording survived a crash'**
-  String get bugReportRecoveredHeader;
-
-  /// No description provided for @bugReportRecoveredBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away.'**
-  String get bugReportRecoveredBody;
-
-  /// No description provided for @bugReportDestinationHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'What happens to this log'**
-  String get bugReportDestinationHeader;
-
-  /// No description provided for @bugReportDestinationFile.
-  ///
-  /// In en, this message translates to:
-  /// **'Save to a file'**
-  String get bugReportDestinationFile;
-
-  /// No description provided for @bugReportDestinationIssue.
-  ///
-  /// In en, this message translates to:
-  /// **'Report on GitHub'**
-  String get bugReportDestinationIssue;
-
-  /// No description provided for @bugReportDestinationFileBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The log is saved where you choose and stays on your phone. You decide whether to send it anywhere.'**
-  String get bugReportDestinationFileBody;
-
-  /// No description provided for @bugReportDestinationIssueBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The log and your description are posted as a public issue on GitHub, where anyone can read them and they stay for good. Go through the log below first.'**
-  String get bugReportDestinationIssueBody;
-
-  /// No description provided for @bugReportDescriptionLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'What went wrong?'**
-  String get bugReportDescriptionLabel;
-
-  /// No description provided for @bugReportDescriptionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What were you doing, what did you expect, what happened instead.'**
-  String get bugReportDescriptionHint;
-
-  /// No description provided for @bugReportDescriptionRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Say what went wrong — a log with no description is nearly unusable.'**
-  String get bugReportDescriptionRequired;
-
-  /// No description provided for @bugReportSend.
-  ///
-  /// In en, this message translates to:
-  /// **'Report'**
-  String get bugReportSend;
-
-  /// No description provided for @bugReportSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get bugReportSending;
-
-  /// No description provided for @bugReportSendWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending in {clock}'**
-  String bugReportSendWaiting(String clock);
-
-  /// No description provided for @bugReportSendWaitingBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay spaces reports out. You can leave this screen — it goes on its own.'**
-  String get bugReportSendWaitingBody;
-
-  /// No description provided for @bugReportSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Report sent'**
-  String get bugReportSent;
-
-  /// No description provided for @bugReportSentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Thank you. The issue is open and the log is attached to it.'**
-  String get bugReportSentBody;
-
-  /// No description provided for @bugReportOpenIssue.
-  ///
-  /// In en, this message translates to:
-  /// **'Open the issue'**
-  String get bugReportOpenIssue;
-
-  /// No description provided for @bugReportDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get bugReportDone;
-
-  /// No description provided for @bugReportSendFailedNotYet.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay is not accepting reports right now. Try again later, or save the log to a file.'**
-  String get bugReportSendFailedNotYet;
-
-  /// No description provided for @bugReportSendFailedRefused.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay refused this report. Save the log to a file and attach it yourself.'**
-  String get bugReportSendFailedRefused;
-
-  /// No description provided for @bugReportSendFailedDuplicate.
-  ///
-  /// In en, this message translates to:
-  /// **'This one has already been reported.'**
-  String get bugReportSendFailedDuplicate;
-
-  /// No description provided for @bugReportSendFailedUnreachable.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not reach the relay. Check the connection, or save the log to a file.'**
-  String get bugReportSendFailedUnreachable;
-
-  /// No description provided for @bugReportSendFailedRejected.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay rejected this report. Save the log to a file and attach it yourself.'**
-  String get bugReportSendFailedRejected;
-
-  /// No description provided for @bugReportSendFailedDemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Demo mode does not publish reports. Save the log to a file instead.'**
-  String get bugReportSendFailedDemo;
-
-  /// No description provided for @bugReportKindQuestion.
-  ///
-  /// In en, this message translates to:
-  /// **'What are you reporting?'**
-  String get bugReportKindQuestion;
-
-  /// No description provided for @bugReportKindBug.
-  ///
-  /// In en, this message translates to:
-  /// **'Bug'**
-  String get bugReportKindBug;
-
-  /// No description provided for @bugReportKindChange.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get bugReportKindChange;
-
-  /// No description provided for @bugReportKindFeature.
-  ///
-  /// In en, this message translates to:
-  /// **'Feature'**
-  String get bugReportKindFeature;
-
-  /// No description provided for @bugReportChangeHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Request a change'**
-  String get bugReportChangeHeader;
-
-  /// No description provided for @bugReportChangeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Something works, but not the way it should.'**
-  String get bugReportChangeBody;
-
-  /// No description provided for @bugReportChangeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'What should change?'**
-  String get bugReportChangeLabel;
-
-  /// No description provided for @bugReportChangeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What it does now, and what it should do instead.'**
-  String get bugReportChangeHint;
-
-  /// No description provided for @bugReportFeatureHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Request a feature'**
-  String get bugReportFeatureHeader;
-
-  /// No description provided for @bugReportFeatureBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Something the app cannot do yet.'**
-  String get bugReportFeatureBody;
-
-  /// No description provided for @bugReportFeatureLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'What is missing?'**
-  String get bugReportFeatureLabel;
-
-  /// No description provided for @bugReportFeatureHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What you want to do, and why the app does not let you.'**
-  String get bugReportFeatureHint;
-
-  /// No description provided for @bugReportRequestPrivacyHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'What gets sent'**
-  String get bugReportRequestPrivacyHeader;
-
-  /// No description provided for @bugReportRequestWhatYouWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'What you write'**
-  String get bugReportRequestWhatYouWrite;
-
-  /// No description provided for @bugReportRequestVersions.
-  ///
-  /// In en, this message translates to:
-  /// **'App and server version'**
-  String get bugReportRequestVersions;
-
-  /// No description provided for @bugReportRequestNoLog.
-  ///
-  /// In en, this message translates to:
-  /// **'No log, no recording'**
-  String get bugReportRequestNoLog;
-
   /// No description provided for @bugReportRequestNoData.
   ///
   /// In en, this message translates to:
   /// **'Nothing about your printers or your phone'**
   String get bugReportRequestNoData;
 
-  /// No description provided for @bugReportRequestPublic.
-  ///
-  /// In en, this message translates to:
-  /// **'It becomes a public issue on GitHub — anyone can read it, and it stays.'**
-  String get bugReportRequestPublic;
-
-  /// No description provided for @bugReportRequestRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Write what you are asking for — an empty request cannot be acted on.'**
-  String get bugReportRequestRequired;
-
-  /// No description provided for @bugReportRequestSentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Thank you. The issue is open.'**
-  String get bugReportRequestSentBody;
-
-  /// No description provided for @bugReportCancelSend.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel sending'**
-  String get bugReportCancelSend;
-
-  /// No description provided for @bugReportRequestFailedNotYet.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay is not accepting reports right now. Try again later.'**
-  String get bugReportRequestFailedNotYet;
-
-  /// No description provided for @bugReportRequestFailedRefused.
-  ///
-  /// In en, this message translates to:
-  /// **'The relay refused this request. You can open the issue yourself on GitHub.'**
-  String get bugReportRequestFailedRefused;
-
-  /// No description provided for @bugReportRequestFailedUnreachable.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not reach the relay. Check the connection and try again.'**
-  String get bugReportRequestFailedUnreachable;
-
-  /// No description provided for @bugReportRequestFailedDemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Demo mode does not publish reports.'**
-  String get bugReportRequestFailedDemo;
-
-  /// No description provided for @bugReportRequestNotPrepared.
-  ///
-  /// In en, this message translates to:
-  /// **'The app could not put the report together. Nothing was sent — try again.'**
-  String get bugReportRequestNotPrepared;
-
   /// No description provided for @usersTitle.
   ///
   /// In en, this message translates to:
   /// **'Users'**
   String get usersTitle;
-
-  /// No description provided for @usersMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Users'**
-  String get usersMenu;
 
   /// No description provided for @usersEmpty.
   ///
@@ -10856,12 +10226,6 @@ abstract class AppLocalizations {
   /// **'Groups'**
   String get groupsTitle;
 
-  /// No description provided for @groupsMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Groups'**
-  String get groupsMenu;
-
   /// No description provided for @groupsEmpty.
   ///
   /// In en, this message translates to:
@@ -11042,11 +10406,209 @@ abstract class AppLocalizations {
   /// **'Users, API keys, settings, backups — everything the app itself has no screen for.'**
   String get groupsAdvancedHint;
 
-  /// No description provided for @adminMenu.
+  /// No description provided for @serverSettingsMenu.
   ///
   /// In en, this message translates to:
-  /// **'Administration'**
-  String get adminMenu;
+  /// **'Server settings'**
+  String get serverSettingsMenu;
+
+  /// No description provided for @serverSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Server settings'**
+  String get serverSettingsTitle;
+
+  /// No description provided for @serverSettingsQueueSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduling, preheat, and holding a bed warm between prints'**
+  String get serverSettingsQueueSubtitle;
+
+  /// No description provided for @serverSettingsMaintenanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Task types and per-printer intervals'**
+  String get serverSettingsMaintenanceSubtitle;
+
+  /// No description provided for @serverSettingsAdminSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts, groups and API keys'**
+  String get serverSettingsAdminSubtitle;
+
+  /// No description provided for @serverSettingsCloudSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bambu account the server downloads with'**
+  String get serverSettingsCloudSubtitle;
+
+  /// No description provided for @queueSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue and preheat'**
+  String get queueSettingsTitle;
+
+  /// No description provided for @queueSettingsReadOnlyApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'An API key can never write server settings. Sign in with an account to change these.'**
+  String get queueSettingsReadOnlyApiKey;
+
+  /// No description provided for @queueSettingsReadOnlyPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account may read these settings but not change them.'**
+  String get queueSettingsReadOnlyPermission;
+
+  /// No description provided for @queueSettingsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This server reports none of these settings. It is either older than they are, or they could not be read — pull down to try again.'**
+  String get queueSettingsUnavailable;
+
+  /// No description provided for @queueSettingsQueueHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get queueSettingsQueueHeader;
+
+  /// No description provided for @queueSettingsPlateClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the plate is clear'**
+  String get queueSettingsPlateClearTitle;
+
+  /// No description provided for @queueSettingsPlateClearDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'After a print the printer waits for someone to confirm the plate is empty.'**
+  String get queueSettingsPlateClearDesc;
+
+  /// No description provided for @queueSettingsShortestFirstTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest job first'**
+  String get queueSettingsShortestFirstTitle;
+
+  /// No description provided for @queueSettingsShortestFirstDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Take the shortest waiting job rather than the one that has waited longest.'**
+  String get queueSettingsShortestFirstDesc;
+
+  /// No description provided for @queueSettingsMaxUploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Files uploaded at the same time: {count}'**
+  String queueSettingsMaxUploads(int count);
+
+  /// No description provided for @queueSettingsPreheatHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat'**
+  String get queueSettingsPreheatHeader;
+
+  /// No description provided for @queueSettingsPreheatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat before a job'**
+  String get queueSettingsPreheatTitle;
+
+  /// No description provided for @queueSettingsPreheatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Warms the chamber before the file is sent. A single queued job can overrule it.'**
+  String get queueSettingsPreheatDesc;
+
+  /// No description provided for @queueSettingsPreheatMaxWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber wait limit: {duration}'**
+  String queueSettingsPreheatMaxWait(String duration);
+
+  /// No description provided for @queueSettingsPreheatSoak.
+  ///
+  /// In en, this message translates to:
+  /// **'Soak after reaching temperature: {duration}'**
+  String queueSettingsPreheatSoak(String duration);
+
+  /// No description provided for @queueSettingsNoSoak.
+  ///
+  /// In en, this message translates to:
+  /// **'no soak'**
+  String get queueSettingsNoSoak;
+
+  /// No description provided for @queueSettingsPreheatOffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat is off, so the settings below change nothing.'**
+  String get queueSettingsPreheatOffNote;
+
+  /// No description provided for @queueSettingsKeepWarmHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep warm'**
+  String get queueSettingsKeepWarmHeader;
+
+  /// No description provided for @queueSettingsKeepWarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the bed warm between prints'**
+  String get queueSettingsKeepWarmTitle;
+
+  /// No description provided for @queueSettingsKeepWarmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Until someone takes the finished print off, the bed stays hot — so the next chamber-heated job does not start from cold. Skipped for PLA and PETG.'**
+  String get queueSettingsKeepWarmDesc;
+
+  /// No description provided for @queueSettingsKeepWarmTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed temperature used to heat the chamber: {temp} °C'**
+  String queueSettingsKeepWarmTemp(int temp);
+
+  /// No description provided for @queueSettingsKeepWarmMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest the bed is held: {duration}'**
+  String queueSettingsKeepWarmMax(String duration);
+
+  /// No description provided for @queueSettingsMaxUploadsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Before a queued job starts, its file is sent to the printer over FTP, which can take minutes. This is how many of those transfers run at once — it only does anything with several printers.'**
+  String get queueSettingsMaxUploadsDesc;
+
+  /// No description provided for @queueSettingsPreheatMaxWaitDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An X1C or P2S has no chamber heater — the chamber warms from the bed, which can take 15–30 minutes. After this the queue stops waiting and moves on to the soak.'**
+  String get queueSettingsPreheatMaxWaitDesc;
+
+  /// No description provided for @queueSettingsPreheatSoakDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra time at temperature after the chamber reaches it, or after the wait above runs out. Zero skips it.'**
+  String get queueSettingsPreheatSoakDesc;
+
+  /// No description provided for @queueSettingsKeepWarmTempDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'90 sustains chamber warmth on an enclosed printer and triggers add-on chamber heaters, which usually switch on at bed 80. A higher bed temperature from the file always wins.'**
+  String get queueSettingsKeepWarmTempDesc;
+
+  /// No description provided for @queueSettingsKeepWarmMaxDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set it to how long you realistically take to reach the printer. Too short only costs the next print a soak from cold; without a limit an uncleared plate would keep the bed hot indefinitely.'**
+  String get queueSettingsKeepWarmMaxDesc;
+
+  /// No description provided for @queueSettingsKeepWarmOffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep-warm is off. The bed temperature above still applies to preheat.'**
+  String get queueSettingsKeepWarmOffNote;
 
   /// No description provided for @adminTitle.
   ///
@@ -11815,6 +11377,510 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown'**
   String get failureReasonUnknown;
+
+  /// No description provided for @appSettingsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get appSettingsMenu;
+
+  /// No description provided for @appSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get appSettingsTitle;
+
+  /// No description provided for @appSettingsNotificationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which events send a notification, and at what thresholds'**
+  String get appSettingsNotificationsSubtitle;
+
+  /// No description provided for @collapsePrinterCardsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapsed printer cards'**
+  String get collapsePrinterCardsTitle;
+
+  /// No description provided for @collapsePrinterCardsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards open showing only the name, status and print progress. Any card can still be expanded.'**
+  String get collapsePrinterCardsDesc;
+
+  /// No description provided for @printerCardExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand card'**
+  String get printerCardExpand;
+
+  /// No description provided for @printerCardCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse card'**
+  String get printerCardCollapse;
+
+  /// No description provided for @ordersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch orders'**
+  String get ordersTitle;
+
+  /// No description provided for @ordersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No batch orders with this status.'**
+  String get ordersEmpty;
+
+  /// No description provided for @ordersFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get ordersFilterActive;
+
+  /// No description provided for @ordersFilterCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get ordersFilterCompleted;
+
+  /// No description provided for @ordersFilterCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get ordersFilterCancelled;
+
+  /// No description provided for @ordersFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get ordersFilterAll;
+
+  /// No description provided for @ordersStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get ordersStatusActive;
+
+  /// No description provided for @ordersStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get ordersStatusCompleted;
+
+  /// No description provided for @ordersStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get ordersStatusCancelled;
+
+  /// No description provided for @ordersStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown status'**
+  String get ordersStatusUnknown;
+
+  /// No description provided for @ordersGroupingOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouping only'**
+  String get ordersGroupingOnly;
+
+  /// No description provided for @ordersBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by {name}'**
+  String ordersBy(String name);
+
+  /// No description provided for @ordersDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due on {date}'**
+  String ordersDue(String date);
+
+  /// No description provided for @ordersProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} done'**
+  String ordersProgress(int completed, int total);
+
+  /// No description provided for @ordersPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} printing'**
+  String ordersPrinting(int count);
+
+  /// No description provided for @ordersPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting'**
+  String ordersPending(int count);
+
+  /// No description provided for @ordersFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String ordersFailed(int count);
+
+  /// No description provided for @ordersOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} still owed'**
+  String ordersOwed(int count);
+
+  /// No description provided for @ordersCostSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} so far'**
+  String ordersCostSoFar(String amount);
+
+  /// No description provided for @ordersCostToGo.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} to go'**
+  String ordersCostToGo(String amount);
+
+  /// No description provided for @ordersStrandedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot queue {runs} of the {owed} runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.'**
+  String ordersStrandedNotice(int runs, int owed);
+
+  /// No description provided for @ordersStrandedPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing left to copy settings from'**
+  String get ordersStrandedPlate;
+
+  /// No description provided for @ordersPlateProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {target} done'**
+  String ordersPlateProgress(int completed, int target);
+
+  /// No description provided for @ordersWholeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole file'**
+  String get ordersWholeFile;
+
+  /// No description provided for @ordersDispatchRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Queue 1 remaining run} other{Queue {count} remaining runs}}'**
+  String ordersDispatchRemaining(int count);
+
+  /// No description provided for @ordersDispatchPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue owed'**
+  String get ordersDispatchPlate;
+
+  /// No description provided for @ordersDispatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued the remaining runs of {name}'**
+  String ordersDispatched(String name);
+
+  /// No description provided for @ordersCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel order'**
+  String get ordersCancel;
+
+  /// No description provided for @ordersCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this order?'**
+  String get ordersCancelTitle;
+
+  /// No description provided for @ordersCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.'**
+  String get ordersCancelBody;
+
+  /// No description provided for @ordersCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Order cancelled'**
+  String get ordersCancelled;
+
+  /// No description provided for @ordersUngroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup'**
+  String get ordersUngroup;
+
+  /// No description provided for @ordersUngroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup this batch?'**
+  String get ordersUngroupTitle;
+
+  /// No description provided for @ordersUngroupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its items stay in the queue as separate jobs.'**
+  String get ordersUngroupBody;
+
+  /// No description provided for @ordersUngroupOrderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.'**
+  String get ordersUngroupOrderBody;
+
+  /// No description provided for @ordersUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing to ungroup} =1{1 item ungrouped} other{{count} items ungrouped}}'**
+  String ordersUngrouped(int count);
+
+  /// No description provided for @ordersErrStranded.
+  ///
+  /// In en, this message translates to:
+  /// **'No queued or finished run of {plates} is left to copy settings from. Queue the plate once from the file, then queue the rest from here.'**
+  String ordersErrStranded(String plates);
+
+  /// No description provided for @ordersErrCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This order is cancelled.'**
+  String get ordersErrCancelled;
+
+  /// No description provided for @ordersErrGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This order no longer exists.'**
+  String get ordersErrGone;
+
+  /// No description provided for @queueInBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch: {name}'**
+  String queueInBatch(String name);
+
+  /// No description provided for @orderEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit order'**
+  String get orderEditTitle;
+
+  /// No description provided for @orderEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get orderEditSave;
+
+  /// No description provided for @orderEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get orderEditName;
+
+  /// No description provided for @orderEditErrName.
+  ///
+  /// In en, this message translates to:
+  /// **'The order needs a name.'**
+  String get orderEditErrName;
+
+  /// No description provided for @orderEditDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get orderEditDue;
+
+  /// No description provided for @orderEditDueNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No due date'**
+  String get orderEditDueNone;
+
+  /// No description provided for @orderEditDueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The server can change a due date but not remove it.'**
+  String get orderEditDueHint;
+
+  /// No description provided for @orderEditProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get orderEditProject;
+
+  /// No description provided for @orderEditProjectNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No project'**
+  String get orderEditProjectNone;
+
+  /// No description provided for @orderEditProjectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The server can move an order to another project but not take it out of one.'**
+  String get orderEditProjectHint;
+
+  /// No description provided for @orderEditNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get orderEditNotes;
+
+  /// No description provided for @orderEditTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs per plate'**
+  String get orderEditTargets;
+
+  /// No description provided for @orderEditTargetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.'**
+  String get orderEditTargetsHint;
+
+  /// No description provided for @orderEditPlateDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done so far: {count}'**
+  String orderEditPlateDone(int count);
+
+  /// No description provided for @orderEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order saved'**
+  String get orderEditSaved;
+
+  /// No description provided for @orderEditErrNothingAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one plate needs a target above 0.'**
+  String get orderEditErrNothingAsked;
+
+  /// No description provided for @orderEditErrProject.
+  ///
+  /// In en, this message translates to:
+  /// **'That project no longer exists.'**
+  String get orderEditErrProject;
+
+  /// No description provided for @ordersEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get ordersEdit;
+
+  /// No description provided for @ordersReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen order'**
+  String get ordersReopen;
+
+  /// No description provided for @ordersReopened.
+  ///
+  /// In en, this message translates to:
+  /// **'Order reopened'**
+  String get ordersReopened;
+
+  /// No description provided for @ordersGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group queue items'**
+  String get ordersGroup;
+
+  /// No description provided for @ordersGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch name'**
+  String get ordersGroupName;
+
+  /// No description provided for @ordersGroupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least two waiting jobs that are not in a batch yet.'**
+  String get ordersGroupHint;
+
+  /// No description provided for @ordersGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to group: fewer than two waiting jobs are outside a batch.'**
+  String get ordersGroupEmpty;
+
+  /// No description provided for @ordersGroupConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get ordersGroupConfirm;
+
+  /// No description provided for @ordersGrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 job grouped as {name}} other{{count} jobs grouped as {name}}}'**
+  String ordersGrouped(int count, String name);
+
+  /// No description provided for @ordersPlateDispatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued the owed runs of {plate} ({name})'**
+  String ordersPlateDispatched(String plate, String name);
+
+  /// No description provided for @queueEditCopiesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How many times to print it'**
+  String get queueEditCopiesLabel;
+
+  /// No description provided for @queueEditCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get queueEditCopies;
+
+  /// No description provided for @queueEditCopiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The copies are queued as one batch.'**
+  String get queueEditCopiesHint;
+
+  /// No description provided for @queueEditCopiesOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'This becomes an order: a failed copy can be queued again from Batch orders.'**
+  String get queueEditCopiesOrder;
+
+  /// No description provided for @ordersGroupedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No job could be grouped.'**
+  String get ordersGroupedNone;
+
+  /// No description provided for @orderEditTargetLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer run'**
+  String get orderEditTargetLess;
+
+  /// No description provided for @orderEditTargetMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more run'**
+  String get orderEditTargetMore;
+
+  /// No description provided for @queueEditOrderRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The order could not be made, so the copies were queued as a plain batch.'**
+  String get queueEditOrderRefused;
+
+  /// No description provided for @inventoryQuantityLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One spool fewer to add'**
+  String get inventoryQuantityLess;
+
+  /// No description provided for @inventoryQuantityMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more spool to add'**
+  String get inventoryQuantityMore;
 }
 
 class _AppLocalizationsDelegate
@@ -11828,7 +11894,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'pl'].contains(locale.languageCode);
+      <String>['de', 'en', 'es', 'fr', 'pl'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -11837,8 +11903,14 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'de':
+      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
     case 'pl':
       return AppLocalizationsPl();
   }

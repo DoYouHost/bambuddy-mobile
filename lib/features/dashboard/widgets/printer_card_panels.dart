@@ -196,10 +196,8 @@ class _PrintPanel extends StatelessWidget {
         ),
     ];
 
-    // Prep phase (heating, auto bed leveling): show stage name
-    // and indeterminate bar instead of confusing 0%.
-    final stage = status.stgCurName?.trim();
-    final showStage = status.isPreparing && stage != null && stage.isNotEmpty;
+    final stage = _preparingStage(status);
+    final showStage = stage != null;
 
     final nameBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,21 +252,7 @@ class _PrintPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: showStage
-                        ? null
-                        : (progress == null
-                              ? null
-                              : (progress / 100).clamp(0.0, 1.0)),
-                    minHeight: 6,
-                    backgroundColor: t.gaugeTrack,
-                    valueColor: AlwaysStoppedAnimation(t.accentGreen),
-                  ),
-                ),
-              ),
+              Expanded(child: _PrintProgressBar(status: status, height: 6)),
               if (progress != null && !showStage) ...[
                 const SizedBox(width: 10),
                 Text('${progress.toStringAsFixed(0)}%', style: t.monoValue),
@@ -285,9 +269,36 @@ class _PrintPanel extends StatelessWidget {
   }
 }
 
-/// Cover thumbnail for the current print (fetched with the camera stream token).
+/// The stage a print is still preparing through (heating, bed levelling), or
+/// `null` once it prints. While there is one, the bar runs indeterminate and no
+/// percentage is shown — a 0% there reads as a stalled job.
+String? _preparingStage(PrinterStatus status) {
+  final stage = status.stgCurName?.trim();
+  return status.isPreparing && stage != null && stage.isNotEmpty ? stage : null;
+}
+
+/// The print's progress bar, shared by the print panel and the collapsed card.
+class _PrintProgressBar extends StatelessWidget {
+  const _PrintProgressBar({required this.status, required this.height});
+
+  final PrinterStatus status;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = status.progress;
+    return DashProgressBar(
+      value: _preparingStage(status) != null || progress == null
+          ? null
+          : (progress / 100).clamp(0.0, 1.0),
+      height: height,
+    );
+  }
+}
+
+/// Cover thumbnail for the current print (fetched with the media credential).
 /// Placeholder instead of error — never crashes the card.
-class _CoverThumbnail extends ConsumerStatefulWidget {
+class _CoverThumbnail extends StatelessWidget {
   const _CoverThumbnail({required this.coverUrl});
 
   final String? coverUrl;
@@ -296,57 +307,36 @@ class _CoverThumbnail extends ConsumerStatefulWidget {
   static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
 
   @override
-  ConsumerState<_CoverThumbnail> createState() => _CoverThumbnailState();
-}
-
-class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
-    with CameraTokenImageRecovery {
-  @override
   Widget build(BuildContext context) {
-    Widget placeholder() => ClipRRect(
+    final placeholder = ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Image.asset(
-        _CoverThumbnail._placeholderAsset,
+        _placeholderAsset,
         key: const ValueKey('cover_placeholder'),
-        width: _CoverThumbnail._size,
-        height: _CoverThumbnail._size,
+        width: _size,
+        height: _size,
+        // The asset is 256x256 — 64 dp at xxxhdpi, the densest this ships to —
+        // and the tile is drawn once per card. `cacheWidth` still asks the codec
+        // for the size actually drawn rather than the size on disk.
+        cacheWidth: (_size * MediaQuery.devicePixelRatioOf(context)).round(),
         fit: BoxFit.cover,
       ),
     );
 
-    final url = widget.coverUrl;
-    if (url == null || url.isEmpty) return placeholder();
+    final url = coverUrl;
+    if (url == null || url.isEmpty) return placeholder;
 
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (baseUrl == null) return placeholder();
-
-    return ref
-        .watch(cameraTokenProvider)
-        .when(
-          loading: placeholder,
-          error: (_, _) => placeholder(),
-          data: (token) => ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              '$baseUrl$url?token=$token',
-              key: const ValueKey('cover_network'),
-              width: _CoverThumbnail._size,
-              height: _CoverThumbnail._size,
-              cacheWidth:
-                  (_CoverThumbnail._size *
-                          MediaQuery.devicePixelRatioOf(context))
-                      .round(),
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              errorBuilder: (_, error, _) {
-                recoverCameraTokenOnError(error, token);
-                return placeholder();
-              },
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : placeholder(),
-            ),
-          ),
-        );
+    return MediaImage(
+      path: url,
+      width: _size,
+      height: _size,
+      borderRadius: BorderRadius.circular(10),
+      imageKey: const ValueKey('cover_network'),
+      // The card's cover is a picture of the print, and a missing one is not
+      // news worth an icon of its own — the same plate outline stands in for
+      // "not loaded yet" and for "will not load".
+      placeholder: (_) => placeholder,
+    );
   }
 }
 
@@ -625,109 +615,85 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
 
     return logTag(
       'sheet.fan',
-      SafeArea(
-        top: false,
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: t.overlaySurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: t.subCardBorder)),
-          ),
+      FittedSheetSurface(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: t.textTertiary.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+              Text(widget.label, style: t.titleLg),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  _speed == 0 ? l10n.ctrlOff : '$_speed%',
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: 44,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(widget.label, style: t.titleLg),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        _speed == 0 ? l10n.ctrlOff : '$_speed%',
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 44,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                        ),
-                      ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _StepButton(
+                    icon: Icons.remove,
+                    id: 'fan.step_down',
+                    onTap: () => _bump(-1),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: _speed.toDouble(),
+                      max: 100,
+                      activeColor: accent,
+                      onChanged: (v) => setState(() => _speed = v.round()),
+                    ).tagged('fan.slider'),
+                  ),
+                  _StepButton(
+                    icon: Icons.add,
+                    id: 'fan.step_up',
+                    onTap: () => _bump(1),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final p in _presets)
+                    _PresetChip(
+                      label: '$p%',
+                      id: 'fan.preset',
+                      selected: _speed == p,
+                      onTap: () => setState(() => _speed = p),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _StepButton(
-                          icon: Icons.remove,
-                          id: 'fan.step_down',
-                          onTap: () => _bump(-1),
-                        ),
-                        Expanded(
-                          child: Slider(
-                            value: _speed.toDouble(),
-                            max: 100,
-                            activeColor: accent,
-                            onChanged: (v) =>
-                                setState(() => _speed = v.round()),
-                          ).tagged('fan.slider'),
-                        ),
-                        _StepButton(
-                          icon: Icons.add,
-                          id: 'fan.step_up',
-                          onTap: () => _bump(1),
-                        ),
-                      ],
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SheetButton(
+                      label: l10n.ctrlOff,
+                      id: 'fan.off',
+                      onTap: _busy ? null : () => _apply(0),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final p in _presets)
-                          _PresetChip(
-                            label: '$p%',
-                            id: 'fan.preset',
-                            selected: _speed == p,
-                            onTap: () => setState(() => _speed = p),
-                          ),
-                      ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SheetButton(
+                      label: l10n.ctrlSet,
+                      id: 'fan.set',
+                      filled: true,
+                      busy: _busy,
+                      onTap: _busy ? null : () => _apply(_speed),
                     ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SheetButton(
-                            label: l10n.ctrlOff,
-                            id: 'fan.off',
-                            onTap: _busy ? null : () => _apply(0),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _SheetButton(
-                            label: l10n.ctrlSet,
-                            id: 'fan.set',
-                            filled: true,
-                            busy: _busy,
-                            onTap: _busy ? null : () => _apply(_speed),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),

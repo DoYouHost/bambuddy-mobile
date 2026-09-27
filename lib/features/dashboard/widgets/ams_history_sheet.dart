@@ -1,17 +1,17 @@
 import 'dart:math' as math;
 
+import 'package:dash_kit/dash_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../core/settings/server_settings.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
-import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// Which metric the AMS history chart is showing.
@@ -30,10 +30,10 @@ final amsHistoryDataProvider = FutureProvider.autoDispose
     });
 
 /// Whether the AMS humidity/temperature chips open a chart at all: the route is
-/// there and this session may read it. Invalidated by the sheet after a failed
-/// fetch, so a 403 leaves plain readings rather than a tap that only errors.
-final amsHistorySupportedProvider = FutureProvider<bool>(
-  (ref) => ref.watch(amsHistoryRepositoryProvider).supportsHistory(),
+/// there and this session may read it. A 403 inside the sheet leaves plain
+/// readings rather than a tap that only errors.
+final amsHistorySupportedProvider = capabilityGate(
+  (ref) => ref.watch(amsHistoryRepositoryProvider).historyCapability,
 );
 
 /// AMS "Good"/"Fair" status thresholds. Chart reference lines. Sourced from
@@ -52,8 +52,7 @@ const _defaultAmsThresholds = (
   tempFair: 35.0,
 );
 
-final amsThresholdsProvider = FutureProvider<AmsThresholds>((ref) async {
-  final s = await ref.watch(serverSettingsProvider.future);
+final amsThresholdsProvider = serverValue<AmsThresholds>((s) {
   return (
     humidityGood: s.settingDouble(
       'ams_humidity_good',
@@ -121,14 +120,8 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
       amsId: widget.amsId,
       hours: _hours,
     );
-    // A failure is also an observation about the route: re-ask whether the
-    // chips should still open a chart.
-    ref.listen(amsHistoryDataProvider(query), (_, next) {
-      if (next.hasError) ref.invalidate(amsHistorySupportedProvider);
-    });
     final async = ref.watch(amsHistoryDataProvider(query));
-    final thresholds =
-        ref.watch(amsThresholdsProvider).valueOrNull ?? _defaultAmsThresholds;
+    final thresholds = ref.watch(amsThresholdsProvider);
     final good = isHumidity ? thresholds.humidityGood : thresholds.tempGood;
     final fair = isHumidity ? thresholds.humidityFair : thresholds.tempFair;
 
@@ -345,20 +338,7 @@ class _Content extends StatelessWidget {
           ),
         ),
       ),
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          preventCurveOverShooting: true,
-          color: c,
-          barWidth: 2,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            color: c.withValues(alpha: 0.15),
-          ),
-        ),
-      ],
+      lineBarsData: [dashLineSeries(spots, c)],
     );
   }
 

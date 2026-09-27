@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
+import 'wear_fleet_cache.dart';
 import 'wear_status.dart';
 import 'wear_transport.dart';
 
@@ -36,7 +37,15 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   Future<void> adopt(WatchConfig config) async {
     await ref.read(watchConfigSyncProvider).apply(config);
     state = null;
-    ref.invalidate(serverProfileProvider);
+    // Only a profile that actually changed is worth the invalidate. It rebuilds
+    // [wearTransportProvider] too, which disposes the relay's reply listener
+    // under any request already on the bridge — and since the phone pushes the
+    // same config on every launch, that was every cold start paying a relay
+    // timeout for its first poll. A refreshed secret needs no invalidate:
+    // `authHeaders` reads the store on each request.
+    if (ref.read(serverProfileProvider) != config.profile) {
+      ref.invalidate(serverProfileProvider);
+    }
   }
 }
 
@@ -57,6 +66,7 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
     printers: ref.watch(printersRepositoryProvider),
     commands: ref.watch(printerCommandsRepositoryProvider),
     queue: ref.watch(queueRepositoryProvider),
+    serverVersion: ref.watch(serverVersionServiceProvider),
   );
   // Demo runs entirely in this process (the API client swaps in the fake
   // backend), so there is nothing for the phone to answer — and asking it would
@@ -73,6 +83,34 @@ final wearTransportProvider = Provider<HybridWearTransport>((ref) {
   );
 });
 
+/// The connected server's version, for the settings footer. `autoDispose`
+/// because only that screen asks and the answer cannot change without the
+/// server restarting — which drops the session anyway.
+///
+/// Never fails: the phone being out of reach, a phone too old to know the
+/// action (it stays silent, and the watch's timeout is what ends the wait), a
+/// server too old for the route — all of it is one answer to the reader, and a
+/// footer is not the place to explain which of them it was.
+final wearServerVersionProvider = FutureProvider.autoDispose<String?>((
+  ref,
+) async {
+  try {
+    // Watched, not read: the transport is rebuilt when the profile changes,
+    // and an answer obtained through the previous one is about the previous
+    // server.
+    return await ref.watch(wearTransportProvider).getServerVersion();
+  } on Object {
+    return null;
+  }
+});
+
+/// The watch's cold-start cache. Not `autoDispose`: it carries the floor
+/// between writes ([WearFleetCache.minInterval]) across polls, and a fresh
+/// instance per read would let every poll write.
+final wearFleetCacheProvider = Provider<WearFleetCache>(
+  (ref) => WearFleetCache(ref.watch(settingsRepositoryProvider)),
+);
+
 /// Fleet of printers with status, polled through [wearTransportProvider].
 /// No WebSocket or background service on the watch (deliberate — battery);
 /// the poll runs only while a screen watching it is mounted (autoDispose).
@@ -83,26 +121,101 @@ final wearFleetProvider =
 
 class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   Timer? _timer;
-  bool _disposed = false;
+
+  /// Which run of this notifier is the current one.
+  ///
+  /// Riverpod builds the notifier once and keeps the instance across every
+  /// rebuild, while still running the `ref.onDispose` the previous build
+  /// registered. A one-way `_disposed` latch therefore stayed set from the
+  /// first rebuild on — and the watch adopts the config the phone pushes at
+  /// every launch, which is a rebuild — so every later poll dropped its answer
+  /// and the cold-start frame stayed dimmed, buttons off, waiting for a state
+  /// that could no longer arrive.
+  ///
+  /// Bumped by every build *and* every poll, so an answer belonging to an
+  /// earlier one is recognised rather than taken for this one's.
+  int _epoch = 0;
+
+  /// Whether the notifier is mounted at all: false once the provider is really
+  /// gone, and for the instant a rebuild takes. [_epoch] cannot answer this on
+  /// its own — a disposed notifier's epoch still equals itself.
+  bool _alive = false;
+
+  /// Set while the watch app is in the background. Every relay poll wakes the
+  /// phone over Bluetooth, and a screen nobody is looking at has nothing to
+  /// update — the phone's own screens have stopped their polls on pause since
+  /// they were written, and this one never did.
+  ///
+  /// Checked in [_scheduleNext] rather than only at [stopPolling], because a
+  /// fetch already in flight when the app goes away would otherwise come back
+  /// and re-arm the timer the pause had just cancelled.
+  bool _paused = false;
+
+  /// Whether [epoch] is still the run this notifier is doing.
+  bool _current(int epoch) => _alive && epoch == _epoch;
 
   @override
   Future<WearFleet> build() async {
+    _alive = true;
+    final epoch = ++_epoch;
     ref.onDispose(() {
-      _disposed = true;
+      _alive = false;
       _timer?.cancel();
     });
-    final fleet = await _fetch();
-    _scheduleNext(fleet);
+    // Watched, not read: switching the server on the watch has to empty this,
+    // not leave the old server's printers on screen until a poll happens to
+    // replace them. The rebuild resets the state and re-reads the cache, which
+    // is keyed by base URL and so answers nothing for the new server.
+    final profile = ref.watch(serverProfileProvider);
+    final cached = ref.read(wearFleetCacheProvider).load(profile);
+    if (cached != null) {
+      // Painted at once, refreshed underneath. A zero-length timer rather than
+      // a direct call: the poll may only start once `build` has returned its
+      // value, and [refresh] bows out while there is none — see the guard at
+      // its top. The timer is also already the field `onDispose` cancels, so a
+      // screen left before the first poll takes it with it.
+      //
+      // Not while the app is in the background. A rebuild reaches here there
+      // too — the phone pushes its config on every launch — and would restart
+      // the poll behind a dark screen, which is the one thing [stopPolling]
+      // exists to prevent. The resume hook starts it instead.
+      if (!_paused) _timer = Timer(Duration.zero, refresh);
+      return cached;
+    }
+    // Fetched even while [_paused]: `build` owes its caller a fleet, and the
+    // alternatives are worse than the one poll it costs — an empty frame says
+    // "no printers" on the next glance, and waiting for the resume hook hangs
+    // the screen on a spinner if it never comes. Only reachable with no cache
+    // to answer from, i.e. a server switch pushed while the app is away.
+    final fleet = await _fetch(epoch);
+    // Superseded while the fetch was out: arming a timer from here would
+    // cancel the current run's. The fleet itself is still returned — what
+    // `build` answers with is assigned by Riverpod, not by this method.
+    if (_current(epoch)) _scheduleNext(fleet);
     return fleet;
   }
 
-  Future<WearFleet> _fetch() => ref.read(wearTransportProvider).getFleet();
+  Future<WearFleet> _fetch(int epoch) async {
+    // Read before the request rather than after it: [ServerProfileNotifier]
+    // changes its state synchronously, so a poll answering in the same turn as
+    // a server switch would file the old server's fleet under the new one's
+    // URL. [_epoch] covers the ordinary case, where the rebuild has run first.
+    final profile = ref.read(serverProfileProvider);
+    final fleet = await ref.read(wearTransportProvider).getFleet();
+    // Not awaited, and never fatal: writing the cache is not part of the poll
+    // this caller is waiting on. Skipped once superseded: the answer is not
+    // this run's, and past a real dispose `ref` throws.
+    if (_current(epoch)) {
+      unawaited(ref.read(wearFleetCacheProvider).save(fleet, profile));
+    }
+    return fleet;
+  }
 
   /// Adaptive cadence: every relay poll wakes the phone over the bridge, so
   /// back off to 30 s when nothing is actively printing. Direct REST (or an
   /// active print) keeps the familiar 5 s.
-  void _scheduleNext(WearFleet? fleet) {
-    if (_disposed) return;
+  void _scheduleNext(WearFleet? fleet, {bool afterFailure = false}) {
+    if (!_alive || _paused) return;
     final relaying =
         ref.read(wearTransportProvider).lastMode == WearTransportMode.relay;
     final active =
@@ -114,24 +227,99 @@ class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
         ) ??
         // Unknown fleet (fetch failed) → poll fast to recover quickly.
         true;
-    final interval = relaying && !active
+    // Two reasons to slow down, and the second one arrived with the cold-start
+    // cache: a poll that failed while something is still on screen. Before the
+    // cache a failed first fetch left the provider in its error state and
+    // `_scheduleNext` was never reached at all, so an unreachable phone cost
+    // nothing; keeping the frame means keeping the timer, and 5 s of that only
+    // wakes the bridge for an answer that is not coming.
+    final interval = (relaying && !active) || (afterFailure && fleet != null)
         ? const Duration(seconds: 30)
         : const Duration(seconds: 5);
     _timer?.cancel();
     _timer = Timer(interval, refresh);
   }
 
+  /// Stops the poll until something asks for a [refresh] again — which is what
+  /// coming back to the foreground does.
+  void stopPolling() {
+    _paused = true;
+    _timer?.cancel();
+  }
+
   /// Re-fetch in the background; keeps the last good data visible on transient
   /// errors instead of blanking the screen.
+  ///
+  /// Also the way out of [stopPolling]: every caller — the resume hook, pull to
+  /// refresh, the tick after a command — means the screen is being watched
+  /// again.
   Future<void> refresh() async {
-    final next = await AsyncValue.guard(_fetch);
-    if (_disposed) return;
-    // Only surface an error if we have nothing to show; otherwise keep old data.
-    if (!(next.hasError && state.hasValue)) {
-      state = next;
+    if (!_alive) return;
+    // Nothing may outrun a build. Whatever this wrote would be wiped the moment
+    // that build's own fetch answered: Riverpod assigns what `build` returns
+    // regardless of what the notifier did meanwhile, so the newer frame would
+    // be replaced by the older one — or by its error, which is the 15 s relay
+    // timeout a resume can easily beat.
+    //
+    // `isLoading` alone, because the two kinds of rebuild do not look alike:
+    // an invalidate drops the value (`hasValue` false), while a dependency
+    // change keeps it and only sets `isReloading`. Testing for the missing
+    // value would have covered the first cold start and left the server switch
+    // — the one rebuild with no cache to return and a real fetch to lose.
+    // Nothing else sets loading here: [refresh] only ever assigns a settled
+    // state, so this is true exactly while a build is out.
+    if (state.isLoading) return;
+    // Before anything else: a tick armed earlier would otherwise mature while
+    // this request is still out — and a relay call can be out for 15 s waiting
+    // on a phone whose engine is booting — putting a second identical RPC on
+    // the bridge. Every path back in here re-arms it on the way out.
+    _timer?.cancel();
+    _paused = false;
+    // A tick that had already fired cannot be cancelled, so two polls can be
+    // out at once; bumping the epoch makes the older one give way rather than
+    // answer last and put the older fleet on screen.
+    final epoch = ++_epoch;
+    // Whether what is on screen has ever been confirmed by this run. A frame
+    // restored from the cache has not, and it is the difference between the two
+    // things a failure can mean here.
+    final unconfirmed = state.valueOrNull?.stale ?? false;
+    final next = await AsyncValue.guard(() => _fetch(epoch));
+    if (!_current(epoch)) return;
+
+    if (next.hasError && state.hasValue && !unconfirmed) {
+      // Confirmed data survives a dropped poll: one bad tick should not blank a
+      // screen that was right a moment ago.
+      _scheduleNext(state.valueOrNull, afterFailure: true);
+      return;
     }
-    _scheduleNext(next.valueOrNull ?? state.valueOrNull);
+
+    // Everything else, the never-confirmed frame included: a failed connection
+    // has to read as a failed connection. The cache buys a first frame, not a
+    // licence to keep showing last run's printers while nothing can be reached
+    // — so the error goes through and `WearHome` offers its retry.
+    state = next;
+    // Nothing on screen to keep fresh, and the retry invalidates the provider,
+    // whose `build` is what starts the poll again. Left running it would wake
+    // the bridge every few seconds behind an error the user is already at.
+    if (next.hasError) return;
+    _scheduleNext(next.valueOrNull);
   }
+}
+
+/// What a screen should draw out of [wearFleetProvider].
+///
+/// Riverpod's notifier keeps the previous value when the state is set to an
+/// error, so `valueOrNull` still answers with the fleet that was on screen. For
+/// a screen switching on the variant — `WearHome` and its `when` — that is
+/// invisible; for a body reading `valueOrNull` it is the difference between
+/// reporting a dead bridge and drawing last run's printers under it.
+///
+/// An error is always the answer here, never the old frame: [WearFleetNotifier]
+/// only ever sets one where the data on screen has not been confirmed, and a
+/// `build` that fails after a server switch must not leave the previous
+/// server's printers up either.
+extension WearFleetView on AsyncValue<WearFleet> {
+  WearFleet? get drawable => hasError ? null : valueOrNull;
 }
 
 /// Controller for the watch actions. Stateless facade over the transport;

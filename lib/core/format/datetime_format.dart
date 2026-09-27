@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
+import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Derived rather than listed, so adding a translation does not leave this
@@ -35,8 +36,9 @@ class DateTimeFormats {
     MediaQuery.alwaysUse24HourFormatOf(context),
   );
 
-  /// No app locale is knowable outside the tree, so an untranslated system
-  /// language falls back to `en` — the same fallback `lib/app.dart` declares.
+  /// Outside the tree the app locale is resolved from the system preference
+  /// list the way `MaterialApp` resolves it ([resolveAppLocale]), so month
+  /// names in a notification match the language of its text.
   ///
   /// The clock cannot come off the dispatcher here. Only an engine that hosts a
   /// view is ever sent the user settings, and the foreground service runs a bare
@@ -49,13 +51,24 @@ class DateTimeFormats {
   /// [use24Hour] asks the locale.
   factory DateTimeFormats.system() {
     final dispatcher = PlatformDispatcher.instance;
-    return DateTimeFormats._resolve(
-      dispatcher.locale,
-      const Locale('en'),
+    return DateTimeFormats.outsideTree(
+      dispatcher.locales,
       isolateClock(
         remembered: _rememberedClock,
         dispatcherSays: dispatcher.alwaysUse24HourFormat,
       ),
+    );
+  }
+
+  /// [system] with the platform's answers passed in — `PlatformDispatcher.instance`
+  /// ignores the values a widget test sets, so this is the only way to pin it.
+  @visibleForTesting
+  factory DateTimeFormats.outsideTree(List<Locale> preferred, bool? use24Hour) {
+    final appLocale = resolveAppLocale(preferred);
+    return DateTimeFormats._resolve(
+      preferred.isEmpty ? appLocale : preferred.first,
+      appLocale,
+      use24Hour,
     );
   }
 

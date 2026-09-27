@@ -2,18 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_snack.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/device_files.dart';
-import '../common/state_views.dart';
-import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_form_screen.dart';
@@ -179,11 +176,7 @@ class _ProjectCard extends StatelessWidget {
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -228,15 +221,7 @@ class _ProjectCard extends StatelessWidget {
                           ),
                         const SizedBox(height: 8),
                         if (project.progressPercent != null) ...[
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: fraction,
-                              minHeight: 6,
-                              backgroundColor: t.gaugeTrack,
-                              valueColor: AlwaysStoppedAnimation(t.accentGreen),
-                            ),
-                          ),
+                          DashProgressBar(value: fraction, height: 6),
                           const SizedBox(height: 6),
                         ],
                         Text(counts.join(' · '), style: t.monoLabel),

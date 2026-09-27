@@ -12,38 +12,18 @@ import 'wear_scroll_indicator.dart';
 /// The one scrolling surface on the watch: a viewport cut down to the rectangle
 /// inscribed in the face, plus the scroll indicator Wear OS expects.
 ///
-/// Both of Google Play's layout rejections live here, which is why the screens
-/// no longer build a [ListView] of their own — a per-screen padding literal is
-/// exactly how the first list row ended up under the bezel, and a per-screen
-/// scroll view is how four of them ended up with no indicator.
+/// Both of Google Play's layout rejections live here, which is why no screen
+/// builds a [ListView] of its own — a per-screen padding literal is how the
+/// first list row ended up under the bezel, and a per-screen scroll view is how
+/// four of them ended up with no indicator.
 ///
-/// Two ways to survive a round face, and which one a screen gets depends on
-/// whether it is a list or a panel — the same split Wear OS itself draws between
-/// a transforming column and a fixed inset box.
-///
-/// **A list curves.** The viewport is the whole face and each item is scaled to
-/// the chord actually lit where it currently sits ([WearFaceCurve]). Nothing is
-/// cut, and nothing is reserved: the band above and below is scrolled *through*
-/// instead of left black. This is what Wear OS does and for the reason it gives
-/// — items near the top and bottom of a round screen are hard to see, so they
-/// shrink and leave rather than being clipped.
-///
-/// **A panel keeps the rectangle.** Anything with a [footer] or holding still
-/// with [centerWhenShort] is a fixed layout, and a fixed layout wants the
-/// largest rectangle inscribed in the circle ([WearFace]) — a confirmation whose
-/// two buttons are pinned at the bottom of the *face* would pin them where the
-/// circle has no width left.
-///
-/// Why the rectangle is not the answer for both: it is easy to be sure of, but
-/// it costs 36% of the height of a display that had none to spare, and it hands
-/// every row the width available at the worst point of the viewport, including
-/// the rows crossing the middle where the whole diameter is lit. Measured on a
-/// 225 dp face it left 144 dp of viewport — 1.8 rows of a printer list.
-///
-/// The insets, in either mode, go on the **viewport** and never on the content:
-/// padding the content only settles where the first and last item come to rest,
-/// while everything between them still crosses the top and bottom of the circle
-/// as the screen scrolls.
+/// **A list curves** ([curved]): the viewport is the whole face and each item is
+/// scaled to the chord lit where it sits. **A panel keeps the rectangle**:
+/// anything with a [footer] or [centerWhenShort] is a fixed layout, and a
+/// confirmation whose buttons are pinned at the bottom of the *face* would pin
+/// them where the circle has no width left. Which costs what, and why the
+/// insets go on the viewport rather than on the content, is in
+/// `docs/wear-geometry.md`.
 class WearScrollView extends StatefulWidget {
   const WearScrollView({
     super.key,
@@ -72,22 +52,18 @@ class WearScrollView extends StatefulWidget {
   /// Run the viewport across the whole face and let the items carry the
   /// geometry, shrinking toward the rim ([WearFaceCurve]).
   ///
-  /// **Only for a list of short rows.** The scale that keeps an item on the
-  /// glass is the chord at the item's own corners, and an item taller than the
-  /// face's radius has a corner past the chord wherever it stands — a paragraph
-  /// or a fault card cannot be rescued by shrinking, only cut, which is the
-  /// rejection this whole file exists because of. Those screens keep the
-  /// rectangle, where the viewport clips them safely.
+  /// **Only for a list of short rows.** An item taller than the face's radius
+  /// has a corner past the chord wherever it stands, so a paragraph or a fault
+  /// card cannot be rescued by shrinking — only cut, which is the rejection this
+  /// file exists because of. Those screens keep the rectangle.
   final bool curved;
 
   /// How round this list's items are, where they are all one shape.
   ///
-  /// Worth stating because the scale is otherwise decided by the corner of a
-  /// box: a 20 dp round row was shrinking to 0.85 to keep a corner on the glass
-  /// that it never paints, and scaled text is re-rasterised — same advances,
-  /// different pixels — so a row that shrinks for nothing reads as a row with
-  /// different letter spacing. Left at nothing unless a screen's items really
-  /// are uniformly that round.
+  /// Otherwise the scale is decided by the corner of a box: a 20 dp round row
+  /// shrank to 0.85 for a corner it never paints, and scaled text is
+  /// re-rasterised — same advances, different pixels — so it reads as different
+  /// letter spacing. Left at nothing unless the items really are all that round.
   final double itemCornerRadius;
 
   /// How much of the face this screen's content actually needs, if less than all

@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// AMS sensor history (temperature + humidity) for a single AMS unit.

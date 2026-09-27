@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import '../../helpers.dart';
+
 const _baseUrl = 'http://s.local:8000';
 const _tokenPath = '/api/v1/printers/camera/stream-token';
 
@@ -15,7 +17,7 @@ void main() {
 
   setUp(() {
     dio = Dio(BaseOptions(baseUrl: _baseUrl));
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     service = CameraTokenService(dio);
   });
 
@@ -127,6 +129,18 @@ void main() {
         );
       },
     );
+
+    test('a refused route surfaces with the status the server sent', () async {
+      // A bambuddy without the route answers a POST with 405 (the SPA
+      // catch-all is GET-only), so reporting a flat 404 here would put a
+      // status the server never sent into the log the bug report carries.
+      adapter.onPost(_tokenPath, (server) => server.reply(405, {}));
+
+      await expectLater(
+        service.token(),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 405)),
+      );
+    });
 
     test('a network error → AppApiException', () async {
       adapter.onPost(

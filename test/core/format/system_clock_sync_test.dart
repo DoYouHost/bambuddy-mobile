@@ -25,7 +25,7 @@ class _RecordingMonitor implements BackgroundMonitor {
   @override
   Future<bool> start() async => true;
   @override
-  Future<void> stop() async {}
+  Future<bool> stop() async => false;
 }
 
 /// A PM time, so a 12-hour clock is visible in the output rather than implied.

@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -6,7 +8,6 @@ import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/calibration_option.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/queue_item.dart';
 
 /// Sentinel distinguishing "argument not passed" from an explicit `null` in
@@ -29,14 +30,13 @@ Map<String, int>? rackChoiceWire(Object? choice) {
 /// counterpart of [QueueRepository.updateItem]'s named parameters.
 ///
 /// Mirrors the server's `PrintQueueItemCreate`, where every field has a default:
-/// a null here means "not configured", the key is left out of the body, and the
-/// server's own default applies. That is why this is a plain object rather than
-/// the sentinel dance `updateItem` needs — on create there is no stored value a
-/// null could clear.
+/// a null here means "not configured" and the key is left out, which is why this
+/// is a plain object rather than the sentinel dance `updateItem` needs — on
+/// create there is no stored value a null could clear.
 ///
-/// Sending the whole configuration with the POST is the point: it closes the
-/// window in which the scheduler could dispatch a freshly added item while the
-/// user is still configuring it (see `docs/plans/06b-log-findings.md`).
+/// The whole configuration goes with the POST to close the window in which the
+/// scheduler could dispatch a freshly added item while the user is still
+/// configuring it.
 class QueueCreateOptions {
   const QueueCreateOptions({
     this.targetModel,
@@ -58,6 +58,7 @@ class QueueCreateOptions {
     this.preheatOverride,
     this.preheatChamberTargetOverride,
     this.nozzleRackChoice,
+    this.batchId,
   });
 
   final String? targetModel;
@@ -96,6 +97,10 @@ class QueueCreateOptions {
   /// form only offers the pick once a printer has reported a rack.
   final Map<int, int>? nozzleRackChoice;
 
+  /// An existing batch to add the copies into (v0.2.4.8+) — how an order made
+  /// beforehand gets its runs. Without it, `quantity > 1` makes a grouping.
+  final int? batchId;
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
@@ -122,6 +127,7 @@ class QueueCreateOptions {
     'preheat_override': ?preheatOverride,
     'preheat_chamber_target_override': ?preheatChamberTargetOverride,
     'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
+    'batch_id': ?batchId,
   };
 }
 
@@ -149,7 +155,7 @@ class QueueRepository {
   /// sane comparison, and no ordering of those two strings can tell you whether
   /// that particular beta predates the change. The field's type says it
   /// outright. Unknown → the boolean form, which every server accepts.
-  late final _triState = ObservedCapability(
+  late final triStateCapability = ObservedCapability(
     ServerFeature.triStateCalibration,
     _serverVersion,
   );
@@ -160,8 +166,6 @@ class QueueRepository {
     'nozzle_offset_cali',
   ];
 
-  Future<bool> supportsTriStateCalibration() => _triState.supported;
-
   /// Records which spelling a queue payload used. Reads the raw JSON rather than
   /// the parsed [QueueItem], because the whole point of the parsed form is that
   /// both spellings collapse into one enum.
@@ -171,11 +175,11 @@ class QueueRepository {
       for (final key in _calibrationKeys) {
         final value = record[key];
         if (value is String) {
-          _triState.observe(present: true);
+          triStateCapability.observe(present: true);
           return;
         }
         if (value is bool) {
-          _triState.observe(present: false);
+          triStateCapability.observe(present: false);
           return;
         }
       }
@@ -203,17 +207,13 @@ class QueueRepository {
   /// The queue as the app shows it: everything waiting plus whatever is
   /// printing, in two filtered requests instead of one unfiltered one.
   ///
-  /// Unfiltered, `GET /queue/` answers with every item the server has ever
-  /// queued — measured on a real server after two months: 163 records, 218 kB,
-  /// growing with each print, all of it to render the handful that are still
-  /// active. The queue screen polls every 10 s, so that was the whole print
-  /// history on the wire six times a minute, and it is what made the endpoint
-  /// take eight seconds in a user's diagnostic log.
+  /// Unfiltered, `GET /queue/` answers with every item ever queued — 163
+  /// records and 218 kB on a real server after two months, polled every 10 s to
+  /// render the handful still active, and eight seconds of it in a user's
+  /// diagnostic log.
   ///
-  /// The server takes one status per call, hence two calls; they run
-  /// concurrently, so the wait is the slower one rather than their sum. A paused
-  /// print needs no third call — the server keeps such an item `printing` and
-  /// the pause lives in the printer's state.
+  /// The server takes one status per call, hence two, run concurrently. A paused
+  /// print needs no third: the server keeps such an item `printing`.
   Future<List<QueueItem>> fetchActive() async {
     final lists = await Future.wait([
       fetch(status: 'pending'),
@@ -250,22 +250,29 @@ class QueueRepository {
   );
 
   /// PATCH /queue/{id} — assign printer to item (before start).
-  /// Body: `{"printer_id": ..}`.
-  Future<void> assignPrinter(int itemId, int printerId) => guard(
+  ///
+  /// `target_model: null` goes along because an "any X" item already has a
+  /// model, and the server refuses a row holding both with 400
+  /// (`print_queue.py::update_queue_item`). Picking a printer is what replaces
+  /// the model; for an item without one the null changes nothing.
+  ///
+  /// Keeps the detail like [updateItem], which is the same route.
+  Future<void> assignPrinter(int itemId, int printerId) => guardKeepingDetail(
     () => _dio.patch<dynamic>(
       Endpoints.queueItem(itemId),
-      data: {'printer_id': printerId},
+      data: {'printer_id': printerId, 'target_model': null},
     ),
   );
 
   /// PATCH /queue/{id} — set the AMS slot mapping (file filament slot → global
   /// AMS tray). Body: `{"ams_mapping": [..]}`.
-  Future<void> setAmsMapping(int itemId, List<int> mapping) => guard(
-    () => _dio.patch<dynamic>(
-      Endpoints.queueItem(itemId),
-      data: {'ams_mapping': mapping},
-    ),
-  );
+  Future<void> setAmsMapping(int itemId, List<int> mapping) =>
+      guardKeepingDetail(
+        () => _dio.patch<dynamic>(
+          Endpoints.queueItem(itemId),
+          data: {'ams_mapping': mapping},
+        ),
+      );
 
   /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
   ///
@@ -303,7 +310,7 @@ class QueueRepository {
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
     Object? nozzleRackChoice = kQueueUpdateUnset,
   }) async {
-    final triState = await supportsTriStateCalibration();
+    final triState = await triStateCapability.supported;
     final body = <String, dynamic>{
       if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
       if (targetModel != kQueueUpdateUnset) 'target_model': targetModel,
@@ -340,32 +347,135 @@ class QueueRepository {
   }
 
   /// POST /queue/{id}/start — manually start item.
-  Future<void> start(int itemId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.queueItemStart(itemId)));
+  ///
+  /// Keeps the detail: "Can only start pending items" names the status the
+  /// server found, as the removals do.
+  Future<void> start(int itemId) => guardKeepingDetail(
+    () => _dio.post<dynamic>(Endpoints.queueItemStart(itemId)),
+  );
 
-  /// Start the next pending queue item on [printerId]. Assigns the printer
-  /// first if the item isn't already bound to it (server requires the printer
-  /// set before start). Throws [StateError] when the queue has nothing
-  /// pending. Shared by the watch ("start next" button) both directly (REST
-  /// fallback) and via the phone relay.
+  /// Puts [item] on [printerId] and starts it: assign when it is not there yet,
+  /// then the optional [amsMapping], then `POST start`.
+  ///
+  /// Three requests with no transaction around them, and the start is the one
+  /// most likely refused (409 filament deficit, 400 status moved on). A refused
+  /// start after an assignment would leave the row bound to this printer with
+  /// its "any X" model gone — no other printer would ever take it — so the
+  /// assignment is put back before the error goes on. A mapping on an item
+  /// that was already here stays, as it did before: the user chose it.
+  Future<void> startOnPrinter(
+    QueueItem item,
+    int printerId, {
+    List<int>? amsMapping,
+  }) async {
+    final moved = item.printerId != printerId;
+    if (moved) await assignPrinter(item.id, printerId);
+    try {
+      if (amsMapping != null && amsMapping.isNotEmpty) {
+        await setAmsMapping(item.id, amsMapping);
+      }
+      await start(item.id);
+    } on Object {
+      if (moved) await _restoreAssignment(item);
+      rethrow;
+    }
+  }
+
+  /// Best effort: the start's own error is what the caller has to see, and a
+  /// failed restore has nothing better to say than that one.
+  Future<void> _restoreAssignment(QueueItem item) async {
+    try {
+      await _dio.patch<dynamic>(
+        Endpoints.queueItem(item.id),
+        data: {
+          'printer_id': item.printerId,
+          'target_model': item.targetModel,
+          'ams_mapping': item.amsMapping,
+        },
+      );
+    } on DioException {
+      // See above.
+    }
+  }
+
+  /// Start the next pending queue item on [printerId] — the watch's "start
+  /// next", both directly (REST fallback) and via the phone relay. Throws
+  /// [StateError] when nothing pending can print there.
   Future<void> startNextPending(int printerId) async {
-    final items = await fetch();
-    // Queue positions frequently all default to 1 (see queue notes), so sort
-    // by position then id for a stable "first" pick.
-    final pending =
-        items.where((q) => q.statusKind == QueueItemStatusKind.pending).toList()
-          ..sort((a, b) {
-            final byPos = a.position.compareTo(b.position);
-            return byPos != 0 ? byPos : a.id.compareTo(b.id);
-          });
-    if (pending.isEmpty) {
+    final item = await _nextPendingFor(printerId);
+    if (item == null) {
       throw StateError('empty-queue');
     }
-    final item = pending.first;
-    if (item.printerId != printerId) {
-      await assignPrinter(item.id, printerId);
+    await startOnPrinter(item, printerId);
+  }
+
+  /// The item "start next" on [printerId] picks, most specific first: its own
+  /// items, then "any model X" items for its model and location, then items
+  /// with no printer and no model.
+  ///
+  /// By tier rather than by position alone: positions all default to 1, so an
+  /// id tiebreak would let an old unassigned job starve the one the user
+  /// queued for this printer. Never an item assigned to another printer (its
+  /// AMS mapping belongs to that machine), nor a cross-model job, whose printer
+  /// the server picks itself.
+  ///
+  /// Each tier costs a request only when the one before it came up empty, so
+  /// a printer with its own queue is one GET, and a refusal of a later listing
+  /// cannot block what an earlier one found.
+  Future<QueueItem?> _nextPendingFor(int printerId) async {
+    bool startable(QueueItem q) =>
+        q.statusKind == QueueItemStatusKind.pending && q.variants.isEmpty;
+    // The printer filter returns its own items plus unassigned ones for its
+    // model (`print_queue.py::list_queue`) — but ignores `target_location`,
+    // which the scheduler honours when it places such an item.
+    final listed = (await fetch(
+      printerId: printerId,
+      status: 'pending',
+    )).where(startable).toList();
+
+    final own = _firstInQueue(listed.where((q) => q.printerId == printerId));
+    if (own != null) return own;
+
+    final forModel = listed.where((q) => q.printerId == null).toList();
+    if (forModel.any((q) => q.targetLocation != null)) {
+      final location = await _printerLocation(printerId);
+      forModel.removeWhere(
+        (q) => q.targetLocation != null && q.targetLocation != location,
+      );
     }
-    await start(item.id);
+    final modelItem = _firstInQueue(forModel);
+    if (modelItem != null) return modelItem;
+
+    final unassigned = await fetch(printerId: -1, status: 'pending');
+    return _firstInQueue(
+      unassigned.where(
+        (q) => startable(q) && q.printerId == null && q.targetModel == null,
+      ),
+    );
+  }
+
+  /// Queue positions frequently all default to 1 (see queue notes), so id
+  /// breaks the tie for a stable "first".
+  static QueueItem? _firstInQueue(Iterable<QueueItem> items) =>
+      items.sorted((a, b) {
+        final byPos = a.position.compareTo(b.position);
+        return byPos != 0 ? byPos : a.id.compareTo(b.id);
+      }).firstOrNull;
+
+  /// Read from the listing the app already uses; [Endpoints] has no
+  /// single-printer route. Only asked when a candidate names a location.
+  Future<String?> _printerLocation(int printerId) async {
+    final printers = await guard(
+      () async =>
+          (await _dio.get<List<dynamic>>(Endpoints.printers)).data ?? const [],
+    );
+    for (final p in printers) {
+      if (p is Map && p['id'] == printerId) {
+        final location = p['location'];
+        return location is String ? location : null;
+      }
+    }
+    return null;
   }
 
   /// POST /queue/{id}/cancel — cancel queue item. Accepted for a `pending`
@@ -377,21 +487,15 @@ class QueueRepository {
   /// POST /queue/{id}/stop — stop the print a `printing` item is running and
   /// drop the item out of the queue (the server writes it `cancelled`).
   ///
-  /// The escape hatch for a row the server holds as `printing`: `/cancel`
-  /// takes `pending` alone, `DELETE` refuses a printing row, and the queue
-  /// screen offers no swipe on the pinned printing card — so before this the
-  /// app had no way to clear one. That is issue #35, where a print had failed
-  /// on the machine while its row stayed `printing`.
+  /// The escape hatch for a row the server holds as `printing`: `/cancel` takes
+  /// `pending` alone and `DELETE` refuses a printing row, so before this a print
+  /// that had failed on the machine could not be cleared at all (issue #35).
   ///
-  /// Sends a stop to the printer, which is harmless when it already stopped:
-  /// the server writes the row `cancelled` either way and says which of the
-  /// two happened.
+  /// The stop it sends is harmless when the printer has already stopped — the
+  /// server writes the row `cancelled` either way and says which happened.
   ///
-  /// [guardKeepingDetail], like the other two removals: all three answer 400
-  /// by naming the status they found ("Cannot cancel item with status
-  /// 'printing'"), and that status is the whole explanation. Plain [guard]
-  /// drops a 400's detail, which is how the reporter's screen could only say
-  /// "server error 400".
+  /// [guardKeepingDetail], like the other two removals: the 400 names the status
+  /// it found, and that status is the whole explanation.
   Future<void> stop(int itemId) => guardKeepingDetail(
     () => _dio.post<dynamic>(Endpoints.queueItemStop(itemId)),
   );
@@ -438,19 +542,15 @@ class QueueRepository {
   /// POST /queue/ — one job offering several sliced files, whichever printer
   /// frees up first (server #671, **1.2.6+**).
   ///
-  /// [fileIds] is the priority order: when more than one printer is idle at the
-  /// same moment, the earlier candidate wins. Two files minimum, and no
-  /// `printer_id` — naming a printer defeats the purpose and the server rejects
-  /// the combination outright.
+  /// [fileIds] is the priority order, two files minimum, and no `printer_id` —
+  /// naming a printer defeats the purpose and the server refuses the
+  /// combination. `target_model` per candidate is deliberately not sent: the
+  /// server reads each file's own `sliced_for_model`, and overriding that is for
+  /// legacy 3MFs the phone cannot identify.
   ///
-  /// `target_model` per candidate is deliberately not sent: the server reads it
-  /// from each file's own `sliced_for_model`, and overriding that is only for
-  /// legacy 3MFs that declare none — which the phone has no way to identify.
-  ///
-  /// The caller must have checked [LibraryRepository.supportsCrossModelVariants]
-  /// first; an older server answers 422 for the unknown `variants` shape only
-  /// because the rest of the body is then invalid, which is a confusing way to
-  /// learn the feature is missing.
+  /// The caller checks [LibraryRepository.variantsCapability] first: an
+  /// older server answers 422 only because the rest of the body is then invalid,
+  /// which is a confusing way to learn the feature is missing.
   Future<void> addCrossModel(
     List<int> fileIds, {
     int quantity = 1,
@@ -476,7 +576,7 @@ class QueueRepository {
     required bool insertAtTop,
     required QueueCreateOptions? options,
   }) async {
-    final triState = await supportsTriStateCalibration();
+    final triState = await triStateCapability.supported;
     final body = <String, dynamic>{
       ...source,
       'printer_id': printerId,

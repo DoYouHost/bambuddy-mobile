@@ -4,15 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/two_factor.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'package:app_report_ui/app_report_ui.dart' show bugReportRoute;
 import '../../core/demo/demo_config.dart';
-import '../../core/theme/dash_text.dart';
+import '../../providers.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../bug_report/recording_banner.dart';
-import '../common/dash_progress.dart';
 import '../common/qr_scanner_screen.dart';
-import '../common/system_insets.dart';
 import 'api_key_qr.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
@@ -38,6 +36,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// Which second factor the user picked. Null until the challenge arrives —
   /// then it defaults to the server's first offered method.
   TwoFactorMethod? _method;
+
+  @override
+  void initState() {
+    super.initState();
+    // Someone sent back here to sign in again still has their server saved, and
+    // the address is the one thing they cannot guess at — it is an IP and a
+    // port on their own LAN. Typing it from memory is not part of signing in.
+    final saved = ref.read(serverProfileProvider)?.baseUrl;
+    if (saved != null) _url.text = saved;
+  }
 
   @override
   void dispose() {
@@ -119,11 +127,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: t.cardGradient,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: t.cardBorder),
-            ),
+            decoration: t.cardBox,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -193,7 +197,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       setupErrorText(l10n, state.error!),
-                      style: t.body.copyWith(color: t.danger),
+                      style: t.body.copyWith(color: t.dangerInk),
                     ),
                   ),
                 if (state.twoFactor case final challenge?)

@@ -8,6 +8,9 @@ name: Pages
 #
 #   https://doyouhost.github.io/bambuddy-mobile/
 #   https://doyouhost.github.io/bambuddy-mobile/privacy.html
+#
+# The deploy itself is shared with lubelogger-mobile; only the trigger below is
+# ours. Pinned to `master` until app-shared cuts a tag that carries it.
 
 on:
   push:
@@ -26,18 +29,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    uses: DoYouHost/app-shared/.github/workflows/pages.yml@master
     permissions:
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
-      - id: deploy
-        uses: actions/deploy-pages@v5

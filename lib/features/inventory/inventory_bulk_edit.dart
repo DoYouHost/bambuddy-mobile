@@ -385,7 +385,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
       valueStyle: t.monoValue,
       leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
       trailingIcon: Icons.colorize,
-      onTap: () => _pickColor(l10n),
+      onTap: _pickColor,
       clear: (
         id: 'bulk_edit.color.clear',
         onPressed: () => _c['rgba']!.clear(),
@@ -393,45 +393,15 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     );
   }
 
-  Future<void> _pickColor(AppLocalizations l10n) async {
-    var picked = parseSpoolColor(_c['rgba']!.text) ?? const Color(0xFFFFFFFF);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.inventoryColorPickTitle),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: picked,
-            onColorChanged: (c) => picked = c,
-            enableAlpha: false,
-            hexInputBar: true,
-            labelTypes: const [],
-            portraitOnly: true,
-            pickerAreaHeightPercent: 0.7,
-          ),
-        ),
-        actions: [
-          logTag(
-            'bulk_edit_color.cancel',
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'bulk_edit_color.confirm',
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.inventoryColorSelect),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _pickColor() async {
+    final picked = await _pickSpoolColor(
+      context,
+      id: 'bulk_edit_color',
+      current: _c['rgba']!.text,
     );
     // Alpha is not editable here and every selected spool keeps its own, so the
     // patch always carries the opaque form.
-    if (confirmed == true && mounted) {
+    if (picked != null && mounted) {
       _c['rgba']!.text = '${colorToHex(picked, enableAlpha: false)}FF';
     }
   }

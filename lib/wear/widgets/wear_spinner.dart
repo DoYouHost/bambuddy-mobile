@@ -31,3 +31,20 @@ const wearBusyVeil = Positioned.fill(
     ),
   ),
 );
+
+/// The third thing a wear screen says about itself: this is last run's data,
+/// drawn while the first poll is still out ([WearFleetCache]).
+///
+/// Dims rather than blocks. An unreachable server leaves [WearFleet.stale] set
+/// for as long as the refresh keeps failing, and a screen that had also stopped
+/// taking taps would have taken pull-to-refresh down with it — leaving the one
+/// state nobody can get out of. Dimming says "not confirmed" and leaves every
+/// way forward open.
+Widget wearDimIfStale({required bool stale, required Widget child}) =>
+    stale ? Opacity(opacity: _staleOpacity, child: child) : child;
+
+/// Deliberately gentle. The dim is no longer the only signal — a cached frame
+/// also disables every command button and says why — and a disabled label is
+/// already drawn at 38% alpha, which this multiplies. At 0.45 that product was
+/// 0.17 and the buttons were gone rather than greyed.
+const _staleOpacity = 0.6;

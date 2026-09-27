@@ -1,10 +1,14 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/filament_colour.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/no_3mf_warning.dart';
+import '../../core/models/print_run.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 
 /// Upper bound on how many archives we load in one shot. Filtering/sorting runs
 /// client-side over the full set (matching bambuddy), so we fetch everything
@@ -107,9 +111,9 @@ List<Archive> applyArchiveFilters(
       return false;
     }
     // Material is stored as a comma+space list for multi-material prints.
-    if (filters.material != null) {
-      final types = a.filamentType?.split(', ') ?? const [];
-      if (!types.contains(filters.material)) return false;
+    if (filters.material != null &&
+        !filamentTypeTokens(a.filamentType).contains(filters.material)) {
+      return false;
     }
     if (filters.colors.isNotEmpty) {
       final archiveColors = a.filamentColors;
@@ -119,9 +123,7 @@ List<Archive> applyArchiveFilters(
       if (!matches) return false;
     }
     if (filters.favoritesOnly && !a.isFavorite) return false;
-    if (filters.hideFailed && (a.status == 'failed' || a.status == 'aborted')) {
-      return false;
-    }
+    if (filters.hideFailed && printRunIsFailure(a.status)) return false;
     // Keep the original of each duplicate group (sequence 0), drop the copies.
     if (filters.hideDuplicates &&
         a.duplicateCount > 0 &&
@@ -195,12 +197,22 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     );
   }
 
+  /// Archives whose favorite toggle is still waiting for the server.
+  final _favoriteInFlight = <int>{};
+
   /// Toggle an archive's favorite flag. Flips locally at once for instant
   /// feedback, then reconciles with the server's returned value; on error the
-  /// previous list is restored and `false` is returned.
+  /// flag goes back and `false` is returned.
+  ///
+  /// A second tap on the same star before the first answers is ignored. The
+  /// route toggles rather than sets, and two overlapping requests that both
+  /// fail roll back in whichever order they land — the star could end up
+  /// showing the opposite of what the server holds.
   Future<bool> toggleFavorite(int archiveId) async {
     final current = state.valueOrNull;
     if (current == null) return false;
+    if (!_favoriteInFlight.add(archiveId)) return true;
+    final before = current.firstWhereOrNull((a) => a.id == archiveId);
 
     _patchRow(archiveId, (a) => a.withFavorite(!a.isFavorite));
     try {
@@ -209,9 +221,18 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
           .toggleFavorite(archiveId);
       replace(updated);
       return true;
-    } on AppApiException {
-      state = AsyncValue.data(current); // rollback
+    } catch (e) {
+      // Just this row's flag: the list may have changed while the request was
+      // out, and a whole-list snapshot would undo that too. Rolled back on any
+      // failure, so an unexpected one does not leave a star the server never
+      // set; only a refusal is an answer, the rest goes on up.
+      if (before != null) {
+        _patchRow(archiveId, (a) => a.withFavorite(before.isFavorite));
+      }
+      if (e is! AppApiException) rethrow;
       return false;
+    } finally {
+      _favoriteInFlight.remove(archiveId);
     }
   }
 
@@ -237,17 +258,40 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   Future<bool> delete(int archiveId, {required bool purgeStats}) async {
     final current = state.valueOrNull;
     if (current == null) return false;
+    final index = current.indexWhere((a) => a.id == archiveId);
 
-    state = AsyncValue.data(current.where((a) => a.id != archiveId).toList());
+    if (index >= 0) state = AsyncValue.data([...current]..removeAt(index));
     try {
       await ref
           .read(archiveRepositoryProvider)
           .delete(archiveId, purgeStats: purgeStats);
       return true;
-    } on AppApiException {
-      state = AsyncValue.data(current); // rollback
+    } catch (e) {
+      // Any failure puts the row back; only a refusal is an answer.
+      if (index >= 0) _putBack(current[index], current);
+      if (e is! AppApiException) rethrow;
       return false;
     }
+  }
+
+  /// Rollback of one optimistic removal into the list as it is *now*. Restoring
+  /// the snapshot taken before the request brought back rows deleted in the
+  /// meantime — swipe A, swipe B, A fails, and B is on screen again.
+  void _putBack(Archive row, List<Archive> before) {
+    final list = state.valueOrNull;
+    if (list == null) return;
+    state = AsyncValue.data(
+      withRowRestored(list, row, before, idOf: (a) => a.id),
+    );
+  }
+
+  void _removeRow(int archiveId) {
+    final list = state.valueOrNull;
+    if (list == null) return;
+    state = AsyncValue.data([
+      for (final a in list)
+        if (a.id != archiveId) a,
+    ]);
   }
 
   /// Delete several prints (multi-select). No bulk-by-id endpoint exists, so
@@ -261,20 +305,21 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     if (current == null) return (ok: 0, failed: ids.length);
 
     final repo = ref.read(archiveRepositoryProvider);
-    final deleted = <int>{};
+    var deleted = 0;
     var failed = 0;
     for (final id in ids) {
       try {
         await repo.delete(id, purgeStats: purgeStats);
-        deleted.add(id);
+        deleted++;
+        // Row by row, from the list as it is now: the deletes run one at a
+        // time, so the screen follows them instead of jumping at the end, and
+        // whatever changed in between survives.
+        _removeRow(id);
       } on AppApiException {
         failed++;
       }
     }
-    state = AsyncValue.data(
-      current.where((a) => !deleted.contains(a.id)).toList(),
-    );
-    return (ok: deleted.length, failed: failed);
+    return (ok: deleted, failed: failed);
   }
 }
 

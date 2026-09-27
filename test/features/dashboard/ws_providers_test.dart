@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,6 +27,26 @@ class _HangConn implements WsConnection {
   int? get closeCode => null;
   @override
   String? get closeReason => null;
+}
+
+/// A connection whose frames the test pushes.
+class _PushConn implements WsConnection {
+  final _frames = StreamController<dynamic>();
+
+  @override
+  Future<void> get ready async {}
+  @override
+  Stream<dynamic> get stream => _frames.stream;
+  @override
+  void send(String data) {}
+  @override
+  Future<void> close() async => _frames.close();
+  @override
+  int? get closeCode => null;
+  @override
+  String? get closeReason => null;
+
+  void push(String frame) => _frames.add(frame);
 }
 
 ProviderContainer _container() {
@@ -158,6 +179,36 @@ void main() {
       expect(store.inTouchSince, reopened);
     });
 
+    test('the first contact after a gap re-asks the server, once', () {
+      final c = _container();
+      final store = c.read(printerStatusesProvider.notifier);
+      int epoch() => c.read(serverContactEpochProvider);
+
+      store.ingestPoll([_pws(1, state: 'IDLE')]);
+      store.ingestPoll([_pws(1, state: 'RUNNING')]);
+      expect(epoch(), 1, reason: 'only the first frame is regained contact');
+
+      store.lostContact();
+      store.ingestPoll([_pws(1, state: 'RUNNING')]);
+      expect(epoch(), 2);
+    });
+
+    test('a new socket starts a new line', () {
+      // The notifier survives its own rebuild; without a reset the first frame
+      // over a new socket would be taken as the old line still being up.
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1)]);
+      expect(c.read(serverContactEpochProvider), 1);
+
+      c.invalidate(wsClientProvider);
+      c.read(printerStatusesProvider);
+      final store = c.read(printerStatusesProvider.notifier);
+      expect(store.inTouchSince, isNull);
+
+      store.ingestPoll([_pws(1)]);
+      expect(c.read(serverContactEpochProvider), 2);
+    });
+
     test('going to the background drops the line', () {
       final c = _container();
       final store = c.read(printerStatusesProvider.notifier);
@@ -213,6 +264,63 @@ void main() {
           .plateGateAcknowledged(7); // unknown
 
       expect(c.read(printerStatusesProvider), same(before));
+    });
+  });
+
+  group('what the server announces', () {
+    test('an inventory frame tells the shelf it is out of date', () async {
+      // The spool screen re-reads on this; before, a spool edited on the web
+      // stayed invisible until the user pulled the list down.
+      late _PushConn conn;
+      final c = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(),
+          wsClientProvider.overrideWith((ref) {
+            final client = WsClient(
+              url: Uri.parse('ws://s.local:8000/api/v1/ws'),
+              authHeaders: () async => const {},
+              connect: (_, _) => conn = _PushConn(),
+            );
+            ref.onDispose(client.dispose);
+            return client;
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(printerStatusesProvider);
+      await pumpEventQueue();
+      expect(c.read(inventoryChangedProvider), 0);
+
+      conn.push('{"type":"inventory_changed"}');
+      await pumpEventQueue();
+
+      expect(c.read(inventoryChangedProvider), 1);
+    });
+
+    test('an archive frame does the same for the archive', () async {
+      late _PushConn conn;
+      final c = ProviderContainer(
+        overrides: [
+          fakeServerProfileOverride(),
+          wsClientProvider.overrideWith((ref) {
+            final client = WsClient(
+              url: Uri.parse('ws://s.local:8000/api/v1/ws'),
+              authHeaders: () async => const {},
+              connect: (_, _) => conn = _PushConn(),
+            );
+            ref.onDispose(client.dispose);
+            return client;
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(printerStatusesProvider);
+      await pumpEventQueue();
+
+      conn.push('{"type":"archive_updated","data":{"id":7}}');
+      await pumpEventQueue();
+
+      expect(c.read(archiveChangedProvider), 1);
     });
   });
 }

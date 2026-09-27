@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,10 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/ams/slot_addressing.dart';
-import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
-import '../../core/format/user_number.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
@@ -17,7 +16,6 @@ import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
 import '../../core/slicer/preset_filters.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/inventory_repository.dart';
@@ -26,17 +24,15 @@ import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_stepper.dart';
+import '../common/refresh_when_shown.dart';
+import '../common/dash_progress_bar.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/dashed_line.dart';
 import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/confirm_dialog.dart';
-import '../common/state_views.dart';
 import '../common/dash_input.dart';
 import '../dashboard/ams_slot_config_providers.dart';
 import '../dashboard/providers.dart';
@@ -45,6 +41,7 @@ import '../slicer/slice_providers.dart';
 import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
+import '../../core/diagnostics/log_tag_material.dart';
 
 part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
@@ -155,6 +152,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   final Set<int> _selected = {};
 
   bool get _selectionMode => _selected.isNotEmpty;
+
+  /// The shelf and the climate readings, which age on their own — the server
+  /// polls Home Assistant on its own interval, so whoever asks for the shelf
+  /// has to ask for those too.
+  Future<void> _refreshShelfAndClimate() {
+    ref.invalidate(locationClimateProvider);
+    return ref.read(inventoryProvider.notifier).refresh();
+  }
 
   void _toggleSelect(int id) {
     setState(() {
@@ -279,77 +284,73 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ],
               ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-          tonalRetry: true,
-          errorIcon: null,
-          data: (inv) {
-            final spools = visible;
-            return RefreshIndicator(
-              onRefresh: () {
-                // The readings age on their own — the server polls Home
-                // Assistant on its own interval — so a pull has to re-ask for
-                // them, not only for the shelf.
-                ref.invalidate(locationClimateProvider);
-                return ref.read(inventoryProvider.notifier).refresh();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  DashSliverSearchBar(
-                    child: _SearchBar(
-                      filterCount: filters.activeCount,
-                      onQuery: (v) =>
-                          ref.read(inventoryQueryProvider.notifier).state = v,
-                      onOpenFilters: () => _openFilters(context, inv.spools),
-                    ),
-                  ),
-                  if (spools.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyStateView(
-                        message: inv.spools.isEmpty
-                            ? l10n.inventoryEmpty
-                            : l10n.inventoryNoMatches,
-                        icon: Icons.inventory_2_outlined,
+        body: RefreshWhenShown(
+          announced: ref.watch(inventoryChangedProvider),
+          onRefresh: _refreshShelfAndClimate,
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+            data: (inv) {
+              final spools = visible;
+              return RefreshIndicator(
+                onRefresh: _refreshShelfAndClimate,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    DashSliverSearchBar(
+                      child: _SearchBar(
+                        filterCount: filters.activeCount,
+                        onQuery: (v) =>
+                            ref.read(inventoryQueryProvider.notifier).state = v,
+                        onOpenFilters: () => _openFilters(context, inv.spools),
                       ),
-                    )
-                  else
-                    SliverPadding(
-                      // Clears the whole FAB stack (scan + add) plus its margin,
-                      // so the last spool stays reachable at the end of the list.
-                      padding: const EdgeInsets.only(bottom: 120),
-                      sliver: SliverList.builder(
-                        itemCount: spools.length + 1,
-                        itemBuilder: (context, i) {
-                          if (i == 0) {
-                            return _ListHeader(
-                              visibleCount: spools.length,
-                              consumed: consumedTotal,
+                    ),
+                    if (spools.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          message: inv.spools.isEmpty
+                              ? l10n.inventoryEmpty
+                              : l10n.inventoryNoMatches,
+                          icon: Icons.inventory_2_outlined,
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        // Clears the whole FAB stack (scan + add) plus its margin,
+                        // so the last spool stays reachable at the end of the list.
+                        padding: const EdgeInsets.only(bottom: 120),
+                        sliver: SliverList.builder(
+                          itemCount: spools.length + 1,
+                          itemBuilder: (context, i) {
+                            if (i == 0) {
+                              return _ListHeader(
+                                visibleCount: spools.length,
+                                consumed: consumedTotal,
+                              );
+                            }
+                            final spool = spools[i - 1];
+                            return _SpoolTile(
+                              spool: spool,
+                              assignment: inv.assignmentFor(spool.id),
+                              selected: _selected.contains(spool.id),
+                              selectionMode: _selectionMode,
+                              // Outside selection mode `onTap` stays null so the
+                              // tile keeps its own detail-sheet default.
+                              onTap: _selectionMode
+                                  ? () => _toggleSelect(spool.id)
+                                  : null,
+                              onLongPress: () => _toggleSelect(spool.id),
                             );
-                          }
-                          final spool = spools[i - 1];
-                          return _SpoolTile(
-                            spool: spool,
-                            assignment: inv.assignmentFor(spool.id),
-                            selected: _selected.contains(spool.id),
-                            selectionMode: _selectionMode,
-                            // Outside selection mode `onTap` stays null so the
-                            // tile keeps its own detail-sheet default.
-                            onTap: _selectionMode
-                                ? () => _toggleSelect(spool.id)
-                                : null,
-                            onLongPress: () => _toggleSelect(spool.id),
-                          );
-                        },
+                          },
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

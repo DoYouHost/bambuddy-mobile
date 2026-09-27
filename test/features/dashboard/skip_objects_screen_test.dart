@@ -115,9 +115,7 @@ void main() {
     // preview (AspectRatio 1) would then claim the whole viewport height, and
     // the sliver never builds the list rows underneath it. A phone-shaped
     // window fixes that the same way other screen tests in this repo do.
-    tester.view.physicalSize = const Size(1080, 3600);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+    usePhoneWindow(tester, dp: 1200);
 
     final repo = _StubRepo(objects);
     await pumpPhone(
@@ -353,9 +351,7 @@ void main() {
   testWidgets(
     'an object gone from a background refresh after selection does not go in the request despite being absent from the dialog',
     (tester) async {
-      tester.view.physicalSize = const Size(1080, 3600);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.reset);
+      usePhoneWindow(tester, dp: 1200);
 
       final repo = await pumpScreen(tester);
 

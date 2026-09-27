@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers.dart';
+
 import 'dart:ui' show Tristate;
 
 import 'queue_form_harness.dart';
@@ -95,11 +97,7 @@ SemanticsNode _rowNode(WidgetTester tester, String label) =>
     tester.getSemantics(
       find.ancestor(
         of: find.text(label),
-        matching: find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'queue_edit.menu_item',
-        ),
+        matching: byLogId('queue_edit.menu_item'),
       ),
     );
 
@@ -307,15 +305,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    SemanticsNode picker() => tester.getSemantics(
-      find
-          .byWidgetPredicate(
-            (w) =>
-                w is Semantics &&
-                w.properties.identifier == 'queue_edit.picker',
-          )
-          .first,
-    );
+    SemanticsNode picker() =>
+        tester.getSemantics(byLogId('queue_edit.picker').first);
 
     expect(picker().flagsCollection.isExpanded, Tristate.isFalse);
 

@@ -8,6 +8,8 @@
 /// over both REST and a WebSocket push.
 library;
 
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 import 'slicer_pipeline.dart';
 

@@ -563,28 +563,30 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final options = <String>{..._effectOptions, ?_effectType};
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: DropdownButtonFormField<String?>(
-        initialValue: _effectType,
-        isExpanded: true,
-        style: t.body,
-        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-        decoration: dashDecoration(t, labelText: l10n.inventoryFieldEffect),
-        items: [
-          DropdownMenuItem(
+      child: dashCombo<String?>(
+        context,
+        id: _fieldTag('effect'),
+        label: Text(l10n.inventoryFieldEffect),
+        initialSelection: _effectType,
+        textStyle: t.body,
+        onSelected: (v) => setState(() => _effectType = v),
+        entries: [
+          DropdownMenuEntry(
             value: null,
-            child: logTag(
+            label: l10n.inventoryEffectNone,
+            labelWidget: logTag(
               '${_fieldTag('effect')}.none',
               Text(l10n.inventoryEffectNone),
             ),
           ),
           for (final e in options)
-            DropdownMenuItem(
+            DropdownMenuEntry(
               value: e,
-              child: logTag('${_fieldTag('effect')}.option', Text(e)),
+              label: e,
+              labelWidget: logTag('${_fieldTag('effect')}.option', Text(e)),
             ),
         ],
-        onChanged: (v) => setState(() => _effectType = v),
-      ).tagged(_fieldTag('effect')),
+      ),
     );
   }
 
@@ -593,15 +595,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// creates N identical spools.
   Widget _quantityStepper(AppLocalizations l10n) {
     final t = DashTokens.of(context);
-    void setQty(int v) => setState(() => _quantity = v.clamp(1, _maxQuantity));
-    Widget btn(IconData icon, VoidCallback? onTap) => IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: t.textSecondary),
-      iconSize: 20,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-      padding: EdgeInsets.zero,
-    ).tagged('spool_form.quantity_step');
     return Tooltip(
       message: l10n.inventoryQuantityHint,
       child: Container(
@@ -610,26 +603,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           border: Border.all(color: t.subCardBorder),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            btn(
-              Icons.remove,
-              _quantity > 1 ? () => setQty(_quantity - 1) : null,
-            ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 24),
-              child: Text(
-                '$_quantity',
-                textAlign: TextAlign.center,
-                style: t.monoTitle,
-              ),
-            ),
-            btn(
-              Icons.add,
-              _quantity < _maxQuantity ? () => setQty(_quantity + 1) : null,
-            ),
-          ],
+        // One id for both buttons, as it has always been logged.
+        child: DashStepper(
+          value: _quantity,
+          min: 1,
+          max: _maxQuantity,
+          onChanged: (v) => setState(() => _quantity = v),
+          lessTooltip: l10n.inventoryQuantityLess,
+          moreTooltip: l10n.inventoryQuantityMore,
+          lessId: 'spool_form.quantity_step',
+          moreId: 'spool_form.quantity_step',
+          compact: true,
         ),
       ),
     );
@@ -822,56 +806,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       valueStyle: t.monoValue,
       leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
       trailingIcon: Icons.colorize,
-      onTap: () => _openColorPicker(l10n),
+      onTap: _openColorPicker,
       // The row this shares with the colour-name field carries the spacing.
       padding: EdgeInsets.zero,
     );
   }
 
-  /// Color picker dialog. Starts from current color (or white), saves chosen hex
-  /// `RRGGBBAA` to `rgba` field on confirm. Preserves existing alpha byte (usually `FF`) —
-  /// picker edits RGB only, so we don't lose spool alpha (if ever non-full).
-  Future<void> _openColorPicker(AppLocalizations l10n) async {
+  /// Saves the picked colour as `RRGGBBAA` into `rgba`, keeping the existing
+  /// alpha byte (usually `FF`): the wheel edits RGB only, so a spool's alpha is
+  /// not lost.
+  Future<void> _openColorPicker() async {
     final rawCurrent = _c['rgba']!.text.trim().replaceFirst('#', '');
     final alphaHex = rawCurrent.length == 8
         ? rawCurrent.substring(6, 8).toUpperCase()
         : 'FF';
-    var picked = parseSpoolColor(_c['rgba']!.text) ?? const Color(0xFFFFFFFF);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.inventoryColorPickTitle),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: picked,
-            onColorChanged: (c) => picked = c,
-            enableAlpha: false,
-            hexInputBar: true,
-            labelTypes: const [],
-            portraitOnly: true,
-            pickerAreaHeightPercent: 0.7,
-          ),
-        ),
-        actions: [
-          logTag(
-            'spool_color.cancel',
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'spool_color.confirm',
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.inventoryColorSelect),
-            ),
-          ),
-        ],
-      ),
+    final picked = await _pickSpoolColor(
+      context,
+      id: 'spool_color',
+      current: _c['rgba']!.text,
     );
-    if (confirmed == true && mounted) {
+    if (picked != null && mounted) {
       setState(() {
         _c['rgba']!.text = colorToHex(picked, enableAlpha: false) + alphaHex;
       });
@@ -1132,6 +1086,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
                         // No avatar: the app's chips say "on" with the
                         // theme's checkmark, and an icon sits in exactly that
@@ -1348,4 +1303,52 @@ class _FormSection extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The colour wheel both spool forms open, starting from [current] (or white).
+/// RGB only; `null` when cancelled. [id] names the two buttons
+/// (`<id>.cancel` / `<id>.confirm`) — each form keeps its own, since the ids are
+/// wire values in the diagnostic log.
+Future<Color?> _pickSpoolColor(
+  BuildContext context, {
+  required String id,
+  required String current,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  var picked = parseSpoolColor(current) ?? const Color(0xFFFFFFFF);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.inventoryColorPickTitle),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      content: SingleChildScrollView(
+        child: ColorPicker(
+          pickerColor: picked,
+          onColorChanged: (c) => picked = c,
+          enableAlpha: false,
+          hexInputBar: true,
+          labelTypes: const [],
+          portraitOnly: true,
+          pickerAreaHeightPercent: 0.7,
+        ),
+      ),
+      actions: [
+        logTag(
+          '$id.cancel',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+        ),
+        logTag(
+          '$id.confirm',
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.inventoryColorSelect),
+          ),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true ? picked : null;
 }

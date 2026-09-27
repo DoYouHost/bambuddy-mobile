@@ -10,19 +10,16 @@ import '../../../core/ams/preset_colours.dart';
 import '../../../core/ams/printer_model_match.dart';
 import '../../../core/ams/slot_configuration.dart';
 import '../../../core/api/action_outcome.dart';
-import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/diagnostics/log_tag_material.dart';
+import '../../../core/format/filament_colour.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
 import '../../../core/models/k_profile.dart';
-import '../../../core/theme/dash_text.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
-import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
-import '../../common/dash_progress.dart';
-import '../../common/dash_snack.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, parseSpoolColor;
@@ -257,18 +254,14 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// Preselect what the slot already holds, so the sheet opens showing the
   /// truth rather than an empty form the user has to re-fill to change a colour.
   ///
-  /// Two sources, in this order:
+  /// The server's slot→preset mapping first, since it is the only thing that can
+  /// name a user's own cloud preset, then the filament id the printer reports.
   ///
-  /// 1. the server's slot→preset mapping, which is the only thing that can name
-  ///    a *user's own* cloud preset;
-  /// 2. failing that, the filament id the printer itself reports.
-  ///
-  /// The mapping goes first because it is more specific, but it is not trusted
-  /// blindly: saving it needs `printers:update` and a refusal leaves the
-  /// *previous* preset on file, so a mapping that names nothing in the visible
-  /// list is dropped rather than forced into it. Candidates come from the list
-  /// as rendered — arming the write with a row the user cannot see is how a slot
-  /// gets configured with a preset nobody chose.
+  /// The mapping is not trusted blindly: saving it needs `printers:update` and a
+  /// refusal leaves the *previous* preset on file, so one naming nothing in the
+  /// visible list is dropped. Candidates come from the list as rendered — arming
+  /// the write with a row the user cannot see is how a slot gets configured with
+  /// a preset nobody chose.
   void _preselectFrom(List<AmsFilamentPreset> visible) {
     if (_preselected || _userPicked || visible.isEmpty) return;
 
@@ -402,17 +395,14 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// Pressure advance, as a select: the matching profiles, then everything else
   /// the printer holds under a heading of its own.
   ///
-  /// The residual group is not padding. The match runs on names the user typed
-  /// in the slicer and on filament ids, so a profile named after its colour can
-  /// fall outside it — and the printer's table, not our guess, is what can
-  /// actually be selected.
+  /// The residual group is not padding: the match runs on names the user typed
+  /// in the slicer and on filament ids, so a profile named after its colour falls
+  /// outside it — and the printer's table is what can actually be selected.
   ///
-  /// Shown even when there is nothing to choose from — an empty table and a
-  /// refused read both used to hide the control, which reads as the feature
-  /// being missing rather than as the printer having no calibrations. Disabled
-  /// and labelled instead, so the answer is on screen either way.
-  /// [choices] is null while the table is still being read, [failed] null with
-  /// it.
+  /// Shown even with nothing to choose from, disabled and labelled: hiding it
+  /// read as the feature missing rather than as the printer having no
+  /// calibrations. [choices] and [failed] are both null while the table is
+  /// being read.
   Widget _kProfileField(
     AppLocalizations l10n,
     DashTokens t,
@@ -751,7 +741,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               onPressed: busy ? null : () => _reset(l10n),
               icon: const Icon(Icons.layers_clear, size: 18),
               label: Text(l10n.amsSlotReset),
-              style: TextButton.styleFrom(foregroundColor: t.danger),
+              style: TextButton.styleFrom(foregroundColor: t.dangerInk),
             ).tagged('ams_slot_config.reset'),
           ],
         ),

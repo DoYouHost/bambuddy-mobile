@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io' show WebSocketException;
 
+import 'package:bambuddy_mobile/core/diagnostics/diagnostics_wiring.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../helpers.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 WsMessage _status(
   int id, {
@@ -53,26 +54,28 @@ void main() {
 
   late DiagnosticRecorder recorder;
   late WsProbe probe;
-  late DateTime now;
+
+  /// Where every case below starts; the ones that care move on from here.
+  final start = DateTime.utc(2026, 7, 26, 12);
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async => SessionFacts(
-        app: '0.11.2+1102',
-        flavor: 'mobile',
-        secrets: const {host: '[HOST]'},
-      ),
+      sessions: MemorySessionStore(),
+      redactor: bambuddyRedactor,
+      sessionDuration: recordingLimit,
+      sessionBytes: recordingSizeLimit,
+      loadFacts: () async =>
+          SessionFacts(app: '0.11.2+1102', secrets: const {host: '[HOST]'}),
       resolveDirectory: () async => null,
+      // The snapshot at session start and the flush at session end are this
+      // listener's doing — the recorder has no idea a socket exists.
+      listeners: const [WsSessionListener()],
     );
-    now = DateTime.utc(2026, 7, 26, 12);
-    probe = WsProbe(clock: () => now);
+    probe = WsProbe();
     addTearDown(probe.dispose);
     addTearDown(recorder.discard);
   });
-
-  void tick(Duration d) => now = now.add(d);
 
   Future<List<Map<String, dynamic>>> allWsRecords() async {
     final jsonl = await recorder.stop();
@@ -90,10 +93,12 @@ void main() {
   Future<List<Map<String, dynamic>>> wsRecords() async =>
       (await allWsRecords()).where((r) => r['evt'] != 'state').toList();
 
-  test('connection attempt and its timing: connect → open', () async {
+  testWithClock('connection attempt and its timing: connect → open', start, (
+    time,
+  ) async {
     await recorder.start();
     probe.connecting(queryToken: true);
-    tick(const Duration(milliseconds: 142));
+    time.tick(const Duration(milliseconds: 142));
     probe.opened();
 
     expect(await wsRecords(), [
@@ -102,23 +107,28 @@ void main() {
     ]);
   });
 
-  test('connect carries the auth method, open the handshake time', () async {
-    await recorder.start();
-    probe.connecting(queryToken: false);
-    tick(const Duration(milliseconds: 142));
-    probe.opened();
+  testWithClock(
+    'connect carries the auth method, open the handshake time',
+    start,
+    (time) async {
+      await recorder.start();
+      probe.connecting(queryToken: false);
+      time.tick(const Duration(milliseconds: 142));
+      probe.opened();
 
-    final records = await wsRecords();
-    expect(records.first['via'], 'header');
-    expect(records.last['ms'], 142);
-  });
+      final records = await wsRecords();
+      expect(records.first['via'], 'header');
+      expect(records.last['ms'], 142);
+    },
+  );
 
-  test(
+  testWithClock(
     'rejected handshake: HTTP status, cause from under the wrapper',
-    () async {
+    start,
+    (time) async {
       await recorder.start();
       probe.connecting(queryToken: true);
-      tick(const Duration(milliseconds: 30));
+      time.tick(const Duration(milliseconds: 30));
       final rejected = WebSocketException('not upgraded to websocket', 401);
       probe.connectError(
         wsInnerError(rejected),
@@ -221,6 +231,15 @@ void main() {
       expect(frame, isNot(contains('Rain Gauge')));
       expect(frame, isNot(contains('Morgan')));
       expect(frame, isNot(contains('cover')));
+    });
+
+    test('an inventory frame is logged by the name the server used', () async {
+      // Both frames fold into one message in the parser; the log keeps the
+      // same name, so a report reads as the wire did.
+      await recorder.start();
+      probe.frame(const WsInventoryChanged());
+
+      expect((await wsRecords()).single['type'], 'inventory_changed');
     });
 
     test('the record covers what the server itself keys change on', () async {
@@ -404,24 +423,28 @@ void main() {
       expect(records.map((r) => r['bed']), [60, 61]);
     });
 
-    test('a long series reports every 5s, not just at session end', () async {
-      await recorder.start();
-      for (var i = 0; i < 30; i++) {
-        tick(const Duration(seconds: 1));
-        probe.frame(_status(1, state: 'IDLE'));
-      }
+    testWithClock(
+      'a long series reports every 5s, not just at session end',
+      start,
+      (time) async {
+        await recorder.start();
+        for (var i = 0; i < 30; i++) {
+          time.tick(const Duration(seconds: 1));
+          probe.frame(_status(1, state: 'IDLE'));
+        }
 
-      final records = await wsRecords();
-      // Same reason as with the exception storm (ErrorProbe): a counter
-      // appended only at session end doesn't say when the loop was running.
-      final repeats = records.where((r) => r['evt'] == 'repeated').toList();
-      expect(repeats, hasLength(6)); // 5 windows of 5 + a tail of 4 at stop
-      expect(records.where((r) => r['evt'] == 'frame'), hasLength(1));
-      expect(
-        repeats.fold<int>(0, (sum, r) => sum + (r['n'] as int)),
-        29, // 1 frame record + 29 collapsed = 30 frames, to the one
-      );
-    });
+        final records = await wsRecords();
+        // Same reason as with the exception storm (ErrorProbe): a counter
+        // appended only at session end doesn't say when the loop was running.
+        final repeats = records.where((r) => r['evt'] == 'repeated').toList();
+        expect(repeats, hasLength(6)); // 5 windows of 5 + a tail of 4 at stop
+        expect(records.where((r) => r['evt'] == 'frame'), hasLength(1));
+        expect(
+          repeats.fold<int>(0, (sum, r) => sum + (r['n'] as int)),
+          29, // 1 frame record + 29 collapsed = 30 frames, to the one
+        );
+      },
+    );
 
     test('a disconnect closes off the series before its own record', () async {
       await recorder.start();
@@ -486,11 +509,11 @@ void main() {
   });
 
   group('disconnect', () {
-    test('code, reason and connection lifetime', () async {
+    testWithClock('code, reason and connection lifetime', start, (time) async {
       await recorder.start();
       probe.connecting(queryToken: true);
       probe.opened();
-      tick(const Duration(seconds: 42));
+      time.tick(const Duration(seconds: 42));
       probe.disconnected(
         reason: WsDisconnectReason.remote,
         code: 1001,
@@ -551,14 +574,16 @@ void main() {
   });
 
   group('state snapshot at session start', () {
-    test('a session opens with how the connection stands', () async {
+    testWithClock('a session opens with how the connection stands', start, (
+      time,
+    ) async {
       // This is how it works live: the socket came up when the app launched,
       // and recording turns on minutes later — `connect` and `open` are already
       // history, so without the snapshot the first proof the connection is
       // alive comes only with the first frame window (live: after 31 seconds).
       probe.trackState('connected');
       probe.opened();
-      tick(const Duration(minutes: 4));
+      time.tick(const Duration(minutes: 4));
 
       await recorder.start();
 

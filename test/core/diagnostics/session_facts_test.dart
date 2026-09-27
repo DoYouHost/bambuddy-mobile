@@ -1,3 +1,4 @@
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:flutter_test/flutter_test.dart';

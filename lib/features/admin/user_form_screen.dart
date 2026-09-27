@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/action_outcome.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/user_write.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
 
@@ -90,11 +87,12 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           context,
           title: widget.isEdit ? l10n.usersEditTitle : l10n.usersCreateTitle,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.usersSave),
-            ).tagged('user_form.save'),
+            dashSaveAction(
+              id: 'user_form.save',
+              label: l10n.usersSave,
+              busy: _saving,
+              onPressed: _submit,
+            ),
           ],
         ),
         body: AbsorbPointer(

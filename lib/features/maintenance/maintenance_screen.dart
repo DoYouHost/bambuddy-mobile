@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/maintenance.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
-import '../common/state_views.dart';
+import '../common/refresh_when_shown.dart';
+import '../common/dash_icon_tile.dart';
+import '../common/dash_progress_bar.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -81,31 +80,35 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
             ),
           ],
         ),
-        body: dashAsync(
-          context,
-          async,
-          onRetry: () =>
+        body: RefreshWhenShown(
+          onRefresh: () =>
               ref.read(maintenanceOverviewProvider.notifier).refresh(),
-          data: (printers) => RefreshIndicator(
-            onRefresh: () =>
+          child: dashAsync(
+            context,
+            async,
+            onRetry: () =>
                 ref.read(maintenanceOverviewProvider.notifier).refresh(),
-            child: printers.isEmpty
-                ? EmptyStateView(
-                    message: l10n.maintenanceEmpty,
-                    icon: Icons.build_circle_outlined,
-                  )
-                : ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    children: [
-                      for (final p in printers)
-                        _PrinterSection(
-                          printer: p,
-                          // Single printer: no point hiding its tasks. With
-                          // several, collapse by default so the list stays scannable.
-                          initiallyExpanded: printers.length == 1,
-                        ),
-                    ],
-                  ),
+            data: (printers) => RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(maintenanceOverviewProvider.notifier).refresh(),
+              child: printers.isEmpty
+                  ? EmptyStateView(
+                      message: l10n.maintenanceEmpty,
+                      icon: Icons.build_circle_outlined,
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        for (final p in printers)
+                          _PrinterSection(
+                            printer: p,
+                            // Single printer: no point hiding its tasks. With
+                            // several, collapse by default so the list stays scannable.
+                            initiallyExpanded: printers.length == 1,
+                          ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
@@ -141,11 +144,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: t.cardGradient,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: t.cardBorder),
-        ),
+        decoration: t.cardBox,
         // One card per printer: the tasks live inside it, split off by
         // hairlines, so nesting needs no indent to read. Clipping keeps the
         // header and last-row ink inside the rounded corners.
@@ -269,18 +268,13 @@ class _MaintenanceRow extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: tileAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    maintenanceIcon(item.maintenanceTypeIcon),
-                    size: 18,
-                    color: inkAccent,
-                  ),
+                DashIconTile(
+                  icon: maintenanceIcon(item.maintenanceTypeIcon),
+                  size: 40,
+                  radius: 12,
+                  iconSize: 18,
+                  ink: inkAccent,
+                  fill: tileAccent.withValues(alpha: 0.14),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -289,14 +283,11 @@ class _MaintenanceRow extends ConsumerWidget {
                     children: [
                       Text(item.maintenanceTypeName, style: t.titleSm),
                       const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: item.progress,
-                          minHeight: 5,
-                          backgroundColor: t.gaugeTrack,
-                          valueColor: AlwaysStoppedAnimation(tileAccent),
-                        ),
+                      DashProgressBar(
+                        value: item.progress,
+                        height: 5,
+                        radius: 3,
+                        color: tileAccent,
                       ),
                       const SizedBox(height: 6),
                       Text(

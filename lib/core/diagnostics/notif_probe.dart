@@ -1,7 +1,6 @@
 import '../notifications/notification_prefs.dart';
 import '../notifications/notification_service.dart';
-import 'diagnostic_recorder.dart';
-import 'log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 
 /// Why an alert the user might have expected did not go out. The names are wire
 /// values — the summarising Action groups by them, so renaming one breaks logs
@@ -39,18 +38,14 @@ enum NotifSkip {
   /// A maintenance poll failed outright, so no alert could be decided at all.
   fetchFailed,
 
-  /// The printer was in a stage of its own — the pre-print sequence (bed
-  /// levelling, bed scan, nozzle cleaning), a pause, a filament change — so
-  /// what it reported described that stage and not the job. Acting on it fires
-  /// several milestones at once before the first layer is even down, and
-  /// announces a first layer the printer has not started.
+  /// The printer was in a stage of its own — the pre-print sequence, a pause, a
+  /// filament change — so its reading described that stage and not the job.
+  /// Acting on it fires several milestones before the first layer is down.
   prepPhase,
 
-  /// The frame still carried the job that had just finished. bambuddy's state is
-  /// a rolling merge of the printer's partial MQTT reports, so the frame that
-  /// flips a printer to RUNNING can still hold the previous print's name, layer
-  /// and percentage — which is how a freshly dispatched job announced the
-  /// *finished* one's first layer seconds after being sent.
+  /// The frame still carried the job that had just finished: bambuddy's state is
+  /// a rolling merge of partial MQTT reports, so the frame flipping a printer to
+  /// RUNNING can still hold the previous print's name, layer and percentage.
   previousJob,
 
   /// The same reading already earned an alert recently. Not a decision about
@@ -58,24 +53,23 @@ enum NotifSkip {
   throttled,
 }
 
-/// Records what the notification layer decided, and what it decided *not* to
-/// do — the useful half is usually a decision not to post, which by definition
+/// Records what the notification layer decided, and what it decided *not* to do
+/// — the useful half is usually a decision not to post, which by definition
 /// leaves no trace on the device.
 ///
 /// Stateless and static like the other always-on probes, so an idle app pays
-/// nothing and the monitors need no extra constructor argument. In tests the
-/// static is null, which keeps the existing fakes silent.
+/// nothing and the fakes in tests stay silent.
 ///
-/// `title` and `body` never enter a record (`docs/diagnostics-log.md`), which
-/// is also why [postError] logs the exception's *class*: the only strings in
-/// scope there are the two we may not keep.
+/// `title` and `body` never enter a record (`docs/diagnostics-log.md`), which is
+/// why [postError] logs the exception's *class*: the only strings in scope there
+/// are the two we may not keep.
 class NotifProbe {
   const NotifProbe._();
 
   /// An alert was handed to the platform — not "shown": it may still be dropped
   /// on permission or a blocked channel, which [openSession] covers. Written
-  /// *before* the call is awaited, since most call sites do not await it and a
-  /// plugin call that hangs would leave no record of the attempt.
+  /// *before* the call is awaited, so a plugin call that hangs still leaves a
+  /// record of the attempt.
   static void posted({
     required NotifEvent event,
     required int printerId,
@@ -112,11 +106,10 @@ class NotifProbe {
 
   /// What became of the finish photo the server attached to an archive.
   ///
-  /// Its own record rather than a [NotifSkip]: this path decides nothing about
-  /// *whether* to alert — the alert is already on screen — only whether a photo
-  /// reached it, and every way it can fail (no alert to update, the user swiped
-  /// it away, the download failed) looks identical from the outside. Ids only;
-  /// the print's name stays out of the log as everywhere else here.
+  /// Its own record rather than a [NotifSkip]: the alert is already on screen, so
+  /// this decides only whether a photo reached it — and every way that fails (no
+  /// alert to update, swiped away, download failed) looks identical from
+  /// outside. Ids only, as everywhere else here.
   static void finishPhoto({
     required int archiveId,
     required String state,
@@ -186,13 +179,15 @@ class NotifProbe {
 
   /// The ongoing progress notification changed content. One record per change,
   /// not per frame: the monitor already collapses frames whose printer, whole
-  /// percent, ETA minute and print count all match, and those are exactly the
-  /// fields here. The notification's own text is the job name and stays out.
+  /// percent, ETA minute and print count all match, which is every field below
+  /// except [overall] — that one rides along on whichever frame gets through.
+  /// The notification's own text is the job name and stays out.
   static void ongoing({
     required int printerId,
     required int percent,
     int? etaMin,
     required int active,
+    required int overall,
   }) => DiagnosticRecorder.active?.add(
     LogSource.notif,
     'ongoing',
@@ -201,8 +196,21 @@ class NotifProbe {
       'pct': percent,
       'eta_min': etaMin,
       'active': active,
+      // The mean over every printing machine. Nothing on screen shows it — the
+      // notification is the lead's alone — so this is the only place it exists,
+      // and it answers "how far along was the rest of the shelf" for a report
+      // about a bar that looked wrong. Equals `pct` while only one is running.
+      'overall_pct': overall,
     },
   );
+
+  /// Which way the ongoing notification is being posted: our own builder (a
+  /// progress bar, and on Android 16 a Live Update), or the plugin's, which has
+  /// neither. Written only when the answer changes — a print posts hundreds of
+  /// updates and the answer is the same every time — so a report about a
+  /// missing bar can say whether this device ever took the native path.
+  static void ongoingNative({required bool native}) => DiagnosticRecorder.active
+      ?.add(LogSource.notif, 'ongoing_native', fields: {'native': native});
 
   /// Nothing is printing any more, so the progress notification went back to
   /// neutral. Named `reset` rather than `cleared` because in the foreground
@@ -329,7 +337,7 @@ class LoggingNotifications implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) => _inner.showOngoing(title: title, body: body, progress: progress);
 
   @override

@@ -1,8 +1,8 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/makerworld.dart';
 
 /// REST data source for MakerWorld integration.

@@ -4,10 +4,8 @@ import 'dart:io' show WebSocketException;
 
 import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
-import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
-import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
-import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -79,6 +77,28 @@ void main() {
     );
     return (client: client, conns: conns);
   }
+
+  test('an inventory frame reaches the stream that re-reads the shelf', () {
+    fakeAsync((async) {
+      final (:client, :conns) = build();
+      var heard = 0;
+      client.inventoryChanges.listen((_) => heard++);
+
+      client.start();
+      async.flushMicrotasks();
+      conns[0].connectOk();
+      async.flushMicrotasks();
+
+      conns[0].push('{"type":"inventory_changed"}');
+      conns[0].push('{"type":"spool_assignment_changed","printer_id":1}');
+      async.flushMicrotasks();
+
+      expect(heard, 2);
+
+      client.dispose();
+      async.flushMicrotasks();
+    });
+  });
 
   test(
     'happy path: connecting → connected, frame → status, ping after 25s',
@@ -260,6 +280,36 @@ void main() {
         async.elapse(const Duration(seconds: 1));
         async.flushMicrotasks();
         expect(conns, hasLength(2));
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('a re-login that throws backs off and may log in again', () {
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            throw StateError('keystore');
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail(_rejected(401));
+        async.flushMicrotasks();
+        expect(client.state, WsConnectionState.waitingRetry);
+
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(conns, hasLength(2));
+
+        // A throw is not a refusal, so the next rejection tries again.
+        conns[1].connectFail(_rejected(401));
+        async.flushMicrotasks();
+        expect(refreshCalls, 2);
 
         client.dispose();
         async.flushMicrotasks();
@@ -477,11 +527,8 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      recorder = DiagnosticRecorder(
-        settings: SettingsRepository(await SharedPreferences.getInstance()),
-        loadFacts: () async =>
-            const SessionFacts(app: '1.0+1', flavor: 'mobile'),
-        resolveDirectory: () async => null,
+      recorder = testRecorder(
+        facts: const SessionFacts(app: '1.0+1', extra: {'flavor': 'mobile'}),
       );
       // Recording starts OUTSIDE `fakeAsync`: `start()` waits on prefs via
       // a platform channel that the fake event loop won't finish.

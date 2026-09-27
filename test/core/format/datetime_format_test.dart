@@ -147,6 +147,45 @@ void main() {
     expect(_fmt(locale: 'pl').shortWeekdaysMondayFirst.first, 'pon.');
   });
 
+  group('the locale a bare isolate resolves', () {
+    test('month names follow the language the notification text uses', () {
+      // Italian first, Polish second: the notification text resolves to Polish,
+      // so its ETA date has to as well, instead of dropping to English.
+      final fmt = DateTimeFormats.outsideTree(const [
+        Locale('it', 'IT'),
+        Locale('pl', 'PL'),
+      ], true);
+
+      expect(
+        fmt.dateNamedMonth(_at),
+        DateTimeFormats.forTest(
+          locale: 'it_IT',
+          wordLocale: 'pl',
+        ).dateNamedMonth(_at),
+      );
+      expect(fmt.date(_at), _fmt(locale: 'it_IT').date(_at));
+    });
+
+    test('an untranslated language alone still spells English words', () {
+      final fmt = DateTimeFormats.outsideTree(const [Locale('it', 'IT')], true);
+
+      expect(
+        fmt.dateNamedMonth(_at),
+        DateTimeFormats.forTest(
+          locale: 'it_IT',
+          wordLocale: 'en',
+        ).dateNamedMonth(_at),
+      );
+    });
+
+    test('no reported locale formats as English', () {
+      expect(
+        DateTimeFormats.outsideTree(const [], true).dateNamedMonth(_at),
+        _fmt().dateNamedMonth(_at),
+      );
+    });
+  });
+
   group('the clock a bare isolate resolves', () {
     /// What `DateTimeFormats.system()` would spell with that answer, on a locale
     /// whose own convention is the opposite of a hardcoded 12-hour clock.
@@ -214,9 +253,9 @@ void main() {
     testWidgets('an untranslated system language falls back to the app locale', (
       tester,
     ) async {
-      // German is not a language the app ships, so German month names must not
+      // Swedish is not a language the app ships, so Swedish month names must not
       // leak into an English UI — but the app locale still has to format.
-      tester.platformDispatcher.localeTestValue = const Locale('de', 'DE');
+      tester.platformDispatcher.localeTestValue = const Locale('sv', 'SE');
       addTearDown(tester.platformDispatcher.clearLocaleTestValue);
 
       late DateTimeFormats fmt;
@@ -237,9 +276,9 @@ void main() {
       );
 
       expect(fmt.dateNamedMonth(_at), 'Aug 22, 2026');
-      // The digits still follow the device: `5/8/2026` would read as a
-      // different day to the person holding a German phone.
-      expect(fmt.date(_at), '22.8.2026');
+      // The digits still follow the device: `8/22/2026` is not how the
+      // person holding a Swedish phone writes a date.
+      expect(fmt.date(_at), '2026-08-22');
     });
 
     testWidgets('a translated language keeps its region', (tester) async {

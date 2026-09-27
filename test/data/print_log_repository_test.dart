@@ -24,7 +24,7 @@ void main() {
 
   setUp(() {
     dio = testDio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     sent = captureRequests(dio);
   });
 
@@ -226,7 +226,7 @@ void main() {
 
       final r = repo();
 
-      expect(await r.supportsCostEnergy(), isFalse);
+      expect(await r.costEnergyCapability.supported, isFalse);
       await r.list(sort: PrintLogSort.date);
       expect(lastQuery().containsKey('sort_by'), isFalse);
     });

@@ -1,3 +1,5 @@
+import 'package:app_util/app_util.dart';
+
 import 'json_utils.dart';
 
 /// One recorded heater sample: the reading and the setpoint that was in force.

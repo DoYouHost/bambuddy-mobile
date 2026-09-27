@@ -1,10 +1,10 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/group_summary.dart';
 import '../core/models/group_write.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/permission_catalog.dart';
 
 /// REST data source for groups — a group is a named permission set, and the

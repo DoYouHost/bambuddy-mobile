@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -95,7 +96,7 @@ Future<void> _pump(
     wearTransportProvider.overrideWith(
       (ref) => HybridWearTransport(relay: transport ?? _FakeTransport(fleet)),
     ),
-    requirePlateClearProvider.overrideWith((ref) async => true),
+    requirePlateClearProvider.overrideWithValue(AsyncValue.data(true)),
   ],
 );
 

@@ -39,7 +39,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     credentials = InMemoryCredentialsStore();
     overrides = [
       sharedPreferencesProvider.overrideWithValue(prefs),

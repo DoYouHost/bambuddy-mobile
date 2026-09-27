@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/group_summary.dart';
-import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
-import '../common/state_views.dart';
-import '../common/system_insets.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 
@@ -102,11 +99,7 @@ class GroupCard extends StatelessWidget {
             onTap: onTap,
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: t.cardGradient,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: t.cardBorder),
-              ),
+              decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

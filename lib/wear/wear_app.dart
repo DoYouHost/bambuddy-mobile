@@ -49,14 +49,28 @@ class _WearAppState extends ConsumerState<WearApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Coming back to the foreground → fetch immediately: the OS freezes the
-  /// app (and its poll timer) in the background, so the last data can be
-  /// minutes old. Guarded by `exists` so it never *creates* the fleet
-  /// provider (e.g. while still on the setup screen).
+  /// Coming back to the foreground → fetch immediately, and going away → stop
+  /// polling until then.
+  ///
+  /// The OS freezes the app eventually, but not at once, and until it does every
+  /// tick wakes the phone over the bridge for a screen that is off. Relying on
+  /// that freeze is what left the watch polling a darkened face; the phone's own
+  /// long-lived screens have paused their timers explicitly since they were
+  /// written (`pipeline_runs_screen`, `queue_screen`).
+  ///
+  /// Guarded by `exists` so it never *creates* the fleet provider (e.g. while
+  /// still on the setup screen).
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && ref.exists(wearFleetProvider)) {
-      unawaited(ref.read(wearFleetProvider.notifier).refresh());
+    if (!ref.exists(wearFleetProvider)) return;
+    final fleet = ref.read(wearFleetProvider.notifier);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(fleet.refresh());
+      case AppLifecycleState.paused:
+        fleet.stopPolling();
+      case _:
+        break;
     }
   }
 

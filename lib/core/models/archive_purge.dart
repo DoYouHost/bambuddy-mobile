@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Preview of an archive purge from `GET /archives/purge/preview` —
 /// count + size of prints eligible for deletion. Read-only.

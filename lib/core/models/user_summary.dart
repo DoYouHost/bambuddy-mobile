@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Minimal user record — id + display name only, used by the Stats "filter by
 /// user" picker.

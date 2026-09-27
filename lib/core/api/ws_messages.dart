@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app_util/app_util.dart';
+
 import '../models/printer_status.dart';
 
 /// Parsed frame off `/api/v1/ws`. Sealed, so the WS manager switches
@@ -74,6 +76,17 @@ class WsPipelineRunUpdated extends WsMessage {
   final Map<String, dynamic> run;
 }
 
+/// The spool inventory changed on the server: a spool added, edited, archived
+/// or weighed, or one assigned to an AMS slot (`inventory_changed` and
+/// `spool_assignment_changed`, `routes/inventory.py`).
+///
+/// Carries nothing: the frames name no id in a shape worth parsing, and the
+/// screen re-reads the list anyway. It exists so a spool edited on the web
+/// reaches the phone without a pull.
+class WsInventoryChanged extends WsMessage {
+  const WsInventoryChanged();
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -103,7 +116,7 @@ WsMessage? parseWsMessage(String raw) {
   switch (type) {
     case 'printer_status':
       final data = decoded['data'];
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (data is! Map<String, dynamic> || printerId == null) {
         return WsUnknown(type);
       }
@@ -112,16 +125,19 @@ WsMessage? parseWsMessage(String raw) {
       final merged = <String, dynamic>{'id': printerId, ...data};
       return WsPrinterStatus(PrinterStatus.fromJson(merged), merged);
     case 'plate_not_empty':
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type);
       return WsPlateNotEmpty(
         printerId,
         decoded['printer_name']?.toString(),
         decoded['message']?.toString(),
       );
+    case 'inventory_changed':
+    case 'spool_assignment_changed':
+      return const WsInventoryChanged();
     case 'print_start':
     case 'print_complete':
-      final printerId = _toIntOrNull(decoded['printer_id']);
+      final printerId = toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type);
       return WsPrintEvent(printerId, completed: type == 'print_complete');
     case 'archive_updated':
@@ -129,7 +145,7 @@ WsMessage? parseWsMessage(String raw) {
       // the changed archive, not a printer-scoped event.
       final data = decoded['data'];
       if (data is! Map<String, dynamic>) return WsUnknown(type);
-      final archiveId = _toIntOrNull(data['id']);
+      final archiveId = toIntOrNull(data['id']);
       if (archiveId == null) return WsUnknown(type);
       final photo = data['photo_added'];
       return WsArchiveUpdated(
@@ -141,7 +157,7 @@ WsMessage? parseWsMessage(String raw) {
       // printer-scoped frames and `archive_updated`'s `data`.
       final run = decoded['run'];
       if (run is! Map<String, dynamic>) return WsUnknown(type);
-      if (_toIntOrNull(run['id']) == null) return WsUnknown(type);
+      if (toIntOrNull(run['id']) == null) return WsUnknown(type);
       return WsPipelineRunUpdated(run);
     case 'pong':
       return const WsPong();
@@ -149,9 +165,3 @@ WsMessage? parseWsMessage(String raw) {
       return WsUnknown(type);
   }
 }
-
-int? _toIntOrNull(Object? value) => switch (value) {
-  num n => n.toInt(),
-  String s => int.tryParse(s),
-  _ => null,
-};

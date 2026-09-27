@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_report_client/app_report_client.dart';
@@ -7,12 +9,16 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/media_auth.dart';
+import 'core/api/media_token.dart';
+import 'core/api/observed_capability.dart';
 import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/auth/token_refresher.dart';
-import 'core/diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
+import 'core/diagnostics/diagnostics_wiring.dart';
 import 'core/diagnostics/report_config.dart';
 import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
@@ -50,8 +56,10 @@ import 'data/maintenance_repository.dart';
 import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
+import 'data/batch_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/scheduled_drying_repository.dart';
+import 'data/server_settings_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -171,10 +179,8 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 /// Describes the session for a report: app and server version, the device, the
 /// display settings.
 ///
-/// A provider rather than a closure inside the recorder, because a change or
-/// feature request needs the same versions and has no recording to read them
-/// off — and two copies of this argument list would be two places for the
-/// server version to be fetched differently.
+/// A provider rather than a closure inside the recorder: a change or feature
+/// request needs the same versions and has no recording to read them off.
 final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
   (ref) =>
       () => loadSessionFacts(
@@ -194,8 +200,14 @@ final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
 /// two recorders would fight over it.
 final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
   (ref) => DiagnosticRecorder(
-    settings: ref.watch(settingsRepositoryProvider),
+    sessions: ref.watch(settingsRepositoryProvider).diagnosticsSessions,
+    redactor: bambuddyRedactor,
     loadFacts: ref.watch(sessionFactsProvider),
+    sessionDuration: recordingLimit,
+    sessionBytes: recordingSizeLimit,
+    // The socket probe is bambuddy's own, so the recorder cannot know to open
+    // and flush it; it is handed over here instead.
+    listeners: const [WsSessionListener()],
   ),
 );
 
@@ -244,14 +256,12 @@ final authServiceProvider = Provider<AuthService>(
   ),
 );
 
-/// Proactive JWT refresh for active profile: schedules silent re-login just
-/// before token expiry so REST and WS handshake don't hit 401s (which we only
-/// retry reactively). Only for [AuthMode.jwt] — API key is static and no-auth
-/// server doesn't expire; those modes return `null`.
+/// Silent re-login just before the token expires, so REST and the WS handshake
+/// do not hit a 401 we only retry reactively. `null` for the other two modes: an
+/// API key is static and a no-auth server has nothing to expire.
 ///
-/// Doesn't run itself — lazy provider; UI keeps it alive and controls it per
-/// lifecycle (background taken over by foreground service isolate, see
-/// [PrintMonitorTaskHandler]). Rebuilt on profile change.
+/// Does not run itself — the UI keeps it alive and drives it per lifecycle, and
+/// the service isolate takes over in the background.
 final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
@@ -266,31 +276,40 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   return refresher;
 });
 
-/// Proactive camera-token refresh: re-mints the shared camera token
-/// (thumbnails, covers, camera stream) just before its client TTL lapses, so
-/// foreground image loads don't hit a 401 first. Reactive re-mint on 401 stays
-/// the safety net ([PrintThumbnail], [CameraView]). UI-only (background cover
-/// fetch in the FGS isolate re-mints reactively); kept alive +
+/// Proactive camera-token refresh: re-mints the camera stream token just before
+/// its client TTL lapses, so the live view doesn't hit a 401 first. Reactive
+/// re-mint on 401 stays the safety net ([CameraView]). Kept alive +
 /// lifecycle-controlled by the dashboard, like [tokenRefresherProvider]. Demo
 /// mode has no token to refresh.
 final cameraTokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
   final service = ref.watch(cameraTokenServiceProvider);
-  final refresher = ProactiveTokenRefresher(
+  final refresher = imageTokenRefresher(
     readExpiry: () async => service.expiresAt,
-    refresh: () async {
-      try {
-        await service.token(forceRefresh: true);
-      } catch (_) {
-        return null; // Fall back; reactive 401 recovery still covers it.
-      }
-      // Consumers read the token via cameraTokenProvider, so push the fresh one
-      // to them. gaplessPlayback keeps already-shown thumbnails from
-      // flickering.
-      ref.invalidate(cameraTokenProvider);
-      return service.expiresAt;
-    },
+    remint: () => service.token(forceRefresh: true),
+    // Consumers read the token via cameraTokenProvider, so push the fresh one
+    // to them.
+    onRefreshed: () => ref.invalidate(cameraTokenProvider),
+  );
+  ref.onDispose(refresher.stop);
+  return refresher;
+});
+
+/// The same for the media credential behind thumbnails, covers, photos and
+/// timelapses, so a scrolled list doesn't flash a page of broken tiles while
+/// the reactive recovery re-mints. UI-only — the FGS isolate's cover fetch
+/// re-mints reactively. No-op while the credential is a header, which does not
+/// expire: [MediaAuthService.expiresAt] is null there and the refresher then
+/// just ticks on its fallback delay.
+final mediaAuthRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
+  final profile = ref.watch(serverProfileProvider);
+  if (profile == null || profile.isDemo) return null;
+  final service = ref.watch(mediaAuthServiceProvider);
+  final refresher = imageTokenRefresher(
+    readExpiry: () async => service.expiresAt,
+    remint: () => service.auth(forceRefresh: true),
+    onRefreshed: () => ref.invalidate(mediaAuthProvider),
   );
   ref.onDispose(refresher.stop);
   return refresher;
@@ -322,15 +341,12 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
   }
 }
 
-/// Most recently built client. Survives the transient frame between "change
-/// server" clearing the profile and the router redirecting to /setup: the many
-/// non-autoDispose repository providers that `watch` [apiClientProvider] stay
-/// alive while the dashboard is still mounted under the drawer, so on clear
-/// they rebuild and would hit the null-profile throw before the redirect
-/// unmounts them. Returning the last client keeps them from crashing; it's
-/// never used for requests (its consumers are guarded / about to unmount) and
-/// is replaced as soon as a new profile is set. Safe to cache — [ApiClient]
-/// holds no resources needing disposal.
+/// Most recently built client, for the transient frame between "change server"
+/// clearing the profile and the router redirecting to /setup: the non-autoDispose
+/// repositories watching [apiClientProvider] are still mounted under the drawer
+/// and would rebuild into the null-profile throw. Never used for a request — its
+/// consumers are guarded or about to unmount — and replaced with the next
+/// profile.
 ApiClient? _lastApiClient;
 
 /// API client for active profile. Requires configured profile — routes without
@@ -349,7 +365,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       }());
       return cached;
     }
-    throw StateError('apiClientProvider użyty bez profilu serwera');
+    throw StateError('apiClientProvider used without a server profile');
   }
   final auth = ref.watch(authServiceProvider);
   return _lastApiClient = ApiClient(
@@ -430,30 +446,24 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// strings.
 ///
 /// **Answers `true` whenever the identity is unknown** (no profile, still
-/// loading, auth switched off server-side, a `/auth/me` that failed, or a
-/// response without a `permissions` field). The server is the only enforcer —
-/// it answers 403 regardless of what this says — so a permissive unknown
-/// leaves a screen reachable rather than hiding one the user is entitled to.
+/// loading, auth off server-side, a failed `/auth/me`, a response without a
+/// `permissions` field). The server is the only enforcer, so a permissive
+/// unknown leaves a screen reachable rather than hiding one the user is
+/// entitled to. An empty `permissions` list is *not* unknown — that is a user
+/// whose groups grant nothing, and they are refused.
 ///
-/// An empty `permissions` list is *not* unknown: it is a user whose groups
-/// grant nothing, and this answers `false` for them.
-///
-/// **Not the gate for anything administrative.** The server refuses an
-/// API-key session every users/groups/api-keys route no matter what `/auth/me`
-/// said about it — use [identifiedPermissionProvider] there, which knows that.
-///
-/// A screen that would rather not flash a drawer entry and take it away again
-/// should watch [currentUserProvider] and handle `loading` itself, instead of
-/// this being made restrictive for everyone.
+/// **Not the gate for anything administrative**: use
+/// [identifiedPermissionProvider], which knows about API-key sessions. A screen
+/// that would rather not flash an entry and take it away should watch
+/// [currentUserProvider] and handle `loading` itself.
 final permissionProvider = Provider.family<bool, String>(
   (ref, permission) =>
       ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
 );
 
-/// Whether the current user is an admin. Unknown identity answers `true`, for
-/// the reasons in [permissionProvider] — and, like it, this is not enough on
-/// its own for a write to users, groups or API keys: an API-key session
-/// answers `true` here and is refused all three server-side. Pair it with
+/// Whether the current user is an admin. Unknown identity answers `true`, as in
+/// [permissionProvider], and an API-key session answers `true` here while being
+/// refused every administrative route — pair it with
 /// [identifiedPermissionProvider].
 final isAdminProvider = Provider<bool>(
   (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
@@ -462,20 +472,14 @@ final isAdminProvider = Provider<bool>(
 /// Whether a *known* identity holds [permission] — the gate on the entry
 /// points into administration.
 ///
-/// Deliberately the opposite of [permissionProvider] on an unknown identity:
-/// this answers `false`. Nothing administrative is offered when we cannot say
-/// who is signed in — with authentication switched off server-side there is no
-/// account to attribute an edit to, and an entry that leads straight to a 401
-/// is worse than no entry at all.
+/// The opposite of [permissionProvider] on an unknown identity: nothing
+/// administrative is offered when nobody can say who is signed in.
 ///
-/// An API-key session is refused outright, [CurrentUser.isAdmin] or not: the
-/// server denies a key **every** administrative permission
-/// (`_check_apikey_permissions`, `backend/app/core/auth.py` — anything outside
-/// the scope allowlist is a 403, and users/groups/api-keys are all outside
-/// it). What `/auth/me` says about a key never described that gate: up to
-/// 1.2.5.x it claimed admin with every permission, and from 1.2.6 it reports
-/// the key's real, non-administrative set. Both are answered here the same
-/// way, on the auth mode rather than on the payload.
+/// An API-key session is refused outright, [CurrentUser.isAdmin] or not — the
+/// server denies a key every administrative permission
+/// (`_check_apikey_permissions`, `core/auth.py`), and what `/auth/me` says about
+/// a key never described that gate. Hence the decision on the auth mode rather
+/// than on the payload.
 final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
@@ -565,9 +569,101 @@ final serverVersionServiceProvider = Provider<ServerVersionService>(
   (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
 );
 
+/// How many times contact with the server has been regained — the signal for
+/// asking again what an unreachable server could not answer. Bumped by
+/// `PrinterStatusesNotifier`, whose idea of "the line is up" (a WebSocket
+/// frame or a poll after a gap, including every return from the background)
+/// is the app's only one.
+final serverContactEpochProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// How many times the user has asked the dashboard to refresh — the signal for
+/// every capability gate to drop the refusals its latch recorded before it. A
+/// control a 403 hid never calls its route again, so a permission granted on
+/// the server since would otherwise wait for a restart.
+final refusalsForgottenProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// A counter that only goes up. Never reset, not even for a new server: what
+/// it paces lives in the repositories and the version service, which a new
+/// server rebuilds anyway.
+class Epoch extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+/// Bumped whenever the server says an archived print changed — a timelapse
+/// attached, a finish photo added, metadata edited elsewhere.
+final archiveChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// Bumped whenever the server says the spool inventory changed — a spool
+/// edited on the web, a scale reporting a weight, a tray loaded. The screen
+/// reading it re-fetches when it is the tab being looked at.
+final inventoryChangedProvider = NotifierProvider<Epoch, int>(Epoch.new);
+
+/// The connected server's version, for a synchronous reader. Warmed by the
+/// shell at start, and asked again on every regained contact — a read that
+/// failed while the network was down would otherwise wait out the service's
+/// retry window. `null` is "the server did not say".
+///
+/// Re-running costs nothing once the version is known ([ServerVersionService]
+/// caches it) and keeps the previous value up meanwhile, so nothing blinks.
+final serverVersionProvider = FutureProvider<ServerVersion?>((ref) {
+  final service = ref.watch(serverVersionServiceProvider);
+  if (ref.watch(serverContactEpochProvider) > 0) service.forgetFailure();
+  return service.current();
+});
+
+/// This app's own build, as `version+buildNumber`.
+///
+/// A provider rather than a future held in each widget's `State`, which is how
+/// three screens did it: `PackageInfo.fromPlatform` hands back a fresh future
+/// on every call, so a `FutureBuilder` given one re-enters `waiting` and
+/// flashes its placeholder — and a `State` only avoids that for as long as the
+/// widget lives, which for the drawer footer is one opening of the drawer.
+/// Cached in the container, the answer is there synchronously from the second
+/// read on and nothing flashes at all.
+final appVersionProvider = FutureProvider<String>((ref) => readAppVersion());
+
+/// The connected server's version string, for the drawer footer. `null` is
+/// "nobody knows" — too old to serve `/updates/version`, unreachable, or a reply
+/// the parser made nothing of — and with no profile it answers `null` rather
+/// than letting [apiClientProvider] throw.
+///
+/// `autoDispose` **with a link kept on success**, because the two halves answer
+/// two different failures. Kept unconditionally, a drawer opened once in a lift
+/// reads "unknown" until the app is killed; disposed unconditionally, every
+/// reopening starts at [AsyncLoading] — the flash [appVersionProvider] exists to
+/// avoid. An answer cannot go stale without the server restarting, and an
+/// unknown released puts the service's retry within reach of the next opening.
+final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
+  // Synchronous on purpose: with no server configured there is nothing to wait
+  // for, and handing back a future would put a loading frame in front of an
+  // answer that is already known.
+  if (ref.watch(serverProfileProvider) == null) return null;
+  // Taken here rather than after the await: `keepAlive` belongs to the build,
+  // and the provider may be disposed while the read is in flight — closing a
+  // link afterwards is safe, taking one is not.
+  final keep = ref.keepAlive();
+  return ref.watch(serverVersionServiceProvider).reportedVersion().then((
+    version,
+  ) {
+    if (version == null) keep.close();
+    return version;
+  });
+});
+
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
   (ref) => QueueRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Print batches and orders. Shares authenticated Dio.
+final batchRepositoryProvider = Provider<BatchRepository>(
+  (ref) => BatchRepository(
     ref.watch(apiClientProvider).dio,
     ref.watch(serverVersionServiceProvider),
   ),
@@ -580,59 +676,56 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 ///
 /// Asks the queue repository rather than the version service directly: it has
 /// seen the server's own payloads, and that beats reasoning from a version
-/// number (see `QueueRepository.supportsTriStateCalibration`). `autoDispose` so
-/// each time the print form opens it asks again — a queue fetch between two
-/// openings is exactly what turns "unknown" into a real answer.
-final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(queueRepositoryProvider).supportsTriStateCalibration(),
+/// number (see `QueueRepository.triStateCapability`).
+final triStateCalibrationProvider = capabilityGate(
+  (ref) => ref.watch(queueRepositoryProvider).triStateCapability,
 );
 
 /// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
-/// 60 before it and whenever the version is not known yet.
-///
-/// Not `autoDispose`: the dashboard reads this on every gauge rebuild, and the
-/// underlying version is cached in the service anyway. Rebuilt when
-/// [serverVersionServiceProvider] is, so switching servers cannot carry the old
-/// ceiling over.
+/// 60 before it and whenever the version is not known yet. A value, not a gate:
+/// the default until known, never a loading state.
 ///
 /// One of the two gates with nothing to observe — see
 /// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
 /// other. Every other capability provider here asks a repository instead,
 /// because a repository has seen the server's own answers and that outranks
 /// reasoning from a version number.
-final chamberMaxTargetProvider = FutureProvider<int>(
-  (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
+final chamberMaxTargetProvider = Provider<int>(
+  (ref) =>
+      ref.watch(serverVersionProvider).valueOrNull?.chamberMaxTargetC ?? 60,
 );
 
 /// Whether library files can be grouped as cross-model alternatives and queued
 /// as one job (server #671). Asks the library repository, which prefers what a
 /// file listing actually contained over the version number.
-///
-/// `autoDispose` so each time a library screen opens it asks again — a listing
-/// fetched in between is exactly what turns "unknown" into a real answer.
-final crossModelVariantsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(libraryRepositoryProvider).supportsCrossModelVariants(),
+final crossModelVariantsProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).variantsCapability,
 );
 
 /// Whether the slice sheet may offer `auto_orient` / `auto_arrange`.
-final sliceLayoutOptionsProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsLayoutOptions(),
+final sliceLayoutOptionsProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).layoutOptionsCapability,
 );
 
 /// Whether the slice sheet may offer the process-override panel. Asks the
 /// slicer repository, which prefers what `/slicer/preset-values` answered over
 /// the version number.
-final processOverridesProvider = FutureProvider.autoDispose<bool>(
-  (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
+final processOverridesProvider = capabilityGate(
+  (ref) => ref.watch(slicerRepositoryProvider).processOverridesCapability,
 );
 
 /// Whether the label sheet may ask where on the sheet to start printing
 /// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
 /// why a PDF response cannot answer it.
-final labelStartingPositionProvider = FutureProvider<bool>(
-  (ref) => ref
-      .watch(serverVersionServiceProvider)
-      .supports(ServerFeature.labelStartingPosition),
+final labelStartingPositionProvider = capabilityGate(
+  (ref) =>
+      ref.watch(inventoryRepositoryProvider).labelStartingPositionCapability,
+);
+
+/// Whether "Add to queue" in the file manager may ask which printer or model
+/// the files are for (server #3112). Version-only, like the label sheet's.
+final libraryQueueTargetProvider = capabilityGate(
+  (ref) => ref.watch(libraryRepositoryProvider).queueTargetCapability,
 );
 
 /// Archive of prints (M5). Shares authenticated Dio.
@@ -673,8 +766,8 @@ final printLogRepositoryProvider = Provider<PrintLogRepository>(
 /// Whether this server sends per-run cost and energy, and honours a sort order
 /// (server #2636). Below it both are silent, so the columns and the sort
 /// control stay off rather than showing blanks and an order nobody applied.
-final printLogCostEnergyProvider = FutureProvider<bool>(
-  (ref) => ref.watch(printLogRepositoryProvider).supportsCostEnergy(),
+final printLogCostEnergyProvider = capabilityGate(
+  (ref) => ref.watch(printLogRepositoryProvider).costEnergyCapability,
 );
 
 /// Archive statistics. Shares authenticated Dio.
@@ -727,47 +820,205 @@ final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
   (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// The server's shared configuration (`AppSettings`). Shares authenticated Dio.
+///
+/// Not `autoDispose`: it carries the 403 latch that tells the queue settings
+/// screen a write was refused, and that answer must survive leaving the screen
+/// to look at what it said.
+final serverSettingsRepositoryProvider = Provider<ServerSettingsRepository>(
+  (ref) => ServerSettingsRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags
 /// derive from this so we fetch `/settings` once.
-final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
-  (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
-);
+final serverSettingsProvider =
+    AsyncNotifierProvider<ServerSettingsNotifier, Map<String, dynamic>>(
+      ServerSettingsNotifier.new,
+    );
+
+class ServerSettingsNotifier extends AsyncNotifier<Map<String, dynamic>> {
+  @override
+  Future<Map<String, dynamic>> build() =>
+      ref.watch(serverSettingsRepositoryProvider).fetch();
+
+  /// Takes the map a write answered with, instead of asking for it again.
+  ///
+  /// `PUT /settings/` replies with the whole of `AppSettings`, so a second
+  /// `GET` after every save is a request that can only confirm what is already
+  /// known — and one that can *fail*, which would drop every flag in the app
+  /// back to nothing right after a save had succeeded.
+  void adopt(Map<String, dynamic> settings) =>
+      state = AsyncValue.data(settings);
+
+  /// Re-reads the settings, keeping what is already known if the read fails.
+  ///
+  /// `fetch` degrades a failure to an empty map, and the route answers with the
+  /// full schema whenever it answers at all — so an empty map here can only
+  /// mean the read did not land, and letting it overwrite a good one turns a
+  /// dropped packet into a screen with nothing on it.
+  Future<void> refresh() async {
+    final fresh = await ref.read(serverSettingsRepositoryProvider).fetch();
+    if (fresh.isNotEmpty || (state.valueOrNull ?? const {}).isEmpty) {
+      state = AsyncValue.data(fresh);
+    }
+  }
+}
+
+/// One value derived from the server's settings, for a caller that must be able
+/// to tell "not answered yet" from "answered, and the answer is no".
+///
+/// Use it for a **gate**: a flag that decides whether a control exists at all.
+/// Reading such a flag as `false` while `/settings` is still in flight puts the
+/// user in front of a screen missing a button the server does offer.
+///
+/// Derived synchronously, and that is the point: a `FutureProvider` reports a
+/// loading frame for every future it is handed, including one that is already
+/// complete — so a gate built on `async` invented the "don't know" it exists to
+/// prevent, once per screen, after the answer had long since arrived. Here the
+/// gate is whatever the settings are right now, so a caller collapsing it with
+/// `.orFalse` blinks nothing out. It also keeps the last answer up while a
+/// refetch is in flight, and hands on an error rather than reading as "off".
+///
+/// A caller outside a build wants [settledGate], not this.
+Provider<AsyncValue<T>> serverGate<T>(T Function(Map<String, dynamic>) read) =>
+    Provider<AsyncValue<T>>(
+      (ref) => ref.watch(serverSettingsProvider).whenData(read),
+    );
+
+/// A server capability as a gate a screen can read on its first frame — the
+/// [serverGate] of an [ObservedCapability].
+///
+/// Derived synchronously, in the latch's order: what the server said, then the
+/// version row, then [ObservedCapability.whenUnknown] once nothing more can be
+/// learned. Loading only while the one answer that can still arrive — the
+/// version read or the latch's probe — is in flight, and not even then for a
+/// latch that would rather show its control while unknown: that one shows it
+/// while waiting too, or the control would still appear late.
+///
+/// A probe that went unanswered is sent again once per regained contact; an
+/// observation reaches the gate the moment the latch records it.
+Provider<AsyncValue<bool>> capabilityGate(
+  ObservedCapability Function(Ref ref) latchOf,
+) => Provider<AsyncValue<bool>>((ref) {
+  // A repository that cannot be built (no server profile yet) is an error the
+  // reader folds into "no", as it was while every gate was a FutureProvider —
+  // not an exception thrown into the widget's build.
+  final ObservedCapability latch;
+  try {
+    latch = latchOf(ref);
+  } on Object catch (error, stack) {
+    return AsyncError(error, stack);
+  }
+  final epoch = ref.watch(serverContactEpochProvider);
+  latch.forgetRefusalsBefore(ref.watch(refusalsForgottenProvider));
+  void heard() => ref.invalidateSelf();
+  latch.addListener(heard);
+  ref.onDispose(() => latch.removeListener(heard));
+
+  final inFlight = latch.whenUnknown
+      ? const AsyncData(true)
+      : const AsyncLoading<bool>();
+
+  if (latch.observedAnswer case final answer?) return AsyncData(answer);
+  if (latch.canProbe) {
+    latch.probeIfUnknown(epoch: epoch);
+    return latch.probeFailed ? AsyncData(latch.whenUnknown) : inFlight;
+  }
+  final feature = latch.feature;
+  if (feature == null) return AsyncData(latch.whenUnknown);
+  final version = ref.watch(serverVersionProvider);
+  if (!version.hasValue && !version.hasError) return inFlight;
+  return AsyncData(version.valueOrNull?.supports(feature) ?? latch.whenUnknown);
+});
+
+extension AsyncGate on AsyncValue<bool> {
+  /// Both must hold. A settled "no" on either side is final even while the
+  /// other is unanswered, and an error is handed on rather than turned into
+  /// loading — [settledGate] would wait on that forever.
+  ///
+  /// Both sides are evaluated: `a.and(ref.watch(b))` watches `b` whatever `a`
+  /// said. A synchronous "no" that has to save a request returns before the
+  /// watch instead.
+  AsyncValue<bool> and(AsyncValue<bool> other) {
+    if (valueOrNull == false || other.valueOrNull == false) {
+      return const AsyncData(false);
+    }
+    if (hasError) return this;
+    if (other.hasError) return other;
+    return hasValue && other.hasValue
+        ? const AsyncData(true)
+        : const AsyncLoading();
+  }
+}
+
+/// The settled answer of [gate], for a caller running outside a build.
+///
+/// A widget re-reads a gate when the settings land, because it rebuilds. Code
+/// that runs once gets no second look, so it waits here instead — on the gate
+/// rather than on `/settings`, so overriding the gate decides the answer.
+Future<T> settledGate<T>(
+  ProviderContainer providers,
+  ProviderListenable<AsyncValue<T>> gate,
+) {
+  final settled = Completer<T>();
+  void offer(AsyncValue<T> answer) {
+    if (settled.isCompleted) return;
+    if (answer.hasError) {
+      settled.completeError(answer.error!, answer.stackTrace);
+    } else if (answer.hasValue) {
+      settled.complete(answer.requireValue);
+    }
+  }
+
+  final subscription = providers.listen<AsyncValue<T>>(
+    gate,
+    (_, answer) => offer(answer),
+    fireImmediately: true,
+  );
+  return settled.future.whenComplete(subscription.close);
+}
+
+/// One value derived from the server's settings, resolved immediately against
+/// the fallback the server itself would have used.
+///
+/// For a **value**, not a gate: a symbol, a limit, a set of presets. Nothing is
+/// hidden while the settings are in flight — the screen shows the default and
+/// swaps in the real answer — because a spinner in the middle of a price column
+/// is worse than the default it replaces.
+Provider<T> serverValue<T>(T Function(Map<String, dynamic>) read) =>
+    Provider<T>(
+      (ref) => read(ref.watch(serverSettingsProvider).valueOrNull ?? const {}),
+    );
 
 /// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
 /// answers **422** above it rather than clamping, so the stepper has to know.
 /// 50 is the server's own fallback for an unset or unparseable value
 /// (`routes/pipeline_runs.py::run_pipeline`).
-final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
-  final settings = await ref.watch(serverSettingsProvider.future);
+final pipelineMaxCopiesProvider = serverValue<int>((settings) {
   final parsed = settings.settingDouble('pipeline_max_copies', 50).toInt();
   return parsed > 0 ? parsed : 50;
 });
 
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
-final currencySymbolProvider = Provider<String>((ref) {
-  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
-      .settingString('currency');
+final currencySymbolProvider = serverValue<String>((settings) {
+  final code = settings.settingString('currency');
   return currencySymbol(code is String ? code : null);
 });
 
 /// Whether the scheduler requires per-printer plate-clear confirmation before
 /// starting queued prints. Gates the plate badge / "clear plate" button and the
 /// pre-start confirmation.
-final requirePlateClearProvider = FutureProvider<bool>(
-  (ref) async => (await ref.watch(
-    serverSettingsProvider.future,
-  )).settingBool('require_plate_clear'),
+final requirePlateClearProvider = serverGate<bool>(
+  (settings) => settings.settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
 /// Gates the print form's `gcode_injection` checkbox (see
 /// [gcodeSnippetModels]): without snippets the flag does nothing, so the web
 /// hides it too.
-final gcodeSnippetModelsProvider = FutureProvider<Set<String>>(
-  (ref) async => gcodeSnippetModels(
-    (await ref.watch(serverSettingsProvider.future))['gcode_snippets'],
-  ),
+final gcodeSnippetModelsProvider = serverGate<Set<String>>(
+  (settings) => gcodeSnippetModels(settings['gcode_snippets']),
 );
 
 /// MakerWorld integration (model import). Shares authenticated Dio.
@@ -840,15 +1091,40 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
   ),
 );
 
-/// Service minting camera stream token (print cover; from M2 also camera
-/// preview). Rebuilt with client on profile change.
+/// Service minting the camera stream token (the live view; on servers older
+/// than #3025 also every other `?token=` image). Rebuilt with client on profile
+/// change.
 final cameraTokenServiceProvider = Provider<CameraTokenService>(
   (ref) => CameraTokenService(ref.watch(apiClientProvider).dio),
 );
 
-/// Camera token for widgets (cover). Service holds cache; this future provides
-/// current token for building image URL. Invalidate:
+/// Camera token for the live view. Service holds cache; this future provides
+/// current token for building the stream URL. Invalidate:
 /// `ref.invalidate(cameraTokenProvider)` after 401 from protected resource.
 final cameraTokenProvider = FutureProvider<String>(
   (ref) => ref.watch(cameraTokenServiceProvider).token(),
+);
+
+/// Service minting the media token (#3025). Rebuilt with client on profile
+/// change, like [cameraTokenServiceProvider].
+final mediaTokenServiceProvider = Provider<MediaTokenService>(
+  (ref) => MediaTokenService(ref.watch(apiClientProvider).dio),
+);
+
+/// Picks the credential this server accepts on the media routes — see
+/// [MediaAuthService] for the three answers.
+final mediaAuthServiceProvider = Provider<MediaAuthService>(
+  (ref) => MediaAuthService(
+    media: ref.watch(mediaTokenServiceProvider),
+    camera: ref.watch(cameraTokenServiceProvider),
+    authMode: ref.watch(serverProfileProvider)?.authMode ?? AuthMode.none,
+    credentials: ref.watch(credentialsStoreProvider),
+  ),
+);
+
+/// The credential every media URL is built with. Invalidate together with
+/// `ref.read(mediaAuthServiceProvider).invalidate()` after a 401 — see
+/// [MediaAuthImageRecovery].
+final mediaAuthProvider = FutureProvider<MediaAuth>(
+  (ref) => ref.watch(mediaAuthServiceProvider).auth(),
 );

@@ -1,24 +1,18 @@
-/// Demo mode ("store review" mode) constants.
-///
-/// Google Play review requires full app access, but the app only works against
-/// a self-hosted bambuddy server. Instead of exposing a real server, the app
-/// recognizes a magic address + credentials and serves a fabricated dataset
-/// entirely in-process (see `DemoBackend`); no network traffic ever leaves the
-/// device in demo mode.
+/// Demo mode ("store review" mode): Play review needs full app access, and the
+/// app only works against a self-hosted server, so a magic address serves a
+/// fabricated dataset in-process (`DemoBackend`) and nothing leaves the device.
 ///
 /// Reviewer instructions (Play Console → App access):
 ///   server address: `demo`, username: `demo`, password: `demo1234`.
 abstract final class DemoConfig {
-  /// Canonical profile base URL saved after demo login. A single-label host
-  /// never resolves publicly, so even an accidentally un-intercepted request
-  /// fails locally without leaking anything.
+  /// Saved as the profile after a demo login. A single-label host never
+  /// resolves publicly, so a request that escaped the interception would fail
+  /// locally rather than reach anyone.
   static const baseUrl = 'http://demo';
 
   static const username = 'demo';
   static const password = 'demo1234';
 
-  /// Whether user-typed (normalized) server URL selects demo mode.
-  /// Accepts `demo` and `demo.bambuddy.app` with any scheme.
   static bool isDemoUrl(String normalizedUrl) {
     final host = Uri.tryParse(normalizedUrl)?.host.toLowerCase();
     return host == 'demo' || host == 'demo.bambuddy.app';

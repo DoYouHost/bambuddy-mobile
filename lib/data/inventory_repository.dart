@@ -19,14 +19,23 @@ class InventoryRepository {
 
   final SpoolInventorySource _source;
 
-  /// Answers [supportsPresetOverrides] until the route itself has.
+  /// Answers [presetOverridesCapability] until the route itself has, and
+  /// [labelStartingPositionCapability] always.
   final ServerVersionService? _serverVersion;
 
   /// Whether this server has the per-model preset routes at all. One latch for
   /// both backends: the native pair and the Spoolman twin landed in the same
   /// release, and only one source is ever live.
-  late final _presetOverrides = ObservedCapability(
+  late final presetOverridesCapability = ObservedCapability(
     ServerFeature.spoolModelPresets,
+    _serverVersion,
+  );
+
+  /// Whether a label sheet may be told where to start (server #2879). Never
+  /// observed — see [ServerFeature.labelStartingPosition] for why a PDF
+  /// response cannot answer it.
+  late final labelStartingPositionCapability = ObservedCapability(
+    ServerFeature.labelStartingPosition,
     _serverVersion,
   );
 
@@ -104,21 +113,19 @@ class InventoryRepository {
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _source.renderLabels(request);
 
-  Future<bool> supportsPresetOverrides() => _presetOverrides.supported;
-
   /// One spool's per-printer-model preset overrides. A server without the route
   /// answers with an empty list rather than throwing: the section reading this
   /// is additive, so it renders as if the spool simply had none.
   ///
   /// The 404 settles nothing, because the route also raises it for a spool that
   /// is gone (`inventory.py::"Spool not found"`) and the two read alike. The
-  /// version row is what answers [supportsPresetOverrides].
+  /// version row is what answers [presetOverridesCapability].
   ///
   /// A **403** throws, unlike the 404: `inventory:read` is a permission the key
   /// either has or does not, and a spool form that quietly showed no overrides
   /// would invite a save that wipes them.
   Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
-      _presetOverrides.watching(
+      presetOverridesCapability.watching(
         () => _source.fetchPresetOverrides(spoolId),
         absent: () => const [],
         absentOn: const {404},
@@ -129,7 +136,7 @@ class InventoryRepository {
   Future<void> savePresetOverrides(
     int spoolId,
     List<SpoolPresetOverride> overrides,
-  ) => _presetOverrides.watching(
+  ) => presetOverridesCapability.watching(
     () => _source.savePresetOverrides(spoolId, overrides),
   );
 }

@@ -20,6 +20,13 @@ class _CountingRepo extends SmartPlugsRepository {
     polls++;
     return const [];
   }
+
+  Object? controlError;
+
+  @override
+  Future<void> control(int plugId, SmartPlugAction action) async {
+    if (controlError != null) throw controlError!;
+  }
 }
 
 void main() {
@@ -111,5 +118,21 @@ void main() {
       async.flushMicrotasks();
       expect(repo.polls, before + 1);
     });
+  });
+  test('an unexpected control failure still unlocks the switch', () async {
+    repo.controlError = StateError('bug');
+    final container = makeContainer();
+    addTearDown(container.dispose);
+
+    await expectLater(
+      container
+          .read(smartPlugsProvider.notifier)
+          .control(7, SmartPlugAction.on),
+      throwsStateError,
+    );
+
+    final state = container.read(smartPlugsProvider);
+    expect(state.isBusy(7), isFalse);
+    expect(state.optimistic, isEmpty);
   });
 }

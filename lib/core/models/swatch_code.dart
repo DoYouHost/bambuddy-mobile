@@ -9,7 +9,7 @@ library;
 
 import 'dart:math';
 
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Code alphabet: digits 2–9 and letters A–Z WITHOUT ambiguous chars
 /// (`0`, `1`, `I`, `L`, `O`). 31 chars → 31^6 ≈ 887M combinations.

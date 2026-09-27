@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/slicer_pipeline.dart';
 import '../../core/theme/dash_theme.dart';
@@ -120,11 +120,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           FilledButton(
             onPressed: _name.text.trim().isEmpty || _saving ? null : _save,
             child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const DashSpinner()
                 : Text(l10n.pipelineSaveConfirm),
           ).tagged('pipeline_edit.save'),
         ],
@@ -218,7 +214,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
           );
       ref.invalidate(pipelinesProvider);
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.pipelineSaved)));
+      messenger.snack(l10n.pipelineSaved);
       navigator.pop();
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);

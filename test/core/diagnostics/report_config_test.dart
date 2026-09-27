@@ -1,5 +1,5 @@
 import 'package:app_report_client/app_report_client.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,7 +28,6 @@ void main() {
       ts: DateTime.utc(2026, 7, 31, 10),
       session: 'a' * 32,
       app: '0.11.7+11700',
-      flavor: 'mobile',
       os: 'Android 15 (SDK 35), build TQ3A.230805.001',
       locale: 'pl_PL',
       server: '0.2.5b3',
@@ -37,7 +36,7 @@ void main() {
         hostKind: HostKind.name,
         port: 443,
       ),
-      auth: 'apiKey',
+      extra: const {'flavor': 'mobile', 'auth': 'apiKey'},
     );
 
     final envelope = reportEnvelope(

@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../../data/maintenance_repository.dart';
-import '../../features/dashboard/ws_providers.dart'
-    show wsUrlFor, wsAuthHeaders;
+import '../../features/dashboard/ws_providers.dart' show wsUrlFor;
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
@@ -18,17 +18,18 @@ import 'finish_photo_notifier.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
 import '../../data/archive_repository.dart';
+import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
-import '../api/camera_token.dart';
+import '../api/media_auth.dart';
 import '../api/ws_client.dart';
 import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
+import '../auth/auth_headers.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../diagnostics/session_facts.dart';
 import '../demo/demo_ws.dart';
@@ -42,6 +43,9 @@ import '../widget/home_widget_publisher.dart';
 import '../widget/multi_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
+import '../demo/demo_backend.dart';
+import '../diagnostics/diagnostics_wiring.dart';
+import '../diagnostics/report_config.dart';
 
 /// How often to poll REST for maintenance status. Operating hours only accumulate
 /// during printing, so infrequent checks suffice and don't burden the server.
@@ -65,7 +69,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
   FinishPhotoNotifier? _finishPhoto;
-  _FgsNotificationService? _fgs;
+  FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
   ProactiveTokenRefresher? _tokenRefresher;
@@ -79,7 +83,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   var _wsUp = false;
   // HMS catalog + cover fetch path for widget (separate from UI isolate).
   HmsCatalog? _hmsCatalog;
-  CameraTokenService? _cameraToken;
+  MediaAuthService? _mediaAuth;
   Dio? _coverDio;
   // This isolate's diagnostic stream, when the user is recording a bug report.
   // Null the rest of the time, which is why every use of it is `?.`.
@@ -107,13 +111,21 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // The UI writes the switch down for exactly this read.
     DateTimeFormats.rememberSystemClock(settings.loadUse24HourClock());
 
+    // Same read, same reason: this isolate runs its own copy of the demo, and
+    // starting it at the default would draw a notification for one printer
+    // while the dashboard shows three.
+    DemoBackend.printingPrinters = settings.loadDemoPrintingCount();
+
     // Before `_startMonitoring`, so the token mint and the WebSocket handshake —
     // the two things a report about background notifications most often turns out
     // to be — are inside the recording. Cannot throw and cannot block for long by
     // construction; null when no recording is running, which is the normal case.
     _recording = await DiagnosticRecorder.startBackground(
-      settings: settings,
+      sessions: settings.diagnosticsSessions,
+      redactor: bambuddyRedactor,
+      sessionLimit: recordingLimit,
       stream: LogStream.fgs,
+      listeners: const [WsSessionListener()],
       // The header comes off disk, but the secrets cannot: an empty redactor would
       // let the user's own hostname through in the first socket error.
       loadSecrets: () => sessionSecrets(
@@ -185,10 +197,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     } on Object catch (error) {
       NotifProbe.initFailed(error);
     }
-    final fgs = _FgsNotificationService(alerts, l10n);
+    final fgs = FgsNotificationService(alerts, l10n);
     _fgs = fgs;
     // What the monitors talk to: the decorator records every alert handed to the
-    // platform. Outside `_FgsNotificationService`, not inside it — the ongoing
+    // platform. Outside `FgsNotificationService`, not inside it — the ongoing
     // notification there does not delegate to [alerts], so a decorator underneath
     // would never see it. `_fgs` itself stays raw for [repost].
     // Wrapped so a print-ended alert leaves a record the finish photo can find
@@ -196,20 +208,36 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final notify = RememberingNotifications(
       LoggingNotifications(fgs),
       FinishAlertMemory(prefs),
-      DateTime.now,
     );
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
     _hmsCatalog = catalog;
+    // One store for this isolate: the REST client, the media credential, the
+    // socket and the proactive refresh all read the same keystore, and two
+    // instances would be two independent reads of it.
+    final creds = SecureCredentialsStore();
+    // One re-login for all of them too. The REST client used to build its own,
+    // so a 401 on a maintenance poll and the socket's rejected handshake could
+    // each log in at once — against the server's failed-attempt budget.
+    final auth = backgroundAuthService(prefs, creds);
     // Single authenticated client for this isolate's session — shared by the
     // cover-token mint, the maintenance repo, and the WS handshake token
-    // below, instead of each independently rebuilding Dio + interceptors +
-    // a keystore read via its own `buildBackgroundApiClient` call.
-    final api = await buildBackgroundApiClient(prefs);
-    // Print cover fetch for the widget: camera token minted with authenticated Dio,
-    // image fetched with bare Dio using `?token=`.
-    _cameraToken = api != null ? CameraTokenService(api.dio) : null;
+    // below, instead of each independently rebuilding Dio + interceptors.
+    final api = await buildBackgroundApiClient(
+      prefs,
+      credentials: creds,
+      auth: auth,
+    );
+    // Print cover fetch for the widget: media credential resolved with the
+    // authenticated Dio, image fetched with bare Dio carrying it explicitly.
+    _mediaAuth = api == null
+        ? null
+        : MediaAuthService.forIsolate(
+            dio: api.dio,
+            authMode: profile.authMode,
+            credentials: creds,
+          );
     _coverDio = createBareDio();
     // Load notification preferences once at startup; UI changes take effect
     // on the next background entry (service restarts from scratch then).
@@ -239,11 +267,6 @@ class PrintMonitorTaskHandler extends TaskHandler {
       ),
     );
 
-    final creds = SecureCredentialsStore();
-    // Shared by the socket below and the proactive refresh: both recover a
-    // lapsed session the same way, and building two would mean two independent
-    // silent re-logins racing against the server's failed-attempt budget.
-    final auth = backgroundAuthService(prefs, creds);
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;
@@ -257,7 +280,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
           )
         : WsClient(
             url: wsUrlFor(profile.baseUrl),
-            authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+            authHeaders: () => authHeaders(profile.authMode, creds),
             queryToken: wsToken?.token,
             invalidateQueryToken: wsToken?.invalidate,
             // Without this a handshake rejected for a lapsed JWT has nothing to
@@ -433,41 +456,42 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
   }
 
-  /// Fetches the current print cover image to a file for the widget (authenticated with
-  /// camera token, cached by `cover_url` in [WidgetCoverCache]). Returns null if unavailable.
+  /// Fetches the current print cover image to a file for the widget
+  /// (authenticated with the media credential, cached by `cover_url` in
+  /// [WidgetCoverCache]). Returns null if unavailable.
   Future<String?> _fetchCover(String baseUrl, PrinterStatus picked) {
     final cover = picked.coverUrl;
-    final tokenSvc = _cameraToken;
+    final media = _mediaAuth;
     final dio = _coverDio;
-    if (cover == null || tokenSvc == null || dio == null) {
+    if (cover == null || media == null || dio == null) {
       return Future.value(null);
     }
     return WidgetCoverCache.fetch(
       baseUrl: baseUrl,
       coverPath: cover,
       dio: dio,
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 
   /// Downloads a finished print's photo to files the notification can carry.
-  /// Same auth shape as the cover above: camera token in `?token=`, bare Dio.
+  /// Same auth shape as the cover above: media credential, bare Dio.
   Future<AlertPicture?> _fetchFinishPhoto(
     String baseUrl,
     int archiveId,
     String filename,
   ) {
-    final tokenSvc = _cameraToken;
+    final media = _mediaAuth;
     final dio = _coverDio;
-    if (tokenSvc == null || dio == null) return Future.value(null);
+    if (media == null || dio == null) return Future.value(null);
     return FinishPhotoImage.store(
       baseUrl: baseUrl,
       archiveId: archiveId,
       filename: filename,
       dio: dio,
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 
@@ -491,6 +515,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
         unawaited(_syncDiagnostics());
       case BackgroundSync.clock:
         unawaited(_syncClockFormat());
+      case BackgroundSync.demoPrinters:
+        unawaited(_syncDemoPrinters());
       case null:
         break;
     }
@@ -510,6 +536,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
     }
   }
 
+  /// The demo's printer count as the app last saw it. Without this the service
+  /// keeps simulating the number it started with, so the notification would
+  /// disagree with the dashboard the setting had just changed.
+  Future<void> _syncDemoPrinters() async {
+    try {
+      final settings = await SettingsRepository.opened();
+      DemoBackend.printingPrinters = settings.loadDemoPrintingCount();
+      // Statics do not cross an isolate, so the poke the UI sent its own
+      // sockets never reached these. Without this the notification waits for
+      // the fake socket's next tick while the dashboard has already moved.
+      DemoBackend.pokeSockets();
+    } on Object {
+      // A demo knob is never worth taking the service down for.
+    }
+  }
+
   Future<void> _syncDiagnostics() async {
     try {
       final settings = await SettingsRepository.opened();
@@ -524,8 +566,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
       if (wanted == null) return;
 
       _recording = await DiagnosticRecorder.startBackground(
-        settings: settings,
+        sessions: settings.diagnosticsSessions,
+        redactor: bambuddyRedactor,
+        sessionLimit: recordingLimit,
         stream: LogStream.fgs,
+        listeners: const [WsSessionListener()],
         loadSecrets: () => sessionSecrets(
           profile: settings.loadProfile(),
           credentials: SecureCredentialsStore(),
@@ -584,12 +629,23 @@ class PrintMonitorTaskHandler extends TaskHandler {
   }
 }
 
+/// Native side of the ongoing notification — `OngoingNotificationHost`, served
+/// on the foreground service's own engine. Absent in the watch flavor and in
+/// tests that install no handler, which is what the fallback below is for.
+const _ongoingChannel = MethodChannel(
+  'page.codeberg.morganmlgman.bambuddy/ongoing',
+);
+
 /// [NotificationService] for the background isolate: ongoing progress updates
 /// are sent to the foreground service's notification itself (there's only one and it's
 /// mandatory, so we don't multiply notifications). Loud alerts (finished/failed) are
 /// sent via the regular channel through [LocalNotificationService].
-class _FgsNotificationService implements NotificationService {
-  _FgsNotificationService(this._alerts, AppLocalizations l10n)
+///
+/// Public for its tests only — nothing outside this library builds one. Reaching
+/// it through [PrintMonitorTaskHandler] would mean standing up a whole profile
+/// and an API client to exercise three notification calls.
+class FgsNotificationService implements NotificationService {
+  FgsNotificationService(this._alerts, AppLocalizations l10n)
     : _l10n = l10n,
       _title = l10n.bgServiceTitle,
       _text = l10n.bgServiceText;
@@ -601,6 +657,17 @@ class _FgsNotificationService implements NotificationService {
   // after the user swipes it ([repost]).
   String _title;
   String _text;
+  int? _progress;
+
+  /// Whether a print is running at all. Kept apart from [_progress] because a
+  /// null there means "running, position unknown" — the indeterminate bar — and
+  /// that is a different picture from the idle "monitoring" notification, which
+  /// has no bar.
+  bool _printing = false;
+
+  /// Which way the last post went, so [NotifProbe.ongoingNative] records a
+  /// change of path rather than one line per update.
+  bool? _lastNative;
 
   @override
   Future<void> init() => _alerts.init();
@@ -612,14 +679,13 @@ class _FgsNotificationService implements NotificationService {
   Future<void> showOngoing({
     required String title,
     required String body,
-    required int progress,
+    required int? progress,
   }) async {
     _title = title;
     _text = body;
-    await FlutterForegroundTask.updateService(
-      notificationTitle: title,
-      notificationText: body,
-    );
+    _progress = progress;
+    _printing = true;
+    await _post();
   }
 
   @override
@@ -627,18 +693,53 @@ class _FgsNotificationService implements NotificationService {
     // Nothing printing → FGS notification returns to neutral "monitoring".
     _title = _l10n.bgServiceTitle;
     _text = _l10n.bgServiceText;
+    _progress = null;
+    _printing = false;
+    await _post();
+  }
+
+  /// Re-posts the ongoing notification with the last content — after the user
+  /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
+  Future<void> repost() => _post();
+
+  /// Posts through [OngoingNotificationHost], which is what puts a progress bar
+  /// on the notification at all, and falls back to the plugin when it cannot.
+  ///
+  /// The fallback is not decoration: it is the only thing between a channel that
+  /// refused and a foreground service with no visible notification. It reads the
+  /// fields rather than arguments captured before the await on purpose — if
+  /// another update overtook this one, the newer content is the one that should
+  /// land, and both calls then finish on the same text.
+  Future<void> _post() async {
+    try {
+      final native = await _ongoingChannel.invokeMethod<bool>('show', {
+        'title': _title,
+        'body': _text,
+        'progress': _progress,
+        'printing': _printing,
+      });
+      if (native == true) {
+        _noteNative(true);
+        return;
+      }
+    } on MissingPluginException {
+      // No native side on this build: the watch flavor, and every test that
+      // installs no handler.
+    } on PlatformException {
+      // Never worth losing the notification over.
+    }
+    _noteNative(false);
     await FlutterForegroundTask.updateService(
       notificationTitle: _title,
       notificationText: _text,
     );
   }
 
-  /// Re-posts the ongoing notification with the last content — after the user
-  /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
-  Future<void> repost() => FlutterForegroundTask.updateService(
-    notificationTitle: _title,
-    notificationText: _text,
-  );
+  void _noteNative(bool native) {
+    if (_lastNative == native) return;
+    _lastNative = native;
+    NotifProbe.ongoingNative(native: native);
+  }
 
   @override
   Future<void> showAlert({

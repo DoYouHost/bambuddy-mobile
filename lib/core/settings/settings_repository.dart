@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/swatch_code.dart';
@@ -21,12 +22,14 @@ class SettingsRepository {
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
+  static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
-  static const _diagnosticsSessionKey = 'diagnostics_session';
   static const _clock24hKey = 'clock_24h';
   static const _wearRelayClaimKey = 'wear_relay_claim';
+  static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
+  static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
 
   final SharedPreferences _prefs;
 
@@ -124,6 +127,21 @@ class SettingsRepository {
 
   Future<void> saveNo3mfDismissed() => _prefs.setBool(_no3mfDismissedKey, true);
 
+  /// Whether dashboard printer cards open collapsed. Absent reads as expanded,
+  /// the only look installs had before the setting existed.
+  bool loadPrinterCardsCollapsed() =>
+      _prefs.getBool(_printerCardsCollapsedKey) ?? false;
+
+  Future<void> savePrinterCardsCollapsed(bool collapsed) =>
+      _prefs.setBool(_printerCardsCollapsedKey, collapsed);
+
+  /// How many printers the demo runs a print on. Read by both isolates: the UI
+  /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].
+  int loadDemoPrintingCount() => _prefs.getInt(_demoPrintingKey) ?? 1;
+
+  Future<void> saveDemoPrintingCount(int count) =>
+      _prefs.setInt(_demoPrintingKey, count);
+
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.
   /// Corrupted/missing → defaults.
@@ -201,16 +219,18 @@ class SettingsRepository {
     jsonEncode([for (final c in codes) c.toJson()]),
   );
 
-  /// Session id of a bug-report recording in progress, or null when none is.
-  /// The id doubles as the on/off flag — the background isolate reads it to
-  /// decide whether to write its own log stream, and a separate bool would be
-  /// a second thing to keep in sync across isolates. Callers in the isolate
-  /// must `reload()` first: the write came from the UI isolate.
-  String? loadDiagnosticsSession() => _prefs.getString(_diagnosticsSessionKey);
+  /// The bug-report recording in progress, over the preferences key this app
+  /// already used. The id doubles as the on/off flag — the background isolate
+  /// reads it to decide whether to write its own log stream, and a separate
+  /// bool would be a second thing to keep in sync across isolates. Callers in
+  /// another isolate must [reloaded] first: the write came from the UI one.
+  DiagnosticsSessionStore get diagnosticsSessions =>
+      SharedPreferencesSessionStore(_prefs);
 
-  Future<void> saveDiagnosticsSession(String? session) => session == null
-      ? _prefs.remove(_diagnosticsSessionKey)
-      : _prefs.setString(_diagnosticsSessionKey, session);
+  String? loadDiagnosticsSession() => diagnosticsSessions.loadSession();
+
+  Future<void> saveDiagnosticsSession(String? session) =>
+      diagnosticsSessions.saveSession(session);
 
   /// Which watch-relay responder is listening, as `<pid>:<nonce>` —
   /// `WearRelayClaim` has the why for both halves. Also read natively, as
@@ -223,4 +243,11 @@ class SettingsRepository {
   Future<void> saveWearRelayClaim(String? claim) => claim == null
       ? _prefs.remove(_wearRelayClaimKey)
       : _prefs.setString(_wearRelayClaimKey, claim);
+
+  /// The watch's last fleet, so a cold start paints it instead of a spinner —
+  /// see `WearFleetCache`, which owns the shape stored here.
+  String? loadWearFleetCache() => _prefs.getString(_wearFleetCacheKey);
+
+  Future<void> saveWearFleetCache(String value) =>
+      _prefs.setString(_wearFleetCacheKey, value);
 }

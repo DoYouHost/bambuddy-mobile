@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/dash_text.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
-import '../common/dash_snack.dart';
 import '../common/api_failure_snack.dart';
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
-import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
+import '../common/web_link.dart';
 
 /// MakerWorld screen: paste model URL → resolve → pick plate → import (download) to library.
 /// Download requires Bambu Cloud login; if missing, import action goes to settings login screen
@@ -313,11 +309,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
         : model.instances.take(_collapsedCount).toList();
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -374,9 +366,6 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                 child: logTag(
                   'makerworld.toggle_plates',
                   TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: t.accentGreenInk,
-                    ),
                     onPressed: () => setState(() => _expanded = !_expanded),
                     icon: Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
@@ -431,10 +420,17 @@ class _PlateRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (imported)
+            // A state, not an action, so the button is permanently disabled —
+            // and the ink has to be handed over as the *disabled* colour. A
+            // plain `foregroundColor` resolves to null in that state and the
+            // label falls through to Material's grey, which is what this row
+            // actually showed.
             TextButton.icon(
               onPressed: null,
               style: TextButton.styleFrom(
-                foregroundColor: t.accentGreenInk.withValues(alpha: 0.6),
+                disabledForegroundColor: t.accentGreenInk.withValues(
+                  alpha: 0.6,
+                ),
               ),
               icon: const Icon(Icons.check_circle, size: 18),
               label: Text(l10n.mwInLibrary),
@@ -546,10 +542,7 @@ class _RecentRow extends StatelessWidget {
                           size: 18,
                           color: t.textSecondary,
                         ),
-                        onPressed: () => launchUrl(
-                          Uri.parse(source),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onPressed: () => openWebLink(context, source),
                       ),
                     ),
                 ],
@@ -577,7 +570,7 @@ class _InlineError extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 40, color: t.danger),
+          Icon(Icons.error_outline, size: 40, color: t.dangerInk),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
           const SizedBox(height: 12),

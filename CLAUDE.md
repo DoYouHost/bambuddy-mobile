@@ -111,12 +111,16 @@ do not stay silent because it was not part of the task.
 - `lib/wear/` — the Wear OS app. Separate entry point
   (`lib/wear/main_wear.dart`), reuses `lib/core` and `lib/data`.
 - `lib/data/` — repositories on top of the API client, shared by both flavors.
-- `lib/l10n/` — `app_en.arb` / `app_pl.arb` plus the generated
+- `lib/l10n/` — `app_en.arb` (the template) plus `app_pl.arb`, `app_de.arb`,
+  `app_es.arb` and `app_fr.arb`, and the generated
   `app_localizations*.dart` (committed). User-visible strings go through
-  `AppLocalizations`, never hardcoded.
+  `AppLocalizations`, never hardcoded, and every string you add or change goes
+  through `just l10n-check` before you hand the change over (see Conventions).
 - `test/` — mirrors `lib/`; `test/helpers.dart` holds the shared harness.
-- `justfile` — `just test`, `just build` / `build-wear` / `build-aab`,
-  `just ship X.Y.Z`, `just ship-dev`, emulator recipes.
+- `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
+  `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes. **`just
+  hooks` once per clone** points git at `.githooks/`, which refuses a commit
+  message that is not one Conventional Commits line.
 
 ## Documentation
 
@@ -126,6 +130,18 @@ do not stay silent because it was not part of the task.
   feature so a report about it explains anything: naming controls, sampled
   endpoints, action failures, isolates, adding a field. **Read it before adding
   a screen or a notification.**
+- [docs/server-gates.md](docs/server-gates.md) — why each `ServerFeature` row
+  exists, what an older server does without it and what being early costs, and
+  how a capability travels from its latch to a screen. **Read it before adding
+  a gate**; the enum keeps one line per member.
+- [docs/wear-geometry.md](docs/wear-geometry.md) — the round-face derivation:
+  inscribed rectangle vs scaled curve, what each tunable in `wear_geometry.dart`
+  was paid for, and the quadratic behind `roundScaleFor`.
+- [docs/dependency-upgrades.md](docs/dependency-upgrades.md) — the pubspec
+  entries a `pub upgrade` cannot move on its own, and what unblocks each.
+  **`flutter_secure_storage` 11 is pending and order-sensitive**: it drops the
+  ciphers version 9 wrote, so it may only ship after a release that ran 10 and
+  migrated the installed base.
 - [docs/scheduled-workflows.md](docs/scheduled-workflows.md) — why the cron
   jobs (`server-drift`, `contract-tests`) start hours late, what the forums
   say, and what to do once a run gets dropped.
@@ -153,6 +169,32 @@ do not stay silent because it was not part of the task.
   values and carry no user data; the grammar and the traps are in
   [docs/logging-guide.md](docs/logging-guide.md). `/log-coverage` must stay at
   zero unnamed controls.
+- **Copy you add gets spell-checked, and that is not the whole check.**
+  `just l10n-check` runs the strings this branch changed through LanguageTool
+  (`tool/check_l10n_language.py`); `LANGUAGETOOL_URL` points it at a self-hosted
+  instance instead of the rate-limited public API, and `just l10n-check-all`
+  sweeps both files. It finds spelling, agreement and punctuation. It does not
+  find a phrase that parses and means nothing ("Wysyłek jednocześnie"), a
+  calque, or a sentence stating something untrue about the hardware — those
+  have all shipped past a clean run, so read the copy as well.
+  **A label ending in a value is a noun phrase**, never an imperative or a bare
+  genitive: "Limit czekania na komorę: 20min", not "Czekaj na komorę najwyżej:".
+  **A slider also needs a sentence saying what its number changes** — a switch
+  reads on/off, but "4" on its own tells nobody anything.
+- **`lib/core/models/` is over the comment-ratio threshold on purpose.** The
+  whole directory was gone through once (2026-09-11) and what came out as
+  restatement was fourteen lines; it still measures ~29%. What is left is the
+  wire contract — which key the server sends, what `null` means in it, which
+  unit the number is in, which server file to check — and that description
+  exists nowhere else in this repo, while the code it sits above is a const
+  constructor plus a `fromJson`. Judge a model comment by "does this say
+  anything the declaration does not", never by the 20% in the `comment-ratio`
+  skill. **[lib/core/api/endpoints.dart](lib/core/api/endpoints.dart) is the
+  same case** and measures far higher still (~66%): it is a catalogue of route
+  constants whose comments are the contract around them — which server version
+  a path arrived in, what an API-key session is answered with, why a caller
+  probes instead of reading a version number. Cutting those leaves a list of
+  strings.
 - **`dart format` is the style, and CI enforces it** (`dart format
   --output=none --set-exit-if-changed lib test tool`). Run `dart format lib
   test tool` before pushing and never hand-tune spacing to fight it. The whole
@@ -166,6 +208,13 @@ do not stay silent because it was not part of the task.
 - Server timestamps are UTC even when the `Z` is missing; parse through the
   helpers in [lib/core/models/json_utils.dart](lib/core/models/json_utils.dart)
   (`dateTimeFromJson`, `calendarDateFromJson`), never `DateTime.parse`.
+- **A server capability reaches a screen one way**: a latch
+  (`ObservedCapability`) in its repository, one `capabilityGate(...)` line in
+  the providers, read with `.orFalse` / `.offer` (`settledGate` outside a
+  build). Never a `FutureProvider<bool>` — it shows a loading frame for an
+  answer it already has and never asks again once the server is reachable;
+  `capability_gate_shape_test.dart` refuses one. The path and the "adding a
+  gate" checklist are in [docs/server-gates.md](docs/server-gates.md).
 - **Select fields use M3 `DropdownMenu<T>`**, never `DropdownButtonFormField`
   (its full-screen overlay is the old Material look and does not match the app):
   `expandedInsets: EdgeInsets.zero`, `menuHeight: 320`, and a local
@@ -183,6 +232,10 @@ do not stay silent because it was not part of the task.
   (`<id>.cancel` / `<id>.confirm`). A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
+- **A `Wrap` that sets `spacing` also sets `runSpacing`.** `spacing` is the gap
+  inside a run; the gap between runs defaults to zero, so the row looks right
+  until it wraps — at a narrow width or a larger system text size — and then the
+  children touch. `wrap_run_spacing_test.dart` scans `lib/` for the omission.
 - **Layout that depends on whether a label fits in one line must measure with the
   `textStyle` and `padding` of the same `ButtonStyle` the button renders with**
   (`FilledButtonTheme.of(context).style` and friends) — never with constants or
@@ -190,8 +243,13 @@ do not stay silent because it was not part of the task.
   Manrope w700) while `labelLarge` is w500, so constants underestimated the width
   by ~11 px: invisible at normal text size, wrong at system text size "small"
   (`font_scale 0.85`) on a 360 dp screen. Add ~10 px of slack — collapsing early
-  looks fine, a wrapped label does not. Related: `showModalBottomSheet` without
-  `isScrollControlled` is capped at 9/16 of the screen height.
+  looks fine, a wrapped label does not. **Two buttons beside each other go
+  through `ButtonPair`**
+  (`ButtonPair` in the `dash_kit` package, not this repo),
+  which owns that measurement and stacks them full-width when they no longer
+  fit; a `Wrap` there gets it wrong twice over — no gap between the rows, and
+  each button left at its own content width. Related: `showModalBottomSheet`
+  without `isScrollControlled` is capped at 9/16 of the screen height.
 - **Every scrolling watch screen goes through `WearScrollView`**
   ([lib/wear/widgets/wear_scroll_view.dart](lib/wear/widgets/wear_scroll_view.dart)):
   it owns both things Google Play checks on Wear OS — the round-safe geometry

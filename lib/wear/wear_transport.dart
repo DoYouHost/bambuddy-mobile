@@ -9,6 +9,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 import '../core/models/queue_item.dart';
+import '../core/api/server_version_service.dart';
 import '../core/watch/wear_rpc.dart';
 import '../data/printer_commands_repository.dart';
 import '../data/printers_repository.dart';
@@ -47,7 +48,12 @@ class WearRelayRemoteError implements Exception {
 /// One watch poll: the printers plus the queue signal behind the
 /// "start next" button.
 class WearFleet {
-  const WearFleet({required this.printers, this.queuePending});
+  const WearFleet({
+    required this.printers,
+    this.queuePending,
+    this.raw,
+    this.stale = false,
+  });
 
   final List<PrinterWithStatus> printers;
 
@@ -55,6 +61,73 @@ class WearFleet {
   /// Null = unknown (older phone app relaying, or the queue fetch failed) —
   /// the UI then keeps offering "start next" as before.
   final int? queuePending;
+
+  /// The wire map this was read from, kept so the cold-start cache can store it
+  /// verbatim rather than re-encode the models.
+  ///
+  /// There is no other shape that survives the round trip: [PrinterStatus] is
+  /// parsed through several dozen tolerant converters and is declared
+  /// `createToJson: false`, so nothing in the app can spell it back out.
+  ///
+  /// Null on the REST path, which is handed models rather than JSON — a watch
+  /// that can never reach its phone therefore caches nothing and starts on a
+  /// spinner exactly as before.
+  // ponytail: relay-only cache; give `PrintersRepository` a raw fleet read if
+  // the standalone watch is worth the same treatment.
+  final Map<String, dynamic>? raw;
+
+  /// True only for a fleet [WearFleetCache] restored, i.e. one drawn from the
+  /// last run rather than from the server. The screens dim themselves on it and
+  /// clear the moment a real poll lands.
+  final bool stale;
+}
+
+/// One reader for the fleet's wire shape — the relay's reply, and the cache
+/// that stored one.
+///
+/// Tolerant per entry, mirroring `parseJsonList`: one malformed printer drops
+/// that entry, not the whole fleet. A cache written by an older version is the
+/// second caller that depends on it.
+WearFleet wearFleetFromJson(Map<String, dynamic>? data, {bool stale = false}) {
+  final pending = data?['queuePending'];
+  final queuePending = pending is int ? pending : null;
+  final list = data?['printers'];
+  if (list is! List) {
+    return WearFleet(
+      printers: const [],
+      queuePending: queuePending,
+      raw: data,
+      stale: stale,
+    );
+  }
+  final out = <PrinterWithStatus>[];
+  for (final entry in list) {
+    if (entry is! Map<String, dynamic>) continue;
+    final rawPrinter = entry['printer'];
+    if (rawPrinter is! Map<String, dynamic>) continue;
+    final Printer printer;
+    try {
+      printer = Printer.fromJson(rawPrinter);
+    } on Object {
+      continue;
+    }
+    final rawStatus = entry['status'];
+    PrinterStatus? status;
+    if (rawStatus is Map<String, dynamic>) {
+      try {
+        status = PrinterStatus.fromJson(rawStatus);
+      } on Object {
+        status = null;
+      }
+    }
+    out.add(PrinterWithStatus(printer: printer, status: status));
+  }
+  return WearFleet(
+    printers: out,
+    queuePending: queuePending,
+    raw: data,
+    stale: stale,
+  );
 }
 
 /// What the watch needs from "the other side", regardless of whether that's
@@ -62,6 +135,13 @@ class WearFleet {
 /// only ever talk to this.
 abstract interface class WearTransport {
   Future<WearFleet> getFleet();
+
+  /// The connected server's version string, `null` when nobody could read one
+  /// — a server too old for the route, a phone too old for the action, or a
+  /// reply that never came. The settings screen says "unknown" rather than
+  /// guessing.
+  Future<String?> getServerVersion();
+
   Future<void> pause(int printerId);
   Future<void> resume(int printerId);
   Future<void> stop(int printerId);
@@ -85,10 +165,21 @@ class RelayTransport implements WearTransport {
     this._watch, {
     this.timeout = const Duration(seconds: 4),
     this.wakeTimeout = wearRpcWakeTimeout,
+    this.channelTimeout = const Duration(seconds: 2),
   });
 
   final WatchConnectivity _watch;
   final Duration timeout;
+
+  /// Deadline for the two platform-channel calls below, which are the only
+  /// waits in a poll with no deadline of their own: the reply is bounded by
+  /// [timeout]/[wakeTimeout] and the REST fallback by Dio's own timeouts, but a
+  /// hung Data Layer channel left `refresh` pending forever — and it cancels
+  /// its tick on the way in, so nothing was left to try again.
+  ///
+  /// Short on purpose: both are local queries to Play services, not the round
+  /// trip to the phone.
+  final Duration channelTimeout;
 
   /// Replaces [timeout] for a request the phone acked as waking — its process
   /// was dead and a Flutter engine is booting to answer this one. Injectable so
@@ -98,7 +189,12 @@ class RelayTransport implements WearTransport {
   final _pending = <String, _PendingCall>{};
   StreamSubscription<Map<String, dynamic>>? _sub;
 
+  /// Set by [dispose], never cleared: a transport is built per profile and
+  /// thrown away with it, so unlike a notifier this one really is finished.
+  bool _disposed = false;
+
   void _ensureListening() {
+    if (_disposed) return;
     _sub ??= _watch.messageStream.listen((map) {
       final ack = WearRpcAck.decode(map);
       if (ack != null) {
@@ -117,8 +213,17 @@ class RelayTransport implements WearTransport {
   }
 
   void dispose() {
+    _disposed = true;
     _sub?.cancel();
     _sub = null;
+    // Nothing can answer these any more — the stream their reply would arrive
+    // on is the one just cancelled — so waiting out the deadline buys nothing.
+    // A timeout rather than [WearRelayUnreachable]: the request did go out, and
+    // unreachable is what licenses repeating a command over REST.
+    for (final call in _pending.values.toList()) {
+      call.fail(WearRelayTimeout());
+    }
+    _pending.clear();
   }
 
   Future<Map<String, dynamic>?> _call(
@@ -132,9 +237,15 @@ class RelayTransport implements WearTransport {
     // Cheap local check (connected nodes) before paying the send + timeout.
     var reachable = false;
     try {
-      reachable = await _watch.isReachable;
+      reachable = await _watch.isReachable.timeout(channelTimeout);
     } catch (_) {}
     if (!reachable) throw WearRelayUnreachable();
+    // Disposed while we were asking — a profile change rebuilds this transport,
+    // and the reply stream the call below needs is already cancelled. Sending
+    // now would buy a full deadline of waiting for an answer nobody can hand
+    // over, and [dispose] has been through `_pending` before this one is in it.
+    // Unreachable rather than a timeout: nothing has gone out, so nothing ran.
+    if (_disposed) throw WearRelayUnreachable();
 
     final req = WearRpcRequest.create(
       action,
@@ -146,7 +257,13 @@ class RelayTransport implements WearTransport {
     final pending = _PendingCall();
     _pending[req.id] = pending;
     try {
-      await _watch.sendMessage(req.encode());
+      await _watch.sendMessage(req.encode()).timeout(channelTimeout);
+    } on TimeoutException {
+      _pending.remove(req.id);
+      // Not [WearRelayUnreachable]: a send that never came back may still have
+      // reached the phone, and unreachable is the answer that licenses a retry
+      // over REST. A command that ran twice is the thing that costs a print.
+      throw WearRelayTimeout();
     } catch (_) {
       _pending.remove(req.id);
       throw WearRelayUnreachable();
@@ -175,44 +292,14 @@ class RelayTransport implements WearTransport {
   }
 
   @override
-  Future<WearFleet> getFleet() async {
-    final data = await _call(WearRpcAction.getFleet);
-    final pending = data?['queuePending'];
-    final list = data?['printers'];
-    if (list is! List) {
-      return WearFleet(
-        printers: const [],
-        queuePending: pending is int ? pending : null,
-      );
-    }
-    final out = <PrinterWithStatus>[];
-    // Tolerant per-entry parsing, mirroring parseJsonList: one malformed
-    // printer drops that entry, not the whole fleet.
-    for (final entry in list) {
-      if (entry is! Map<String, dynamic>) continue;
-      final rawPrinter = entry['printer'];
-      if (rawPrinter is! Map<String, dynamic>) continue;
-      final Printer printer;
-      try {
-        printer = Printer.fromJson(rawPrinter);
-      } on Object {
-        continue;
-      }
-      final rawStatus = entry['status'];
-      PrinterStatus? status;
-      if (rawStatus is Map<String, dynamic>) {
-        try {
-          status = PrinterStatus.fromJson(rawStatus);
-        } on Object {
-          status = null;
-        }
-      }
-      out.add(PrinterWithStatus(printer: printer, status: status));
-    }
-    return WearFleet(
-      printers: out,
-      queuePending: pending is int ? pending : null,
-    );
+  Future<WearFleet> getFleet() async =>
+      wearFleetFromJson(await _call(WearRpcAction.getFleet));
+
+  @override
+  Future<String?> getServerVersion() async {
+    final data = await _call(WearRpcAction.getServerVersion);
+    final version = data?['version'];
+    return version is String && version.isNotEmpty ? version : null;
   }
 
   @override
@@ -291,6 +378,12 @@ class _PendingCall {
     if (!_completer.isCompleted) _completer.complete(res);
   }
 
+  /// Ends the wait early, for a transport being disposed under it.
+  void fail(Object error) {
+    _timer?.cancel();
+    if (!_completer.isCompleted) _completer.completeError(error);
+  }
+
   void dispose() => _timer?.cancel();
 }
 
@@ -301,32 +394,45 @@ class RestTransport implements WearTransport {
     required PrintersRepository printers,
     required PrinterCommandsRepository commands,
     required QueueRepository queue,
+    required ServerVersionService serverVersion,
   }) : _printers = printers,
        _commands = commands,
-       _queue = queue;
+       _queue = queue,
+       _serverVersion = serverVersion;
 
   final PrintersRepository _printers;
   final PrinterCommandsRepository _commands;
   final QueueRepository _queue;
+  final ServerVersionService _serverVersion;
 
   @override
   Future<WearFleet> getFleet() async {
-    final printers = _printers.fetchAll();
-    int? pending;
+    // Both requests go out together. The printers are awaited first, so a
+    // server that is down fails the poll without waiting on the queue, and the
+    // count cannot throw, so nothing is left failing with nobody listening.
+    final pending = _pendingCount();
+    final printers = await _printers.fetchAll();
+    return WearFleet(printers: printers, queuePending: await pending);
+  }
+
+  /// Null when unknown: a broken queue endpoint — or a record that does not
+  /// parse — must not take the whole fleet down.
+  Future<int?> _pendingCount() async {
     try {
       // Filtered server-side (see the relay handler): the watch shows a count,
       // and unfiltered this endpoint answers with the whole print history. The
       // client-side filter stays as the guard for a server that ignores it.
       final items = await _queue.fetch(status: 'pending');
-      pending = items
+      return items
           .where((q) => q.statusKind == QueueItemStatusKind.pending)
           .length;
-    } on Exception {
-      // A broken queue endpoint shouldn't take the whole fleet down.
-      pending = null;
+    } catch (_) {
+      return null;
     }
-    return WearFleet(printers: await printers, queuePending: pending);
   }
+
+  @override
+  Future<String?> getServerVersion() => _serverVersion.reportedVersion();
 
   @override
   Future<void> pause(int printerId) => _commands.pause(printerId);
@@ -405,6 +511,23 @@ class HybridWearTransport implements WearTransport {
   Future<T> _run<T>(
     WearRpcAction action,
     Future<T> Function(WearTransport t) op,
+  ) async => (await _attempt(action, op)).result;
+
+  /// [_run] plus **which side actually served it**, returned rather than left
+  /// for the caller to read off [lastMode].
+  ///
+  /// [lastMode] is shared instance state that every call writes, and the fleet
+  /// poll writes it on every tick for as long as a screen is up. Reading it
+  /// back to learn what *this* call did was correct only because no suspension
+  /// point sits between the write and the read — an invisible property, held by
+  /// nobody, that the next edit to this method would quietly spend. Returning
+  /// the answer costs a record and needs no such argument.
+  ///
+  /// [lastMode] stays what it always was: the fleet poll's cadence signal,
+  /// written here and read there.
+  Future<({T result, WearTransportMode servedBy})> _attempt<T>(
+    WearRpcAction action,
+    Future<T> Function(WearTransport t) op,
   ) async {
     final relay = _relay;
     if (relay == null) {
@@ -412,12 +535,12 @@ class HybridWearTransport implements WearTransport {
       // required argument — the constructors are what make this total.
       final result = await op(_rest!);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
     try {
       final result = await op(relay);
       lastMode = WearTransportMode.relay;
-      return result;
+      return (result: result, servedBy: WearTransportMode.relay);
     } on Exception catch (e) {
       final canFallback =
           e is WearRelayUnreachable ||
@@ -426,13 +549,49 @@ class HybridWearTransport implements WearTransport {
       if (!canFallback || rest == null) rethrow;
       final result = await op(rest);
       lastMode = WearTransportMode.rest;
-      return result;
+      return (result: result, servedBy: WearTransportMode.rest);
     }
   }
 
   @override
   Future<WearFleet> getFleet() =>
       _run(WearRpcAction.getFleet, (t) => t.getFleet());
+
+  /// The one call that does not take the relay's answer as final.
+  ///
+  /// The phone reports "no version" for two different things: a server that
+  /// really has no `/updates/version` route, and a server it could not reach
+  /// at all — `ServerVersionService` swallows the difference by design, so the
+  /// reply is an `ok`, and an `ok` is precisely what takes the relay's own
+  /// fallback out of play. A phone in a dead spot would therefore talk a watch
+  /// that has its own connection out of using it.
+  ///
+  /// So an unknown from the phone is worth a second opinion, where there is a
+  /// second path to ask down. Nothing else works this way, and nothing else
+  /// may: this is a read whose answer is a constant for the life of the
+  /// connection and is cached on both sides, so asking twice costs one request
+  /// and can only turn "I don't know" into an answer.
+  @override
+  Future<String?> getServerVersion() async {
+    final (:result, :servedBy) = await _attempt(
+      WearRpcAction.getServerVersion,
+      (t) => t.getServerVersion(),
+    );
+    final rest = _rest;
+    // Nothing to add: the phone answered, there is no second path, or this
+    // call was already the one down it.
+    if (result != null || rest == null || servedBy == WearTransportMode.rest) {
+      return result;
+    }
+    try {
+      return await rest.getServerVersion();
+    } on Object {
+      // Our own connection is no better than the phone's. Unknown stands, and
+      // [lastMode] is left alone — the fleet poll's cadence is not this
+      // screen's business.
+      return null;
+    }
+  }
 
   @override
   Future<void> pause(int printerId) =>

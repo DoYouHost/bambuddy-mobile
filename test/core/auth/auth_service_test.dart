@@ -43,6 +43,17 @@ class _CountingAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Every silent renewal is a keystore write when this counts one.
+class _WriteCountingStore extends InMemoryCredentialsStore {
+  int loginWrites = 0;
+
+  @override
+  Future<void> writeRememberedLogin(String username, String password) {
+    loginWrites++;
+    return super.writeRememberedLogin(username, password);
+  }
+}
+
 ResponseBody _json(Object body, int status) => ResponseBody.fromString(
   jsonEncode(body),
   status,
@@ -59,7 +70,7 @@ void main() {
 
   setUp(() {
     dio = Dio();
-    adapter = DioAdapter(dio: dio);
+    adapter = mockServer(dio);
     store = InMemoryCredentialsStore();
     service = AuthService(bareDio: dio, credentials: store);
   });
@@ -139,7 +150,7 @@ void main() {
       // not running", and it must not be mistaken for either auth mode.
       for (final status in [500, 502, 503]) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter.onGet(
           '$baseUrl/api/v1/auth/status',
@@ -216,7 +227,7 @@ void main() {
     test('/printers answers 401 or 403 → auth is on', () async {
       for (final status in [401, 403]) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(bareDio: localDio, credentials: store);
         localAdapter
           ..onGet(
@@ -293,6 +304,27 @@ void main() {
       expect(store.jwt, token);
       expect(await store.readRememberedLogin(), isNull);
     });
+
+    test(
+      'without remember, a pair saved by an earlier sign-in is dropped',
+      () async {
+        // Signing in again after a session expired keeps the old secrets on disk.
+        // Left there, silent re-login would switch back to the previous account,
+        // or send its password to whichever server this sign-in chose.
+        store
+          ..username = 'previous'
+          ..password = 'old-server';
+        onLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
+
+        await service.login(
+          baseUrl: baseUrl,
+          username: 'tester',
+          password: 'sekret',
+        );
+
+        expect(await store.readRememberedLogin(), isNull);
+      },
+    );
 
     test('remember=true stores username and password', () async {
       onLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
@@ -571,7 +603,7 @@ void main() {
       ];
       for (final body in bodies) {
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localStore = InMemoryCredentialsStore();
         final localService = AuthService(
           bareDio: localDio,
@@ -668,6 +700,20 @@ void main() {
 
       await service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_dobry');
       expect(store.apiKey, 'bb_dobry');
+    });
+
+    test('a saved password from an earlier sign-in does not stay', () async {
+      store
+        ..username = 'previous'
+        ..password = 'old-server';
+      adapter.onGet(
+        '$baseUrl/api/v1/printers/',
+        (s) => s.reply(200, readFixture('printers_list.json')),
+        headers: {'X-API-Key': 'bb_dobry'},
+      );
+
+      await service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_dobry');
+      expect(await store.readRememberedLogin(), isNull);
     });
 
     test('401 is the key being rejected, and nothing is stored', () async {
@@ -783,8 +829,32 @@ void main() {
         final token = await service.silentReLogin(baseUrl);
         expect(token, isNotNull);
         expect(store.jwt, token);
+        // A renewal is not a new sign-in: the pair has to survive it, or the
+        // next expiry has nothing to renew with.
+        expect(await store.readRememberedLogin(), isNotNull);
       },
     );
+
+    test('a renewal leaves the saved pair untouched on disk', () async {
+      final writes = _WriteCountingStore()
+        ..username = 'tester'
+        ..password = 'sekret';
+      final localDio = Dio();
+      mockServer(localDio).onPost(
+        '$baseUrl/api/v1/auth/login',
+        (s) => s.reply(200, readFixture('login_response_ok.json')),
+        data: {'username': 'tester', 'password': 'sekret'},
+      );
+
+      await AuthService(
+        bareDio: localDio,
+        credentials: writes,
+      ).silentReLogin(baseUrl);
+
+      expect(writes.jwt, isNotNull);
+      expect(writes.loginWrites, 0);
+      expect(await writes.readRememberedLogin(), isNotNull);
+    });
 
     test('null instead of throwing when the server refuses', () async {
       // Callers are interceptors and background timers; an exception there
@@ -794,7 +864,7 @@ void main() {
           ..username = 'tester'
           ..password = 'niewazne';
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(
           bareDio: localDio,
           credentials: localStore,
@@ -1012,7 +1082,7 @@ void main() {
         ..password = 'sekret';
       final rejections = <SignInReason>[];
       final localDio = Dio();
-      final localAdapter = DioAdapter(dio: localDio);
+      final localAdapter = mockServer(localDio);
       final localService = AuthService(
         bareDio: localDio,
         credentials: localStore,
@@ -1046,7 +1116,7 @@ void main() {
           ..password = 'stare-haslo';
         final rejections = <SignInReason>[];
         final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
+        final localAdapter = mockServer(localDio);
         final localService = AuthService(
           bareDio: localDio,
           credentials: localStore,
@@ -1131,6 +1201,24 @@ void main() {
       expect(completed.token, 'eyJ.po.2fa');
       expect(completed.user?.isAdmin, isTrue);
       expect(completed.user?.can(Permissions.usersRead), isTrue);
+    });
+
+    test('finishing 2FA drops a pair saved by an earlier sign-in', () async {
+      final r = recording(
+        (o) async => _json({'access_token': 'eyJ.po.2fa'}, 200),
+      );
+      r.store
+        ..username = 'previous'
+        ..password = 'old-server';
+
+      await r.service.verifyTwoFactor(
+        baseUrl: baseUrl,
+        challenge: challenge,
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
+
+      expect(await r.store.readRememberedLogin(), isNull);
     });
 
     test('the login response cookie travels back on the verify call', () async {

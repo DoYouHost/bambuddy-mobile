@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
+import '../../features/common/server_version_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
@@ -96,6 +97,8 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               style: WearText.fine,
             ),
           ],
+          const SizedBox(height: 14),
+          const _WearVersions(),
         ],
       ),
     );
@@ -131,4 +134,37 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     // replaces with setup now that there is no profile.
     await run(profiles.clear, onDone: () => Navigator.of(context).pop());
   }
+}
+
+/// Footer: this app's version over the connected server's — the two numbers a
+/// bug report starts with, on the one watch screen that is not a control.
+class _WearVersions extends ConsumerWidget {
+  const _WearVersions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      children: [
+        _line(l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…')),
+        _line(serverVersionText(l10n, ref.watch(wearServerVersionProvider))),
+      ],
+    );
+  }
+
+  /// Three lines, not two. The round-safe viewport is 141.8 dp on the smallest
+  /// face and the watch renders in the platform font, where both of these fit
+  /// on one line at the default text size — but a user who has turned system
+  /// text up wraps them, and `Serwer 1.2.6b1-daily.20260729` then needs three:
+  /// `Serwer`, `1.2.6b1-`, `daily.20260729`, the hyphen being the only break
+  /// the string offers. A third line costs 14 dp at the bottom of a scroll
+  /// view; ellipsizing costs the build number, which is the half a report is
+  /// filed with.
+  static Widget _line(String text) => Text(
+    text,
+    textAlign: TextAlign.center,
+    maxLines: 3,
+    overflow: TextOverflow.ellipsis,
+    style: WearText.fine,
+  );
 }

@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// One printable object on the current build plate. [id] is the printer's
 /// `identify_id` (shown on the machine display), used as the value to skip.
@@ -58,7 +58,6 @@ class PrintableObjects {
   final bool isPrinting;
   final List<double>? bboxAll;
 
-  /// Objects still being printed (not yet skipped).
   int get activeCount => objects.where((o) => !o.skipped).length;
 
   factory PrintableObjects.fromJson(Map<String, dynamic> json) {

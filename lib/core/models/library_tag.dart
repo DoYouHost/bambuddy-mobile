@@ -1,6 +1,5 @@
+import 'package:app_util/app_util.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-import 'json_utils.dart';
 
 part 'library_tag.g.dart';
 

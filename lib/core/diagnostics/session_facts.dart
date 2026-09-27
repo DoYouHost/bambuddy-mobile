@@ -1,68 +1,11 @@
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
 
+import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/services.dart' show appFlavor;
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
-import 'log_event.dart';
-
-/// Everything the recorder needs to describe a session, plus the exact secrets
-/// it must never let through. Gathered once when recording starts — package
-/// info and secure storage are both async, and neither changes mid-session.
-class SessionFacts {
-  const SessionFacts({
-    required this.app,
-    required this.flavor,
-    this.os,
-    this.device,
-    this.locale,
-    this.server,
-    this.serverUrl,
-    this.auth,
-    this.secrets = const {},
-  });
-
-  final String app;
-  final String flavor;
-  final String? os;
-
-  /// Left empty for now: it needs a `device_info_plus` dependency, worth taking
-  /// deliberately rather than as a side effect of building the logger.
-  final String? device;
-
-  final String? locale;
-
-  /// bambuddy version, as the server reports it at `/updates/version`. Empty
-  /// when the server could not be reached or answered something unparseable,
-  /// which is itself worth seeing in a report.
-  final String? server;
-
-  final ServerFingerprint? serverUrl;
-  final String? auth;
-
-  /// Exact value → redaction label, handed to the session's redactor.
-  final Map<String, String> secrets;
-
-  LogHeader toHeader({
-    required DateTime ts,
-    required String session,
-    LogStream stream = LogStream.ui,
-  }) => LogHeader(
-    ts: ts,
-    session: session,
-    app: app,
-    flavor: flavor,
-    stream: stream,
-    os: os,
-    device: device,
-    locale: locale,
-    server: server,
-    serverUrl: serverUrl,
-    auth: auth,
-  );
-}
 
 /// The exact values a session's redactor must never let through.
 ///
@@ -88,8 +31,13 @@ Future<Map<String, String>> sessionSecrets({
   if (apiKey != null) secrets[apiKey] = '[APIKEY]';
   if (jwt != null) secrets[jwt] = '[JWT]';
 
-  final host = profile == null ? null : Uri.tryParse(profile.baseUrl)?.host;
-  if (host != null && host.isNotEmpty) secrets[host] = '[HOST]';
+  // Not in demo mode: the demo host is a constant shipped in the APK, there is
+  // nothing to protect, and registering it would mask that word everywhere it
+  // legitimately appears — `LogRedactor` replaces a known value as a substring.
+  if (profile != null && !profile.isDemo) {
+    final host = Uri.tryParse(profile.baseUrl)?.host;
+    if (host != null && host.isNotEmpty) secrets[host] = '[HOST]';
+  }
 
   return secrets;
 }
@@ -98,31 +46,40 @@ Future<Map<String, String>> sessionSecrets({
 ///
 /// [readServerVersion] is a callback rather than a value because the version
 /// comes off the network. Which server build produced the behaviour below is
-/// the first question every report raises — the queue-enum diagnosis
-/// (`docs/plans/07-queue-cali-enum.md`) cost a day for want of this line. A
-/// failure to read it is swallowed; a recording must start regardless.
+/// the first question every report raises — the queue-enum diagnosis cost a
+/// day for want of this line. A failure to read it is swallowed; a recording
+/// must start regardless.
 Future<SessionFacts> loadSessionFacts({
   required ServerProfile? profile,
   required CredentialsStore credentials,
   Future<String?> Function()? readServerVersion,
 }) async {
-  final info = await PackageInfo.fromPlatform();
+  final app = await readAppVersion();
   final secrets = await sessionSecrets(
     profile: profile,
     credentials: credentials,
   );
 
   return SessionFacts(
-    app: '${info.version}+${info.buildNumber}',
-    flavor: appFlavor ?? 'mobile',
+    app: app,
     os: Platform.operatingSystemVersion,
     locale: PlatformDispatcher.instance.locale.toLanguageTag(),
     server: readServerVersion == null
         ? null
         : await _quietly(readServerVersion),
     serverUrl: ServerFingerprint.tryParse(profile?.baseUrl),
-    auth: profile?.authMode.name,
     secrets: secrets,
+    // bambuddy's own header fields. They stay flat top-level keys on the line,
+    // exactly where they have always been; `SessionFacts` simply no longer
+    // declares a slot for each app's private half of the header.
+    //
+    // `auth` is `AuthMode.name` verbatim, camel case included — whatever reads
+    // it back has to match that spelling exactly.
+    extra: {
+      'flavor': appFlavor ?? 'mobile',
+      if (profile != null) 'auth': profile.authMode.name,
+      ...await deviceEnvironment(),
+    },
   );
 }
 

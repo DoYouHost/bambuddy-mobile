@@ -3,35 +3,30 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/print_log_entry.dart';
-import '../../core/theme/dash_text.dart';
+import '../../core/models/print_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/print_log_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart' show printersForPickerProvider;
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/currency_symbol.dart';
 import '../common/dash_async.dart';
 import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
-import '../common/dash_sheet.dart';
-import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
-import '../common/state_views.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
 import 'print_log_providers.dart';
-import '../common/dash_progress.dart';
 
 /// The print log: one row per run, from a table that outlives the archives it
 /// points at.
@@ -449,7 +444,7 @@ class _PrintLogCard extends ConsumerWidget {
                                         ? t.accentGreen
                                         : t.textTertiary),
                               accentInk: entry.countsAsFailure
-                                  ? t.danger
+                                  ? t.dangerInk
                                   : (entry.status == 'completed'
                                         ? t.accentGreenInk
                                         : t.textTertiary),

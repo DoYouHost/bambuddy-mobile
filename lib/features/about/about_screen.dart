@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
-import '../../core/theme/dash_text.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/dash_snack.dart';
-import '../common/system_insets.dart';
+import '../../providers.dart';
+import '../common/dash_icon_tile.dart';
+import '../common/server_version_text.dart';
+import '../common/web_link.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
@@ -19,6 +19,9 @@ const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
 /// (pushed from Dashboard drawer).
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
+
+  /// Side of the app icon at the top.
+  static const _iconSize = 88.0;
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +44,19 @@ class AboutScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
                     'assets/icon/icon.png',
-                    width: 88,
-                    height: 88,
-                    errorBuilder: (_, _, _) =>
-                        Icon(Icons.print, size: 88, color: t.textPrimary),
+                    width: _iconSize,
+                    height: _iconSize,
+                    // Same 1024x1024 launcher source as the drawer header —
+                    // and a second cache entry, since the resized provider is
+                    // keyed apart from the plain one.
+                    cacheWidth:
+                        (_iconSize * MediaQuery.devicePixelRatioOf(context))
+                            .round(),
+                    errorBuilder: (_, _, _) => Icon(
+                      Icons.print,
+                      size: _iconSize,
+                      color: t.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -67,7 +79,7 @@ class AboutScreen extends StatelessWidget {
                 _AboutRow(
                   icon: Icons.gavel_outlined,
                   title: l10n.aboutViewLicense,
-                  onTap: () => _open(context, _licenseUrl, l10n),
+                  onTap: () => openWebLink(context, _licenseUrl),
                   id: 'about.license',
                 ),
               ],
@@ -81,7 +93,7 @@ class AboutScreen extends StatelessWidget {
                   icon: Icons.code,
                   title: l10n.aboutSourceLink,
                   subtitle: 'github.com/DoYouHost/bambuddy-mobile',
-                  onTap: () => _open(context, _sourceUrl, l10n),
+                  onTap: () => openWebLink(context, _sourceUrl),
                   id: 'about.source',
                 ),
               ],
@@ -104,57 +116,45 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _open(
-    BuildContext context,
-    String url,
-    AppLocalizations l10n,
-  ) async {
-    final ok = await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).snack(l10n.aboutOpenLinkError);
-    }
-  }
-
   Future<void> _showLicenses(BuildContext context) async {
-    final info = await PackageInfo.fromPlatform();
+    final version = await readAppVersion();
     if (!context.mounted) return;
     showLicensePage(
       context: context,
       applicationName: 'Bambuddy',
-      applicationVersion: '${info.version}+${info.buildNumber}',
+      applicationVersion: version,
       applicationLegalese: '© DoYouHost · AGPL-3.0',
     );
   }
 }
 
-/// Version read from package metadata (pubspec → buildName+buildNumber).
-class _VersionLabel extends StatefulWidget {
+/// This build over the connected server's, in the wording the drawer footer and
+/// the watch use — this is the screen someone opens *to read a version off*, and
+/// it was the only one of the three that never named the server at all.
+class _VersionLabel extends ConsumerWidget {
   const _VersionLabel();
 
   @override
-  State<_VersionLabel> createState() => _VersionLabelState();
-}
-
-class _VersionLabelState extends State<_VersionLabel> {
-  // Created once in initState — a plain call in build() would kick off a
-  // brand-new platform-channel future (and a "…" flash) on every rebuild.
-  late final Future<PackageInfo> _future = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return FutureBuilder<PackageInfo>(
-      future: _future,
-      builder: (context, snap) {
-        final v = snap.hasData
-            ? '${snap.data!.version}+${snap.data!.buildNumber}'
-            : '…';
-        return Text(l10n.aboutVersion(v), style: t.monoLabel);
-      },
+    return Column(
+      children: [
+        Text(
+          l10n.appVersionLabel(ref.watch(appVersionProvider).value ?? '…'),
+          style: t.monoLabel,
+        ),
+        // Nothing at all rather than "server version unknown" when no server
+        // has been added yet: on a fresh install that line reads as a failed
+        // connection to a server the user has not named. The drawer needs no
+        // such guard — it is the dashboard's, and the dashboard is behind a
+        // profile by construction.
+        if (ref.watch(serverProfileProvider) != null)
+          Text(
+            serverVersionText(l10n, ref.watch(serverVersionLabelProvider)),
+            style: t.monoLabel,
+          ),
+      ],
     );
   }
 }
@@ -174,11 +174,7 @@ class _AboutSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.cardBorder),
-      ),
+      decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -244,15 +240,7 @@ class _AboutRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(icon, size: 17, color: t.accentGreenInk),
-                ),
+                DashIconTile(icon: icon, size: 36, radius: 11, iconSize: 17),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

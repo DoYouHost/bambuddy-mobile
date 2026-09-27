@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
 import '../../core/api/ws_token.dart';
-import '../../core/auth/credentials_store.dart';
+import '../../core/auth/auth_headers.dart';
 import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
@@ -15,9 +15,9 @@ import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/multi_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
+import '../../l10n/app_locale.dart';
 import '../../providers.dart';
 import '../maintenance/maintenance_providers.dart';
-import '../notifications/print_monitor.dart' show systemAppLocalizations;
 import '../queue/queue_providers.dart';
 
 /// Builds WS URL from profile baseUrl: http→ws, https→wss, path `…/api/v1/ws`.
@@ -25,26 +25,6 @@ Uri wsUrlFor(String baseUrl) {
   final u = Uri.parse(baseUrl);
   final scheme = u.scheme == 'https' ? 'wss' : 'ws';
   return u.replace(scheme: scheme, path: '${u.path}${Endpoints.apiPrefix}/ws');
-}
-
-/// Auth headers for WS handshake — branches by [AuthMode] same as REST
-/// interceptor. Newer servers (GHSA-r2qv follow-up) instead require a `?token=`
-/// minted via [WsTokenService]; we still send headers so older header-only
-/// servers keep working. See [wsClientProvider].
-Future<Map<String, String>> wsAuthHeaders(
-  AuthMode mode,
-  CredentialsStore creds,
-) async {
-  switch (mode) {
-    case AuthMode.none:
-      return const {};
-    case AuthMode.jwt:
-      final jwt = await creds.readJwt();
-      return jwt == null ? const {} : {'Authorization': 'Bearer $jwt'};
-    case AuthMode.apiKey:
-      final key = await creds.readApiKey();
-      return key == null ? const {} : {'X-API-Key': key};
-  }
 }
 
 /// Mints the WS handshake token for the active profile (see [WsTokenService]).
@@ -75,7 +55,7 @@ final wsClientProvider = Provider<WsClient>((ref) {
   final wsToken = ref.watch(wsTokenServiceProvider);
   final client = WsClient(
     url: wsUrlFor(profile.baseUrl),
-    authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+    authHeaders: () => authHeaders(profile.authMode, creds),
     // `?token=` for the handshake (new server); null → header-only fallback.
     queryToken: wsToken.token,
     invalidateQueryToken: wsToken.invalidate,
@@ -117,7 +97,14 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// Anything that arrived from the server is contact. The first one after a
   /// gap starts the clock; the rest leave it where it is, because what matters
   /// is how long the line has been up, not when it last carried something.
-  void _sawServer() => _inTouchSince ??= clock.now();
+  ///
+  /// The first one is also what re-asks every capability gate an unreachable
+  /// server left unanswered ([serverContactEpochProvider]).
+  void _sawServer() {
+    if (_inTouchSince != null) return;
+    _inTouchSince = clock.now();
+    ref.read(serverContactEpochProvider.notifier).bump();
+  }
 
   /// The line is down: backgrounded (socket closed, polling stopped) or a poll
   /// that failed. The next frame after this is news, not a flicker.
@@ -125,6 +112,9 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
   @override
   Map<int, PrinterStatus> build() {
+    // The notifier outlives a rebuild, and a rebuild is a new server or a new
+    // socket: the old line's start time is not this one's.
+    _inTouchSince = null;
     final profile = ref.watch(serverProfileProvider);
     if (profile == null) return const {};
 
@@ -145,6 +135,20 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       }
     });
     ref.onDispose(sub.cancel);
+
+    // A spool changed somewhere else — another client, a SpoolBuddy scale,
+    // the printer loading a tray. The inventory screen re-reads when it is
+    // the tab on screen; nothing is fetched for a tab nobody is looking at.
+    final inventorySub = client.inventoryChanges.listen(
+      (_) => ref.read(inventoryChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(inventorySub.cancel);
+
+    // The same for the archive, which the server does announce.
+    final archiveSub = client.archiveUpdates.listen(
+      (_) => ref.read(archiveChangedProvider.notifier).bump(),
+    );
+    ref.onDispose(archiveSub.cancel);
 
     // Primary trigger: explicit print_start/print_complete frames.
     final printSub = client.printEvents.listen(
@@ -188,19 +192,20 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     unawaited(MultiWidgetPublisher.publish(state, l10n).catchError((_) {}));
   }
 
-  /// Fetch cover of current print to file (auth via camera token). Raw Dio
-  /// + token from [cameraTokenServiceProvider]; cache by `cover_url` in [WidgetCoverCache].
+  /// Fetch cover of current print to file (auth via the media credential). Raw
+  /// Dio + [mediaAuthServiceProvider]; cache by `cover_url` in
+  /// [WidgetCoverCache].
   Future<String?> _fetchCover(PrinterStatus picked) {
     final profile = ref.read(serverProfileProvider);
     final cover = picked.coverUrl;
     if (profile == null || cover == null) return Future.value(null);
-    final tokenSvc = ref.read(cameraTokenServiceProvider);
+    final media = ref.read(mediaAuthServiceProvider);
     return WidgetCoverCache.fetch(
       baseUrl: profile.baseUrl,
       coverPath: cover,
       dio: ref.read(bareDioProvider),
-      token: ({bool forceRefresh = false}) =>
-          tokenSvc.token(forceRefresh: forceRefresh),
+      auth: ({bool forceRefresh = false}) =>
+          media.auth(forceRefresh: forceRefresh),
     );
   }
 

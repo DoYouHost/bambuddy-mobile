@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
-import '../diagnostics/diagnostic_recorder.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../diagnostics/notif_probe.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
@@ -12,6 +12,7 @@ import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import '../diagnostics/diagnostics_wiring.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
 /// The notification payload carries a comma-separated list of item IDs to reset.
@@ -78,17 +79,32 @@ AuthService backgroundAuthService(
 /// background isolate (foreground service) and notification callback isolate
 /// where providers are unavailable. Mirrors `apiClientProvider` logic.
 /// Returns `null` if no server profile is configured.
-Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
+///
+/// A caller that also opens a socket or a token refresher passes its own
+/// [credentials] and [auth]: silent re-login is single-flight per
+/// [AuthService], so a second instance for the REST lane is a second login
+/// racing the first against the server's failed-attempt budget.
+Future<ApiClient?> buildBackgroundApiClient(
+  SharedPreferences prefs, {
+  CredentialsStore? credentials,
+  AuthService? auth,
+}) async {
+  // Both or neither: an [auth] given without its store would re-login through
+  // one store while the client read tokens from another.
+  assert(
+    (credentials == null) == (auth == null),
+    'pass credentials and auth together',
+  );
   final settings = SettingsRepository(prefs);
   final profile = settings.loadProfile();
   if (profile == null) return null;
-  final creds = SecureCredentialsStore();
-  final auth = backgroundAuthService(prefs, creds);
+  final creds = credentials ?? SecureCredentialsStore();
+  final reLogin = auth ?? backgroundAuthService(prefs, creds);
   return ApiClient(
     profile: profile,
     credentials: creds,
     refreshAuth: profile.authMode == AuthMode.jwt
-        ? () => auth.silentReLogin(profile.baseUrl)
+        ? () => reLogin.silentReLogin(profile.baseUrl)
         : null,
   );
 }
@@ -135,7 +151,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    recording = await DiagnosticRecorder.startAction();
+    recording = await startActionRecording();
     NotifProbe.action(id: actionId, items: 1);
 
     final api = await buildBackgroundApiClient(prefs);
@@ -151,7 +167,7 @@ Future<void> handleHmsAction(NotificationResponse response) async {
     );
     final id = response.id;
     if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id);
+      await FlutterLocalNotificationsPlugin().cancel(id: id);
     }
   } on Object catch (error) {
     // The callback isolate cannot crash — but from the user's side this is "I
@@ -176,7 +192,7 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
   BackgroundRecording? recording;
   try {
     final prefs = await SharedPreferences.getInstance();
-    recording = await DiagnosticRecorder.startAction();
+    recording = await startActionRecording();
     NotifProbe.action(id: maintenancePerformActionId, items: itemIds.length);
 
     final api = await buildBackgroundApiClient(prefs);
@@ -211,7 +227,7 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
 
     final id = response.id;
     if (id != null) {
-      await FlutterLocalNotificationsPlugin().cancel(id);
+      await FlutterLocalNotificationsPlugin().cancel(id: id);
     }
   } on Object catch (error) {
     // Prevent callback isolate crash — but say so, because from the user's side

@@ -25,7 +25,7 @@ Widget _screen(Archive archive, {required bool supported}) => ProviderScope(
     no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
     sharedPreferencesProvider.overrideWithValue(_prefs),
     noServerProfileOverride,
-    archiveMediaSupportedProvider.overrideWith((ref) async => supported),
+    archiveMediaSupportedProvider.overrideWithValue(AsyncData(supported)),
   ],
   child: plApp(const ArchiveScreen()),
 );

@@ -1,34 +1,32 @@
-import 'dart:ui' show PlatformDispatcher;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/notifications/hms_catalog.dart';
+import '../l10n/app_locale.dart';
 import '../providers.dart';
 import 'wear_app.dart';
 
-/// Entry point for the Wear OS build. Deliberately lean: no foreground service,
-/// no WebSocket, no notifications, no home widget — the watch app is a thin,
-/// on-demand REST client that reuses `core/` + `data/`. Build with:
-///   flutter run --target lib/wear/main_wear.dart
+/// Entry point for the Wear OS build: no foreground service, no WebSocket, no
+/// notifications, no home widget — a thin on-demand REST client over `core/` and
+/// `data/`. Run with `--target lib/wear/main_wear.dart`.
 ///
-/// Orientation is locked to natural via android:screenOrientation="nosensor"
-/// in the wear flavor manifest. We must NOT call
-/// SystemChrome.setPreferredOrientations here: it runs
-/// setRequestedOrientation(PORTRAIT) at startup, and on the square watch
-/// display "portrait" still lets the system rotate 90° — it overrode the
-/// manifest lock and reintroduced the rotation bug.
+/// **Never call `SystemChrome.setPreferredOrientations` here.** Orientation is
+/// locked by `android:screenOrientation="nosensor"` in the wear manifest, and
+/// the Dart call issues `setRequestedOrientation(PORTRAIT)`, which on a square
+/// display still allows a 90° rotation — it overrode the manifest lock.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Started before the preferences are awaited, not after: both block the first
+  // frame, one is a platform round trip and the other reads ~100 KB out of the
+  // bundle and decodes it, and neither needs the other's answer. Overlapping
+  // them costs a line and buys back whichever is shorter.
+  //
+  // Still awaited, rather than left running: an unnamed fault is hidden, so
+  // without the catalogue the watch's error panel never appears at all.
+  final catalog = HmsCatalog.instance.load(systemLocale());
   final prefs = await SharedPreferences.getInstance();
-  // Without the catalog a fault has no description, and an unnamed fault is
-  // hidden — so on the watch this line is the difference between the error
-  // panel existing and never appearing at all. The raw platform locale is
-  // enough: `load` narrows it to the two tables that exist, which is why this
-  // does not reach for the phone's `systemLocale` and drag the print monitor
-  // into the watch build with it.
-  await HmsCatalog.instance.load(PlatformDispatcher.instance.locale);
+  await catalog;
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],

@@ -32,7 +32,8 @@ class AppLocalizationsPl extends AppLocalizations {
       'Konto wymaga teraz drugiego składnika, a aplikacja nie poda go w tle — więc przestała logować się sama. Zaloguj się ponownie i wpisz kod.';
 
   @override
-  String get later => 'Później';
+  String get signInRequiredMissingBody =>
+      'Klucz, którym zaszyfrowano zapisane logowanie, unieważniła aktualizacja zabezpieczeń albo przywrócenie kopii zapasowej. Nic poza tym nie zniknęło.';
 
   @override
   String get serverUnreachableStale =>
@@ -344,12 +345,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlLight => 'Światło komory';
 
   @override
-  String get ctrlLightOn => 'Wł.';
-
-  @override
-  String get ctrlLightOff => 'Wył.';
-
-  @override
   String get ctrlAirduct => 'Nawiew';
 
   @override
@@ -495,7 +490,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveZDown => 'W dół';
 
   @override
-  String get ctrlMoveExtruder => 'Ekstruder';
+  String get ctrlMoveZToolhead => 'Z (głowica)';
+
+  @override
+  String get ctrlMoveZUnknownDirection =>
+      'Kierunek osi Z tej drukarki zależy od wersji serwera, której nie udało się potwierdzić, dlatego ruch w osi Z jest tu wyłączony. Zaktualizuj serwer albo otwórz panel ponownie, gdy serwer będzie osiągalny.';
+
+  @override
+  String get ctrlMoveZNoModel =>
+      'Ta drukarka nie ma ustawionego modelu w Bambuddy, więc aplikacja nie wie, czy oś Z przesuwa stół, czy głowicę, i ruch w osi Z jest tu wyłączony. Ustaw model drukarki w Bambuddy, aby go używać.';
 
   @override
   String get ctrlMoveExtrude => 'Wytłocz';
@@ -765,11 +768,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveEmpty => 'Brak zarchiwizowanych wydruków';
-
-  @override
-  String archiveSearchFailed(String query) {
-    return 'Nie udało się wyszukać „$query”. Spróbuj innej frazy.';
-  }
 
   @override
   String get archiveNoMatches => 'Żaden wydruk nie pasuje do filtrów';
@@ -1201,7 +1199,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveNo3mfBodyNoStorage =>
-      'Drukarka nie widzi karty ani pendrive\'a w gniazdzie, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
+      'Drukarka nie widzi karty ani pendrive\'a w gnieździe, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
 
   @override
   String get archiveNo3mfDocs => 'Zobacz krok 4 instalacji';
@@ -1211,6 +1209,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archiveNo3mfDismiss => 'Zamknij tę informację';
+
+  @override
+  String get archiveNotSliceable =>
+      'Ten wydruk nie ma pliku źródłowego ani modelu, więc nie da się go pociąć ponownie.';
 
   @override
   String get archiveDelete => 'Usuń';
@@ -1343,9 +1345,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get pickPrinterTitle => 'Wybierz drukarkę';
-
-  @override
-  String get noPrintersAvailable => 'Brak dostępnych drukarek';
 
   @override
   String get detailsShow => 'Szczegóły';
@@ -1543,12 +1542,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get extruderRightShort => 'P';
 
   @override
-  String get amsHumidityTooltip => 'Wilgotność AMS';
-
-  @override
-  String get amsTempTooltip => 'Temperatura AMS';
-
-  @override
   String amsHistoryTitle(String ams) {
     return 'Historia $ams';
   }
@@ -1614,9 +1607,6 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get heaterHistoryRecordingInfo =>
       'Zapisywane co minutę, gdy drukarka jest połączona';
-
-  @override
-  String get wifiTooltip => 'Sygnał Wi-Fi';
 
   @override
   String get doorOpen => 'Drzwiczki otwarte';
@@ -1693,12 +1683,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String widgetMultiOfflineCount(int count) {
     return '$count offline';
   }
-
-  @override
-  String get widgetMultiName => 'Bambuddy · Drukarki';
-
-  @override
-  String get widgetMultiDescription => 'Wszystkie drukarki na raz';
 
   @override
   String remaining(String time) {
@@ -1943,8 +1927,26 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String notifMorePrints(int count) {
-    return '+$count';
+  String get notifEtaSoon => 'zaraz';
+
+  @override
+  String get demoSettingsSection => 'Demo';
+
+  @override
+  String get demoPrintingCountTitle => 'Drukarki w trakcie druku';
+
+  @override
+  String get demoPrintingCountDesc =>
+      'Ile drukarek w demo drukuje jednocześnie — do zobaczenia, co kilka naraz robi z pulpitem i ze stałym powiadomieniem.';
+
+  @override
+  String notifOngoingMultiBody(String printer, int percent, String eta) {
+    return '$printer ($percent% · ETA $eta)';
+  }
+
+  @override
+  String notifOngoingMultiBodyNoEta(String printer, int percent) {
+    return '$printer ($percent%)';
   }
 
   @override
@@ -2157,9 +2159,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notifEventsMenu => 'Zdarzenia powiadomień';
 
   @override
-  String get hmsErrorsHeader => 'Aktywne błędy';
-
-  @override
   String get hmsViewInWiki => 'Otwórz w wiki Bambu';
 
   @override
@@ -2182,13 +2181,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get hmsDismissed => 'Błędy wyczyszczone na drukarce';
 
   @override
-  String get hmsDismissFailed => 'Nie udało się wyczyścić błędów';
-
-  @override
   String get hmsActionSent => 'Wysłano do drukarki';
-
-  @override
-  String get hmsActionFailed => 'Drukarka odrzuciła akcję';
 
   @override
   String get hmsActionNotAcknowledged =>
@@ -2347,12 +2340,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySearchHint => 'Szukaj: materiał, marka, kolor…';
 
   @override
-  String get inventoryShowArchived => 'Pokaż zarchiwizowane';
-
-  @override
-  String get inventoryArchived => 'Zarchiwizowana';
-
-  @override
   String get inventoryLowStock => 'Mało';
 
   @override
@@ -2443,9 +2430,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryTag => 'Tag';
 
   @override
-  String get inventoryId => 'ID filamentu';
-
-  @override
   String get inventoryUsageHistory => 'Historia zużycia';
 
   @override
@@ -2488,9 +2472,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventorySave => 'Zapisz';
-
-  @override
-  String get inventoryFieldQuantity => 'Ilość';
 
   @override
   String get inventoryQuantityHint => 'Dodaj naraz kilka identycznych szpul';
@@ -2569,9 +2550,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldLabelWeight => 'Waga szpuli (g)';
 
   @override
-  String get inventoryFieldWeightUsed => 'Zużyto (g)';
-
-  @override
   String get inventoryFieldCostPerKg => 'Cena za kg';
 
   @override
@@ -2579,12 +2557,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryFieldLocation => 'Miejsce przechowywania';
-
-  @override
-  String get inventoryFieldNozzleMin => 'Dysza min (°C)';
-
-  @override
-  String get inventoryFieldNozzleMax => 'Dysza maks (°C)';
 
   @override
   String get inventoryFieldNote => 'Notatka';
@@ -2602,15 +2574,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryFieldNegative => 'Podaj wartość 0 lub większą';
-
-  @override
-  String get inventorySectionBasics => 'Podstawy';
-
-  @override
-  String get inventorySectionWeight => 'Waga i koszt';
-
-  @override
-  String get inventorySectionDetails => 'Szczegóły';
 
   @override
   String get inventorySectionFilament => 'Filament';
@@ -2810,19 +2773,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryScanHint => 'Skieruj aparat na kod QR szpuli';
-
-  @override
-  String get inventoryScanPermissionTitle => 'Potrzebny dostęp do aparatu';
-
-  @override
-  String get inventoryScanPermissionBody =>
-      'Zezwól na dostęp do aparatu, aby skanować kody QR szpul.';
-
-  @override
-  String get inventoryScanOpenSettings => 'Otwórz ustawienia';
-
-  @override
-  String get inventoryScanInvalid => 'Nierozpoznany kod QR';
 
   @override
   String inventoryScanNotFound(int id) {
@@ -3148,11 +3098,6 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String maintenanceWarningBadge(int count) {
-    return '$count wkrótce';
-  }
-
-  @override
   String maintenanceDueIn(int hours) {
     return 'Za $hours h';
   }
@@ -3182,9 +3127,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get maintenanceDone => 'Konserwacja oznaczona jako wykonana';
 
   @override
-  String get maintenanceFailed => 'Nie udało się zaktualizować konserwacji';
-
-  @override
   String get maintenanceSaved => 'Zapisano';
 
   @override
@@ -3196,12 +3138,6 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get maintenanceOverridesSubtitle =>
       'Wycisz zadania lub dostosuj interwały per drukarka';
-
-  @override
-  String get maintenanceTabStatus => 'Status';
-
-  @override
-  String get maintenanceTabSettings => 'Ustawienia';
 
   @override
   String get maintenanceMute => 'Wycisz';
@@ -3334,9 +3270,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get maintenanceNotifAction => 'Oznacz wykonane';
 
   @override
-  String get navMenu => 'Menu';
-
-  @override
   String get menuStatistics => 'Statystyki';
 
   @override
@@ -3424,13 +3357,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statsTimeAccuracyHint => '100% = idealny szacunek';
 
   @override
-  String get statsByMaterial => 'Wydruki wg materiału';
-
-  @override
   String get statsByPrinter => 'Wydruki wg drukarki';
-
-  @override
-  String get statsTimeAccuracyByPrinter => 'Dokładność czasu wg drukarki';
 
   @override
   String statsPrintsCount(int count) {
@@ -3466,14 +3393,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get statsFailureAnalysis => 'Analiza niepowodzeń';
-
-  @override
-  String get statsFailureRate => 'Odsetek niepowodzeń';
-
-  @override
-  String statsFailurePeriod(int days) {
-    return 'Ostatnie $days dni';
-  }
 
   @override
   String statsFailedOfTotal(int failed, int total) {
@@ -3600,9 +3519,17 @@ class AppLocalizationsPl extends AppLocalizations {
       'Natywny klient Android dla bambuddy — self-hostowanego menedżera drukarek Bambu Lab.';
 
   @override
-  String aboutVersion(String version) {
-    return 'Wersja $version';
+  String appVersionLabel(String version) {
+    return 'Aplikacja $version';
   }
+
+  @override
+  String serverVersionLabel(String version) {
+    return 'Serwer $version';
+  }
+
+  @override
+  String get serverVersionUnknown => 'Nieznana wersja serwera';
 
   @override
   String get aboutLicenseHeader => 'Licencja';
@@ -3628,9 +3555,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get aboutThirdPartySubtitle => 'Licencje dołączonych bibliotek';
-
-  @override
-  String get aboutOpenLinkError => 'Nie udało się otworzyć linku';
 
   @override
   String get fileManagerMenu => 'Menedżer plików';
@@ -3766,6 +3690,115 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get fmAddedToQueue => 'Dodano do kolejki';
+
+  @override
+  String fmQueueTargetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gdzie wydrukować $count pliku?',
+      many: 'Gdzie wydrukować $count plików?',
+      few: 'Gdzie wydrukować $count pliki?',
+      one: 'Gdzie wydrukować ten plik?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fmQueueTargetAuto => 'Model zapisany w pliku';
+
+  @override
+  String get fmQueueTargetAutoHint =>
+      'Każdy plik czeka na drukarkę tego modelu, pod który go pocięto';
+
+  @override
+  String fmAddedToQueuePartial(int added, int total, String reason) {
+    return 'Dodano do kolejki $added z $total plików. $reason';
+  }
+
+  @override
+  String get fmQueueErrWrongModel => 'Pocięto pod inny model drukarki.';
+
+  @override
+  String get fmQueueErrNotSliced =>
+      'Nie pocięto — do kolejki trafiają tylko pliki G-code.';
+
+  @override
+  String get fmFileDetails => 'Zdjęcia, link i notatki';
+
+  @override
+  String get fmPhotosEmpty => 'Brak zdjęć wydruku';
+
+  @override
+  String get fmPhotoAdd => 'Dodaj zdjęcie';
+
+  @override
+  String get fmPhotoFromCamera => 'Zrób zdjęcie';
+
+  @override
+  String get fmPhotoFromGallery => 'Wybierz z galerii';
+
+  @override
+  String get fmPhotoFromFiles => 'Wybierz z plików';
+
+  @override
+  String get fmPhotoAdded => 'Dodano zdjęcie';
+
+  @override
+  String get fmPhotoDelete => 'Usuń zdjęcie';
+
+  @override
+  String get fmPhotoDeleteConfirm => 'Usunąć to zdjęcie z pliku?';
+
+  @override
+  String get fmPhotoDeleted => 'Usunięto zdjęcie';
+
+  @override
+  String get fmPhotoErrType => 'Można dodać tylko zdjęcia JPG, PNG lub WebP.';
+
+  @override
+  String get fmPhotoErrTooLarge => 'Zdjęcie jest większe niż 10 MB.';
+
+  @override
+  String get fmPhotoPickFailed =>
+      'Nie udało się otworzyć aparatu ani okna wyboru pliku.';
+
+  @override
+  String get fmLink => 'Link';
+
+  @override
+  String get fmLinkNone => 'Brak linku';
+
+  @override
+  String get fmLinkEdit => 'Edytuj link';
+
+  @override
+  String get fmLinkField => 'Adres';
+
+  @override
+  String get fmLinkSaved => 'Zapisano link';
+
+  @override
+  String get fmLinkErrScheme =>
+      'Link musi zaczynać się od http:// lub https://.';
+
+  @override
+  String get linkOpenFailed => 'Nie udało się otworzyć linku.';
+
+  @override
+  String get fmSource => 'Zaimportowano z';
+
+  @override
+  String get fmNotes => 'Notatki';
+
+  @override
+  String get fmNotesNone => 'Brak notatek';
+
+  @override
+  String get fmNotesEdit => 'Edytuj notatki';
+
+  @override
+  String get fmNotesSaved => 'Zapisano notatki';
 
   @override
   String get fmGroupAsVariants => 'Zgrupuj jako warianty';
@@ -4297,9 +4330,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectDeleted => 'Projekt usunięty';
 
   @override
-  String get projectDeleteFailed => 'Nie udało się usunąć projektu';
-
-  @override
   String get projectSaved => 'Projekt zapisany';
 
   @override
@@ -4388,16 +4418,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectPriorityUrgent => 'Pilny';
 
   @override
-  String get projectTabOverview => 'Przegląd';
-
-  @override
-  String get projectTabArchives => 'Archiwa';
-
-  @override
   String get projectTabBom => 'BOM';
-
-  @override
-  String get projectTabQueue => 'Kolejka';
 
   @override
   String get projectTabTimeline => 'Oś czasu';
@@ -4407,9 +4428,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get projectTabAttachments => 'Załączniki';
-
-  @override
-  String get projectStatsTitle => 'Statystyki';
 
   @override
   String get projectStatProgress => 'Postęp';
@@ -4438,9 +4456,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectStatQueued => 'W kolejce';
 
   @override
-  String get projectStatInProgress => 'W trakcie';
-
-  @override
   String get projectStatPrintTime => 'Czas druku';
 
   @override
@@ -4453,19 +4468,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectStatEnergy => 'Energia';
 
   @override
-  String get projectStatEnergyCost => 'Koszt energii';
-
-  @override
-  String get projectStatRemaining => 'Pozostało';
-
-  @override
   String get projectStatBom => 'BOM';
 
   @override
   String get projectChildren => 'Podprojekty';
-
-  @override
-  String get projectNoDescription => 'Brak opisu';
 
   @override
   String projectDueOn(String date) {
@@ -4474,15 +4480,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get projectAddArchives => 'Dodaj archiwa';
-
-  @override
-  String get projectRemoveArchive => 'Usuń z projektu';
-
-  @override
-  String get projectArchivesEmpty => 'Brak powiązanych archiwów';
-
-  @override
-  String get projectArchiveRemoved => 'Usunięto z projektu';
 
   @override
   String get archiveAddToProject => 'Dodaj do projektu';
@@ -4512,9 +4509,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bomQtyNeeded => 'Ilość';
 
   @override
-  String get bomQtyAcquired => 'Posiadane';
-
-  @override
   String get bomUnitPrice => 'Cena jedn.';
 
   @override
@@ -4524,16 +4518,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bomRemarks => 'Uwagi';
 
   @override
-  String get bomComplete => 'Skompletowane';
-
-  @override
   String get bomDelete => 'Usuń pozycję';
-
-  @override
-  String get bomDeleted => 'Pozycja usunięta';
-
-  @override
-  String get projectQueueEmpty => 'Brak elementów w kolejce';
 
   @override
   String get projectTimelineEmpty => 'Brak zdarzeń';
@@ -4592,21 +4577,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectFromTemplate => 'Utwórz z szablonu';
 
   @override
-  String get projectTemplateNone => 'Brak szablonów';
-
-  @override
-  String get projectTemplatePickTitle => 'Wybierz szablon';
-
-  @override
-  String get projectTemplateNamePrompt => 'Nazwa nowego projektu';
-
-  @override
   String projectExported(String path) {
     return 'Wyeksportowano do $path';
   }
-
-  @override
-  String get projectExportFailed => 'Eksport nie powiódł się';
 
   @override
   String get projectTemplateCreated => 'Szablon utworzony';
@@ -4928,9 +4901,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Zapisz pierwszy z formularza cięcia — drukarka, proces, filamenty i stół w komplecie, który zastosujesz jednym dotknięciem.';
 
   @override
-  String get pipelineProfiles => 'Profile';
-
-  @override
   String pipelineFilamentsCount(int count) {
     return 'Filamenty ($count)';
   }
@@ -5014,16 +4984,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pipelineDeleted => 'Usunięto pipeline';
 
   @override
-  String get pipelineDescriptionNoClear =>
-      'Raz zapisanego opisu nie da się wyczyścić — ten serwer potrafi tylko wpisać nowy.';
-
-  @override
   String get pipelineRun => 'Uruchom';
-
-  @override
-  String pipelineRunTitle(String name) {
-    return 'Uruchom „$name”';
-  }
 
   @override
   String get pipelineRunCopies => 'Kopie';
@@ -5041,9 +5002,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String pipelineRunMaxCopies(int max) {
     return 'Ten serwer pozwala najwyżej na $max.';
   }
-
-  @override
-  String get pipelineCheckingEligibility => 'Sprawdzam drukarki…';
 
   @override
   String get pipelineEligibilityOk => 'Można uruchamiać.';
@@ -5126,10 +5084,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pipelineRunsFilter => 'Filtruj przebiegi';
 
   @override
-  String get pipelineCopiesLess => 'O jedną kopię mniej';
+  String get copiesLess => 'O jedną kopię mniej';
 
   @override
-  String get pipelineCopiesMore => 'O jedną kopię więcej';
+  String get copiesMore => 'O jedną kopię więcej';
 
   @override
   String get pipelineEligible => 'Gotowa';
@@ -5296,10 +5254,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueFilamentMapping => 'Mapowanie filamentów';
-
-  @override
-  String get mappingNoPrinter =>
-      'Najpierw przypisz drukarkę do tej pozycji, aby mapować sloty AMS.';
 
   @override
   String get mappingNoSlots => 'Brak informacji o filamentach dla tego pliku.';
@@ -5507,6 +5461,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearPrinterUnavailable => 'Drukarka niedostępna';
 
   @override
+  String get wearWaitingForState => 'Oczekiwanie na aktualny stan';
+
+  @override
   String get wearNoActions => 'Brak dostępnych akcji';
 
   @override
@@ -5520,6 +5477,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wearStarted => 'Uruchomiono';
+
+  @override
+  String get wearNothingQueuedHere => 'W kolejce nie ma nic dla tej drukarki';
 
   @override
   String get wearPhoneUnreachable => 'Telefon nieosiągalny';
@@ -5878,18 +5838,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bugReportTitle => 'Zgłoś błąd lub pomysł';
 
   @override
-  String get bugReportIntroHeader => 'Jak to działa';
-
-  @override
-  String get bugReportStepRecord => 'Włącz nagrywanie';
-
-  @override
-  String get bugReportStepReproduce => 'Odtwórz problem';
-
-  @override
-  String get bugReportStepFinish => 'Wróć tutaj i zakończ';
-
-  @override
   String get bugReportLogScreens => 'Otwierane ekrany i naciskane przyciski';
 
   @override
@@ -5922,307 +5870,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Numery seryjne drukarek ani nazwy Twoich plików, modeli i szpul';
 
   @override
-  String get bugReportReviewFirst => 'Wszystko czytasz, zanim opuści telefon.';
-
-  @override
-  String get bugReportPrivacyHeader => 'Co trafia do logu';
-
-  @override
-  String get bugReportStart => 'Rozpocznij nagrywanie';
-
-  @override
-  String get bugReportRecordingHeader => 'Nagrywanie trwa';
-
-  @override
-  String get bugReportRecordingBody =>
-      'Wróć do aplikacji i odtwórz problem. Pasek nagrywania zostaje z Tobą — przesuń go albo zwiń, jeśli zasłania. Oznacz nim moment awarii i zakończ nagrywanie.';
-
-  @override
-  String get bugReportMark => 'Oznacz moment';
-
-  @override
-  String get bugReportMarked => 'Moment oznaczony';
-
-  @override
-  String get bugReportStop => 'Zakończ nagrywanie';
-
-  @override
-  String get bugReportStopShort => 'Zakończ';
-
-  @override
-  String get bugReportBannerLabel => 'Nagrywanie';
-
-  @override
-  String get bugReportBarMove => 'Przesuń pasek nagrywania';
-
-  @override
-  String get bugReportBarCollapse => 'Zwiń pasek nagrywania';
-
-  @override
-  String get bugReportBarExpand => 'Rozwiń pasek nagrywania';
-
-  @override
-  String get bugReportReviewHeader => 'Przejrzyj przed wysłaniem';
-
-  @override
-  String get bugReportReviewBody =>
-      'To wszystko, co zostało nagrane. Przejrzyj to — poniżej wybierasz, czy log zostaje w telefonie, czy idzie jako publiczne zgłoszenie.';
-
-  @override
-  String bugReportSummary(int records, int errors, int warnings) {
-    return '$records rekordów · $errors błędów · $warnings ostrzeżeń';
-  }
-
-  @override
-  String bugReportMarkers(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count oznaczonych momentów',
-      few: '$count oznaczone momenty',
-      one: '1 oznaczony moment',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get bugReportTruncated =>
-      'Sesja była długa — najstarsze rekordy zostały odrzucone.';
-
-  @override
-  String get bugReportEmpty => 'Nic nie zostało nagrane.';
-
-  @override
-  String get bugReportShowRaw => 'Pokaż surowy log';
-
-  @override
-  String get bugReportHideRaw => 'Ukryj surowy log';
-
-  @override
-  String bugReportRawClipped(int kb) {
-    return 'Pierwsze $kb kB nie są tu pokazane. Zapisany plik zawiera całą sesję.';
-  }
-
-  @override
-  String get bugReportSave => 'Zapisz do pliku';
-
-  @override
-  String get bugReportSaveShort => 'Zapisz';
-
-  @override
-  String get bugReportSaved => 'Log zapisany do pliku';
-
-  @override
-  String get bugReportSaveFailed => 'Nie udało się zapisać loga.';
-
-  @override
-  String get bugReportDiscard => 'Odrzuć';
-
-  @override
-  String get bugReportDiscardQuestion => 'Odrzucić to nagranie?';
-
-  @override
-  String get bugReportDiscardBody => 'Log zostanie usunięty z telefonu.';
-
-  @override
-  String get bugReportDiscardBodyQueued =>
-      'Log zostanie usunięty z telefonu, a zakolejkowana wysyłka anulowana.';
-
-  @override
-  String bugReportLimit(int minutes) {
-    return 'Nagrywanie zatrzyma się samo po $minutes min.';
-  }
-
-  @override
-  String bugReportLimitReached(int minutes) {
-    return 'Nagrywanie zakończone — minął limit $minutes min.';
-  }
-
-  @override
-  String bugReportSizeLimitReached(int megabytes) {
-    return 'Nagrywanie zakończone — log osiągnął limit $megabytes MB.';
-  }
-
-  @override
-  String get bugReportShow => 'Pokaż';
-
-  @override
-  String get bugReportRecoveredHeader => 'Nagranie przetrwało awarię';
-
-  @override
-  String get bugReportRecoveredBody =>
-      'Aplikacja zamknęła się w trakcie nagrywania. To, co zdążyła zapisać, jest nadal w telefonie — obejrzyj albo wyrzuć.';
-
-  @override
-  String get bugReportDestinationHeader => 'Co się stanie z tym logiem';
-
-  @override
-  String get bugReportDestinationFile => 'Zapisz do pliku';
-
-  @override
-  String get bugReportDestinationIssue => 'Zgłoś na GitHubie';
-
-  @override
-  String get bugReportDestinationFileBody =>
-      'Log zapisze się tam, gdzie wskażesz, i zostanie w telefonie. Sam decydujesz, czy gdziekolwiek go wyślesz.';
-
-  @override
-  String get bugReportDestinationIssueBody =>
-      'Log i Twój opis trafią jako publiczne zgłoszenie na GitHuba — każdy będzie mógł je przeczytać i zostaną tam na zawsze. Przejrzyj najpierw log poniżej.';
-
-  @override
-  String get bugReportDescriptionLabel => 'Co poszło nie tak?';
-
-  @override
-  String get bugReportDescriptionHint =>
-      'Co robiłeś, czego się spodziewałeś, co stało się zamiast tego.';
-
-  @override
-  String get bugReportDescriptionRequired =>
-      'Napisz, co poszło nie tak — log bez opisu jest prawie bezużyteczny.';
-
-  @override
-  String get bugReportSend => 'Zgłoś';
-
-  @override
-  String get bugReportSending => 'Wysyłanie…';
-
-  @override
-  String bugReportSendWaiting(String clock) {
-    return 'Wysyłka za $clock';
-  }
-
-  @override
-  String get bugReportSendWaitingBody =>
-      'Relay rozkłada zgłoszenia w czasie. Możesz zamknąć ten ekran — wyśle się samo.';
-
-  @override
-  String get bugReportSent => 'Zgłoszenie wysłane';
-
-  @override
-  String get bugReportSentBody =>
-      'Dzięki. Zgłoszenie jest otwarte, a log do niego dołączony.';
-
-  @override
-  String get bugReportOpenIssue => 'Otwórz zgłoszenie';
-
-  @override
-  String get bugReportDone => 'Gotowe';
-
-  @override
-  String get bugReportSendFailedNotYet =>
-      'Relay w tej chwili nie przyjmuje zgłoszeń. Spróbuj później albo zapisz log do pliku.';
-
-  @override
-  String get bugReportSendFailedRefused =>
-      'Relay odmówił przyjęcia tego zgłoszenia. Zapisz log do pliku i dołącz go sam.';
-
-  @override
-  String get bugReportSendFailedDuplicate => 'To już zostało zgłoszone.';
-
-  @override
-  String get bugReportSendFailedUnreachable =>
-      'Nie udało się połączyć z relayem. Sprawdź połączenie albo zapisz log do pliku.';
-
-  @override
-  String get bugReportSendFailedRejected =>
-      'Relay odrzucił to zgłoszenie. Zapisz log do pliku i dołącz go sam.';
-
-  @override
-  String get bugReportSendFailedDemo =>
-      'Tryb demo nie publikuje zgłoszeń. Zapisz log do pliku.';
-
-  @override
-  String get bugReportKindQuestion => 'Co zgłaszasz?';
-
-  @override
-  String get bugReportKindBug => 'Błąd';
-
-  @override
-  String get bugReportKindChange => 'Zmianę';
-
-  @override
-  String get bugReportKindFeature => 'Funkcję';
-
-  @override
-  String get bugReportChangeHeader => 'Prośba o zmianę';
-
-  @override
-  String get bugReportChangeBody => 'Coś działa, ale nie tak, jak powinno.';
-
-  @override
-  String get bugReportChangeLabel => 'Co powinno się zmienić?';
-
-  @override
-  String get bugReportChangeHint =>
-      'Co robi teraz, a co powinno robić zamiast tego.';
-
-  @override
-  String get bugReportFeatureHeader => 'Propozycja funkcji';
-
-  @override
-  String get bugReportFeatureBody => 'Czegoś aplikacja jeszcze nie potrafi.';
-
-  @override
-  String get bugReportFeatureLabel => 'Czego brakuje?';
-
-  @override
-  String get bugReportFeatureHint =>
-      'Co chcesz zrobić i dlaczego aplikacja na to nie pozwala.';
-
-  @override
-  String get bugReportRequestPrivacyHeader => 'Co zostanie wysłane';
-
-  @override
-  String get bugReportRequestWhatYouWrite => 'To, co napiszesz';
-
-  @override
-  String get bugReportRequestVersions => 'Wersja aplikacji i serwera';
-
-  @override
-  String get bugReportRequestNoLog => 'Żadnego loga, żadnego nagrania';
-
-  @override
   String get bugReportRequestNoData => 'Nic o Twoich drukarkach ani telefonie';
 
   @override
-  String get bugReportRequestPublic =>
-      'Powstaje publiczne zgłoszenie na GitHubie — każdy może je przeczytać i zostaje na stałe.';
-
-  @override
-  String get bugReportRequestRequired =>
-      'Napisz, o co prosisz — z pustego zgłoszenia nic nie wynika.';
-
-  @override
-  String get bugReportRequestSentBody => 'Dzięki. Zgłoszenie jest otwarte.';
-
-  @override
-  String get bugReportCancelSend => 'Anuluj wysyłanie';
-
-  @override
-  String get bugReportRequestFailedNotYet =>
-      'Relay w tej chwili nie przyjmuje zgłoszeń. Spróbuj później.';
-
-  @override
-  String get bugReportRequestFailedRefused =>
-      'Relay odmówił przyjęcia tego zgłoszenia. Możesz otworzyć je samodzielnie na GitHubie.';
-
-  @override
-  String get bugReportRequestFailedUnreachable =>
-      'Nie udało się połączyć z relayem. Sprawdź połączenie i spróbuj ponownie.';
-
-  @override
-  String get bugReportRequestFailedDemo => 'Tryb demo nie publikuje zgłoszeń.';
-
-  @override
-  String get bugReportRequestNotPrepared =>
-      'Aplikacja nie zdołała przygotować zgłoszenia. Nic nie wysłano — spróbuj ponownie.';
-
-  @override
   String get usersTitle => 'Użytkownicy';
-
-  @override
-  String get usersMenu => 'Użytkownicy';
 
   @override
   String get usersEmpty => 'Na tym serwerze nie ma kont.';
@@ -6484,9 +6135,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get groupsTitle => 'Grupy';
 
   @override
-  String get groupsMenu => 'Grupy';
-
-  @override
   String get groupsEmpty => 'Na tym serwerze nie ma grup.';
 
   @override
@@ -6626,7 +6274,134 @@ class AppLocalizationsPl extends AppLocalizations {
       'Użytkownicy, klucze API, ustawienia, kopie zapasowe — to, na co sama apka nie ma ekranów.';
 
   @override
-  String get adminMenu => 'Administracja';
+  String get serverSettingsMenu => 'Ustawienia serwera';
+
+  @override
+  String get serverSettingsTitle => 'Ustawienia serwera';
+
+  @override
+  String get serverSettingsQueueSubtitle =>
+      'Planowanie, nagrzewanie i trzymanie ciepłego stołu';
+
+  @override
+  String get serverSettingsMaintenanceSubtitle =>
+      'Typy zadań i interwały dla poszczególnych drukarek';
+
+  @override
+  String get serverSettingsAdminSubtitle => 'Konta, grupy i klucze API';
+
+  @override
+  String get serverSettingsCloudSubtitle =>
+      'Konto Bambu, z którego serwer pobiera modele';
+
+  @override
+  String get queueSettingsTitle => 'Kolejka i nagrzewanie';
+
+  @override
+  String get queueSettingsReadOnlyApiKey =>
+      'Klucz API nigdy nie zapisze ustawień serwera. Żeby je zmienić, zaloguj się kontem.';
+
+  @override
+  String get queueSettingsReadOnlyPermission =>
+      'Twoje konto może te ustawienia czytać, ale nie zmieniać.';
+
+  @override
+  String get queueSettingsUnavailable =>
+      'Ten serwer nie zgłasza żadnego z tych ustawień. Albo jest od nich starszy, albo nie udało się ich odczytać — pociągnij w dół, żeby spróbować ponownie.';
+
+  @override
+  String get queueSettingsQueueHeader => 'Kolejka';
+
+  @override
+  String get queueSettingsPlateClearTitle => 'Potwierdzenie pustego stołu';
+
+  @override
+  String get queueSettingsPlateClearDesc =>
+      'Po wydruku drukarka czeka, aż ktoś potwierdzi, że stół jest pusty.';
+
+  @override
+  String get queueSettingsShortestFirstTitle => 'Najkrótsze zadanie pierwsze';
+
+  @override
+  String get queueSettingsShortestFirstDesc =>
+      'Bierze najkrótsze czekające zadanie zamiast tego, które czeka najdłużej.';
+
+  @override
+  String queueSettingsMaxUploads(int count) {
+    return 'Pliki wysyłane równocześnie: $count';
+  }
+
+  @override
+  String get queueSettingsPreheatHeader => 'Nagrzewanie wstępne';
+
+  @override
+  String get queueSettingsPreheatTitle => 'Nagrzewaj przed zadaniem';
+
+  @override
+  String get queueSettingsPreheatDesc =>
+      'Rozgrzewa komorę, zanim plik pójdzie na drukarkę. Pojedyncze zadanie w kolejce może to nadpisać.';
+
+  @override
+  String queueSettingsPreheatMaxWait(String duration) {
+    return 'Limit czekania na komorę: $duration';
+  }
+
+  @override
+  String queueSettingsPreheatSoak(String duration) {
+    return 'Wygrzewanie po osiągnięciu temperatury: $duration';
+  }
+
+  @override
+  String get queueSettingsNoSoak => 'bez wygrzewania';
+
+  @override
+  String get queueSettingsPreheatOffNote =>
+      'Nagrzewanie jest wyłączone, więc poniższe ustawienia nic nie zmieniają.';
+
+  @override
+  String get queueSettingsKeepWarmHeader => 'Utrzymywanie ciepła';
+
+  @override
+  String get queueSettingsKeepWarmTitle =>
+      'Trzymaj stół ciepły między wydrukami';
+
+  @override
+  String get queueSettingsKeepWarmDesc =>
+      'Dopóki nikt nie zdejmie gotowego wydruku, stół zostaje gorący — kolejne zadanie z grzaną komorą nie startuje wtedy z zimnego. Przy PLA i PETG pomijane.';
+
+  @override
+  String queueSettingsKeepWarmTemp(int temp) {
+    return 'Temperatura stołu grzejącego komorę: $temp °C';
+  }
+
+  @override
+  String queueSettingsKeepWarmMax(String duration) {
+    return 'Maksymalny czas utrzymywania ciepła: $duration';
+  }
+
+  @override
+  String get queueSettingsMaxUploadsDesc =>
+      'Zanim zadanie z kolejki wystartuje, jego plik idzie na drukarkę przez FTP, co potrafi trwać minuty. To jest liczba takich transferów naraz — ma znaczenie dopiero przy kilku drukarkach.';
+
+  @override
+  String get queueSettingsPreheatMaxWaitDesc =>
+      'X1C i P2S nie mają grzałki komory — komora nagrzewa się od stołu, co potrafi zająć 15–30 minut. Po tym czasie kolejka przestaje czekać i przechodzi do wygrzewania.';
+
+  @override
+  String get queueSettingsPreheatSoakDesc =>
+      'Dodatkowy czas w temperaturze po osiągnięciu jej przez komorę albo po wyczerpaniu limitu powyżej. Zero pomija ten etap.';
+
+  @override
+  String get queueSettingsKeepWarmTempDesc =>
+      '90 podtrzymuje ciepło komory w zamkniętej drukarce i wyzwala dokupione grzałki komory, które zwykle załączają się przy stole 80. Wyższa temperatura stołu z pliku i tak wygrywa.';
+
+  @override
+  String get queueSettingsKeepWarmMaxDesc =>
+      'Ustaw tyle, ile realnie zajmuje Ci dojście do drukarki. Za krótko kosztuje tylko tyle, że kolejny wydruk grzeje od zera; bez limitu nieodebrany wydruk trzymałby stół gorący w nieskończoność.';
+
+  @override
+  String get queueSettingsKeepWarmOffNote =>
+      'Utrzymywanie ciepła jest wyłączone. Temperatura stołu powyżej działa też przy nagrzewaniu wstępnym.';
 
   @override
   String get adminTitle => 'Administracja';
@@ -7071,4 +6846,334 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get failureReasonUnknown => 'Nieznana';
+
+  @override
+  String get appSettingsMenu => 'Ustawienia aplikacji';
+
+  @override
+  String get appSettingsTitle => 'Ustawienia aplikacji';
+
+  @override
+  String get appSettingsNotificationsSubtitle =>
+      'Które zdarzenia wysyłają powiadomienie i przy jakich progach';
+
+  @override
+  String get collapsePrinterCardsTitle => 'Zwinięte karty drukarek';
+
+  @override
+  String get collapsePrinterCardsDesc =>
+      'Karty otwierają się z samą nazwą, statusem i postępem wydruku. Każdą nadal można rozwinąć.';
+
+  @override
+  String get printerCardExpand => 'Rozwiń kartę';
+
+  @override
+  String get printerCardCollapse => 'Zwiń kartę';
+
+  @override
+  String get ordersTitle => 'Zamówienia';
+
+  @override
+  String get ordersEmpty => 'Brak zamówień o tym statusie.';
+
+  @override
+  String get ordersFilterActive => 'Aktywne';
+
+  @override
+  String get ordersFilterCompleted => 'Ukończone';
+
+  @override
+  String get ordersFilterCancelled => 'Anulowane';
+
+  @override
+  String get ordersFilterAll => 'Wszystkie';
+
+  @override
+  String get ordersStatusActive => 'Aktywne';
+
+  @override
+  String get ordersStatusCompleted => 'Ukończone';
+
+  @override
+  String get ordersStatusCancelled => 'Anulowane';
+
+  @override
+  String get ordersStatusUnknown => 'Nieznany status';
+
+  @override
+  String get ordersGroupingOnly => 'Tylko grupowanie';
+
+  @override
+  String ordersBy(String name) {
+    return 'Dodane przez $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Termin: $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return 'Gotowe: $completed z $total';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return 'W druku: $count';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return 'Czeka: $count';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    return 'Nieudane: $count';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return 'Do zrobienia: $count';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return 'Koszt dotąd: $amount';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return 'Pozostały koszt: $amount';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return 'Nie da się dodać do kolejki $runs z $owed wydruków do zrobienia: ich płyta nie ma już zadania w kolejce ani ukończonego wydruku, z którego można skopiować ustawienia. Dodaj tę płytę raz z pliku albo anuluj zamówienie.';
+  }
+
+  @override
+  String get ordersStrandedPlate =>
+      'Brak zadania, z którego można skopiować ustawienia';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return 'Gotowe: $completed z $target';
+  }
+
+  @override
+  String get ordersWholeFile => 'Cały plik';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dodaj do kolejki $count brakującego wydruku',
+      many: 'Dodaj do kolejki $count brakujących wydruków',
+      few: 'Dodaj do kolejki $count brakujące wydruki',
+      one: 'Dodaj do kolejki 1 brakujący wydruk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Dodaj brakujące';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Dodano do kolejki brakujące wydruki zamówienia $name';
+  }
+
+  @override
+  String get ordersCancel => 'Anuluj zamówienie';
+
+  @override
+  String get ordersCancelTitle => 'Anulować to zamówienie?';
+
+  @override
+  String get ordersCancelBody =>
+      'Wydruki czekające w kolejce zostaną anulowane, a zamówienie przestanie wymagać tego, czego jeszcze nie wyprodukowano. Wydruk, który już trwa, będzie kontynuowany.';
+
+  @override
+  String get ordersCancelled => 'Zamówienie anulowane';
+
+  @override
+  String get ordersUngroup => 'Rozgrupuj';
+
+  @override
+  String get ordersUngroupTitle => 'Rozgrupować tę partię?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Jej pozycje zostaną w kolejce jako osobne zadania.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Jej pozycje zostaną w kolejce jako osobne zadania. Gdy żadna nie zostanie w zamówieniu, zostanie ono usunięte razem z celami i postępem; pozycje innych użytkowników, których nie możesz zmieniać, utrzymają je.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Rozgrupowano $count pozycji',
+      many: 'Rozgrupowano $count pozycji',
+      few: 'Rozgrupowano $count pozycje',
+      one: 'Rozgrupowano 1 pozycję',
+      zero: 'Nie było czego rozgrupować',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersErrStranded(String plates) {
+    return 'Dla: $plates nie ma już zadania w kolejce ani ukończonego wydruku, z którego można skopiować ustawienia. Dodaj płytę raz z pliku, a resztę stąd.';
+  }
+
+  @override
+  String get ordersErrCancelled => 'To zamówienie jest anulowane.';
+
+  @override
+  String get ordersErrGone => 'To zamówienie już nie istnieje.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Partia: $name';
+  }
+
+  @override
+  String get orderEditTitle => 'Edytuj zamówienie';
+
+  @override
+  String get orderEditSave => 'Zapisz';
+
+  @override
+  String get orderEditName => 'Nazwa';
+
+  @override
+  String get orderEditErrName => 'Zamówienie musi mieć nazwę.';
+
+  @override
+  String get orderEditDue => 'Termin';
+
+  @override
+  String get orderEditDueNone => 'Bez terminu';
+
+  @override
+  String get orderEditDueHint =>
+      'Serwer pozwala zmienić termin, ale nie usunąć go.';
+
+  @override
+  String get orderEditProject => 'Projekt';
+
+  @override
+  String get orderEditProjectNone => 'Bez projektu';
+
+  @override
+  String get orderEditProjectHint =>
+      'Serwer pozwala przenieść zamówienie do innego projektu, ale nie wyjąć go z projektu.';
+
+  @override
+  String get orderEditNotes => 'Notatki';
+
+  @override
+  String get orderEditTargets => 'Wydruki na płytę';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Obniżenie celu nie anuluje wydruków już dodanych do kolejki; 0 oznacza, że płyta nie jest potrzebna.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Gotowe dotąd: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Zamówienie zapisane';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Co najmniej jedna płyta musi mieć cel większy od 0.';
+
+  @override
+  String get orderEditErrProject => 'Ten projekt już nie istnieje.';
+
+  @override
+  String get ordersEdit => 'Edytuj';
+
+  @override
+  String get ordersReopen => 'Wznów zamówienie';
+
+  @override
+  String get ordersReopened => 'Zamówienie wznowione';
+
+  @override
+  String get ordersGroup => 'Grupuj zadania z kolejki';
+
+  @override
+  String get ordersGroupName => 'Nazwa partii';
+
+  @override
+  String get ordersGroupHint =>
+      'Wybierz co najmniej dwa czekające zadania, które nie są jeszcze w partii.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nie ma czego grupować: poza partiami czeka mniej niż dwa zadania.';
+
+  @override
+  String get ordersGroupConfirm => 'Grupuj';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zgrupowano $count zadania jako $name',
+      many: 'Zgrupowano $count zadań jako $name',
+      few: 'Zgrupowano $count zadania jako $name',
+      one: 'Zgrupowano 1 zadanie jako $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Dodano do kolejki brakujące wydruki płyty $plate ($name)';
+  }
+
+  @override
+  String get queueEditCopiesLabel => 'Ile razy wydrukować';
+
+  @override
+  String get queueEditCopies => 'Kopie';
+
+  @override
+  String get queueEditCopiesHint =>
+      'Kopie trafią do kolejki jako jedna partia.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'Powstanie zamówienie: nieudaną kopię dodasz ponownie w Zamówieniach.';
+
+  @override
+  String get ordersGroupedNone => 'Nie udało się zgrupować żadnego zadania.';
+
+  @override
+  String get orderEditTargetLess => 'O jeden wydruk mniej';
+
+  @override
+  String get orderEditTargetMore => 'O jeden wydruk więcej';
+
+  @override
+  String get queueEditOrderRefused =>
+      'Nie udało się utworzyć zamówienia, więc kopie trafiły do kolejki jako zwykła partia.';
+
+  @override
+  String get inventoryQuantityLess => 'O jedną szpulę mniej do dodania';
+
+  @override
+  String get inventoryQuantityMore => 'O jedną szpulę więcej do dodania';
 }

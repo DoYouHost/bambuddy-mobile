@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/diagnostics/log_tag.dart';
+import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/print_log_entry.dart';
-import '../../core/theme/dash_text.dart';
+import '../../core/models/print_run.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/confirm_dialog.dart';
 import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import 'print_log_providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
 /// is counted under.
@@ -284,7 +282,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
             const SizedBox(height: 10),
 
             Text(
-              printLogStatusIsFailure(_status)
+              printRunIsFailure(_status)
                   ? l10n.printLogCountsAsFailure
                   : l10n.printLogNotCountedAsFailure,
               style: t.label,
@@ -306,10 +304,14 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                   'print_log.classify.delete',
                   TextButton.icon(
                     onPressed: _saving ? null : _delete,
-                    icon: Icon(Icons.delete_outline, size: 18, color: t.danger),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: t.dangerInk,
+                    ),
                     label: Text(
                       l10n.printLogDelete,
-                      style: TextStyle(color: t.danger),
+                      style: TextStyle(color: t.dangerInk),
                     ),
                   ),
                 ),

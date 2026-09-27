@@ -1,4 +1,4 @@
-import 'json_utils.dart';
+import 'package:app_util/app_util.dart';
 
 /// Archive statistics from `GET /archives/stats` (aggregate of `PrintLogEntry` —
 /// one row per print event, reprint adds new entry, #1378).
@@ -46,10 +46,8 @@ class ArchiveStats {
   /// Total print count in the period.
   final int totalPrints;
 
-  /// Successful prints.
   final int successfulPrints;
 
-  /// Failed prints.
   final int failedPrints;
 
   /// User/system-cancelled prints (stopped/cancelled/skipped) — distinct from
@@ -87,7 +85,6 @@ class ArchiveStats {
   /// Total energy in kWh.
   final double totalEnergyKwh;
 
-  /// Total energy cost.
   final double totalEnergyCost;
 
   /// Energy data still "warming up" (server still collecting measurements) —

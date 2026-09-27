@@ -1,3 +1,4 @@
+import 'package:app_util/app_util.dart';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -5,7 +6,6 @@ import '../core/api/endpoints.dart';
 import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/user_summary.dart';
 
 /// REST data source for archive stats (`GET /archives/stats`).
