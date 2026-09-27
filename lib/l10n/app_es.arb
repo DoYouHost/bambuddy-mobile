@@ -3875,5 +3875,7 @@
   "outcomeCleared": "Veredicto eliminado",
   "outcomeUnsupported": "El servidor no guardó el veredicto. Actualice bambuddy para registrar el resultado de las impresiones.",
   "outcomeRate": "Valorar",
-  "outcomeChange": "Cambiar"
+  "outcomeChange": "Cambiar",
+  "queueOptConfirmOutcome": "Preguntar el resultado",
+  "queueOptConfirmOutcomeDesc": "Preguntar si la impresión ha salido bien después de completarse"
 }

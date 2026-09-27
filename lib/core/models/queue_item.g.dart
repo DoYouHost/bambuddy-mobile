@@ -64,6 +64,7 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   preheatChamberTargetOverride:
       (json['preheat_chamber_target_override'] as num?)?.toInt(),
   gcodeInjection: json['gcode_injection'] as bool? ?? false,
+  confirmOutcome: json['confirm_outcome'] as bool? ?? false,
   nozzleMapping: (json['nozzle_mapping'] as List<dynamic>?)
       ?.map((e) => (e as num).toInt())
       .toList(),

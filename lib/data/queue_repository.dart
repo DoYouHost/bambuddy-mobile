@@ -55,6 +55,7 @@ class QueueCreateOptions {
     this.timelapse,
     this.nozzleOffsetCali,
     this.gcodeInjection,
+    this.confirmOutcome,
     this.preheatOverride,
     this.preheatChamberTargetOverride,
     this.nozzleRackChoice,
@@ -87,6 +88,10 @@ class QueueCreateOptions {
   /// the web) into this job's 3MF before it is uploaded. Needed by plate-swap
   /// rigs (SwapMod, Farmloop, …); a no-op when the target model has no snippet.
   final bool? gcodeInjection;
+
+  /// Ask for the outcome when the job completes (#1898). Null leaves it to the
+  /// server's default, `False` on the create route.
+  final bool? confirmOutcome;
 
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
@@ -124,6 +129,7 @@ class QueueCreateOptions {
     'timelapse': ?timelapse,
     'nozzle_offset_cali': ?nozzleOffsetCali?.toCreateWire(triState: triState),
     'gcode_injection': ?gcodeInjection,
+    'confirm_outcome': ?confirmOutcome,
     'preheat_override': ?preheatOverride,
     'preheat_chamber_target_override': ?preheatChamberTargetOverride,
     'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
@@ -157,6 +163,15 @@ class QueueRepository {
   /// outright. Unknown → the boolean form, which every server accepts.
   late final triStateCapability = ObservedCapability(
     ServerFeature.triStateCalibration,
+    _serverVersion,
+  );
+
+  /// Whether this server can ask for a job's outcome (#1898). Observed like
+  /// [triStateCapability]: `confirm_outcome` is a defaulted field of every
+  /// queue row from the feature on, absent before it — and an older server
+  /// drops it from a create or an update without a word, so unknown → hidden.
+  late final outcomeCapability = ObservedCapability(
+    ServerFeature.printOutcome,
     _serverVersion,
   );
 
@@ -201,6 +216,9 @@ class QueueRepository {
       return res.data ?? const [];
     });
     _observeCalibrationWire(body);
+    if (body.firstOrNull case final Map<Object?, Object?> row) {
+      outcomeCapability.observe(present: row.containsKey('confirm_outcome'));
+    }
     return parseJsonList(body, QueueItem.fromJson);
   }
 
@@ -306,6 +324,7 @@ class QueueRepository {
     bool? useAms,
     CalibrationOption? nozzleOffsetCali,
     bool? gcodeInjection,
+    bool? confirmOutcome,
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
     Object? nozzleRackChoice = kQueueUpdateUnset,
@@ -335,6 +354,7 @@ class QueueRepository {
       'use_ams': ?useAms,
       'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
       'gcode_injection': ?gcodeInjection,
+      'confirm_outcome': ?confirmOutcome,
       'preheat_override': ?preheatOverride,
       if (preheatChamberTargetOverride != kQueueUpdateUnset)
         'preheat_chamber_target_override': preheatChamberTargetOverride,

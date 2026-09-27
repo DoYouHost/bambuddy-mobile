@@ -3175,5 +3175,7 @@
   "outcomeCleared": "Usunięto ocenę",
   "outcomeUnsupported": "Serwer nie zapisał oceny. Zaktualizuj bambuddy, aby zapisywać oceny wydruków.",
   "outcomeRate": "Oceń",
-  "outcomeChange": "Zmień"
+  "outcomeChange": "Zmień",
+  "queueOptConfirmOutcome": "Zapytaj o wynik",
+  "queueOptConfirmOutcomeDesc": "Po zakończeniu zapyta, czy wydruk wyszedł dobrze"
 }

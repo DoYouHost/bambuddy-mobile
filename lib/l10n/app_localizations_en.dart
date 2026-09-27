@@ -7139,4 +7139,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outcomeChange => 'Change';
+
+  @override
+  String get queueOptConfirmOutcome => 'Ask for outcome';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Ask whether the print came out well after it completes';
 }

@@ -127,6 +127,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _timelapse;
   late CalibrationOption _nozzleOffsetCali;
 
+  /// Null until the user touches the switch: a new job then follows the
+  /// server's default, which may arrive after the form has opened.
+  bool? _confirmOutcomeChoice;
+
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
   late final TextEditingController _chamberTarget;
@@ -1185,6 +1189,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             value: _timelapse,
             onChanged: (v) => setState(() => _timelapse = v),
           ),
+          if (_offersConfirmOutcome)
+            _OptionSwitch(
+              id: 'queue_edit.confirm_outcome',
+              title: l10n.queueOptConfirmOutcome,
+              subtitle: l10n.queueOptConfirmOutcomeDesc,
+              value: _confirmOutcome(watch: true),
+              onChanged: (v) => setState(() => _confirmOutcomeChoice = v),
+            ),
           if (_showNozzleOffset)
             _CalibrationRow(
               id: 'queue_edit.nozzle_offset_cali',
@@ -1413,6 +1425,27 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     gcodeInjection: _gcodeInjection,
   );
 
+  /// Hidden where the server would drop the flag: a switch that is on and
+  /// never asks is worse than no switch.
+  bool get _offersConfirmOutcome => ref.watch(queueOutcomeProvider).orFalse;
+
+  /// What the switch shows: the user's choice, else the item's own flag when
+  /// editing, else the server's default for a new job.
+  bool _confirmOutcome({required bool watch}) {
+    if (_confirmOutcomeChoice case final choice?) return choice;
+    if (!widget._isCreate) return widget.item.confirmOutcome;
+    final server = watch
+        ? ref.watch(defaultConfirmOutcomeProvider)
+        : ref.read(defaultConfirmOutcomeProvider);
+    return server.valueOrNull ?? false;
+  }
+
+  /// The flag as it may ship, or null to leave the key out — which on create
+  /// is the server's own default and on update leaves the stored flag alone.
+  bool? get _confirmOutcomePayload => ref.read(queueOutcomeProvider).orFalse
+      ? _confirmOutcome(watch: false)
+      : null;
+
   /// The injection flag as it may ship, or null to leave the key out.
   ///
   /// Null while the form is not offering the checkbox: create then falls back to
@@ -1506,6 +1539,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? _calibrationUpdate(_nozzleOffsetCali, widget.item.nozzleOffsetCali)
         : null,
     gcodeInjection: _gcodeInjectionPayload,
+    confirmOutcome: _confirmOutcomePayload,
     preheatOverride: _preheatOverride,
     preheatChamberTargetOverride: _chamberTargetValue,
     nozzleRackChoice: _rackChoiceUpdate,
@@ -1546,6 +1580,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       timelapse: _timelapse,
       nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
       gcodeInjection: _gcodeInjectionPayload,
+      confirmOutcome: _confirmOutcomePayload,
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,

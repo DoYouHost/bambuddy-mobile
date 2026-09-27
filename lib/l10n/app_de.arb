@@ -3875,5 +3875,7 @@
   "outcomeCleared": "Bewertung entfernt",
   "outcomeUnsupported": "Der Server hat die Bewertung nicht gespeichert. Aktualisieren Sie bambuddy, um Druckergebnisse zu erfassen.",
   "outcomeRate": "Bewerten",
-  "outcomeChange": "Ändern"
+  "outcomeChange": "Ändern",
+  "queueOptConfirmOutcome": "Nach Ergebnis fragen",
+  "queueOptConfirmOutcomeDesc": "Nach Abschluss fragen, ob der Druck gut geworden ist"
 }

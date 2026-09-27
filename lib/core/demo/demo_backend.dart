@@ -2274,6 +2274,7 @@ class DemoBackend {
     required String color,
     required int createdDaysAgo,
     bool gcodeInjection = false,
+    bool confirmOutcome = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
@@ -2294,6 +2295,7 @@ class DemoBackend {
     'auto_off_after': false,
     'require_previous_success': false,
     'gcode_injection': gcodeInjection,
+    'confirm_outcome': confirmOutcome,
     'filament_short': false,
     // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
     // arrival emptied the real queue screen. Demo mode is where that
@@ -2352,6 +2354,7 @@ class DemoBackend {
         color: (archive?['filament_color'] as String?) ?? '#808080',
         createdDaysAgo: 0,
         gcodeInjection: body['gcode_injection'] == true,
+        confirmOutcome: body['confirm_outcome'] == true,
         slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
         variants: [
           for (final (position, f) in variantFiles.indexed)
@@ -2485,6 +2488,9 @@ class DemoBackend {
       }
       if (body.containsKey('gcode_injection')) {
         item['gcode_injection'] = body['gcode_injection'];
+      }
+      if (body.containsKey('confirm_outcome')) {
+        item['confirm_outcome'] = body['confirm_outcome'];
       }
       return _ok(item);
     }

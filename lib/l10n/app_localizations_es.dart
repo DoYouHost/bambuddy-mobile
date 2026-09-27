@@ -7230,4 +7230,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get outcomeChange => 'Cambiar';
+
+  @override
+  String get queueOptConfirmOutcome => 'Preguntar el resultado';
+
+  @override
+  String get queueOptConfirmOutcomeDesc =>
+      'Preguntar si la impresión ha salido bien después de completarse';
 }

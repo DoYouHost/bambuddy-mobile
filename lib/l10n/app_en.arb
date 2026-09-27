@@ -4302,5 +4302,13 @@
   "outcomeChange": "Change",
   "@outcomeChange": {
     "description": "Button in the archive detail sheet: open the outcome sheet to change a verdict"
+  },
+  "queueOptConfirmOutcome": "Ask for outcome",
+  "@queueOptConfirmOutcome": {
+    "description": "Print form switch: ask how the print came out once it completes"
+  },
+  "queueOptConfirmOutcomeDesc": "Ask whether the print came out well after it completes",
+  "@queueOptConfirmOutcomeDesc": {
+    "description": "Explains the ask-for-outcome switch in the print form"
   }
 }

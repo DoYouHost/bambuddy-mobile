@@ -3875,5 +3875,7 @@
   "outcomeCleared": "Verdict effacé",
   "outcomeUnsupported": "Le serveur n'a pas enregistré le verdict. Mettez bambuddy à jour pour consigner le résultat des impressions.",
   "outcomeRate": "Évaluer",
-  "outcomeChange": "Modifier"
+  "outcomeChange": "Modifier",
+  "queueOptConfirmOutcome": "Demander le résultat",
+  "queueOptConfirmOutcomeDesc": "Demander si l'impression est bien sortie une fois terminée"
 }

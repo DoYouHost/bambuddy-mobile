@@ -1,0 +1,101 @@
+import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'queue_form_harness.dart';
+
+/// "Ask for outcome" on the print form (#1898). An older server takes the
+/// flag and drops it, so the switch is only there where the server keeps it,
+/// and a new job starts where the server's own print dialog starts.
+void main() {
+  setUp(setUpQueueForm);
+
+  final label = formL10n.queueOptConfirmOutcome;
+
+  List<Override> outcome({
+    required bool supported,
+    bool serverDefault = false,
+  }) => [
+    queueOutcomeProvider.overrideWithValue(AsyncData(supported)),
+    defaultConfirmOutcomeProvider.overrideWithValue(AsyncData(serverDefault)),
+  ];
+
+  Future<void> tapSwitch(WidgetTester tester) async {
+    await tester.ensureVisible(find.text(label));
+    await tester.pumpAndSettle();
+    // The title is not a tap target; the switch beside it is.
+    await tester.tap(
+      find.descendant(
+        of: find
+            .ancestor(of: find.text(label), matching: find.byType(Row))
+            .first,
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a server that would drop the flag gets no switch and no key', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(archiveDraft(), extra: outcome(supported: false)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(label), findsNothing);
+    await submitQueueForm(tester);
+    expect(capturedBody?.containsKey('confirm_outcome'), isFalse);
+  });
+
+  testWidgets('a new job starts from the server default', (tester) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        extra: outcome(supported: true, serverDefault: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await submitQueueForm(tester);
+    expect(capturedBody?['confirm_outcome'], true);
+  });
+
+  testWidgets('the switch rides with the POST', (tester) async {
+    await tester.pumpWidget(
+      queueFormScreen(archiveDraft(), extra: outcome(supported: true)),
+    );
+    await tester.pumpAndSettle();
+
+    await tapSwitch(tester);
+    await submitQueueForm(tester);
+    expect(capturedBody?['confirm_outcome'], true);
+  });
+
+  // The item's own flag, not the server default: editing is about THIS job.
+  testWidgets('editing shows and keeps the flag the item has', (tester) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        QueueItem.fromJson({
+          'id': 5,
+          'position': 1,
+          'status': 'pending',
+          'archive_id': 77,
+          'printer_id': 1,
+          'confirm_outcome': true,
+        }),
+        schedule: QueueScheduleType.queue,
+        mode: QueueEditMode.edit,
+        extra: outcome(supported: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapSwitch(tester);
+    await submitQueueForm(tester, edit: true);
+    expect(capturedBody?['confirm_outcome'], false);
+  });
+}

@@ -12031,6 +12031,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change'**
   String get outcomeChange;
+
+  /// Print form switch: ask how the print came out once it completes
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for outcome'**
+  String get queueOptConfirmOutcome;
+
+  /// Explains the ask-for-outcome switch in the print form
+  ///
+  /// In en, this message translates to:
+  /// **'Ask whether the print came out well after it completes'**
+  String get queueOptConfirmOutcomeDesc;
 }
 
 class _AppLocalizationsDelegate
