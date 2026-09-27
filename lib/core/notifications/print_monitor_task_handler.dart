@@ -341,6 +341,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       ws.confirmRequests,
       notifications: notify,
       prefs: notifPrefs,
+      serverUrl: profile.baseUrl,
       l10n: () => l10n,
     );
     // The finish photo turns up long after the print-ended alert went out, and

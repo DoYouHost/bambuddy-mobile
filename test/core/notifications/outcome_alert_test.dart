@@ -6,6 +6,8 @@ import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_alert.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_prompt.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations_en.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +39,7 @@ void main() {
         frames.stream,
         notifications: notifications,
         prefs: prefs,
+        serverUrl: _server,
         l10n: () => l10n,
       );
       addTearDown(sub.cancel);
@@ -52,7 +55,7 @@ void main() {
       expect(alert['printerId'], 3);
       expect(alert['id'], outcomeAlertId(82));
       expect(alert['title'], l10n.outcomeNotifTitle('Benchy'));
-      expect(alert['payload'], outcomePayload(82));
+      expect(alert['payload'], outcomePayload(82, _server));
       expect(alert['actionIds'], ['outcome:good', 'outcome:reject']);
     });
 
@@ -86,14 +89,19 @@ void main() {
 
   group('payload and action ids', () {
     test('round-trip, and refuse anything else', () {
-      expect(parseOutcomePayload(outcomePayload(82)), 82);
+      expect(parseOutcomePayload(outcomePayload(82, _server)), (
+        archiveId: 82,
+        server: outcomeServerTag(_server),
+      ));
       for (final other in [
         null,
         '',
         'printer:3',
         'outcome:',
-        'outcome:x',
-        'outcome:-1',
+        'outcome:82',
+        'outcome:x:ab',
+        'outcome:-1:ab',
+        'outcome:82:',
       ]) {
         expect(parseOutcomePayload(other), isNull, reason: '$other');
       }
@@ -112,21 +120,38 @@ void main() {
   });
 
   group('a tap', () {
-    setUp(() {
+    setUp(() async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      // No server profile: a button tap stops before any request.
       SharedPreferences.setMockInitialValues({});
+      // A server nothing listens on: a button tap fails its request, which
+      // the handler records and swallows.
+      await SettingsRepository(
+        await SharedPreferences.getInstance(),
+      ).saveProfile(
+        const ServerProfile(baseUrl: _server, authMode: AuthMode.none),
+      );
       takeOutcomePrompt();
     });
 
-    NotificationResponse response({String? actionId}) => NotificationResponse(
+    NotificationResponse response({
+      String? actionId,
+      String server = _server,
+    }) => NotificationResponse(
       notificationResponseType: actionId == null
           ? NotificationResponseType.selectedNotification
           : NotificationResponseType.selectedNotificationAction,
       id: outcomeAlertId(82),
       actionId: actionId,
-      payload: outcomePayload(82),
+      payload: outcomePayload(82, server),
     );
+
+    // The notification outlived a switch to another server, where archive 82
+    // is somebody else's print.
+    test('asked by another server, it asks nothing here', () async {
+      await handleOutcomeAction(response(server: 'http://other:8000'));
+
+      expect(takeOutcomePrompt(), isNull);
+    });
 
     test('on the body hands the question to the app', () async {
       await handleOutcomeAction(response());
@@ -157,3 +182,5 @@ void main() {
     );
   });
 }
+
+const _server = 'http://127.0.0.1:9';

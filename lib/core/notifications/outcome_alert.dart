@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/app_locale.dart';
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
+import '../format/stable_digest.dart';
 import '../models/archive.dart';
 import 'notification_prefs.dart';
 import 'notification_service.dart';
@@ -24,14 +25,25 @@ int outcomeAlertId(int archiveId) => 14 * 1000000 + archiveId % 1000000;
 /// Action ids are `outcome:<verdict wire>`; the archive travels in the payload.
 const String outcomeActionIdPrefix = 'outcome:';
 
-String outcomePayload(int archiveId) => 'outcome:$archiveId';
+/// `outcome:<archiveId>:<server>`. An archive id means something only on the
+/// server that sent it, and the notification outlives a switch to another
+/// one — where the same id is somebody else's print. [serverUrl] goes in as
+/// a digest, not in the clear.
+String outcomePayload(int archiveId, String serverUrl) =>
+    'outcome:$archiveId:${outcomeServerTag(serverUrl)}';
 
-/// The archive an outcome notification is about, or null for any other
-/// payload — including one written by a version that formatted it differently.
-int? parseOutcomePayload(String? payload) {
+String outcomeServerTag(String serverUrl) =>
+    stableDigest(serverUrl).toRadixString(16);
+
+/// The archive and server an outcome notification is about, or null for any
+/// other payload — including one written by a version that formatted it
+/// differently.
+({int archiveId, String server})? parseOutcomePayload(String? payload) {
   if (payload == null || !payload.startsWith('outcome:')) return null;
-  final id = int.tryParse(payload.substring('outcome:'.length));
-  return id != null && id > 0 ? id : null;
+  final parts = payload.split(':');
+  if (parts.length != 3 || parts[2].isEmpty) return null;
+  final id = int.tryParse(parts[1]);
+  return id != null && id > 0 ? (archiveId: id, server: parts[2]) : null;
 }
 
 /// The verdict an action id names, or null for any other action.
@@ -47,6 +59,7 @@ StreamSubscription<WsPrintConfirmRequest> listenForOutcomeRequests(
   Stream<WsPrintConfirmRequest> requests, {
   required NotificationService notifications,
   required NotificationPrefs prefs,
+  required String serverUrl,
   AppLocalizations Function() l10n = systemAppLocalizations,
 }) => requests.listen((request) {
   if (!prefs.isOn(NotifEvent.outcomeRequest)) {
@@ -68,7 +81,7 @@ StreamSubscription<WsPrintConfirmRequest> listenForOutcomeRequests(
           ? l.outcomeTitle
           : l.outcomeNotifTitle(name),
       body: l.outcomeNotifBody,
-      payload: outcomePayload(request.archiveId),
+      payload: outcomePayload(request.archiveId, serverUrl),
       actions: [
         for (final verdict in PrintVerdict.values)
           NotificationAction(

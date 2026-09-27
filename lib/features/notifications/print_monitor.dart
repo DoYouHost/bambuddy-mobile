@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 
+import '../../core/format/stable_digest.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
@@ -1132,20 +1133,9 @@ class PrintMonitor {
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
     final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
-    return _errorAlertBase + _stableDigest('$id:$code');
-  }
-
-  /// FNV-1a digest folded into one band, spelled out rather than taken from
-  /// `Object.hash`, whose seed is drawn afresh on every VM start. This isolate
-  /// restarts each time the app is backgrounded, so a seeded id handed the same
-  /// standing fault a new notification after every restart instead of replacing
-  /// the one already on screen.
-  static int _stableDigest(String s) {
-    var h = 0x811c9dc5;
-    for (var i = 0; i < s.length; i++) {
-      h = ((h ^ s.codeUnitAt(i)) * 0x01000193) & 0xffffffff;
-    }
-    return h % alertBandWidth;
+    // Stable, or the same standing fault got a new notification after every
+    // restart of this isolate instead of replacing the one on screen.
+    return _errorAlertBase + stableDigest('$id:$code') % alertBandWidth;
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {

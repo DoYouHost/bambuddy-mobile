@@ -138,10 +138,19 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
 /// the verdict from here, like "Mark Done": a reject without a cause, and
 /// never touching one the print already carries.
 Future<void> handleOutcomeAction(NotificationResponse response) async {
-  final archiveId = parseOutcomePayload(response.payload);
-  if (archiveId == null) return;
+  final target = parseOutcomePayload(response.payload);
+  if (target == null) return;
+  final archiveId = target.archiveId;
   final actionId = response.actionId;
   final verdict = outcomeActionVerdict(actionId);
+  final prefs = await SharedPreferences.getInstance();
+  // Asked by a server the app has since been switched away from: its archive
+  // id names some other print here.
+  final profile = SettingsRepository(prefs).loadProfile();
+  if (profile == null || outcomeServerTag(profile.baseUrl) != target.server) {
+    if (verdict != null) NotifProbe.actionFailed(const OutcomeServerChanged());
+    return;
+  }
   if (verdict == null || actionId == null) {
     if (response.notificationResponseType ==
         NotificationResponseType.selectedNotification) {
@@ -152,7 +161,6 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
 
   BackgroundRecording? recording;
   try {
-    final prefs = await SharedPreferences.getInstance();
     recording = await startActionRecording();
     NotifProbe.action(id: actionId, items: 1);
 
@@ -182,6 +190,11 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
 /// class name reaches the log.
 class VerdictNotStored implements Exception {
   const VerdictNotStored();
+}
+
+/// An outcome button tapped after the app was switched to another server.
+class OutcomeServerChanged implements Exception {
+  const OutcomeServerChanged();
 }
 
 /// Runs the remediation action the user tapped on an HMS alert.
