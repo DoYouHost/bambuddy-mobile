@@ -176,10 +176,11 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
           api.dio,
         ).setVerdict(target.archiveId, verdict)).applied;
       } on AppApiException catch (error) {
-        // "I pressed Good and the print still waits" goes on the record
-        // either way; only a refusal makes the button pointless.
+        // On the record before the dismissal's awaits, which the engine may
+        // not outlive. Only a refusal makes the button pointless.
+        NotifProbe.actionFailed(error, items: 1);
         if (_isRefusal(error)) await _dismiss(response.id, target.archiveId);
-        rethrow;
+        return;
       }
       // A server older than the feature answers 200 and keeps nothing; the
       // tap did not do what the button said, and no second tap will.
@@ -228,8 +229,15 @@ Future<void> _runAction(
   }
 }
 
+/// A notification gone already is not a failed action: the command it
+/// carried went out.
 Future<void> _cancel(int? id) async {
-  if (id != null) await FlutterLocalNotificationsPlugin().cancel(id: id);
+  if (id == null) return;
+  try {
+    await FlutterLocalNotificationsPlugin().cancel(id: id);
+  } on Object {
+    // Gone already, or no plugin to ask.
+  }
 }
 
 /// Whether the saved profile is the server a payload's [tag] names.

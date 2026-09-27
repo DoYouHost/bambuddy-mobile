@@ -59,7 +59,8 @@ String printRunStatusLabel(AppLocalizations l10n, String status) =>
 /// without its own entry the field would read as empty.
 ///
 /// [ids] are the log identifiers of the three kinds of row, taken whole from
-/// the call site: interpolated ones are invisible to the coverage scanner.
+/// the call site: an interpolated one is invisible to
+/// `action_tag_vocabulary_test.dart`, which reads them out of the source.
 List<DropdownMenuEntry<String>> failureReasonEntries(
   AppLocalizations l10n, {
   required String none,

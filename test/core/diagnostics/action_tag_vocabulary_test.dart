@@ -48,6 +48,8 @@ void main() {
     RegExp(r"\.taggedMaterial\('([^']+)'"),
     // `confirmDialog(id:)` names its two buttons `<id>.confirm` / `<id>.cancel`.
     RegExp(r"id:\s*'([^']+)'"),
+    // `failureReasonEntries(ids: (none: …, option: …, legacy: …))`.
+    RegExp(r"(?:none|option|legacy):\s*'([^']+\.[^']+)'"),
   ];
 
   /// The literal tags handed to the funnel. Interpolated ones (`plug.${…}`)
