@@ -17,6 +17,7 @@ import 'finish_photo_image.dart';
 import 'finish_photo_notifier.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
+import 'outcome_alert.dart';
 import '../../data/archive_repository.dart';
 import '../../l10n/app_locale.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,6 +68,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   WsClient? _ws;
   StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
+  StreamSubscription<WsPrintConfirmRequest>? _outcomeSub;
   PrintMonitor? _monitor;
   FinishPhotoNotifier? _finishPhoto;
   FgsNotificationService? _fgs;
@@ -335,6 +337,12 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _plateSub = ws.plateAlerts.listen((e) {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
+    _outcomeSub = listenForOutcomeRequests(
+      ws.confirmRequests,
+      notifications: notify,
+      prefs: notifPrefs,
+      l10n: () => l10n,
+    );
     // The finish photo turns up long after the print-ended alert went out, and
     // the server only announces some of them — hence both the socket and the
     // notifier's own poll. Needs the authenticated client either way: without it
@@ -608,6 +616,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     await _connSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
+    await _outcomeSub?.cancel();
     // Before the socket goes: a photo update already in flight still gets to
     // finish, and what it was doing is on the record below rather than cut off.
     await _finishPhoto?.stop();

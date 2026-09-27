@@ -12085,6 +12085,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.'**
   String get queueSettingsOutcomePlateClearDesc;
+
+  /// Notification settings switch: the question asked when a print that opted in completes
+  ///
+  /// In en, this message translates to:
+  /// **'Outcome question'**
+  String get notifEvtOutcome;
+
+  /// Explains the outcome-question notification switch
+  ///
+  /// In en, this message translates to:
+  /// **'When a print that asks for its outcome completes — answer Good or Reject from the notification'**
+  String get notifEvtOutcomeDesc;
+
+  /// Title of the notification asking how a finished print came out; {name} is the print's name
+  ///
+  /// In en, this message translates to:
+  /// **'How did {name} come out?'**
+  String outcomeNotifTitle(String name);
+
+  /// Body of the outcome notification: what tapping it and its two buttons do
+  ///
+  /// In en, this message translates to:
+  /// **'Answer here, or tap to see the finish photo first.'**
+  String get outcomeNotifBody;
 }
 
 class _AppLocalizationsDelegate

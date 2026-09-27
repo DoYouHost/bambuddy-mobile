@@ -3884,5 +3884,9 @@
   "queueSettingsOutcomeExternalTitle": "Auch bei Drucken fragen, die nicht über Bambuddy gestartet wurden",
   "queueSettingsOutcomeExternalDesc": "Drucke, die am Drucker, in Bambu Studio oder in Bambu Handy gestartet wurden, landen ebenfalls im Archiv. Mit dieser Option bekommen sie dieselbe Ergebnisabfrage wie Aufträge aus der Warteschlange.",
   "queueSettingsOutcomePlateClearTitle": "Unbeantwortete Ergebnisse bei Druckplatten-Freigabe als gut zählen",
-  "queueSettingsOutcomePlateClearDesc": "Wenn die Druckplatte freigegeben wird (manuell oder durch den nächsten geplanten Druck) und die Ergebnisabfrage des Drucks noch unbeantwortet ist, wird er automatisch als Gutteil erfasst. Eine Antwort über einen Link danach zeigt nur noch das gespeicherte Ergebnis."
+  "queueSettingsOutcomePlateClearDesc": "Wenn die Druckplatte freigegeben wird (manuell oder durch den nächsten geplanten Druck) und die Ergebnisabfrage des Drucks noch unbeantwortet ist, wird er automatisch als Gutteil erfasst. Eine Antwort über einen Link danach zeigt nur noch das gespeicherte Ergebnis.",
+  "notifEvtOutcome": "Ergebnisabfrage",
+  "notifEvtOutcomeDesc": "Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung",
+  "outcomeNotifTitle": "Wie ist {name} geworden?",
+  "outcomeNotifBody": "Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen."
 }

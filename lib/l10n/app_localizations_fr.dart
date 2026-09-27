@@ -7334,4 +7334,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueSettingsOutcomePlateClearDesc =>
       'Lorsque le plateau est libéré (manuellement ou par l\'impression suivante en file d\'attente) et que la demande de résultat reste sans réponse, l\'impression est enregistrée comme bonne pièce. Une réponse ultérieure par lien affiche seulement le résultat enregistré.';
+
+  @override
+  String get notifEvtOutcome => 'Demande de résultat';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Quand une impression qui demande son résultat se termine : répondre « Bonne » ou « Rebut » depuis la notification';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Comment est sortie l\'impression $name ?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Répondez ici ou touchez pour voir d\'abord la photo de fin.';
 }

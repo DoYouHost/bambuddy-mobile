@@ -7240,4 +7240,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueSettingsOutcomePlateClearDesc =>
       'Wenn die Druckplatte freigegeben wird (manuell oder durch den nächsten geplanten Druck) und die Ergebnisabfrage des Drucks noch unbeantwortet ist, wird er automatisch als Gutteil erfasst. Eine Antwort über einen Link danach zeigt nur noch das gespeicherte Ergebnis.';
+
+  @override
+  String get notifEvtOutcome => 'Ergebnisabfrage';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Wie ist $name geworden?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.';
 }

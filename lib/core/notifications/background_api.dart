@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/archive_repository.dart';
 import '../../data/maintenance_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
@@ -12,6 +13,8 @@ import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import 'hms_actions.dart';
 import 'hms_stop_request.dart';
+import 'outcome_alert.dart';
+import 'outcome_prompt.dart';
 import '../diagnostics/diagnostics_wiring.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
@@ -123,6 +126,62 @@ void maintenanceNotificationBackgroundHandler(NotificationResponse response) {
 Future<void> handleNotificationAction(NotificationResponse response) async {
   await handleMaintenanceAction(response);
   await handleHmsAction(response);
+  await handleOutcomeAction(response);
+}
+
+/// Good or Reject tapped on an outcome notification, or the notification
+/// itself.
+///
+/// The body opens the app, so it only ever arrives where the app is coming up
+/// — the foreground handler or the launch details — and is handed to the
+/// shell's sheet, where a reject can be given a cause. The two buttons record
+/// the verdict from here, like "Mark Done": a reject without a cause, and
+/// never touching one the print already carries.
+Future<void> handleOutcomeAction(NotificationResponse response) async {
+  final archiveId = parseOutcomePayload(response.payload);
+  if (archiveId == null) return;
+  final actionId = response.actionId;
+  final verdict = outcomeActionVerdict(actionId);
+  if (verdict == null || actionId == null) {
+    if (response.notificationResponseType ==
+        NotificationResponseType.selectedNotification) {
+      postOutcomePrompt(archiveId);
+    }
+    return;
+  }
+
+  BackgroundRecording? recording;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    recording = await startActionRecording();
+    NotifProbe.action(id: actionId, items: 1);
+
+    final api = await buildBackgroundApiClient(prefs);
+    if (api == null) {
+      NotifProbe.noClient();
+      return;
+    }
+    final result = await ArchiveRepository(
+      api.dio,
+    ).setVerdict(archiveId, verdict);
+    // A server older than the feature answers 200 and keeps nothing; the tap
+    // did not do what the button said.
+    if (!result.applied) NotifProbe.actionFailed(const VerdictNotStored());
+    await FlutterLocalNotificationsPlugin().cancel(
+      id: outcomeAlertId(archiveId),
+    );
+  } on Object catch (error) {
+    // "I pressed Good and the print still waits for a verdict" — on the record.
+    NotifProbe.actionFailed(error, items: 1);
+  } finally {
+    await recording?.stop();
+  }
+}
+
+/// The server answered a verdict with a row that does not carry it. Only its
+/// class name reaches the log.
+class VerdictNotStored implements Exception {
+  const VerdictNotStored();
 }
 
 /// Runs the remediation action the user tapped on an HMS alert.

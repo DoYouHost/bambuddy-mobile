@@ -129,8 +129,8 @@ its own file:
   share one clock and the merge is a no-shift. **No readable UI header ⇒ the
   isolate does not record at all** — there would be nothing to merge into.
 - **an isolate woken for one job** — the notification action engine
-  (`handleMaintenanceAction`, `handleHmsAction`, registered in three isolates)
-  and the watch-relay engine (`wear_relay_engine.dart`, started by
+  (`handleMaintenanceAction`, `handleHmsAction`, `handleOutcomeAction`,
+  registered in three isolates) and the watch-relay engine (`wear_relay_engine.dart`, started by
   `WearRelayListenerService` when the app's process is dead). One guard, not
   one per path: **call `startActionRecording()`** (`diagnostics_wiring.dart`,
   which is where this app's settings, keystore, redactor and ceiling are named)

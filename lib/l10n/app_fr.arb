@@ -3884,5 +3884,9 @@
   "queueSettingsOutcomeExternalTitle": "Demander aussi pour les impressions lancées hors de Bambuddy",
   "queueSettingsOutcomeExternalDesc": "Les impressions lancées sur l'imprimante, dans Bambu Studio ou dans Bambu Handy sont également archivées. Avec cette option, elles reçoivent la même demande de résultat que les travaux de la file d'attente.",
   "queueSettingsOutcomePlateClearTitle": "Compter les résultats sans réponse comme bons à la libération du plateau",
-  "queueSettingsOutcomePlateClearDesc": "Lorsque le plateau est libéré (manuellement ou par l'impression suivante en file d'attente) et que la demande de résultat reste sans réponse, l'impression est enregistrée comme bonne pièce. Une réponse ultérieure par lien affiche seulement le résultat enregistré."
+  "queueSettingsOutcomePlateClearDesc": "Lorsque le plateau est libéré (manuellement ou par l'impression suivante en file d'attente) et que la demande de résultat reste sans réponse, l'impression est enregistrée comme bonne pièce. Une réponse ultérieure par lien affiche seulement le résultat enregistré.",
+  "notifEvtOutcome": "Demande de résultat",
+  "notifEvtOutcomeDesc": "Quand une impression qui demande son résultat se termine : répondre « Bonne » ou « Rebut » depuis la notification",
+  "outcomeNotifTitle": "Comment est sortie l'impression {name} ?",
+  "outcomeNotifBody": "Répondez ici ou touchez pour voir d'abord la photo de fin."
 }

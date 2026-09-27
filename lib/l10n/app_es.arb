@@ -3884,5 +3884,9 @@
   "queueSettingsOutcomeExternalTitle": "Preguntar también por impresiones iniciadas fuera de Bambuddy",
   "queueSettingsOutcomeExternalDesc": "Las impresiones iniciadas en la impresora, en Bambu Studio o en Bambu Handy también se archivan. Con esta opción reciben la misma pregunta de resultado que los trabajos de la cola.",
   "queueSettingsOutcomePlateClearTitle": "Contar resultados sin responder como buenos al despejar la cama",
-  "queueSettingsOutcomePlateClearDesc": "Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado."
+  "queueSettingsOutcomePlateClearDesc": "Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado.",
+  "notifEvtOutcome": "Pregunta por el resultado",
+  "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
+  "outcomeNotifTitle": "¿Cómo ha salido {name}?",
+  "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado."
 }

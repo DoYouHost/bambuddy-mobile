@@ -7173,4 +7173,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueSettingsOutcomePlateClearDesc =>
       'When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.';
+
+  @override
+  String get notifEvtOutcome => 'Outcome question';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'When a print that asks for its outcome completes — answer Good or Reject from the notification';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'How did $name come out?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Answer here, or tap to see the finish photo first.';
 }

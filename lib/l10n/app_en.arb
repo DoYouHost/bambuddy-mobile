@@ -4338,5 +4338,26 @@
   "queueSettingsOutcomePlateClearDesc": "When the plate is marked clear — by hand, or by the next queued job starting — a print whose outcome question is still open is recorded as a good part. A notification link tapped after that only shows what was recorded.",
   "@queueSettingsOutcomePlateClearDesc": {
     "description": "Explains confirm_default_good_on_plate_clear"
+  },
+  "notifEvtOutcome": "Outcome question",
+  "@notifEvtOutcome": {
+    "description": "Notification settings switch: the question asked when a print that opted in completes"
+  },
+  "notifEvtOutcomeDesc": "When a print that asks for its outcome completes — answer Good or Reject from the notification",
+  "@notifEvtOutcomeDesc": {
+    "description": "Explains the outcome-question notification switch"
+  },
+  "outcomeNotifTitle": "How did {name} come out?",
+  "@outcomeNotifTitle": {
+    "description": "Title of the notification asking how a finished print came out; {name} is the print's name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "outcomeNotifBody": "Answer here, or tap to see the finish photo first.",
+  "@outcomeNotifBody": {
+    "description": "Body of the outcome notification: what tapping it and its two buttons do"
   }
 }

@@ -3184,5 +3184,9 @@
   "queueSettingsOutcomeExternalTitle": "Pytaj też o wydruki spoza bambuddy",
   "queueSettingsOutcomeExternalDesc": "Wydruki uruchomione na drukarce, w Bambu Studio albo w Bambu Handy też trafiają do archiwum. Po włączeniu dostają to samo pytanie o wynik co zadania z kolejki.",
   "queueSettingsOutcomePlateClearTitle": "Uznaj wydruk bez oceny za udany po zwolnieniu płyty",
-  "queueSettingsOutcomePlateClearDesc": "Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik."
+  "queueSettingsOutcomePlateClearDesc": "Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.",
+  "notifEvtOutcome": "Pytanie o wynik",
+  "notifEvtOutcomeDesc": "Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia",
+  "outcomeNotifTitle": "Jak wyszedł wydruk {name}?",
+  "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku."
 }

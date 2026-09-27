@@ -7263,4 +7263,20 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueSettingsOutcomePlateClearDesc =>
       'Cuando se despeja la cama (manualmente o por la siguiente impresión en cola) y la pregunta sobre el resultado sigue sin responder, la impresión se registra como pieza buena. Una respuesta posterior por enlace solo muestra el resultado ya registrado.';
+
+  @override
+  String get notifEvtOutcome => 'Pregunta por el resultado';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return '¿Cómo ha salido $name?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Responda aquí o toque para ver primero la foto del acabado.';
 }

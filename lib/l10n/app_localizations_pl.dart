@@ -7287,4 +7287,20 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueSettingsOutcomePlateClearDesc =>
       'Gdy płyta zostanie oznaczona jako pusta — ręcznie albo przez start kolejnego zadania z kolejki — wydruk wciąż czekający na ocenę zostaje zapisany jako udany. Link z powiadomienia otwarty później pokaże już tylko zapisany wynik.';
+
+  @override
+  String get notifEvtOutcome => 'Pytanie o wynik';
+
+  @override
+  String get notifEvtOutcomeDesc =>
+      'Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia';
+
+  @override
+  String outcomeNotifTitle(String name) {
+    return 'Jak wyszedł wydruk $name?';
+  }
+
+  @override
+  String get outcomeNotifBody =>
+      'Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.';
 }

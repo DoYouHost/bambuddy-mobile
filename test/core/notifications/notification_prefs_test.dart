@@ -20,7 +20,11 @@ void main() {
     final decoded = NotificationPrefs.decode(
       '{"enabled":["printFinished","futureEvent"]}',
     );
-    expect(decoded.enabled, {NotifEvent.printFinished});
+    // Plus the events added since, at the default they ship with.
+    expect(decoded.enabled, {
+      NotifEvent.printFinished,
+      NotifEvent.outcomeRequest,
+    });
     // thresholds fall back to defaults
     expect(decoded.bedCooledTemp, NotificationPrefs.defaultBedCooledTemp);
   });
@@ -101,7 +105,11 @@ void main() {
     test('migration: a single pre-manifest choice survives the update', () {
       final decoded = NotificationPrefs.decode('{"enabled":["milestones"]}');
 
-      expect(decoded.enabled, {NotifEvent.milestones});
+      // The events added since keep the default they ship with.
+      expect(decoded.enabled, {
+        NotifEvent.milestones,
+        NotifEvent.outcomeRequest,
+      });
     });
 
     test('the manifest round-trips and lists every event', () {
