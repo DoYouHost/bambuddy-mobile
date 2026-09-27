@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_alert.dart';
 import 'package:bambuddy_mobile/core/notifications/outcome_prompt.dart';
+import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations_en.dart';
@@ -153,7 +154,7 @@ void main() {
     test('round-trip, and refuse anything else', () {
       expect(parseOutcomePayload(outcomePayload(82, _server)), (
         archiveId: 82,
-        server: outcomeServerTag(_server),
+        server: serverTag(_server),
       ));
       for (final other in [
         null,

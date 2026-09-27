@@ -1,5 +1,7 @@
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_stop_request.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,16 +15,45 @@ NotificationResponse _tap(String action, {String? payload}) =>
           NotificationResponseType.selectedNotificationAction,
       id: 8001,
       actionId: 'hms:$action',
-      payload: payload ?? 'hms:3:03008004:746795586',
+      payload:
+          payload ??
+          hmsPayload(
+            printerId: 3,
+            fullCode: '03008004',
+            jobId: '746795586',
+            serverUrl: _server,
+          ),
     );
 
+/// Nothing listens there: a tap that got past the checks fails its request,
+/// which the handler records and swallows.
+const _server = 'http://127.0.0.1:9';
+
 void main() {
-  setUp(() {
+  setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    // No server profile → the handler cannot build a client and stops before
-    // any network call. That is exactly the path under test here.
     SharedPreferences.setMockInitialValues({});
+    await SettingsRepository(await SharedPreferences.getInstance()).saveProfile(
+      const ServerProfile(baseUrl: _server, authMode: AuthMode.none),
+    );
     hmsStopRequests.take();
+  });
+
+  // The shell would confirm and send the stop to the server the app is on
+  // now — where printer 3 is somebody else's.
+  test('a stop tap from another server is not parked', () async {
+    await handleHmsAction(
+      _tap(
+        'STOP_PRINTING',
+        payload: hmsPayload(
+          printerId: 3,
+          fullCode: '03008004',
+          serverUrl: 'http://other:8000',
+        ),
+      ),
+    );
+
+    expect(hmsStopRequests.take(), isNull);
   });
 
   test('a stop tap is parked for the app instead of being sent', () async {

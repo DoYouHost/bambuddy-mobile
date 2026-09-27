@@ -251,6 +251,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     _monitor = PrintMonitor(
       notify,
+      serverUrl: profile.baseUrl,
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
       // `catchError`, because a throw inside the reminder used to become an

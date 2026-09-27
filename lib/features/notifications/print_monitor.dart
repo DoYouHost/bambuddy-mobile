@@ -220,6 +220,7 @@ class _OngoingKey {
 class PrintMonitor {
   PrintMonitor(
     this._notifications, {
+    required this._serverUrl,
     this._prefs = NotificationPrefs.defaults,
     AppLocalizations Function()? l10n,
     DateTimeFormats Function()? formats,
@@ -233,6 +234,10 @@ class PrintMonitor {
        _hmsDescribe = hmsDescribe;
 
   final NotificationService _notifications;
+
+  /// The server these printers belong to, tagged into the HMS payload so a
+  /// button tapped after a switch is not sent to another server's printer.
+  final String _serverUrl;
   final NotificationPrefs _prefs;
   final AppLocalizations Function() _l10n;
 
@@ -1104,7 +1109,12 @@ class PrintMonitor {
       body: l.notifErrorBody(_printerLabel(status, l), detail),
       payload: fullCode == null
           ? 'printer:$id'
-          : hmsPayload(printerId: id, fullCode: fullCode, jobId: err.jobId),
+          : hmsPayload(
+              printerId: id,
+              fullCode: fullCode,
+              jobId: err.jobId,
+              serverUrl: _serverUrl,
+            ),
       actions: fullCode == null ? null : _errorActions(err, l),
     );
   }

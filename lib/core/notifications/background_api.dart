@@ -17,6 +17,7 @@ import 'hms_actions.dart';
 import 'hms_stop_request.dart';
 import 'outcome_alert.dart';
 import 'outcome_prompt.dart';
+import 'server_tag.dart';
 import '../diagnostics/diagnostics_wiring.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
@@ -27,29 +28,32 @@ const String maintenancePerformActionId = 'maint_perform';
 /// travels in the payload, since Android hands back only these two strings.
 const String hmsActionIdPrefix = 'hms:';
 
-/// Payload of an HMS alert: `hms:<printerId>:<full_code>:<job_id>`. The job id
-/// is a bare `subtask_id` and the full code is hex, so neither can contain the
-/// separator.
+/// Payload of an HMS alert: `hms:<printerId>:<full_code>:<job_id>:<server>`.
+/// The job id is a bare `subtask_id`, the full code and the [serverTag] are
+/// hex, so none can contain the separator.
 String hmsPayload({
   required int printerId,
   required String fullCode,
+  required String serverUrl,
   String? jobId,
-}) => 'hms:$printerId:$fullCode:${jobId ?? ''}';
+}) => 'hms:$printerId:$fullCode:${jobId ?? ''}:${serverTag(serverUrl)}';
 
 /// The fault an HMS notification action refers to, or null when the payload is
-/// not one (or was written by a version that formatted it differently).
-({int printerId, String fullCode, String? jobId})? parseHmsPayload(
-  String? payload,
-) {
+/// not one — including the four-part form builds before the server tag wrote:
+/// such a notification cannot say which server's printer it means, and a
+/// resume sent to the wrong one is worse than a button that does nothing.
+({int printerId, String fullCode, String? jobId, String server})?
+parseHmsPayload(String? payload) {
   if (payload == null || !payload.startsWith('hms:')) return null;
   final parts = payload.split(':');
-  if (parts.length != 4) return null;
+  if (parts.length != 5 || parts[4].isEmpty) return null;
   final printerId = int.tryParse(parts[1]);
   if (printerId == null || parts[2].isEmpty) return null;
   return (
     printerId: printerId,
     fullCode: parts[2],
     jobId: parts[3].isEmpty ? null : parts[3],
+    server: parts[4],
   );
 }
 
@@ -163,10 +167,8 @@ Future<void> handleOutcomeAction(NotificationResponse response) async {
     items: 1,
     failedItems: 1,
     run: (prefs, api) async {
-      final profile = SettingsRepository(prefs).loadProfile();
-      if (profile == null ||
-          outcomeServerTag(profile.baseUrl) != target.server) {
-        NotifProbe.actionFailed(const OutcomeServerChanged(), items: 1);
+      if (!_isServer(prefs, target.server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: 1);
         await _dismiss(response.id, target.archiveId);
         return;
       }
@@ -244,11 +246,17 @@ Future<void> _cancel(int? id) async {
 Future<bool> _asksThisServer(String tag) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final profile = (await SettingsRepository(prefs).reloaded()).loadProfile();
-    return profile != null && outcomeServerTag(profile.baseUrl) == tag;
+    await prefs.reload();
+    return _isServer(prefs, tag);
   } on Object {
     return false;
   }
+}
+
+/// [_asksThisServer] on preferences already re-read.
+bool _isServer(SharedPreferences prefs, String tag) {
+  final profile = SettingsRepository(prefs).loadProfile();
+  return profile != null && serverTag(profile.baseUrl) == tag;
 }
 
 /// The server answered and said no; asking again would get the same answer.
@@ -277,9 +285,10 @@ class VerdictNotStored implements Exception {
   const VerdictNotStored();
 }
 
-/// An outcome button tapped after the app was switched to another server.
-class OutcomeServerChanged implements Exception {
-  const OutcomeServerChanged();
+/// A notification button tapped after the app was switched to another server
+/// than the one whose printer or print it names.
+class ServerChanged implements Exception {
+  const ServerChanged();
 }
 
 /// Runs the remediation action the user tapped on an HMS alert.
@@ -295,6 +304,9 @@ Future<void> handleHmsAction(NotificationResponse response) async {
   final fault = parseHmsPayload(response.payload);
   if (fault == null) return;
   if (action == hmsStopAction) {
+    // Checked here too: the shell confirms and sends the stop to whichever
+    // server the app is on now.
+    if (!await _asksThisServer(fault.server)) return;
     hmsStopRequests.post(
       HmsStopRequest(
         printerId: fault.printerId,
@@ -313,6 +325,11 @@ Future<void> handleHmsAction(NotificationResponse response) async {
     items: 1,
     failedItems: 1,
     run: (prefs, api) async {
+      if (!_isServer(prefs, fault.server)) {
+        NotifProbe.actionFailed(const ServerChanged(), items: 1);
+        await _cancel(response.id);
+        return;
+      }
       await PrinterCommandsRepository(api.dio).executeHmsAction(
         fault.printerId,
         printError: fault.fullCode,

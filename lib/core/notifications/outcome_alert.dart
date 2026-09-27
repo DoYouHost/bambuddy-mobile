@@ -6,12 +6,12 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/app_locale.dart';
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';
-import '../format/stable_digest.dart';
 import '../models/archive.dart';
 import 'alert_ids.dart';
 import 'finish_alert_memory.dart';
 import 'notification_prefs.dart';
 import 'notification_service.dart';
+import 'server_tag.dart';
 
 /// The outcome question as a notification (#1898): what the foreground
 /// service posts when the server's `print_confirm_request` arrives while the
@@ -29,15 +29,9 @@ int outcomeAlertId(int archiveId) =>
 /// Action ids are `outcome:<verdict wire>`; the archive travels in the payload.
 const String outcomeActionIdPrefix = 'outcome:';
 
-/// `outcome:<archiveId>:<server>`. An archive id means something only on the
-/// server that sent it, and the notification outlives a switch to another
-/// one — where the same id is somebody else's print. [serverUrl] goes in as
-/// a digest, not in the clear.
+/// `outcome:<archiveId>:<server>` — see [serverTag] for why the server.
 String outcomePayload(int archiveId, String serverUrl) =>
-    'outcome:$archiveId:${outcomeServerTag(serverUrl)}';
-
-String outcomeServerTag(String serverUrl) =>
-    stableDigest(serverUrl).toRadixString(16);
+    'outcome:$archiveId:${serverTag(serverUrl)}';
 
 /// The archive and server an outcome notification is about, or null for any
 /// other payload — including one written by a version that formatted it
