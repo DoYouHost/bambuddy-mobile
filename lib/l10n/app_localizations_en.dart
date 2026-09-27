@@ -6903,7 +6903,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ordersUngroupOrderBody =>
-      'Its items stay in the queue as separate jobs, and the order is deleted with its targets and progress.';
+      'Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.';
 
   @override
   String ordersUngrouped(int count) {
@@ -6918,8 +6918,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get ordersErrStranded =>
-      'No plate that still owes runs has a queued or finished run to copy settings from. Queue the plate once from the file.';
+  String ordersErrStranded(String plates) {
+    return 'No queued or finished run of $plates is left to copy settings from. Queue the plate once from the file, then queue the rest from here.';
+  }
 
   @override
   String get ordersErrCancelled => 'This order is cancelled.';
@@ -6931,4 +6932,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String queueInBatch(String name) {
     return 'Batch: $name';
   }
+
+  @override
+  String get orderEditTitle => 'Edit order';
+
+  @override
+  String get orderEditSave => 'Save';
+
+  @override
+  String get orderEditName => 'Name';
+
+  @override
+  String get orderEditErrName => 'The order needs a name.';
+
+  @override
+  String get orderEditDue => 'Due date';
+
+  @override
+  String get orderEditDueNone => 'No due date';
+
+  @override
+  String get orderEditDueHint =>
+      'The server can change a due date but not remove it.';
+
+  @override
+  String get orderEditProject => 'Project';
+
+  @override
+  String get orderEditProjectNone => 'No project';
+
+  @override
+  String get orderEditProjectHint =>
+      'The server can move an order to another project but not take it out of one.';
+
+  @override
+  String get orderEditNotes => 'Notes';
+
+  @override
+  String get orderEditTargets => 'Runs per plate';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Done so far: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Order saved';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'At least one plate needs a target above 0.';
+
+  @override
+  String get orderEditErrProject => 'That project no longer exists.';
+
+  @override
+  String get ordersEdit => 'Edit';
+
+  @override
+  String get ordersReopen => 'Reopen order';
+
+  @override
+  String get ordersReopened => 'Order reopened';
+
+  @override
+  String get ordersGroup => 'Group queue items';
+
+  @override
+  String get ordersGroupName => 'Batch name';
+
+  @override
+  String get ordersGroupHint =>
+      'Pick at least two waiting jobs that are not in a batch yet.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nothing to group: fewer than two waiting jobs are outside a batch.';
+
+  @override
+  String get ordersGroupConfirm => 'Group';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs grouped as $name',
+      one: '1 job grouped as $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Queued the owed runs of $plate ($name)';
+  }
+
+  @override
+  String get ordersDeleted => 'Order deleted';
 }

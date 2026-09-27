@@ -7061,7 +7061,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get ordersUngroupOrderBody =>
-      'Ses éléments restent dans la file comme travaux séparés, et la commande est supprimée avec ses objectifs et sa progression.';
+      'Ses éléments restent dans la file comme travaux séparés. Quand il n’en contient plus aucun, la commande est supprimée avec ses objectifs et sa progression ; les éléments d’autres utilisateurs que vous ne pouvez pas modifier la maintiennent.';
 
   @override
   String ordersUngrouped(int count) {
@@ -7076,8 +7076,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get ordersErrStranded =>
-      'Aucun plateau avec des impressions restantes n’a d’impression en file ou terminée dont copier les réglages. Mettez le plateau une fois en file depuis le fichier.';
+  String ordersErrStranded(String plates) {
+    return 'Pour $plates, il ne reste aucune impression en file ou terminée dont copier les réglages. Mettez le plateau une fois en file depuis le fichier, puis le reste d’ici.';
+  }
 
   @override
   String get ordersErrCancelled => 'Cette commande est annulée.';
@@ -7089,4 +7090,106 @@ class AppLocalizationsFr extends AppLocalizations {
   String queueInBatch(String name) {
     return 'Lot : $name';
   }
+
+  @override
+  String get orderEditTitle => 'Modifier la commande';
+
+  @override
+  String get orderEditSave => 'Enregistrer';
+
+  @override
+  String get orderEditName => 'Nom';
+
+  @override
+  String get orderEditErrName => 'La commande doit avoir un nom.';
+
+  @override
+  String get orderEditDue => 'Échéance';
+
+  @override
+  String get orderEditDueNone => 'Pas d’échéance';
+
+  @override
+  String get orderEditDueHint =>
+      'Le serveur peut modifier une échéance, mais pas la supprimer.';
+
+  @override
+  String get orderEditProject => 'Projet';
+
+  @override
+  String get orderEditProjectNone => 'Aucun projet';
+
+  @override
+  String get orderEditProjectHint =>
+      'Le serveur peut déplacer une commande vers un autre projet, mais pas la retirer d’un projet.';
+
+  @override
+  String get orderEditNotes => 'Notes';
+
+  @override
+  String get orderEditTargets => 'Impressions par plateau';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Baisser un objectif n’annule pas les impressions déjà en file ; 0 marque un plateau comme inutile.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Faites jusqu’ici : $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Commande enregistrée';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Au moins un plateau doit avoir un objectif supérieur à 0.';
+
+  @override
+  String get orderEditErrProject => 'Ce projet n’existe plus.';
+
+  @override
+  String get ordersEdit => 'Modifier';
+
+  @override
+  String get ordersReopen => 'Rouvrir la commande';
+
+  @override
+  String get ordersReopened => 'Commande rouverte';
+
+  @override
+  String get ordersGroup => 'Grouper des éléments de la file';
+
+  @override
+  String get ordersGroupName => 'Nom du lot';
+
+  @override
+  String get ordersGroupHint =>
+      'Choisissez au moins deux travaux en attente qui ne sont pas encore dans un lot.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Rien à grouper : moins de deux travaux en attente sont hors d’un lot.';
+
+  @override
+  String get ordersGroupConfirm => 'Grouper';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count travaux groupés sous $name',
+      one: '1 travail groupé sous $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Impressions restantes de $plate mises en file ($name)';
+  }
+
+  @override
+  String get ordersDeleted => 'Commande supprimée';
 }

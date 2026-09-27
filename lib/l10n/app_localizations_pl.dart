@@ -7011,7 +7011,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get ordersUngroupOrderBody =>
-      'Jej pozycje zostaną w kolejce jako osobne zadania, a zamówienie zostanie usunięte razem z celami i postępem.';
+      'Jej pozycje zostaną w kolejce jako osobne zadania. Gdy żadna nie zostanie w zamówieniu, zostanie ono usunięte razem z celami i postępem; pozycje innych użytkowników, których nie możesz zmieniać, utrzymają je.';
 
   @override
   String ordersUngrouped(int count) {
@@ -7028,8 +7028,9 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get ordersErrStranded =>
-      'Żadna płyta z brakującymi wydrukami nie ma zadania w kolejce ani ukończonego wydruku, z którego można skopiować ustawienia. Dodaj płytę raz z pliku.';
+  String ordersErrStranded(String plates) {
+    return 'Dla: $plates nie ma już zadania w kolejce ani ukończonego wydruku, z którego można skopiować ustawienia. Dodaj płytę raz z pliku, a resztę stąd.';
+  }
 
   @override
   String get ordersErrCancelled => 'To zamówienie jest anulowane.';
@@ -7041,4 +7042,108 @@ class AppLocalizationsPl extends AppLocalizations {
   String queueInBatch(String name) {
     return 'Partia: $name';
   }
+
+  @override
+  String get orderEditTitle => 'Edytuj zamówienie';
+
+  @override
+  String get orderEditSave => 'Zapisz';
+
+  @override
+  String get orderEditName => 'Nazwa';
+
+  @override
+  String get orderEditErrName => 'Zamówienie musi mieć nazwę.';
+
+  @override
+  String get orderEditDue => 'Termin';
+
+  @override
+  String get orderEditDueNone => 'Bez terminu';
+
+  @override
+  String get orderEditDueHint =>
+      'Serwer pozwala zmienić termin, ale nie usunąć go.';
+
+  @override
+  String get orderEditProject => 'Projekt';
+
+  @override
+  String get orderEditProjectNone => 'Bez projektu';
+
+  @override
+  String get orderEditProjectHint =>
+      'Serwer pozwala przenieść zamówienie do innego projektu, ale nie wyjąć go z projektu.';
+
+  @override
+  String get orderEditNotes => 'Notatki';
+
+  @override
+  String get orderEditTargets => 'Wydruki na płytę';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Obniżenie celu nie anuluje wydruków już dodanych do kolejki; 0 oznacza, że płyta nie jest potrzebna.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Gotowe dotąd: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Zamówienie zapisane';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Co najmniej jedna płyta musi mieć cel większy od 0.';
+
+  @override
+  String get orderEditErrProject => 'Ten projekt już nie istnieje.';
+
+  @override
+  String get ordersEdit => 'Edytuj';
+
+  @override
+  String get ordersReopen => 'Wznów zamówienie';
+
+  @override
+  String get ordersReopened => 'Zamówienie wznowione';
+
+  @override
+  String get ordersGroup => 'Grupuj zadania z kolejki';
+
+  @override
+  String get ordersGroupName => 'Nazwa partii';
+
+  @override
+  String get ordersGroupHint =>
+      'Wybierz co najmniej dwa czekające zadania, które nie są jeszcze w partii.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nie ma czego grupować: poza partiami czeka mniej niż dwa zadania.';
+
+  @override
+  String get ordersGroupConfirm => 'Grupuj';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zgrupowano $count zadania jako $name',
+      many: 'Zgrupowano $count zadań jako $name',
+      few: 'Zgrupowano $count zadania jako $name',
+      one: 'Zgrupowano 1 zadanie jako $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Dodano do kolejki brakujące wydruki płyty $plate ($name)';
+  }
+
+  @override
+  String get ordersDeleted => 'Zamówienie usunięte';
 }

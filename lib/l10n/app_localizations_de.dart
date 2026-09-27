@@ -6969,7 +6969,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ordersUngroupOrderBody =>
-      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange, und der Auftrag wird samt Zielen und Fortschritt gelöscht.';
+      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange. Sobald keiner mehr darin ist, wird der Auftrag samt Zielen und Fortschritt gelöscht; Einträge anderer Nutzer, die du nicht ändern darfst, halten ihn bestehen.';
 
   @override
   String ordersUngrouped(int count) {
@@ -6984,8 +6984,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get ordersErrStranded =>
-      'Keine Platte mit offenen Drucken hat einen eingereihten oder fertigen Druck, von dem Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein.';
+  String ordersErrStranded(String plates) {
+    return 'Für $plates gibt es keinen eingereihten oder fertigen Druck mehr, von dem Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein und den Rest von hier.';
+  }
 
   @override
   String get ordersErrCancelled => 'Dieser Auftrag ist storniert.';
@@ -6997,4 +6998,106 @@ class AppLocalizationsDe extends AppLocalizations {
   String queueInBatch(String name) {
     return 'Gruppe: $name';
   }
+
+  @override
+  String get orderEditTitle => 'Auftrag bearbeiten';
+
+  @override
+  String get orderEditSave => 'Speichern';
+
+  @override
+  String get orderEditName => 'Name';
+
+  @override
+  String get orderEditErrName => 'Der Auftrag braucht einen Namen.';
+
+  @override
+  String get orderEditDue => 'Fälligkeitsdatum';
+
+  @override
+  String get orderEditDueNone => 'Kein Fälligkeitsdatum';
+
+  @override
+  String get orderEditDueHint =>
+      'Der Server kann ein Fälligkeitsdatum ändern, aber nicht entfernen.';
+
+  @override
+  String get orderEditProject => 'Projekt';
+
+  @override
+  String get orderEditProjectNone => 'Kein Projekt';
+
+  @override
+  String get orderEditProjectHint =>
+      'Der Server kann einen Auftrag in ein anderes Projekt verschieben, aber nicht aus einem Projekt entfernen.';
+
+  @override
+  String get orderEditNotes => 'Notizen';
+
+  @override
+  String get orderEditTargets => 'Drucke pro Platte';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Ein niedrigeres Ziel storniert keine bereits eingereihten Drucke; 0 markiert eine Platte als nicht benötigt.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Bisher fertig: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Auftrag gespeichert';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Mindestens eine Platte braucht ein Ziel über 0.';
+
+  @override
+  String get orderEditErrProject => 'Dieses Projekt existiert nicht mehr.';
+
+  @override
+  String get ordersEdit => 'Bearbeiten';
+
+  @override
+  String get ordersReopen => 'Auftrag wieder öffnen';
+
+  @override
+  String get ordersReopened => 'Auftrag wieder geöffnet';
+
+  @override
+  String get ordersGroup => 'Einträge gruppieren';
+
+  @override
+  String get ordersGroupName => 'Name der Gruppe';
+
+  @override
+  String get ordersGroupHint =>
+      'Wähle mindestens zwei wartende Aufträge, die noch in keiner Gruppe sind.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nichts zu gruppieren: Weniger als zwei wartende Aufträge sind in keiner Gruppe.';
+
+  @override
+  String get ordersGroupConfirm => 'Gruppieren';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge als $name gruppiert',
+      one: '1 Auftrag als $name gruppiert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Offene Drucke von $plate eingereiht ($name)';
+  }
+
+  @override
+  String get ordersDeleted => 'Auftrag gelöscht';
 }

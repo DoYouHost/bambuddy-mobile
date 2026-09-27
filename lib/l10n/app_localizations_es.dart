@@ -6993,7 +6993,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ordersUngroupOrderBody =>
-      'Sus elementos siguen en la cola como trabajos sueltos, y el pedido se elimina con sus objetivos y su progreso.';
+      'Sus elementos siguen en la cola como trabajos sueltos. Cuando no quede ninguno en él, el pedido se elimina con sus objetivos y su progreso; los elementos de otros usuarios que no puedes cambiar lo mantienen.';
 
   @override
   String ordersUngrouped(int count) {
@@ -7008,8 +7008,9 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get ordersErrStranded =>
-      'Ninguna placa con impresiones pendientes tiene una impresión en cola o terminada de la que copiar los ajustes. Encola la placa una vez desde el archivo.';
+  String ordersErrStranded(String plates) {
+    return 'De $plates no queda ninguna impresión en cola ni terminada de la que copiar los ajustes. Encola la placa una vez desde el archivo y el resto desde aquí.';
+  }
 
   @override
   String get ordersErrCancelled => 'Este pedido está cancelado.';
@@ -7021,4 +7022,106 @@ class AppLocalizationsEs extends AppLocalizations {
   String queueInBatch(String name) {
     return 'Lote: $name';
   }
+
+  @override
+  String get orderEditTitle => 'Editar pedido';
+
+  @override
+  String get orderEditSave => 'Guardar';
+
+  @override
+  String get orderEditName => 'Nombre';
+
+  @override
+  String get orderEditErrName => 'El pedido necesita un nombre.';
+
+  @override
+  String get orderEditDue => 'Fecha límite';
+
+  @override
+  String get orderEditDueNone => 'Sin fecha límite';
+
+  @override
+  String get orderEditDueHint =>
+      'El servidor puede cambiar la fecha límite, pero no quitarla.';
+
+  @override
+  String get orderEditProject => 'Proyecto';
+
+  @override
+  String get orderEditProjectNone => 'Sin proyecto';
+
+  @override
+  String get orderEditProjectHint =>
+      'El servidor puede mover un pedido a otro proyecto, pero no sacarlo de uno.';
+
+  @override
+  String get orderEditNotes => 'Notas';
+
+  @override
+  String get orderEditTargets => 'Impresiones por placa';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Bajar un objetivo no cancela las impresiones ya en cola; un objetivo de 0 deja la placa como no necesaria.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Hechas hasta ahora: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Pedido guardado';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Al menos una placa necesita un objetivo mayor que 0.';
+
+  @override
+  String get orderEditErrProject => 'Ese proyecto ya no existe.';
+
+  @override
+  String get ordersEdit => 'Editar';
+
+  @override
+  String get ordersReopen => 'Reabrir pedido';
+
+  @override
+  String get ordersReopened => 'Pedido reabierto';
+
+  @override
+  String get ordersGroup => 'Agrupar elementos de la cola';
+
+  @override
+  String get ordersGroupName => 'Nombre del lote';
+
+  @override
+  String get ordersGroupHint =>
+      'Elige al menos dos trabajos en espera que aún no estén en un lote.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nada que agrupar: hay menos de dos trabajos en espera fuera de un lote.';
+
+  @override
+  String get ordersGroupConfirm => 'Agrupar';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count trabajos agrupados como $name',
+      one: '1 trabajo agrupado como $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Se encolaron las impresiones pendientes de $plate ($name)';
+  }
+
+  @override
+  String get ordersDeleted => 'Pedido eliminado';
 }

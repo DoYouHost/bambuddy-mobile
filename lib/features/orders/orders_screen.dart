@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
@@ -21,6 +22,7 @@ import '../common/dash_progress_bar.dart';
 import '../common/refresh_when_shown.dart';
 import '../queue/queue_providers.dart';
 import '../stats/stats_common.dart' show fmtNum;
+import 'orders_group_sheet.dart';
 import 'orders_providers.dart';
 
 /// Batch orders (#342): what was asked for against what has been produced.
@@ -57,6 +59,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.ordersTitle),
+        floatingActionButton:
+            ref.watch(batchGroupingProvider).orFalse &&
+                ref.watch(permissionProvider(Permissions.queueCreate))
+            ? FloatingActionButton.extended(
+                onPressed: () => showGroupSheet(context),
+                icon: const Icon(Icons.library_add_outlined),
+                label: Text(l10n.ordersGroup),
+              ).tagged('orders.group')
+            : null,
         body: Column(
           children: [
             Padding(
@@ -93,7 +104,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                           )
                         : ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 24),
+                            padding: const EdgeInsets.only(bottom: 88),
                             children: [
                               for (final b in batches)
                                 _OrderCard(key: ValueKey(b.id), batch: b),
@@ -118,12 +129,34 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       };
 }
 
-/// The server's refusals on this screen, in the user's words.
-final List<RefusalRule> orderRefusals = [
-  (['no queued or finished run'], (l) => l.ordersErrStranded),
-  (['cancelled batch'], (l) => l.ordersErrCancelled),
-  (['batch not found'], (l) => l.ordersErrGone),
-];
+/// A refused batch write, in the user's words.
+///
+/// A 404 is the batch gone — or someone else's, which the server will not
+/// confirm — and arrives without its detail (only a 400 or 422 keeps one), so
+/// it is told by the status. The stranded-plate 400 names the plates, and
+/// that is the part worth keeping. [rules] go before the shared ones.
+String orderRefusal(
+  AppLocalizations l10n,
+  AppApiException e, [
+  List<RefusalRule> rules = const [],
+]) {
+  if (e.statusCode == 404) return l10n.ordersErrGone;
+  final stranded = _strandedPlates.firstMatch(e.detail ?? '')?.group(1);
+  if (stranded != null) return l10n.ordersErrStranded(stranded);
+  return serverRefusal(l10n, e, [
+    ...rules,
+    (['cancelled batch'], (l) => l.ordersErrCancelled),
+  ]);
+}
+
+/// `print_batch.py::dispatch_remaining`: "Rings, Plate 3 have no queued or
+/// finished run to copy settings from. …"
+final _strandedPlates = RegExp(r'^(.+?) (?:has|have) no queued or finished');
+
+/// Batches with a request in flight, app-wide rather than per card: a filter
+/// switch or a reopened screen builds a new card, and a second dispatch sent
+/// before the first commits counts the same owed runs — and queues them twice.
+final _inFlightProvider = StateProvider<Set<int>>((_) => const {});
 
 class _OrderCard extends ConsumerStatefulWidget {
   const _OrderCard({super.key, required this.batch});
@@ -135,11 +168,6 @@ class _OrderCard extends ConsumerStatefulWidget {
 }
 
 class _OrderCardState extends ConsumerState<_OrderCard> {
-  /// One request at a time per order. Two dispatches in flight would each
-  /// count the same owed runs before either committed — and queue them twice,
-  /// which is real filament on real printers.
-  bool _busy = false;
-
   PrintBatch get _b => widget.batch;
 
   /// Sends [send], says [done] or the refusal, then re-reads the orders and
@@ -152,7 +180,11 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final providers = ProviderScope.containerOf(context, listen: false);
-    setState(() => _busy = true);
+    final inFlight = providers.read(_inFlightProvider.notifier);
+    final id = _b.id;
+    // Checked and taken in the same turn, so two taps in one frame are one.
+    if (inFlight.state.contains(id)) return;
+    inFlight.state = {...inFlight.state, id};
     try {
       final answer = await send(providers.read(batchRepositoryProvider));
       messenger.snack(done(answer));
@@ -162,10 +194,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
         e,
         l10n,
         action: action,
-        message: serverRefusal(l10n, e, orderRefusals),
+        message: orderRefusal(l10n, e),
       );
     } finally {
-      if (mounted) setState(() => _busy = false);
+      inFlight.state = {...inFlight.state}..remove(id);
     }
     providers.invalidate(batchesProvider);
     unawaited(providers.read(queueProvider.notifier).refresh());
@@ -176,7 +208,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     return _run(
       (repo) => repo.dispatch(_b.id, plate: plate),
       action: plate == null ? 'orders.dispatch' : 'orders.dispatch_plate',
-      done: (_) => l10n.ordersDispatched(_b.name),
+      done: (_) => plate == null
+          ? l10n.ordersDispatched(_b.name)
+          : l10n.ordersPlateDispatched(plateLabel(l10n, plate), _b.name),
     );
   }
 
@@ -198,6 +232,15 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     );
   }
 
+  Future<void> _reopen() {
+    final l10n = AppLocalizations.of(context);
+    return _run(
+      (repo) => repo.update(_b.id, reopen: true),
+      action: 'orders.action.reopen',
+      done: (_) => l10n.ordersReopened,
+    );
+  }
+
   Future<void> _ungroup() async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await confirmDialog(
@@ -214,7 +257,11 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     await _run(
       (repo) => repo.ungroup(_b.id),
       action: 'orders.action.ungroup',
-      done: (count) => l10n.ordersUngrouped(count as int),
+      // An order whose items have all left the queue ungroups none of them,
+      // and is deleted all the same.
+      done: (count) => count == 0 && _b.hasTargets
+          ? l10n.ordersDeleted
+          : l10n.ordersUngrouped(count as int),
     );
   }
 
@@ -223,15 +270,59 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final b = _b;
+    final busy = ref.watch(_inFlightProvider.select((s) => s.contains(b.id)));
     final open = b.status != PrintBatchStatus.cancelled;
+    // Every write but cancel looks the batch up for its owner, and answers
+    // someone else's with a 404 unless the caller may change all of them.
+    // Unknown identity: offered, and the server decides.
+    final me = ref.watch(currentUserProvider).valueOrNull;
+    final canTouch =
+        b.createdById == null ||
+        me == null ||
+        b.createdById == me.id ||
+        ref.watch(permissionProvider(Permissions.queueUpdateAll));
     final canQueue =
-        open && ref.watch(permissionProvider(Permissions.queueCreate));
+        open &&
+        canTouch &&
+        ref.watch(permissionProvider(Permissions.queueCreate));
     final canCancel =
         b.status == PrintBatchStatus.active &&
         ref.watch(permissionProvider(Permissions.queueDeleteAll));
-    final canUngroup = ref.watch(
-      permissionProvider(Permissions.queueUpdateOwn),
-    );
+    final canUpdate =
+        canTouch && ref.watch(permissionProvider(Permissions.queueUpdateOwn));
+    final orders = ref.watch(batchOrdersProvider).orFalse;
+    final actions = <_MenuAction>[
+      // PATCH, so 1.2.5.3+ even for a grouping, which has a name and notes too.
+      if (canUpdate && orders)
+        (
+          id: 'orders.action.edit',
+          icon: Icons.edit_outlined,
+          label: l10n.ordersEdit,
+          onTap: () => context.push('/orders/${b.id}/edit'),
+        ),
+      // Only an order: reopening a grouping would bring back nothing to do.
+      if (canUpdate && orders && b.hasTargets && !open)
+        (
+          id: 'orders.action.reopen',
+          icon: Icons.restart_alt,
+          label: l10n.ordersReopen,
+          onTap: _reopen,
+        ),
+      if (canCancel)
+        (
+          id: 'orders.action.cancel',
+          icon: Icons.cancel_outlined,
+          label: l10n.ordersCancel,
+          onTap: _cancel,
+        ),
+      if (canUpdate && ref.watch(batchGroupingProvider).orFalse)
+        (
+          id: 'orders.action.ungroup',
+          icon: Icons.call_split,
+          label: l10n.ordersUngroup,
+          onTap: _ungroup,
+        ),
+    ];
     final total = b.progressTotal;
 
     return logTag(
@@ -247,14 +338,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _Header(batch: b)),
-                if (canCancel || canUngroup)
-                  _OrderMenu(
-                    enabled: !_busy,
-                    canCancel: canCancel,
-                    canUngroup: canUngroup,
-                    onCancel: _cancel,
-                    onUngroup: _ungroup,
-                  ),
+                if (actions.isNotEmpty)
+                  _OrderMenu(enabled: !busy, actions: actions),
               ],
             ),
             const SizedBox(height: 10),
@@ -282,7 +367,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               ),
             ),
             const SizedBox(height: 6),
-            _Numbers(batch: b),
+            _Numbers(batch: b, open: open),
             if (open && b.stranded > 0)
               Padding(
                 padding: const EdgeInsets.only(top: 6, right: 8),
@@ -297,7 +382,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               for (final p in b.plates)
                 _PlateRow(
                   plate: p,
-                  offerDispatch: canQueue && !_busy,
+                  offerDispatch: canQueue && !busy,
                   showOwed: open,
                   onDispatch: () => _dispatch(p),
                 ),
@@ -306,7 +391,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
               Padding(
                 padding: const EdgeInsets.only(top: 10, right: 8),
                 child: FilledButton.icon(
-                  onPressed: _busy ? null : _dispatch,
+                  onPressed: busy ? null : _dispatch,
                   icon: const Icon(Icons.playlist_add),
                   label: Text(l10n.ordersDispatchRemaining(b.dispatchable)),
                 ).tagged('orders.dispatch'),
@@ -429,9 +514,12 @@ class _Header extends StatelessWidget {
 /// Counts, time and cost in one wrapped line, each shown only when it says
 /// something — as the web does.
 class _Numbers extends ConsumerWidget {
-  const _Numbers({required this.batch});
+  const _Numbers({required this.batch, required this.open});
 
   final PrintBatch batch;
+
+  /// False on a cancelled order, which owes nothing any more.
+  final bool open;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -444,11 +532,11 @@ class _Numbers extends ConsumerWidget {
       if (b.printingCount > 0) l10n.ordersPrinting(b.printingCount),
       if (b.pendingCount > 0) l10n.ordersPending(b.pendingCount),
       if (b.failedCount > 0) l10n.ordersFailed(b.failedCount),
-      if (b.hasTargets && b.remainingCount > 0)
+      if (open && b.hasTargets && b.remainingCount > 0)
         l10n.ordersOwed(b.remainingCount),
       if (b.printTimeSeconds > 0) formatSeconds(l10n, b.printTimeSeconds),
       if (b.actualCost != null) l10n.ordersCostSoFar(money(b.actualCost!)),
-      if (b.actualCost != null && (b.estimatedRemainingCost ?? 0) > 0)
+      if (open && b.actualCost != null && (b.estimatedRemainingCost ?? 0) > 0)
         l10n.ordersCostToGo(money(b.estimatedRemainingCost!)),
       if (b.filamentUsedGrams != null && b.filamentUsedGrams! > 0)
         '${fmtNum(b.filamentUsedGrams!)} g',
@@ -530,52 +618,38 @@ String plateLabel(AppLocalizations l10n, PrintBatchPlate p) =>
     p.plateName ??
     (p.plateId != null ? l10n.archivePlate(p.plateId!) : l10n.ordersWholeFile);
 
+/// One row of an order's ⋮ menu; [id] names the row in the diagnostic log.
+typedef _MenuAction = ({
+  String id,
+  IconData icon,
+  String label,
+  VoidCallback onTap,
+});
+
 class _OrderMenu extends StatelessWidget {
-  const _OrderMenu({
-    required this.enabled,
-    required this.canCancel,
-    required this.canUngroup,
-    required this.onCancel,
-    required this.onUngroup,
-  });
+  const _OrderMenu({required this.enabled, required this.actions});
 
   final bool enabled;
-  final bool canCancel;
-  final bool canUngroup;
-  final VoidCallback onCancel;
-  final VoidCallback onUngroup;
+  final List<_MenuAction> actions;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return logTag(
       'orders.actions',
-      PopupMenuButton<String>(
+      PopupMenuButton<_MenuAction>(
         enabled: enabled,
         icon: Icon(Icons.more_vert, color: t.textSecondary),
-        onSelected: (v) => v == 'cancel' ? onCancel() : onUngroup(),
+        onSelected: (a) => a.onTap(),
         itemBuilder: (_) => [
-          if (canCancel)
+          for (final a in actions)
             PopupMenuItem(
-              value: 'cancel',
+              value: a,
               child: logTag(
-                'orders.action.cancel',
+                a.id,
                 ListTile(
-                  leading: const Icon(Icons.cancel_outlined),
-                  title: Text(l10n.ordersCancel),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-          if (canUngroup)
-            PopupMenuItem(
-              value: 'ungroup',
-              child: logTag(
-                'orders.action.ungroup',
-                ListTile(
-                  leading: const Icon(Icons.call_split),
-                  title: Text(l10n.ordersUngroup),
+                  leading: Icon(a.icon),
+                  title: Text(a.label),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),

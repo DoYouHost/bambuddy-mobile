@@ -4112,7 +4112,7 @@
   "ordersUngroup": "Ungroup",
   "ordersUngroupTitle": "Ungroup this batch?",
   "ordersUngroupBody": "Its items stay in the queue as separate jobs.",
-  "ordersUngroupOrderBody": "Its items stay in the queue as separate jobs, and the order is deleted with its targets and progress.",
+  "ordersUngroupOrderBody": "Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.",
   "ordersUngrouped": "{count, plural, =0{Nothing to ungroup} =1{1 item ungrouped} other{{count} items ungrouped}}",
   "@ordersUngrouped": {
     "placeholders": {
@@ -4121,7 +4121,14 @@
       }
     }
   },
-  "ordersErrStranded": "No plate that still owes runs has a queued or finished run to copy settings from. Queue the plate once from the file.",
+  "ordersErrStranded": "No queued or finished run of {plates} is left to copy settings from. Queue the plate once from the file, then queue the rest from here.",
+  "@ordersErrStranded": {
+    "placeholders": {
+      "plates": {
+        "type": "String"
+      }
+    }
+  },
   "ordersErrCancelled": "This order is cancelled.",
   "ordersErrGone": "This order no longer exists.",
   "queueInBatch": "Batch: {name}",
@@ -4131,5 +4138,60 @@
         "type": "String"
       }
     }
-  }
+  },
+  "orderEditTitle": "Edit order",
+  "orderEditSave": "Save",
+  "orderEditName": "Name",
+  "orderEditErrName": "The order needs a name.",
+  "orderEditDue": "Due date",
+  "orderEditDueNone": "No due date",
+  "orderEditDueHint": "The server can change a due date but not remove it.",
+  "orderEditProject": "Project",
+  "orderEditProjectNone": "No project",
+  "orderEditProjectHint": "The server can move an order to another project but not take it out of one.",
+  "orderEditNotes": "Notes",
+  "orderEditTargets": "Runs per plate",
+  "orderEditTargetsHint": "Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.",
+  "orderEditPlateDone": "Done so far: {count}",
+  "@orderEditPlateDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orderEditSaved": "Order saved",
+  "orderEditErrNothingAsked": "At least one plate needs a target above 0.",
+  "orderEditErrProject": "That project no longer exists.",
+  "ordersEdit": "Edit",
+  "ordersReopen": "Reopen order",
+  "ordersReopened": "Order reopened",
+  "ordersGroup": "Group queue items",
+  "ordersGroupName": "Batch name",
+  "ordersGroupHint": "Pick at least two waiting jobs that are not in a batch yet.",
+  "ordersGroupEmpty": "Nothing to group: fewer than two waiting jobs are outside a batch.",
+  "ordersGroupConfirm": "Group",
+  "ordersGrouped": "{count, plural, =1{1 job grouped as {name}} other{{count} jobs grouped as {name}}}",
+  "@ordersGrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersPlateDispatched": "Queued the owed runs of {plate} ({name})",
+  "@ordersPlateDispatched": {
+    "placeholders": {
+      "plate": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersDeleted": "Order deleted"
 }
