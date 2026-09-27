@@ -12,6 +12,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_input.dart';
+import '../common/date_time_picker.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
 
@@ -395,9 +396,9 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
 
   Future<void> _pickDueDate() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? now,
+    final picked = await pickDate(
+      context,
+      initial: _dueDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 10),
     );

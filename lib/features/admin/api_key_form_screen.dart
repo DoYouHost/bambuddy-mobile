@@ -12,6 +12,7 @@ import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
 import 'user_messages.dart';
+import '../common/date_time_picker.dart';
 
 /// Issue a new key, or change what an existing one may do.
 ///
@@ -196,9 +197,9 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
 
   Future<void> _pickExpiry() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _expiresAt ?? now.add(const Duration(days: 90)),
+    final picked = await pickDate(
+      context,
+      initial: _expiresAt ?? now.add(const Duration(days: 90)),
       firstDate: now,
       lastDate: DateTime(now.year + 10),
     );

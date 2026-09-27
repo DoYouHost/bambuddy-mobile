@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +11,7 @@ import '../../l10n/server_refusal.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
+import '../common/date_time_picker.dart';
 import '../common/dash_input.dart';
 import '../common/dash_stepper.dart';
 import 'orders_providers.dart';
@@ -88,15 +87,11 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
 
   Future<void> _pickDue() async {
     final now = DateTime.now();
-    final seed = _due ?? now.add(const Duration(days: 7));
-    final today = DateUtils.dateOnly(now);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: seed,
-      // A due date that has already passed must still open on its own day.
-      firstDate: seed.isBefore(today) ? DateUtils.dateOnly(seed) : today,
-      // Far enough for any date the web or an integration may have stored.
-      lastDate: DateTime(math.max(now.year + 5, seed.year + 1)),
+    final picked = await pickDate(
+      context,
+      initial: _due ?? now.add(const Duration(days: 7)),
+      firstDate: now,
+      lastDate: DateTime(now.year + 5),
     );
     if (picked == null) return;
     // The end of the picked day, so "due today" is not overdue until it ends.
