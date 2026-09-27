@@ -13,6 +13,15 @@ import 'queue_form_harness.dart';
 
 const _batches = '/api/v1/queue/batches';
 
+final _twoPlates = PlateList.fromJson({
+  'plates': [
+    {'index': 1, 'name': 'Base', 'object_count': 1},
+    {'index': 2, 'name': 'Lid', 'object_count': 1},
+  ],
+  'is_multi_plate': true,
+  'has_gcode': true,
+});
+
 void main() {
   setUp(setUpQueueForm);
 
@@ -86,14 +95,7 @@ void main() {
     await tester.pumpWidget(
       queueFormScreen(
         archiveDraft(),
-        plates: PlateList.fromJson({
-          'plates': [
-            {'index': 1, 'name': 'Base', 'object_count': 1},
-            {'index': 2, 'name': 'Lid', 'object_count': 1},
-          ],
-          'is_multi_plate': true,
-          'has_gcode': true,
-        }),
+        plates: _twoPlates,
         extra: batchServer(listing: true, orders: true),
       ),
     );
@@ -113,6 +115,69 @@ void main() {
       },
     ]);
     expect(capturedBody?['plate_id'], 1);
+  });
+
+  testWidgets('a submit before the plate list loads still orders plate 1', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        plates: _twoPlates,
+        platesDelay: const Duration(seconds: 5),
+        extra: batchServer(listing: true, orders: true),
+      ),
+    );
+    await tester.pump();
+
+    await addCopies(tester, 2);
+    await tester.tap(
+      find.widgetWithText(FilledButton, formL10n.queueCreateSubmit),
+    );
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect((batchCalls.last.data as Map)['plates'], [
+      {
+        'plate_id': 1,
+        'plate_name': 'Base',
+        'quantity_target': 3,
+        'sort_order': 0,
+      },
+    ]);
+  });
+
+  testWidgets('a 502 on the order create stops too: it may have committed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        extra: batchServer(listing: true, orders: true, createStatus: 502),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await addCopies(tester, 2);
+    await submitQueueForm(tester);
+
+    expect(capturedBody, isNull);
+  });
+
+  testWidgets('a 504 on the copies keeps the order as well', (tester) async {
+    await tester.pumpWidget(
+      queueFormScreen(
+        archiveDraft(),
+        createStatus: 504,
+        extra: batchServer(listing: true, orders: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await addCopies(tester, 2);
+    await submitQueueForm(tester);
+
+    expect(batchCalls.calls, ['POST $_batches']);
   });
 
   testWidgets('a dropped order create stops: the order may exist', (
@@ -219,7 +284,7 @@ void main() {
     await tester.pumpWidget(
       queueFormScreen(
         archiveDraft(),
-        extra: batchServer(listing: true, orders: true, createStatus: 500),
+        extra: batchServer(listing: true, orders: true, createStatus: 400),
       ),
     );
     await tester.pumpAndSettle();

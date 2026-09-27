@@ -1520,8 +1520,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
     final providers = ProviderScope.containerOf(context, listen: false);
-    final plate = _orderPlate();
-    final orderId = await _createOrder(providers, plate);
+    final orderId = await _createOrder(providers);
+    final plate = _plate;
     final options = QueueCreateOptions(
       // Into an order, the item carries the plate its target names.
       plateId: orderId == null ? _plateId : plate.id,
@@ -1571,7 +1571,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       // nothing to clone them from. Ungrouping an empty one deletes it — but
       // only after a refusal: a timeout may have queued the copies, and
       // ungrouping would then unlink live runs while the user queues again.
-      if (orderId != null && e is AppApiException && e is! NetworkException) {
+      if (orderId != null && _isRefusal(e)) {
         try {
           await providers.read(batchRepositoryProvider).ungroup(orderId);
         } on AppApiException {
@@ -1582,14 +1582,30 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     }
   }
 
+  /// Whether the server answered and refused — nothing was written. A 5xx
+  /// is not one: a proxy's 502/504 can arrive after the server committed,
+  /// exactly like a dropped connection.
+  static bool _isRefusal(Object e) =>
+      e is AuthException || (e is ApiException && (e.statusCode ?? 500) < 500);
+
+  /// The plate the order's target named, for the item to carry too.
+  ({int? id, String? name}) _plate = (id: null, name: null);
+
   /// The plate an order's target names. A multi-plate file with no plate
   /// picked prints plate 1 (`plate_id or 1` server-side) and the form says
   /// so; a null target would read "whole file" on the orders screen instead.
-  ({int? id, String? name}) _orderPlate() {
+  ///
+  /// Awaited, not read: a submit before the plate list has loaded would
+  /// otherwise take a multi-plate file for a single-plate one.
+  Future<({int? id, String? name})> _orderPlate(
+    ProviderContainer providers,
+  ) async {
     final source = _plateSource;
     final plates = source == null
         ? PlateList.none
-        : ref.read(plateListProvider(source)).valueOrNull ?? PlateList.none;
+        : await providers
+              .read(plateListProvider(source).future)
+              .catchError((Object _) => PlateList.none);
     if (!plates.isMultiPlate) return (id: _plateId, name: null);
     final id = _plateId ?? 1;
     return (id: id, name: plates.byIndex(id)?.name);
@@ -1600,14 +1616,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// order is refused: the copies then go in as a plain grouping, which is
   /// what `quantity` alone makes, so the print is not lost over its tracking.
   ///
-  /// A network failure is not a refusal: the order may exist, and a grouping
-  /// queued beside it would leave it owing every copy. That one stops the
-  /// submit instead.
-  Future<int?> _createOrder(
-    ProviderContainer providers,
-    ({int? id, String? name}) plate,
-  ) async {
+  /// Only a refusal falls back; see [_isRefusal] for what is not one.
+  Future<int?> _createOrder(ProviderContainer providers) async {
     _orderRefused = false;
+    _plate = (id: _plateId, name: null);
     if (_copies < 2) return null;
     final supported = await settledGate(
       providers,
@@ -1615,6 +1627,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     ).catchError((Object _) => false);
     if (!supported) return null;
     final it = widget.item;
+    final plate = _plate = await _orderPlate(providers);
     try {
       final order = await providers
           .read(batchRepositoryProvider)
@@ -1629,9 +1642,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ],
           );
       return order.id;
-    } on NetworkException {
-      rethrow;
     } on AppApiException catch (e) {
+      // No answer, or a 5xx: the order may exist, and a grouping queued
+      // beside it would leave it owing every copy. The submit stops.
+      if (!_isRefusal(e)) rethrow;
       // Shown, as the outcome of the whole submit — see [_submit].
       recordActionFailure(e, action: 'queue_create.order', shown: true);
       _orderRefused = true;

@@ -152,6 +152,7 @@ Widget queueFormScreen(
   List<NozzleRackSlot>? nozzleRack,
   List<AvailableFilament> availableFilaments = const [],
   int createStatus = 200,
+  Duration? platesDelay,
   List<Override> extra = const [],
 }) => ProviderScope(
   overrides: [
@@ -163,7 +164,10 @@ Widget queueFormScreen(
     sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
     triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
     gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
-    plateListProvider.overrideWith((ref, arg) async => plates),
+    plateListProvider.overrideWith((ref, arg) async {
+      if (platesDelay != null) await Future<void>.delayed(platesDelay);
+      return plates;
+    }),
     filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
     printerStatusOnceProvider.overrideWith(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),

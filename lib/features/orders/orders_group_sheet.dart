@@ -71,8 +71,6 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
       final batch = await providers
           .read(batchRepositoryProvider)
           .create(name: _name.text.trim(), itemIds: _picked.toList());
-      providers.invalidate(batchesProvider);
-      unawaited(providers.read(queueProvider.notifier).refresh());
       // The items the batch holds now, not `quantity`, which the server
       // floors at 1: a pick that started or was grouped elsewhere since this
       // list was read is skipped, and all of them can be.
@@ -86,6 +84,8 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
           // The outcome below is what the user has to hear.
         }
       }
+      providers.invalidate(batchesProvider);
+      unawaited(providers.read(queueProvider.notifier).refresh());
       messenger.snack(
         grouped == 0
             ? l10n.ordersGroupedNone
