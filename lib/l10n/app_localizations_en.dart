@@ -6764,4 +6764,297 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Collapse card';
+
+  @override
+  String get ordersTitle => 'Batch orders';
+
+  @override
+  String get ordersEmpty => 'No batch orders with this status.';
+
+  @override
+  String get ordersFilterActive => 'Active';
+
+  @override
+  String get ordersFilterCompleted => 'Completed';
+
+  @override
+  String get ordersFilterCancelled => 'Cancelled';
+
+  @override
+  String get ordersFilterAll => 'All';
+
+  @override
+  String get ordersStatusActive => 'Active';
+
+  @override
+  String get ordersStatusCompleted => 'Completed';
+
+  @override
+  String get ordersStatusCancelled => 'Cancelled';
+
+  @override
+  String get ordersStatusUnknown => 'Unknown status';
+
+  @override
+  String get ordersGroupingOnly => 'Grouping only';
+
+  @override
+  String ordersBy(String name) {
+    return 'Added by $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Due on $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed of $total done';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count printing';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count waiting';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    return '$count failed';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count still owed';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return '$amount so far';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return '$amount to go';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return 'Cannot queue $runs of the $owed runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.';
+  }
+
+  @override
+  String get ordersStrandedPlate => 'Nothing left to copy settings from';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed of $target done';
+  }
+
+  @override
+  String get ordersWholeFile => 'Whole file';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Queue $count remaining runs',
+      one: 'Queue 1 remaining run',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Queue owed';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Queued the remaining runs of $name';
+  }
+
+  @override
+  String get ordersCancel => 'Cancel order';
+
+  @override
+  String get ordersCancelTitle => 'Cancel this order?';
+
+  @override
+  String get ordersCancelBody =>
+      'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.';
+
+  @override
+  String get ordersCancelled => 'Order cancelled';
+
+  @override
+  String get ordersUngroup => 'Ungroup';
+
+  @override
+  String get ordersUngroupTitle => 'Ungroup this batch?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Its items stay in the queue as separate jobs.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items ungrouped',
+      one: '1 item ungrouped',
+      zero: 'Nothing to ungroup',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersErrStranded(String plates) {
+    return 'No queued or finished run of $plates is left to copy settings from. Queue the plate once from the file, then queue the rest from here.';
+  }
+
+  @override
+  String get ordersErrCancelled => 'This order is cancelled.';
+
+  @override
+  String get ordersErrGone => 'This order no longer exists.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Batch: $name';
+  }
+
+  @override
+  String get orderEditTitle => 'Edit order';
+
+  @override
+  String get orderEditSave => 'Save';
+
+  @override
+  String get orderEditName => 'Name';
+
+  @override
+  String get orderEditErrName => 'The order needs a name.';
+
+  @override
+  String get orderEditDue => 'Due date';
+
+  @override
+  String get orderEditDueNone => 'No due date';
+
+  @override
+  String get orderEditDueHint =>
+      'The server can change a due date but not remove it.';
+
+  @override
+  String get orderEditProject => 'Project';
+
+  @override
+  String get orderEditProjectNone => 'No project';
+
+  @override
+  String get orderEditProjectHint =>
+      'The server can move an order to another project but not take it out of one.';
+
+  @override
+  String get orderEditNotes => 'Notes';
+
+  @override
+  String get orderEditTargets => 'Runs per plate';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Done so far: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Order saved';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'At least one plate needs a target above 0.';
+
+  @override
+  String get orderEditErrProject => 'That project no longer exists.';
+
+  @override
+  String get ordersEdit => 'Edit';
+
+  @override
+  String get ordersReopen => 'Reopen order';
+
+  @override
+  String get ordersReopened => 'Order reopened';
+
+  @override
+  String get ordersGroup => 'Group queue items';
+
+  @override
+  String get ordersGroupName => 'Batch name';
+
+  @override
+  String get ordersGroupHint =>
+      'Pick at least two waiting jobs that are not in a batch yet.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nothing to group: fewer than two waiting jobs are outside a batch.';
+
+  @override
+  String get ordersGroupConfirm => 'Group';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jobs grouped as $name',
+      one: '1 job grouped as $name',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Queued the owed runs of $plate ($name)';
+  }
+
+  @override
+  String get queueEditCopiesLabel => 'How many times to print it';
+
+  @override
+  String get queueEditCopies => 'Copies';
+
+  @override
+  String get queueEditCopiesHint => 'The copies are queued as one batch.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'This becomes an order: a failed copy can be queued again from Batch orders.';
+
+  @override
+  String get ordersGroupedNone => 'No job could be grouped.';
+
+  @override
+  String get orderEditTargetLess => 'One fewer run';
+
+  @override
+  String get orderEditTargetMore => 'One more run';
+
+  @override
+  String get queueEditOrderRefused =>
+      'The order could not be made, so the copies were queued as a plain batch.';
 }

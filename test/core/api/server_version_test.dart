@@ -191,6 +191,18 @@ void main() {
     );
   });
 
+  test('grouping by hand arrives in 0.2.4.8, in the old numbering', () {
+    expect(parse('0.2.4.7').supports(ServerFeature.batchGrouping), isFalse);
+    expect(parse('0.2.4.8').supports(ServerFeature.batchGrouping), isTrue);
+    expect(parse('1.2.5').supports(ServerFeature.batchGrouping), isTrue);
+  });
+
+  test('orders with per-plate targets arrive in 1.2.5.3 (#342)', () {
+    expect(parse('1.2.5.2').supports(ServerFeature.batchOrders), isFalse);
+    expect(parse('1.2.5.3').supports(ServerFeature.batchOrders), isTrue);
+    expect(parse('0.2.4.9').supports(ServerFeature.batchOrders), isFalse);
+  });
+
   test('a bulk add may name its target from 1.2.5.6 (#3112)', () {
     expect(
       parse('1.2.5.5').supports(ServerFeature.libraryQueueTarget),

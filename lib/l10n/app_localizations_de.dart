@@ -6829,4 +6829,299 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get printerCardCollapse => 'Karte einklappen';
+
+  @override
+  String get ordersTitle => 'Sammelaufträge';
+
+  @override
+  String get ordersEmpty => 'Keine Sammelaufträge mit diesem Status.';
+
+  @override
+  String get ordersFilterActive => 'Aktiv';
+
+  @override
+  String get ordersFilterCompleted => 'Abgeschlossen';
+
+  @override
+  String get ordersFilterCancelled => 'Storniert';
+
+  @override
+  String get ordersFilterAll => 'Alle';
+
+  @override
+  String get ordersStatusActive => 'Aktiv';
+
+  @override
+  String get ordersStatusCompleted => 'Abgeschlossen';
+
+  @override
+  String get ordersStatusCancelled => 'Storniert';
+
+  @override
+  String get ordersStatusUnknown => 'Unbekannter Status';
+
+  @override
+  String get ordersGroupingOnly => 'Nur Gruppierung';
+
+  @override
+  String ordersBy(String name) {
+    return 'Hinzugefügt von $name';
+  }
+
+  @override
+  String ordersDue(String date) {
+    return 'Fällig am $date';
+  }
+
+  @override
+  String ordersProgress(int completed, int total) {
+    return '$completed von $total fertig';
+  }
+
+  @override
+  String ordersPrinting(int count) {
+    return '$count im Druck';
+  }
+
+  @override
+  String ordersPending(int count) {
+    return '$count wartend';
+  }
+
+  @override
+  String ordersFailed(int count) {
+    return '$count fehlgeschlagen';
+  }
+
+  @override
+  String ordersOwed(int count) {
+    return '$count noch offen';
+  }
+
+  @override
+  String ordersCostSoFar(String amount) {
+    return 'Bisher $amount';
+  }
+
+  @override
+  String ordersCostToGo(String amount) {
+    return 'Noch $amount';
+  }
+
+  @override
+  String ordersStrandedNotice(int runs, int owed) {
+    return '$runs der $owed offenen Drucke können nicht eingereiht werden: Für ihre Platte gibt es keinen eingereihten oder fertigen Druck mehr, von dem die Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein oder storniere den Auftrag.';
+  }
+
+  @override
+  String get ordersStrandedPlate =>
+      'Nichts mehr, von dem Einstellungen übernommen werden können';
+
+  @override
+  String ordersPlateProgress(int completed, int target) {
+    return '$completed von $target fertig';
+  }
+
+  @override
+  String get ordersWholeFile => 'Ganze Datei';
+
+  @override
+  String ordersDispatchRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count offene Drucke einreihen',
+      one: '1 offenen Druck einreihen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersDispatchPlate => 'Offene einreihen';
+
+  @override
+  String ordersDispatched(String name) {
+    return 'Offene Drucke von $name eingereiht';
+  }
+
+  @override
+  String get ordersCancel => 'Auftrag stornieren';
+
+  @override
+  String get ordersCancelTitle => 'Diesen Auftrag stornieren?';
+
+  @override
+  String get ordersCancelBody =>
+      'Noch wartende Drucke werden storniert, und der Auftrag verlangt nicht mehr, was noch nicht gefertigt ist. Ein bereits laufender Druck läuft weiter.';
+
+  @override
+  String get ordersCancelled => 'Auftrag storniert';
+
+  @override
+  String get ordersUngroup => 'Gruppierung aufheben';
+
+  @override
+  String get ordersUngroupTitle => 'Gruppierung aufheben?';
+
+  @override
+  String get ordersUngroupBody =>
+      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange.';
+
+  @override
+  String get ordersUngroupOrderBody =>
+      'Die Einträge bleiben als einzelne Aufträge in der Warteschlange. Sobald keiner mehr darin ist, wird der Auftrag samt Zielen und Fortschritt gelöscht; Einträge anderer Nutzer, die du nicht ändern darfst, halten ihn bestehen.';
+
+  @override
+  String ordersUngrouped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge gelöst',
+      one: '1 Eintrag gelöst',
+      zero: 'Nichts aufzulösen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersErrStranded(String plates) {
+    return 'Für $plates gibt es keinen eingereihten oder fertigen Druck mehr, von dem Einstellungen übernommen werden können. Reihe die Platte einmal aus der Datei ein und den Rest von hier.';
+  }
+
+  @override
+  String get ordersErrCancelled => 'Dieser Auftrag ist storniert.';
+
+  @override
+  String get ordersErrGone => 'Dieser Auftrag existiert nicht mehr.';
+
+  @override
+  String queueInBatch(String name) {
+    return 'Gruppe: $name';
+  }
+
+  @override
+  String get orderEditTitle => 'Auftrag bearbeiten';
+
+  @override
+  String get orderEditSave => 'Speichern';
+
+  @override
+  String get orderEditName => 'Name';
+
+  @override
+  String get orderEditErrName => 'Der Auftrag braucht einen Namen.';
+
+  @override
+  String get orderEditDue => 'Fälligkeitsdatum';
+
+  @override
+  String get orderEditDueNone => 'Kein Fälligkeitsdatum';
+
+  @override
+  String get orderEditDueHint =>
+      'Der Server kann ein Fälligkeitsdatum ändern, aber nicht entfernen.';
+
+  @override
+  String get orderEditProject => 'Projekt';
+
+  @override
+  String get orderEditProjectNone => 'Kein Projekt';
+
+  @override
+  String get orderEditProjectHint =>
+      'Der Server kann einen Auftrag in ein anderes Projekt verschieben, aber nicht aus einem Projekt entfernen.';
+
+  @override
+  String get orderEditNotes => 'Notizen';
+
+  @override
+  String get orderEditTargets => 'Drucke pro Platte';
+
+  @override
+  String get orderEditTargetsHint =>
+      'Ein niedrigeres Ziel storniert keine bereits eingereihten Drucke; 0 markiert eine Platte als nicht benötigt.';
+
+  @override
+  String orderEditPlateDone(int count) {
+    return 'Bisher fertig: $count';
+  }
+
+  @override
+  String get orderEditSaved => 'Auftrag gespeichert';
+
+  @override
+  String get orderEditErrNothingAsked =>
+      'Mindestens eine Platte braucht ein Ziel über 0.';
+
+  @override
+  String get orderEditErrProject => 'Dieses Projekt existiert nicht mehr.';
+
+  @override
+  String get ordersEdit => 'Bearbeiten';
+
+  @override
+  String get ordersReopen => 'Auftrag wieder öffnen';
+
+  @override
+  String get ordersReopened => 'Auftrag wieder geöffnet';
+
+  @override
+  String get ordersGroup => 'Einträge gruppieren';
+
+  @override
+  String get ordersGroupName => 'Name der Gruppe';
+
+  @override
+  String get ordersGroupHint =>
+      'Wähle mindestens zwei wartende Aufträge, die noch in keiner Gruppe sind.';
+
+  @override
+  String get ordersGroupEmpty =>
+      'Nichts zu gruppieren: Weniger als zwei wartende Aufträge sind in keiner Gruppe.';
+
+  @override
+  String get ordersGroupConfirm => 'Gruppieren';
+
+  @override
+  String ordersGrouped(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Aufträge als $name gruppiert',
+      one: '1 Auftrag als $name gruppiert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ordersPlateDispatched(String plate, String name) {
+    return 'Offene Drucke von $plate eingereiht ($name)';
+  }
+
+  @override
+  String get queueEditCopiesLabel => 'Wie oft drucken';
+
+  @override
+  String get queueEditCopies => 'Kopien';
+
+  @override
+  String get queueEditCopiesHint =>
+      'Die Kopien werden als eine Gruppe eingereiht.';
+
+  @override
+  String get queueEditCopiesOrder =>
+      'Daraus wird ein Sammelauftrag: Eine fehlgeschlagene Kopie lässt sich unter Sammelaufträge erneut einreihen.';
+
+  @override
+  String get ordersGroupedNone => 'Kein Auftrag ließ sich gruppieren.';
+
+  @override
+  String get orderEditTargetLess => 'Ein Druck weniger';
+
+  @override
+  String get orderEditTargetMore => 'Ein Druck mehr';
+
+  @override
+  String get queueEditOrderRefused =>
+      'Der Sammelauftrag ließ sich nicht anlegen, daher wurden die Kopien als einfache Gruppe eingereiht.';
 }

@@ -11419,6 +11419,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse card'**
   String get printerCardCollapse;
+
+  /// No description provided for @ordersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch orders'**
+  String get ordersTitle;
+
+  /// No description provided for @ordersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No batch orders with this status.'**
+  String get ordersEmpty;
+
+  /// No description provided for @ordersFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get ordersFilterActive;
+
+  /// No description provided for @ordersFilterCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get ordersFilterCompleted;
+
+  /// No description provided for @ordersFilterCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get ordersFilterCancelled;
+
+  /// No description provided for @ordersFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get ordersFilterAll;
+
+  /// No description provided for @ordersStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get ordersStatusActive;
+
+  /// No description provided for @ordersStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get ordersStatusCompleted;
+
+  /// No description provided for @ordersStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get ordersStatusCancelled;
+
+  /// No description provided for @ordersStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown status'**
+  String get ordersStatusUnknown;
+
+  /// No description provided for @ordersGroupingOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouping only'**
+  String get ordersGroupingOnly;
+
+  /// No description provided for @ordersBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by {name}'**
+  String ordersBy(String name);
+
+  /// No description provided for @ordersDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due on {date}'**
+  String ordersDue(String date);
+
+  /// No description provided for @ordersProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} done'**
+  String ordersProgress(int completed, int total);
+
+  /// No description provided for @ordersPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} printing'**
+  String ordersPrinting(int count);
+
+  /// No description provided for @ordersPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting'**
+  String ordersPending(int count);
+
+  /// No description provided for @ordersFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String ordersFailed(int count);
+
+  /// No description provided for @ordersOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} still owed'**
+  String ordersOwed(int count);
+
+  /// No description provided for @ordersCostSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} so far'**
+  String ordersCostSoFar(String amount);
+
+  /// No description provided for @ordersCostToGo.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} to go'**
+  String ordersCostToGo(String amount);
+
+  /// No description provided for @ordersStrandedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot queue {runs} of the {owed} runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.'**
+  String ordersStrandedNotice(int runs, int owed);
+
+  /// No description provided for @ordersStrandedPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing left to copy settings from'**
+  String get ordersStrandedPlate;
+
+  /// No description provided for @ordersPlateProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {target} done'**
+  String ordersPlateProgress(int completed, int target);
+
+  /// No description provided for @ordersWholeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole file'**
+  String get ordersWholeFile;
+
+  /// No description provided for @ordersDispatchRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Queue 1 remaining run} other{Queue {count} remaining runs}}'**
+  String ordersDispatchRemaining(int count);
+
+  /// No description provided for @ordersDispatchPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue owed'**
+  String get ordersDispatchPlate;
+
+  /// No description provided for @ordersDispatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued the remaining runs of {name}'**
+  String ordersDispatched(String name);
+
+  /// No description provided for @ordersCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel order'**
+  String get ordersCancel;
+
+  /// No description provided for @ordersCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this order?'**
+  String get ordersCancelTitle;
+
+  /// No description provided for @ordersCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.'**
+  String get ordersCancelBody;
+
+  /// No description provided for @ordersCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Order cancelled'**
+  String get ordersCancelled;
+
+  /// No description provided for @ordersUngroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup'**
+  String get ordersUngroup;
+
+  /// No description provided for @ordersUngroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup this batch?'**
+  String get ordersUngroupTitle;
+
+  /// No description provided for @ordersUngroupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its items stay in the queue as separate jobs.'**
+  String get ordersUngroupBody;
+
+  /// No description provided for @ordersUngroupOrderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.'**
+  String get ordersUngroupOrderBody;
+
+  /// No description provided for @ordersUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing to ungroup} =1{1 item ungrouped} other{{count} items ungrouped}}'**
+  String ordersUngrouped(int count);
+
+  /// No description provided for @ordersErrStranded.
+  ///
+  /// In en, this message translates to:
+  /// **'No queued or finished run of {plates} is left to copy settings from. Queue the plate once from the file, then queue the rest from here.'**
+  String ordersErrStranded(String plates);
+
+  /// No description provided for @ordersErrCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This order is cancelled.'**
+  String get ordersErrCancelled;
+
+  /// No description provided for @ordersErrGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This order no longer exists.'**
+  String get ordersErrGone;
+
+  /// No description provided for @queueInBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch: {name}'**
+  String queueInBatch(String name);
+
+  /// No description provided for @orderEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit order'**
+  String get orderEditTitle;
+
+  /// No description provided for @orderEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get orderEditSave;
+
+  /// No description provided for @orderEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get orderEditName;
+
+  /// No description provided for @orderEditErrName.
+  ///
+  /// In en, this message translates to:
+  /// **'The order needs a name.'**
+  String get orderEditErrName;
+
+  /// No description provided for @orderEditDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get orderEditDue;
+
+  /// No description provided for @orderEditDueNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No due date'**
+  String get orderEditDueNone;
+
+  /// No description provided for @orderEditDueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The server can change a due date but not remove it.'**
+  String get orderEditDueHint;
+
+  /// No description provided for @orderEditProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get orderEditProject;
+
+  /// No description provided for @orderEditProjectNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No project'**
+  String get orderEditProjectNone;
+
+  /// No description provided for @orderEditProjectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The server can move an order to another project but not take it out of one.'**
+  String get orderEditProjectHint;
+
+  /// No description provided for @orderEditNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get orderEditNotes;
+
+  /// No description provided for @orderEditTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs per plate'**
+  String get orderEditTargets;
+
+  /// No description provided for @orderEditTargetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.'**
+  String get orderEditTargetsHint;
+
+  /// No description provided for @orderEditPlateDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done so far: {count}'**
+  String orderEditPlateDone(int count);
+
+  /// No description provided for @orderEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order saved'**
+  String get orderEditSaved;
+
+  /// No description provided for @orderEditErrNothingAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one plate needs a target above 0.'**
+  String get orderEditErrNothingAsked;
+
+  /// No description provided for @orderEditErrProject.
+  ///
+  /// In en, this message translates to:
+  /// **'That project no longer exists.'**
+  String get orderEditErrProject;
+
+  /// No description provided for @ordersEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get ordersEdit;
+
+  /// No description provided for @ordersReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen order'**
+  String get ordersReopen;
+
+  /// No description provided for @ordersReopened.
+  ///
+  /// In en, this message translates to:
+  /// **'Order reopened'**
+  String get ordersReopened;
+
+  /// No description provided for @ordersGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group queue items'**
+  String get ordersGroup;
+
+  /// No description provided for @ordersGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch name'**
+  String get ordersGroupName;
+
+  /// No description provided for @ordersGroupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least two waiting jobs that are not in a batch yet.'**
+  String get ordersGroupHint;
+
+  /// No description provided for @ordersGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to group: fewer than two waiting jobs are outside a batch.'**
+  String get ordersGroupEmpty;
+
+  /// No description provided for @ordersGroupConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get ordersGroupConfirm;
+
+  /// No description provided for @ordersGrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 job grouped as {name}} other{{count} jobs grouped as {name}}}'**
+  String ordersGrouped(int count, String name);
+
+  /// No description provided for @ordersPlateDispatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued the owed runs of {plate} ({name})'**
+  String ordersPlateDispatched(String plate, String name);
+
+  /// No description provided for @queueEditCopiesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How many times to print it'**
+  String get queueEditCopiesLabel;
+
+  /// No description provided for @queueEditCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get queueEditCopies;
+
+  /// No description provided for @queueEditCopiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The copies are queued as one batch.'**
+  String get queueEditCopiesHint;
+
+  /// No description provided for @queueEditCopiesOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'This becomes an order: a failed copy can be queued again from Batch orders.'**
+  String get queueEditCopiesOrder;
+
+  /// No description provided for @ordersGroupedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No job could be grouped.'**
+  String get ordersGroupedNone;
+
+  /// No description provided for @orderEditTargetLess.
+  ///
+  /// In en, this message translates to:
+  /// **'One fewer run'**
+  String get orderEditTargetLess;
+
+  /// No description provided for @orderEditTargetMore.
+  ///
+  /// In en, this message translates to:
+  /// **'One more run'**
+  String get orderEditTargetMore;
+
+  /// No description provided for @queueEditOrderRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The order could not be made, so the copies were queued as a plain batch.'**
+  String get queueEditOrderRefused;
 }
 
 class _AppLocalizationsDelegate

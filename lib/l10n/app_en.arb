@@ -3977,5 +3977,228 @@
   "collapsePrinterCardsTitle": "Collapsed printer cards",
   "collapsePrinterCardsDesc": "Cards open showing only the name, status and print progress. Any card can still be expanded.",
   "printerCardExpand": "Expand card",
-  "printerCardCollapse": "Collapse card"
+  "printerCardCollapse": "Collapse card",
+  "ordersTitle": "Batch orders",
+  "ordersEmpty": "No batch orders with this status.",
+  "ordersFilterActive": "Active",
+  "ordersFilterCompleted": "Completed",
+  "ordersFilterCancelled": "Cancelled",
+  "ordersFilterAll": "All",
+  "ordersStatusActive": "Active",
+  "ordersStatusCompleted": "Completed",
+  "ordersStatusCancelled": "Cancelled",
+  "ordersStatusUnknown": "Unknown status",
+  "ordersGroupingOnly": "Grouping only",
+  "ordersBy": "Added by {name}",
+  "@ordersBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersDue": "Due on {date}",
+  "@ordersDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersProgress": "{completed} of {total} done",
+  "@ordersProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersPrinting": "{count} printing",
+  "@ordersPrinting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersPending": "{count} waiting",
+  "@ordersPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersFailed": "{count} failed",
+  "@ordersFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersOwed": "{count} still owed",
+  "@ordersOwed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersCostSoFar": "{amount} so far",
+  "@ordersCostSoFar": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersCostToGo": "{amount} to go",
+  "@ordersCostToGo": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersStrandedNotice": "Cannot queue {runs} of the {owed} runs still owed: their plate has no queued or finished run left to copy settings from. Queue that plate once from the file, or cancel the order.",
+  "@ordersStrandedNotice": {
+    "placeholders": {
+      "runs": {
+        "type": "int"
+      },
+      "owed": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersStrandedPlate": "Nothing left to copy settings from",
+  "ordersPlateProgress": "{completed} of {target} done",
+  "@ordersPlateProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersWholeFile": "Whole file",
+  "ordersDispatchRemaining": "{count, plural, =1{Queue 1 remaining run} other{Queue {count} remaining runs}}",
+  "@ordersDispatchRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersDispatchPlate": "Queue owed",
+  "ordersDispatched": "Queued the remaining runs of {name}",
+  "@ordersDispatched": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersCancel": "Cancel order",
+  "ordersCancelTitle": "Cancel this order?",
+  "ordersCancelBody": "Runs still waiting in the queue are cancelled, and the order stops asking for what it has not produced. A print that is already running keeps going.",
+  "ordersCancelled": "Order cancelled",
+  "ordersUngroup": "Ungroup",
+  "ordersUngroupTitle": "Ungroup this batch?",
+  "ordersUngroupBody": "Its items stay in the queue as separate jobs.",
+  "ordersUngroupOrderBody": "Its items stay in the queue as separate jobs. Once none of them is left in it, the order is deleted with its targets and progress; items of other users you may not change keep it alive.",
+  "ordersUngrouped": "{count, plural, =0{Nothing to ungroup} =1{1 item ungrouped} other{{count} items ungrouped}}",
+  "@ordersUngrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ordersErrStranded": "No queued or finished run of {plates} is left to copy settings from. Queue the plate once from the file, then queue the rest from here.",
+  "@ordersErrStranded": {
+    "placeholders": {
+      "plates": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersErrCancelled": "This order is cancelled.",
+  "ordersErrGone": "This order no longer exists.",
+  "queueInBatch": "Batch: {name}",
+  "@queueInBatch": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "orderEditTitle": "Edit order",
+  "orderEditSave": "Save",
+  "orderEditName": "Name",
+  "orderEditErrName": "The order needs a name.",
+  "orderEditDue": "Due date",
+  "orderEditDueNone": "No due date",
+  "orderEditDueHint": "The server can change a due date but not remove it.",
+  "orderEditProject": "Project",
+  "orderEditProjectNone": "No project",
+  "orderEditProjectHint": "The server can move an order to another project but not take it out of one.",
+  "orderEditNotes": "Notes",
+  "orderEditTargets": "Runs per plate",
+  "orderEditTargetsHint": "Lowering a target does not cancel runs already queued; 0 marks a plate as not needed.",
+  "orderEditPlateDone": "Done so far: {count}",
+  "@orderEditPlateDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orderEditSaved": "Order saved",
+  "orderEditErrNothingAsked": "At least one plate needs a target above 0.",
+  "orderEditErrProject": "That project no longer exists.",
+  "ordersEdit": "Edit",
+  "ordersReopen": "Reopen order",
+  "ordersReopened": "Order reopened",
+  "ordersGroup": "Group queue items",
+  "ordersGroupName": "Batch name",
+  "ordersGroupHint": "Pick at least two waiting jobs that are not in a batch yet.",
+  "ordersGroupEmpty": "Nothing to group: fewer than two waiting jobs are outside a batch.",
+  "ordersGroupConfirm": "Group",
+  "ordersGrouped": "{count, plural, =1{1 job grouped as {name}} other{{count} jobs grouped as {name}}}",
+  "@ordersGrouped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersPlateDispatched": "Queued the owed runs of {plate} ({name})",
+  "@ordersPlateDispatched": {
+    "placeholders": {
+      "plate": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queueEditCopiesLabel": "How many times to print it",
+  "queueEditCopies": "Copies",
+  "queueEditCopiesHint": "The copies are queued as one batch.",
+  "queueEditCopiesOrder": "This becomes an order: a failed copy can be queued again from Batch orders.",
+  "ordersGroupedNone": "No job could be grouped.",
+  "orderEditTargetLess": "One fewer run",
+  "orderEditTargetMore": "One more run",
+  "queueEditOrderRefused": "The order could not be made, so the copies were queued as a plain batch."
 }

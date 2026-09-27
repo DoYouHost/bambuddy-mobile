@@ -425,6 +425,27 @@ abstract final class Endpoints {
   /// `printing`). Present and unchanged since server v0.1.2.
   static String queueItemStop(int itemId) => '$apiPrefix/queue/$itemId/stop';
 
+  /// `GET` since server v0.2.3, `POST` (group by hand) since v0.2.4.8; orders
+  /// with per-plate targets, `PATCH` and [queueBatchDispatch] since 1.2.5.3
+  /// (#342). The list looks no row up, so its 404 is the route missing — and
+  /// before v0.2.3 the path falls through to `GET /queue/{item_id}`, a 422.
+  static const queueBatches = '$apiPrefix/queue/batches';
+
+  /// `GET` / `PATCH` / `DELETE` — the last one cancels the pending items and
+  /// marks the batch cancelled, it does not remove it. A batch that exists but
+  /// is not the caller's is a 404 rather than a 403; a missing permission is
+  /// still a 403.
+  static String queueBatch(int batchId) => '$apiPrefix/queue/batches/$batchId';
+
+  /// Queues the runs an order still owes, cloned from its latest item per plate.
+  static String queueBatchDispatch(int batchId) =>
+      '$apiPrefix/queue/batches/$batchId/dispatch';
+
+  /// Clears `batch_id` from the members and deletes the batch row; the items
+  /// stay queued. Since v0.2.4.8.
+  static String queueBatchUngroup(int batchId) =>
+      '$apiPrefix/queue/batches/$batchId/ungroup';
+
   // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
   static const archivesSearch = '$apiPrefix/archives/search';

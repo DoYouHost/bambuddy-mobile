@@ -41,10 +41,11 @@ decide.
 - Most rows below landed *inside* the 1.2.6 beta cycle, which the numeric base
   cannot split any finer. Where that matters, the row says what being early
   costs.
-- **One row is in the old numbering** (`printerSensorHistory`, `0.2.4.8`). The
-  project renumbered the 0.2.5 cycle to 1.2.5 partway through; every 1.x
-  outranks 0.2.4.8, so a single row covers both schemes. Written as `(1, 2, 4,
-  8)` it would hide the chart on exactly the 0.2.4.x servers that serve the
+- **Three rows are in the old numbering** (`printerSensorHistory` and
+  `batchGrouping` at `0.2.4.8`, `batchListing` at `0.2.3`). The project
+  renumbered the 0.2.5 cycle to 1.2.5 partway through; every 1.x outranks
+  0.2.x, so a single row covers both schemes. Written as `(1, 2, 4, 8)` the
+  heater row would hide the chart on exactly the 0.2.4.x servers that serve the
   route.
 - An unmapped feature answers **no**. That is a programming error —
   `server_version_test.dart` fails on a missing row — but answering no keeps the
@@ -202,6 +203,44 @@ listing, which is defaulted from that commit on and absent before it, so the
 row only speaks before the first listing — and the details entry lives in the
 per-file sheet, which cannot open before one. Being early would cost a screen
 whose photo routes 404 and whose link is silently dropped by `FileUpdate`.
+
+### batchOrders — 1.2.5.3 (server #342)
+
+Orders: per-plate targets on `/queue/batches`, `PATCH` and `/dispatch` on one
+batch. The routes themselves are older — see `batchListing` and
+`batchGrouping` below.
+`BatchRepository` observes `has_targets` on any batch row, which the response
+schema defaults from 1.2.5.3 on, so an observation outranks the row as soon as
+one batch exists. Being early costs the worst kind of drop on create:
+`PrintBatchCreate` ignores `plates` / `due_date` / `notes` / `project_id`, and
+the "order" comes back as a grouping that owes nothing, while `PATCH` answers
+405 (the path exists for `GET`) and `/dispatch` 404. `can_dispatch` and `dispatchable_count` (#2960) came a
+release later, in 1.2.5.4 — not a row: the model reads their absence as "every
+owed run can be queued", which is what 1.2.5.3 itself assumed.
+
+### batchListing — 0.2.3
+
+`GET /queue/batches`, `GET` and `DELETE` on one — the orders screen's entry in
+the queue's bar. Any list answer observes it: a 200 as present, a 404 or 403
+as absent, and so is a 422, which is `GET /queue/{item_id}` refusing "batches"
+before v0.2.3. Until the screen has asked once, the version decides, so a
+server older than the route does not show an entry that leads to an error
+page — a probe would cost every session a request for the sake of servers
+that old. Being early costs that error page, nothing silent.
+
+The same row gates the print form's copies field: `quantity` on
+`POST /queue/` arrived with batches, and a server before it queues one copy
+without a word.
+
+### batchGrouping — 0.2.4.8 (server commit eb5154f6)
+
+`POST /queue/batches` (group pending items by hand, or an empty batch to fill
+with `batch_id` on queue creates) and `…/ungroup`. Before it a batch only came
+from `POST /queue/` with `quantity > 1`, and the two routes answer 405 and 404.
+Nothing in a batch row differs between 0.2.4.7 and 0.2.4.8, so only an order
+row (`has_targets`, 1.2.5.3) observes it; otherwise the version decides, in the
+old numbering like `printerSensorHistory`. Being early costs a refused button,
+nothing silent.
 
 ## Not a row: the bed-jog sign (server #1334)
 

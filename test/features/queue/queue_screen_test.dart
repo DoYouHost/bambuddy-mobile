@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/orders/orders_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
@@ -58,6 +59,50 @@ void main() {
       expect(find.textContaining('X2D-3DP'), findsOneWidget);
     },
   );
+
+  testWidgets('a run in a batch names it, and the bar opens the orders', (
+    tester,
+  ) async {
+    final json = readFixture('queue_item.json') as Map<String, dynamic>;
+    final item = QueueItem.fromJson({
+      ...json,
+      'batch_id': 4,
+      'batch_name': 'Keychains ×6',
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => _FakeQueueNotifier([item])),
+          noServerProfileOverride,
+          batchListingProvider.overrideWithValue(const AsyncData(true)),
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Partia: Keychains ×6'), findsOneWidget);
+    expect(byLogId('queue.orders'), findsOneWidget);
+  });
+
+  testWidgets('no orders entry once the server has no batch list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          queueProvider.overrideWith(() => _FakeQueueNotifier(const [])),
+          noServerProfileOverride,
+          batchListingProvider.overrideWithValue(const AsyncData(false)),
+        ],
+        child: plApp(const QueueScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(byLogId('queue.orders'), findsNothing);
+  });
 
   testWidgets('an empty queue shows a message', (tester) async {
     await tester.pumpWidget(_screen(const []));

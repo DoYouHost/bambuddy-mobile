@@ -56,6 +56,7 @@ import 'data/maintenance_repository.dart';
 import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
+import 'data/batch_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/scheduled_drying_repository.dart';
 import 'data/server_settings_repository.dart';
@@ -655,6 +656,14 @@ final serverVersionLabelProvider = FutureProvider.autoDispose<String?>((ref) {
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
   (ref) => QueueRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Print batches and orders. Shares authenticated Dio.
+final batchRepositoryProvider = Provider<BatchRepository>(
+  (ref) => BatchRepository(
     ref.watch(apiClientProvider).dio,
     ref.watch(serverVersionServiceProvider),
   ),

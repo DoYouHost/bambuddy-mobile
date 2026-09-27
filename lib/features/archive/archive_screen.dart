@@ -24,7 +24,6 @@ import '../common/dash_async.dart';
 import '../common/refresh_when_shown.dart';
 import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
-import '../common/inline_note.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
@@ -1061,10 +1060,10 @@ class _SheetPrimaryActions extends StatelessWidget {
 /// The sidecar flag decides whether the section exists at all — a server with
 /// no slicer has no such feature, and nothing is drawn. Whether *this* archive
 /// can be re-sliced (it keeps a source or a model; plain gcode.3mf prints do
-/// not) only **disables** the buttons, and says why underneath: showing them
-/// and then collapsing the row a moment later is a flicker the user has to
-/// interpret, while a disabled button with a reason answers the question they
-/// opened the entry with. A read that failed is disabled and explained too —
+/// not) only **disables** the buttons, and says why on them (see
+/// [_ReasonedButton]): showing them and then collapsing the row a moment later
+/// is a flicker the user has to interpret, while a disabled button with a
+/// reason answers the question they opened the entry with. A read that failed is disabled and explained too —
 /// silently dead is the one thing it must never be.
 class _SliceArchiveButton extends ConsumerWidget {
   const _SliceArchiveButton({
@@ -1097,35 +1096,91 @@ class _SliceArchiveButton extends ConsumerWidget {
     };
     // Running a pipeline re-slices the same source, so it rides on exactly the
     // gate above; the extra conditions are only about the pipeline routes.
-    final canRunPipeline = ref.watch(canRunPipelinesProvider).orFalse;
+    // `offer`, not `orFalse`: the button stands greyed while the gate is
+    // unanswered instead of appearing a moment later and pushing the rest of
+    // the sheet down.
+    final pipeline = ref.watch(canRunPipelinesProvider).offer;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.layers_outlined),
-              label: Text(l10n.sliceAction),
-              onPressed: sliceable == true ? onSlice : null,
-            ).tagged('archive.slice'),
+          _ReasonedButton(
+            id: 'archive.slice',
+            icon: Icons.layers_outlined,
+            label: l10n.sliceAction,
+            reason: reason,
+            onPressed: sliceable == true ? onSlice : null,
           ),
-          if (canRunPipeline) ...[
+          if (pipeline != ControlOffer.hidden) ...[
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.account_tree_outlined),
-                label: Text(l10n.pipelineRun),
-                // Re-slices the same source, so it needs exactly what the
-                // slice button needs.
-                onPressed: sliceable == true ? onRunPipeline : null,
-              ).tagged('archive.run_pipeline'),
+            // Re-slices the same source, so it needs exactly what the slice
+            // button needs — and owes the same reason.
+            _ReasonedButton(
+              id: 'archive.run_pipeline',
+              icon: Icons.account_tree_outlined,
+              label: l10n.pipelineRun,
+              reason: reason,
+              onPressed: sliceable == true && pipeline == ControlOffer.offered
+                  ? onRunPipeline
+                  : null,
             ),
           ],
-          ?inlineNote(reason, icon: Icons.info_outline),
         ],
       ),
+    );
+  }
+}
+
+/// A full-width button that, when [reason] says why it is disabled, carries an
+/// ⓘ and shows the reason on a tap.
+///
+/// Not a line underneath: the reason arrives with this entry's own answer,
+/// half a second after the sheet has opened, and a line appearing then grew
+/// the bottom-anchored sheet and pushed everything in it up. An icon inside the
+/// button changes no height.
+class _ReasonedButton extends StatelessWidget {
+  const _ReasonedButton({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.reason,
+    required this.onPressed,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
+  final String? reason;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final why = reason;
+    final button = SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: Icon(icon),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            if (why != null) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.info_outline, size: 18),
+            ],
+          ],
+        ),
+        onPressed: onPressed,
+      ).tagged(id),
+    );
+    if (why == null) return button;
+    // A disabled button takes no taps, so the tooltip's own detector gets
+    // them; its message is also what a screen reader announces.
+    return Tooltip(
+      message: why,
+      triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 5),
+      child: button,
     );
   }
 }

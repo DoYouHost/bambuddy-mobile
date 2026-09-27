@@ -13,6 +13,7 @@ import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,7 +82,13 @@ const printerH2C = Printer(id: 1, name: 'H2C-1', model: 'H2C');
 /// repository reads it from the version endpoint exactly as it does in
 /// production, so the form and the request body cannot disagree about what the
 /// server can store.
-QueueRepository queueFormRepo({required bool triState}) {
+///
+/// [createStatus] is what `POST /queue/` answers; 0 is no answer at all, a
+/// dropped connection.
+QueueRepository queueFormRepo({
+  required bool triState,
+  int createStatus = 200,
+}) {
   final dio = testDio();
   _sent = captureRequests(dio);
   DioAdapter(dio: dio)
@@ -92,11 +99,22 @@ QueueRepository queueFormRepo({required bool triState}) {
         'repo': 'maziggy/bambuddy',
       }),
     )
-    ..onPost(
-      '/api/v1/queue/',
-      (server) => server.reply(200, null),
-      data: Matchers.any,
-    )
+    ..onPost('/api/v1/queue/', (server) {
+      if (createStatus == 0) {
+        server.throws(
+          0,
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: '/api/v1/queue/'),
+            reason: 'dropped',
+          ),
+        );
+        return;
+      }
+      server.reply(
+        createStatus,
+        createStatus == 200 ? null : {'detail': 'Printer not found'},
+      );
+    }, data: Matchers.any)
     ..onPatch(
       '/api/v1/queue/5',
       (server) => server.reply(200, null),
@@ -133,22 +151,29 @@ Widget queueFormScreen(
   List<FilamentRequirement> requirements = const [],
   List<NozzleRackSlot>? nozzleRack,
   List<AvailableFilament> availableFilaments = const [],
+  int createStatus = 200,
+  Duration? platesDelay,
+  List<Override> extra = const [],
 }) => ProviderScope(
   overrides: [
     noServerProfileOverride,
     queueRepositoryProvider.overrideWithValue(
-      queueFormRepo(triState: triState),
+      queueFormRepo(triState: triState, createStatus: createStatus),
     ),
     allPrintersProvider.overrideWith((ref) async => printers),
     sharedPreferencesProvider.overrideWithValue(queueFormPrefs),
     triStateCalibrationProvider.overrideWithValue(AsyncData(triState)),
     gcodeSnippetModelsProvider.overrideWithValue(AsyncValue.data(snippets)),
-    plateListProvider.overrideWith((ref, arg) async => plates),
+    plateListProvider.overrideWith((ref, arg) async {
+      if (platesDelay != null) await Future<void>.delayed(platesDelay);
+      return plates;
+    }),
     filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
     printerStatusOnceProvider.overrideWith(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
     ),
     availableFilamentsProvider.overrideWith((ref, arg) => availableFilaments),
+    ...extra,
   ],
   child: plApp(
     QueueEditScreen(item: item, mode: mode, initialSchedule: schedule),

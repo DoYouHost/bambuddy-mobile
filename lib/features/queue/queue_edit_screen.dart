@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
 import '../../core/models/available_filament.dart';
@@ -20,12 +21,14 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/date_time_picker.dart';
 import '../common/inline_note.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/dash_async.dart';
+import '../orders/orders_providers.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
@@ -138,6 +141,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _gcodeInjection;
 
   bool _saving = false;
+
+  /// Copies to queue (create only). See [_copiesSection].
+  int _copies = 1;
+
+  /// The order for the copies was refused and they went in as a plain batch:
+  /// the form promised an order, so the outcome says it was not one.
+  bool _orderRefused = false;
+  static const _maxCopies = 999;
 
   @override
   void initState() {
@@ -298,6 +309,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               _targetSection(l10n, t),
               const SizedBox(height: 16),
               ?_plateSection(l10n, t),
+              ?_copiesSection(l10n, t),
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
                 const SizedBox(height: 16),
@@ -506,6 +518,75 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return null;
   }
 
+  // --- Copies (create only) ---
+
+  /// How many copies to queue. More than one is grouped server-side; with
+  /// orders (1.2.5.3+) it becomes an order whose target is the copies, as the
+  /// web's print dialog makes it, so a failed copy stays owed.
+  ///
+  /// Absent below v0.2.3, whose create takes no `quantity` and would queue one
+  /// copy without a word — the same row that gates the orders screen.
+  Widget? _copiesSection(AppLocalizations l10n, DashTokens t) {
+    if (!widget._isCreate || !ref.watch(batchListingProvider).orFalse) {
+      return null;
+    }
+    final order = ref.watch(batchOrdersProvider).orFalse;
+    void set(int v) => setState(() => _copies = v.clamp(1, _maxCopies));
+    return Column(
+      children: [
+        _SectionCard(
+          title: l10n.queueEditCopies,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(l10n.queueEditCopiesLabel, style: t.body),
+                  ),
+                  IconButton(
+                    // Without a tooltip a minus beside a number has no name.
+                    tooltip: l10n.pipelineCopiesLess,
+                    onPressed: _copies > 1 ? () => set(_copies - 1) : null,
+                    icon: const Icon(Icons.remove),
+                  ).tagged('queue_edit.copies_down'),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      '$_copies',
+                      textAlign: TextAlign.center,
+                      style: t.monoValue,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.pipelineCopiesMore,
+                    onPressed: _copies < _maxCopies
+                        ? () => set(_copies + 1)
+                        : null,
+                    icon: const Icon(Icons.add),
+                  ).tagged('queue_edit.copies_up'),
+                ],
+              ),
+              // What more than one copy turns into — said only once it does,
+              // and across the card rather than squeezed beside the stepper.
+              if (_copies > 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    order
+                        ? l10n.queueEditCopiesOrder
+                        : l10n.queueEditCopiesHint,
+                    style: t.bodySoft,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   // --- Filament mapping (printer mode) ---
   // --- Plate (multi-plate 3MF only) ---
 
@@ -521,11 +602,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// here would leave a mapping pointing at another plate's slots without
   /// anything saying so. A reprint is a *new* item, which is where the choice
   /// belongs.
-  Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
+  /// The key [plateListProvider] takes for this item's file, or null.
+  (bool, int)? get _plateSource {
     final it = widget.item;
-    final source = it.archiveId != null
+    return it.archiveId != null
         ? (true, it.archiveId!)
         : (it.libraryFileId != null ? (false, it.libraryFileId!) : null);
+  }
+
+  Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
+    final source = _plateSource;
     if (source == null) return null;
     final plates =
         ref.watch(plateListProvider(source)).valueOrNull ?? PlateList.none;
@@ -1318,7 +1404,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     if (!mounted) return;
     setState(() => _saving = false);
-    final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
+    final ok = !widget._isCreate
+        ? l10n.queueEditSaved
+        : (_orderRefused ? l10n.queueEditOrderRefused : l10n.queueCreateAdded);
     messenger.snack(queueWriteMessage(l10n, result) ?? ok);
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
@@ -1445,10 +1533,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return picked.isEmpty ? null : picked;
   }
 
-  Future<void> _create(QueueRepository repo) {
+  Future<void> _create(QueueRepository repo) async {
     final it = widget.item;
+    final providers = ProviderScope.containerOf(context, listen: false);
+    final orderId = await _createOrder(providers);
+    final plate = _plate;
     final options = QueueCreateOptions(
-      plateId: _plateId,
+      // Into an order, the item carries the plate its target names.
+      plateId: orderId == null ? _plateId : plate.id,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
       filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
@@ -1468,25 +1560,118 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
       nozzleRackChoice: _modelMode ? null : _nozzleRackChoice,
+      batchId: orderId,
     );
     // ASAP is a position at insertion, not a stored field — the web sends it the
     // same way, and it is what makes "reprint" print next.
     final insertAtTop = _scheduleType == QueueScheduleType.asap;
     final printerId = _modelMode ? null : _printerId;
-    return it.archiveId != null
-        ? repo.addFromArchive(
-            it.archiveId!,
-            printerId: printerId,
-            insertAtTop: insertAtTop,
-            options: options,
-          )
-        : repo.addFromLibraryFile(
-            it.libraryFileId!,
-            printerId: printerId,
-            insertAtTop: insertAtTop,
-            options: options,
-          );
+    try {
+      await (it.archiveId != null
+          ? repo.addFromArchive(
+              it.archiveId!,
+              printerId: printerId,
+              quantity: _copies,
+              insertAtTop: insertAtTop,
+              options: options,
+            )
+          : repo.addFromLibraryFile(
+              it.libraryFileId!,
+              printerId: printerId,
+              quantity: _copies,
+              insertAtTop: insertAtTop,
+              options: options,
+            ));
+    } on Object catch (e) {
+      // An order with targets and no runs is listed, owes every copy and has
+      // nothing to clone them from. Ungrouping an empty one deletes it — but
+      // only after a refusal: a timeout may have queued the copies, and
+      // ungrouping would then unlink live runs while the user queues again.
+      if (orderId != null && _isRefusal(e)) {
+        try {
+          await providers.read(batchRepositoryProvider).ungroup(orderId);
+        } on AppApiException {
+          // The create's own error is the one the user has to see.
+        }
+      }
+      rethrow;
+    }
   }
+
+  /// Whether the server answered and refused — nothing was written. A 5xx
+  /// is not one: a proxy's 502/504 can arrive after the server committed,
+  /// exactly like a dropped connection.
+  static bool _isRefusal(Object e) =>
+      e is AuthException || (e is ApiException && (e.statusCode ?? 500) < 500);
+
+  /// The plate the order's target named, for the item to carry too.
+  ({int? id, String? name}) _plate = (id: null, name: null);
+
+  /// The plate an order's target names. A multi-plate file with no plate
+  /// picked prints plate 1 (`plate_id or 1` server-side) and the form says
+  /// so; a null target would read "whole file" on the orders screen instead.
+  ///
+  /// Awaited, not read: a submit before the plate list has loaded would
+  /// otherwise take a multi-plate file for a single-plate one.
+  Future<({int? id, String? name})> _orderPlate(
+    ProviderContainer providers,
+  ) async {
+    final source = _plateSource;
+    final plates = source == null
+        ? PlateList.none
+        : await providers
+              .read(plateListProvider(source).future)
+              .catchError((Object _) => PlateList.none);
+    if (!plates.isMultiPlate) return (id: _plateId, name: null);
+    final id = _plateId ?? 1;
+    return (id: id, name: plates.byIndex(id)?.name);
+  }
+
+  /// The order the copies go into, made first — the web's print dialog does
+  /// the same. Null for one copy, on a server without orders, and when the
+  /// order is refused: the copies then go in as a plain grouping, which is
+  /// what `quantity` alone makes, so the print is not lost over its tracking.
+  ///
+  /// Only a refusal falls back; see [_isRefusal] for what is not one.
+  Future<int?> _createOrder(ProviderContainer providers) async {
+    _orderRefused = false;
+    _plate = (id: _plateId, name: null);
+    if (_copies < 2) return null;
+    final supported = await settledGate(
+      providers,
+      batchOrdersProvider,
+    ).catchError((Object _) => false);
+    if (!supported) return null;
+    final it = widget.item;
+    final plate = _plate = await _orderPlate(providers);
+    try {
+      final order = await providers
+          .read(batchRepositoryProvider)
+          .create(
+            name: '${_baseName(it.displayName)} ×$_copies',
+            archiveId: it.archiveId,
+            libraryFileId: it.archiveId == null ? it.libraryFileId : null,
+            // The runs are matched to the target by plate, so the target
+            // names the plate the item will carry — null for a whole file.
+            plates: [
+              (plateId: plate.id, plateName: plate.name, quantity: _copies),
+            ],
+          );
+      return order.id;
+    } on AppApiException catch (e) {
+      // No answer, or a 5xx: the order may exist, and a grouping queued
+      // beside it would leave it owing every copy. The submit stops.
+      if (!_isRefusal(e)) rethrow;
+      // Shown, as the outcome of the whole submit — see [_submit].
+      recordActionFailure(e, action: 'queue_create.order', shown: true);
+      _orderRefused = true;
+      return null;
+    }
+  }
+
+  /// A file name as the server names a batch after it (`print_queue.py`).
+  static String _baseName(String name) =>
+      name.replaceAll('.gcode.3mf', '').replaceAll('.3mf', '');
 }
 
 /// Imperative entry: open the Edit Queue Item screen for [item].

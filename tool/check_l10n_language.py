@@ -148,7 +148,7 @@ KNOWN_JARGON = {
     # dictionary wants to split: "Podprojekty", "Szac. koszt".
     'timelapses', 'podprojekty', 'szac',
     # Spanish technical and domain terms
-    'preajuste', 'preajustes', 'desagrupar', 'desagrupadas', 'desasignar',
+    'preajuste', 'preajustes', 'desagrupar', 'desagrupadas', 'desagrupados', 'desasignar',
     'desasignada', 'deseleccionar', 'extruir', 'extruido', 'subextrusión',
     'multiplaca', 'stringing', 'est',
     # French: the Docker setting the copy quotes, and bambuddy's own French

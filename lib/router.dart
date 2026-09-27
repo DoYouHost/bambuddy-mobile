@@ -29,6 +29,8 @@ import 'features/notifications/notification_settings_screen.dart';
 import 'features/settings/queue_settings_screen.dart';
 import 'features/settings/app_settings_screen.dart';
 import 'features/settings/server_settings_screen.dart';
+import 'features/orders/order_edit_screen.dart';
+import 'features/orders/orders_screen.dart';
 import 'features/print_log/print_log_screen.dart';
 import 'features/projects/projects_screen.dart';
 import 'features/projects/project_detail_screen.dart';
@@ -142,6 +144,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Print log — per-run history, full screen outside shell (opened from the
       // archive's menu and from the Stats failure card).
       GoRoute(path: '/print-log', builder: (_, _) => const PrintLogScreen()),
+
+      // Batch orders — full screen outside shell, opened from the queue's bar.
+      GoRoute(
+        path: '/orders',
+        builder: (_, _) => const OrdersScreen(),
+        routes: [
+          GoRoute(
+            path: ':id/edit',
+            // Nothing links here from outside; a hand-typed id that is not a
+            // number goes back to the list rather than to a broken form.
+            redirect: (_, state) =>
+                int.tryParse(state.pathParameters['id'] ?? '') == null
+                ? '/orders'
+                : null,
+            builder: (_, state) => OrderEditScreen(
+              batchId: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+        ],
+      ),
 
       // File manager (library) — full screen outside shell (pushed from drawer).
       // Trash as subroute.

@@ -35,6 +35,8 @@ void main() {
     'spool_form.save_model_presets':
         'the second write the Save button makes, after the spool itself — '
         'a step in that flow, not a control of its own',
+    'queue_create.order':
+        'the order the Save button makes before the copies go in — likewise',
   };
 
   /// Every way a control declares its id, including the material variant and

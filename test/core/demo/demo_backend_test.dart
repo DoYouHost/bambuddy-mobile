@@ -14,7 +14,9 @@ import 'package:bambuddy_mobile/data/ams_history_repository.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
+import 'package:bambuddy_mobile/data/batch_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
+import 'package:bambuddy_mobile/core/models/print_batch.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/core/models/location_sensor.dart';
@@ -84,6 +86,65 @@ void main() {
       final items = await QueueRepository(dio).fetch();
       expect(items.length, greaterThanOrEqualTo(2));
       expect(items.first.statusKind, QueueItemStatusKind.pending);
+    });
+
+    test(
+      'batches: an order, a shop order with a stranded plate, a grouping',
+      () async {
+        final repo = BatchRepository(dio);
+        final batches = await repo.list();
+
+        expect(batches, hasLength(3));
+        expect(repo.ordersCapability.observedAnswer, isTrue);
+        final shop = batches.firstWhere((b) => b.externalSource != null);
+        expect(shop.stranded, 2);
+        expect(shop.plates.last.dispatchable, isFalse);
+        expect(batches.where((b) => !b.hasTargets), hasLength(1));
+        expect(
+          (await repo.list(
+            status: PrintBatchStatus.completed,
+          )).single.hasTargets,
+          isFalse,
+        );
+
+        // Refused, so the shared dataset is left as it was.
+        await expectLater(
+          repo.dispatch(shop.id, plate: shop.plates.last),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Charms'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('copies go into the named order, or into a new grouping', () async {
+      final batches = BatchRepository(dio);
+      final queue = QueueRepository(dio);
+      final order = await batches.create(
+        name: 'Stand ×2',
+        archiveId: 1,
+        plates: const [(plateId: null, plateName: null, quantity: 2)],
+      );
+
+      await queue.addFromArchive(
+        1,
+        quantity: 2,
+        options: QueueCreateOptions(batchId: order.id),
+      );
+      await queue.addFromArchive(1, quantity: 3);
+
+      final after = await batches.list();
+      final filled = after.firstWhere((b) => b.id == order.id);
+      expect(filled.pendingCount, 2);
+      expect(filled.remainingCount, 0);
+      expect(
+        after.where((b) => !b.hasTargets && b.pendingCount == 3),
+        hasLength(1),
+      );
     });
 
     test('the queue speaks the 1.2.5 contract, including auto', () async {

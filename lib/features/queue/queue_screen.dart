@@ -22,6 +22,7 @@ import '../gcode/gcode_viewer_route.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
+import '../orders/orders_providers.dart';
 import 'queue_edit_screen.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
@@ -131,6 +132,12 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
           context,
           title: l10n.navQueue,
           actions: [
+            if (ref.watch(batchListingProvider).orFalse)
+              IconButton(
+                tooltip: l10n.ordersTitle,
+                icon: const Icon(Icons.inventory_2_outlined),
+                onPressed: () => context.push('/orders'),
+              ).tagged('queue.orders'),
             if (queued.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 16),
@@ -427,6 +434,9 @@ class _Subtitle extends StatelessWidget {
           [for (final v in item.variants) v.targetModel].join(', '),
         ),
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
+      // Which order or grouping the run belongs to — the only link from a
+      // queue row to its order's progress.
+      if (item.batchName != null) l10n.queueInBatch(item.batchName!),
       // Says the print will land in the exact trays the slicer picked, rather
       // than trays the scheduler works out from the file's type and colour.
       // Server ≥ 1.2.5.2; false everywhere else, so the marker just never
