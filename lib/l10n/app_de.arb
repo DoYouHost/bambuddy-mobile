@@ -3901,5 +3901,9 @@
   "wallErrorsTitle": "Fehler",
   "wallNoFaults": "Keine aktiven Fehler",
   "wallQueueCount": "{count, plural, =1{1 in der Warteschlange} other{{count} in der Warteschlange}}",
-  "wallLivePaused": "Live pausiert"
+  "wallLivePaused": "Live pausiert",
+  "wallLiveCameraTitle": "Live-Kamera",
+  "wallLiveCameraDesc": "Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.",
+  "wallPrintersTitle": "Drucker an der Wand",
+  "wallAllHidden": "Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein."
 }

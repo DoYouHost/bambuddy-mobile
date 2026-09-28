@@ -4416,5 +4416,21 @@
   "wallLivePaused": "Live paused",
   "@wallLivePaused": {
     "description": "Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead"
+  },
+  "wallLiveCameraTitle": "Live camera",
+  "@wallLiveCameraTitle": {
+    "description": "Switch in the wall settings: stream each printer's camera behind its tile"
+  },
+  "wallLiveCameraDesc": "Off shows each printer's status only and opens no camera stream.",
+  "@wallLiveCameraDesc": {
+    "description": "Explains the wall's live camera switch"
+  },
+  "wallPrintersTitle": "Printers on the wall",
+  "@wallPrintersTitle": {
+    "description": "Header over the list of printers the user can show or hide on the wall"
+  },
+  "wallAllHidden": "Every printer is hidden from this wall — show them in the settings.",
+  "@wallAllHidden": {
+    "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
   }
 }

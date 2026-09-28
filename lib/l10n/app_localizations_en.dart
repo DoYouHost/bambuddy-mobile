@@ -7238,4 +7238,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallLivePaused => 'Live paused';
+
+  @override
+  String get wallLiveCameraTitle => 'Live camera';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Off shows each printer\'s status only and opens no camera stream.';
+
+  @override
+  String get wallPrintersTitle => 'Printers on the wall';
+
+  @override
+  String get wallAllHidden =>
+      'Every printer is hidden from this wall — show them in the settings.';
 }

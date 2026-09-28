@@ -12187,6 +12187,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live paused'**
   String get wallLivePaused;
+
+  /// Switch in the wall settings: stream each printer's camera behind its tile
+  ///
+  /// In en, this message translates to:
+  /// **'Live camera'**
+  String get wallLiveCameraTitle;
+
+  /// Explains the wall's live camera switch
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows each printer\'s status only and opens no camera stream.'**
+  String get wallLiveCameraDesc;
+
+  /// Header over the list of printers the user can show or hide on the wall
+  ///
+  /// In en, this message translates to:
+  /// **'Printers on the wall'**
+  String get wallPrintersTitle;
+
+  /// Shown in place of the wall's tiles when the server has printers but all are hidden on this device
+  ///
+  /// In en, this message translates to:
+  /// **'Every printer is hidden from this wall — show them in the settings.'**
+  String get wallAllHidden;
 }
 
 class _AppLocalizationsDelegate

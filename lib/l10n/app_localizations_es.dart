@@ -7329,4 +7329,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get wallLivePaused => 'Directo en pausa';
+
+  @override
+  String get wallLiveCameraTitle => 'Cámara en directo';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Si se desactiva, cada mosaico muestra solo el estado de la impresora y no abre la cámara.';
+
+  @override
+  String get wallPrintersTitle => 'Impresoras en la pared';
+
+  @override
+  String get wallAllHidden =>
+      'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
 }

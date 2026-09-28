@@ -7354,4 +7354,18 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wallLivePaused => 'Podgląd wstrzymany';
+
+  @override
+  String get wallLiveCameraTitle => 'Kamera na żywo';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Po wyłączeniu kafle pokazują sam status drukarki i nie otwierają strumienia kamery.';
+
+  @override
+  String get wallPrintersTitle => 'Drukarki na ścianie';
+
+  @override
+  String get wallAllHidden =>
+      'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
 }

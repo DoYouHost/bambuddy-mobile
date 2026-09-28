@@ -43,6 +43,17 @@ class WallScreen extends ConsumerStatefulWidget {
   /// The server pushes no event for a queue add, delete or reorder (D18).
   static const queuePoll = Duration(seconds: 30);
 
+  /// Burn-in guard for OLED panels: the whole wall steps round these offsets,
+  /// one every [burnInStep]. Provisional values — two logical pixels is far
+  /// below what reads as movement, a few minutes far below what burns in.
+  static const burnInStep = Duration(minutes: 3);
+  static const burnInOffsets = [
+    Offset.zero,
+    Offset(2, 0),
+    Offset(2, 2),
+    Offset(0, 2),
+  ];
+
   @override
   ConsumerState<WallScreen> createState() => _WallScreenState();
 }
@@ -51,6 +62,8 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
   late final AppLifecycleListener _lifecycle;
+  late final Timer _burnIn;
+  int _shift = 0;
   Timer? _queuePoll;
   bool _settings = false;
 
@@ -64,6 +77,12 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     );
     unawaited(_awake.set(ref.read(wallKeepAwakeProvider)));
     _startQueuePoll();
+    _burnIn = Timer.periodic(
+      WallScreen.burnInStep,
+      (_) => setState(
+        () => _shift = (_shift + 1) % WallScreen.burnInOffsets.length,
+      ),
+    );
     // D18 polls while the wall is visible, not while the app sits behind
     // another one — the queue screen stops its timer the same way.
     _lifecycle = AppLifecycleListener(
@@ -95,6 +114,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   void dispose() {
     _lifecycle.dispose();
     _stopQueuePoll();
+    _burnIn.cancel();
     // Every way out lands here — Back, the exit button, and `/setup` replacing
     // the whole stack when the session expires — so the rest of the app gets
     // its free rotation, its bars and its screen timeout back on each of them.
@@ -112,6 +132,13 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     );
     unawaited(_awake.set(false));
     super.dispose();
+  }
+
+  /// The shift as padding traded between opposite sides, so the content moves
+  /// while its size — and so the grid's layout — stays the same.
+  EdgeInsets get _burnInPadding {
+    final o = WallScreen.burnInOffsets[_shift];
+    return EdgeInsets.fromLTRB(o.dx, o.dy, 2 - o.dx, 2 - o.dy);
   }
 
   void _setExpanded(bool expanded) {
@@ -133,7 +160,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12) + _burnInPadding,
             child: LayoutBuilder(
               builder: (context, box) {
                 final expanded =
@@ -186,9 +213,10 @@ class _WallGrid extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (printers.isEmpty) {
+      final anyOnServer = ref.watch(wallRosterProvider)?.isNotEmpty ?? false;
       return Center(
         child: Text(
-          l10n.noPrinters,
+          anyOnServer ? l10n.wallAllHidden : l10n.noPrinters,
           style: t.bodySoft,
           textAlign: TextAlign.center,
         ),
@@ -200,7 +228,8 @@ class _WallGrid extends ConsumerWidget {
     // No live tile count cap (D12). The demo serves no MJPEG, so its tiles
     // stay status-only.
     final profile = ref.watch(serverProfileProvider);
-    final camera = profile != null && !profile.isDemo;
+    final camera =
+        profile != null && !profile.isDemo && ref.watch(wallLiveCameraProvider);
     return LayoutBuilder(
       builder: (context, box) {
         final cols = wallColumns(
@@ -524,6 +553,8 @@ class _WallSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final roster = ref.watch(wallRosterProvider) ?? const [];
+    final hidden = ref.watch(wallHiddenPrintersProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -534,6 +565,13 @@ class _WallSettings extends ConsumerWidget {
           value: ref.watch(wallKeepAwakeProvider),
           onChanged: ref.read(wallKeepAwakeProvider.notifier).set,
         ),
+        SettingsSwitchRow(
+          tag: 'wall.live_camera',
+          title: l10n.wallLiveCameraTitle,
+          subtitle: l10n.wallLiveCameraDesc,
+          value: ref.watch(wallLiveCameraProvider),
+          onChanged: ref.read(wallLiveCameraProvider.notifier).set,
+        ),
         const SizedBox(height: 12),
         logTag(
           'wall.exit',
@@ -543,6 +581,33 @@ class _WallSettings extends ConsumerWidget {
             onPressed: () => Navigator.of(context).maybePop(),
           ),
         ),
+        // Last: the list grows with the farm, and must not push the way out
+        // below the fold.
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 2),
+          child: Text(
+            l10n.wallPrintersTitle,
+            style: DashTokens.of(context).bodyBold,
+          ),
+        ),
+        for (final p in roster)
+          logTag(
+            'wall.printer_visible',
+            CheckboxListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              title: Text(
+                p.printer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              value: !hidden.contains(p.printer.id),
+              onChanged: (shown) => ref
+                  .read(wallHiddenPrintersProvider.notifier)
+                  .setShown(p.printer.id, shown ?? true),
+            ),
+          ),
       ],
     );
   }

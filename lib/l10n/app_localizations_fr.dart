@@ -7400,4 +7400,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get wallLivePaused => 'Direct en pause';
+
+  @override
+  String get wallLiveCameraTitle => 'Caméra en direct';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Désactivée, chaque vignette n\'affiche que l\'état de l\'imprimante et n\'ouvre aucun flux vidéo.';
+
+  @override
+  String get wallPrintersTitle => 'Imprimantes sur le mur';
+
+  @override
+  String get wallAllHidden =>
+      'Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.';
 }

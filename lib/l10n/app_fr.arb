@@ -3901,5 +3901,9 @@
   "wallErrorsTitle": "Erreurs",
   "wallNoFaults": "Aucune erreur active",
   "wallQueueCount": "{count, plural, =1{1 dans la file d'attente} other{{count} dans la file d'attente}}",
-  "wallLivePaused": "Direct en pause"
+  "wallLivePaused": "Direct en pause",
+  "wallLiveCameraTitle": "Caméra en direct",
+  "wallLiveCameraDesc": "Désactivée, chaque vignette n'affiche que l'état de l'imprimante et n'ouvre aucun flux vidéo.",
+  "wallPrintersTitle": "Imprimantes sur le mur",
+  "wallAllHidden": "Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres."
 }

@@ -88,6 +88,9 @@ void main() {
   late List<Object?> uiModes;
   late List<Object?> overlays;
 
+  /// The harness's router, for the tests that navigate from outside the wall.
+  late GoRouter router;
+
   Future<ProviderContainer> pumpDashboardWithWall(
     WidgetTester tester, {
     Size size = _phone,
@@ -127,7 +130,7 @@ void main() {
 
     SharedPreferences.setMockInitialValues(prefs);
     final sp = await SharedPreferences.getInstance();
-    final router = GoRouter(
+    router = GoRouter(
       routes: [
         GoRoute(
           path: '/',
@@ -139,6 +142,10 @@ void main() {
           ),
         ),
         GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
+        GoRoute(
+          path: '/setup',
+          builder: (_, _) => const Scaffold(body: Text('SETUP')),
+        ),
       ],
     );
     late ProviderContainer container;
@@ -429,6 +436,114 @@ void main() {
       await tester.pump(WallScreen.queuePoll);
       expect(_CountingQueue.refreshes, 3);
     });
+  });
+
+  group('printers kept off the wall', () {
+    testWidgets('are not tiled, and the settings can show them again', (
+      tester,
+    ) async {
+      final container = await pumpDashboardWithWall(
+        tester,
+        size: _tablet,
+        prefs: {
+          'wall_hidden_printer_ids': ['2'],
+        },
+      );
+      Finder tile(String name) =>
+          find.descendant(of: find.byType(WallTile), matching: find.text(name));
+      expect(tile('X1C-02'), findsNothing);
+      expect(tile('X1C-01'), findsOneWidget);
+
+      await tester.tap(byLogId('wall.settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'X1C-02'));
+      await tester.pumpAndSettle();
+
+      expect(tile('X1C-02'), findsOneWidget);
+      expect(
+        container.read(settingsRepositoryProvider).loadWallHiddenPrinters(),
+        isEmpty,
+      );
+    });
+
+    testWidgets('bring no faults into the panel', (tester) async {
+      await pumpDashboardWithWall(
+        tester,
+        size: _tablet,
+        printers: [
+          PrinterWithStatus(
+            printer: const Printer(id: 1, name: 'X1C-01'),
+            status: const PrinterStatus(
+              id: 1,
+              connected: true,
+              state: 'IDLE',
+              hmsErrors: [
+                HmsError(code: '0x10001', message: 'Heatbed heating failed'),
+              ],
+            ),
+          ),
+        ],
+        prefs: {
+          'wall_hidden_printer_ids': ['1'],
+        },
+      );
+
+      expect(find.text('Heatbed heating failed'), findsNothing);
+      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
+    });
+
+    testWidgets('all hidden says so rather than "no printers"', (tester) async {
+      await pumpDashboardWithWall(
+        tester,
+        prefs: {
+          'wall_hidden_printer_ids': ['1', '2', '3', '4', '5'],
+        },
+      );
+
+      expect(find.textContaining('ukryte'), findsOneWidget);
+      expect(find.textContaining('Brak drukarek'), findsNothing);
+    });
+  });
+
+  testWidgets('with the live camera off, tiles show status only', (
+    tester,
+  ) async {
+    await pumpDashboardWithWall(
+      tester,
+      profile: fakeServerProfileOverride(),
+      prefs: {'wall_live_camera': false},
+    );
+
+    expect(find.byType(WallCamera), findsNothing);
+    expect(find.byType(WallTile), findsNWidgets(5));
+  });
+
+  testWidgets('steps the wall a few pixels on the burn-in clock, same size', (
+    tester,
+  ) async {
+    await pumpDashboardWithWall(tester);
+    final at = tester.getTopLeft(grid());
+    final size = tester.getSize(grid());
+
+    await tester.pump(WallScreen.burnInStep);
+
+    expect(tester.getTopLeft(grid()), at + WallScreen.burnInOffsets[1]);
+    expect(tester.getSize(grid()), size);
+  });
+
+  testWidgets('a session sent back to setup takes the wall with it cleanly', (
+    tester,
+  ) async {
+    await pumpDashboardWithWall(tester);
+
+    // What the dashboard under the wall does when the session expires.
+    router.go('/setup');
+    await tester.pumpAndSettle();
+
+    expect(find.text('SETUP'), findsOneWidget);
+    expect(orientations.last, isEmpty);
+    expect(overlays.last, ['SystemUiOverlay.top', 'SystemUiOverlay.bottom']);
+    expect(awake.last, isFalse);
   });
 
   testWidgets('a tap on the wall itself opens nothing', (tester) async {

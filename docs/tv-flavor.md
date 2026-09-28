@@ -541,3 +541,12 @@ user is already signed in to, with the credentials it already has.
 6. The D16 width threshold — pick from the spike screenshots.
 7. ~~Error order~~ — settled by D17.
 8. ~~Queue poll interval~~ — settled by D18.
+9. Provisional values in the code, to confirm with the D12 measurement and
+   the spike screenshots: the rail threshold (`panelExpandedFromWidth`, 960
+   dp), a refused stream asked for again after 60 s (`restreamAfter`), the
+   burn-in step (3 min round four offsets of 2 px). The snapshot interval
+   (8 s) is the server's own camera wall's, not a guess.
+10. "Panel shown or hidden" (§13.1) is not built: with the rail gone the wall
+    loses its only way into its settings (D19), so it needs a design first —
+    e.g. a lone settings button in a corner, or the setting only in the app
+    settings.

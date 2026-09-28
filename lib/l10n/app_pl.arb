@@ -3201,5 +3201,9 @@
   "wallErrorsTitle": "Błędy",
   "wallNoFaults": "Brak aktywnych błędów",
   "wallQueueCount": "{count, plural, =1{1 w kolejce} few{{count} w kolejce} many{{count} w kolejce} other{{count} w kolejce}}",
-  "wallLivePaused": "Podgląd wstrzymany"
+  "wallLivePaused": "Podgląd wstrzymany",
+  "wallLiveCameraTitle": "Kamera na żywo",
+  "wallLiveCameraDesc": "Po wyłączeniu kafle pokazują sam status drukarki i nie otwierają strumienia kamery.",
+  "wallPrintersTitle": "Drukarki na ścianie",
+  "wallAllHidden": "Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach."
 }

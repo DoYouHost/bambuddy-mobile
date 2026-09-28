@@ -7306,4 +7306,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wallLivePaused => 'Live pausiert';
+
+  @override
+  String get wallLiveCameraTitle => 'Live-Kamera';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.';
+
+  @override
+  String get wallPrintersTitle => 'Drucker an der Wand';
+
+  @override
+  String get wallAllHidden =>
+      'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
 }
