@@ -30,6 +30,13 @@ void main() {
     expect(wallColumns(2, phone), 2);
   });
 
+  test('a farm that has to scroll keeps 16:9 tiles of the minimum height', () {
+    // Squeezed onto one screen, 24 would take 6 columns of 115 px — narrower
+    // than the 120 px the grid then forces them to be tall.
+    expect(wallColumns(24, phone, minTileHeight: 120), 3);
+    expect(wallColumns(24, phone), 6, reason: 'without the floor');
+  });
+
   test('twelve on a tablet take three columns: 303 px frames against 225', () {
     expect(wallColumns(12, tablet), 3);
   });

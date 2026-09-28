@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
+import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -28,6 +30,16 @@ class _FixedDashboard extends DashboardNotifier {
 
   @override
   Future<void> refresh() async {}
+}
+
+/// Live statuses, fixed: what the socket would have delivered.
+class _FixedStatuses extends PrinterStatusesNotifier {
+  _FixedStatuses(this._fixed);
+
+  final Map<int, PrinterStatus> _fixed;
+
+  @override
+  Map<int, PrinterStatus> build() => _fixed;
 }
 
 /// The demo's five printers, idle and connected.
@@ -57,6 +69,7 @@ void main() {
     Size size = _phone,
     Map<String, Object> prefs = const {},
     List<PrinterWithStatus>? printers,
+    Map<int, PrinterStatus>? live,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -109,7 +122,10 @@ void main() {
           dashboardProvider.overrideWith(
             () => _FixedDashboard(DashboardState(printers: printers ?? _farm)),
           ),
-          inertStatusesOverride,
+          if (live == null)
+            inertStatusesOverride
+          else
+            printerStatusesProvider.overrideWith(() => _FixedStatuses(live)),
         ],
         child: Consumer(
           builder: (context, ref, _) {
@@ -169,6 +185,26 @@ void main() {
       expect(top('A1 mini'), greaterThan(top('X1C-01')));
     });
 
+    testWidgets('draws the live status, not the roster\'s minute-old one', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(
+        tester,
+        live: {
+          1: const PrinterStatus(
+            id: 1,
+            connected: true,
+            state: 'RUNNING',
+            progress: 64,
+            remainingTime: 72,
+          ),
+        },
+      );
+
+      expect(find.text('RUNNING'), findsOneWidget);
+      expect(find.text('64%'), findsOneWidget);
+    });
+
     testWidgets('says so when the server has no printers', (tester) async {
       await pumpDashboardWithWall(tester, printers: const []);
 
@@ -188,8 +224,18 @@ void main() {
       await pumpDashboardWithWall(tester, printers: big);
 
       expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byType(WallTile).first).height,
+        greaterThanOrEqualTo(120),
+      );
       expect(find.text('P24'), findsNothing, reason: 'below the fold');
-      expect(tester.getSize(find.text('P1')).height, greaterThan(0));
+
+      await tester.scrollUntilVisible(
+        find.text('P24'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('P24'), findsOneWidget);
     });
   });
 

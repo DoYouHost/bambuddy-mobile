@@ -32,13 +32,14 @@ Future<void> pumpTile(
   WidgetTester tester,
   PrinterStatus? status, {
   Size size = const Size(260, 170),
+  Printer printer = _printer,
 }) => pumpPhone(
   tester,
   Center(
     child: SizedBox.fromSize(
       size: size,
       child: WallTile(
-        item: PrinterWithStatus(printer: _printer, status: status),
+        item: PrinterWithStatus(printer: printer, status: status),
       ),
     ),
   ),
@@ -123,6 +124,15 @@ void main() {
     expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
   });
 
+  testWidgets(
+    'a connected printer with no state reads online, as on the card',
+    (tester) async {
+      await pumpTile(tester, const PrinterStatus(id: 1, connected: true));
+
+      expect(find.text('ONLINE'), findsOneWidget);
+    },
+  );
+
   testWidgets('a printer with no status yet reads offline too', (tester) async {
     await pumpTile(tester, null);
 
@@ -157,6 +167,7 @@ void main() {
         hmsErrors: [_fault],
       ),
       size: const Size(200, 120),
+      printer: const Printer(id: 1, name: 'Bambu Lab X1-Carbon Combo, shelf 3'),
     );
 
     expect(tester.takeException(), isNull);

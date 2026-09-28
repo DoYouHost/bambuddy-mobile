@@ -145,10 +145,16 @@ class _WallGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final printers = ref.watch(dashboardProvider.select((s) => s.printers));
-    if (printers == null) {
+    final roster = ref.watch(dashboardProvider.select((s) => s.printers));
+    if (roster == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    // The roster alone is polled once a minute while the socket is up; the
+    // live frames are in the statuses map, as on the dashboard.
+    final printers = withLiveStatuses(
+      roster,
+      ref.watch(printerStatusesProvider),
+    );
     if (printers.isEmpty) {
       return Center(
         child: Text(
@@ -163,7 +169,12 @@ class _WallGrid extends ConsumerWidget {
         .inTouchSince;
     return LayoutBuilder(
       builder: (context, box) {
-        final cols = wallColumns(printers.length, box.biggest, gap: _gap);
+        final cols = wallColumns(
+          printers.length,
+          box.biggest,
+          gap: _gap,
+          minTileHeight: _minTileHeight,
+        );
         final rows = (printers.length / cols).ceil();
         final fitted = (box.maxHeight - _gap * (rows - 1)) / rows;
         return GridView.builder(

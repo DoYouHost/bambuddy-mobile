@@ -10,10 +10,21 @@ const wallTileAspect = 16 / 9;
 /// rows that follow from them, and what counts is the biggest 16:9 frame that
 /// fits in that cell. Ties go to fewer columns, which leaves wider tiles for
 /// the text under the picture.
-int wallColumns(int count, Size area, {double gap = 10}) {
+///
+/// When even the best split leaves cells shorter than [minTileHeight], the grid
+/// is going to scroll anyway, so the columns are whatever fits 16:9 tiles of
+/// that height across the width — not the split that squeezed every tile onto
+/// one screen and left them narrower than they are tall.
+int wallColumns(
+  int count,
+  Size area, {
+  double gap = 10,
+  double minTileHeight = 0,
+}) {
   if (count <= 1 || area.isEmpty) return 1;
   var best = 1;
   var bestWidth = 0.0;
+  var bestHeight = 0.0;
   for (var cols = 1; cols <= count; cols++) {
     final rows = (count / cols).ceil();
     final cellW = (area.width - gap * (cols - 1)) / cols;
@@ -22,7 +33,11 @@ int wallColumns(int count, Size area, {double gap = 10}) {
     if (frameW > bestWidth + 0.5) {
       best = cols;
       bestWidth = frameW;
+      bestHeight = cellH;
     }
   }
-  return best;
+  if (bestHeight >= minTileHeight) return best;
+  final fits = ((area.width + gap) / (minTileHeight * wallTileAspect + gap))
+      .floor();
+  return math.max(1, math.min(fits, count));
 }

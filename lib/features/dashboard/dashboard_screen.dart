@@ -599,18 +599,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return const DashLoading();
     }
 
-    // Printer composition from polling (roster), with status overlaid from
-    // shared statuses map (WS + poll merged in printerStatusesProvider).
-    // Missing map entry → status stays from list alone.
-    final printers = [
-      for (final p in state.printers!)
-        statuses.containsKey(p.printer.id)
-            ? PrinterWithStatus(
-                printer: p.printer,
-                status: statuses[p.printer.id],
-              )
-            : p,
-    ];
+    // Roster from polling, statuses from the WS + poll lanes.
+    final printers = withLiveStatuses(state.printers!, statuses);
     final q = _query.trim().toLowerCase();
     final filtered = [
       for (final p in printers)

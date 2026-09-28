@@ -163,7 +163,16 @@ class _WallTileState extends State<WallTile> {
         dense: true,
       );
     }
-    final label = (status?.state ?? l10n.statusUnavailable).toUpperCase();
+    // Worded as the printer card's pill (`_stateChipLabel`), so the wall and
+    // the dashboard under it say the same thing about the same printer.
+    final label =
+        (status == null
+                ? l10n.statusUnavailable
+                : status.state ??
+                      ((status.connected ?? false)
+                          ? l10n.online
+                          : l10n.offline))
+            .toUpperCase();
     if (status?.isPaused ?? false) {
       return DashPill(
         label: label,
