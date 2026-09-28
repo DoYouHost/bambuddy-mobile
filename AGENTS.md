@@ -6,8 +6,13 @@ feed — there is no Bambu Lab cloud connection of our own.
 
 ## CI is the answer to most questions
 
-Every pull request runs [.github/workflows/ci.yml](.github/workflows/ci.yml):
-`flutter analyze`, `flutter test`, and a debug APK build of both flavors.
+Every pull request into `master` runs
+[.github/workflows/ci.yml](.github/workflows/ci.yml): `dart format` (check only),
+`flutter analyze`, `flutter test`, a debug APK build of both flavors, and a check
+of what the watch APK ships. A pull request that only touches `docs/`, `site/`,
+`store-assets/` or `*.md` skips everything after the path check and still
+reports green. Pull requests into `dev` get no CI run of their own — run the
+checks below yourself.
 
 **Before you ask a question, check the CI result and fix what is red.** Analyzer
 errors, failing tests, broken builds and missing imports are yours to resolve —
@@ -22,6 +27,7 @@ CI cannot answer.
 Reproduce the same checks locally before pushing:
 
 ```sh
+dart format --output=none --set-exit-if-changed lib test tool
 flutter analyze
 flutter test          # or: just test
 flutter build apk --debug --flavor mobile
@@ -32,9 +38,10 @@ shape, a permission gate, a validation rule — also doesn't need to be asked.
 Read the [bambuddy](https://github.com/maziggy/bambuddy) server source —
 `backend/app/api/routes/*.py`, `backend/app/schemas/*.py` and
 `backend/app/core/*.py` — and cite the file and line you got the answer from.
-In an interactive session the clone lives at `reference/bambuddy` inside the
-checkout (the maintainer's own, git-excluded); never create a second copy of it
-inside the repository.
+In the maintainer's own checkout the clone lives at `reference/bambuddy`
+(git-excluded). Where it is missing — a cloud session starts from a fresh clone
+— make a read-only copy outside the repository; never create a second copy of
+it inside the repository.
 
 ## Issues from the report relay
 
@@ -109,7 +116,7 @@ do not stay silent because it was not part of the task.
 - `justfile` — `just test`, `just l10n-check`, `just build` / `build-wear` /
   `build-aab`, `just ship X.Y.Z`, `just ship-dev`, emulator recipes. **`just
   hooks` once per clone** points git at `.githooks/`, which refuses a commit
-  message that is not one Conventional Commits line.
+  message that is not one Conventional Commits line (see Conventions).
 
 ## Documentation
 
@@ -143,15 +150,19 @@ do not stay silent because it was not part of the task.
 
 ## Conventions
 
-- Two Android flavors, `mobile` and `wear`. Once flavors exist, **every**
-  `flutter build`/`flutter run` must pass `--flavor`; the watch build also needs
+- Two Android flavors, `mobile` and `wear`. **Every** `flutter build` /
+  `flutter run` must pass `--flavor`; the watch build also needs
   `--target lib/wear/main_wear.dart`.
 - `*.g.dart` (json_serializable) files are committed — regenerate with
   `dart run build_runner build --delete-conflicting-outputs` when a model
   changes, and commit the result.
 - Comments and commit messages in **English**, always. Commit messages follow
   [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-  (`feat(queue): …`, `fix(auth): …`).
+  (`feat(queue): …`, `fix(auth): …`), and `.githooks/commit-msg` holds them to
+  **one line and nothing else**: no body, no trailing full stop, and no
+  attribution trailers (`Co-Authored-By:`, `Signed-off-by:`, "Generated with …")
+  — the hook refuses all of them. Types: `build chore ci docs feat fix perf
+  refactor revert style test`.
 - Prefer self-documenting code; comment the non-obvious "why", not the "what".
 - Every new control (button, field, dropdown, list tile, sheet) gets a diagnostic
   identifier — `logTag('area.thing', …)` / `.tagged('area.thing')`. Ids are wire
@@ -163,7 +174,7 @@ do not stay silent because it was not part of the task.
   `just l10n-check` runs the strings this branch changed through LanguageTool
   (`tool/check_l10n_language.py`); `LANGUAGETOOL_URL` points it at a self-hosted
   instance instead of the rate-limited public API, and `just l10n-check-all`
-  sweeps both files. It finds spelling, agreement and punctuation. It does not
+  sweeps every locale file (en, pl, de, fr, es). It finds spelling, agreement and punctuation. It does not
   find a phrase that parses and means nothing ("Wysyłek jednocześnie"), a
   calque, or a sentence stating something untrue about the hardware — those
   have all shipped past a clean run, so read the copy as well.
@@ -178,8 +189,8 @@ do not stay silent because it was not part of the task.
   unit the number is in, which server file to check — and that description
   exists nowhere else in this repo, while the code it sits above is a const
   constructor plus a `fromJson`. Judge a model comment by "does this say
-  anything the declaration does not", never by the 20% in the `comment-ratio`
-  skill. **[lib/core/api/endpoints.dart](lib/core/api/endpoints.dart) is the
+  anything the declaration does not", never by a generic 20% comment-ratio
+  threshold. **[lib/core/api/endpoints.dart](lib/core/api/endpoints.dart) is the
   same case** and measures far higher still (~66%): it is a catalogue of route
   constants whose comments are the contract around them — which server version
   a path arrived in, what an API-key session is answered with, why a caller
@@ -205,21 +216,26 @@ do not stay silent because it was not part of the task.
   answer it already has and never asks again once the server is reachable;
   `capability_gate_shape_test.dart` refuses one. The path and the "adding a
   gate" checklist are in [docs/server-gates.md](docs/server-gates.md).
-- **Select fields use M3 `DropdownMenu<T>`**, never `DropdownButtonFormField`
-  (its full-screen overlay is the old Material look and does not match the app):
-  `expandedInsets: EdgeInsets.zero`, `menuHeight: 320`, and a local
-  `inputDecorationTheme` with the same chrome as `dashFieldDecoration`. It builds
-  its own inner `TextField`, so it takes an `InputDecorationTheme`, not an
-  `InputDecoration`. A bottom sheet is for complex or searchable pickers only
-  (colours, core-weight catalogue). Patterns: `_combo` in
-  [inventory_form.dart](lib/features/inventory/inventory_form.dart), the model
-  field in
+- **Select fields go through `dashCombo`**
+  ([lib/features/common/dash_input.dart](lib/features/common/dash_input.dart)):
+  an M3 `DropdownMenu<T>` with `expandedInsets: EdgeInsets.zero`, `menuHeight:
+  320` and `dashInputTheme` (the `InputDecorationTheme` twin of
+  `dashFieldDecoration` — `DropdownMenu` builds its own inner `TextField`, so it
+  takes a theme, not an `InputDecoration`). `filterable: true` makes it a combo
+  the user can type into. Never `DropdownButtonFormField` — its full-screen
+  overlay is the old Material look, and none is left in `lib/`. The menu opens in
+  a route of its own, so each `DropdownMenuEntry` carries its own diagnostic tag.
+  A bottom sheet is for complex or searchable pickers only (colours, core-weight
+  catalogue). Patterns: `_combo` in
+  [inventory_form.dart](lib/features/inventory/inventory_form.dart), the subnet
+  and model fields in
   [add_printer_screen.dart](lib/features/dashboard/add_printer_screen.dart).
-- **Yes/no confirmations go through `confirmDialog`**
-  ([lib/features/common/confirm_dialog.dart](lib/features/common/confirm_dialog.dart)):
-  it gives the confirm button a `FilledButton` (red when `destructive: true`),
-  returns a plain `bool`, and names both buttons in the diagnostic log
-  (`<id>.cancel` / `<id>.confirm`). A hand-built `AlertDialog` is for bodies that
+- **Yes/no confirmations go through `confirmDialog`** (in the `dash_kit`
+  package, not this repo): both answers are filled buttons sharing the width,
+  stacked full-width when a label no longer fits; the confirm one is red when
+  `destructive: true`. It returns a plain `bool` (barrier and back answer
+  `false`), tags both buttons in the diagnostic log (`<id>.cancel` /
+  `<id>.confirm`) and records the answer as a `confirm` record. A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
 - **A `Wrap` that sets `spacing` also sets `runSpacing`.** `spacing` is the gap
@@ -255,9 +271,9 @@ do not stay silent because it was not part of the task.
   Content that does not need the full width (the confirm dialog) says so with
   `contentWidthFraction` and is given a taller viewport in exchange. A watch row
   also needs a corner radius of ~16 or more and a label that can ellipsize; wear
-  widget tests run on a 450x450 face (`pumpWear`), which is what makes an
-  overflow show up at all — on the 384x384 face `pumpWear` defaults to, with
-  450x450 (`wearFaceLarge`) as the roomier one to check against.
+  widget tests run on a real watch face (`pumpWear`), which is what makes an
+  overflow show up at all — the 384x384 `wearFaceSmall` by default, with the
+  450x450 `wearFaceLarge` as the roomier one to check against.
   **A list of short rows says `curved: true` instead**, which is the other half
   of the same idea and the one Wear OS itself uses: the viewport runs across the
   whole face and each item is scaled to the chord that is lit where it currently
