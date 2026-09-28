@@ -65,6 +65,7 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D19 | Wall settings live **in the side panel**: a settings button swaps the panel between the farm view and the settings, and opens the panel on them from the rail. No floating card; a tap on the wall background does nothing, a tap on a tile opens that printer's camera. Leaving is a button in the settings, or Back. | 2026-09-28 |
 | D20 | Panel header and rail end with the **same pair: settings, then expand/collapse last**, on every device (a tablet can collapse too). Rail counts are read-only. Every control is ≥ 48 dp. The panel body is **one scrolling list** (errors, then queue) under a pinned header — no "+N more". | 2026-09-28 |
 | D21 | The panel is **always on screen**, collapsed to the rail or expanded — there is no setting that hides it. The rail is where the wall's settings and its way out live (D19), and at 64 dp it already leaves the tiles nearly the whole screen. | 2026-09-28 |
+| D22 | A printer hidden on the wall takes its **HMS errors out of the panel and the rail count** too. The wall is a view, not a control: hiding a printer means not wanting to watch it. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -380,7 +381,8 @@ user is already signed in to, with the credentials it already has.
   columns on a phone, 3–5 on a tablet. Tap a tile for that printer's
   full-screen camera and back.
 - **Queue + errors panel (D13)**, part of the layout from the first version:
-  - *Errors*: active HMS faults across all printers, most severe first, each
+  - *Errors*: active HMS faults across the printers on the wall (hidden ones
+    excluded, D22), most severe first, each
     naming its printer; a fault also highlights its tile. Empty state is
     a quiet "no faults", not a hidden panel, so the layout does not jump.
     `HmsError` carries no timestamp (`printer_status.dart`), so "newest"

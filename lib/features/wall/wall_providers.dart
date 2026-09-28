@@ -125,7 +125,9 @@ final wallPrintersProvider = Provider.autoDispose<List<PrinterWithStatus>?>((
   ];
 });
 
-/// Every active fault across the farm, in the order the panel lists them.
+/// Every active fault on the printers the wall shows, in the order the panel
+/// lists them. A printer hidden on this device brings none (D22): the wall is
+/// a view, and hiding a printer means not wanting to watch it.
 final wallFaultsProvider = Provider.autoDispose<List<WallFault>>(
   (ref) => wallFaults(
     ref.watch(wallPrintersProvider) ?? const [],
