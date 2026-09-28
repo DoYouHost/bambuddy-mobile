@@ -64,6 +64,7 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D18 | The wall's queue panel **polls the queue every 30 s** while wall mode is visible (the server pushes no queue add/delete/reorder event). | 2026-09-28 |
 | D19 | Wall settings live **in the side panel**: a settings button swaps the panel between the farm view and the settings, and opens the panel on them from the rail. No floating card; a tap on the wall background does nothing, a tap on a tile opens that printer's camera. Leaving is a button in the settings, or Back. | 2026-09-28 |
 | D20 | Panel header and rail end with the **same pair: settings, then expand/collapse last**, on every device (a tablet can collapse too). Rail counts are read-only. Every control is ≥ 48 dp. The panel body is **one scrolling list** (errors, then queue) under a pinned header — no "+N more". | 2026-09-28 |
+| D21 | The panel is **always on screen**, collapsed to the rail or expanded — there is no setting that hides it. The rail is where the wall's settings and its way out live (D19), and at 64 dp it already leaves the tiles nearly the whole screen. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -412,7 +413,8 @@ user is already signed in to, with the credentials it already has.
   - Which printers appear (like the TV's hidden list). New work: no
     hidden-printer setting exists in the app yet; a new prefs key.
   - Tiles show live video or status only.
-  - Queue + errors panel shown or hidden (hidden removes the rail too).
+  - ~~Queue + errors panel shown or hidden~~ — dropped by D21: the panel is
+    always there, as the rail or expanded.
   - These settings open inside the panel, not over the wall (D19).
 
 ### 13.2 Behaviour
@@ -546,7 +548,4 @@ user is already signed in to, with the credentials it already has.
    dp), a refused stream asked for again after 60 s (`restreamAfter`), the
    burn-in step (3 min round four offsets of 2 px). The snapshot interval
    (8 s) is the server's own camera wall's, not a guess.
-10. "Panel shown or hidden" (§13.1) is not built: with the rail gone the wall
-    loses its only way into its settings (D19), so it needs a design first —
-    e.g. a lone settings button in a corner, or the setting only in the app
-    settings.
+10. ~~"Panel shown or hidden"~~ — dropped by D21.
