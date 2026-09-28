@@ -49,10 +49,15 @@ class _CountingQueue extends QueueNotifier {
   _CountingQueue(this._items);
 
   final List<QueueItem> _items;
+
+  /// Every request for the queue: the first load and each refresh.
   static int refreshes = 0;
 
   @override
-  Future<List<QueueItem>> build() async => _items;
+  Future<List<QueueItem>> build() async {
+    refreshes++;
+    return _items;
+  }
 
   @override
   Future<void> refresh() async => refreshes++;
@@ -277,8 +282,10 @@ void main() {
         tester,
         size: _tablet,
         printers: [
-          faulty(1, 'X1C-01', '0x30001', 'Nozzle clog suspected'),
-          faulty(2, 'P1S', '0x10001', 'Heatbed heating failed'),
+          // The fatal fault is on the printer whose name sorts last, so only
+          // the level can put it first.
+          faulty(1, 'A1 mini', '0x30001', 'Nozzle clog suspected'),
+          faulty(2, 'X1C-01', '0x10001', 'Heatbed heating failed'),
         ],
       );
 
@@ -292,10 +299,13 @@ void main() {
         top('Heatbed heating failed'),
         lessThan(top('Nozzle clog suspected')),
       );
-      expect(
-        find.descendant(of: panel, matching: find.text('P1S')),
-        findsOneWidget,
-      );
+      for (final name in ['A1 mini', 'X1C-01']) {
+        expect(
+          find.descendant(of: panel, matching: find.text(name)),
+          findsOneWidget,
+          reason: name,
+        );
+      }
     });
 
     testWidgets('lists the queue with its target and waiting reason', (
@@ -365,6 +375,25 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(byLogId('wall.exit'));
       await tester.pumpAndSettle();
+      await tester.pump(WallScreen.queuePoll);
+      expect(_CountingQueue.refreshes, 3);
+    });
+
+    testWidgets('stops asking while the app is in the background', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(tester, size: _tablet);
+      expect(_CountingQueue.refreshes, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump(WallScreen.queuePoll * 3);
+      expect(_CountingQueue.refreshes, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(_CountingQueue.refreshes, 2, reason: 'back: refresh at once');
       await tester.pump(WallScreen.queuePoll);
       expect(_CountingQueue.refreshes, 3);
     });

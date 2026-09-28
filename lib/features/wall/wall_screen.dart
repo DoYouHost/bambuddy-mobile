@@ -49,7 +49,8 @@ class WallScreen extends ConsumerStatefulWidget {
 class _WallScreenState extends ConsumerState<WallScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
-  late final Timer _queuePoll;
+  late final AppLifecycleListener _lifecycle;
+  Timer? _queuePoll;
   bool _settings = false;
 
   @override
@@ -61,18 +62,38 @@ class _WallScreenState extends ConsumerState<WallScreen> {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
     );
     unawaited(_awake.set(ref.read(wallKeepAwakeProvider)));
+    _startQueuePoll();
+    // D18 polls while the wall is visible, not while the app sits behind
+    // another one — the queue screen stops its timer the same way.
+    _lifecycle = AppLifecycleListener(
+      onShow: _startQueuePoll,
+      onHide: _stopQueuePoll,
+    );
+  }
+
+  void _startQueuePoll() {
+    _queuePoll?.cancel();
     // The queue provider outlives this screen (the nav badge keeps it), so
-    // what it holds may be old: refresh on entry, then on the poll.
-    unawaited(ref.read(queueProvider.notifier).refresh());
+    // what it holds may be old: refresh on entry, then on the poll. One that
+    // is still loading its first answer needs no second request beside it.
+    if (ref.read(queueProvider).hasValue) {
+      unawaited(ref.read(queueProvider.notifier).refresh());
+    }
     _queuePoll = Timer.periodic(
       WallScreen.queuePoll,
       (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
     );
   }
 
+  void _stopQueuePoll() {
+    _queuePoll?.cancel();
+    _queuePoll = null;
+  }
+
   @override
   void dispose() {
-    _queuePoll.cancel();
+    _lifecycle.dispose();
+    _stopQueuePoll();
     // Every way out lands here — Back, the exit button, and `/setup` replacing
     // the whole stack when the session expires — so the rest of the app gets
     // its free rotation, its bars and its screen timeout back on each of them.
@@ -419,7 +440,8 @@ class _FaultItem extends StatelessWidget {
     final t = DashTokens.of(context);
     final level = fault.error.level;
     final text = fault.text;
-    final code = fault.error.shortCode;
+    // The same code the printer card prints under a fault.
+    final code = fault.error.displayCode;
     return _PanelItem(
       // Fatal and serious in red; common, info and unknown in orange.
       stripe: level != null && level <= 2 ? t.danger : t.accentOrange,
@@ -431,7 +453,7 @@ class _FaultItem extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         if (text != null) Text(text, style: t.bodySoft),
-        if (code != null) Text(code, style: t.monoMicro),
+        Text(code, style: t.monoMicro),
       ],
     );
   }
