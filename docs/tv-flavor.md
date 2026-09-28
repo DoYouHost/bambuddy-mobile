@@ -62,6 +62,8 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D16 | Below a width threshold the queue + errors panel **starts collapsed, with a control to expand it**; above it, it starts expanded. The threshold comes from the spike screenshots. | 2026-09-28 |
 | D17 | Wall errors panel order: **most severe first, then printer name.** `HmsError` has no timestamp, so "newest" is dropped rather than tracked in the app. | 2026-09-28 |
 | D18 | The wall's queue panel **polls the queue every 30 s** while wall mode is visible (the server pushes no queue add/delete/reorder event). | 2026-09-28 |
+| D19 | Wall settings live **in the side panel**: a settings button swaps the panel between the farm view and the settings, and opens the panel on them from the rail. No floating card; a tap on the wall background does nothing, a tap on a tile opens that printer's camera. Leaving is a button in the settings, or Back. | 2026-09-28 |
+| D20 | Panel header and rail end with the **same pair: settings, then expand/collapse last**, on every device (a tablet can collapse too). Rail counts are read-only. Every control is ≥ 48 dp. The panel body is **one scrolling list** (errors, then queue) under a pinned header — no "+N more". | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -383,7 +385,7 @@ user is already signed in to, with the credentials it already has.
     `HmsError` carries no timestamp (`printer_status.dart`), so "newest"
     cannot come from the data; ties break by printer name (D17).
   - *Queue*: the next items (name, target printer or model, `waitingReason`),
-    as many as the panel height holds, then "+N more". The server pushes no
+    in one scrolling list under the errors (D20). The server pushes no
     WebSocket event for a queue add, delete or reorder (only
     `queue_item_{acked,failed,uploading,upload_progress}`,
     `core/websocket.py`), and the app refreshes the queue only on print
@@ -411,11 +413,13 @@ user is already signed in to, with the credentials it already has.
     hidden-printer setting exists in the app yet; a new prefs key.
   - Tiles show live video or status only.
   - Queue + errors panel shown or hidden (hidden removes the rail too).
+  - These settings open inside the panel, not over the wall (D19).
 
 ### 13.2 Behaviour
 
-- Entered explicitly (a "Wall mode" action on the dashboard); left with Back or
-  a tap-to-show exit control — never by accident, never trapping the user.
+- Entered explicitly (a "Wall mode" action in the dashboard's ⋮ menu); left
+  with Back or the exit button in the panel settings (D19) — never by
+  accident, never trapping the user.
 - **Pushed on top of the dashboard (`context.push`), never `go`.** The
   dashboard owns the FGS start/stop and the three token refreshers
   (`dashboard_screen.dart`, its `AppLifecycleListener`); replacing it would

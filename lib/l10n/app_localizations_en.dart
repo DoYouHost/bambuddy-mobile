@@ -7198,9 +7198,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallModeTitle => 'Wall mode';
 
   @override
-  String get wallModeTapHint => 'Tap the screen to show the controls.';
-
-  @override
   String get wallModeExit => 'Exit wall mode';
 
   @override
@@ -7209,4 +7206,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wallKeepAwakeDesc =>
       'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.';
+
+  @override
+  String get wallPanelFarm => 'Farm';
+
+  @override
+  String get wallPanelSettings => 'Settings';
+
+  @override
+  String get wallPanelExpand => 'Expand panel';
+
+  @override
+  String get wallPanelCollapse => 'Collapse panel';
 }

@@ -7312,9 +7312,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wallModeTitle => 'Tryb ściany';
 
   @override
-  String get wallModeTapHint => 'Stuknij ekran, aby pokazać sterowanie.';
-
-  @override
   String get wallModeExit => 'Wyjdź z trybu ściany';
 
   @override
@@ -7323,4 +7320,16 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get wallKeepAwakeDesc =>
       'Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu.';
+
+  @override
+  String get wallPanelFarm => 'Farma';
+
+  @override
+  String get wallPanelSettings => 'Ustawienia';
+
+  @override
+  String get wallPanelExpand => 'Rozwiń panel';
+
+  @override
+  String get wallPanelCollapse => 'Zwiń panel';
 }

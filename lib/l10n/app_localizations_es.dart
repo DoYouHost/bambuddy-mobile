@@ -7289,9 +7289,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wallModeTitle => 'Modo pared';
 
   @override
-  String get wallModeTapHint => 'Toca la pantalla para mostrar los controles.';
-
-  @override
   String get wallModeExit => 'Salir del modo pared';
 
   @override
@@ -7300,4 +7297,16 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get wallKeepAwakeDesc =>
       'La pantalla se mantiene encendida mientras el modo pared está abierto. Si se desactiva, se aplica el tiempo de espera de pantalla del dispositivo.';
+
+  @override
+  String get wallPanelFarm => 'Granja';
+
+  @override
+  String get wallPanelSettings => 'Ajustes';
+
+  @override
+  String get wallPanelExpand => 'Desplegar panel';
+
+  @override
+  String get wallPanelCollapse => 'Plegar panel';
 }

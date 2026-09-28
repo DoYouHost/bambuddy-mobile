@@ -7360,9 +7360,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wallModeTitle => 'Mode mural';
 
   @override
-  String get wallModeTapHint => 'Touchez l\'écran pour afficher les commandes.';
-
-  @override
   String get wallModeExit => 'Quitter le mode mural';
 
   @override
@@ -7371,4 +7368,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get wallKeepAwakeDesc =>
       'L\'écran reste allumé tant que le mode mural est ouvert. Si l\'option est désactivée, la mise en veille de l\'appareil s\'applique.';
+
+  @override
+  String get wallPanelFarm => 'Ferme';
+
+  @override
+  String get wallPanelSettings => 'Paramètres';
+
+  @override
+  String get wallPanelExpand => 'Déplier le panneau';
+
+  @override
+  String get wallPanelCollapse => 'Replier le panneau';
 }

@@ -31,6 +31,7 @@ class SettingsRepository {
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
   static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
+  static const _wallPanelExpandedKey = 'wall_panel_expanded';
 
   final SharedPreferences _prefs;
 
@@ -142,6 +143,13 @@ class SettingsRepository {
 
   Future<void> saveWallKeepAwake(bool on) =>
       _prefs.setBool(_wallKeepAwakeKey, on);
+
+  /// The wall panel's last expand/collapse choice on this device. Null until
+  /// the user makes one, and then the screen width decides.
+  bool? loadWallPanelExpanded() => _prefs.getBool(_wallPanelExpandedKey);
+
+  Future<void> saveWallPanelExpanded(bool expanded) =>
+      _prefs.setBool(_wallPanelExpandedKey, expanded);
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].

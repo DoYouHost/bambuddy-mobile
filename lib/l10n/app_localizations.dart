@@ -12122,12 +12122,6 @@ abstract class AppLocalizations {
   /// **'Wall mode'**
   String get wallModeTitle;
 
-  /// Shown in the middle of the wall while nothing else is on it
-  ///
-  /// In en, this message translates to:
-  /// **'Tap the screen to show the controls.'**
-  String get wallModeTapHint;
-
   /// Tooltip of the button that leaves wall mode
   ///
   /// In en, this message translates to:
@@ -12145,6 +12139,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.'**
   String get wallKeepAwakeDesc;
+
+  /// Header of the wall's side panel while it shows the printer farm's errors and queue
+  ///
+  /// In en, this message translates to:
+  /// **'Farm'**
+  String get wallPanelFarm;
+
+  /// Header of the wall's side panel while it shows the wall settings; also the settings button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get wallPanelSettings;
+
+  /// Tooltip of the button that expands the wall's side panel from its rail
+  ///
+  /// In en, this message translates to:
+  /// **'Expand panel'**
+  String get wallPanelExpand;
+
+  /// Tooltip of the button that collapses the wall's side panel to a rail
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse panel'**
+  String get wallPanelCollapse;
 }
 
 class _AppLocalizationsDelegate

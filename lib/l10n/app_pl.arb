@@ -3191,8 +3191,11 @@
   "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.",
   "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk",
   "wallModeTitle": "Tryb ściany",
-  "wallModeTapHint": "Stuknij ekran, aby pokazać sterowanie.",
   "wallModeExit": "Wyjdź z trybu ściany",
   "wallKeepAwakeTitle": "Nie wygaszaj ekranu",
-  "wallKeepAwakeDesc": "Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu."
+  "wallKeepAwakeDesc": "Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu.",
+  "wallPanelFarm": "Farma",
+  "wallPanelSettings": "Ustawienia",
+  "wallPanelExpand": "Rozwiń panel",
+  "wallPanelCollapse": "Zwiń panel"
 }

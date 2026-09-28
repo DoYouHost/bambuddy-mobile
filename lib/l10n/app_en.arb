@@ -4368,10 +4368,6 @@
   "@wallModeTitle": {
     "description": "Name of the always-on farm view for a phone or tablet on a stand; also the dashboard button's tooltip"
   },
-  "wallModeTapHint": "Tap the screen to show the controls.",
-  "@wallModeTapHint": {
-    "description": "Shown in the middle of the wall while nothing else is on it"
-  },
   "wallModeExit": "Exit wall mode",
   "@wallModeExit": {
     "description": "Tooltip of the button that leaves wall mode"
@@ -4383,5 +4379,21 @@
   "wallKeepAwakeDesc": "The screen stays on while wall mode is open. Off lets the device's own screen timeout apply.",
   "@wallKeepAwakeDesc": {
     "description": "Explains the keep-screen-awake switch in wall mode"
+  },
+  "wallPanelFarm": "Farm",
+  "@wallPanelFarm": {
+    "description": "Header of the wall's side panel while it shows the printer farm's errors and queue"
+  },
+  "wallPanelSettings": "Settings",
+  "@wallPanelSettings": {
+    "description": "Header of the wall's side panel while it shows the wall settings; also the settings button's tooltip"
+  },
+  "wallPanelExpand": "Expand panel",
+  "@wallPanelExpand": {
+    "description": "Tooltip of the button that expands the wall's side panel from its rail"
+  },
+  "wallPanelCollapse": "Collapse panel",
+  "@wallPanelCollapse": {
+    "description": "Tooltip of the button that collapses the wall's side panel to a rail"
   }
 }

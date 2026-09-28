@@ -37,3 +37,21 @@ class WallKeepAwakeNotifier extends Notifier<bool> {
     state = on;
   }
 }
+
+/// The user's expand/collapse choice for the wall panel; null means the screen
+/// width decides (D16).
+final wallPanelExpandedProvider =
+    NotifierProvider<WallPanelExpandedNotifier, bool?>(
+      WallPanelExpandedNotifier.new,
+    );
+
+class WallPanelExpandedNotifier extends Notifier<bool?> {
+  @override
+  bool? build() =>
+      ref.watch(settingsRepositoryProvider).loadWallPanelExpanded();
+
+  Future<void> set(bool expanded) async {
+    await ref.read(settingsRepositoryProvider).saveWallPanelExpanded(expanded);
+    state = expanded;
+  }
+}

@@ -7266,10 +7266,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wallModeTitle => 'Wandmodus';
 
   @override
-  String get wallModeTapHint =>
-      'Tippe auf den Bildschirm, um die Steuerung anzuzeigen.';
-
-  @override
   String get wallModeExit => 'Wandmodus beenden';
 
   @override
@@ -7278,4 +7274,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wallKeepAwakeDesc =>
       'Der Bildschirm bleibt an, solange der Wandmodus geöffnet ist. Ist die Option aus, gilt die automatische Bildschirmabschaltung des Geräts.';
+
+  @override
+  String get wallPanelFarm => 'Farm';
+
+  @override
+  String get wallPanelSettings => 'Einstellungen';
+
+  @override
+  String get wallPanelExpand => 'Seitenleiste ausklappen';
+
+  @override
+  String get wallPanelCollapse => 'Seitenleiste einklappen';
 }
