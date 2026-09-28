@@ -1,3 +1,7 @@
+import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -12,6 +16,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 const _window = MethodChannel('page.codeberg.morganmlgman.bambuddy/window');
+
+/// The dashboard state the wall reads, fixed: no poll, no server.
+class _FixedDashboard extends DashboardNotifier {
+  _FixedDashboard(this._fixed);
+
+  final DashboardState _fixed;
+
+  @override
+  DashboardState build() => _fixed;
+
+  @override
+  Future<void> refresh() async {}
+}
+
+/// The demo's five printers, idle and connected.
+final _farm = [
+  for (final (i, name) in ['X1C-01', 'X1C-02', 'P1S', 'A1 mini', 'H2D'].indexed)
+    PrinterWithStatus(
+      printer: Printer(id: i + 1, name: name),
+      status: PrinterStatus(id: i + 1, connected: true, state: 'IDLE'),
+    ),
+];
 
 /// A landscape phone and a landscape tablet, either side of the D16 threshold.
 const _phone = Size(844, 390);
@@ -30,6 +56,7 @@ void main() {
     WidgetTester tester, {
     Size size = _phone,
     Map<String, Object> prefs = const {},
+    List<PrinterWithStatus>? printers,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -77,7 +104,13 @@ void main() {
     late ProviderContainer container;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(sp)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sp),
+          dashboardProvider.overrideWith(
+            () => _FixedDashboard(DashboardState(printers: printers ?? _farm)),
+          ),
+          inertStatusesOverride,
+        ],
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context, listen: false);
@@ -123,6 +156,41 @@ void main() {
     );
 
     expect(awake, [false]);
+  });
+
+  group('the grid', () {
+    testWidgets('lays the demo farm out in three columns on a phone', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(tester);
+
+      double top(String name) => tester.getTopLeft(find.text(name)).dy;
+      expect(top('X1C-01'), top('P1S'), reason: 'first row: three tiles');
+      expect(top('A1 mini'), greaterThan(top('X1C-01')));
+    });
+
+    testWidgets('says so when the server has no printers', (tester) async {
+      await pumpDashboardWithWall(tester, printers: const []);
+
+      expect(find.textContaining('Brak drukarek'), findsOneWidget);
+    });
+
+    testWidgets('scrolls a farm too big to fit rather than squeezing it', (
+      tester,
+    ) async {
+      final big = [
+        for (var i = 1; i <= 24; i++)
+          PrinterWithStatus(
+            printer: Printer(id: i, name: 'P$i'),
+            status: PrinterStatus(id: i, connected: true, state: 'IDLE'),
+          ),
+      ];
+      await pumpDashboardWithWall(tester, printers: big);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('P24'), findsNothing, reason: 'below the fold');
+      expect(tester.getSize(find.text('P1')).height, greaterThan(0));
+    });
   });
 
   testWidgets('a tap on the wall itself opens nothing', (tester) async {

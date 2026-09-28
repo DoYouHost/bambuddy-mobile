@@ -8,7 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/settings_rows.dart';
+import '../dashboard/providers.dart';
+import '../dashboard/ws_providers.dart';
+import 'wall_layout.dart';
 import 'wall_providers.dart';
+import 'wall_tile.dart';
 
 const _landscape = [
   DeviceOrientation.landscapeLeft,
@@ -127,15 +131,57 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   }
 }
 
-/// Where the printer tiles go.
-class _WallGrid extends StatelessWidget {
+/// The printers, from the same state the dashboard under the wall polls.
+class _WallGrid extends ConsumerWidget {
   const _WallGrid();
 
+  static const _gap = 10.0;
+
+  /// A tile shorter than this no longer fits its text; past it the grid
+  /// scrolls instead of shrinking further.
+  static const _minTileHeight = 120.0;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    return Center(
-      child: Icon(Icons.view_quilt_outlined, size: 48, color: t.textTertiary),
+    final l10n = AppLocalizations.of(context);
+    final printers = ref.watch(dashboardProvider.select((s) => s.printers));
+    if (printers == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (printers.isEmpty) {
+      return Center(
+        child: Text(
+          l10n.noPrinters,
+          style: t.bodySoft,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    final inTouchSince = ref
+        .read(printerStatusesProvider.notifier)
+        .inTouchSince;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final cols = wallColumns(printers.length, box.biggest, gap: _gap);
+        final rows = (printers.length / cols).ceil();
+        final fitted = (box.maxHeight - _gap * (rows - 1)) / rows;
+        return GridView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: printers.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: _gap,
+            mainAxisSpacing: _gap,
+            mainAxisExtent: fitted < _minTileHeight ? _minTileHeight : fitted,
+          ),
+          itemBuilder: (_, i) => WallTile(
+            key: ValueKey(printers[i].printer.id),
+            item: printers[i],
+            inTouchSince: inTouchSince,
+          ),
+        );
+      },
     );
   }
 }
