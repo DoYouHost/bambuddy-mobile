@@ -1,4 +1,4 @@
-# bambuddy-mobile — instructions for Claude
+# bambuddy-mobile — instructions for coding agents
 
 Flutter app (Android phone + Wear OS) for a self-hosted [bambuddy](https://github.com/maziggy/bambuddy)
 server. Everything the app shows comes from that server's REST API and WebSocket
@@ -27,25 +27,14 @@ flutter test          # or: just test
 flutter build apk --debug --flavor mobile
 ```
 
-Running as the GitHub Action you are allowed `flutter analyze`, `flutter test`,
-`flutter pub get`, `flutter gen-l10n`, `dart run build_runner build`, the
-read-only `gh run/pr/issue view`, `WebSearch` and `WebFetch` on pub.dev and
-wiki.bambuddy.cool — **run them, do not ask for them.** APK builds are not on
-that list on purpose; the CI run above is what proves those.
-
 A question about the actual server-side contract — a route's request/response
 shape, a permission gate, a validation rule — also doesn't need to be asked.
-The [bambuddy](https://github.com/maziggy/bambuddy) server source is already
-checked out for you at `/tmp/bambuddy-server-ref`: read
+Read the [bambuddy](https://github.com/maziggy/bambuddy) server source —
 `backend/app/api/routes/*.py`, `backend/app/schemas/*.py` and
-`backend/app/core/*.py` with Read and Grep, and cite the file and line you got
-the answer from.
-
-Do not clone it yourself — the bash sandbox has no network egress, so the clone
-fails there and the workflow does it before you start. Do not delete it either;
-the workflow removes it. In an interactive session the same clone lives at
-`reference/bambuddy` inside the checkout (the maintainer's own, git-excluded);
-never create a second copy of it inside the repository.
+`backend/app/core/*.py` — and cite the file and line you got the answer from.
+In an interactive session the clone lives at `reference/bambuddy` inside the
+checkout (the maintainer's own, git-excluded); never create a second copy of it
+inside the repository.
 
 ## Issues from the report relay
 
@@ -167,8 +156,9 @@ do not stay silent because it was not part of the task.
 - Every new control (button, field, dropdown, list tile, sheet) gets a diagnostic
   identifier — `logTag('area.thing', …)` / `.tagged('area.thing')`. Ids are wire
   values and carry no user data; the grammar and the traps are in
-  [docs/logging-guide.md](docs/logging-guide.md). `/log-coverage` must stay at
-  zero unnamed controls.
+  [docs/logging-guide.md](docs/logging-guide.md). The `log-coverage` scan
+  (`python3 .claude/skills/log-coverage/log_coverage.py`) must stay at zero
+  unnamed controls.
 - **Copy you add gets spell-checked, and that is not the whole check.**
   `just l10n-check` runs the strings this branch changed through LanguageTool
   (`tool/check_l10n_language.py`); `LANGUAGETOOL_URL` points it at a self-hosted

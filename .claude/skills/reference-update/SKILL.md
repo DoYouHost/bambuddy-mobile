@@ -252,7 +252,7 @@ it added to, plus `## Watch only` and **Struck off**.
   proves it.
 - **What is not yours to decide gets `(needs a decision)`** and nothing more: a
   limit, cap, timeout or threshold; anything that cannot be built so an older
-  server still works (see [CLAUDE.md](../../../CLAUDE.md)); anything that is a
+  server still works (see [AGENTS.md](../../../AGENTS.md)); anything that is a
   product call rather than a contract change.
 - **One contract change, one line.** Do not bundle unrelated changes because
   they landed in the same commit.
