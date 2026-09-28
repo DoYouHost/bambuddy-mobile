@@ -20,6 +20,7 @@ void main() {
   /// Every orientation list and system UI mode handed to `SystemChrome`.
   late List<Object?> orientations;
   late List<Object?> uiModes;
+  late List<Object?> overlays;
 
   Future<ProviderContainer> pumpDashboardWithWall(
     WidgetTester tester, {
@@ -28,6 +29,7 @@ void main() {
     awake = [];
     orientations = [];
     uiModes = [];
+    overlays = [];
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(_window, (call) async {
       awake.add((call.arguments as Map)['on'] as bool);
@@ -38,6 +40,8 @@ void main() {
         orientations.add(call.arguments);
       } else if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
         uiModes.add(call.arguments);
+      } else if (call.method == 'SystemChrome.setEnabledSystemUIOverlays') {
+        overlays.add(call.arguments);
       }
       return null;
     });
@@ -122,7 +126,10 @@ void main() {
 
     expect(find.text('DASHBOARD'), findsOneWidget);
     expect(orientations.last, isEmpty);
-    expect(uiModes.last, 'SystemUiMode.edgeToEdge');
+    expect(overlays.last, [
+      'SystemUiOverlay.top',
+      'SystemUiOverlay.bottom',
+    ], reason: 'both bars back, the flags the activity starts with');
     expect(awake.last, isFalse);
   });
 
@@ -151,6 +158,17 @@ void main() {
     expect(byLogId('wall.exit'), findsOneWidget);
 
     await tester.pump(WallScreen.controlsTimeout);
+    expect(byLogId('wall.exit'), findsNothing);
+  });
+
+  testWidgets('a second tap on the surface hides the controls', (tester) async {
+    await pumpDashboardWithWall(tester);
+
+    await tester.tap(byLogId('wall.surface'));
+    await tester.pump();
+    await tester.tapAt(const Offset(20, 400));
+    await tester.pump();
+
     expect(byLogId('wall.exit'), findsNothing);
   });
 

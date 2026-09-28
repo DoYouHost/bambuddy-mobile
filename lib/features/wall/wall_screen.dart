@@ -57,9 +57,24 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     // its free rotation, its bars and its screen timeout back on each of them.
     // The app sets no orientation of its own, so "restore" is the empty list.
     unawaited(SystemChrome.setPreferredOrientations(const []));
-    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    // Not `edgeToEdge`: the engine ignores that below API 29 and the bars would
+    // stay hidden, and on 29–34 it would switch the app to a mode it never
+    // runs in. Both overlays in manual mode are the flags the activity starts
+    // with (PlatformPlugin.setSystemChromeEnabledSystemUIOverlays).
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      ),
+    );
     unawaited(_awake.set(false));
     super.dispose();
+  }
+
+  void _toggleControls() {
+    if (!_controls) return _showControls();
+    _hide?.cancel();
+    setState(() => _controls = false);
   }
 
   void _showControls() {
@@ -86,7 +101,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
                 'wall.surface',
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: _showControls,
+                  onTap: _toggleControls,
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -111,13 +126,15 @@ class _WallScreenState extends ConsumerState<WallScreen> {
               ),
             ),
             if (_controls)
-              Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: _Controls(onInteract: _showControls),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: _Controls(onInteract: _showControls),
+                    ),
                   ),
                 ),
               ),

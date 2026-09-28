@@ -65,13 +65,19 @@ void main() {
     tester,
   ) async {
     final container = await pumpScreen(tester);
+    Switch collapseSwitch() => tester.widget<Switch>(
+      find.descendant(
+        of: byLogId('app_settings.collapse_printer_cards'),
+        matching: find.byType(Switch),
+      ),
+    );
 
-    expect(tester.widget<Switch>(find.byType(Switch).first).value, isFalse);
+    expect(collapseSwitch().value, isFalse);
 
     await tester.tap(find.text(l10n.collapsePrinterCardsTitle));
     await tester.pumpAndSettle();
 
-    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    expect(collapseSwitch().value, isTrue);
     expect(container.read(printerCardsCollapsedByDefaultProvider), isTrue);
     expect(
       container.read(settingsRepositoryProvider).loadPrinterCardsCollapsed(),
