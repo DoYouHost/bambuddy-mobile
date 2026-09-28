@@ -3900,5 +3900,6 @@
   "wallPanelCollapse": "Replier le panneau",
   "wallErrorsTitle": "Erreurs",
   "wallNoFaults": "Aucune erreur active",
-  "wallQueueCount": "{count, plural, =1{1 dans la file d'attente} other{{count} dans la file d'attente}}"
+  "wallQueueCount": "{count, plural, =1{1 dans la file d'attente} other{{count} dans la file d'attente}}",
+  "wallLivePaused": "Direct en pause"
 }

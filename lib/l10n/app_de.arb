@@ -3900,5 +3900,6 @@
   "wallPanelCollapse": "Seitenleiste einklappen",
   "wallErrorsTitle": "Fehler",
   "wallNoFaults": "Keine aktiven Fehler",
-  "wallQueueCount": "{count, plural, =1{1 in der Warteschlange} other{{count} in der Warteschlange}}"
+  "wallQueueCount": "{count, plural, =1{1 in der Warteschlange} other{{count} in der Warteschlange}}",
+  "wallLivePaused": "Live pausiert"
 }

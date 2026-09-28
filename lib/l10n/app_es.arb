@@ -3900,5 +3900,6 @@
   "wallPanelCollapse": "Plegar panel",
   "wallErrorsTitle": "Errores",
   "wallNoFaults": "Sin errores activos",
-  "wallQueueCount": "{count, plural, =1{1 en la cola} other{{count} en la cola}}"
+  "wallQueueCount": "{count, plural, =1{1 en la cola} other{{count} en la cola}}",
+  "wallLivePaused": "Directo en pausa"
 }

@@ -1,4 +1,6 @@
+import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
@@ -92,6 +94,7 @@ void main() {
     List<PrinterWithStatus>? printers,
     Map<int, PrinterStatus>? live,
     List<QueueItem> queue = const [],
+    Override? profile,
   }) async {
     _CountingQueue.refreshes = 0;
     tester.view.devicePixelRatio = 1;
@@ -146,6 +149,8 @@ void main() {
             () => _FixedDashboard(DashboardState(printers: printers ?? _farm)),
           ),
           queueProvider.overrideWith(() => _CountingQueue(queue)),
+          ?profile,
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
           if (live == null)
             inertStatusesOverride
           else
@@ -227,6 +232,31 @@ void main() {
 
       expect(find.text('RUNNING'), findsOneWidget);
       expect(find.text('64%'), findsOneWidget);
+    });
+
+    testWidgets('puts each printer\'s camera behind its status', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(tester, profile: fakeServerProfileOverride());
+
+      expect(byLogId('wall.tile'), findsNWidgets(5));
+    });
+
+    testWidgets('keeps the demo status-only: it serves no camera', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(
+        tester,
+        profile: serverProfileOverride(
+          const ServerProfile(
+            baseUrl: DemoConfig.baseUrl,
+            authMode: AuthMode.none,
+          ),
+        ),
+      );
+
+      expect(byLogId('wall.tile'), findsNothing);
+      expect(find.text('X1C-01'), findsOneWidget);
     });
 
     testWidgets('says so when the server has no printers', (tester) async {

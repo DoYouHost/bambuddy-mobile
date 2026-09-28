@@ -12181,6 +12181,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 in the queue} other{{count} in the queue}}'**
   String wallQueueCount(int count);
+
+  /// Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead
+  ///
+  /// In en, this message translates to:
+  /// **'Live paused'**
+  String get wallLivePaused;
 }
 
 class _AppLocalizationsDelegate

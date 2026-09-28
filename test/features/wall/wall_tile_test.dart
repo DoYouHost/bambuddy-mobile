@@ -1,13 +1,63 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
 const _printer = Printer(id: 1, name: 'X1C-01');
+
+/// A server that answers every camera request with 404: the stream is refused,
+/// which is a failure the backoff does not retry, and so is every snapshot.
+class _RefusingHttp extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) => _RefusingClient();
+}
+
+class _RefusingClient implements HttpClient {
+  @override
+  set connectionTimeout(Duration? value) {}
+
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) async => _RefusedRequest();
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RefusedRequest implements HttpClientRequest {
+  @override
+  Future<HttpClientResponse> close() async => _RefusedResponse();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RefusedResponse extends Stream<List<int>> implements HttpClientResponse {
+  @override
+  int get statusCode => 404;
+
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int> event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) => const Stream<List<int>>.empty().listen(onData, onDone: onDone);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 const _printing = PrinterStatus(
   id: 1,
@@ -33,6 +83,7 @@ Future<void> pumpTile(
   PrinterStatus? status, {
   Size size = const Size(260, 170),
   Printer printer = _printer,
+  bool camera = false,
 }) => pumpPhone(
   tester,
   Center(
@@ -40,9 +91,14 @@ Future<void> pumpTile(
       size: size,
       child: WallTile(
         item: PrinterWithStatus(printer: printer, status: status),
+        camera: camera,
       ),
     ),
   ),
+  overrides: [
+    fakeServerProfileOverride(),
+    cameraTokenProvider.overrideWith((ref) async => 'tok'),
+  ],
 );
 
 void main() {
@@ -171,5 +227,59 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+  });
+
+  group('with a camera', () {
+    testWidgets('keeps the status on the picture, without the big percent', (
+      tester,
+    ) async {
+      await pumpTile(tester, _printing, camera: true);
+      await tester.pump();
+
+      expect(byLogId('wall.tile'), findsOneWidget);
+      expect(find.text('X1C-01'), findsOneWidget);
+      expect(find.text('RUNNING'), findsOneWidget);
+      expect(find.text('L 142/220'), findsOneWidget);
+      expect(find.text('64%'), findsNothing);
+    });
+
+    testWidgets(
+      'falls back to snapshots under a marker when the stream fails',
+      (tester) async {
+        final previous = HttpOverrides.current;
+        HttpOverrides.global = _RefusingHttp();
+        addTearDown(() => HttpOverrides.global = previous);
+
+        await pumpTile(tester, _printing, camera: true);
+        for (var i = 0; i < 5; i++) {
+          await tester.pump();
+        }
+
+        expect(find.text('Podgląd wstrzymany'), findsOneWidget);
+      },
+    );
+
+    testWidgets('opens the full-screen camera on a tap', (tester) async {
+      await pumpTile(tester, _printing, camera: true);
+      await tester.pump();
+
+      await tester.tap(byLogId('wall.tile'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CameraView), findsOneWidget);
+    });
+
+    testWidgets('an offline printer gets the status card, not a dead stream', (
+      tester,
+    ) async {
+      await pumpTile(
+        tester,
+        const PrinterStatus(id: 1, connected: false),
+        camera: true,
+      );
+
+      expect(byLogId('wall.tile'), findsNothing);
+      expect(find.text('OFFLINE'), findsOneWidget);
+    });
   });
 }

@@ -3200,5 +3200,6 @@
   "wallPanelCollapse": "Zwiń panel",
   "wallErrorsTitle": "Błędy",
   "wallNoFaults": "Brak aktywnych błędów",
-  "wallQueueCount": "{count, plural, =1{1 w kolejce} few{{count} w kolejce} many{{count} w kolejce} other{{count} w kolejce}}"
+  "wallQueueCount": "{count, plural, =1{1 w kolejce} few{{count} w kolejce} many{{count} w kolejce} other{{count} w kolejce}}",
+  "wallLivePaused": "Podgląd wstrzymany"
 }

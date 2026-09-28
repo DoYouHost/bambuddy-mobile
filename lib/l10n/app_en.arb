@@ -4412,5 +4412,9 @@
         "type": "int"
       }
     }
+  },
+  "wallLivePaused": "Live paused",
+  "@wallLivePaused": {
+    "description": "Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead"
   }
 }

@@ -26,6 +26,20 @@ class MjpegStreamEnded implements Exception {
   String toString() => 'MjpegStreamEnded';
 }
 
+/// Whether [a] and [b] are the same stream with only the `?token=` changed —
+/// what the proactive camera-token refresher does to every URL once an hour.
+bool sameStreamExceptToken(String a, String b) {
+  final ua = Uri.tryParse(a);
+  final ub = Uri.tryParse(b);
+  if (ua == null || ub == null) return false;
+  Map<String, String> rest(Uri u) => Map.of(u.queryParameters)..remove('token');
+  final qa = rest(ua);
+  final qb = rest(ub);
+  return ua.replace(query: '') == ub.replace(query: '') &&
+      qa.length == qb.length &&
+      qa.entries.every((e) => qb[e.key] == e.value);
+}
+
 /// Renders an MJPEG stream (`multipart/x-mixed-replace`).
 ///
 /// The connection lives exactly as long as the widget is mounted and the app is
@@ -60,6 +74,7 @@ class MjpegView extends StatefulWidget {
     required this.error,
     required this.retrying,
     this.fit,
+    this.cacheWidth,
     this.idleTimeout = const Duration(seconds: 15),
     this.reconnectDelays = const [
       Duration(seconds: 1),
@@ -79,6 +94,11 @@ class MjpegView extends StatefulWidget {
   final WidgetBuilder retrying;
 
   final BoxFit? fit;
+
+  /// Decode frames at this width rather than the camera's own. A wall of
+  /// small tiles otherwise decodes a 1080p frame per tile, several times a
+  /// second each.
+  final int? cacheWidth;
 
   /// How long a live stream may say nothing before it counts as dead. A remote
   /// connection is slow, not silent — 15 s is the same figure the app's HTTP
@@ -114,16 +134,22 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(MjpegView old) {
     super.didUpdateWidget(old);
-    // A re-minted token changes the query, so the URL is what identifies a
-    // stream here, not the widget position.
-    if (old.url != widget.url) {
-      _stop();
-      _evict(_frame);
-      _frame = null;
-      _error = null;
-      _attempt = 0;
-      unawaited(_start());
-    }
+    if (old.url == widget.url) return;
+    // A live stream survives a re-minted token: the server checks the token
+    // only when the connection opens (a route dependency; the fan-out never
+    // re-checks), and `_start` reads `widget.url`, so the next reconnect
+    // already carries the new one. Restarting here blanked every open camera
+    // to a spinner once an hour.
+    final live = _client != null && _frame != null && _error == null;
+    if (live && sameStreamExceptToken(old.url, widget.url)) return;
+    // Any other change is another stream: the URL is what identifies it here,
+    // not the widget position.
+    _stop();
+    _evict(_frame);
+    _frame = null;
+    _error = null;
+    _attempt = 0;
+    unawaited(_start());
   }
 
   @override
@@ -212,8 +238,15 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     _evict(previous);
   }
 
+  /// The cache key a frame is drawn under — the same one [_evict] must drop.
+  ImageProvider _image(Uint8List frame) {
+    final width = widget.cacheWidth;
+    final memory = MemoryImage(frame);
+    return width == null ? memory : ResizeImage(memory, width: width);
+  }
+
   void _evict(Uint8List? frame) {
-    if (frame != null) unawaited(MemoryImage(frame).evict());
+    if (frame != null) unawaited(_image(frame).evict());
   }
 
   void _fail(Object error, HttpClient from) {
@@ -266,7 +299,11 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
       return widget.error(context, error);
     }
     if (frame == null) return widget.loading(context);
-    final image = Image.memory(frame, gaplessPlayback: true, fit: widget.fit);
+    final image = Image(
+      image: _image(frame),
+      gaplessPlayback: true,
+      fit: widget.fit,
+    );
     if (!_retrying) return image;
     return Stack(
       fit: StackFit.passthrough,

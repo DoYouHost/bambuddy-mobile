@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../common/settings_rows.dart';
 import '../../core/models/queue_item.dart';
 import '../dashboard/ws_providers.dart';
@@ -196,6 +197,10 @@ class _WallGrid extends ConsumerWidget {
     final inTouchSince = ref
         .read(printerStatusesProvider.notifier)
         .inTouchSince;
+    // No live tile count cap (D12). The demo serves no MJPEG, so its tiles
+    // stay status-only.
+    final profile = ref.watch(serverProfileProvider);
+    final camera = profile != null && !profile.isDemo;
     return LayoutBuilder(
       builder: (context, box) {
         final cols = wallColumns(
@@ -219,6 +224,7 @@ class _WallGrid extends ConsumerWidget {
             key: ValueKey(printers[i].printer.id),
             item: printers[i],
             inTouchSince: inTouchSince,
+            camera: camera,
           ),
         );
       },

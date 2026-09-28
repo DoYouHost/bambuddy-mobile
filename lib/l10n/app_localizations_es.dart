@@ -7326,4 +7326,7 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get wallLivePaused => 'Directo en pausa';
 }
