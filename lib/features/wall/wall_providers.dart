@@ -2,7 +2,12 @@ import 'package:app_util/app_util.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/notifications/hms_catalog.dart';
+import '../../data/printers_repository.dart';
 import '../../providers.dart';
+import '../dashboard/providers.dart';
+import '../dashboard/ws_providers.dart';
+import 'wall_faults.dart';
 
 /// Holds the screen on through [MainActivity]'s `window` channel
 /// (`FLAG_KEEP_SCREEN_ON`). A host without the channel simply lets the screen
@@ -55,3 +60,24 @@ class WallPanelExpandedNotifier extends Notifier<bool?> {
     state = expanded;
   }
 }
+
+/// The printers on the wall: the dashboard's roster with the live statuses
+/// over it. Null until the roster first arrives.
+///
+/// The roster alone is polled once a minute while the socket is up; the live
+/// frames are in the statuses map, as on the dashboard.
+final wallPrintersProvider = Provider.autoDispose<List<PrinterWithStatus>?>((
+  ref,
+) {
+  final roster = ref.watch(dashboardProvider.select((s) => s.printers));
+  if (roster == null) return null;
+  return withLiveStatuses(roster, ref.watch(printerStatusesProvider));
+});
+
+/// Every active fault across the farm, in the order the panel lists them.
+final wallFaultsProvider = Provider.autoDispose<List<WallFault>>(
+  (ref) => wallFaults(
+    ref.watch(wallPrintersProvider) ?? const [],
+    describe: HmsCatalog.instance.describe,
+  ),
+);

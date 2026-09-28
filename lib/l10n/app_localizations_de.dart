@@ -7286,4 +7286,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wallPanelCollapse => 'Seitenleiste einklappen';
+
+  @override
+  String get wallErrorsTitle => 'Fehler';
+
+  @override
+  String get wallNoFaults => 'Keine aktiven Fehler';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in der Warteschlange',
+      one: '1 in der Warteschlange',
+    );
+    return '$_temp0';
+  }
 }

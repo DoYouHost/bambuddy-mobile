@@ -1,5 +1,7 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
@@ -42,6 +44,20 @@ class _FixedStatuses extends PrinterStatusesNotifier {
   Map<int, PrinterStatus> build() => _fixed;
 }
 
+/// A fixed queue that counts how often the wall asked for it again.
+class _CountingQueue extends QueueNotifier {
+  _CountingQueue(this._items);
+
+  final List<QueueItem> _items;
+  static int refreshes = 0;
+
+  @override
+  Future<List<QueueItem>> build() async => _items;
+
+  @override
+  Future<void> refresh() async => refreshes++;
+}
+
 /// The demo's five printers, idle and connected.
 final _farm = [
   for (final (i, name) in ['X1C-01', 'X1C-02', 'P1S', 'A1 mini', 'H2D'].indexed)
@@ -70,7 +86,9 @@ void main() {
     Map<String, Object> prefs = const {},
     List<PrinterWithStatus>? printers,
     Map<int, PrinterStatus>? live,
+    List<QueueItem> queue = const [],
   }) async {
+    _CountingQueue.refreshes = 0;
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
     addTearDown(tester.view.reset);
@@ -122,6 +140,7 @@ void main() {
           dashboardProvider.overrideWith(
             () => _FixedDashboard(DashboardState(printers: printers ?? _farm)),
           ),
+          queueProvider.overrideWith(() => _CountingQueue(queue)),
           if (live == null)
             inertStatusesOverride
           else
@@ -236,6 +255,118 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('P24'), findsOneWidget);
+    });
+  });
+
+  group('the farm view', () {
+    PrinterWithStatus faulty(int id, String name, String code, String text) =>
+        PrinterWithStatus(
+          printer: Printer(id: id, name: name),
+          status: PrinterStatus(
+            id: id,
+            connected: true,
+            state: 'IDLE',
+            hmsErrors: [HmsError(code: code, message: text)],
+          ),
+        );
+
+    testWidgets('lists faults most severe first, each naming its printer', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(
+        tester,
+        size: _tablet,
+        printers: [
+          faulty(1, 'X1C-01', '0x30001', 'Nozzle clog suspected'),
+          faulty(2, 'P1S', '0x10001', 'Heatbed heating failed'),
+        ],
+      );
+
+      final panel = find.byWidgetPredicate(
+        (w) => w.runtimeType.toString() == '_WallFarm',
+      );
+      double top(String text) => tester
+          .getTopLeft(find.descendant(of: panel, matching: find.text(text)))
+          .dy;
+      expect(
+        top('Heatbed heating failed'),
+        lessThan(top('Nozzle clog suspected')),
+      );
+      expect(
+        find.descendant(of: panel, matching: find.text('P1S')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('lists the queue with its target and waiting reason', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(
+        tester,
+        size: _tablet,
+        queue: const [
+          QueueItem(
+            id: 7,
+            position: 1,
+            status: 'pending',
+            archiveName: 'Camera_mount_v3.3mf',
+            printerName: 'X1C-01',
+            waitingReason: 'Waiting on Enclosure Door',
+          ),
+          QueueItem(
+            id: 8,
+            position: 2,
+            status: 'pending',
+            libraryFileName: 'Cable_clip.3mf',
+            targetModel: 'X1C',
+          ),
+        ],
+      );
+
+      expect(find.text('Camera_mount_v3.3mf'), findsOneWidget);
+      expect(find.text('Waiting on Enclosure Door'), findsOneWidget);
+      expect(find.text('Cable_clip.3mf'), findsOneWidget);
+      expect(find.text('Dowolna X1C'), findsOneWidget);
+    });
+
+    testWidgets('says quietly that there are no faults and no queue', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(tester, size: _tablet);
+
+      expect(find.text('Brak aktywnych błędów'), findsOneWidget);
+      expect(find.text('Kolejka jest pusta'), findsOneWidget);
+    });
+
+    testWidgets('the rail counts faults and queued jobs', (tester) async {
+      await pumpDashboardWithWall(
+        tester,
+        printers: [faulty(1, 'X1C-01', '0x10001', 'Heatbed heating failed')],
+        queue: const [
+          QueueItem(id: 1, position: 1, status: 'pending'),
+          QueueItem(id: 2, position: 2, status: 'pending'),
+        ],
+      );
+
+      expect(find.bySemanticsLabel('1 błąd, 2 w kolejce'), findsOneWidget);
+    });
+
+    testWidgets('asks for the queue on entry, every 30 s, and not after', (
+      tester,
+    ) async {
+      await pumpDashboardWithWall(tester, size: _tablet);
+      expect(_CountingQueue.refreshes, 1);
+
+      await tester.pump(WallScreen.queuePoll);
+      await tester.pump(WallScreen.queuePoll);
+      expect(_CountingQueue.refreshes, 3);
+
+      await tester.tap(byLogId('wall.settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('wall.exit'));
+      await tester.pumpAndSettle();
+      await tester.pump(WallScreen.queuePoll);
+      expect(_CountingQueue.refreshes, 3);
     });
   });
 

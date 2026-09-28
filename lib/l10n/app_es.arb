@@ -3897,5 +3897,8 @@
   "wallPanelFarm": "Granja",
   "wallPanelSettings": "Ajustes",
   "wallPanelExpand": "Desplegar panel",
-  "wallPanelCollapse": "Plegar panel"
+  "wallPanelCollapse": "Plegar panel",
+  "wallErrorsTitle": "Errores",
+  "wallNoFaults": "Sin errores activos",
+  "wallQueueCount": "{count, plural, =1{1 en la cola} other{{count} en la cola}}"
 }

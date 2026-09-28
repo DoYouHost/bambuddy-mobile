@@ -3897,5 +3897,8 @@
   "wallPanelFarm": "Farm",
   "wallPanelSettings": "Einstellungen",
   "wallPanelExpand": "Seitenleiste ausklappen",
-  "wallPanelCollapse": "Seitenleiste einklappen"
+  "wallPanelCollapse": "Seitenleiste einklappen",
+  "wallErrorsTitle": "Fehler",
+  "wallNoFaults": "Keine aktiven Fehler",
+  "wallQueueCount": "{count, plural, =1{1 in der Warteschlange} other{{count} in der Warteschlange}}"
 }

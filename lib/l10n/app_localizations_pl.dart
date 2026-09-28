@@ -7332,4 +7332,23 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wallPanelCollapse => 'Zwiń panel';
+
+  @override
+  String get wallErrorsTitle => 'Błędy';
+
+  @override
+  String get wallNoFaults => 'Brak aktywnych błędów';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count w kolejce',
+      many: '$count w kolejce',
+      few: '$count w kolejce',
+      one: '1 w kolejce',
+    );
+    return '$_temp0';
+  }
 }

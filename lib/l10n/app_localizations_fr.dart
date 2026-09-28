@@ -7380,4 +7380,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get wallPanelCollapse => 'Replier le panneau';
+
+  @override
+  String get wallErrorsTitle => 'Erreurs';
+
+  @override
+  String get wallNoFaults => 'Aucune erreur active';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dans la file d\'attente',
+      one: '1 dans la file d\'attente',
+    );
+    return '$_temp0';
+  }
 }

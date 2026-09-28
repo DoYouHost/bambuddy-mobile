@@ -4395,5 +4395,22 @@
   "wallPanelCollapse": "Collapse panel",
   "@wallPanelCollapse": {
     "description": "Tooltip of the button that collapses the wall's side panel to a rail"
+  },
+  "wallErrorsTitle": "Errors",
+  "@wallErrorsTitle": {
+    "description": "Section header in the wall panel listing active printer faults across the farm"
+  },
+  "wallNoFaults": "No active errors",
+  "@wallNoFaults": {
+    "description": "Shown in the wall panel's errors section when no printer has an active fault"
+  },
+  "wallQueueCount": "{count, plural, =1{1 in the queue} other{{count} in the queue}}",
+  "@wallQueueCount": {
+    "description": "Screen-reader label for the queue count on the wall's collapsed rail",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -1217,6 +1217,18 @@ class HmsError {
     return int.tryParse(hex, radix: 16);
   }
 
+  /// The HMS level from `code`'s high half — 1 fatal, 2 serious, 3 common,
+  /// 4 info, BambuStudio's `HMSMessageLevel`. Not [severity]: the server fills
+  /// that from `attr`, which is the part id (see `hmsIsDisplayable`). null when
+  /// the code is not numeric or carries no level, as a `print_error` fault's
+  /// 16-bit code does.
+  int? get level {
+    final c = _codeInt;
+    if (c == null) return null;
+    final l = (c >> 16) & 0xFFFF;
+    return l >= 1 && l <= 4 ? l : null;
+  }
+
   /// Full 16-hex HMS code (`attr`+`code`) used by Bambu catalog, e.g.
   /// `0500060000020070`. null if missing `attr` or `code` not numeric.
   String? get ecode {

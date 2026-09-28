@@ -12163,6 +12163,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse panel'**
   String get wallPanelCollapse;
+
+  /// Section header in the wall panel listing active printer faults across the farm
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get wallErrorsTitle;
+
+  /// Shown in the wall panel's errors section when no printer has an active fault
+  ///
+  /// In en, this message translates to:
+  /// **'No active errors'**
+  String get wallNoFaults;
+
+  /// Screen-reader label for the queue count on the wall's collapsed rail
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 in the queue} other{{count} in the queue}}'**
+  String wallQueueCount(int count);
 }
 
 class _AppLocalizationsDelegate
