@@ -57,6 +57,8 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D11 | Wall mode keeps the screen on through **our own method channel** in `MainActivity` (`FLAG_KEEP_SCREEN_ON` add/clear), not `wakelock_plus`. | 2026-09-28 |
 | D12 | **No fixed cap on live camera tiles**: as many as fit on the screen and as the bambuddy server sustains. The real limits are measured on the emulator (and against a real server) before the number is designed in. | 2026-09-28 |
 | D13 | Wall mode ships **with the queue + errors panel from the start**, so the grid layout is designed once around it, not rebuilt later. The TV camera wall reuses the same layout. | 2026-09-28 |
+| D14 | Wall mode has a **"Keep screen awake" setting**; the D11 channel applies it only while wall mode is on screen. | 2026-09-28 |
+| D15 | Wall mode is **landscape only** — portrait makes no sense for a wall. No portrait layout is designed or tested. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -361,29 +363,39 @@ user is already signed in to, with the credentials it already has.
   becomes the TV camera wall (D10), so it is written once.
 - Data from the existing providers and WebSocket (full auth), not the
   `/camwall` feed: the app already has a push channel and richer data.
-- Grid adapts to the screen: e.g. 1–2 columns on a phone, 2–4 on a tablet,
-  landscape preferred; tap a tile for that printer's full-screen camera and
-  back.
+- **Landscape only (D15).** Entering wall mode locks the orientation to
+  landscape (`SystemChrome.setPreferredOrientations` with both landscape
+  directions, so a stand either way round works); leaving it restores the
+  app's normal orientation. The grid adapts to the landscape width: e.g. 2–3
+  columns on a phone, 3–5 on a tablet. Tap a tile for that printer's
+  full-screen camera and back.
 - **Queue + errors panel (D13)**, part of the layout from the first version:
   - *Errors*: active HMS faults across all printers, newest/most severe first,
     each naming its printer; a fault also highlights its tile. Empty state is
     a quiet "no faults", not a hidden panel, so the layout does not jump.
   - *Queue*: the next items (name, target printer or model, `waitingReason`),
     as many as the panel height holds, then "+N more".
-  - Placement follows the space: a **side column** in landscape (tablet, and
-    phone in landscape); in portrait a **strip below the grid**, collapsible.
-    The grid is always laid out *next to* the panel, never under it — that is
-    the reason to build them together.
+  - Placement: a **side column** next to the grid, on every device (landscape
+    only, D15). The grid is always laid out *next to* the panel, never under
+    it — that is the reason to build them together. On a narrow phone the
+    column may be hidden by the setting below to give the grid the width.
   - Read-only: nothing in the panel acts on a printer.
-- Setting: which printers appear (local, like the TV's hidden list), whether
-  tiles show video or status only, and whether the panel is shown.
+- Wall mode settings (local, per device):
+  - **Keep screen awake** (D14) — on by default, since an always-on wall is
+    the point of the mode; off lets the device's own screen timeout apply
+    while the wall is shown.
+  - Which printers appear (like the TV's hidden list).
+  - Tiles show live video or status only.
+  - Queue + errors panel shown or hidden.
 
 ### 13.2 Behaviour
 
 - Entered explicitly (a "Wall mode" action on the dashboard); left with Back or
   a tap-to-show exit control — never by accident, never trapping the user.
-- **Keeps the screen on only while wall mode is visible** (`FLAG_KEEP_SCREEN_ON`
-  on the activity — needs no permission), cleared on exit and on background.
+- **Keeps the screen on only while wall mode is visible and "Keep screen
+  awake" is on** (`FLAG_KEEP_SCREEN_ON` on the activity — needs no
+  permission), cleared on exit, on background and when the setting is turned
+  off.
   Mechanism (D11): two handlers on the method-channel table `MainActivity.kt`
   already has — no new dependency. `wakelock_plus` would set the same flag on
   Android; it is not worth a package. The same channel serves the TV flavor.
@@ -421,9 +433,10 @@ user is already signed in to, with the credentials it already has.
 - l10n in 5 locales (`just l10n-check`), `logTag` ids `wall.*`, `log-coverage`
   at zero.
 - Tests: tile overlay states (printing, paused, idle, fault, offline, no
-  camera, live paused), grid + panel at phone portrait/landscape and tablet
-  sizes and at large system text, panel empty/overflow states, keep-screen
-  on/off on enter/exit/background (fake channel), reconnect paths.
+  camera, live paused), grid + panel at landscape phone and tablet sizes and
+  at large system text, panel empty/overflow states, orientation locked on
+  enter and restored on exit, keep-screen on/off on enter/exit/background and
+  on toggling the setting (fake channel), reconnect paths.
 - Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
 
 ### 13.4 Estimate
@@ -443,4 +456,7 @@ user is already signed in to, with the credentials it already has.
 2. Live-tile limits and the snapshot fallback interval — numbers from the D12
    measurement; recorded here once measured.
 3. ~~Grid only or with a panel~~ — settled by D13 (panel from the start).
-4. Panel in portrait: collapsed or expanded by default?
+4. ~~Panel in portrait~~ — no portrait (D15).
+5. Phones where landscape leaves the grid too cramped with the panel: hide
+   the panel by default below some width, or leave it to the user? Decide
+   from the spike screenshots.
