@@ -1,22 +1,32 @@
-# TV flavor — plan and decisions
+# TV flavor and wall mode — plan and decisions
 
 Status: **planning only, nothing implemented.** Written 2026-09-28 from a
 planning discussion with the maintainer. Tracked on purpose (not under the
 gitignored `docs/plans/`) so the decisions below survive between sessions.
+
+**Order of work (D9, D10):** the always-on farm view is the point of all of
+this. It ships first as a **wall mode in the existing `mobile` flavor** (§13) —
+a phone or tablet on a stand, no new flavor, no pairing, no TV review. The `tv`
+flavor comes after it and is built around a **camera wall with status
+overlays** (§1, §6), because that is the only always-on view Google Play
+accepts on a TV.
 
 ## 1. Goal and scope
 
 A third Android flavor, `tv`, for Android TV / Google TV and Fire TV (Fire OS),
 under the same Play listing and `applicationId` as the phone and the watch.
 
-MVP is a **passive, read-only monitor** of the print farm. Further features are
-explicitly deferred ("we will think about the next ones later").
+MVP is a **passive, read-only, always-on monitor** of the print farm. Further
+features are explicitly deferred ("we will think about the next ones later").
 
 In scope for the MVP:
 
-1. **Farm** — grid of printer cards: state, progress, ETA, temperatures, HMS
-   fault badge. Live over the WebSocket.
-2. **Printer** — opened from a card: full-screen camera and that printer's
+1. **Camera wall (home screen, D10)** — one live camera tile per printer, each
+   with a status overlay: name, state, progress bar, remaining time, layer
+   x/y, HMS fault chip, connection lost. A printer without a camera gets a
+   status-only tile in the same grid. This screen keeps the display on (§6).
+   The overlay tile is the same widget as the wall mode's (§13), shared.
+2. **Printer** — opened from a tile: full-screen camera and that printer's
    active faults.
 3. **Queue** — read-only list, including `waitingReason`.
 4. **Errors** — active HMS faults across all printers.
@@ -37,10 +47,13 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D2 | New deep-link host `bambuddy://tv-pair` — approved (additive; existing `bambuddy://config` and `bambuddy://widget` untouched). | 2026-09-28 |
 | D3 | Pairing crypto and protocol may live in `app-shared` (new dependency allowed there). | 2026-09-28 |
 | D4 | TV key scope: **`can_read_status` only, all printers** (`printer_ids = null`). Hiding printers is a **local TV preference** only. | 2026-09-28 |
-| D5 | Ambient Mode: **A + B only** — screen kept on only while the user has the camera open; everywhere else the TV may enter Ambient Mode, and the app explains how to lengthen/disable the system screensaver. | 2026-09-28 |
+| D5 | *(Superseded by D5′.)* Ambient Mode: **A + B only** — screen kept on only while the user has the camera open; everywhere else the TV may enter Ambient Mode, and the app explains how to lengthen/disable the system screensaver. | 2026-09-28 |
 | D6 | D-pad focus layer: **our own**, in `dash_kit` — no `dpad` package. | 2026-09-28 |
 | D7 | Devices without Google services must work. **Fire TV = APK only** (GitHub Releases / Obtainium), no Amazon Appstore. | 2026-09-28 |
 | D8 | Security approval: the TV **may open a temporary listening port** for pairing (explicit "yes", 2026-09-28). Scope of that yes: the pairing listener as specified in §5.3 — nothing broader. | 2026-09-28 |
+| D5′ | *Supersedes D5.* An app-only dashboard cannot keep a TV on (TV-BY), and without always-on a TV app has little point. So the TV's home screen is the **camera wall with status overlays**: live video the user opened keeps the screen on, which TV-BU/TV-BY allow. Other screens still let Ambient Mode in. | 2026-09-28 |
+| D9 | **Wall mode on phone/tablet first** (§13), in the `mobile` flavor — the nearer, cheaper way to an always-on farm view. The TV flavor follows it. | 2026-09-28 |
+| D10 | The TV flavor is **based on the camera wall** (D5′); its tile/overlay widget is shared with wall mode. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -62,6 +75,25 @@ Checked against the bambuddy server at `0a81c864`:
   key (`frontend/src/utils/apiKeyQr.ts`); the app already parses it
   (`lib/features/setup/api_key_qr.dart`).
 - Auth disabled on the server → no key at all; pairing carries only the URL.
+- **The server already has a kiosk Cam Wall for TVs (#2531).**
+  `GET /camwall/printers` (`backend/app/api/routes/camwall.py`) returns every
+  printer, ordered by name, with only what a wall tile draws: `id`, `name`,
+  `camera_rotation`, `connected`, `state`, `progress`, `remaining_time`,
+  `layer_num`, `total_layers`, `hms_errors` (codes). Deliberately **no print
+  filename, serial or IP** — a wall is on show in a shared room. It is gated
+  by a long-lived **`camwall`**-scoped token, which also opens the camera
+  streams (`STREAM_SCOPES` in `services/long_lived_tokens.py`).
+- Long-lived tokens are minted by `POST /auth/tokens` (`routes/auth.py`,
+  ~1720), gated on `CAMERA_VIEW` — which **Operators and Viewers hold too**
+  (`core/permissions.py` 448, 508), not just admins. Max **365 days**, never
+  infinite; **JWT only** (an API-key session reaches the route with no user and
+  gets 403 "Long-lived tokens require authentication"); refused when auth is
+  disabled. Scopes: `camera_stream`, `camwall`, `overlay` (the last includes the
+  filename).
+- Consequence, not yet a decision (§12): for a wall that only shows the camera
+  wall, a `camwall` token is a narrower credential than a `can_read_status` API
+  key and more users can mint one — but it expires (≤ 1 year) and reaches no
+  queue, stats or fault detail, and the feed is polled, not pushed.
 
 ## 4. Google requirements (fetched 2026-09-28)
 
@@ -191,17 +223,28 @@ a `bambuddy://tv-pair` QR).
   (new key, e.g. `tv.hiddenPrinterIds`); does not touch the key or the server.
   Unknown ids are ignored, so a printer deleted on the server needs no cleanup.
 
-## 6. Ambient Mode and "screen on the wall" (D5)
+## 6. Ambient Mode and the always-on camera wall (D5′)
 
-- **A**: the full-screen camera (and a later camera grid) is user-initiated
-  video → `FLAG_KEEP_SCREEN_ON` while it is visible, cleared when it closes.
-- **B**: every other screen lets the TV enter Ambient Mode. Settings carries a
-  short explanation of where the TV's own screensaver/timeout lives. Whether
-  "never" is available is device-dependent — check on real devices.
-- Not doing: keeping the screen on for the dashboard (breaks TV-BY, review
-  risk). `DreamService` stays a later idea; open question whether Google TV even
-  lets users pick a third-party screensaver.
+TV-BY, verbatim: *"When there is no user-initiated active video playback or
+animation, the app does not prevent the device from going into Ambient Mode."*
+The Ambient Mode page adds that automatic playback and animations must not set
+`FLAG_KEEP_SCREEN_ON`.
+
+- **Camera wall**: the user opens it, and it is live video → set
+  `FLAG_KEEP_SCREEN_ON` while it is visible, clear it when it closes. The same
+  for the full-screen camera. This is the always-on view.
+- A wall where **no printer has a camera** is a dashboard, not video — do not
+  keep the screen on there, and say so in the UI.
+- Every other screen (queue, errors, stats, settings) lets the TV enter Ambient
+  Mode. Settings explains where the TV's own screensaver timeout lives
+  ("never" is device-dependent — check).
+- **The camera-wall reading of TV-BY is ours, not Google's.** Only a review
+  settles it, so phase 0 submits a minimal build to the Play TV review before
+  the rest is built (§11). If Google rejects it, the Play build loses
+  always-on and the question becomes whether the TV flavor is worth shipping
+  as APK-only, where no Play rule applies (Fire TV, boxes without Play).
 - Energy Saver (device power-off) cannot be prevented by any app.
+- `DreamService` stays a later idea.
 
 ## 7. Architecture in this repo
 
@@ -272,13 +315,13 @@ a `bambuddy://tv-pair` QR).
 
 | Phase | Content | Estimate |
 |---|---|---|
-| 0. Spike | Flutter on TV emulator + Fire OS: focus, `TextField`, keyboard, WebSocket, MJPEG; 16 KB check; ML Kit exclusion; `cryptography` on-device; LAN listener reachability; first AAB on the TV track | 1–2 days |
+| 0. Spike + early review | Flutter on TV emulator + Fire OS: focus, `TextField`, keyboard, WebSocket, several MJPEG streams at once; 16 KB check; ML Kit exclusion; `cryptography` on-device; LAN listener reachability. **Submit a minimal camera-wall build (screen kept on, demo mode for the reviewer) to the Play TV review** — go/no-go for D5′ before phases 1–5 | 2–3 days + review |
 | 1. Infrastructure | Flavor, manifest, banner, `main_tv.dart`, justfile, Play scripts, CI + APK check | 3–4 days |
 | 2. `app-shared` | Focus layer, TV scaffold, pairing package, tag | 4–6 days |
 | 3. Pairing in both apps | Phone flows (§5.1), TV screen + listener + D, tests, security review | 3–4 days |
-| 4. MVP screens | 6 screens, l10n, log tags, widget tests | 7–10 days |
+| 4. MVP screens | Camera wall (reusing the §13 tile) + 5 screens, l10n, log tags, widget tests | 6–9 days |
 | 5. Play | Listing, screenshots, review submission | 1–2 days + review |
-| **Total** | | **~4–5 weeks** |
+| **Total** | | **~4–5 weeks** (after wall mode, §13) |
 
 ## 12. Still open
 
@@ -288,4 +331,86 @@ a `bambuddy://tv-pair` QR).
    if `DreamService` comes back).
 4. Whether "never" is an available screensaver setting on target devices (B).
 5. Vega OS vs Fire OS — confirm which current Fire TV devices can sideload.
-6. Camera grid in the MVP or after it.
+6. ~~Camera grid in the MVP or after it~~ — settled by D10: it *is* the MVP.
+7. TV credential: `can_read_status` API key (D4, pairing as in §5) or a
+   `camwall` token (§3)? Or the key for the full app plus nothing else? Decide
+   before phase 3.
+8. If the Play review rejects the always-on camera wall: APK-only TV, or drop
+   the TV flavor?
+9. Tizen (Samsung TVs): assessed 2026-09-28, deferred. flutter-tizen supports
+   Tizen 6.0+ (2021+ TVs) and has Tizen ports of our key plugins, but it is a
+   separate toolchain (`.tpk`), distribution is Samsung TV Seller Office only
+   (partner status outside the US, review "more than 4 weeks"), and there is no
+   sideload path for end users. Revisit once the Android TV flavor exists.
+
+## 13. Wall mode in the mobile flavor (D9) — first step
+
+An always-on farm view on a phone or tablet on a stand. Phone apps are not
+under the TV quality rules, so keeping the screen on is ordinary (navigation
+and dashboard apps do it). No new flavor, no pairing — it runs in the app the
+user is already signed in to, with the credentials it already has.
+
+### 13.1 What it shows
+
+- A grid of **printer tiles with status overlays** — name, state, progress bar,
+  remaining time, layer x/y, HMS fault chip, "connection lost" — over the live
+  camera when the printer has one, status-only otherwise. The same tile widget
+  becomes the TV camera wall (D10), so it is written once.
+- Data from the existing providers and WebSocket (full auth), not the
+  `/camwall` feed: the app already has a push channel and richer data.
+- Grid adapts to the screen: e.g. 1–2 columns on a phone, 2–4 on a tablet,
+  landscape preferred; tap a tile for that printer's full-screen camera and
+  back.
+- Setting: which printers appear (local, like the TV's hidden list) and
+  whether tiles show video or status only.
+
+### 13.2 Behaviour
+
+- Entered explicitly (a "Wall mode" action on the dashboard); left with Back or
+  a tap-to-show exit control — never by accident, never trapping the user.
+- **Keeps the screen on only while wall mode is visible** (`FLAG_KEEP_SCREEN_ON`
+  on the activity — needs no permission), cleared on exit and on background.
+  Mechanism to pick: a small method channel in our own `MainActivity` vs
+  `wakelock_plus` (a new dependency — ask before adding).
+- Immersive full screen (system bars hidden) while in wall mode.
+- Survives what a wall screen meets for days: WebSocket reconnect after Wi-Fi
+  drops, server restarts, a JWT expiring (the existing re-login / "remember
+  me" path; a 2FA user gets a clear "sign in again" state rather than a frozen
+  wall), camera streams reconnecting individually.
+- Burn-in: static chrome is minimal; shift the overlay layout by a few pixels
+  periodically (OLED phones/tablets).
+- Many MJPEG streams at once cost bandwidth and decoding: cap live tiles (e.g.
+  by grid size) and fall back to periodic snapshots beyond the cap — measure in
+  the spike on a low-end tablet.
+- Screen pinning / kiosk lock is left to Android's own "app pinning"; no device
+  owner mode.
+- Not on the watch.
+
+### 13.3 Work items
+
+- `lib/features/wall/` — screen, tile/overlay widget, providers (reuse the
+  dashboard's printer state and `mjpeg_view.dart`).
+- Keep-screen-on + immersive toggle scoped to the screen.
+- l10n in 5 locales (`just l10n-check`), `logTag` ids `wall.*`, `log-coverage`
+  at zero.
+- Tests: tile overlay states (printing, paused, idle, fault, offline, no
+  camera), grid at phone and tablet sizes and at large system text, keep-screen
+  on/off on enter/exit/background (fake channel), reconnect paths.
+- Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
+
+### 13.4 Estimate
+
+| Step | Estimate |
+|---|---|
+| Spike: several MJPEG streams + keep-screen-on on a low-end tablet | 1 day |
+| Tile/overlay widget + grid + settings | 2–3 days |
+| Keep-screen-on, immersive, resilience (reconnects, token expiry) | 1–2 days |
+| l10n, log tags, tests | 1–2 days |
+| **Total** | **~1–1.5 weeks** |
+
+### 13.5 Open for wall mode
+
+1. Keep-screen-on mechanism: own method channel or `wakelock_plus`?
+2. Live-tile cap and snapshot interval — numbers from the spike.
+3. Does wall mode also offer the queue/errors as a rotating or side panel, or
+   strictly the tile grid for now?
