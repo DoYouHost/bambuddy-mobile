@@ -13,9 +13,12 @@ import '../camera/mjpeg_view.dart';
 /// A printer's camera filling its wall tile (docs/tv-flavor.md §13.2, D12).
 ///
 /// Live MJPEG while the stream holds. A stream the backoff cannot bring back
-/// falls to a snapshot every [snapshotEvery] under a "live paused" marker, and
-/// the stream keeps retrying behind it, so the tile goes live again on its own.
-/// A snapshot that fails too leaves the tile dark under its status.
+/// falls to a snapshot every [snapshotEvery] under a "live paused" marker. A
+/// dropped connection keeps retrying on [MjpegView]'s own backoff; a refusal
+/// with a status (the server's 503 while the camera is busy) is retried here
+/// every [restreamAfter], since [MjpegView] leaves a status to its caller.
+/// Either way the tile goes live again on its own. A snapshot that fails too
+/// leaves the tile dark under its status.
 class WallCamera extends ConsumerStatefulWidget {
   const WallCamera({
     super.key,
@@ -25,6 +28,11 @@ class WallCamera extends ConsumerStatefulWidget {
 
   /// The interval the server's own camera wall polls snapshots at.
   static const snapshotEvery = Duration(seconds: 8);
+
+  /// How long a refused stream waits before it is asked for again. Each ask
+  /// can start an upstream (`ffmpeg`) on the server, so it is kept well above
+  /// the snapshot interval. Provisional until the D12 measurement.
+  static const restreamAfter = Duration(seconds: 60);
 
   final int printerId;
 
@@ -40,34 +48,64 @@ class _WallCameraState extends ConsumerState<WallCamera> {
   /// expiry cannot loop — the same guard as [CameraView].
   String? _remintedFor;
 
+  /// Bumped to open the stream again after a refusal.
+  int _generation = 0;
+  Timer? _restream;
+
+  @override
+  void dispose() {
+    _restream?.cancel();
+    super.dispose();
+  }
+
+  /// Re-mint once per token: a 401 on the stream or on a snapshot means it
+  /// expired, and a second one for the same token is not an expiry.
+  bool _remint(String token) {
+    if (_remintedFor == token) return false;
+    _remintedFor = token;
+    Future.microtask(() {
+      if (!mounted) return;
+      ref.read(cameraTokenServiceProvider).invalidate();
+      ref.invalidate(cameraTokenProvider);
+    });
+    return true;
+  }
+
+  void _scheduleRestream() {
+    _restream ??= Timer(WallCamera.restreamAfter, () {
+      if (!mounted) return;
+      setState(() {
+        _restream = null;
+        _generation++;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     final token = ref.watch(cameraTokenProvider).valueOrNull;
     if (baseUrl == null || token == null) return const SizedBox.expand();
     return MjpegView(
+      key: ValueKey(_generation),
       url: '$baseUrl${Endpoints.cameraStream(widget.printerId)}?token=$token',
       fit: BoxFit.cover,
       cacheWidth: widget.cacheWidth,
       loading: (_) => const SizedBox.expand(),
       retrying: (_) => const CameraRetryingBadge(),
       error: (context, error) {
-        if (error is MjpegHttpStatus &&
-            error.status == 401 &&
-            _remintedFor != token) {
-          _remintedFor = token;
-          Future.microtask(() {
-            if (!mounted) return;
-            ref.read(cameraTokenServiceProvider).invalidate();
-            ref.invalidate(cameraTokenProvider);
-          });
-          return const SizedBox.expand();
+        if (error is MjpegHttpStatus) {
+          if (error.status == 401 && _remint(token)) {
+            return const SizedBox.expand();
+          }
+          _scheduleRestream();
         }
         return _Snapshots(
           url:
               '$baseUrl${Endpoints.cameraSnapshot(widget.printerId)}'
               '?token=$token',
           cacheWidth: widget.cacheWidth,
+          onUnauthorized: () => _remint(token),
         );
       },
     );
@@ -75,10 +113,17 @@ class _WallCameraState extends ConsumerState<WallCamera> {
 }
 
 class _Snapshots extends StatefulWidget {
-  const _Snapshots({required this.url, required this.cacheWidth});
+  const _Snapshots({
+    required this.url,
+    required this.cacheWidth,
+    required this.onUnauthorized,
+  });
 
   final String url;
   final int cacheWidth;
+
+  /// A snapshot refused with 401: the token expired while the stream was down.
+  final VoidCallback onUnauthorized;
 
   @override
   State<_Snapshots> createState() => _SnapshotsState();
@@ -120,7 +165,12 @@ class _SnapshotsState extends State<_Snapshots> {
           image: _shot(_n),
           fit: BoxFit.cover,
           gaplessPlayback: true,
-          errorBuilder: (_, _, _) => const SizedBox.expand(),
+          errorBuilder: (_, error, _) {
+            if (error is NetworkImageLoadException && error.statusCode == 401) {
+              Future.microtask(widget.onUnauthorized);
+            }
+            return const SizedBox.expand();
+          },
         ),
         Align(
           alignment: AlignmentDirectional.topEnd,

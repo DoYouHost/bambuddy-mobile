@@ -32,6 +32,11 @@ bool sameStreamExceptToken(String a, String b) {
   final ua = Uri.tryParse(a);
   final ub = Uri.tryParse(b);
   if (ua == null || ub == null) return false;
+  // Gaining or losing the token is a change of credentials, not a refresh.
+  if (!ua.queryParameters.containsKey('token') ||
+      !ub.queryParameters.containsKey('token')) {
+    return false;
+  }
   Map<String, String> rest(Uri u) => Map.of(u.queryParameters)..remove('token');
   final qa = rest(ua);
   final qb = rest(ub);

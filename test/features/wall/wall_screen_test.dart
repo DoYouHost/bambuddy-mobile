@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
+import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_providers.dart';
 import 'package:bambuddy_mobile/features/wall/wall_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -240,6 +241,7 @@ void main() {
       await pumpDashboardWithWall(tester, profile: fakeServerProfileOverride());
 
       expect(byLogId('wall.tile'), findsNWidgets(5));
+      expect(find.byType(WallCamera), findsNWidgets(5));
     });
 
     testWidgets('keeps the demo status-only: it serves no camera', (

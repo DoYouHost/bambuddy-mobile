@@ -382,6 +382,11 @@ void main() {
       );
     });
 
+    test('gaining or losing the token is not a refresh', () {
+      expect(sameStreamExceptToken(base, '$base?token=b'), isFalse);
+      expect(sameStreamExceptToken('$base?token=a', base), isFalse);
+    });
+
     test('an unparsable URL is never the same stream', () {
       expect(sameStreamExceptToken('http://[', '$base?token=b'), isFalse);
     });
