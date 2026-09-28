@@ -3889,5 +3889,10 @@
   "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
   "outcomeNotifTitle": "¿Cómo ha salido {name}?",
   "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado.",
-  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión"
+  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión",
+  "wallModeTitle": "Modo pared",
+  "wallModeTapHint": "Toca la pantalla para mostrar los controles.",
+  "wallModeExit": "Salir del modo pared",
+  "wallKeepAwakeTitle": "Mantener la pantalla encendida",
+  "wallKeepAwakeDesc": "La pantalla se mantiene encendida mientras el modo pared está abierto. Si se desactiva, se aplica el tiempo de espera de pantalla del dispositivo."
 }

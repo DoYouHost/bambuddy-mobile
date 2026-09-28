@@ -3189,5 +3189,10 @@
   "notifEvtOutcomeDesc": "Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia",
   "outcomeNotifTitle": "Jak wyszedł wydruk {name}?",
   "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.",
-  "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk"
+  "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk",
+  "wallModeTitle": "Tryb ściany",
+  "wallModeTapHint": "Stuknij ekran, aby pokazać sterowanie.",
+  "wallModeExit": "Wyjdź z trybu ściany",
+  "wallKeepAwakeTitle": "Nie wygaszaj ekranu",
+  "wallKeepAwakeDesc": "Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu."
 }

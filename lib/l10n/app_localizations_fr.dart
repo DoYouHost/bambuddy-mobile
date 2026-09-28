@@ -7355,4 +7355,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Cette impression demande déjà son résultat et chaque réimpression aussi';
+
+  @override
+  String get wallModeTitle => 'Mode mural';
+
+  @override
+  String get wallModeTapHint => 'Touchez l\'écran pour afficher les commandes.';
+
+  @override
+  String get wallModeExit => 'Quitter le mode mural';
+
+  @override
+  String get wallKeepAwakeTitle => 'Garder l\'écran allumé';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'L\'écran reste allumé tant que le mode mural est ouvert. Si l\'option est désactivée, la mise en veille de l\'appareil s\'applique.';
 }

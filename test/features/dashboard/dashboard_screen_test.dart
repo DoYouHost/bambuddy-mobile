@@ -493,6 +493,24 @@ void main() {
     );
   });
 
+  testWidgets('the app bar menu holds add printer, notifications and wall', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await settle(tester);
+
+    await tester.tap(byLogId('dashboard.menu'));
+    await settle(tester);
+
+    for (final id in [
+      'dashboard.add_printer',
+      'dashboard.notifications_menu',
+      'dashboard.wall_mode',
+    ]) {
+      expect(byLogId(id), findsOneWidget, reason: id);
+    }
+  });
+
   testWidgets('a card toggled by hand keeps it after leaving the list', (
     tester,
   ) async {

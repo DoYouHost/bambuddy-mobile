@@ -12115,6 +12115,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This print already asks for its outcome, and so does every reprint of it'**
   String get queueOptConfirmOutcomeSticky;
+
+  /// Name of the always-on farm view for a phone or tablet on a stand; also the dashboard button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Wall mode'**
+  String get wallModeTitle;
+
+  /// Shown in the middle of the wall while nothing else is on it
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the screen to show the controls.'**
+  String get wallModeTapHint;
+
+  /// Tooltip of the button that leaves wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'Exit wall mode'**
+  String get wallModeExit;
+
+  /// Switch: hold the screen on while wall mode is open
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen awake'**
+  String get wallKeepAwakeTitle;
+
+  /// Explains the keep-screen-awake switch in wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.'**
+  String get wallKeepAwakeDesc;
 }
 
 class _AppLocalizationsDelegate

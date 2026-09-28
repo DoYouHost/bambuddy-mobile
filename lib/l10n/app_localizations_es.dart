@@ -7284,4 +7284,20 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Esta impresión ya pregunta por su resultado, y también cada reimpresión';
+
+  @override
+  String get wallModeTitle => 'Modo pared';
+
+  @override
+  String get wallModeTapHint => 'Toca la pantalla para mostrar los controles.';
+
+  @override
+  String get wallModeExit => 'Salir del modo pared';
+
+  @override
+  String get wallKeepAwakeTitle => 'Mantener la pantalla encendida';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'La pantalla se mantiene encendida mientras el modo pared está abierto. Si se desactiva, se aplica el tiempo de espera de pantalla del dispositivo.';
 }

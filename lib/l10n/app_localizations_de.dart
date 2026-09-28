@@ -7261,4 +7261,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso';
+
+  @override
+  String get wallModeTitle => 'Wandmodus';
+
+  @override
+  String get wallModeTapHint =>
+      'Tippe auf den Bildschirm, um die Steuerung anzuzeigen.';
+
+  @override
+  String get wallModeExit => 'Wandmodus beenden';
+
+  @override
+  String get wallKeepAwakeTitle => 'Bildschirm eingeschaltet lassen';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'Der Bildschirm bleibt an, solange der Wandmodus geöffnet ist. Ist die Option aus, gilt die automatische Bildschirmabschaltung des Geräts.';
 }

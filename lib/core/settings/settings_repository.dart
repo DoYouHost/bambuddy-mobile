@@ -30,6 +30,7 @@ class SettingsRepository {
   static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
+  static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
 
   final SharedPreferences _prefs;
 
@@ -134,6 +135,13 @@ class SettingsRepository {
 
   Future<void> savePrinterCardsCollapsed(bool collapsed) =>
       _prefs.setBool(_printerCardsCollapsedKey, collapsed);
+
+  /// Whether wall mode holds the screen on. Absent reads as on: an always-on
+  /// view is what the mode is for.
+  bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
+
+  Future<void> saveWallKeepAwake(bool on) =>
+      _prefs.setBool(_wallKeepAwakeKey, on);
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].

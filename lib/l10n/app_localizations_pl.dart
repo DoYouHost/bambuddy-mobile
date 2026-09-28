@@ -7307,4 +7307,20 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk';
+
+  @override
+  String get wallModeTitle => 'Tryb ściany';
+
+  @override
+  String get wallModeTapHint => 'Stuknij ekran, aby pokazać sterowanie.';
+
+  @override
+  String get wallModeExit => 'Wyjdź z trybu ściany';
+
+  @override
+  String get wallKeepAwakeTitle => 'Nie wygaszaj ekranu';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu.';
 }

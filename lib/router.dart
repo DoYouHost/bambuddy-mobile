@@ -41,6 +41,7 @@ import 'features/shell/root_scaffold.dart';
 import 'features/pipelines/pipelines_screen.dart';
 import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
+import 'features/wall/wall_screen.dart';
 import 'providers.dart';
 
 /// Main navigator key — allows pushing screens (e.g. spool scanner triggered
@@ -131,6 +132,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Bug report — full screen outside shell (pushed from drawer, and from
       // the recording bar when a session is finished elsewhere).
       GoRoute(path: bugReportRoute, builder: (_, _) => const BugReportScreen()),
+
+      // Wall mode — outside the shell, so it covers the navigation bar. Pushed
+      // from the dashboard, which has to stay mounted under it (WallScreen).
+      GoRoute(path: '/wall', builder: (_, _) => const WallScreen()),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(path: '/stats', builder: (_, _) => const StatisticsScreen()),

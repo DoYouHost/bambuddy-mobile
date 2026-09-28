@@ -7193,4 +7193,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'This print already asks for its outcome, and so does every reprint of it';
+
+  @override
+  String get wallModeTitle => 'Wall mode';
+
+  @override
+  String get wallModeTapHint => 'Tap the screen to show the controls.';
+
+  @override
+  String get wallModeExit => 'Exit wall mode';
+
+  @override
+  String get wallKeepAwakeTitle => 'Keep screen awake';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.';
 }
