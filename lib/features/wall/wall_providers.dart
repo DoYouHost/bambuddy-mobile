@@ -90,8 +90,10 @@ class WallHiddenPrintersNotifier extends Notifier<Set<int>> {
   Future<void> setShown(int printerId, bool shown) async {
     final next = {...state};
     shown ? next.remove(printerId) : next.add(printerId);
-    await ref.read(settingsRepositoryProvider).saveWallHiddenPrinters(next);
+    // State first: two boxes ticked in quick succession must each start from
+    // the other's result, not from what was on disk before either.
     state = next;
+    await ref.read(settingsRepositoryProvider).saveWallHiddenPrinters(next);
   }
 }
 

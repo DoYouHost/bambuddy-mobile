@@ -457,9 +457,13 @@ void main() {
       await tester.tap(byLogId('wall.settings'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(CheckboxListTile, 'X1C-02'));
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'P1S'));
       await tester.pumpAndSettle();
 
       expect(tile('X1C-02'), findsOneWidget);
+      expect(tile('P1S'), findsNothing, reason: 'the second tick kept');
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'P1S'));
+      await tester.pumpAndSettle();
       expect(
         container.read(settingsRepositoryProvider).loadWallHiddenPrinters(),
         isEmpty,
@@ -515,7 +519,25 @@ void main() {
     );
 
     expect(find.byType(WallCamera), findsNothing);
-    expect(find.byType(WallTile), findsNWidgets(5));
+    expect(byLogId('wall.tile'), findsNothing);
+    expect(find.text('X1C-01'), findsOneWidget);
+    expect(find.text('IDLE'), findsNWidgets(5));
+  });
+
+  testWidgets('holds the burn-in clock while the app is in the background', (
+    tester,
+  ) async {
+    await pumpDashboardWithWall(tester);
+    final at = tester.getTopLeft(grid());
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump(WallScreen.burnInStep * 2);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(tester.getTopLeft(grid()), at);
   });
 
   testWidgets('steps the wall a few pixels on the burn-in clock, same size', (
@@ -531,7 +553,9 @@ void main() {
     expect(tester.getSize(grid()), size);
   });
 
-  testWidgets('a session sent back to setup takes the wall with it cleanly', (
+  // The dashboard's side (authExpired → go('/setup')) is its own test; this
+  // is the wall's: a route change that replaces it still restores everything.
+  testWidgets('a go to /setup from under the wall restores what it took', (
     tester,
   ) async {
     await pumpDashboardWithWall(tester);

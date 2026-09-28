@@ -62,7 +62,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   // Read once here: `dispose` must still reach it, and `ref` is gone by then.
   late final ScreenAwake _awake;
   late final AppLifecycleListener _lifecycle;
-  late final Timer _burnIn;
+  Timer? _burnIn;
   int _shift = 0;
   Timer? _queuePoll;
   bool _settings = false;
@@ -77,17 +77,18 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     );
     unawaited(_awake.set(ref.read(wallKeepAwakeProvider)));
     _startQueuePoll();
-    _burnIn = Timer.periodic(
-      WallScreen.burnInStep,
-      (_) => setState(
-        () => _shift = (_shift + 1) % WallScreen.burnInOffsets.length,
-      ),
-    );
+    _startBurnIn();
     // D18 polls while the wall is visible, not while the app sits behind
     // another one — the queue screen stops its timer the same way.
     _lifecycle = AppLifecycleListener(
-      onShow: _startQueuePoll,
-      onHide: _stopQueuePoll,
+      onShow: () {
+        _startQueuePoll();
+        _startBurnIn();
+      },
+      onHide: () {
+        _stopQueuePoll();
+        _stopBurnIn();
+      },
     );
   }
 
@@ -105,6 +106,22 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     );
   }
 
+  // Nothing burns in on a screen that is not showing the wall.
+  void _startBurnIn() {
+    _burnIn?.cancel();
+    _burnIn = Timer.periodic(
+      WallScreen.burnInStep,
+      (_) => setState(
+        () => _shift = (_shift + 1) % WallScreen.burnInOffsets.length,
+      ),
+    );
+  }
+
+  void _stopBurnIn() {
+    _burnIn?.cancel();
+    _burnIn = null;
+  }
+
   void _stopQueuePoll() {
     _queuePoll?.cancel();
     _queuePoll = null;
@@ -114,7 +131,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   void dispose() {
     _lifecycle.dispose();
     _stopQueuePoll();
-    _burnIn.cancel();
+    _stopBurnIn();
     // Every way out lands here — Back, the exit button, and `/setup` replacing
     // the whole stack when the session expires — so the rest of the app gets
     // its free rotation, its bars and its screen timeout back on each of them.
