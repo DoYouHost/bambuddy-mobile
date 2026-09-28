@@ -54,6 +54,9 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D5′ | *Supersedes D5.* An app-only dashboard cannot keep a TV on (TV-BY), and without always-on a TV app has little point. So the TV's home screen is the **camera wall with status overlays**: live video the user opened keeps the screen on, which TV-BU/TV-BY allow. Other screens still let Ambient Mode in. | 2026-09-28 |
 | D9 | **Wall mode on phone/tablet first** (§13), in the `mobile` flavor — the nearer, cheaper way to an always-on farm view. The TV flavor follows it. | 2026-09-28 |
 | D10 | The TV flavor is **based on the camera wall** (D5′); its tile/overlay widget is shared with wall mode. | 2026-09-28 |
+| D11 | Wall mode keeps the screen on through **our own method channel** in `MainActivity` (`FLAG_KEEP_SCREEN_ON` add/clear), not `wakelock_plus`. | 2026-09-28 |
+| D12 | **No fixed cap on live camera tiles**: as many as fit on the screen and as the bambuddy server sustains. The real limits are measured on the emulator (and against a real server) before the number is designed in. | 2026-09-28 |
+| D13 | Wall mode ships **with the queue + errors panel from the start**, so the grid layout is designed once around it, not rebuilt later. The TV camera wall reuses the same layout. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -361,8 +364,19 @@ user is already signed in to, with the credentials it already has.
 - Grid adapts to the screen: e.g. 1–2 columns on a phone, 2–4 on a tablet,
   landscape preferred; tap a tile for that printer's full-screen camera and
   back.
-- Setting: which printers appear (local, like the TV's hidden list) and
-  whether tiles show video or status only.
+- **Queue + errors panel (D13)**, part of the layout from the first version:
+  - *Errors*: active HMS faults across all printers, newest/most severe first,
+    each naming its printer; a fault also highlights its tile. Empty state is
+    a quiet "no faults", not a hidden panel, so the layout does not jump.
+  - *Queue*: the next items (name, target printer or model, `waitingReason`),
+    as many as the panel height holds, then "+N more".
+  - Placement follows the space: a **side column** in landscape (tablet, and
+    phone in landscape); in portrait a **strip below the grid**, collapsible.
+    The grid is always laid out *next to* the panel, never under it — that is
+    the reason to build them together.
+  - Read-only: nothing in the panel acts on a printer.
+- Setting: which printers appear (local, like the TV's hidden list), whether
+  tiles show video or status only, and whether the panel is shown.
 
 ### 13.2 Behaviour
 
@@ -370,8 +384,9 @@ user is already signed in to, with the credentials it already has.
   a tap-to-show exit control — never by accident, never trapping the user.
 - **Keeps the screen on only while wall mode is visible** (`FLAG_KEEP_SCREEN_ON`
   on the activity — needs no permission), cleared on exit and on background.
-  Mechanism to pick: a small method channel in our own `MainActivity` vs
-  `wakelock_plus` (a new dependency — ask before adding).
+  Mechanism (D11): two handlers on the method-channel table `MainActivity.kt`
+  already has — no new dependency. `wakelock_plus` would set the same flag on
+  Android; it is not worth a package. The same channel serves the TV flavor.
 - Immersive full screen (system bars hidden) while in wall mode.
 - Survives what a wall screen meets for days: WebSocket reconnect after Wi-Fi
   drops, server restarts, a JWT expiring (the existing re-login / "remember
@@ -379,22 +394,35 @@ user is already signed in to, with the credentials it already has.
   wall), camera streams reconnecting individually.
 - Burn-in: static chrome is minimal; shift the overlay layout by a few pixels
   periodically (OLED phones/tablets).
-- Many MJPEG streams at once cost bandwidth and decoding: cap live tiles (e.g.
-  by grid size) and fall back to periodic snapshots beyond the cap — measure in
-  the spike on a low-end tablet.
+- Live tiles (D12): every tile that fits on screen streams live — no designed-in
+  cap. Two limits decide how many actually work, and both are **measured before
+  the tile logic is finalised**:
+  - *Device*: decoding N MJPEG streams at once — frame rate, CPU, memory, heat
+    — on a low-end tablet emulator profile and on a real mid-range device.
+  - *Server*: the bambuddy server proxies each stream from its printer, so N
+    open streams are N upstream camera connections through one server; find
+    where it starts dropping frames or refusing, with a real server and real
+    printers (the emulator alone cannot show this).
+  - Degrade instead of break: a tile whose stream fails or stalls falls back to
+    a periodic snapshot with a "live paused" marker and retries; the rest of
+    the wall is unaffected. If measurement shows a hard ceiling, it becomes a
+    setting with a measured default rather than a guess.
 - Screen pinning / kiosk lock is left to Android's own "app pinning"; no device
   owner mode.
 - Not on the watch.
 
 ### 13.3 Work items
 
-- `lib/features/wall/` — screen, tile/overlay widget, providers (reuse the
-  dashboard's printer state and `mjpeg_view.dart`).
-- Keep-screen-on + immersive toggle scoped to the screen.
+- `lib/features/wall/` — screen, tile/overlay widget, queue + errors panel,
+  providers (reuse the dashboard's printer state, `QueueRepository`, the HMS
+  catalogue and `mjpeg_view.dart`).
+- Keep-screen-on channel handlers in `MainActivity.kt` + a Dart wrapper;
+  immersive toggle scoped to the screen.
 - l10n in 5 locales (`just l10n-check`), `logTag` ids `wall.*`, `log-coverage`
   at zero.
 - Tests: tile overlay states (printing, paused, idle, fault, offline, no
-  camera), grid at phone and tablet sizes and at large system text, keep-screen
+  camera, live paused), grid + panel at phone portrait/landscape and tablet
+  sizes and at large system text, panel empty/overflow states, keep-screen
   on/off on enter/exit/background (fake channel), reconnect paths.
 - Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
 
@@ -402,15 +430,17 @@ user is already signed in to, with the credentials it already has.
 
 | Step | Estimate |
 |---|---|
-| Spike: several MJPEG streams + keep-screen-on on a low-end tablet | 1 day |
+| Measurement spike (D12): N simultaneous MJPEG streams on emulator profiles + against a real server; keep-screen-on channel | 1–2 days |
 | Tile/overlay widget + grid + settings | 2–3 days |
-| Keep-screen-on, immersive, resilience (reconnects, token expiry) | 1–2 days |
+| Queue + errors panel and the shared layout (D13) | 2 days |
+| Keep-screen-on, immersive, resilience (reconnects, token expiry, stream fallback) | 1–2 days |
 | l10n, log tags, tests | 1–2 days |
-| **Total** | **~1–1.5 weeks** |
+| **Total** | **~1.5–2 weeks** |
 
 ### 13.5 Open for wall mode
 
-1. Keep-screen-on mechanism: own method channel or `wakelock_plus`?
-2. Live-tile cap and snapshot interval — numbers from the spike.
-3. Does wall mode also offer the queue/errors as a rotating or side panel, or
-   strictly the tile grid for now?
+1. ~~Keep-screen-on mechanism~~ — settled by D11 (own channel).
+2. Live-tile limits and the snapshot fallback interval — numbers from the D12
+   measurement; recorded here once measured.
+3. ~~Grid only or with a panel~~ — settled by D13 (panel from the start).
+4. Panel in portrait: collapsed or expanded by default?
