@@ -59,6 +59,7 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D13 | Wall mode ships **with the queue + errors panel from the start**, so the grid layout is designed once around it, not rebuilt later. The TV camera wall reuses the same layout. | 2026-09-28 |
 | D14 | Wall mode has a **"Keep screen awake" setting**; the D11 channel applies it only while wall mode is on screen. | 2026-09-28 |
 | D15 | Wall mode is **landscape only** — portrait makes no sense for a wall. No portrait layout is designed or tested. | 2026-09-28 |
+| D16 | Below a width threshold the queue + errors panel **starts collapsed, with a control to expand it**; above it, it starts expanded. The threshold comes from the spike screenshots. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -377,8 +378,17 @@ user is already signed in to, with the credentials it already has.
     as many as the panel height holds, then "+N more".
   - Placement: a **side column** next to the grid, on every device (landscape
     only, D15). The grid is always laid out *next to* the panel, never under
-    it — that is the reason to build them together. On a narrow phone the
-    column may be hidden by the setting below to give the grid the width.
+    it — that is the reason to build them together.
+  - **Collapsed below a width threshold (D16).** On a screen narrower than the
+    threshold the column starts collapsed to a slim rail that still shows the
+    fault and queue counts (a new fault stays visible as a count and as the
+    highlighted tile); one tap/select expands it, another collapses it. When
+    expanded, the grid reflows into the remaining width rather than being
+    overlapped. At or above the threshold it starts expanded. The threshold is
+    a logical-pixel width set from the spike screenshots, not a device
+    category.
+  - The user's last expand/collapse choice is remembered per device, so a
+    phone the user wants expanded stays expanded.
   - Read-only: nothing in the panel acts on a printer.
 - Wall mode settings (local, per device):
   - **Keep screen awake** (D14) — on by default, since an always-on wall is
@@ -386,7 +396,7 @@ user is already signed in to, with the credentials it already has.
     while the wall is shown.
   - Which printers appear (like the TV's hidden list).
   - Tiles show live video or status only.
-  - Queue + errors panel shown or hidden.
+  - Queue + errors panel shown or hidden (hidden removes the rail too).
 
 ### 13.2 Behaviour
 
@@ -434,7 +444,9 @@ user is already signed in to, with the credentials it already has.
   at zero.
 - Tests: tile overlay states (printing, paused, idle, fault, offline, no
   camera, live paused), grid + panel at landscape phone and tablet sizes and
-  at large system text, panel empty/overflow states, orientation locked on
+  at large system text, panel empty/overflow states, panel collapsed/expanded
+  on each side of the width threshold, the rail's counts, the remembered
+  choice, orientation locked on
   enter and restored on exit, keep-screen on/off on enter/exit/background and
   on toggling the setting (fake channel), reconnect paths.
 - Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
@@ -457,6 +469,6 @@ user is already signed in to, with the credentials it already has.
    measurement; recorded here once measured.
 3. ~~Grid only or with a panel~~ — settled by D13 (panel from the start).
 4. ~~Panel in portrait~~ — no portrait (D15).
-5. Phones where landscape leaves the grid too cramped with the panel: hide
-   the panel by default below some width, or leave it to the user? Decide
-   from the spike screenshots.
+5. ~~Panel on narrow phones~~ — settled by D16 (collapsed below a threshold,
+   expandable).
+6. The D16 width threshold — pick from the spike screenshots.
