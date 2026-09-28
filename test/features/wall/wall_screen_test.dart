@@ -131,8 +131,9 @@ void main() {
     await tester.tapAt(const Offset(200, 200));
     await tester.pumpAndSettle();
 
-    expect(byLogId('wall.keep_awake'), findsNothing);
-    expect(byLogId('wall.exit'), findsNothing);
+    expect(find.text('DASHBOARD'), findsNothing, reason: 'still on the wall');
+    expect(byLogId('wall.panel_expand'), findsOneWidget);
+    expect(byLogId('wall.panel_collapse'), findsNothing);
   });
 
   group('the panel', () {
@@ -169,6 +170,12 @@ void main() {
       );
     });
 
+    testWidgets('a remembered expand wins on a phone', (tester) async {
+      await pumpDashboardWithWall(tester, prefs: {'wall_panel_expanded': true});
+
+      expect(byLogId('wall.panel_collapse'), findsOneWidget);
+    });
+
     testWidgets('a remembered collapse wins on a tablet', (tester) async {
       await pumpDashboardWithWall(
         tester,
@@ -194,11 +201,19 @@ void main() {
 
     testWidgets('keeps every button at least 48 px', (tester) async {
       await pumpDashboardWithWall(tester);
-      for (final id in ['wall.settings', 'wall.panel_expand']) {
+      void atLeast48(String id) {
         final size = tester.getSize(byLogId(id));
         expect(size.width, greaterThanOrEqualTo(48), reason: id);
         expect(size.height, greaterThanOrEqualTo(48), reason: id);
       }
+
+      atLeast48('wall.settings');
+      atLeast48('wall.panel_expand');
+      await tester.tap(byLogId('wall.settings'));
+      await tester.pumpAndSettle();
+      atLeast48('wall.settings');
+      atLeast48('wall.panel_collapse');
+      atLeast48('wall.exit');
     });
   });
 
@@ -211,6 +226,23 @@ void main() {
 
       expect(byLogId('wall.panel_collapse'), findsOneWidget);
       expect(byLogId('wall.keep_awake'), findsOneWidget);
+    });
+
+    testWidgets('closed again, they give the rail back without saving it', (
+      tester,
+    ) async {
+      final container = await pumpDashboardWithWall(tester);
+
+      await tester.tap(byLogId('wall.settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(byLogId('wall.settings'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('wall.panel_expand'), findsOneWidget);
+      expect(
+        container.read(settingsRepositoryProvider).loadWallPanelExpanded(),
+        isNull,
+      );
     });
 
     testWidgets('toggle back to the farm view without resizing the grid', (

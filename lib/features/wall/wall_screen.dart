@@ -79,13 +79,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
     unawaited(ref.read(wallPanelExpandedProvider.notifier).set(expanded));
   }
 
-  /// From the rail this opens the panel straight on its settings (D19).
-  void _toggleSettings(bool expanded) {
-    setState(() => _settings = !expanded || !_settings);
-    if (!expanded) {
-      unawaited(ref.read(wallPanelExpandedProvider.notifier).set(true));
-    }
-  }
+  /// From the rail this opens the panel straight on its settings (D19),
+  /// without saving it as expanded: closing them brings the rail back.
+  void _toggleSettings() => setState(() => _settings = !_settings);
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +97,9 @@ class _WallScreenState extends ConsumerState<WallScreen> {
             child: LayoutBuilder(
               builder: (context, box) {
                 final expanded =
-                    choice ?? box.maxWidth >= WallScreen.panelExpandedFromWidth;
+                    _settings ||
+                    (choice ??
+                        box.maxWidth >= WallScreen.panelExpandedFromWidth);
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -110,12 +108,12 @@ class _WallScreenState extends ConsumerState<WallScreen> {
                     if (expanded)
                       _WallPanel(
                         settings: _settings,
-                        onSettings: () => _toggleSettings(true),
+                        onSettings: _toggleSettings,
                         onCollapse: () => _setExpanded(false),
                       )
                     else
                       _WallRail(
-                        onSettings: () => _toggleSettings(false),
+                        onSettings: _toggleSettings,
                         onExpand: () => _setExpanded(true),
                       ),
                   ],
