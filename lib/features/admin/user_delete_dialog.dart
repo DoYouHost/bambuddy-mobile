@@ -56,12 +56,12 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
         children: [
           Text(l10n.usersDeleteBody),
           if (total > 0) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             Text(
               l10n.usersDeleteOwnsCount(total),
               style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             SwitchListTile(
               value: _deleteItems,
               onChanged: (v) => setState(() => _deleteItems = v),

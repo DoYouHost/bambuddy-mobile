@@ -41,8 +41,16 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      margin: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.lg,
+        DashSpace.md,
+        DashSpace.md,
+        DashSpace.md,
+      ),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,12 +58,12 @@ class SectionCard extends StatelessWidget {
           Row(
             children: [
               Icon(icon, size: 19, color: t.accentGreenInk),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(child: Text(title, style: t.titleSm)),
               ?action,
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           child,
         ],
       ),
@@ -83,7 +91,7 @@ Widget sectionCardAction({
 Widget _emptyHint(BuildContext context, String text) {
   final t = DashTokens.of(context);
   return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12),
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
     child: Text(text, style: t.bodySoft.copyWith(color: t.textTertiary)),
   );
 }
@@ -113,7 +121,7 @@ class ProjectFilesSection extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         foldersAsync,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         failureBuilder: (message) => _emptyHint(context, message),
         data: (folders) {
           if (folders.isEmpty) {
@@ -174,7 +182,7 @@ class ProjectFilesSection extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DashSpace.lg),
               child: Text(
                 l10n.projectLinkFolder,
                 style: Theme.of(ctx).textTheme.titleMedium,
@@ -182,7 +190,7 @@ class ProjectFilesSection extends ConsumerWidget {
             ),
             if (candidates.isEmpty)
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(DashSpace.lg),
                 child: Text(l10n.projectNoFoldersToLink),
               )
             else
@@ -280,7 +288,10 @@ class _FolderTile extends StatelessWidget {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(left: 8, bottom: 8),
+        childrenPadding: const EdgeInsets.only(
+          left: DashSpace.sm,
+          bottom: DashSpace.sm,
+        ),
         iconColor: t.textSecondary,
         collapsedIconColor: t.textSecondary,
         leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
@@ -301,7 +312,9 @@ class _FolderTile extends StatelessWidget {
             for (final f in files)
               ListTile(
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.sm,
+                ),
                 leading: LibraryThumbnail(
                   fileId: f.id,
                   hasThumbnail: f.thumbnailPath != null,
@@ -489,7 +502,7 @@ class ProjectBomSection extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         async,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         failureBuilder: (message) => _emptyHint(context, message),
         data: (items) => items.isEmpty
             ? _emptyHint(context, l10n.projectBomEmpty)
@@ -605,7 +618,7 @@ class ProjectTimelineSection extends ConsumerWidget {
       child: dashAsyncStrip(
         context,
         async,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DashSpace.md),
         // A timeline nobody could load reads as one nothing happened on: this
         // section is a sidebar of a screen that has already said the project
         // failed to load, and does not need to say it twice.

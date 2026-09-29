@@ -197,26 +197,18 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     DashSliverSearchBar(
-                      child: SizedBox(
-                        height: 48,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: DashSearchField(
-                                id: 'archive.search',
-                                hintText: l10n.archiveSearchHint,
-                                onChanged: _onSearchChanged,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            FilterButton(
-                              count: filters.activeCount,
-                              tooltip: l10n.archiveFilters,
-                              id: 'archive.filters',
-                              onTap: _openFilters,
-                            ),
-                          ],
-                        ),
+                      child: DashSearchField(
+                        id: 'archive.search',
+                        hintText: l10n.archiveSearchHint,
+                        onChanged: _onSearchChanged,
+                        trailing: [
+                          FilterButton(
+                            count: filters.activeCount,
+                            tooltip: l10n.archiveFilters,
+                            id: 'archive.filters',
+                            onTap: _openFilters,
+                          ),
+                        ],
                       ),
                     ),
                     // Above the list, below the search bar — and never while
@@ -242,7 +234,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: DashSpace.sm,
+                        ),
                         sliver: SliverList.builder(
                           itemCount: items.length,
                           itemBuilder: (context, i) {
@@ -323,8 +317,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.only(right: DashSpace.xl),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
         decoration: BoxDecoration(
           color: t.danger.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(20),
@@ -446,7 +443,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DashSpace.gutter),
               child: Text(
                 l10n.projectPickTitle,
                 style: Theme.of(ctx).textTheme.titleMedium,
@@ -633,9 +630,19 @@ class _No3mfBanner extends ConsumerWidget {
     final docs = _docsUrl(reason);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.sm,
+        DashSpace.gutter,
+        DashSpace.xs,
+      ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.md,
+        ),
         decoration: BoxDecoration(
           color: t.accentOrange.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(16),
@@ -649,16 +656,16 @@ class _No3mfBanner extends ConsumerWidget {
               size: 20,
               color: t.accentOrangeInk,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: t.bodyStrong),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: DashSpace.xs),
                   Text(body, style: t.labelSoft),
                   if (docs != null) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: DashSpace.sm),
                     logTag(
                       'archive.no3mf_docs',
                       TextButton.icon(
@@ -670,7 +677,9 @@ class _No3mfBanner extends ConsumerWidget {
                               : l10n.archiveNo3mfDocs,
                         ),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.sm,
+                          ),
                           visualDensity: VisualDensity.compact,
                           foregroundColor: t.accentOrangeInk,
                         ),
@@ -737,7 +746,10 @@ class _ArchiveCard extends StatelessWidget {
         DateTimeFormats.of(context).date(archive.createdAt!),
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -747,7 +759,7 @@ class _ArchiveCard extends StatelessWidget {
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: selected
                     ? t.accentGreen.withValues(alpha: 0.14)
@@ -782,7 +794,7 @@ class _ArchiveCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +807,7 @@ class _ArchiveCard extends StatelessWidget {
                           style: t.titleSm,
                         ),
                         if (meta.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           Text(
                             meta.join(' · '),
                             maxLines: 1,
@@ -805,7 +817,7 @@ class _ArchiveCard extends StatelessWidget {
                         ],
                         if (archive.userVerdict != null ||
                             archive.awaitsVerdict) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           ArchiveVerdictBadge(archive: archive),
                         ],
                       ],
@@ -830,7 +842,7 @@ class _ArchiveCard extends StatelessWidget {
                       ),
                     )
                   else if (archive.isFavorite) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DashSpace.sm),
                     Icon(Icons.star, size: 18, color: t.accentOrangeInk),
                   ],
                 ],
@@ -872,7 +884,7 @@ class _MediaBadges extends StatelessWidget {
     ];
     if (badges.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+      padding: const EdgeInsets.all(DashSpace.xs),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(8),
@@ -882,12 +894,9 @@ class _MediaBadges extends StatelessWidget {
     );
   }
 
-  Widget _badge(IconData icon, Color color, String label) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 1),
-    child: Semantics(
-      label: label,
-      child: Icon(icon, size: 12, color: color),
-    ),
+  Widget _badge(IconData icon, Color color, String label) => Semantics(
+    label: label,
+    child: Icon(icon, size: 12, color: color),
   );
 }
 
@@ -923,7 +932,12 @@ class _ArchiveSheet extends StatelessWidget {
       SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.lg,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,7 +946,7 @@ class _ArchiveSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     PrintThumbnail(archiveId: archive.id, size: 72),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -945,7 +959,7 @@ class _ArchiveSheet extends StatelessWidget {
                           ),
                           if (archive.designer != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(top: DashSpace.xs),
                               child: Text(
                                 archive.designer!,
                                 style: theme.textTheme.bodySmall,
@@ -956,7 +970,7 @@ class _ArchiveSheet extends StatelessWidget {
                           // and "plate 1" would be noise on every card.
                           if (archive.plateId != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(top: DashSpace.xs),
                               child: Text(
                                 l10n.archivePlateDetail(archive.plateId!),
                                 style: theme.textTheme.bodySmall,
@@ -967,12 +981,12 @@ class _ArchiveSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _SheetPrimaryActions(
                   onAddToQueue: onAddToQueue,
                   onReprint: onReprint,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 ArchiveOutcomeRow(archive: archive, onRate: onRate),
                 ArchiveFilamentRow(archive: archive),
                 SizedBox(
@@ -987,7 +1001,7 @@ class _ArchiveSheet extends StatelessWidget {
                   ),
                 ),
                 _ArchiveMediaButton(archive: archive, onMedia: onMedia),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 _SliceArchiveButton(
                   archive: archive,
                   onSlice: onSlice,
@@ -1099,7 +1113,7 @@ class _SliceArchiveButton extends ConsumerWidget {
     // the sheet down.
     final pipeline = ref.watch(canRunPipelinesProvider).offer;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Column(
         children: [
           _ReasonedButton(
@@ -1110,7 +1124,7 @@ class _SliceArchiveButton extends ConsumerWidget {
             onPressed: sliceable == true ? onSlice : null,
           ),
           if (pipeline != ControlOffer.hidden) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             // Re-slices the same source, so it needs exactly what the slice
             // button needs — and owes the same reason.
             _ReasonedButton(
@@ -1163,7 +1177,7 @@ class _ReasonedButton extends StatelessWidget {
           children: [
             Text(label),
             if (why != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               const Icon(Icons.info_outline, size: 18),
             ],
           ],
@@ -1205,7 +1219,7 @@ class _ArchiveMediaButton extends ConsumerWidget {
       // The gap goes above, like every other row in the sheet — the slice
       // button is the one exception, and only because the delete button below
       // it brings none of its own.
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: SizedBox(
         width: double.infinity,
         child: logTag(
@@ -1248,7 +1262,7 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.message),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           logTag(
             'archive_delete.purge_stats',
             CheckboxListTile(
@@ -1368,10 +1382,10 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           _preview.when(
             loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: DashSpace.sm),
               child: LinearProgressIndicator(),
             ),
             error: (_, _) => Text(
@@ -1471,7 +1485,12 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         minSize: 0.35,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             // Fixed height so the header never resizes when the Clear button
             // toggles; the button keeps its slot via Visibility.maintainSize so
@@ -1499,7 +1518,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             FilterGroupLabel(label: l10n.archiveSortLabel),
             _ChipWrap(
@@ -1513,7 +1532,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.archiveFilterFileType),
             _ChipWrap(
@@ -1527,7 +1546,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.archiveFilterFlags),
             _ChipWrap(
@@ -1569,7 +1588,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             ),
 
             if (usedPrinterIds.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.archiveFilterPrinter),
               _ChipWrap(
                 children: [
@@ -1587,7 +1606,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             ],
 
             if (sortedMaterials.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.archiveFilterMaterial),
               _ChipWrap(
                 children: [
@@ -1604,7 +1623,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
             ],
 
             if (colors.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               Row(
                 children: [
                   FilterGroupLabel(label: l10n.archiveFilterColors),
@@ -1631,7 +1650,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               _ColorSwatchWrap(
                 colors: colors.toList(),
                 selected: filters.colors,
@@ -1672,7 +1691,7 @@ class _ChipWrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Wrap(spacing: 8, runSpacing: 4, children: children);
+      Wrap(spacing: DashSpace.sm, runSpacing: DashSpace.xs, children: children);
 }
 
 /// Row of filament-color swatches; tapping one toggles it in the color filter.
@@ -1691,8 +1710,8 @@ class _ColorSwatchWrap extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: DashSpace.md,
+      runSpacing: DashSpace.md,
       children: [
         for (final hex in colors)
           _ColorSwatch(

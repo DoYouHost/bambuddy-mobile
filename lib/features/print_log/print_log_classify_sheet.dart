@@ -133,10 +133,10 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
       'sheet.print_log_classify',
       SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          20,
-          4,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
+          DashSpace.gutter,
+          DashSpace.xs,
+          DashSpace.gutter,
+          DashSpace.xl + MediaQuery.viewInsetsOf(context).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: DashSpace.xs),
             Text(
               [
                 if (entry.printerName != null) entry.printerName!,
@@ -157,7 +157,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               ].join(' · '),
               style: t.label.copyWith(color: t.textSecondary),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
 
             // What the row could only show abbreviated, in full: the card has
             // one line for all of it and cuts whatever does not fit.
@@ -205,9 +205,9 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                       ].join(' · '),
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
             Divider(color: t.hairline, height: 1),
-            const SizedBox(height: 18),
+            const SizedBox(height: DashSpace.lg),
 
             dashCombo<String>(
               context,
@@ -227,7 +227,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             dashCombo<String>(
               context,
@@ -257,7 +257,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
 
             Text(
               printRunIsFailure(_status)
@@ -266,7 +266,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
               style: t.label,
             ),
             if (_statusIsUnwritable && _status == entry.status) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.printLogStatusOneWay(
                   printRunStatusLabel(l10n, entry.status),
@@ -274,7 +274,7 @@ class _PrintLogClassifySheetState extends ConsumerState<PrintLogClassifySheet> {
                 style: t.label.copyWith(color: t.accentOrangeInk),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
 
             Row(
               children: [
@@ -327,13 +327,13 @@ class _RunDetailRow extends StatelessWidget {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
           Expanded(child: Text(label, style: t.label)),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Text(text, style: t.monoValue),
         ],
       ),

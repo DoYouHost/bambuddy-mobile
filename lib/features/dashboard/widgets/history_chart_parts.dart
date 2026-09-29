@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Pieces shared by the two sensor-history sheets (AMS units and printer
@@ -73,7 +74,7 @@ class HistoryStat extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: DashSpace.xs),
           Text(
             value,
             style: theme.textTheme.titleMedium?.copyWith(

@@ -86,7 +86,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -97,7 +102,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                       size: 20,
                       color: t.accentGreenInk,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DashSpace.sm),
                     Expanded(
                       child: Text(l10n.inventoryLabelsTitle, style: t.display),
                     ),
@@ -107,13 +112,13 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 DashSearchField(
                   id: 'spool_labels.search',
                   hintText: l10n.inventoryLabelsSearchHint,
                   onChanged: (v) => setState(() => _query = v),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: DashSpace.md),
                 if (_materials.length > 1) ...[
                   _ChipRow(
                     label: l10n.inventoryLabelsMaterial,
@@ -124,7 +129,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                     value: _material,
                     onChanged: (v) => setState(() => _material = v),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: DashSpace.sm),
                 ],
                 _ChipRow(
                   label: l10n.inventoryLabelsSort,
@@ -135,7 +140,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   value: _sort,
                   onChanged: (v) => setState(() => _sort = v),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: DashSpace.md),
                 Row(
                   children: [
                     Expanded(
@@ -159,7 +164,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                               }
                             }),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     _TextAction(
                       label: l10n.inventoryLabelsClearAll,
                       muted: true,
@@ -177,7 +182,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
             child: visible.isEmpty
                 ? Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(DashSpace.xl),
                       child: Text(
                         l10n.inventoryLabelsNoMatches,
                         textAlign: TextAlign.center,
@@ -187,7 +192,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   )
                 : ListView.builder(
                     controller: controller,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DashSpace.sm,
+                    ),
                     itemCount: visible.length,
                     itemBuilder: (context, i) {
                       final spool = visible[i];
@@ -347,7 +354,7 @@ class _LabelSpoolRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.all(DashSpace.sm),
         child: Row(
           children: [
             Icon(
@@ -355,9 +362,9 @@ class _LabelSpoolRow extends StatelessWidget {
               size: 20,
               color: checked ? t.accentGreenInk : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             SpoolSwatch(rgba: spool.rgba, size: 20, radius: 6),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
                 name,
@@ -366,7 +373,7 @@ class _LabelSpoolRow extends StatelessWidget {
                 style: t.body,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Text('#${spool.id}', style: t.monoMicro),
           ],
         ),
@@ -400,7 +407,12 @@ class _LabelFooter extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.sm,
+        DashSpace.gutter,
+        DashSpace.lg,
+      ),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),
@@ -418,14 +430,14 @@ class _LabelFooter extends StatelessWidget {
             onChanged: onShare,
             label: l10n.inventoryLabelsShare,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: t.accentGreen,
                 foregroundColor: _onAccentGreen,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -496,13 +508,18 @@ class _TemplateSheet extends StatelessWidget {
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryLabelsPickTemplate, style: t.titleLg),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           for (final (template, label, hint) in options)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: DashSpace.md),
               child: Material(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(16),
@@ -510,7 +527,7 @@ class _TemplateSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () => Navigator.of(context).pop(template),
                   child: Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(DashSpace.lg),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: t.subCardBorder),
@@ -519,7 +536,7 @@ class _TemplateSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(label, style: t.titleSm),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: DashSpace.xs),
                         Text(hint, style: t.labelSoft),
                       ],
                     ),
@@ -556,20 +573,25 @@ class _StartingPositionSheet extends StatelessWidget {
     return DraggableSheetSurface(
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryLabelsStartTitle, style: t.titleLg),
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           Text(l10n.inventoryLabelsStartHint, style: t.labelSoft),
-          const SizedBox(height: 14),
+          const SizedBox(height: DashSpace.lg),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: layout.columns * layout.rows,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: layout.columns,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
+              mainAxisSpacing: DashSpace.sm,
+              crossAxisSpacing: DashSpace.sm,
               childAspectRatio: layout.widthMm / layout.heightMm,
             ),
             itemBuilder: (context, i) => _StartingPositionSlot(
@@ -637,7 +659,7 @@ class _ChipRow<T> extends StatelessWidget {
     return Row(
       children: [
         Text(label, style: t.microSoft),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -645,7 +667,7 @@ class _ChipRow<T> extends StatelessWidget {
               children: [
                 for (final e in options.entries)
                   Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.only(right: DashSpace.sm),
                     child: _MiniChip(
                       label: e.value,
                       selected: e.key == value,
@@ -682,7 +704,10 @@ class _MiniChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.md,
+            vertical: DashSpace.xs,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
@@ -723,7 +748,7 @@ class _TextAction extends StatelessWidget {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        padding: const EdgeInsets.all(DashSpace.xs),
         child: Text(
           label,
           style: t.micro.copyWith(
@@ -756,7 +781,7 @@ class _CheckRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: () => onChanged(!value),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -765,7 +790,7 @@ class _CheckRow extends StatelessWidget {
               size: 20,
               color: value ? t.accentGreenInk : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

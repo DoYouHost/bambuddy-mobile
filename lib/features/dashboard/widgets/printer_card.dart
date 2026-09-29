@@ -287,7 +287,10 @@ class _PrinterCardState extends State<PrinterCard> {
               ),
               if (connected)
                 Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 10),
+                  padding: const EdgeInsets.only(
+                    left: DashSpace.md,
+                    top: DashSpace.md,
+                  ),
                   child: _HeaderActions(
                     printerId: printerId,
                     printerName: name,
@@ -299,7 +302,7 @@ class _PrinterCardState extends State<PrinterCard> {
           if (status != null)
             _PlateClearBanner(printerId: printerId, status: status),
           if (hmsErrors.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
             _HmsErrorsPanel(
               printerId: printerId,
               printerName: name,
@@ -307,11 +310,11 @@ class _PrinterCardState extends State<PrinterCard> {
             ),
           ],
           if (printing) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             _PrintPanel(status: status!),
           ],
           if (readings.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
             _TempGrid(
               readings: readings,
               printerId: printerId,
@@ -383,8 +386,16 @@ class _CardShell extends StatelessWidget {
     return logTag(
       'dashboard.printer_card',
       Container(
-        margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.sm,
+          DashSpace.gutter,
+          DashSpace.sm,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.lg,
+          vertical: DashSpace.lg,
+        ),
         decoration: BoxDecoration(
           gradient: tokens.cardGradient,
           borderRadius: BorderRadius.circular(26),
@@ -626,7 +637,7 @@ class _HeaderActions extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         _HeaderIconButton(
           id: 'printer.camera',
           tooltip: l10n.cameraTooltip,
@@ -640,7 +651,7 @@ class _HeaderActions extends StatelessWidget {
         ),
         // Skip objects only makes sense during an active print.
         if (printing) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           _HeaderIconButton(
             id: 'printer.skip_objects',
             tooltip: l10n.skipObjectsTitle,
@@ -655,7 +666,7 @@ class _HeaderActions extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         _SmartPlugButton(printerId: printerId, printing: printing),
       ],
     );

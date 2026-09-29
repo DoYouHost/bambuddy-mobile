@@ -75,15 +75,15 @@ class _SignedInState extends ConsumerState<_SignedIn> {
     final t = DashTokens.of(context);
     final status = widget.status;
     return ListView(
-      padding: withSystemNavInset(context, const EdgeInsets.all(16)),
+      padding: withSystemNavInset(context, const EdgeInsets.all(DashSpace.lg)),
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(DashSpace.lg),
           decoration: t.cardBox,
           child: Row(
             children: [
               const DashIconTile(icon: Icons.cloud_done, size: 44, radius: 14),
-              const SizedBox(width: 14),
+              const SizedBox(width: DashSpace.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +91,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
                   children: [
                     Text(status.email ?? l10n.cloudSignedIn, style: t.titleSm),
                     if (status.region != null) ...[
-                      const SizedBox(height: 3),
+                      const SizedBox(height: DashSpace.xs),
                       Text(_regionLabel(l10n), style: t.label),
                     ],
                   ],
@@ -100,14 +100,14 @@ class _SignedInState extends ConsumerState<_SignedIn> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         Text(l10n.cloudCredsNote, style: t.label),
-        const SizedBox(height: 24),
+        const SizedBox(height: DashSpace.xl),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
             foregroundColor: t.textPrimary,
             side: BorderSide(color: t.cardBorder),
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -241,16 +241,16 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     final t = DashTokens.of(context);
     TextStyle fieldStyle() => t.bodyStrong;
     return ListView(
-      padding: withSystemNavInset(context, const EdgeInsets.all(16)),
+      padding: withSystemNavInset(context, const EdgeInsets.all(DashSpace.lg)),
       children: [
         Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(DashSpace.lg),
           decoration: t.cardBox,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(l10n.cloudCredsNote, style: t.label),
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               TextField(
                 controller: _email,
                 enabled: !_verifying && !_busy,
@@ -262,7 +262,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                   labelText: l10n.cloudEmail,
                 ).copyWith(prefixIcon: const Icon(Icons.email_outlined)),
               ).tagged('cloud.email'),
-              const SizedBox(height: 14),
+              const SizedBox(height: DashSpace.lg),
               TextField(
                 controller: _password,
                 enabled: !_verifying && !_busy,
@@ -283,7 +283,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                       ).tagged('cloud.reveal_password'),
                     ),
               ).tagged('cloud.password'),
-              const SizedBox(height: 14),
+              const SizedBox(height: DashSpace.lg),
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment(
@@ -301,14 +301,14 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                     : (sel) => setState(() => _region = sel.first),
               ).tagged('cloud.region'),
               if (_verifying) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: DashSpace.xl),
                 Text(
                   _verificationPrompt.isNotEmpty
                       ? _verificationPrompt
                       : l10n.cloudVerificationPrompt,
                   style: t.bodySoft,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextField(
                   controller: _code,
                   enabled: !_busy,
@@ -320,7 +320,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                   ).copyWith(prefixIcon: const Icon(Icons.pin_outlined)),
                 ).tagged('cloud.code'),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: DashSpace.xl),
               FilledButton(
                 style: dashPrimaryButtonStyle(t),
                 onPressed: _busy ? null : (_verifying ? _verify : _signIn),

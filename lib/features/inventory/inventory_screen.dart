@@ -140,6 +140,10 @@ Future<void> showSpoolDetail(
 /// Long-pressing a spool enters multi-select mode for a mass edit of fields
 /// plus bulk reset-usage / archive / restore / delete / label printing,
 /// mirroring the Archive tab.
+/// The small scan FAB and its gap, stacked above the standard add FAB that
+/// [DashSpace.fabClearance] already clears.
+const _scanFabStep = 40 + DashSpace.md;
+
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -260,7 +264,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       child: const Icon(Icons.qr_code_scanner),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   logTag(
                     'inventory.add_spool',
                     FloatingActionButton.extended(
@@ -318,9 +322,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       )
                     else
                       SliverPadding(
-                        // Clears the whole FAB stack (scan + add) plus its margin,
-                        // so the last spool stays reachable at the end of the list.
-                        padding: const EdgeInsets.only(bottom: 120),
+                        // Clears the whole FAB stack (scan + add), so the last
+                        // spool stays reachable at the end of the list.
+                        padding: const EdgeInsets.only(
+                          bottom: DashSpace.fabClearance + _scanFabStep,
+                        ),
                         sliver: SliverList.builder(
                           itemCount: spools.length + 1,
                           itemBuilder: (context, i) {

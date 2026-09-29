@@ -98,13 +98,13 @@ class _GaugeTile extends ConsumerWidget {
     // recorded. The whole strip is the history button, not just the glyph: a
     // 14 px icon is a 22 px target sitting inside the tile's own InkWell, so a
     // near-miss opened the setpoint sheet instead of the chart. Taking the
-    // label's full width and the 6 px gap below it costs no tile height — the
+    // label's full width and the 8 px gap below it costs no tile height — the
     // strip ends up exactly as tall as a label with no glyph at all.
     Widget labelStrip = Row(
       children: [
         if (hasHistory) ...[
           Icon(Icons.show_chart, size: 14, color: t.textSecondary),
-          const SizedBox(width: 4),
+          const SizedBox(width: DashSpace.xs),
         ],
         Flexible(
           child: Text(
@@ -130,7 +130,7 @@ class _GaugeTile extends ConsumerWidget {
     }
 
     final tile = Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(14),
@@ -157,18 +157,20 @@ class _GaugeTile extends ConsumerWidget {
             children: [
               // Reserve the gauge's corner: pad the label so it never collides.
               Padding(
-                padding: const EdgeInsets.only(right: 40),
+                padding: const EdgeInsets.only(
+                  right: TempGauge.defaultSize + DashSpace.xs,
+                ),
                 child: labelStrip,
               ),
               // With the glyph the gap belongs to the button (see [labelStrip]).
-              if (!hasHistory) const SizedBox(height: 6),
+              if (!hasHistory) const SizedBox(height: DashSpace.sm),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (airductIcon != null) ...[
                     Icon(airductIcon, size: 20, color: accent),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: DashSpace.xs),
                   ],
                   Text(
                     actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
@@ -220,7 +222,7 @@ class _GaugeTile extends ConsumerWidget {
 
 /// The tile's label strip turned into a button that opens the heater history
 /// sheet. Brings its own [Material] because read-only tiles are not wrapped in
-/// one, and the ink would have nowhere to draw. The 6 px of air above the
+/// one, and the ink would have nowhere to draw. The 8 px of air above the
 /// temperature reading is the button's own padding: it is hit area the tile
 /// cannot spare in height, since the big number owns the rest of it.
 class _HistoryButton extends StatelessWidget {
@@ -247,7 +249,7 @@ class _HistoryButton extends StatelessWidget {
           child: Tooltip(
             message: AppLocalizations.of(context).heaterHistoryOpen,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
               child: child,
             ),
           ),
@@ -312,7 +314,10 @@ class _StateChip extends StatelessWidget {
       border = null;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
@@ -631,7 +636,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
         Row(
           children: [
             Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
-            const SizedBox(width: 6),
+            const SizedBox(width: DashSpace.sm),
             Text(
               l10n.ctrlNozzleActive,
               style: t.label.copyWith(color: t.accentGreenInk),
@@ -649,7 +654,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
         child: InkWell(
           onTap: enabled ? _switchNozzle : null,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.sm,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: t.subCardBorder),
@@ -664,7 +672,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                         size: 16,
                         color: enabled ? t.textPrimary : t.textTertiary,
                       ),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
                 Text(
                   l10n.ctrlActivate,
                   style: t.bodyBold.copyWith(
@@ -717,7 +725,12 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
     return FittedSheetSurface(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.lg,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -738,7 +751,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               ],
             ),
             if (showNozzleSwitch) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               _nozzleSwitch(
                 t,
                 l10n,
@@ -747,7 +760,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                 enabled: !widget.printing && !switching,
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             // Dim + block the target editor when a chamber target can't
             // take effect (airduct not in Heating).
             Opacity(
@@ -769,7 +782,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DashSpace.sm),
                     Row(
                       children: [
                         _StepButton(
@@ -801,13 +814,13 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     // Quick-pick presets — tapping one moves the slider;
                     // the change is committed with the Set button below.
                     Wrap(
                       alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: DashSpace.sm,
+                      runSpacing: DashSpace.sm,
                       children: [
                         for (final p in _reading.presets(_chamberMax))
                           _PresetChip(
@@ -823,13 +836,13 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               ),
             ),
             if (showAirduct) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               _AirductToggle(
                 heating: _airductHeating,
                 onChanged: _busy ? null : _setAirduct,
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             Row(
               children: [
                 Expanded(
@@ -839,7 +852,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                     onTap: _busy ? null : () => _apply(0),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: _SheetButton(
                     label: l10n.ctrlSet,
@@ -890,7 +903,10 @@ class _PresetChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.lg,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -961,7 +977,7 @@ class _AirductToggle extends StatelessWidget {
     return Row(
       children: [
         Icon(Icons.air, size: 16, color: t.textSecondary),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Text(l10n.ctrlAirduct, style: t.body.copyWith(color: t.textSecondary)),
         const Spacer(),
         SegmentedButton<bool>(
@@ -1020,7 +1036,7 @@ class _SheetButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(

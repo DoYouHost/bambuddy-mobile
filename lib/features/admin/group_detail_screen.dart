@@ -63,15 +63,20 @@ class GroupDetailScreen extends ConsumerWidget {
             onRefresh: () =>
                 ref.read(groupDetailProvider(groupId).notifier).refresh(),
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, canManage ? 88 : 24),
+              padding: EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.sm,
+                DashSpace.gutter,
+                canManage ? DashSpace.fabClearance : DashSpace.xl,
+              ),
               children: [
                 _GroupHeader(group: group),
-                const SizedBox(height: 20),
+                const SizedBox(height: DashSpace.xl),
                 Text(
                   l10n.groupsMembersHeader,
                   style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 if (group.members.isEmpty)
                   Text(
                     l10n.groupsNoMembers,
@@ -232,7 +237,7 @@ class _GroupHeader extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,20 +254,20 @@ class _GroupHeader extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           Text(
             (group.description?.isNotEmpty ?? false)
                 ? group.description!
                 : l10n.groupsNoDescription,
             style: t.bodyPlain,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             l10n.groupsPermissionCount(group.permissions.length),
             style: t.monoLabel,
           ),
           if (group.isSystem) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             // The server refuses to rename a system group or to touch what it
             // grants (`groups.py::update_group`, `:200`); only its membership
             // moves.
@@ -285,9 +290,14 @@ class _MemberRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.md,
+        ),
         decoration: BoxDecoration(
           color: t.subCard,
           borderRadius: BorderRadius.circular(16),
@@ -300,7 +310,7 @@ class _MemberRow extends StatelessWidget {
               size: 18,
               color: member.isActive ? t.textSecondary : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
                 member.username,
@@ -313,7 +323,7 @@ class _MemberRow extends StatelessWidget {
             ),
             if (!member.isActive)
               Padding(
-                padding: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.only(right: DashSpace.sm),
                 child: Text(
                   l10n.usersInactive,
                   style: t.micro.copyWith(color: t.dangerInk),
@@ -362,18 +372,23 @@ class _AccountPickerSheet extends ConsumerWidget {
       'sheet.group_add_member',
       SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.lg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.groupsAddMemberTitle(group.name), style: t.titleMd),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               Flexible(
                 child: dashAsyncStrip(
                   context,
                   async,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(DashSpace.xl),
                   data: (users) {
                     final candidates = [
                       for (final u in users)
@@ -381,7 +396,7 @@ class _AccountPickerSheet extends ConsumerWidget {
                     ];
                     if (candidates.isEmpty) {
                       return Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(DashSpace.xl),
                         child: Text(
                           l10n.groupsEveryoneIsIn,
                           style: TextStyle(

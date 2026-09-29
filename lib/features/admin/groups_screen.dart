@@ -55,7 +55,12 @@ class GroupsScreen extends ConsumerWidget {
                 : ListView.builder(
                     padding: withSystemNavInset(
                       context,
-                      const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                      const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.sm,
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                      ),
                     ),
                     itemCount: groups.length,
                     itemBuilder: (_, i) => GroupCard(
@@ -89,7 +94,7 @@ class GroupCard extends StatelessWidget {
     final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlue;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -98,7 +103,7 @@ class GroupCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +123,7 @@ class GroupCard extends StatelessWidget {
                       color: accentInk,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +139,7 @@ class GroupCard extends StatelessWidget {
                               ),
                             ),
                             if (group.isSystem) ...[
-                              const SizedBox(width: 8),
+                              const SizedBox(width: DashSpace.sm),
                               Text(
                                 l10n.usersGroupSystem,
                                 style: t.micro.copyWith(
@@ -145,7 +150,7 @@ class GroupCard extends StatelessWidget {
                           ],
                         ),
                         Padding(
-                          padding: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.only(top: DashSpace.xs),
                           child: Text(
                             (group.description?.isNotEmpty ?? false)
                                 ? group.description!
@@ -155,7 +160,7 @@ class GroupCard extends StatelessWidget {
                             style: t.labelSoft.copyWith(color: t.textSecondary),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: DashSpace.sm),
                         Text(
                           '${l10n.groupsMemberCount(group.userCount)}'
                           ' · ${l10n.groupsPermissionCount(group.permissions.length)}',

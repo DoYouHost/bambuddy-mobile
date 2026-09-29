@@ -306,27 +306,32 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           child: ListView(
             padding: withSystemNavInset(
               context,
-              const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.md,
+                DashSpace.gutter,
+                DashSpace.xxl,
+              ),
             ),
             children: [
               _header(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _targetSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               ?_plateSection(l10n, t),
               ?_copiesSection(l10n, t),
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 ?_nozzleRackSection(l10n, t),
               ] else ...[
                 _filamentOverrideSection(l10n, t),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
               ],
               _printOptionsSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _preheatSection(l10n, t),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _scheduleSection(l10n, t),
             ],
           ),
@@ -350,13 +355,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 )
               : PrintThumbnail(archiveId: it.archiveId, size: 52),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.queueEditPrintJob, style: t.micro),
-              const SizedBox(height: 2),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 it.displayName,
                 maxLines: 2,
@@ -413,12 +418,15 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               }
             }),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (!_modelMode)
             _printerList(l10n, t, printers)
           else
             _modelTarget(l10n, t, models, locations, modelFixed),
-          ?_missingSnippetNote(l10n, padding: const EdgeInsets.only(top: 10)),
+          ?_missingSnippetNote(
+            l10n,
+            padding: const EdgeInsets.only(top: DashSpace.md),
+          ),
         ],
       ),
     );
@@ -461,7 +469,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       children: [
         if (!modelFixed && models.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: DashSpace.md),
             child: _Dropdown<String?>(
               label: l10n.queueEditTargetModel,
               value: models.contains(_targetModel) ? _targetModel : null,
@@ -495,11 +503,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Padding(
       // Vertical inset leaves the pill room to grow with the text scale before
       // it meets the 56-high bar.
-      padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.xs,
+        DashSpace.sm,
+        DashSpace.md,
+        DashSpace.sm,
+      ),
       child: FilledButton(
         style: dashPrimaryButtonStyle(t).copyWith(
           padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 18),
+            EdgeInsets.symmetric(horizontal: DashSpace.lg),
           ),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -564,7 +577,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               // and across the card rather than squeezed beside the stepper.
               if (_copies > 1)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: DashSpace.xs),
                   child: Text(
                     order
                         ? l10n.queueEditCopiesOrder
@@ -575,7 +588,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -615,11 +628,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? l10n.queueEditPlateSelected(_plateId ?? 1)
         : plateLabel(l10n, current);
     final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         children: [
           Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               widget._isCreate
@@ -646,7 +659,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 ).tagged('queue_edit.plate')
               : row,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -694,11 +707,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 if (mapping != null) setState(() => _amsMapping = mapping);
               },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
           child: Row(
             children: [
               Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Text(
                   printerId == null
@@ -771,12 +784,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(l10n.queueEditNozzleRackDesc, style: t.labelSoft),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               for (final group in groups) _rackGroupRow(l10n, t, group, rack),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -815,7 +828,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         ? l10n.queueEditRackPickStale
         : (fits.isEmpty ? l10n.queueEditRackNoFit(needed) : null);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: DashSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1020,7 +1033,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.queueEditFilamentOverrideDesc, style: t.labelSoft),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (reqs.isEmpty)
             Text(
               l10n.queueEditNoFilamentReqs,
@@ -1056,7 +1069,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         : '${override.type}|${override.color}';
     final typeLabel = req.type.isEmpty ? '—' : req.type;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: DashSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1225,7 +1238,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.queueEditPreheatDesc, style: t.labelSoft),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           _SegToggle<String>(
             id: 'queue_edit.preheat_override',
             selected: _preheatOverride,
@@ -1237,7 +1250,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _preheatOverride = v),
           ),
           if (_preheatOverride != 'off') ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             TextField(
               controller: _chamberTarget,
               keyboardType: TextInputType.number,
@@ -1293,10 +1306,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             }),
           ),
           if (_scheduleType == QueueScheduleType.scheduled) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             _scheduleTimeRow(l10n, t),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(
               id: 'queue_edit.require_manual_start',
@@ -1335,7 +1348,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           // says it, or the same sentence is read out twice.
           ?_missingSnippetNote(
             l10n,
-            padding: const EdgeInsets.only(left: 4, top: 2),
+            padding: const EdgeInsets.only(
+              left: DashSpace.xs,
+              top: DashSpace.xs,
+            ),
             announce: true,
           ),
         ],
@@ -1350,7 +1366,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(child: Text(label, style: t.monoValue)),
         OutlinedButton(
           style: OutlinedButton.styleFrom(
@@ -1786,7 +1802,7 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(18),
@@ -1796,7 +1812,7 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: t.bodyBold.copyWith(letterSpacing: 0.2)),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           child,
         ],
       ),
@@ -1833,7 +1849,7 @@ class _SegToggle<T> extends StatelessWidget {
     return Row(
       children: [
         for (var i = 0; i < segments.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
+          if (i > 0) const SizedBox(width: DashSpace.sm),
           Expanded(child: _segButton(t, segments[i])),
         ],
       ],
@@ -1851,7 +1867,7 @@ class _SegToggle<T> extends StatelessWidget {
         child: Container(
           height: 44,
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -1868,7 +1884,7 @@ class _SegToggle<T> extends StatelessWidget {
                   size: 16,
                   color: isSel ? _onGreenFill : t.textSecondary,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
               ],
               Flexible(
                 child: Text(
@@ -1939,14 +1955,14 @@ class _CalibrationRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(title, style: t.titleSm),
-          const SizedBox(height: 2),
+          const SizedBox(height: DashSpace.xs),
           Text(subtitle, style: t.labelSoft),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           _SegToggle<CalibrationOption>(
             id: id,
             selected: value,
@@ -1990,7 +2006,7 @@ class _OptionSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       // Merged, so the switch is announced with the setting it belongs to. On
       // its own it read as "off, switch" — six of these sit on this screen and
       // nothing said which one had focus. The probe treats a merged subtree as
@@ -2003,12 +2019,12 @@ class _OptionSwitch extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: t.titleSm),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: DashSpace.xs),
                   Text(subtitle, style: t.labelSoft),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             Switch(
               value: value,
               activeThumbColor: Colors.white,
@@ -2050,7 +2066,7 @@ class _CheckRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: enabled ? () => onChanged!(!value) : null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Row(
           children: [
             Checkbox(
@@ -2065,7 +2081,7 @@ class _CheckRow extends StatelessWidget {
               size: 18,
               color: enabled ? t.textSecondary : t.textTertiary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Text(
                 label,
@@ -2119,7 +2135,7 @@ class _Dropdown<T> extends StatelessWidget {
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
             elevation: const WidgetStatePropertyAll(8),
             padding: const WidgetStatePropertyAll(
-              EdgeInsets.symmetric(vertical: 6),
+              EdgeInsets.symmetric(vertical: DashSpace.sm),
             ),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(
@@ -2201,7 +2217,10 @@ class _Dropdown<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.lg,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: t.groupCardBorder),
@@ -2210,14 +2229,14 @@ class _Dropdown<T> extends StatelessWidget {
             children: [
               if (swatch != null) ...[
                 _SwatchDot(color: swatch),
-                const SizedBox(width: 10),
+                const SizedBox(width: DashSpace.md),
               ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label, style: t.micro),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: DashSpace.xs),
                     Text(text, style: t.titleSm),
                   ],
                 ),
@@ -2273,7 +2292,7 @@ class _SelectableTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: selected ? t.accentGreen.withValues(alpha: 0.14) : t.groupCard,
         borderRadius: BorderRadius.circular(12),
@@ -2281,7 +2300,10 @@ class _SelectableTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.lg,
+              vertical: DashSpace.md,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -2297,7 +2319,7 @@ class _SelectableTile extends StatelessWidget {
                   size: 20,
                   color: selected ? t.accentGreenInk : t.textSecondary,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

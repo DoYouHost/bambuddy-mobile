@@ -299,10 +299,10 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         appBar: dashAppBar(context, title: l10n.addPrinterTitle),
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(DashSpace.lg),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Form(
                 key: _formKey,
@@ -322,7 +322,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       validator: required,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _ip,
@@ -332,7 +332,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       validator: required,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _serial,
@@ -340,7 +340,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       validator: required,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _accessCode,
@@ -360,9 +360,9 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         ),
                       ).tagged('add_printer.reveal_access_code'),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _modelDropdown(t, l10n),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                     _field(
                       t,
                       controller: _location,
@@ -370,7 +370,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       hint: l10n.addPrinterLocationOptional,
                       textInputAction: TextInputAction.done,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: DashSpace.xs),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -385,12 +385,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         style: t.bodyStrong,
                       ),
                     ).tagged('add_printer.auto_archive'),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: DashSpace.xs),
                     _diagnosticSection(t, l10n),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: DashSpace.lg),
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: DashSpace.md),
                         child: Text(
                           _error!,
                           style: t.body.copyWith(color: t.dangerInk),
@@ -403,7 +403,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                           ? const DashSpinner(size: 20)
                           : Text(l10n.addPrinterSubmit),
                     ).tagged('add_printer.submit'),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: DashSpace.md),
                     Text(
                       l10n.addPrinterConnectionNote,
                       style: TextStyle(
@@ -436,7 +436,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _sectionLabel(t, l10n.addPrinterScanTitle),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         // Detected subnets → dropdown (+ "Custom…" sentinel). No detected
         // subnets → a plain CIDR field below is the only input.
         if (subnets.isNotEmpty)
@@ -475,7 +475,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ],
           ),
         if (custom) ...[
-          if (subnets.isNotEmpty) const SizedBox(height: 8),
+          if (subnets.isNotEmpty) const SizedBox(height: DashSpace.sm),
           TextField(
             controller: _customSubnet,
             enabled: !_scanning,
@@ -489,14 +489,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ).tagged('add_printer.custom_subnet'),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         Text(
           isDocker
               ? l10n.addPrinterSubnetDockerNote
               : l10n.addPrinterSubnetCustomNote,
           style: t.microSoft,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
@@ -506,7 +506,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         ).tagged('add_printer.scan_network'),
         if (_scanError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
               _scanError!,
               style: TextStyle(
@@ -517,10 +517,10 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ),
         if (_found.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           for (final p in _found) _discoveredTile(t, p),
         ] else if (!_scanning && _hasScanned) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Text(
             l10n.addPrinterScanNoResults,
             style: t.labelSoft.copyWith(color: t.textSecondary),
@@ -543,7 +543,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
 
   Widget _discoveredTile(DashTokens t, DiscoveredPrinter p) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: t.subCard,
         borderRadius: BorderRadius.circular(12),
@@ -551,11 +551,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _applyDiscovered(p),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.md,
+            ),
             child: Row(
               children: [
                 Icon(Icons.print_outlined, size: 20, color: t.accentGreenInk),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,7 +606,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         ).tagged('add_printer.diagnose'),
         if (_diagnosticError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
               _diagnosticError!,
               style: TextStyle(
@@ -614,12 +617,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ),
         if (result != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           Text(
             _overallText(l10n, result.overall),
             style: t.bodyBold.copyWith(color: _overallColor(t, result.overall)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: DashSpace.sm),
           for (final c in result.checks) _checkRow(t, l10n, c),
         ],
       ],
@@ -634,11 +637,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       _ => (Icons.remove_circle_outline, t.textTertiary),
     };
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               _checkTitle(l10n, c.id),

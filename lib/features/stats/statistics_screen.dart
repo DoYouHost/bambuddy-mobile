@@ -205,7 +205,7 @@ class _StatsBody extends ConsumerWidget {
                     size: 48,
                     color: t.textTertiary,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   Text(
                     l10n.statsEmpty,
                     style: TextStyle(
@@ -227,60 +227,65 @@ class _StatsBody extends ConsumerWidget {
     return ListView(
       padding: withSystemNavInset(
         context,
-        const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.md,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
       ),
       children: [
         _OverviewCard(data: data),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _SuccessRateCard(data: data)),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(child: _TimeAccuracyCard(data: data)),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
         const FailureAnalysisCard(),
         // Rich widgets computed from slim list — wait for it to load.
         ...computed.when(
           loading: () => const [
-            SizedBox(height: 12),
+            SizedBox(height: DashSpace.md),
             SizedBox(height: 80, child: DashLoading()),
           ],
           error: (_, _) => const [],
           data: (c) => c.isEmpty
               ? const <Widget>[]
               : [
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   PrintActivityCard(data: c, fmt: fmt),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   RecordsCard(data: c, fmt: fmt),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   PrinterStatsCard(data: c),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   FilamentTrendsHeader(stats: data),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   UsageOverTimeCard(data: c, fmt: fmt),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   // Per-print energy only reaches us from a 1.2.5.2 server, and
                   // only once energy tracking has recorded something.
                   if (c.hasEnergyData) ...[
                     EnergyOverTimeCard(data: c, fmt: fmt),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: DashSpace.md),
                   ],
                   ByMaterialCard(data: c),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   SuccessByMaterialCard(data: c),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   ColorDistributionCard(data: c),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   DurationHistogramCard(data: c),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   HabitsCard(data: c, fmt: fmt),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   TimeOfDayCard(data: c, fmt: fmt),
                 ],
         ),
@@ -322,7 +327,7 @@ class _OverviewCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Row(
             children: [
               Expanded(
@@ -341,7 +346,7 @@ class _OverviewCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Row(
             children: [
               Expanded(
@@ -361,11 +366,11 @@ class _OverviewCard extends StatelessWidget {
             ],
           ),
           if (data.energyDataWarmingUp) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Row(
               children: [
                 Icon(Icons.hourglass_empty, size: 14, color: t.textTertiary),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: Text(l10n.statsEnergyWarmingUp, style: t.microSoft),
                 ),
@@ -376,7 +381,7 @@ class _OverviewCard extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.summarize_outlined, size: 28, color: t.accentGreenInk),
-              const SizedBox(width: 10),
+              const SizedBox(width: DashSpace.md),
               Expanded(child: Text(l10n.statsTotalCost, style: t.body)),
               Text(
                 fmtNum(data.totalCost + data.totalEnergyCost),
@@ -407,7 +412,7 @@ class _StatTile extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 28, color: t.accentGreenInk),
-        const SizedBox(width: 10),
+        const SizedBox(width: DashSpace.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,17 +461,17 @@ class _SuccessRateCard extends StatelessWidget {
               color: _rateColor(t, rate),
               label: '${rate.round()}%',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             LegendDot(
               color: t.accentGreen,
               text: l10n.statsSuccessful(data.successfulPrints),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             LegendDot(
               color: t.danger,
               text: l10n.statsFailed(data.failedPrints),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             LegendDot(
               color: t.accentOrange,
               text: l10n.statsCancelled(data.cancelledPrints),
@@ -506,7 +511,7 @@ class _TimeAccuracyCard extends StatelessWidget {
               color: t.accentOrange,
               label: '${acc.round()}%',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             Text(
               l10n.statsTimeAccuracyHint,
               textAlign: TextAlign.center,

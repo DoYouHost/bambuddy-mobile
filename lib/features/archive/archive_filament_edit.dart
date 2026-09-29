@@ -138,7 +138,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     String? actual,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -147,7 +147,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
             borderRadius: BorderRadius.circular(14),
             onTap: _saving ? null : _edit,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(14),
@@ -156,14 +156,14 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
               child: Row(
                 children: [
                   Icon(Icons.scale_outlined, size: 18, color: t.textTertiary),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(l10n.archiveFilamentUsed, style: t.label),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           grams == null
                               ? l10n.archiveFilamentNone
@@ -173,7 +173,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                           style: t.titleSm,
                         ),
                         if (actual != null) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: DashSpace.xs),
                           Text(actual, style: t.micro),
                         ],
                       ],

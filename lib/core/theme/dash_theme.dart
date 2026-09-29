@@ -2,6 +2,7 @@ import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 
 export 'package:dash_kit/dash_kit.dart';
+export 'dash_space.dart';
 
 /// Bambuddy's accent in the shared design system. `brand_contrast_test.dart`
 /// holds it to `dashContrastAudit`.

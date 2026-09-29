@@ -124,7 +124,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
 
   Widget _unavailable(AppLocalizations l10n) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Text(l10n.processSettingsUnavailable, textAlign: TextAlign.center),
     ),
   );
@@ -150,19 +150,24 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.sm,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _modeSelector(),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               DashSearchField(
                 id: 'process_settings.search',
                 hintText: l10n.processSettingsSearchHint,
                 onChanged: (value) => setState(() => _query = value),
               ),
               if (!presetValues.resolved) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 _defaultsNotice(presetValues),
               ],
             ],
@@ -176,7 +181,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
           child: shown.isEmpty
               ? Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(DashSpace.xl),
                     child: Text(
                       l10n.processSettingsNoMatches,
                       textAlign: TextAlign.center,
@@ -186,7 +191,12 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
               : ListView(
                   padding: withSystemNavInset(
                     context,
-                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    const EdgeInsets.fromLTRB(
+                      DashSpace.gutter,
+                      DashSpace.sm,
+                      DashSpace.gutter,
+                      DashSpace.xl,
+                    ),
                   ),
                   children: [
                     for (final page in shown) ...[
@@ -253,9 +263,9 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         itemCount: pages.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: DashSpace.sm),
         itemBuilder: (context, i) {
           final page = pages[i];
           return ChoiceChip(
@@ -272,7 +282,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
   Widget _pageHeading(String page) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
       child: Text(
         page.toUpperCase(),
         style: theme.textTheme.labelSmall?.copyWith(
@@ -285,7 +295,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
   Widget _groupHeading(String group) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 4),
+      padding: const EdgeInsets.only(top: DashSpace.lg, bottom: DashSpace.xs),
       child: Text(group, style: theme.textTheme.titleSmall),
     );
   }
@@ -303,7 +313,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
       _ => l10n.processSettingsDefaultsUnavailable,
     };
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(10),
@@ -316,7 +326,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
             size: 18,
             color: theme.colorScheme.onSecondaryContainer,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               text,
@@ -517,7 +527,7 @@ class _OptionRow extends StatelessWidget {
         ),
         if (modified)
           Padding(
-            padding: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.only(left: DashSpace.sm),
             child: Icon(
               Icons.circle,
               size: 8,
@@ -544,7 +554,7 @@ class _OptionRow extends StatelessWidget {
       message: option.tooltip ?? '',
       triggerMode: TooltipTriggerMode.longPress,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
         child: option.type == OptionType.coBool
             ? Row(
                 children: [
@@ -559,7 +569,7 @@ class _OptionRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   label,
-                  const SizedBox(height: 4),
+                  const SizedBox(height: DashSpace.xs),
                   _control(context, l10n),
                 ],
               ),

@@ -97,7 +97,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
                       icon: Icons.build_circle_outlined,
                     )
                   : ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DashSpace.sm,
+                      ),
                       children: [
                         for (final p in printers)
                           _PrinterSection(
@@ -141,7 +143,10 @@ class _PrinterSectionState extends State<_PrinterSection> {
       ..sort((a, b) => a.hoursUntilDue.compareTo(b.hoursUntilDue));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Container(
         width: double.infinity,
         decoration: t.cardBox,
@@ -159,7 +164,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                 InkWell(
                   onTap: () => setState(() => _expanded = !_expanded),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(DashSpace.lg),
                     child: Row(
                       children: [
                         Expanded(
@@ -173,7 +178,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                                 overflow: TextOverflow.ellipsis,
                                 style: t.titleLg,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: DashSpace.xs),
                               Text(
                                 [
                                   if (printer.printerModel != null)
@@ -188,14 +193,14 @@ class _PrinterSectionState extends State<_PrinterSection> {
                           ),
                         ),
                         if (printer.dueCount > 0) ...[
-                          const SizedBox(width: 12),
+                          const SizedBox(width: DashSpace.md),
                           DashPill(
                             label: l10n.maintenanceDueBadge(printer.dueCount),
                             accent: t.accentOrange,
                             accentInk: t.accentOrangeInk,
                           ),
                         ],
-                        const SizedBox(width: 8),
+                        const SizedBox(width: DashSpace.sm),
                         AnimatedRotation(
                           turns: _expanded ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
@@ -264,7 +269,12 @@ class _MaintenanceRow extends ConsumerWidget {
           child: Padding(
             // Trimmed on the right because the perform button brings its own
             // padding; without that the row would sit visibly off-centre.
-            padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.lg,
+              DashSpace.lg,
+              DashSpace.sm,
+              DashSpace.lg,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -276,20 +286,20 @@ class _MaintenanceRow extends ConsumerWidget {
                   ink: inkAccent,
                   fill: tileAccent.withValues(alpha: 0.14),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(item.maintenanceTypeName, style: t.titleSm),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: DashSpace.sm),
                       DashProgressBar(
                         value: item.progress,
                         height: 5,
                         radius: 3,
                         color: tileAccent,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: DashSpace.sm),
                       Text(
                         dueText,
                         style: t.monoLabel.copyWith(
@@ -299,7 +309,7 @@ class _MaintenanceRow extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: DashSpace.xs),
                 IconButton(
                   icon: const Icon(Icons.check_circle_outline, size: 28),
                   // Matches the row's own urgency accent (orange when overdue)
@@ -397,7 +407,7 @@ class _PerformConfirmDialogState extends State<_PerformConfirmDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(l10n.maintenancePerformConfirm),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           TextField(
             controller: _controller,
             decoration: InputDecoration(
@@ -442,7 +452,12 @@ class _HistorySheet extends ConsumerWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,13 +470,13 @@ class _HistorySheet extends ConsumerWidget {
               '${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
               style: theme.textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             dashAsyncStrip(
               context,
               async,
               data: (entries) => entries.isEmpty
                   ? Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(DashSpace.lg),
                       child: Text(l10n.maintenanceHistoryEmpty),
                     )
                   : Flexible(

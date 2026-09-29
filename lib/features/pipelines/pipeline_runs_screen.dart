@@ -194,7 +194,12 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
                 )
               : ListView.builder(
                   controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    DashSpace.gutter,
+                    DashSpace.sm,
+                    DashSpace.gutter,
+                    DashSpace.xl,
+                  ),
                   // One past the runs for the footer: the spinner while a page
                   // loads, and the count once everything is in.
                   itemCount: view.runs.length + 1,
@@ -210,7 +215,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
   Widget _footer(AppLocalizations l10n, PipelineRunsView view) {
     if (view.loadingMore) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -218,7 +223,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
       // Reachable when the list is shorter than the viewport, so no scroll can
       // fire, and as the affordance for a "load more" that failed.
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Center(
           child: logTag(
             'pipeline_runs.load_more',
@@ -231,7 +236,7 @@ class _PipelineRunsScreenState extends ConsumerState<PipelineRunsScreen> {
       );
     }
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Center(
         child: Text(
           l10n.pipelineRunsShowingAll(view.runs.length),
@@ -275,9 +280,14 @@ class _RunCard extends ConsumerWidget {
     final canRun = ref.watch(canRunPipelinesProvider).orFalse;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -306,7 +316,7 @@ class _RunCard extends ConsumerWidget {
                 l10n.pipelineRunRetryOf(run.parentRunId!),
                 style: theme.textTheme.bodySmall,
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             // Excluded from semantics: with a value and no `semanticsLabel`
             // Flutter synthesises a bare percentage ("50"), which a reader
             // would announce right before the line below says the same thing
@@ -316,14 +326,14 @@ class _RunCard extends ConsumerWidget {
                 value: run.copies == 0 ? null : run.copiesFinished / run.copies,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(
               l10n.pipelineRunCopiesProgress(run.copiesFinished, run.copies),
               style: theme.textTheme.bodySmall,
             ),
             if (run.eligibilityOverridden)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: Text(
                   l10n.pipelineRunOverridden,
                   style: theme.textTheme.labelSmall?.copyWith(
@@ -333,7 +343,7 @@ class _RunCard extends ConsumerWidget {
               ),
             if ((run.errorMessage ?? '').isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: Text(
                   run.errorMessage!,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -342,7 +352,7 @@ class _RunCard extends ConsumerWidget {
                 ),
               ),
             if (run.jobs.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               for (final job in run.jobs) _jobLine(theme, l10n, job),
             ],
             if (canRun)
@@ -376,7 +386,10 @@ class _RunCard extends ConsumerWidget {
   Widget _statusChip(ThemeData theme, AppLocalizations l10n) {
     final colour = runStatusColour(theme.colorScheme, run.status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: colour.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
@@ -413,11 +426,11 @@ class _RunCard extends ConsumerWidget {
     };
     final printer = job.assignedPrinterName;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: DashSpace.xs),
       child: Row(
         children: [
           Icon(icon, size: 16, color: colour),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               [

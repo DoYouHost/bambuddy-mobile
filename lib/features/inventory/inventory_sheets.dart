@@ -73,12 +73,17 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       minSize: 0.3,
       builder: (context, controller) => ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           Text(l10n.inventoryAssignTitle, style: t.display),
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           Text(widget.spool.displayName, style: t.bodyPlain),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
 
           if (roster.isEmpty)
             Text(l10n.inventoryAssignNoPrinters)
@@ -87,7 +92,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               l10n.inventoryAssignPrinter,
               style: theme.textTheme.labelLarge,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             // The label stays above the field rather than moving inside it:
             // the segmented buttons below cannot carry one, and a single field
             // labelled differently from its neighbours reads as a mistake.
@@ -110,7 +115,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             SegmentedButton<bool>(
               segments: [
@@ -120,7 +125,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               selected: {_external},
               onSelectionChanged: (s) => setState(() => _external = s.first),
             ).tagged('spool_assign.slot_kind'),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             if (_external) ...[
               if (dual) ...[
@@ -128,7 +133,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   l10n.inventoryAssignExtruder,
                   style: theme.textTheme.labelLarge,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: DashSpace.sm),
                 SegmentedButton<int>(
                   segments: [
                     ButtonSegment(value: 0, label: Text(l10n.extruderLeft)),
@@ -163,7 +168,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       onChanged: (v) => setState(() => _amsUnit = v),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: _NumberDropdown(
                       id: 'spool_assign.slot',
@@ -175,7 +180,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   ),
                 ],
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: DashSpace.xl),
 
             FilledButton.icon(
               style: FilledButton.styleFrom(
@@ -264,7 +269,7 @@ class _NumberDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: theme.textTheme.labelLarge),
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         dashCombo<int>(
           context,
           id: id,
@@ -302,8 +307,8 @@ class _SpoolActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: DashSpace.sm,
+      runSpacing: DashSpace.sm,
       children: [
         _ActionPill(
           tokens: t,
@@ -507,7 +512,10 @@ class _ActionPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.lg,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: border,
@@ -516,7 +524,7 @@ class _ActionPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               Text(
                 label,
                 style: DashTokens.of(context).label.copyWith(color: color),

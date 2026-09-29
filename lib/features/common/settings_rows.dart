@@ -21,7 +21,12 @@ class SettingsSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.xs,
+        0,
+        DashSpace.xs,
+        DashSpace.sm,
+      ),
       child: Semantics(
         header: true,
         child: Text(
@@ -45,13 +50,18 @@ class SettingsCard extends StatelessWidget {
     final t = DashTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(DashSpace.sm),
       decoration: t.cardBox,
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, indent: 12, endIndent: 12, color: t.hairline),
+              Divider(
+                height: 1,
+                indent: DashSpace.md,
+                endIndent: DashSpace.md,
+                color: t.hairline,
+              ),
             rows[i],
           ],
         ],
@@ -105,7 +115,10 @@ class SettingsSwitchRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: enabled ? () => onChanged!(!value) : null,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashSpace.md,
+              vertical: DashSpace.md,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -114,12 +127,12 @@ class SettingsSwitchRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(title, style: t.titleSm),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: DashSpace.xs),
                       Text(subtitle, style: t.label),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Switch(
                   value: value,
                   onChanged: onChanged,
@@ -197,16 +210,21 @@ class SettingsSlider extends StatelessWidget {
       child: Padding(
         // The same horizontal inset as a switch row, so a label and a title in
         // one card start on the same line.
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.md,
+          DashSpace.md,
+          DashSpace.md,
+          DashSpace.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: t.titleSm),
             if (subtitle case final text?) ...[
-              const SizedBox(height: 3),
+              const SizedBox(height: DashSpace.xs),
               Text(text, style: t.label),
             ],
-            const SizedBox(height: 2),
+            const SizedBox(height: DashSpace.xs),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 // Zero, so the track spans the row rather than being inset by

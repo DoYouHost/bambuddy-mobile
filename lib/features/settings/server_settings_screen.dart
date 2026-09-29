@@ -33,7 +33,12 @@ class ServerSettingsScreen extends ConsumerWidget {
         body: ListView(
           padding: withSystemNavInset(
             context,
-            const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.xl,
+            ),
           ),
           children: [
             SettingsEntryTile(

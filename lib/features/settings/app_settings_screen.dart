@@ -28,7 +28,12 @@ class AppSettingsScreen extends ConsumerWidget {
         body: ListView(
           padding: withSystemNavInset(
             context,
-            const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.xl,
+            ),
           ),
           children: [
             SettingsSectionHeader(l10n.navDashboard),
@@ -45,7 +50,7 @@ class AppSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.wallModeTitle),
             SettingsCard(
               rows: [
@@ -61,7 +66,7 @@ class AppSettingsScreen extends ConsumerWidget {
             // Demo only: on a real server the number of printing machines is
             // the server's business, and this row would be a lie.
             if (ref.watch(serverProfileProvider)?.isDemo ?? false) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               SettingsSectionHeader(l10n.demoSettingsSection),
               SettingsCard(
                 rows: [
@@ -81,7 +86,7 @@ class AppSettingsScreen extends ConsumerWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SettingsSectionHeader(l10n.notifSettingsTitle),
             SettingsEntryTile(
               icon: Icons.tune_rounded,

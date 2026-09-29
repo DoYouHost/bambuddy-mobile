@@ -48,13 +48,13 @@ class _ScheduledDryingBannerState
     );
     if (rows.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (final row in rows)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
               child: _ScheduledDryingRow(row: row),
             ),
         ],
@@ -122,7 +122,12 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
     final waiting = failed ? null : _waitingText(l10n, row.waitingReason);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.md,
+        DashSpace.sm,
+        DashSpace.sm,
+        DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
@@ -135,7 +140,7 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
             size: 16,
             color: accent,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,11 +228,11 @@ class _DryStartPicker extends StatelessWidget {
           l10n.ctrlDryStartWhen,
           style: t.body.copyWith(color: t.textSecondary),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final m in DryStartMode.values)
               _PresetChip(
@@ -250,11 +255,11 @@ class _DryStartPicker extends StatelessWidget {
           ],
         ),
         if (mode == DryStartMode.delay) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
             children: [
               for (final minutes in dryingDelayPresets)
                 _PresetChip(
@@ -267,11 +272,11 @@ class _DryStartPicker extends StatelessWidget {
           ),
         ],
         if (mode == DryStartMode.atTime) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Row(
             children: [
               Icon(Icons.event_outlined, size: 18, color: t.textSecondary),
-              const SizedBox(width: 10),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Text(
                   at == null
@@ -324,12 +329,12 @@ class _AutoDryingNote extends ConsumerWidget {
         : what;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: DashSpace.lg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.autorenew, size: 15, color: t.textTertiary),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(text, style: t.body.copyWith(color: t.textSecondary)),
           ),

@@ -20,6 +20,7 @@ import '../../l10n/error_messages.dart';
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../common/dash_async.dart';
 import '../common/filter_controls.dart';
+import '../common/sliver_search_bar.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../core/api/server_reachability.dart';
 import '../../providers.dart';
@@ -501,7 +502,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
               const Center(child: ConnectionModeChip()),
-              const SizedBox(width: 4),
+              const SizedBox(width: DashSpace.xs),
               // One menu for the three actions: as separate icons they left
               // the title two letters wide next to the connection chip.
               PopupMenuButton<VoidCallback>(
@@ -536,7 +537,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 : PreferredSize(
                     preferredSize: const Size.fromHeight(18),
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.only(bottom: DashSpace.xs),
                       child: Text(profile!.label!, style: t.monoMicro),
                     ),
                   ),
@@ -655,7 +656,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(DashSpace.xxl),
                 child: Center(
                   child: Text(
                     printers.isEmpty
@@ -669,7 +670,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: DashSpace.sm),
               sliver: SliverList.builder(
                 itemCount: filtered.length,
                 itemBuilder: (_, i) {
@@ -750,7 +751,12 @@ class _AppDrawer extends ConsumerWidget {
                   SafeArea(
                     bottom: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+                      padding: const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -776,7 +782,7 @@ class _AppDrawer extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: DashSpace.lg),
                           Expanded(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -786,7 +792,7 @@ class _AppDrawer extends ConsumerWidget {
                                   'Bambuddy',
                                   style: t.display.copyWith(letterSpacing: 0.2),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: DashSpace.xs),
                                 _ProfileChip(label: profileLabel),
                               ],
                             ),
@@ -808,7 +814,7 @@ class _AppDrawer extends ConsumerWidget {
                 context,
               ).copyWith(overscroll: false),
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
                 children: [
                   _DrawerTile(
                     icon: Icons.folder_outlined,
@@ -894,7 +900,11 @@ class _AppDrawer extends ConsumerWidget {
                     },
                     id: 'drawer.server_settings',
                   ),
-                  const Divider(indent: 16, endIndent: 16, height: 16),
+                  const Divider(
+                    indent: DashSpace.gutter,
+                    endIndent: DashSpace.gutter,
+                    height: DashSpace.lg,
+                  ),
                   _DrawerTile(
                     icon: Icons.swap_horiz_rounded,
                     label: l10n.changeServer,
@@ -932,7 +942,12 @@ class _AppDrawer extends ConsumerWidget {
           const SafeArea(
             top: false,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 12),
+              padding: EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.md,
+                DashSpace.gutter,
+                DashSpace.md,
+              ),
               child: _DrawerVersions(),
             ),
           ),
@@ -986,10 +1001,10 @@ class _DrawerVersions extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.only(top: DashSpace.xs),
           child: Icon(Icons.print_outlined, size: 14, color: t.textTertiary),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1019,7 +1034,10 @@ class _ProfileChip extends StatelessWidget {
     if (label == null) return const SizedBox.shrink();
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -1029,7 +1047,7 @@ class _ProfileChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.dns_rounded, size: 13, color: t.textSecondary),
-          const SizedBox(width: 5),
+          const SizedBox(width: DashSpace.xs),
           Flexible(
             child: Text(
               label!,
@@ -1067,7 +1085,10 @@ class _DrawerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
@@ -1077,11 +1098,14 @@ class _DrawerTile extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               child: Row(
                 children: [
                   DashIconTile(icon: icon, size: 40, radius: 12, iconSize: 21),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: DashSpace.lg),
                   Expanded(child: Text(label, style: t.bodyStrong)),
                   Icon(
                     Icons.chevron_right_rounded,
@@ -1121,7 +1145,7 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
   static const double _statusCompact = 44;
-  static const double _searchH = 66;
+  static const double _searchH = DashSearchBarBody.height;
 
   @override
   double get maxExtent => _statusFull + (hasSearch ? _searchH : 0);
@@ -1159,30 +1183,21 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                 alignment: Alignment.topCenter,
                 child: Opacity(
                   opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DashSearchField(
-                              id: 'dashboard.search',
-                              hintText: hint,
-                              onChanged: onQuery,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterButton(
-                            count: filterCount,
-                            tooltip: AppLocalizations.of(
-                              context,
-                            ).dashboardFilters,
-                            id: 'dashboard.filters',
-                            onTap: onOpenFilters,
-                          ),
-                        ],
-                      ),
+                  child: DashSearchBarBody(
+                    child: DashSearchField(
+                      id: 'dashboard.search',
+                      hintText: hint,
+                      onChanged: onQuery,
+                      trailing: [
+                        FilterButton(
+                          count: filterCount,
+                          tooltip: AppLocalizations.of(
+                            context,
+                          ).dashboardFilters,
+                          id: 'dashboard.filters',
+                          onTap: onOpenFilters,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1345,8 +1360,13 @@ class _SummaryHeader extends ConsumerWidget {
       // padding to animate and never any overflow. The bottom margin grows as
       // it collapses, adding a gap between the pinned bar and the list (when
       // expanded the search field below provides that spacing instead).
-      margin: EdgeInsets.fromLTRB(16, 10 - 4 * shrink, 16, 8 * shrink),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.md - DashSpace.xs * shrink,
+        DashSpace.gutter,
+        DashSpace.sm * shrink,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
@@ -1360,7 +1380,7 @@ class _SummaryHeader extends ConsumerWidget {
             height: 8,
             decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(
             active.isEmpty
                 ? l10n.noActivePrints
@@ -1370,7 +1390,7 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ),
           if (next != null) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             // Fades out as the card collapses (kept in the tree so its space
             // stays reserved and the power chip doesn't jump).
             Flexible(
@@ -1395,14 +1415,17 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null) const Spacer() else const SizedBox(width: 12),
+            if (next == null)
+              const Spacer()
+            else
+              const SizedBox(width: DashSpace.md),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: DashSpace.xs),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
                     style: t.monoValue.copyWith(
@@ -1441,7 +1464,7 @@ PopupMenuItem<VoidCallback> _menuItem(
     Row(
       children: [
         Icon(icon, size: 20),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         // A popup menu is capped at 256 px, which a long label at a large
         // system text size runs past.
         Flexible(child: Text(label)),

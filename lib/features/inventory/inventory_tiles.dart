@@ -18,7 +18,12 @@ class _ListHeader extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.xs,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -29,9 +34,9 @@ class _ListHeader extends StatelessWidget {
             ),
           ),
           if (consumed > 0) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Icon(Icons.trending_down, size: 13, color: t.textTertiary),
-            const SizedBox(width: 4),
+            const SizedBox(width: DashSpace.xs),
             Text(
               l10n.inventoryTotalConsumed(fmtGrams(consumed)),
               style: t.monoLabel,
@@ -98,9 +103,9 @@ class _SpoolTile extends StatelessWidget {
           ),
         ),
         if (assignment != null) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
-          const SizedBox(width: 3),
+          const SizedBox(width: DashSpace.xs),
           Text(
             assignmentSlotLabel(l10n, assignment!),
             maxLines: 1,
@@ -112,7 +117,12 @@ class _SpoolTile extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.md,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTagMaterial(
@@ -129,7 +139,7 @@ class _SpoolTile extends StatelessWidget {
                       _SpoolDetailSheet(spool: spool, assignment: assignment),
                 ),
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: selected
                     ? t.accentGreen.withValues(alpha: 0.12)
@@ -158,7 +168,7 @@ class _SpoolTile extends StatelessWidget {
                       size: 22,
                       color: selected ? t.accentGreenInk : t.textTertiary,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: DashSpace.md),
                   ],
                   Expanded(
                     child: Row(
@@ -172,7 +182,7 @@ class _SpoolTile extends StatelessWidget {
                             radius: 13,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: DashSpace.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +193,7 @@ class _SpoolTile extends StatelessWidget {
                                     label: spool.material,
                                     tokens: t,
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: DashSpace.sm),
                                   Expanded(
                                     child: Text(
                                       spool.displayName,
@@ -197,11 +207,11 @@ class _SpoolTile extends StatelessWidget {
                                     ),
                                   ),
                                   if (low) ...[
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: DashSpace.sm),
                                     _LowBadge(tokens: t),
                                   ],
                                   if (spool.isArchived) ...[
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: DashSpace.sm),
                                     Icon(
                                       Icons.archive_outlined,
                                       size: 14,
@@ -210,14 +220,14 @@ class _SpoolTile extends StatelessWidget {
                                   ],
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: DashSpace.sm),
                               DashProgressBar(
                                 value: frac,
                                 height: 4,
                                 radius: 2,
                                 color: fillColor,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: DashSpace.sm),
                               metaLine,
                             ],
                           ),
@@ -245,7 +255,10 @@ class _MaterialTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: tokens.textSecondary.withValues(alpha: 0.25)),
@@ -268,7 +281,7 @@ class _LowBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: tokens.danger.withValues(alpha: 0.5)),
@@ -375,12 +388,17 @@ class _SpoolDetailSheet extends ConsumerWidget {
       DraggableSheetSurface(
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Row(
               children: [
                 SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +415,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
                               style: t.display,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: DashSpace.sm),
                           Text(
                             '#${spool.id}',
                             style: t.monoHeadline.copyWith(
@@ -413,10 +431,10 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: DashSpace.lg),
 
             _SpoolActions(spool: spool, assignment: assignment),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             if (spool.remainingFraction != null) ...[
               DashProgressBar(
@@ -424,17 +442,20 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 height: 8,
                 color: spool.isLowStock ? t.danger : null,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
                 ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
                 style: t.label.copyWith(color: t.textSecondary),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
             ],
 
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.lg,
+                vertical: DashSpace.sm,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(16),
@@ -515,13 +536,13 @@ class _SpoolDetailSheet extends ConsumerWidget {
             ),
 
             if (spool.kProfiles.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _SheetSectionTitle(label: l10n.inventoryKProfiles),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
+                  horizontal: DashSpace.lg,
+                  vertical: DashSpace.sm,
                 ),
                 decoration: BoxDecoration(
                   color: t.subCard,
@@ -547,21 +568,23 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
             ],
 
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _SheetSectionTitle(label: l10n.inventoryUsageHistory),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             usage.when(
               loading: () => const Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(DashSpace.lg),
                 child: DashLoading(),
               ),
               error: (_, _) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
                 child: Text(l10n.inventoryUsageEmpty, style: t.labelSoft),
               ),
               data: (entries) => entries.isEmpty
                   ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DashSpace.sm,
+                      ),
                       child: Text(l10n.inventoryUsageEmpty, style: t.labelSoft),
                     )
                   : Column(
@@ -609,14 +632,14 @@ class _UsageRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.history, size: 16, color: t.textTertiary),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,7 +665,7 @@ class _UsageRow extends StatelessWidget {
             ],
           ),
           if (!last) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             DashedLine(color: t.dottedRule),
           ],
         ],
@@ -666,18 +689,21 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: t.textSecondary),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: t.label.copyWith(color: t.textSecondary)),
-                if (trailing != null) ...[const SizedBox(height: 8), trailing!],
+                if (trailing != null) ...[
+                  const SizedBox(height: DashSpace.sm),
+                  trailing!,
+                ],
               ],
             ),
           ),

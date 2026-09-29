@@ -56,9 +56,14 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.md,
+          DashSpace.md,
+        ),
         decoration: BoxDecoration(
           color: t.accentBlue.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -67,7 +72,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
         child: Row(
           children: [
             Icon(Icons.layers_clear_outlined, size: 20, color: t.accentBlue),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(
                 l10n.plateClearBadge,
@@ -142,7 +147,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .contains(ControlAction.hms);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
@@ -160,7 +165,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                   size: 18,
                   color: scheme.error,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: DashSpace.sm),
                 Expanded(
                   child: Text(
                     l10n.hmsErrorsCount(widget.errors.length),
@@ -191,7 +196,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                 error: e,
                 busy: busy,
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Align(
               alignment: Alignment.centerRight,
               child: logTag(
@@ -301,8 +306,13 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
         ? const <String>[]
         : hmsRenderableActions(error.actions);
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      margin: const EdgeInsets.only(top: DashSpace.sm),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.md,
+        DashSpace.sm,
+        DashSpace.md,
+        DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         // Its own tile inside the red panel: with several faults reported at
         // once, one unbroken column of text and buttons reads as a single long
@@ -324,7 +334,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
               ),
             ).tagged('printer.hms_description'),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
           ],
           Row(
             children: [
@@ -339,7 +349,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                         l10n.hmsViewInWiki,
                         style: t.microSoft.copyWith(color: scheme.primary),
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: DashSpace.xs),
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                     ],
                   ),
@@ -347,14 +357,14 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
             ],
           ),
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             // A row per fault, not a button per line: the labels are short
             // enough that three fit across a phone, and Wrap still breaks
             // rather than overflowing when a translation or a font scale makes
             // them wider.
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 for (final action in actions)
                   // One id per action, not one for the whole row: the log has
@@ -368,7 +378,9 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DashSpace.lg,
+                        ),
                         minimumSize: const Size(0, 34),
                         textStyle: const TextStyle(
                           fontFamily: DashTokens.fontUi,
@@ -416,7 +428,7 @@ class _DetailsToggle extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Material(
         color: t.subCard,
         borderRadius: BorderRadius.circular(14),
@@ -426,7 +438,7 @@ class _DetailsToggle extends StatelessWidget {
           InkWell(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: t.subCardBorder),
@@ -438,7 +450,7 @@ class _DetailsToggle extends StatelessWidget {
                     expanded ? l10n.detailsHide : l10n.detailsShow,
                     style: t.label.copyWith(color: t.textSecondary),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: DashSpace.sm),
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
@@ -528,14 +540,14 @@ class _DetailsPanel extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: DashSpace.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (blocks.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(top: 10),
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+              margin: const EdgeInsets.only(top: DashSpace.md),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.groupCard,
                 borderRadius: BorderRadius.circular(20),
@@ -545,7 +557,7 @@ class _DetailsPanel extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < blocks.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 16),
+                    if (i > 0) const SizedBox(height: DashSpace.lg),
                     blocks[i],
                   ],
                 ],
@@ -664,7 +676,7 @@ class _AmsSection extends ConsumerWidget {
               ),
             ),
             if (extruder != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               _ExtruderBadge(
                 extruder: extruder!,
                 active: extruder == activeExtruder,
@@ -672,13 +684,13 @@ class _AmsSection extends ConsumerWidget {
             ],
             const Spacer(),
             for (var i = 0; i < metaParts.length; i++) ...[
-              if (i > 0) const SizedBox(width: 12),
+              if (i > 0) const SizedBox(width: DashSpace.md),
               metaParts[i],
             ],
             // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
             // regular AMS even when the printer supports drying.
             if (supportsDrying && unit.canDry) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               _AmsDryControl(
                 printerId: printerId,
                 amsId: unit.id ?? unitIndex,
@@ -697,7 +709,7 @@ class _AmsSection extends ConsumerWidget {
             amsId: unit.id ?? unitIndex,
             drying: unit.isDrying,
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         if (trays.isEmpty)
           Text(
             '—',
@@ -785,7 +797,7 @@ class _SpoolSection extends StatelessWidget {
           l10n.externalSpool.toUpperCase(),
           style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         for (var i = 0; i < trays.length; i++)
           _FilamentRow(
             tray: trays[i],
@@ -871,11 +883,11 @@ class _FilamentRow extends StatelessWidget {
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
     final row = Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Row(
         children: [
           _ColorDot(color: dotColor, size: 9),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(
               label,
@@ -915,7 +927,7 @@ class _FilamentRow extends StatelessWidget {
               : DashedLine(color: t.dottedRule)
         else if (active)
           Container(height: 1, color: t.accentGreen),
-        if (!last) const SizedBox(height: 7),
+        if (!last) const SizedBox(height: DashSpace.sm),
       ],
     );
 
@@ -958,12 +970,15 @@ class _AmsMeta extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.xs,
+          vertical: DashSpace.xs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 13, color: t.textTertiary),
-            const SizedBox(width: 4),
+            const SizedBox(width: DashSpace.xs),
             Text(text, style: t.monoLabel),
           ],
         ),
@@ -1023,7 +1038,10 @@ class _AmsDryControl extends ConsumerWidget {
       },
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.xs,
+          vertical: DashSpace.xs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1032,7 +1050,7 @@ class _AmsDryControl extends ConsumerWidget {
               size: 13,
               color: color,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: DashSpace.xs),
             Text(label, style: t.monoLabel.copyWith(color: color)),
           ],
         ),
@@ -1207,7 +1225,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             // own Start button.
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                padding: const EdgeInsets.fromLTRB(
+                  DashSpace.gutter,
+                  DashSpace.lg,
+                  DashSpace.gutter,
+                  DashSpace.xl,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
@@ -1222,7 +1245,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: DashSpace.lg),
                     // Above both bodies: it explains a running cycle nobody
                     // started just as much as it explains one about to be.
                     const _AutoDryingNote(),
@@ -1249,7 +1272,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
               size: 32,
               color: t.accentOrangeInk,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Text(
               remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
               style: TextStyle(
@@ -1262,7 +1285,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           ],
         ),
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: DashSpace.xl),
       _SheetButton(
         label: l10n.ctrlStop,
         id: 'drying.stop',
@@ -1292,8 +1315,8 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         filled: true,
         fillColor: t.subCard,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+          horizontal: DashSpace.lg,
+          vertical: DashSpace.md,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1326,7 +1349,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           ),
       ],
     ),
-    const SizedBox(height: 16),
+    const SizedBox(height: DashSpace.lg),
     _DrySlider(
       id: 'drying.temp',
       label: l10n.ctrlDryTemp,
@@ -1341,7 +1364,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         _temp = v;
       }),
     ),
-    const SizedBox(height: 16),
+    const SizedBox(height: DashSpace.lg),
     _DrySlider(
       id: 'drying.hours',
       label: l10n.ctrlDryDuration,
@@ -1357,7 +1380,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       }),
     ),
     ..._startWhen(l10n),
-    const SizedBox(height: 20),
+    const SizedBox(height: DashSpace.xl),
     // Two buttons rather than one with a chosen id: an identifier picked by
     // an expression is invisible to the scan that keeps the log's action
     // tags pointing at real controls (`action_tag_vocabulary_test`).
@@ -1394,7 +1417,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final offered = ref.watch(scheduledDryingSupportedProvider).orFalse;
     if (!offered) return const [];
     return [
-      const SizedBox(height: 16),
+      const SizedBox(height: DashSpace.lg),
       _DryStartPicker(
         mode: _startMode,
         delayMinutes: _delayMinutes,
@@ -1514,11 +1537,11 @@ class _DrySlider extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             for (final p in presets)
               _PresetChip(
@@ -1752,23 +1775,23 @@ class _SlotActions extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         if (canLoad)
           Row(
             children: [
               Expanded(child: load),
-              const SizedBox(width: 8),
+              const SizedBox(width: DashSpace.sm),
               Expanded(child: unload),
             ],
           ),
-        if (canLoad && canReread) const SizedBox(height: 8),
+        if (canLoad && canReread) const SizedBox(height: DashSpace.sm),
         if (canReread) reread,
         if (canDrive) ...[
-          if (canLoad || canReread) const SizedBox(height: 8),
+          if (canLoad || canReread) const SizedBox(height: DashSpace.sm),
           configure,
         ],
         if (slot.printing) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           Text(
             l10n.amsActionsWhilePrinting,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -1776,7 +1799,7 @@ class _SlotActions extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
       ],
     );
   }
@@ -1902,9 +1925,9 @@ class _SlotActions extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.amsFeedPrompt),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             option(ctx, 1, l10n.extruderLeft, 'feed_direction.left'),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             option(ctx, 0, l10n.extruderRight, 'feed_direction.right'),
           ],
         ),
@@ -1983,17 +2006,22 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         minChildSize: 0.4,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(
               [?slot.printerName, slot.label].join(' · '),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _SlotActions(slot: slot),
             if (_offersRegister(inv, current)) ...[
               FilledButton.tonalIcon(
@@ -2001,7 +2029,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                 icon: const Icon(Icons.add_circle_outline, size: 18),
                 label: Text(l10n.inventoryFromSlot),
               ).tagged('assign_spool.add_to_inventory'),
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.inventoryFromSlotHint,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -2015,7 +2043,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                 l10n.inventoryAssignCurrent,
                 style: theme.textTheme.labelLarge,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: SpoolSwatch(rgba: current.rgba),
@@ -2037,12 +2065,12 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _spoolSearchRow(l10n),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             if (options.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
                 child: Text(
                   // Told apart on purpose: an empty inventory and a search that
                   // matched nothing look identical otherwise, and only one of
@@ -2182,42 +2210,34 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
   /// scrolling a hundred rows at the printer is the case both exist to avoid.
   Widget _spoolSearchRow(AppLocalizations l10n) {
     final t = DashTokens.of(context);
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              id: 'assign_spool.search',
-              hintText: l10n.inventorySearchHint,
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Tooltip(
-            message: l10n.inventoryScanSpool,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Material(
-                color: t.subCard,
+    return DashSearchField(
+      id: 'assign_spool.search',
+      hintText: l10n.inventorySearchHint,
+      onChanged: (v) => setState(() => _query = v),
+      trailing: [
+        Tooltip(
+          message: l10n.inventoryScanSpool,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Material(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _scanAndAssign(l10n),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: t.subCardBorder),
-                    ),
-                    child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                onTap: () => _scanAndAssign(l10n),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: t.subCardBorder),
                   ),
+                  child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
                 ),
               ),
             ),
-          ).tagged('assign_spool.scan'),
-        ],
-      ),
+          ),
+        ).tagged('assign_spool.scan'),
+      ],
     );
   }
 
@@ -2361,7 +2381,7 @@ class _ExtruderBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.print_outlined, size: 13, color: color),
-          const SizedBox(width: 2),
+          const SizedBox(width: DashSpace.xs),
           Text(short, style: t.monoLabel.copyWith(color: color)),
         ],
       ),

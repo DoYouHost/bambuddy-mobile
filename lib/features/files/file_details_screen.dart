@@ -61,7 +61,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
         detail,
         onRetry: () => ref.invalidate(libraryFileDetailProvider(widget.fileId)),
         data: (d) => ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
           children: [
             _photos(l10n, d),
             const Divider(),
@@ -83,7 +83,12 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
   Widget _photos(AppLocalizations l10n, LibraryFileDetail d) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.sm,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -101,7 +106,7 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
             ],
           ),
           if (_uploading) const LinearProgressIndicator(),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           if (d.photos.isEmpty)
             Text(
               l10n.fmPhotosEmpty,
@@ -109,8 +114,8 @@ class _FileDetailsScreenState extends ConsumerState<FileDetailsScreen> {
             )
           else
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 for (final (i, name) in d.photos.indexed)
                   logTag(

@@ -184,7 +184,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       );
     } else {
       content = SliverPadding(
-        padding: const EdgeInsets.only(top: 8, bottom: 88),
+        padding: const EdgeInsets.only(
+          top: DashSpace.sm,
+          bottom: DashSpace.fabClearance,
+        ),
         sliver: SliverList.list(
           children: [
             for (final f in folders)
@@ -223,7 +226,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           DashSliverSearchBar(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
             child: _FilterRow(
               state: s,
               controller: _searchController,
@@ -386,7 +388,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.md,
+              ),
               child: Row(
                 children: [
                   LibraryThumbnail(
@@ -394,7 +401,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                     hasThumbnail: file.thumbnailPath != null,
                     size: 56,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Text(
                       file.displayName,
@@ -954,7 +961,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DashSpace.gutter),
               child: Text(
                 l10n.fmMoveTo,
                 style: Theme.of(ctx).textTheme.titleMedium,
@@ -1008,7 +1015,10 @@ class _StatsBar extends ConsumerWidget {
     return Container(
       width: double.infinity,
       color: t.subCard,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
       child: Text(
         parts.join('  ·  '),
         textAlign: TextAlign.center,
@@ -1035,7 +1045,7 @@ class _Breadcrumb extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         children: [
           TextButton.icon(
             icon: Icon(
@@ -1085,18 +1095,13 @@ class _FilterRow extends ConsumerWidget {
     final t = DashTokens.of(context);
     final types = state.availableTypes;
     // Outer padding is supplied by the enclosing [DashSliverSearchBar].
-    return Row(
-      children: [
-        Expanded(
-          child: DashSearchField(
-            id: 'files.search',
-            controller: controller,
-            hintText: l10n.fmSearchHint,
-            onChanged: onSearch,
-          ),
-        ),
-        if (ref.watch(libraryTagsSupportedProvider).orFalse) ...[
-          const SizedBox(width: 4),
+    return DashSearchField(
+      id: 'files.search',
+      controller: controller,
+      hintText: l10n.fmSearchHint,
+      onChanged: onSearch,
+      trailing: [
+        if (ref.watch(libraryTagsSupportedProvider).orFalse)
           logTag(
             'files.tag_filter',
             IconButton(
@@ -1112,9 +1117,7 @@ class _FilterRow extends ConsumerWidget {
               onPressed: () => showTagFilterSheet(context),
             ),
           ),
-        ],
-        if (types.isNotEmpty) ...[
-          const SizedBox(width: 4),
+        if (types.isNotEmpty)
           PopupMenuButton<String>(
             tooltip: l10n.fmFilterType,
             icon: Icon(
@@ -1144,7 +1147,6 @@ class _FilterRow extends ConsumerWidget {
                 ),
             ],
           ).tagged('files.filter_type'),
-        ],
       ],
     );
   }
@@ -1168,7 +1170,12 @@ class _FolderTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -1177,7 +1184,10 @@ class _FolderTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: onOpen,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.lg,
+                vertical: DashSpace.md,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(18),
@@ -1192,7 +1202,7 @@ class _FolderTile extends StatelessWidget {
                     size: 40,
                     radius: 12,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1204,7 +1214,7 @@ class _FolderTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           l10n.fmFolderItems(folder.fileCount),
                           style: t.label,
@@ -1277,7 +1287,12 @@ class _FileTile extends StatelessWidget {
       if (file.createdByUsername != null) file.createdByUsername!,
     ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -1287,7 +1302,10 @@ class _FileTile extends StatelessWidget {
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               decoration: BoxDecoration(
                 color: selected
                     ? t.accentGreen.withValues(alpha: 0.10)
@@ -1320,7 +1338,7 @@ class _FileTile extends StatelessWidget {
                             size: 52,
                           ),
                         ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1332,7 +1350,7 @@ class _FileTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           meta.join(' · '),
                           maxLines: 1,
@@ -1342,7 +1360,7 @@ class _FileTile extends StatelessWidget {
                         // Marks a file that is one of several alternatives, so
                         // the grouping is visible without opening the sheet.
                         if (file.hasVariants) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1351,7 +1369,7 @@ class _FileTile extends StatelessWidget {
                                 size: 12,
                                 color: t.textTertiary,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: DashSpace.xs),
                               Text(
                                 AppLocalizations.of(
                                   context,
@@ -1364,18 +1382,18 @@ class _FileTile extends StatelessWidget {
                         if (file.photoCount > 0 ||
                             file.externalUrl != null ||
                             file.hasNotes) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           _ExtrasBadges(file: file),
                         ],
                         if (file.tags.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: DashSpace.xs),
                           // Capped so a file tagged a dozen times keeps the
                           // tile's height; the full set is in its action sheet.
                           Row(
                             children: [
                               for (final tag in file.tags.take(3)) ...[
                                 Flexible(child: TagChip(tag.name)),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: DashSpace.xs),
                               ],
                               if (file.tags.length > 3)
                                 TagChip('+${file.tags.length - 3}'),
@@ -1424,13 +1442,13 @@ class _ExtrasBadges extends StatelessWidget {
       children: [
         if (file.photoCount > 0) ...[
           icon(Icons.photo_camera_outlined, l10n.archivePhotosTitle),
-          const SizedBox(width: 3),
+          const SizedBox(width: DashSpace.xs),
           Text('${file.photoCount}', style: t.micro),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
         ],
         if (file.externalUrl != null) ...[
           icon(Icons.link, l10n.fmLink),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
         ],
         if (file.hasNotes) icon(Icons.notes, l10n.fmNotes),
       ],

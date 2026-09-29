@@ -68,7 +68,12 @@ class _PipelinePickerSheet extends StatelessWidget {
           // A sheet that opens straight into a list gives a screen reader
           // nothing to say about what the list is for.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Semantics(

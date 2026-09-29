@@ -1,10 +1,10 @@
-import 'package:dash_kit/dash_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 
 import '../../core/models/pipeline_run.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_input.dart';
 import 'pipeline_run_status_labels.dart';
@@ -43,13 +43,18 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
     // the sheet — and "Clear filters" beside "Done" is 282 px wider than a
     // 360 dp screen at double scale.
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.pipelineRunsFilter, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
 
           dashAnyOrOne<int>(
             context,
@@ -64,7 +69,7 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
             onPick: (v) =>
                 notifier.replace(filter.copyWith(pipelineId: (value: v))),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
 
           dashAnyOrOne<String>(
             context,
@@ -82,7 +87,7 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
             onPick: (v) =>
                 notifier.replace(filter.copyWith(status: (value: v))),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
 
           dashAnyOrOne<_Target>(
             context,
@@ -116,12 +121,12 @@ class _PipelineRunFilterSheet extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: DashSpace.xl),
 
           Wrap(
             alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
             children: [
               logTag(
                 'pipeline_runs.filter_clear',

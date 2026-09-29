@@ -31,7 +31,12 @@ class _DashboardFilterSheet extends ConsumerWidget {
       'sheet.dashboard_filters',
       FittedSheetSurface(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            DashSpace.md,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -62,11 +67,11 @@ class _DashboardFilterSheet extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               _GroupLabel(label: l10n.filterStatus),
               Wrap(
-                spacing: 8,
-                runSpacing: 4,
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.xs,
                 children: [
                   for (final bucket in PrinterStatusBucket.values)
                     ChoiceChip(
@@ -77,7 +82,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: filters.hideOffline,
@@ -114,7 +119,7 @@ class _GroupLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Text(label, style: t.bodyBold),
     );
   }

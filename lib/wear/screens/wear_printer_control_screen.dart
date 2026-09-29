@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
@@ -125,27 +126,27 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
             onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
             children: [
               WearHeader(item.printer.name),
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Center(child: WearStatusChip(state: state)),
               // Why the screen is dim and why nothing can be pressed. Without
               // it a cached frame is a control screen whose every button is
               // greyed out for no stated reason.
               if (fleet?.stale ?? false) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: DashSpace.sm),
                 Text(
                   l10n.wearWaitingForState,
                   textAlign: TextAlign.center,
                   style: WearText.small.copyWith(color: wearInert),
                 ),
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: DashSpace.md),
               if (state == WearState.printing || state == WearState.paused)
                 _progress(l10n, status),
-              const SizedBox(height: 10),
+              const SizedBox(height: DashSpace.md),
               ..._faults(item),
               ..._actions(item, state, fleet?.queuePending),
               if (widget.showSettings) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: DashSpace.xs),
                 const WearSettingsEntry(),
               ],
             ],
@@ -180,7 +181,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
             backgroundColor: wearSurfaceHigh,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         // One line whatever the watch's font scale is: wrapped, its second line
         // lands in the viewport's fade, and a half-dimmed "111/264" reads as a
         // rendering fault rather than a readout. Only ever shrinks — at the
@@ -232,7 +233,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     return [
       for (final fault in faults)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: DashSpace.sm),
           child: _WearFault(
             fault: fault,
             // Same gate as every other command on this screen.
@@ -250,7 +251,7 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
           ),
         ),
       Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: DashSpace.sm),
         child: _btn(
           l10n.hmsDismissAll,
           Icons.done_all,
@@ -368,7 +369,10 @@ class _WearPrinterControlBodyState extends ConsumerState<WearPrinterControlBody>
     }
     return [
       for (final b in buttons)
-        Padding(padding: const EdgeInsets.only(bottom: 8), child: b),
+        Padding(
+          padding: const EdgeInsets.only(bottom: DashSpace.sm),
+          child: b,
+        ),
     ];
   }
 
@@ -514,7 +518,7 @@ class _WearFaultState extends State<_WearFault> {
         ? const <String>[]
         : hmsRenderableActions(widget.fault.actions);
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(DashSpace.md),
       decoration: wearTintedBox(wearDestructive),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,7 +530,7 @@ class _WearFaultState extends State<_WearFault> {
                 size: 14,
                 color: wearFaultText,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: DashSpace.xs),
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
@@ -539,7 +543,7 @@ class _WearFaultState extends State<_WearFault> {
             ],
           ),
           if (description != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             GestureDetector(
               onTap: () => setState(() => _fullText = !_fullText),
               child: Text(
@@ -553,14 +557,14 @@ class _WearFaultState extends State<_WearFault> {
             ),
           ],
           for (final action in actions) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: widget.busy ? null : () => widget.onAction(action),
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
                   // A step down from the theme's button text: these stack one
                   // per action inside an already-boxed fault.
                   textStyle: WearText.body.copyWith(

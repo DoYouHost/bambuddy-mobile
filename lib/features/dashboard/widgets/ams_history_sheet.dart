@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:dash_kit/dash_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../core/settings/server_settings.dart';
+import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
@@ -129,7 +129,12 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
       'sheet.ams_history',
       SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.lg,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -138,7 +143,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 l10n.amsHistoryTitle(widget.amsLabel),
                 style: theme.textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               SegmentedButton<AmsHistoryMetric>(
                 segments: [
                   ButtonSegment(
@@ -155,14 +160,14 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 selected: {_metric},
                 onSelectionChanged: (s) => setState(() => _metric = s.first),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
                 labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               dashAsyncStrip(
                 context,
                 async,
@@ -176,7 +181,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                   fair: fair,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               Text(
                 l10n.amsHistoryRecordingInfo,
                 textAlign: TextAlign.center,
@@ -253,7 +258,7 @@ class _Content extends StatelessWidget {
             HistoryStat(label: l10n.sensorHistoryMax, value: _fmt(max, unit)),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         SizedBox(
           height: 220,
           child: LineChart(_chartData(context, spots, color)),
@@ -329,7 +334,7 @@ class _Content extends StatelessWidget {
             reservedSize: 24,
             interval: (maxX - minX) / 4,
             getTitlesWidget: (v, meta) => Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: DashSpace.xs),
               child: Text(
                 axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
                 style: axis,

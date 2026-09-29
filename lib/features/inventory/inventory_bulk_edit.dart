@@ -155,12 +155,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         key: _formKey,
         child: ListView(
           controller: controller,
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          padding: EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl + bottomInset,
+          ),
           children: [
             Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
 
             _FormSection(label: l10n.inventorySectionFilament),
             _presetField(l10n),
@@ -181,7 +186,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             ),
             _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _FormSection(label: l10n.inventorySectionColor),
             _field('colorName', l10n.inventoryFieldColorName),
             ValueListenableBuilder(
@@ -189,7 +194,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               builder: (context, _, _) => _colorField(l10n),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             _FormSection(label: l10n.inventorySectionAdditional),
             _field(
               'coreWeight',
@@ -218,7 +223,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             ),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             _applyButton(t, l10n),
           ],
         ),
@@ -240,7 +245,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         style: FilledButton.styleFrom(
           backgroundColor: t.accentGreen,
           foregroundColor: _onAccentGreen,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -264,7 +269,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// value. Same widget the per-spool form uses, minus the required marker —
   /// nothing is required here.
   Widget _combo(String key, String label, List<String> options) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
     child: dashCombo<String>(
       context,
       id: _fieldTag(key, area: 'bulk_edit'),
@@ -304,7 +309,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     return logTag(
       _fieldTag(key, area: 'bulk_edit'),
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: TextFormField(
           controller: _c[key],
           style: t.body,

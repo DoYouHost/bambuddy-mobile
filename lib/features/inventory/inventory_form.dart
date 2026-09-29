@@ -293,7 +293,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         key: _formKey,
         child: ListView(
           controller: controller,
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          padding: EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl + bottomInset,
+          ),
           children: [
             Row(
               children: [
@@ -302,7 +307,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   builder: (context, _, _) =>
                       SpoolSwatch(rgba: _c['rgba']!.text, size: 40, radius: 12),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: Text(
                     _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
@@ -312,12 +317,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 // Bulk "restock": how many identical spools to create. Header
                 // placement (create mode only) so it reads before the fields.
                 if (!_isEdit) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DashSpace.sm),
                   _quantityStepper(l10n),
                 ],
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
 
             // --- FILAMENT ---
             _FormSection(label: l10n.inventorySectionFilament),
@@ -333,7 +338,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
             _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             // --- COLOR ---
             _FormSection(label: l10n.inventorySectionColor),
@@ -351,7 +356,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 Expanded(
                   child: _field('colorName', l10n.inventoryFieldColorName),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 Expanded(
                   child: ValueListenableBuilder(
                     valueListenable: _c['rgba']!,
@@ -367,7 +372,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _effectDropdown(l10n),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             // --- ADDITIONAL ---
             _FormSection(label: l10n.inventorySectionAdditional),
@@ -405,14 +410,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: t.accentGreen,
                   foregroundColor: _onAccentGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                   ),
@@ -449,7 +454,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: dashCombo<String>(
         context,
         id: _fieldTag(key),
@@ -499,7 +504,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
     if (cores.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: l10n.inventoryFieldEmptySpoolWeight,
@@ -521,7 +526,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         .where((c) => c.id == _coreWeightCatalogId)
         .firstOrNull;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -537,7 +542,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               padding: EdgeInsets.zero,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           weightField,
         ],
       ),
@@ -562,7 +567,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final t = DashTokens.of(context);
     final options = <String>{..._effectOptions, ?_effectType};
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: dashCombo<String?>(
         context,
         id: _fieldTag('effect'),
@@ -717,18 +722,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final rows = _overrideRows(models);
     if (rows.isEmpty && !loadFailed && !loading) return const [];
     return [
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       _FormSection(label: l10n.inventorySectionPrinterPresets),
       InlineNote(
         l10n.inventoryPrinterPresetsHint,
         icon: Icons.info_outline,
-        padding: const EdgeInsets.only(bottom: 2),
+        padding: const EdgeInsets.only(bottom: DashSpace.xs),
       ),
       if (loadFailed)
         InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
       else if (loading)
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
           child: DashLoading(),
         )
       else
@@ -846,7 +851,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     return logTag(
       _fieldTag(key),
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: TextFormField(
           controller: _c[key],
           style: t.body,
@@ -954,19 +959,19 @@ class _ColorPicker extends ConsumerWidget {
             border: Border.all(color: t.subCardBorder),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         if (colors.isNotEmpty) ...[
           DashSearchField(
             id: 'spool_form.color_search',
             hintText: l10n.inventoryColorSearchHint,
             onChanged: onQuery,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           if (q.isEmpty) Text(l10n.inventoryColorCommon, style: t.microSoft),
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: DashSpace.sm,
+            runSpacing: DashSpace.sm,
             children: [
               for (final c in shown)
                 _ColorChip(
@@ -976,7 +981,7 @@ class _ColorPicker extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
         ],
       ],
     );
@@ -1069,12 +1074,17 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.inventoryFieldSlicerPreset, style: t.display),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 DashSearchField(
                   id: 'spool_form.preset_search',
                   autofocus: true,
@@ -1083,10 +1093,10 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                 ),
                 if (model.isNotEmpty || material.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: DashSpace.sm),
                     child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: DashSpace.sm,
+                      runSpacing: DashSpace.sm,
                       children: [
                         // No avatar: the app's chips say "on" with the
                         // theme's checkmark, and an icon sits in exactly that
@@ -1183,7 +1193,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       controller: controller,
       children: [
         Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(DashSpace.xxl),
           child: Center(
             child: Text(
               text,
@@ -1230,12 +1240,17 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
       builder: (context, controller) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              0,
+              DashSpace.gutter,
+              DashSpace.sm,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.inventoryFieldEmptySpoolWeight, style: t.display),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 DashSearchField(
                   id: 'spool_form.core_search',
                   autofocus: true,
@@ -1251,7 +1266,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                     controller: controller,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(DashSpace.xxl),
                         child: Center(
                           child: Text(
                             l10n.inventoryNoMatches,
@@ -1296,7 +1311,7 @@ class _FormSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.xs),
       child: Text(
         label.toUpperCase(),
         style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
@@ -1320,7 +1335,7 @@ Future<Color?> _pickSpoolColor(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(l10n.inventoryColorPickTitle),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(
         child: ColorPicker(
           pickerColor: picked,

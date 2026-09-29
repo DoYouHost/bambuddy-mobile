@@ -95,7 +95,7 @@ class _WallTileState extends State<WallTile> {
       decoration: t.cardBox.copyWith(
         border: fault == null ? null : Border.all(color: t.danger, width: 2),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(DashSpace.md),
       child: Opacity(
         opacity: offline ? 0.55 : 1,
         child: Column(
@@ -111,12 +111,12 @@ class _WallTileState extends State<WallTile> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DashSpace.sm),
                 _statePill(t, l10n, status, offline),
               ],
             ),
             if (fault != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: _faultPill(t, fault),
@@ -197,7 +197,7 @@ class _WallTileState extends State<WallTile> {
                       Align(
                         alignment: AlignmentDirectional.topStart,
                         child: Padding(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(DashSpace.sm),
                           // A pill does not ellipsize; on a narrow tile it
                           // shrinks instead.
                           child: FittedBox(
@@ -217,7 +217,12 @@ class _WallTileState extends State<WallTile> {
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
+                          padding: const EdgeInsets.fromLTRB(
+                            DashSpace.md,
+                            DashSpace.xl,
+                            DashSpace.md,
+                            DashSpace.md,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -232,12 +237,12 @@ class _WallTileState extends State<WallTile> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: DashSpace.sm),
                                   _statePill(t, l10n, status, false),
                                 ],
                               ),
                               if (printing) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(height: DashSpace.sm),
                                 ..._progress(t, l10n, status!),
                               ],
                             ],
@@ -278,7 +283,7 @@ class _WallTileState extends State<WallTile> {
         radius: 2,
         color: status.isPaused ? t.accentOrange : null,
       ),
-      const SizedBox(height: 6),
+      const SizedBox(height: DashSpace.sm),
       _meta(t, l10n, status),
     ];
   }
@@ -331,8 +336,8 @@ class _WallTileState extends State<WallTile> {
     final layer = status.layerNum;
     final total = status.totalLayers;
     return Wrap(
-      spacing: 12,
-      runSpacing: 2,
+      spacing: DashSpace.md,
+      runSpacing: DashSpace.xs,
       children: [
         if (remaining != null && remaining > 0)
           Text(formatMinutes(l10n, remaining), style: t.monoValue),

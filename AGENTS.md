@@ -238,6 +238,16 @@ do not stay silent because it was not part of the task.
   `<id>.confirm`) and records the answer as a `confirm` record. A hand-built `AlertDialog` is for bodies that
   are a **form or a choice** (text field, colour picker, checkbox that changes the
   outcome) — not for a plain question.
+- **Spacing goes through `DashSpace`**
+  ([lib/core/theme/dash_space.dart](lib/core/theme/dash_space.dart)): the 4 dp
+  scale `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`, plus `gutter` for the
+  left/right inset of anything meeting the screen, sheet or drawer edge, and
+  `fabClearance` for a list under a FAB. No number typed into an `EdgeInsets`,
+  a gap `SizedBox`, a `spacing:` or a `Divider` indent —
+  `spacing_scale_test.dart` refuses it. A value that is a size rather than
+  spacing (room for a 38 dp gauge, centring a knob) gets a named constant
+  next to the widget it measures. There are no per-screen exceptions: a
+  screen that "looks better at 10" gets 12.
 - **A `Wrap` that sets `spacing` also sets `runSpacing`.** `spacing` is the gap
   inside a run; the gap between runs defaults to zero, so the row looks right
   until it wraps — at a narrow width or a larger system text size — and then the

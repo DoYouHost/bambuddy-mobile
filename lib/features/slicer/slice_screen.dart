@@ -133,11 +133,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
         child: dashAsyncStrip(
           context,
           presetsAsync,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(DashSpace.xl),
           failureMessage: l10n.sliceNoPresets,
           data: (presets) {
             // One picker per *project* slot, because `filament_presets` is
@@ -193,7 +193,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: DashSpace.sm),
                     children: [
                       Text(
                         widget.target.name,
@@ -201,7 +201,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: DashSpace.sm),
                       // Above the slots it fills, and hidden entirely on a server
                       // without the routes — see [PipelineSliceBar].
                       PipelineSliceBar(
@@ -241,7 +241,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       ),
                       if (canUseEmbedded)
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: SwitchListTile(
                             value: _useEmbedded,
                             onChanged: (v) => setState(() => _useEmbedded = v),
@@ -275,7 +277,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       _dimWhenLocked(
                         !asDesigned,
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: ListTile(
                             leading: const Icon(Icons.grid_on_outlined),
                             // Patches a process JSON the embedded path never builds.
@@ -305,7 +309,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         _dimWhenLocked(
                           !asDesigned,
                           Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                              vertical: DashSpace.xs,
+                            ),
                             child: ListTile(
                               leading: const Icon(Icons.tune_outlined),
                               enabled: processRef != null && !asDesigned,
@@ -350,7 +356,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       // than no switch. See [sliceLayoutOptionsProvider].
                       if (layoutOptions)
                         Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: DashSpace.xs,
+                          ),
                           child: Column(
                             children: [
                               SwitchListTile(
@@ -438,7 +446,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: DashSpace.sm, bottom: DashSpace.sm),
         child: SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
@@ -485,11 +493,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         // Naming the printer is worth something even with nothing to switch to.
         if (designed != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            padding: const EdgeInsets.only(
+              top: DashSpace.sm,
+              bottom: DashSpace.xs,
+            ),
             child: FilledButton.tonal(
               onPressed: () => setState(() => _pickPrinter(designed)),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: DashSpace.lg),
                 // Material's dense floor. `shrinkWrap` only drops the invisible
                 // 48px tap padding a button reserves in a form, which inside a
                 // list subtitle would push the rows apart.
@@ -692,7 +703,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       _ => selected.name,
     };
     final card = Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: ListTile(
         enabled: enabled,
         leading: swatch != null
@@ -1034,7 +1045,12 @@ class _PresetPickerState extends State<_PresetPicker> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -1064,19 +1080,19 @@ class _PresetPickerState extends State<_PresetPicker> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
               child: DashSearchField(
                 id: 'slice.search',
                 hintText: l10n.sliceSearchHint,
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Expanded(
               child: items.isEmpty
                   ? Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(DashSpace.xl),
                         child: Text(
                           widget.filtered.isEmpty && !_showAll
                               ? l10n.sliceOwnedEmpty
@@ -1218,7 +1234,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
               l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1)),
             ),
           if (r?.externalWriteFallback != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Text(
               [
                 l10n.sliceExternalFallback,
@@ -1239,7 +1255,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LinearProgressIndicator(value: fraction),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             stage ?? l10n.sliceInProgress,
             style: theme.textTheme.bodySmall,

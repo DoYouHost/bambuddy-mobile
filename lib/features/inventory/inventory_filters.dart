@@ -14,28 +14,19 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Common height for both elements so field and button align. Outer padding
-    // is supplied by the enclosing [DashSliverSearchBar].
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              id: 'inventory.search',
-              hintText: l10n.inventorySearchHint,
-              onChanged: onQuery,
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilterButton(
-            count: filterCount,
-            tooltip: l10n.inventoryFilters,
-            id: 'inventory.filters',
-            onTap: onOpenFilters,
-          ),
-        ],
-      ),
+    // Outer padding is supplied by the enclosing [DashSliverSearchBar].
+    return DashSearchField(
+      id: 'inventory.search',
+      hintText: l10n.inventorySearchHint,
+      onChanged: onQuery,
+      trailing: [
+        FilterButton(
+          count: filterCount,
+          tooltip: l10n.inventoryFilters,
+          id: 'inventory.filters',
+          onTap: onOpenFilters,
+        ),
+      ],
     );
   }
 }
@@ -75,7 +66,12 @@ class _FilterSheet extends ConsumerWidget {
         minSize: 0.35,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Row(
               children: [
@@ -88,7 +84,7 @@ class _FilterSheet extends ConsumerWidget {
                   ).tagged('inventory.filters_clear'),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             FilterGroupLabel(label: l10n.inventoryFilterStatus),
             SegmentedButton<bool>(
@@ -108,7 +104,7 @@ class _FilterSheet extends ConsumerWidget {
               onSelectionChanged: (s) =>
                   notifier.state = filters.copyWith(showArchived: s.first),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.inventoryFilterStock),
             SegmentedButton<bool>(
@@ -129,7 +125,7 @@ class _FilterSheet extends ConsumerWidget {
             ),
 
             if (materials.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryFilterMaterial),
               _ChipWrap(
                 options: materials,
@@ -140,7 +136,7 @@ class _FilterSheet extends ConsumerWidget {
               ),
             ],
             if (brands.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryFilterBrand),
               _ChipWrap(
                 options: brands,
@@ -151,7 +147,7 @@ class _FilterSheet extends ConsumerWidget {
               ),
             ],
             if (locations.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               FilterGroupLabel(label: l10n.inventoryLocation),
               _ChipWrap(
                 options: locations,
@@ -182,8 +178,8 @@ class _ChipWrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 4,
+      spacing: DashSpace.sm,
+      runSpacing: DashSpace.xs,
       children: [
         for (final o in options)
           FilterChip(

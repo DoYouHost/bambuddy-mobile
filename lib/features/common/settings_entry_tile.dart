@@ -32,7 +32,7 @@ class SettingsEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -41,18 +41,18 @@ class SettingsEntryTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Row(
                 children: [
                   DashIconTile(icon: icon, size: 44, radius: 14, iconSize: 21),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: DashSpace.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title, style: t.titleMd),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: DashSpace.xs),
                         Text(
                           subtitle,
                           style: t.labelSoft.copyWith(color: t.textSecondary),
