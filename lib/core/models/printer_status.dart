@@ -762,6 +762,7 @@ class AmsUnit {
     this.dryTime,
     this.dryStatus,
     this.moduleType,
+    this.dryCountdownStalled = false,
   });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
@@ -795,6 +796,13 @@ class AmsUnit {
   @JsonKey(fromJson: toIntOrNull)
   final int? dryStatus;
 
+  /// `dry_countdown_stalled` (server #2896): [dryTime] has not ticked for a
+  /// while and no drying phase is reported — a start the firmware accepted and
+  /// never ran, or a paused cycle. Such a timer never reaches 0 on its own.
+  /// False on older servers, which cannot tell.
+  @JsonKey(fromJson: toBoolOrFalse)
+  final bool dryCountdownStalled;
+
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
   /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
   final String? moduleType;
@@ -809,6 +817,11 @@ class AmsUnit {
   /// status phase).
   bool get isDrying => (dryTime ?? 0) > 0 || (dryStatus ?? 0) == 2;
 
+  /// A drying timer is held but not running (`ams_drying.py::is_countdown_parked`).
+  /// Still [isDrying], since the sheet has to offer Stop for it; only what the
+  /// card claims about it changes.
+  bool get isDryingParked => dryCountdownStalled && (dryTime ?? 0) > 0;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -820,6 +833,7 @@ class AmsUnit {
           other.dryTime == dryTime &&
           other.dryStatus == dryStatus &&
           other.moduleType == moduleType &&
+          other.dryCountdownStalled == dryCountdownStalled &&
           _deepEquality.equals(other.trays, trays);
 
   @override
@@ -831,6 +845,7 @@ class AmsUnit {
     dryTime,
     dryStatus,
     moduleType,
+    dryCountdownStalled,
     trays == null ? null : _deepEquality.hash(trays),
   );
 }
@@ -1217,16 +1232,31 @@ class HmsError {
     return int.tryParse(hex, radix: 16);
   }
 
-  /// The HMS level from `code`'s high half — 1 fatal, 2 serious, 3 common,
-  /// 4 info, BambuStudio's `HMSMessageLevel`. Not [severity]: the server fills
-  /// that from `attr`, which is the part id (see `hmsIsDisplayable`). null when
-  /// the code is not numeric or carries no level, as a `print_error` fault's
-  /// 16-bit code does.
+  /// The HMS level — 1 error (task stopped), 2 warning (task paused),
+  /// 3 notification, 4 info, BambuStudio's `HMSMessageLevel`. Computed here
+  /// rather than read from [severity], which servers before #2728 filled with
+  /// the part byte of `attr`; `code` carries the level on every server version.
+  ///
+  /// An `hms[]` fault keeps it in `code`'s high half. A `print_error` one has a
+  /// 16-bit code whose first hex digit stands for it (`0x4xxx` stops, `0x8xxx`
+  /// pauses, `0xCxxx` prompts — `hms_errors.py::alert_level_from_print_error`).
+  /// null when the code is not numeric or its level is Bambu's "invalid" 0.
   int? get level {
     final c = _codeInt;
     if (c == null) return null;
-    final l = (c >> 16) & 0xFFFF;
+    final l = isHmsChannel
+        ? (c >> 16) & 0xFFFF
+        : const {0x4: 1, 0x8: 2, 0xC: 3}[(c >> 12) & 0xF] ?? 0;
     return l >= 1 && l <= 4 ? l : null;
+  }
+
+  /// Whether this came over the `hms[]` channel rather than `print_error`. A
+  /// server too old to send [fullCode] still tells them apart by `code`: only
+  /// an `hms[]` code has a level in its high half.
+  bool get isHmsChannel {
+    final full = fullCode;
+    if (full != null) return full.length == 16;
+    return (_codeInt ?? 0) > 0xFFFF;
   }
 
   /// Full 16-hex HMS code (`attr`+`code`) used by Bambu catalog, e.g.

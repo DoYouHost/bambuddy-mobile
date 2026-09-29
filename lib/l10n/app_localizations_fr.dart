@@ -372,6 +372,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ctrlDrying => 'Séchage en cours';
 
   @override
+  String get ctrlDryNotRunning => 'À l\'arrêt';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'L\'imprimante garde une minuterie de séchage, mais elle ne décompte pas et l\'AMS ne signale aucun séchage. Le cycle n\'a jamais démarré ou a été mis en pause, par exemple par la limite de puissance ou l\'impression en cours.';
+
+  @override
   String get ctrlDryStart => 'Démarrer';
 
   @override
@@ -6661,6 +6668,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'La seule valeur de paramètre qu\'une clé peut modifier — pour une tarification dynamique.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Envoyer des notifications';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Une autre application peut envoyer un message aux canaux de notification qui acceptent les messages des applications connectées. Le propriétaire de la clé doit aussi avoir l\'autorisation de gérer les notifications.';
 
   @override
   String get printLogTitle => 'Historique des impressions';

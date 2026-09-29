@@ -1203,8 +1203,22 @@ void main() {
       expect(const HmsError(code: '0x40001').level, 4);
     });
 
-    test('is null for a 16-bit print_error code with no level', () {
-      expect(const HmsError(code: '0x8004', attr: 0x03008004).level, isNull);
+    test('reads a print_error level off its first hex digit', () {
+      expect(const HmsError(code: '0x4001', attr: 0x03004001).level, 1);
+      expect(const HmsError(code: '0x8004', attr: 0x03008004).level, 2);
+      expect(const HmsError(code: '0xc003', attr: 0x0300c003).level, 3);
+      expect(const HmsError(code: '0x2001', attr: 0x03002001).level, isNull);
+    });
+
+    test('full_code decides the channel when the server sends it', () {
+      // An `hms[]` code whose high half is 0 is Bambu's invalid level, not a
+      // print_error to read by its first digit.
+      const invalid = HmsError(code: '0x8004', fullCode: '0300010000008004');
+      expect(invalid.isHmsChannel, isTrue);
+      expect(invalid.level, isNull);
+      const printError = HmsError(code: '0x8004', fullCode: '03008004');
+      expect(printError.isHmsChannel, isFalse);
+      expect(printError.level, 2);
     });
 
     test('is null for a missing, canonical or out-of-range code', () {

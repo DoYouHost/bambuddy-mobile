@@ -400,13 +400,56 @@ void main() {
       expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
     });
 
-    test(
-      'severity 1 with a description → no alert (bambuddy drops sev < 2)',
-      () {
-        const e = HmsError(code: 'x', severity: 1);
-        expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
-      },
-    );
+    test('a print-stopping fault alerts whatever severity says (#2728)', () {
+      // Level 1 in the code's high half. A current server sends severity 1 for
+      // it, an older one the part byte — neither may silence it.
+      for (final severity in [1, 2, 6, null]) {
+        final e = HmsError(
+          code: '0x10007',
+          attr: 0x05000500,
+          severity: severity,
+          fullCode: '0500050000010007',
+        );
+        expect(
+          hmsIsNotifiable(e, description: 'Nozzle clog'),
+          isTrue,
+          reason: 'severity $severity',
+        );
+      }
+    });
+
+    test('Bambu\'s invalid level never alerts, described or not', () {
+      const e = HmsError(code: '0x2001', attr: 0x03002001, severity: 3);
+      expect(hmsIsNotifiable(e, description: 'Idle'), isFalse);
+    });
+
+    test('an hms[] notification alerts only when it offers actions', () {
+      const notice = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+      );
+      expect(hmsIsNotifiable(notice, description: 'Top cover open'), isFalse);
+      const withActions = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+        actions: ['RESUME_PRINTING'],
+      );
+      expect(
+        hmsIsNotifiable(withActions, description: 'Top cover open'),
+        isTrue,
+      );
+    });
+
+    test('a print_error prompt at the same level still alerts', () {
+      const prompt = HmsError(
+        code: '0xc003',
+        attr: 0x0700c003,
+        fullCode: '0700C003',
+      );
+      expect(hmsIsNotifiable(prompt, description: 'Unable to dry'), isTrue);
+    });
 
     test('server message → alert', () {
       const e = HmsError(code: 'x', message: 'Filament runout');

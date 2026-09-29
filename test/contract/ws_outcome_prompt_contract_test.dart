@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
@@ -61,9 +60,12 @@ void main() {
 
         // Off the seeded job first: a print only starts from a printer that
         // is not already running one.
-        await _report(serial, {'gcode_state': 'FINISH', 'mc_percent': 100});
+        await publishReport(serial, {
+          'gcode_state': 'FINISH',
+          'mc_percent': 100,
+        });
         await Future<void>.delayed(const Duration(seconds: 3));
-        await _report(serial, {
+        await publishReport(serial, {
           'gcode_state': 'RUNNING',
           'mc_percent': 5,
           'subtask_name': 'outcome-probe.3mf',
@@ -73,7 +75,7 @@ void main() {
         // trying the printer's FTP for the 3MF, which the stand-in does not
         // serve — and a finish before that finds no archive to ask about.
         final started = await _archiveAsking(dio);
-        await _report(serial, {
+        await publishReport(serial, {
           'gcode_state': 'FINISH',
           'mc_percent': 100,
           'subtask_name': 'outcome-probe.3mf',
@@ -122,27 +124,4 @@ Future<StreamController<String>> _socket(Dio dio) async {
     if (data is String) frames.add(data);
   }, onDone: frames.close);
   return frames;
-}
-
-/// One report from the stand-in printer, as a Bambu printer publishes it.
-Future<void> _report(String serial, Map<String, Object?> print) async {
-  final result = await Process.run('docker', [
-    'exec',
-    contractBrokerContainer!,
-    'mosquitto_pub',
-    '-h',
-    'localhost',
-    '-p',
-    '8883',
-    '--insecure',
-    '--cafile',
-    '/mosquitto/certs/server.crt',
-    '-t',
-    'device/$serial/report',
-    '-m',
-    jsonEncode({'print': print}),
-  ]);
-  if (result.exitCode != 0) {
-    throw StateError('mosquitto_pub failed: ${result.stderr}');
-  }
 }

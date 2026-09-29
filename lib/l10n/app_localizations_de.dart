@@ -372,6 +372,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ctrlDrying => 'Trocknung läuft';
 
   @override
+  String get ctrlDryNotRunning => 'Läuft nicht';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'Der Drucker hält einen Trocknungstimer, aber er zählt nicht herunter und das AMS meldet keine Trocknung. Der Zyklus wurde nie gestartet oder pausiert, zum Beispiel durch das Leistungslimit oder den laufenden Druck.';
+
+  @override
   String get ctrlDryStart => 'Starten';
 
   @override
@@ -6577,6 +6584,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'Der einzige Einstellungswert, den ein Schlüssel schreiben darf – für dynamische Stromtarife.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Benachrichtigungen senden';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Erlaubt einer anderen App, eine Nachricht an die Benachrichtigungskanäle zu senden, die Nachrichten verbundener Apps annehmen. Der Besitzer des Schlüssels braucht außerdem die Berechtigung, Benachrichtigungen zu verwalten.';
 
   @override
   String get printLogTitle => 'Druckprotokoll';

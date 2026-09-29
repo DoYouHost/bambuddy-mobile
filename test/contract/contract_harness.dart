@@ -13,6 +13,7 @@
 /// these tests SKIP rather than fail, so `just test` on a laptop is unaffected.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
@@ -91,4 +92,27 @@ Future<Dio> authenticatedDio() async {
 
   dio.options.headers['Authorization'] = 'Bearer $token';
   return dio;
+}
+
+/// One report from the stand-in printer, as a Bambu printer publishes it.
+Future<void> publishReport(String serial, Map<String, Object?> print) async {
+  final result = await Process.run('docker', [
+    'exec',
+    contractBrokerContainer!,
+    'mosquitto_pub',
+    '-h',
+    'localhost',
+    '-p',
+    '8883',
+    '--insecure',
+    '--cafile',
+    '/mosquitto/certs/server.crt',
+    '-t',
+    'device/$serial/report',
+    '-m',
+    jsonEncode({'print': print}),
+  ]);
+  if (result.exitCode != 0) {
+    throw StateError('mosquitto_pub failed: ${result.stderr}');
+  }
 }

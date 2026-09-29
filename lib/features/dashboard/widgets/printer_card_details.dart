@@ -1012,10 +1012,13 @@ class _AmsDryControl extends ConsumerWidget {
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final drying = unit.isDrying;
+    final parked = unit.isDryingParked;
+    final drying = unit.isDrying && !parked;
     final remain = unit.dryTime ?? 0;
     final color = drying ? t.accentOrangeInk : t.textTertiary;
-    final label = drying && remain > 0
+    final label = parked
+        ? l10n.ctrlDryNotRunning
+        : drying && remain > 0
         ? formatMinutes(l10n, remain)
         : l10n.ctrlDry;
 
@@ -1046,7 +1049,11 @@ class _AmsDryControl extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              drying ? Icons.local_fire_department : Icons.wb_sunny_outlined,
+              parked
+                  ? Icons.hourglass_empty
+                  : drying
+                  ? Icons.local_fire_department
+                  : Icons.wb_sunny_outlined,
               size: 13,
               color: color,
             ),
@@ -1263,25 +1270,40 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
   List<Widget> _runningBody(DashTokens t, AppLocalizations l10n) {
     final remain = widget.unit.dryTime ?? 0;
+    final parked = widget.unit.isDryingParked;
+    final color = parked ? t.textTertiary : t.accentOrangeInk;
     return [
       Center(
         child: Column(
           children: [
             Icon(
-              Icons.local_fire_department,
+              parked ? Icons.hourglass_empty : Icons.local_fire_department,
               size: 32,
-              color: t.accentOrangeInk,
+              color: color,
             ),
             const SizedBox(height: DashSpace.sm),
             Text(
-              remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
+              parked
+                  ? l10n.ctrlDryNotRunning
+                  : remain > 0
+                  ? formatMinutes(l10n, remain)
+                  : l10n.ctrlDrying,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: t.accentOrangeInk,
+                color: color,
               ),
             ),
+            if (parked) ...[
+              const SizedBox(height: DashSpace.sm),
+              Text(
+                l10n.ctrlDryNotRunningHint,
+                textAlign: TextAlign.center,
+                style: t.bodySoft,
+              ),
+            ],
           ],
         ),
       ),

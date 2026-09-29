@@ -18,6 +18,49 @@ void main() {
     repo = ApiKeysRepository(dio);
   });
 
+  test(
+    'a row with the notification flag settles that the server has it',
+    () async {
+      adapter.onGet(
+        '/api/v1/api-keys/',
+        (s) => s.reply(200, [
+          {
+            'id': 1,
+            'name': 'n8n',
+            'key_prefix': 'bb_x',
+            'can_send_notifications': true,
+          },
+        ]),
+      );
+
+      final key = (await repo.list()).single;
+
+      expect(key.scopes, contains(ApiKeyScope.sendNotifications));
+      expect(repo.notificationScopeCapability.observedAnswer, isTrue);
+    },
+  );
+
+  test('a row without it says an older server would drop it', () async {
+    adapter.onGet(
+      '/api/v1/api-keys/',
+      (s) => s.reply(200, [
+        {'id': 1, 'name': 'n8n', 'key_prefix': 'bb_x', 'can_read_status': true},
+      ]),
+    );
+
+    await repo.list();
+
+    expect(repo.notificationScopeCapability.observedAnswer, isFalse);
+  });
+
+  test('an empty list settles nothing', () async {
+    adapter.onGet('/api/v1/api-keys/', (s) => s.reply(200, <Object>[]));
+
+    await repo.list();
+
+    expect(repo.notificationScopeCapability.observedAnswer, isNull);
+  });
+
   test('list() reads the flags as the scopes they are', () async {
     adapter.onGet(
       '/api/v1/api-keys/',

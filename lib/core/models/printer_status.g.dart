@@ -58,6 +58,9 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
   dryTime: toIntOrNull(json['dry_time']),
   dryStatus: toIntOrNull(json['dry_status']),
   moduleType: json['module_type'] as String?,
+  dryCountdownStalled: json['dry_countdown_stalled'] == null
+      ? false
+      : toBoolOrFalse(json['dry_countdown_stalled']),
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(

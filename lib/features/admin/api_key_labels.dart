@@ -15,6 +15,7 @@ String apiKeyScopeLabel(AppLocalizations l10n, ApiKeyScope scope) =>
       ApiKeyScope.manageProjects => l10n.apiKeyScopeProjects,
       ApiKeyScope.accessCloud => l10n.apiKeyScopeCloud,
       ApiKeyScope.updateEnergyCost => l10n.apiKeyScopeEnergy,
+      ApiKeyScope.sendNotifications => l10n.apiKeyScopeNotifications,
     };
 
 /// The longer line under the switch — what the flag actually reaches, where
@@ -25,5 +26,6 @@ String? apiKeyScopeHint(AppLocalizations l10n, ApiKeyScope scope) =>
       ApiKeyScope.controlPrinter => l10n.apiKeyScopeControlHint,
       ApiKeyScope.accessCloud => l10n.apiKeyScopeCloudHint,
       ApiKeyScope.updateEnergyCost => l10n.apiKeyScopeEnergyHint,
+      ApiKeyScope.sendNotifications => l10n.apiKeyScopeNotificationsHint,
       _ => null,
     };

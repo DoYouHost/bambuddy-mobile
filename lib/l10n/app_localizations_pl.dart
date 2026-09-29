@@ -372,6 +372,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlDrying => 'Suszenie';
 
   @override
+  String get ctrlDryNotRunning => 'Nie suszy';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'Drukarka ma ustawiony czas suszenia, ale nie odlicza go, a AMS nie zgłasza suszenia. Cykl nie wystartował albo został wstrzymany, na przykład przez limit mocy lub trwający wydruk.';
+
+  @override
   String get ctrlDryStart => 'Start';
 
   @override
@@ -6615,6 +6622,13 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'Jedyne ustawienie, które klucz może zapisać — do taryfy dynamicznej.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Wysyłanie powiadomień';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Pozwala innej aplikacji wysłać wiadomość do kanałów powiadomień, które przyjmują wiadomości od połączonych aplikacji. Właściciel klucza musi też mieć uprawnienie do zarządzania powiadomieniami.';
 
   @override
   String get printLogTitle => 'Log wydruków';

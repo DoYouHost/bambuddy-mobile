@@ -371,6 +371,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ctrlDrying => 'Secando';
 
   @override
+  String get ctrlDryNotRunning => 'Detenido';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'La impresora tiene un temporizador de secado, pero no avanza y el AMS no informa de ningún secado. El ciclo nunca empezó o se pausó, por ejemplo por el límite de potencia o la impresión en curso.';
+
+  @override
   String get ctrlDryStart => 'Iniciar';
 
   @override
@@ -6595,6 +6602,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'El único valor de configuración que puede escribir una clave — para tarifas dinámicas.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Enviar notificaciones';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Permite que otra aplicación envíe un mensaje a los canales de notificación que aceptan mensajes de aplicaciones conectadas. El propietario de la clave también necesita permiso para gestionar las notificaciones.';
 
   @override
   String get printLogTitle => 'Registro de impresiones';
