@@ -416,7 +416,7 @@ class _StatCards extends StatelessWidget {
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: DashSpace.md,
+        horizontal: DashSpace.gutter,
         vertical: DashSpace.sm,
       ),
       child: GridView.count(

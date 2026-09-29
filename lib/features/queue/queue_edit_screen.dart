@@ -505,9 +505,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       // it meets the 56-high bar.
       padding: const EdgeInsets.fromLTRB(
         DashSpace.xs,
-        DashSpace.sm,
+        DashSpace.xs,
         DashSpace.md,
-        DashSpace.sm,
+        DashSpace.xs,
       ),
       child: FilledButton(
         style: dashPrimaryButtonStyle(t).copyWith(

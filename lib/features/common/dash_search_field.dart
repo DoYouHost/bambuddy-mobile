@@ -42,6 +42,8 @@ class DashSearchField extends StatefulWidget {
 
   final List<Widget> trailing;
 
+  static const height = 48.0;
+
   @override
   State<DashSearchField> createState() => _DashSearchFieldState();
 }
@@ -85,9 +87,11 @@ class _DashSearchFieldState extends State<DashSearchField> {
           decoration: InputDecoration(
             isDense: true,
             filled: false,
+            // No vertical padding: the pill is always [height] tall, and at a
+            // large system text size a 12 dp inset squeezed the line to 24 dp
+            // and pushed it out through the top of the pill.
             contentPadding: const EdgeInsets.symmetric(
               horizontal: DashSpace.xs,
-              vertical: DashSpace.md,
             ),
             prefixIcon: Icon(Icons.search, color: t.textTertiary),
             hintText: widget.hintText,
@@ -118,18 +122,21 @@ class _DashSearchFieldState extends State<DashSearchField> {
         ),
       ),
     );
-    if (widget.trailing.isEmpty) return field;
+    // Fixed at any text size: the headers that host the field reserve exactly
+    // this much, and a field that grew with the text overflowed them.
     return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          Expanded(child: field),
-          for (final action in widget.trailing) ...[
-            const SizedBox(width: DashSpace.sm),
-            action,
-          ],
-        ],
-      ),
+      height: DashSearchField.height,
+      child: widget.trailing.isEmpty
+          ? field
+          : Row(
+              children: [
+                Expanded(child: field),
+                for (final action in widget.trailing) ...[
+                  const SizedBox(width: DashSpace.sm),
+                  action,
+                ],
+              ],
+            ),
     );
   }
 }

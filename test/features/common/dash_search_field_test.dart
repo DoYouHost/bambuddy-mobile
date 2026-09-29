@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/theme/dash_theme.dart';
 import 'package:bambuddy_mobile/features/common/dash_search_field.dart';
+import 'package:bambuddy_mobile/features/common/sliver_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,6 +81,62 @@ void main() {
     expect(tester.getRect(find.text('Szukaj')).center.dy, pill);
     expect(tester.getRect(find.byType(EditableText)).center.dy, pill);
   });
+
+  for (final scale in [1.3, 2.0]) {
+    for (final withButton in [false, true]) {
+      testWidgets(
+        'at text size $scale the field keeps its text inside the pill '
+        '(button beside it: $withButton)',
+        (tester) async {
+          // The pill grew with the text and overflowed the header reserving
+          // 48 dp for it, or — boxed to 48 dp next to a button — squeezed the
+          // line and pushed it out through the top.
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: buildDashThemeData(Brightness.dark, brand: bambuddyBrand),
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(360, 700),
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: Scaffold(
+                  body: CustomScrollView(
+                    slivers: [
+                      DashSliverSearchBar(
+                        child: DashSearchField(
+                          hintText: 'Szukaj drukarek…',
+                          onChanged: (_) {},
+                          trailing: [
+                            if (withButton)
+                              const SizedBox(width: 48, height: 48),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+
+          expect(tester.takeException(), isNull);
+          final pill = tester.getRect(
+            find
+                .descendant(
+                  of: find.byType(DashSearchField),
+                  matching: find.byType(DecoratedBox),
+                )
+                .first,
+          );
+          final text = tester.getRect(find.byType(EditableText));
+          expect(pill.height, DashSearchField.height);
+          expect(text.top, greaterThanOrEqualTo(pill.top));
+          expect(text.bottom, lessThanOrEqualTo(pill.bottom));
+          expect(text.center.dy, pill.center.dy);
+        },
+      );
+    }
+  }
 
   test('no screen builds a search field of its own', () {
     // The AMS slot sheet had one, so the alignment fix above never reached it.

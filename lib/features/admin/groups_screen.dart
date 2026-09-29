@@ -55,11 +55,11 @@ class GroupsScreen extends ConsumerWidget {
                 : ListView.builder(
                     padding: withSystemNavInset(
                       context,
-                      const EdgeInsets.fromLTRB(
+                      EdgeInsets.fromLTRB(
                         DashSpace.gutter,
                         DashSpace.sm,
                         DashSpace.gutter,
-                        DashSpace.xl,
+                        canManage ? DashSpace.fabClearance : DashSpace.xl,
                       ),
                     ),
                     itemCount: groups.length,

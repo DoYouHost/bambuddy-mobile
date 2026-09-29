@@ -961,7 +961,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.all(DashSpace.gutter),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.gutter,
+                vertical: DashSpace.lg,
+              ),
               child: Text(
                 l10n.fmMoveTo,
                 style: Theme.of(ctx).textTheme.titleMedium,

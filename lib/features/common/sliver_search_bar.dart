@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
+import 'dash_search_field.dart';
 
 /// A search bar that lives inside a [CustomScrollView] and rolls away as the
 /// list scrolls down, sliding back in only once the list returns to the top.
@@ -41,8 +42,8 @@ class DashSearchBarBody extends StatelessWidget {
 
   static const _band = DashSpace.xs;
 
-  /// The 48 dp field, its padding and the band.
-  static const height = 48 + 2 * DashSpace.sm + _band;
+  /// The field, its padding and the band.
+  static const height = DashSearchField.height + 2 * DashSpace.sm + _band;
 
   final Widget child;
 

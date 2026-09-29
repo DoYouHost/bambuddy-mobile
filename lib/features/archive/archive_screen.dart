@@ -443,7 +443,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(DashSpace.gutter),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.gutter,
+                vertical: DashSpace.lg,
+              ),
               child: Text(
                 l10n.projectPickTitle,
                 style: Theme.of(ctx).textTheme.titleMedium,

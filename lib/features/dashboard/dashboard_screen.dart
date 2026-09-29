@@ -1144,7 +1144,7 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
-  static const double _statusCompact = 44;
+  static const double _statusCompact = 48;
   static const double _searchH = DashSearchBarBody.height;
 
   @override
