@@ -989,8 +989,9 @@ class _AmsMeta extends StatelessWidget {
 
 /// How an AMS's drying state is drawn, on the chip and in the sheet alike: a
 /// parked timer (neutral), a running cycle (heat colour, time left) or none.
-/// [noTimer] is the word where no time is left to show — "Dry" on the idle
-/// chip, "Drying" through a cycle's cooling phase in the sheet.
+/// [noTimer] is the label when there is no countdown to show: "Dry" on the
+/// chip (idle, or a cycle cooling down), "Drying" in the sheet, which draws
+/// running units only.
 ({IconData icon, Color color, String label}) _dryLook(
   AmsUnit unit,
   DashTokens t,
