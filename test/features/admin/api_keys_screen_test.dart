@@ -292,9 +292,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final notifications = find.widgetWithText(
+        SwitchListTile,
+        l10n.apiKeyScopeNotifications,
+      );
+      expect(notifications, findsOneWidget);
+
+      // Cleared, it stays where it was, so the tap can be undone.
+      await tester.tap(notifications);
+      await tester.pumpAndSettle();
+      expect(notifications, findsOneWidget);
+      await tester.tap(find.text('Zapisz'));
+      await tester.pumpAndSettle();
       expect(
-        find.widgetWithText(SwitchListTile, l10n.apiKeyScopeNotifications),
-        findsOneWidget,
+        repo.updated?.$2.scopes,
+        isNot(contains(ApiKeyScope.sendNotifications)),
       );
     });
 

@@ -123,8 +123,8 @@ HmsError? firstDisplayableHmsError(
 /// dropped exactly the faults that stop a print.
 bool hmsIsNotifiable(HmsError e, {String? description}) {
   final level = e.level;
-  // A numeric code with no level is Bambu's "invalid" 0. Only the legacy
-  // `{code, message}` shape has no numeric code; the message check decides it.
+  // A numeric code with no level is Bambu's "invalid" 0. A fault without `attr`
+  // (the legacy `{code, message}` shape) is left to the text checks below.
   if (level == null && e.ecode != null) return false;
   // An `hms[]` notification without actions ("top cover open", "chamber hot,
   // fan up") can stand through a whole print. A `print_error` prompt at the

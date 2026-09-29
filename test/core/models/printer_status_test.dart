@@ -1210,9 +1210,21 @@ void main() {
       expect(const HmsError(code: '0x2001', attr: 0x03002001).level, isNull);
     });
 
+    test('a blank full_code is no full_code', () {
+      // HMSError.full_code defaults to "" server-side; the parser folds it.
+      final e = HmsError.fromJson(const {
+        'code': '0x10007',
+        'attr': 0x05000500,
+        'full_code': '',
+      });
+      expect(e.isHmsChannel, isTrue);
+      expect(e.level, 1);
+    });
+
     test('full_code decides the channel when the server sends it', () {
-      // An `hms[]` code whose high half is 0 is Bambu's invalid level, not a
-      // print_error to read by its first digit.
+      // Synthetic: no real `hms[]` error group reaches 0x4000
+      // (hms_errors.py::lookup_fault), which is what makes the first digit
+      // tell the two channels apart here at all.
       const invalid = HmsError(code: '0x8004', fullCode: '0300010000008004');
       expect(invalid.isHmsChannel, isTrue);
       expect(invalid.level, isNull);

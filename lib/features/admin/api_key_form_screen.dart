@@ -70,10 +70,12 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
         ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
     final fmt = DateTimeFormats.of(context);
     // A key that already holds the flag keeps its switch, so it can be taken
-    // away again whatever the gate says.
+    // away again whatever the gate says. Read off the key as it was loaded,
+    // not [_scopes]: the switch must not vanish under the tap that clears it.
     final offerNotifications =
         ref.watch(apiKeyNotificationScopeProvider).orFalse ||
-        _scopes.contains(ApiKeyScope.sendNotifications);
+        (widget.existing?.scopes.contains(ApiKeyScope.sendNotifications) ??
+            false);
 
     return DashBackground(
       child: Scaffold(
