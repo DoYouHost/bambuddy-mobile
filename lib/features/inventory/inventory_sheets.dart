@@ -1,10 +1,11 @@
 part of 'inventory_screen.dart';
 
-/// Opens spool create/edit sheet. [existing] != null → edit mode.
-void openSpoolForm(BuildContext context, {Spool? existing}) {
+/// Opens spool create/edit sheet. [existing] != null → edit mode; [copyOf]
+/// fills a create form from another spool.
+void openSpoolForm(BuildContext context, {Spool? existing, Spool? copyOf}) {
   dashSurfaceSheet<void>(
     context,
-    builder: (_) => _SpoolFormSheet(existing: existing),
+    builder: (_) => _SpoolFormSheet(existing: existing, copyOf: copyOf),
   );
 }
 
@@ -320,6 +321,15 @@ class _SpoolActions extends ConsumerWidget {
           icon: Icons.edit_outlined,
           label: l10n.inventoryEdit,
         ).tagged('spool_actions.edit'),
+        _ActionPill(
+          tokens: t,
+          onPressed: () {
+            Navigator.of(context).pop();
+            openSpoolForm(context, copyOf: spool);
+          },
+          icon: Icons.copy_outlined,
+          label: l10n.inventoryDuplicate,
+        ).tagged('spool_actions.duplicate'),
         if (!spool.isArchived)
           if (assignment != null)
             _ActionPill(

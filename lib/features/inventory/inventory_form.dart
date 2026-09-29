@@ -4,9 +4,16 @@ part of 'inventory_screen.dart';
 /// (create if [existing] == null, else update). Empty numeric fields → null
 /// (server uses defaults). Color previewed live.
 class _SpoolFormSheet extends ConsumerStatefulWidget {
-  const _SpoolFormSheet({this.existing});
+  const _SpoolFormSheet({this.existing, this.copyOf})
+    : assert(existing == null || copyOf == null);
 
   final Spool? existing;
+
+  /// The spool a create form starts from. Same as the web's copy mode: a fresh
+  /// spool of the same filament, so it starts full and without a scale
+  /// reading, and a single copy takes the per-model presets with it
+  /// (`SpoolFormModal.tsx`, `isCopying`).
+  final Spool? copyOf;
 
   @override
   ConsumerState<_SpoolFormSheet> createState() => _SpoolFormSheetState();
@@ -53,6 +60,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// one it just made, even though [widget.existing] is still null.
   int? _createdSpoolId;
 
+  /// Whether the user typed a remaining weight. With that or a scale reading
+  /// in place a new spool no longer follows its label, see [_followLabel].
+  bool _remainingTyped = false;
+
   String _colorQuery = '';
   bool _materialMissing = false;
   bool _saving = false;
@@ -67,10 +78,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   @override
   void initState() {
     super.initState();
-    final s = widget.existing;
+    final copy = widget.copyOf;
+    final s = widget.existing ?? copy;
     String n(num? v) => v == null ? '' : v.toString();
+    // A copy of a spool with no label weight gets the web's 1000 g: Spoolman
+    // refuses to create one below 1 (`spoolman_inventory.py`, `ge=1`).
+    final label = copy != null && copy.labelWeight <= 0 ? 1000 : s?.labelWeight;
     // Remaining weight = label − used. For new spool, default full 1000 g.
-    final remaining = s == null ? '1000' : n(s.remainingWeight.round());
+    final remaining = s == null
+        ? '1000'
+        : n(copy != null ? label : s.remainingWeight.round());
     _c = {
       'material': TextEditingController(text: s?.material ?? ''),
       'brand': TextEditingController(text: s?.brand ?? ''),
@@ -78,11 +95,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       'colorName': TextEditingController(text: s?.colorName ?? ''),
       'rgba': TextEditingController(text: s?.rgba ?? ''),
       'extraColors': TextEditingController(text: s?.extraColors ?? ''),
-      'labelWeight': TextEditingController(
-        text: s == null ? '1000' : n(s.labelWeight),
-      ),
+      'labelWeight': TextEditingController(text: s == null ? '1000' : n(label)),
       'remaining': TextEditingController(text: remaining),
-      'measured': TextEditingController(text: n(s?.lastScaleWeight)),
+      'measured': TextEditingController(
+        text: copy != null ? '' : n(s?.lastScaleWeight),
+      ),
       'coreWeight': TextEditingController(text: n(s?.coreWeight ?? 250)),
       'costPerKg': TextEditingController(text: n(s?.costPerKg)),
       'category': TextEditingController(text: s?.category ?? ''),
@@ -271,17 +288,24 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
     // Per-model presets: only asked for on a server that has the routes, and
     // only for a spool that exists — a new one has no rows to read.
-    final overridesSupported = ref
-        .watch(presetOverridesSupportedProvider)
-        .orFalse;
+    final overridesGate = ref.watch(presetOverridesSupportedProvider);
+    final overridesSupported = overridesGate.orFalse;
     final showOverrides = _showsPresetOverrides(overridesSupported);
-    final stored = showOverrides && _isEdit
-        ? ref.watch(spoolPresetOverridesProvider(widget.existing!.id))
+    final sourceId = widget.existing?.id ?? widget.copyOf?.id;
+    final stored = showOverrides && sourceId != null
+        ? ref.watch(spoolPresetOverridesProvider(sourceId))
         : const AsyncValue<List<SpoolPresetOverride>>.data([]);
     if (showOverrides) {
       final rows = stored.valueOrNull;
       if (rows != null) _seedOverrides(rows);
     }
+    // A copy saved before its presets arrive would be created without them;
+    // that includes the gate, which asks for them only once it has answered.
+    final copyPresetsPending =
+        widget.copyOf != null &&
+        _showsPresetOverrides(true) &&
+        (overridesGate.offer == ControlOffer.pending ||
+            (showOverrides && stored.isLoading));
     final models = showOverrides
         ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
         : const <String>[];
@@ -336,7 +360,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _combo('brand', l10n.inventoryFieldBrand, brands),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
-            _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
+            _field(
+              'labelWeight',
+              l10n.inventoryFieldLabelWeight,
+              number: true,
+              onChanged: _followLabel,
+            ),
 
             const SizedBox(height: DashSpace.sm),
 
@@ -385,6 +414,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   'remaining',
                   l10n.inventoryFieldRemainingWeight,
                   number: true,
+                  onChanged: (_) => _remainingTyped = true,
                   suffixText: labelInt != null
                       ? l10n.inventoryRemainingOfLabel(labelInt)
                       : null,
@@ -422,8 +452,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                onPressed: _saving ? null : _save,
-                child: _saving
+                onPressed: _saving || copyPresetsPending ? null : _save,
+                child: _saving || copyPresetsPending
                     ? DashSpinner(size: 20, color: _onAccentGreen)
                     : Text(
                         !_isEdit && _quantity > 1
@@ -681,7 +711,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// watch that scheduled this build, so the frame already reflects them and a
   /// `setState` here would only ask for the same one again.
   void _seedOverrides(List<SpoolPresetOverride> rows) {
-    _overrides ??= {for (final row in rows) row.key: row};
+    if (_overrides != null) return;
+    _overrides = {for (final row in rows) row.key: row};
+    // A copy's rows are the source spool's: the new one has none on the
+    // server until they are written.
+    _overridesDirty = widget.copyOf != null && rows.isNotEmpty;
+  }
+
+  /// Keeps a new spool full while the label weight is being typed.
+  void _followLabel(String raw) {
+    if (_isEdit || _remainingTyped) return;
+    if (_c['measured']!.text.trim().isNotEmpty) return;
+    _c['remaining']!.text = raw;
   }
 
   /// The rows the section offers: one per printer model in the fleet, plus any

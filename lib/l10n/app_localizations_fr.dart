@@ -2500,6 +2500,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryEdit => 'Modifier';
 
   @override
+  String get inventoryDuplicate => 'Dupliquer';
+
+  @override
   String get inventoryDelete => 'Supprimer';
 
   @override

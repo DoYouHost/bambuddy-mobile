@@ -1529,6 +1529,7 @@
   "inventorySave": "Save",
   "inventoryQuantityHint": "Create several identical spools at once",
   "inventoryEdit": "Edit",
+  "inventoryDuplicate": "Duplicate",
   "inventoryDelete": "Delete",
   "inventoryArchive": "Archive",
   "inventoryRestore": "Restore",

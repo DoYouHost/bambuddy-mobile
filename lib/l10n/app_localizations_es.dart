@@ -2478,6 +2478,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryEdit => 'Editar';
 
   @override
+  String get inventoryDuplicate => 'Duplicar';
+
+  @override
   String get inventoryDelete => 'Eliminar';
 
   @override
