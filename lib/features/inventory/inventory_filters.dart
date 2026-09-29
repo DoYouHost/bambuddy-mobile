@@ -79,8 +79,7 @@ class _FilterSheet extends ConsumerWidget {
                 const Spacer(),
                 if (filters.activeCount > 0)
                   TextButton(
-                    onPressed: () =>
-                        notifier.state = InventoryFilters(sort: filters.sort),
+                    onPressed: () => notifier.state = filters.cleared(),
                     child: Text(l10n.inventoryFiltersClear),
                   ).tagged('inventory.filters_clear'),
               ],

@@ -58,6 +58,18 @@ void main() {
     expect(ids(standard, InventorySort.standard, descending: false), [3, 2, 1]);
   });
 
+  test('clearing filters keeps the sort and its direction', () {
+    const filters = InventoryFilters(
+      lowStockOnly: true,
+      sort: InventorySort.price,
+      descending: false,
+    );
+    final cleared = filters.cleared();
+    expect(cleared.activeCount, 0);
+    expect(cleared.sort, InventorySort.price);
+    expect(cleared.descending, isFalse);
+  });
+
   test('a chosen sort does not count as an active filter', () {
     const filters = InventoryFilters(
       sort: InventorySort.price,
@@ -76,12 +88,12 @@ void main() {
       expect(s.createdAt?.toUtc(), DateTime.utc(2026, 3, 1, 10));
     });
 
-    test('Spoolman falls back to registered, and may have neither', () {
-      final registered = Spool.fromSpoolman({
+    test('Spoolman reads the created_at the backend maps it to', () {
+      final s = Spool.fromSpoolman({
         'id': 1,
-        'registered': '2026-03-01T10:00:00Z',
+        'created_at': '2026-03-01T10:00:00Z',
       });
-      expect(registered.createdAt?.toUtc(), DateTime.utc(2026, 3, 1, 10));
+      expect(s.createdAt?.toUtc(), DateTime.utc(2026, 3, 1, 10));
       expect(Spool.fromSpoolman({'id': 2}).createdAt, isNull);
     });
   });

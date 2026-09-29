@@ -162,11 +162,9 @@ class Spool {
           toStringOrNull(json['archived_at']) ??
           toStringOrNull(json['archived']),
       lastUsed: toStringOrNull(json['last_used']),
-      // The backend maps Spoolman's `registered` onto `created_at` and leaves it
-      // null when Spoolman has none (`_spoolman_helpers.py::_map_spoolman_spool`).
-      createdAt:
-          dateTimeFromJson(json['created_at']) ??
-          dateTimeFromJson(json['registered']),
+      // Spoolman's `registered`, renamed by the backend on every route
+      // (`_spoolman_helpers.py::_map_spoolman_spool`).
+      createdAt: dateTimeFromJson(json['created_at']),
     );
   }
 
@@ -222,8 +220,8 @@ class Spool {
   final String? archivedAt;
   final String? lastUsed;
 
-  /// When the spool was added to the inventory; null on a Spoolman spool
-  /// without a `registered` timestamp.
+  /// When the spool was added to the inventory; null when the server sent
+  /// none, which a Spoolman spool without a `registered` date does.
   final DateTime? createdAt;
 
   /// Slicer filament-preset name this spool maps to (e.g. "Bambu PLA Basic

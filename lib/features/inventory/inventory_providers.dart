@@ -429,6 +429,10 @@ class InventoryFilters {
       (brands.isNotEmpty ? 1 : 0) +
       (locations.isNotEmpty ? 1 : 0);
 
+  /// Every filter back to its default, the sort left as it was.
+  InventoryFilters cleared() =>
+      InventoryFilters(sort: sort, descending: descending);
+
   InventoryFilters copyWith({
     bool? showArchived,
     bool? lowStockOnly,
