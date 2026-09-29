@@ -83,6 +83,9 @@ class _FakeDashboardNotifier extends DashboardNotifier {
 
   @override
   Future<void> refresh() async {}
+
+  /// What a poll does when the session is rejected and cannot be renewed.
+  void expire() => state = const DashboardState(authExpired: true);
 }
 
 /// Background service with no Android underneath — the lifecycle tests check who
@@ -491,6 +494,24 @@ void main() {
       findsNothing,
       reason: 'the entry moved into app settings',
     );
+  });
+
+  testWidgets('the app bar menu holds add printer, notifications and wall', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const DashboardState()));
+    await settle(tester);
+
+    await tester.tap(byLogId('dashboard.menu'));
+    await settle(tester);
+
+    for (final id in [
+      'dashboard.add_printer',
+      'dashboard.notifications_menu',
+      'dashboard.wall_mode',
+    ]) {
+      expect(byLogId(id), findsOneWidget, reason: id);
+    }
   });
 
   testWidgets('a card toggled by hand keeps it after leaving the list', (
@@ -951,6 +972,24 @@ void main() {
 
       expect(find.text('Zaloguj się ponownie'), findsNothing);
       expect(_prefs.getBool('sign_in_required'), isNot(isTrue));
+    });
+
+    testWidgets('a session that expires on screen goes to setup', (
+      tester,
+    ) async {
+      // Also what takes a wall pushed over the dashboard down with it.
+      await tester.pumpWidget(_routedApp(state));
+      await tester.pumpAndSettle();
+
+      final notifier =
+          ProviderScope.containerOf(
+                tester.element(find.byType(DashboardScreen)),
+              ).read(dashboardProvider.notifier)
+              as _FakeDashboardNotifier;
+      notifier.expire();
+      await tester.pumpAndSettle();
+
+      expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
 
     testWidgets('"Sign in" leads to the setup screen', (tester) async {

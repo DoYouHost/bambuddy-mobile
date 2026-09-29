@@ -81,6 +81,19 @@ final printerStatusesProvider =
       PrinterStatusesNotifier.new,
     );
 
+/// The roster with the live statuses laid over it — what every screen showing
+/// printers draws. A printer without an entry keeps the status the roster
+/// came with.
+List<PrinterWithStatus> withLiveStatuses(
+  List<PrinterWithStatus> roster,
+  Map<int, PrinterStatus> statuses,
+) => [
+  for (final p in roster)
+    statuses.containsKey(p.printer.id)
+        ? PrinterWithStatus(printer: p.printer, status: statuses[p.printer.id])
+        : p,
+];
+
 class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// When the app last (re)gained an unbroken line to the server, or `null`
   /// while it has none. It answers the only question a `connected:false` frame

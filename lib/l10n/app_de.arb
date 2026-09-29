@@ -3889,5 +3889,21 @@
   "notifEvtOutcomeDesc": "Wenn ein Druck mit Ergebnisabfrage fertig ist — „Gut“ oder „Ausschuss“ direkt aus der Benachrichtigung",
   "outcomeNotifTitle": "Wie ist {name} geworden?",
   "outcomeNotifBody": "Hier antworten oder tippen, um zuerst das Abschlussfoto zu sehen.",
-  "queueOptConfirmOutcomeSticky": "Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso"
+  "queueOptConfirmOutcomeSticky": "Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso",
+  "wallModeTitle": "Wandmodus",
+  "wallModeExit": "Wandmodus beenden",
+  "wallKeepAwakeTitle": "Bildschirm eingeschaltet lassen",
+  "wallKeepAwakeDesc": "Der Bildschirm bleibt an, solange der Wandmodus geöffnet ist. Ist die Option aus, gilt die automatische Bildschirmabschaltung des Geräts.",
+  "wallPanelFarm": "Farm",
+  "wallPanelSettings": "Einstellungen",
+  "wallPanelExpand": "Seitenleiste ausklappen",
+  "wallPanelCollapse": "Seitenleiste einklappen",
+  "wallErrorsTitle": "Fehler",
+  "wallNoFaults": "Keine aktiven Fehler",
+  "wallQueueCount": "{count, plural, =1{1 in der Warteschlange} other{{count} in der Warteschlange}}",
+  "wallLivePaused": "Live pausiert",
+  "wallLiveCameraTitle": "Live-Kamera",
+  "wallLiveCameraDesc": "Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.",
+  "wallPrintersTitle": "Drucker an der Wand",
+  "wallAllHidden": "Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein."
 }

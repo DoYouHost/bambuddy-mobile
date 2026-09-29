@@ -7307,4 +7307,65 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk';
+
+  @override
+  String get wallModeTitle => 'Tryb ściany';
+
+  @override
+  String get wallModeExit => 'Wyjdź z trybu ściany';
+
+  @override
+  String get wallKeepAwakeTitle => 'Nie wygaszaj ekranu';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu.';
+
+  @override
+  String get wallPanelFarm => 'Farma';
+
+  @override
+  String get wallPanelSettings => 'Ustawienia';
+
+  @override
+  String get wallPanelExpand => 'Rozwiń panel';
+
+  @override
+  String get wallPanelCollapse => 'Zwiń panel';
+
+  @override
+  String get wallErrorsTitle => 'Błędy';
+
+  @override
+  String get wallNoFaults => 'Brak aktywnych błędów';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count w kolejce',
+      many: '$count w kolejce',
+      few: '$count w kolejce',
+      one: '1 w kolejce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Podgląd wstrzymany';
+
+  @override
+  String get wallLiveCameraTitle => 'Kamera na żywo';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Po wyłączeniu kafle pokazują sam status drukarki i nie otwierają strumienia kamery.';
+
+  @override
+  String get wallPrintersTitle => 'Drukarki na ścianie';
+
+  @override
+  String get wallAllHidden =>
+      'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
 }

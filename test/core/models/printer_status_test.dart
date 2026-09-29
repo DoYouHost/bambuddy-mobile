@@ -1192,4 +1192,29 @@ void main() {
       expect(printers[1].isActive, isFalse);
     });
   });
+
+  group('HmsError.level', () {
+    test('is the high half of the code: 0x20070 is serious', () {
+      expect(const HmsError(code: '0x20070').level, 2);
+    });
+
+    test('reads the fatal and info ends of the scale', () {
+      expect(const HmsError(code: '0x10001').level, 1);
+      expect(const HmsError(code: '0x40001').level, 4);
+    });
+
+    test('is null for a 16-bit print_error code with no level', () {
+      expect(const HmsError(code: '0x8004', attr: 0x03008004).level, isNull);
+    });
+
+    test('is null for a missing, canonical or out-of-range code', () {
+      expect(const HmsError().level, isNull);
+      expect(const HmsError(code: '0500-0600-0002-0070').level, isNull);
+      expect(const HmsError(code: '0x90001').level, isNull);
+    });
+
+    test('ignores severity, which the server fills from the part id', () {
+      expect(const HmsError(code: '0x30001', severity: 1).level, 3);
+    });
+  });
 }

@@ -7261,4 +7261,63 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Dieser Druck fragt bereits nach seinem Ergebnis, und jeder erneute Druck davon ebenso';
+
+  @override
+  String get wallModeTitle => 'Wandmodus';
+
+  @override
+  String get wallModeExit => 'Wandmodus beenden';
+
+  @override
+  String get wallKeepAwakeTitle => 'Bildschirm eingeschaltet lassen';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'Der Bildschirm bleibt an, solange der Wandmodus geöffnet ist. Ist die Option aus, gilt die automatische Bildschirmabschaltung des Geräts.';
+
+  @override
+  String get wallPanelFarm => 'Farm';
+
+  @override
+  String get wallPanelSettings => 'Einstellungen';
+
+  @override
+  String get wallPanelExpand => 'Seitenleiste ausklappen';
+
+  @override
+  String get wallPanelCollapse => 'Seitenleiste einklappen';
+
+  @override
+  String get wallErrorsTitle => 'Fehler';
+
+  @override
+  String get wallNoFaults => 'Keine aktiven Fehler';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in der Warteschlange',
+      one: '1 in der Warteschlange',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Live pausiert';
+
+  @override
+  String get wallLiveCameraTitle => 'Live-Kamera';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.';
+
+  @override
+  String get wallPrintersTitle => 'Drucker an der Wand';
+
+  @override
+  String get wallAllHidden =>
+      'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
 }

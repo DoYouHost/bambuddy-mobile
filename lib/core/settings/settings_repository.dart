@@ -30,6 +30,10 @@ class SettingsRepository {
   static const _wearFleetCacheKey = 'wear_fleet_cache';
   static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
   static const _printerCardsCollapsedKey = 'printer_cards_collapsed';
+  static const _wallKeepAwakeKey = 'wall_keep_screen_awake';
+  static const _wallPanelExpandedKey = 'wall_panel_expanded';
+  static const _wallLiveCameraKey = 'wall_live_camera';
+  static const _wallHiddenPrintersKey = 'wall_hidden_printer_ids';
 
   final SharedPreferences _prefs;
 
@@ -134,6 +138,39 @@ class SettingsRepository {
 
   Future<void> savePrinterCardsCollapsed(bool collapsed) =>
       _prefs.setBool(_printerCardsCollapsedKey, collapsed);
+
+  /// Whether wall mode holds the screen on. Absent reads as on: an always-on
+  /// view is what the mode is for.
+  bool loadWallKeepAwake() => _prefs.getBool(_wallKeepAwakeKey) ?? true;
+
+  Future<void> saveWallKeepAwake(bool on) =>
+      _prefs.setBool(_wallKeepAwakeKey, on);
+
+  /// The wall panel's last expand/collapse choice on this device. Null until
+  /// the user makes one, and then the screen width decides.
+  bool? loadWallPanelExpanded() => _prefs.getBool(_wallPanelExpandedKey);
+
+  Future<void> saveWallPanelExpanded(bool expanded) =>
+      _prefs.setBool(_wallPanelExpandedKey, expanded);
+
+  /// Whether wall tiles stream their cameras. Absent reads as on.
+  bool loadWallLiveCamera() => _prefs.getBool(_wallLiveCameraKey) ?? true;
+
+  Future<void> saveWallLiveCamera(bool on) =>
+      _prefs.setBool(_wallLiveCameraKey, on);
+
+  /// Printers this device keeps off its wall. A local choice only: the server
+  /// and the dashboard never see it. An id the server no longer has is simply
+  /// never matched, so a deleted printer needs no cleanup.
+  Set<int> loadWallHiddenPrinters() => {
+    for (final id in _prefs.getStringList(_wallHiddenPrintersKey) ?? const [])
+      ?int.tryParse(id),
+  };
+
+  Future<void> saveWallHiddenPrinters(Set<int> ids) => _prefs.setStringList(
+    _wallHiddenPrintersKey,
+    [for (final id in ids) '$id'],
+  );
 
   /// How many printers the demo runs a print on. Read by both isolates: the UI
   /// sets it, the service re-reads it on [BackgroundSync.demoPrinters].

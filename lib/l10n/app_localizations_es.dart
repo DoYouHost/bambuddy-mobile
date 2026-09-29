@@ -7284,4 +7284,63 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Esta impresión ya pregunta por su resultado, y también cada reimpresión';
+
+  @override
+  String get wallModeTitle => 'Modo pared';
+
+  @override
+  String get wallModeExit => 'Salir del modo pared';
+
+  @override
+  String get wallKeepAwakeTitle => 'Mantener la pantalla encendida';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'La pantalla se mantiene encendida mientras el modo pared está abierto. Si se desactiva, se aplica el tiempo de espera de pantalla del dispositivo.';
+
+  @override
+  String get wallPanelFarm => 'Granja';
+
+  @override
+  String get wallPanelSettings => 'Ajustes';
+
+  @override
+  String get wallPanelExpand => 'Desplegar panel';
+
+  @override
+  String get wallPanelCollapse => 'Plegar panel';
+
+  @override
+  String get wallErrorsTitle => 'Errores';
+
+  @override
+  String get wallNoFaults => 'Sin errores activos';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count en la cola',
+      one: '1 en la cola',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Directo en pausa';
+
+  @override
+  String get wallLiveCameraTitle => 'Cámara en directo';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Si se desactiva, cada mosaico muestra solo el estado de la impresora y no abre la cámara.';
+
+  @override
+  String get wallPrintersTitle => 'Impresoras en la pared';
+
+  @override
+  String get wallAllHidden =>
+      'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
 }

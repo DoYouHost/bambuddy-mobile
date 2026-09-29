@@ -9,6 +9,7 @@ import '../common/settings_entry_tile.dart';
 import '../common/settings_rows.dart';
 import '../../providers.dart';
 import '../dashboard/card_collapse_providers.dart';
+import '../wall/wall_providers.dart';
 import 'demo_printers_provider.dart';
 
 /// What this app does on this phone, as opposed to [ServerSettingsScreen],
@@ -41,6 +42,19 @@ class AppSettingsScreen extends ConsumerWidget {
                   onChanged: ref
                       .read(printerCardsCollapsedByDefaultProvider.notifier)
                       .set,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SettingsSectionHeader(l10n.wallModeTitle),
+            SettingsCard(
+              rows: [
+                SettingsSwitchRow(
+                  tag: 'app_settings.wall_keep_awake',
+                  title: l10n.wallKeepAwakeTitle,
+                  subtitle: l10n.wallKeepAwakeDesc,
+                  value: ref.watch(wallKeepAwakeProvider),
+                  onChanged: ref.read(wallKeepAwakeProvider.notifier).set,
                 ),
               ],
             ),

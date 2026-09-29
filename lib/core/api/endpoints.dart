@@ -132,6 +132,11 @@ abstract final class Endpoints {
   static String cameraStream(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/stream';
 
+  /// One JPEG from the camera, authorised like [cameraStream]. The server's own
+  /// camera wall polls it per tile every 8 s (`camera.py`, `camera_snapshot`).
+  static String cameraSnapshot(int printerId) =>
+      '$apiPrefix/printers/$printerId/camera/snapshot';
+
   // --- Printer storage / file manager ---
   // Browse the printer's own storage (SD/eMMC) over the server's FTP bridge.
   // All require the `PRINTERS_FILES` permission. `path` is a query parameter.

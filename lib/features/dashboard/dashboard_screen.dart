@@ -502,24 +502,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             actions: [
               const Center(child: ConnectionModeChip()),
               const SizedBox(width: 4),
-              logTag(
-                'dashboard.add_printer',
-                IconButton(
-                  tooltip: l10n.addPrinterTitle,
-                  color: t.textPrimary,
-                  icon: const Icon(Icons.add),
-                  onPressed: () => context.push('/printers/add'),
-                ),
-              ),
-              logTag(
-                'dashboard.notifications_menu',
-                IconButton(
-                  tooltip: l10n.batteryOptMenu,
-                  color: t.textPrimary,
-                  icon: const Icon(Icons.notifications_active_outlined),
-                  onPressed: () => _openNotificationMenu(context, l10n),
-                ),
-              ),
+              // One menu for the three actions: as separate icons they left
+              // the title two letters wide next to the connection chip.
+              PopupMenuButton<VoidCallback>(
+                iconColor: t.textPrimary,
+                onSelected: (action) => action(),
+                itemBuilder: (_) => [
+                  _menuItem(
+                    'dashboard.add_printer',
+                    Icons.add,
+                    l10n.addPrinterTitle,
+                    () => context.push('/printers/add'),
+                  ),
+                  _menuItem(
+                    'dashboard.notifications_menu',
+                    Icons.notifications_active_outlined,
+                    l10n.batteryOptMenu,
+                    () => _openNotificationMenu(context, l10n),
+                  ),
+                  _menuItem(
+                    'dashboard.wall_mode',
+                    Icons.view_quilt_outlined,
+                    l10n.wallModeTitle,
+                    // Push, never go: the wall runs on this screen's lifecycle.
+                    () => context.push('/wall'),
+                  ),
+                ],
+              ).tagged('dashboard.menu'),
             ],
             // Only friendly profile label (if set) — no URL.
             bottom: profile?.label == null
@@ -590,18 +599,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return const DashLoading();
     }
 
-    // Printer composition from polling (roster), with status overlaid from
-    // shared statuses map (WS + poll merged in printerStatusesProvider).
-    // Missing map entry → status stays from list alone.
-    final printers = [
-      for (final p in state.printers!)
-        statuses.containsKey(p.printer.id)
-            ? PrinterWithStatus(
-                printer: p.printer,
-                status: statuses[p.printer.id],
-              )
-            : p,
-    ];
+    // Roster from polling, statuses from the WS + poll lanes.
+    final printers = withLiveStatuses(state.printers!, statuses);
     final q = _query.trim().toLowerCase();
     final filtered = [
       for (final p in printers)
@@ -1429,3 +1428,24 @@ class _SummaryHeader extends ConsumerWidget {
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
   }
 }
+
+PopupMenuItem<VoidCallback> _menuItem(
+  String id,
+  IconData icon,
+  String label,
+  VoidCallback action,
+) => PopupMenuItem(
+  value: action,
+  child: logTag(
+    id,
+    Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 12),
+        // A popup menu is capped at 256 px, which a long label at a large
+        // system text size runs past.
+        Flexible(child: Text(label)),
+      ],
+    ),
+  ),
+);

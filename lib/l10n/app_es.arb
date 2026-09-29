@@ -3889,5 +3889,21 @@
   "notifEvtOutcomeDesc": "Cuando termina una impresión que pregunta por su resultado: responda «Buena» o «Rechazar» desde la notificación",
   "outcomeNotifTitle": "¿Cómo ha salido {name}?",
   "outcomeNotifBody": "Responda aquí o toque para ver primero la foto del acabado.",
-  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión"
+  "queueOptConfirmOutcomeSticky": "Esta impresión ya pregunta por su resultado, y también cada reimpresión",
+  "wallModeTitle": "Modo pared",
+  "wallModeExit": "Salir del modo pared",
+  "wallKeepAwakeTitle": "Mantener la pantalla encendida",
+  "wallKeepAwakeDesc": "La pantalla se mantiene encendida mientras el modo pared está abierto. Si se desactiva, se aplica el tiempo de espera de pantalla del dispositivo.",
+  "wallPanelFarm": "Granja",
+  "wallPanelSettings": "Ajustes",
+  "wallPanelExpand": "Desplegar panel",
+  "wallPanelCollapse": "Plegar panel",
+  "wallErrorsTitle": "Errores",
+  "wallNoFaults": "Sin errores activos",
+  "wallQueueCount": "{count, plural, =1{1 en la cola} other{{count} en la cola}}",
+  "wallLivePaused": "Directo en pausa",
+  "wallLiveCameraTitle": "Cámara en directo",
+  "wallLiveCameraDesc": "Si se desactiva, cada mosaico muestra solo el estado de la impresora y no abre la cámara.",
+  "wallPrintersTitle": "Impresoras en la pared",
+  "wallAllHidden": "Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes."
 }

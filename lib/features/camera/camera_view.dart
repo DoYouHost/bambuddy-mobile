@@ -78,7 +78,7 @@ class _CameraViewState extends ConsumerState<CameraView> {
       url: url,
       fit: BoxFit.contain,
       loading: (_) => _Loading(text: l10n.cameraConnecting),
-      retrying: (_) => const _Retrying(),
+      retrying: (_) => const CameraRetryingBadge(),
       error: (context, error) {
         // 401 = token expired -> once force re-mint and restart stream.
         if (_isTokenExpired(error) && _remintedFor != token) {
@@ -145,8 +145,8 @@ class _Loading extends StatelessWidget {
 /// Sits in the corner of the last frame while the stream is being retried. The
 /// picture is frozen but still worth more than an error message a blip will
 /// outlive — this is what says so.
-class _Retrying extends StatelessWidget {
-  const _Retrying();
+class CameraRetryingBadge extends StatelessWidget {
+  const CameraRetryingBadge({super.key});
 
   @override
   Widget build(BuildContext context) {

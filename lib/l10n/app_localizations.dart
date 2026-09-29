@@ -12115,6 +12115,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This print already asks for its outcome, and so does every reprint of it'**
   String get queueOptConfirmOutcomeSticky;
+
+  /// Name of the always-on farm view for a phone or tablet on a stand; also the dashboard button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Wall mode'**
+  String get wallModeTitle;
+
+  /// Tooltip of the button that leaves wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'Exit wall mode'**
+  String get wallModeExit;
+
+  /// Switch: hold the screen on while wall mode is open
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen awake'**
+  String get wallKeepAwakeTitle;
+
+  /// Explains the keep-screen-awake switch in wall mode
+  ///
+  /// In en, this message translates to:
+  /// **'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.'**
+  String get wallKeepAwakeDesc;
+
+  /// Header of the wall's side panel while it shows the printer farm's errors and queue
+  ///
+  /// In en, this message translates to:
+  /// **'Farm'**
+  String get wallPanelFarm;
+
+  /// Header of the wall's side panel while it shows the wall settings; also the settings button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get wallPanelSettings;
+
+  /// Tooltip of the button that expands the wall's side panel from its rail
+  ///
+  /// In en, this message translates to:
+  /// **'Expand panel'**
+  String get wallPanelExpand;
+
+  /// Tooltip of the button that collapses the wall's side panel to a rail
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse panel'**
+  String get wallPanelCollapse;
+
+  /// Section header in the wall panel listing active printer faults across the farm
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get wallErrorsTitle;
+
+  /// Shown in the wall panel's errors section when no printer has an active fault
+  ///
+  /// In en, this message translates to:
+  /// **'No active errors'**
+  String get wallNoFaults;
+
+  /// Screen-reader label for the queue count on the wall's collapsed rail
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 in the queue} other{{count} in the queue}}'**
+  String wallQueueCount(int count);
+
+  /// Marker on a wall tile whose live camera stream failed; the tile shows a snapshot refreshed every few seconds instead
+  ///
+  /// In en, this message translates to:
+  /// **'Live paused'**
+  String get wallLivePaused;
+
+  /// Switch in the wall settings: stream each printer's camera behind its tile
+  ///
+  /// In en, this message translates to:
+  /// **'Live camera'**
+  String get wallLiveCameraTitle;
+
+  /// Explains the wall's live camera switch
+  ///
+  /// In en, this message translates to:
+  /// **'Off shows each printer\'s status only and opens no camera stream.'**
+  String get wallLiveCameraDesc;
+
+  /// Header over the list of printers the user can show or hide on the wall
+  ///
+  /// In en, this message translates to:
+  /// **'Printers on the wall'**
+  String get wallPrintersTitle;
+
+  /// Shown in place of the wall's tiles when the server has printers but all are hidden on this device
+  ///
+  /// In en, this message translates to:
+  /// **'Every printer is hidden from this wall — show them in the settings.'**
+  String get wallAllHidden;
 }
 
 class _AppLocalizationsDelegate

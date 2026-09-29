@@ -3189,5 +3189,21 @@
   "notifEvtOutcomeDesc": "Gdy skończy się wydruk, który pyta o wynik — odpowiedź „Udany” lub „Odrzucony” prosto z powiadomienia",
   "outcomeNotifTitle": "Jak wyszedł wydruk {name}?",
   "outcomeNotifBody": "Odpowiedz tutaj albo dotknij, żeby najpierw zobaczyć zdjęcie wydruku.",
-  "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk"
+  "queueOptConfirmOutcomeSticky": "Ten wydruk już pyta o wynik i tak samo każdy jego ponowny druk",
+  "wallModeTitle": "Tryb ściany",
+  "wallModeExit": "Wyjdź z trybu ściany",
+  "wallKeepAwakeTitle": "Nie wygaszaj ekranu",
+  "wallKeepAwakeDesc": "Ekran nie gaśnie, dopóki tryb ściany jest otwarty. Po wyłączeniu obowiązuje wygaszanie ustawione w urządzeniu.",
+  "wallPanelFarm": "Farma",
+  "wallPanelSettings": "Ustawienia",
+  "wallPanelExpand": "Rozwiń panel",
+  "wallPanelCollapse": "Zwiń panel",
+  "wallErrorsTitle": "Błędy",
+  "wallNoFaults": "Brak aktywnych błędów",
+  "wallQueueCount": "{count, plural, =1{1 w kolejce} few{{count} w kolejce} many{{count} w kolejce} other{{count} w kolejce}}",
+  "wallLivePaused": "Podgląd wstrzymany",
+  "wallLiveCameraTitle": "Kamera na żywo",
+  "wallLiveCameraDesc": "Po wyłączeniu kafle pokazują sam status drukarki i nie otwierają strumienia kamery.",
+  "wallPrintersTitle": "Drukarki na ścianie",
+  "wallAllHidden": "Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach."
 }

@@ -7193,4 +7193,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'This print already asks for its outcome, and so does every reprint of it';
+
+  @override
+  String get wallModeTitle => 'Wall mode';
+
+  @override
+  String get wallModeExit => 'Exit wall mode';
+
+  @override
+  String get wallKeepAwakeTitle => 'Keep screen awake';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'The screen stays on while wall mode is open. Off lets the device\'s own screen timeout apply.';
+
+  @override
+  String get wallPanelFarm => 'Farm';
+
+  @override
+  String get wallPanelSettings => 'Settings';
+
+  @override
+  String get wallPanelExpand => 'Expand panel';
+
+  @override
+  String get wallPanelCollapse => 'Collapse panel';
+
+  @override
+  String get wallErrorsTitle => 'Errors';
+
+  @override
+  String get wallNoFaults => 'No active errors';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in the queue',
+      one: '1 in the queue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Live paused';
+
+  @override
+  String get wallLiveCameraTitle => 'Live camera';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Off shows each printer\'s status only and opens no camera stream.';
+
+  @override
+  String get wallPrintersTitle => 'Printers on the wall';
+
+  @override
+  String get wallAllHidden =>
+      'Every printer is hidden from this wall — show them in the settings.';
 }

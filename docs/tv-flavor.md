@@ -54,12 +54,18 @@ Out of scope for the MVP: any write action (pause/stop/queue edits), a
 | D5′ | *Supersedes D5.* An app-only dashboard cannot keep a TV on (TV-BY), and without always-on a TV app has little point. So the TV's home screen is the **camera wall with status overlays**: live video the user opened keeps the screen on, which TV-BU/TV-BY allow. Other screens still let Ambient Mode in. | 2026-09-28 |
 | D9 | **Wall mode on phone/tablet first** (§13), in the `mobile` flavor — the nearer, cheaper way to an always-on farm view. The TV flavor follows it. | 2026-09-28 |
 | D10 | The TV flavor is **based on the camera wall** (D5′); its tile/overlay widget is shared with wall mode. | 2026-09-28 |
-| D11 | Wall mode keeps the screen on through **our own method channel** in `MainActivity` (`FLAG_KEEP_SCREEN_ON` add/clear), not `wakelock_plus`. | 2026-09-28 |
+| D11 | Wall mode keeps the screen on through **our own method channel** in `MainActivity` (`FLAG_KEEP_SCREEN_ON` add/clear), not `wakelock_plus`: a new `…/window` channel registered with the existing `serve()` helper. Immersive mode stays in Dart (`SystemChrome`). | 2026-09-28 |
 | D12 | **No fixed cap on live camera tiles**: as many as fit on the screen and as the bambuddy server sustains. The real limits are measured on the emulator (and against a real server) before the number is designed in. | 2026-09-28 |
 | D13 | Wall mode ships **with the queue + errors panel from the start**, so the grid layout is designed once around it, not rebuilt later. The TV camera wall reuses the same layout. | 2026-09-28 |
 | D14 | Wall mode has a **"Keep screen awake" setting**; the D11 channel applies it only while wall mode is on screen. | 2026-09-28 |
 | D15 | Wall mode is **landscape only** — portrait makes no sense for a wall. No portrait layout is designed or tested. | 2026-09-28 |
 | D16 | Below a width threshold the queue + errors panel **starts collapsed, with a control to expand it**; above it, it starts expanded. The threshold comes from the spike screenshots. | 2026-09-28 |
+| D17 | Wall errors panel order: **most severe first, then printer name.** `HmsError` has no timestamp, so "newest" is dropped rather than tracked in the app. | 2026-09-28 |
+| D18 | The wall's queue panel **polls the queue every 30 s** while wall mode is visible (the server pushes no queue add/delete/reorder event). | 2026-09-28 |
+| D19 | Wall settings live **in the side panel**: a settings button swaps the panel between the farm view and the settings, and opens the panel on them from the rail. No floating card; a tap on the wall background does nothing, a tap on a tile opens that printer's camera. Leaving is a button in the settings, or Back. | 2026-09-28 |
+| D20 | Panel header and rail end with the **same pair: settings, then expand/collapse last**, on every device (a tablet can collapse too). Rail counts are read-only. Every control is ≥ 48 dp. The panel body is **one scrolling list** (errors, then queue) under a pinned header — no "+N more". | 2026-09-28 |
+| D21 | The panel is **always on screen**, collapsed to the rail or expanded — there is no setting that hides it. The rail is where the wall's settings and its way out live (D19), and at 64 dp it already leaves the tiles nearly the whole screen. | 2026-09-28 |
+| D22 | A printer hidden on the wall takes its **HMS errors out of the panel and the rail count** too. The wall is a view, not a control: hiding a printer means not wanting to watch it. | 2026-09-28 |
 
 ## 3. Server facts this plan relies on
 
@@ -367,15 +373,27 @@ user is already signed in to, with the credentials it already has.
 - **Landscape only (D15).** Entering wall mode locks the orientation to
   landscape (`SystemChrome.setPreferredOrientations` with both landscape
   directions, so a stand either way round works); leaving it restores the
-  app's normal orientation. The grid adapts to the landscape width: e.g. 2–3
+  app's normal orientation — which is *unconstrained*: the manifest sets no
+  `screenOrientation`, so restoring means `setPreferredOrientations([])`, never
+  a portrait lock, and `SystemUiMode.edgeToEdge` for the bars. Both go in the
+  screen's `dispose`, so every exit path (Back, a route replaced from under it)
+  restores them. The grid adapts to the landscape width: e.g. 2–3
   columns on a phone, 3–5 on a tablet. Tap a tile for that printer's
   full-screen camera and back.
 - **Queue + errors panel (D13)**, part of the layout from the first version:
-  - *Errors*: active HMS faults across all printers, newest/most severe first,
-    each naming its printer; a fault also highlights its tile. Empty state is
+  - *Errors*: active HMS faults across the printers on the wall (hidden ones
+    excluded, D22), most severe first, each
+    naming its printer; a fault also highlights its tile. Empty state is
     a quiet "no faults", not a hidden panel, so the layout does not jump.
+    `HmsError` carries no timestamp (`printer_status.dart`), so "newest"
+    cannot come from the data; ties break by printer name (D17).
   - *Queue*: the next items (name, target printer or model, `waitingReason`),
-    as many as the panel height holds, then "+N more".
+    in one scrolling list under the errors (D20). The server pushes no
+    WebSocket event for a queue add, delete or reorder (only
+    `queue_item_{acked,failed,uploading,upload_progress}`,
+    `core/websocket.py`), and the app refreshes the queue only on print
+    events (`ws_providers.dart`), so the panel **polls** the queue while wall
+    mode is visible, every 30 s (D18).
   - Placement: a **side column** next to the grid, on every device (landscape
     only, D15). The grid is always laid out *next to* the panel, never under
     it — that is the reason to build them together.
@@ -394,26 +412,61 @@ user is already signed in to, with the credentials it already has.
   - **Keep screen awake** (D14) — on by default, since an always-on wall is
     the point of the mode; off lets the device's own screen timeout apply
     while the wall is shown.
-  - Which printers appear (like the TV's hidden list).
+  - Which printers appear (like the TV's hidden list). New work: no
+    hidden-printer setting exists in the app yet; a new prefs key.
   - Tiles show live video or status only.
-  - Queue + errors panel shown or hidden (hidden removes the rail too).
+  - ~~Queue + errors panel shown or hidden~~ — dropped by D21: the panel is
+    always there, as the rail or expanded.
+  - These settings open inside the panel, not over the wall (D19).
 
 ### 13.2 Behaviour
 
-- Entered explicitly (a "Wall mode" action on the dashboard); left with Back or
-  a tap-to-show exit control — never by accident, never trapping the user.
+- Entered explicitly (a "Wall mode" action in the dashboard's ⋮ menu); left
+  with Back or the exit button in the panel settings (D19) — never by
+  accident, never trapping the user.
+- **Pushed on top of the dashboard (`context.push`), never `go`.** The
+  dashboard owns the FGS start/stop and the three token refreshers
+  (`dashboard_screen.dart`, its `AppLifecycleListener`); replacing it would
+  silently stop background monitoring and token renewal. A test asserts the
+  dashboard is still mounted under the wall.
 - **Keeps the screen on only while wall mode is visible and "Keep screen
   awake" is on** (`FLAG_KEEP_SCREEN_ON` on the activity — needs no
-  permission), cleared on exit, on background and when the setting is turned
-  off.
+  permission): set on enter, cleared on exit and when the setting is turned
+  off. Not touched on background/resume — the flag only acts while the window
+  is visible, so there is nothing to re-assert when the user comes back.
   Mechanism (D11): two handlers on the method-channel table `MainActivity.kt`
   already has — no new dependency. `wakelock_plus` would set the same flag on
   Android; it is not worth a package. The same channel serves the TV flavor.
 - Immersive full screen (system bars hidden) while in wall mode.
 - Survives what a wall screen meets for days: WebSocket reconnect after Wi-Fi
-  drops, server restarts, a JWT expiring (the existing re-login / "remember
-  me" path; a 2FA user gets a clear "sign in again" state rather than a frozen
-  wall), camera streams reconnecting individually.
+  drops, server restarts, camera streams reconnecting individually
+  (`MjpegView` already retries on its own backoff and keeps the last frame).
+- **JWT expiry (24 h).** A password session with "remember me" renews
+  silently and the wall never notices. A 2FA session has no remember-me by
+  design (`auth_service.dart`, `verifyTwoFactor`), nor does a session without
+  it: when the dashboard poll meets the 401 it sets `authExpired`, and the
+  dashboard — still mounted under the wall — answers with
+  `context.go('/setup')`, which replaces the wall. That is the "sign in
+  again" state; the wall's `dispose` restoring orientation, bars and the
+  screen flag is what keeps the user from landing on a landscape-locked,
+  immersive login screen. The sign-in-required dialog
+  (`_showSignInRequired`) is raised only on first frame and on resume, which
+  an always-on wall never has — so it is not what the wall relies on. An API
+  key session never expires and can mint camera tokens (`CAMERA_VIEW` maps to
+  `can_read_status`, `core/auth.py:100`) — worth a hint in the wall-mode
+  settings for 2FA users.
+- **Camera token refresh (~55 min) must not restart the streams.** The
+  proactive refresher (`cameraTokenRefresherProvider`) re-mints before the
+  60-min server TTL and the new token changes the `?token=` in every stream
+  URL. `MjpegView.didUpdateWidget` treats any URL change as a new stream: it
+  drops the socket and the last frame, so every tile would flash a spinner
+  and reopen at once, hourly. The server checks the token only at connect
+  (`RequireCameraStreamTokenIfAuthEnabled` is a route dependency; the fan-out
+  generator never re-checks), so an open stream is unaffected. Change: when
+  only the `token` parameter changed, keep the live connection and just use
+  the new URL for the next reconnect; restart immediately only if the stream
+  is down or retrying. This also fixes the same hourly blink in the
+  full-screen camera view.
 - Burn-in: static chrome is minimal; shift the overlay layout by a few pixels
   periodically (OLED phones/tablets).
 - Live tiles (D12): every tile that fits on screen streams live — no designed-in
@@ -421,10 +474,18 @@ user is already signed in to, with the credentials it already has.
   the tile logic is finalised**:
   - *Device*: decoding N MJPEG streams at once — frame rate, CPU, memory, heat
     — on a low-end tablet emulator profile and on a real mid-range device.
-  - *Server*: the bambuddy server proxies each stream from its printer, so N
-    open streams are N upstream camera connections through one server; find
-    where it starts dropping frames or refusing, with a real server and real
-    printers (the emulator alone cannot show this).
+  - *Server*: the bambuddy server fans each printer's camera out to every
+    viewer over one upstream connection (`camera_fanout`, #1089), so N tiles
+    cost N upstreams — one `ffmpeg` per RTSP printer (X1/H2/P2) or one
+    chamber-image connection (A1/P1) — not N per viewer. Find where it starts
+    dropping frames or refusing, with a real server and real printers (the
+    emulator alone cannot show this).
+  - *Frame rate*: the stream route takes `fps` (default 10; clamped to 5 on
+    A1/P1, 30 otherwise, `routes/camera.py`). A low fps per tile is the
+    obvious lever, **but the fan-out's fps is fixed by the first viewer**
+    (`routes/camera.py`, note above `fanout_key`): a wall open 24/7 at 2 fps
+    pins the phone's full-screen view and the web UI of that printer to 2 fps
+    too. The spike measures fps per tile with that trap in mind.
   - Degrade instead of break: a tile whose stream fails or stalls falls back to
     a periodic snapshot with a "live paused" marker and retries; the rest of
     the wall is unaffected. If measurement shows a hard ceiling, it becomes a
@@ -440,6 +501,13 @@ user is already signed in to, with the credentials it already has.
   catalogue and `mjpeg_view.dart`).
 - Keep-screen-on channel handlers in `MainActivity.kt` + a Dart wrapper;
   immersive toggle scoped to the screen.
+- New work the code does not have yet:
+  - `MjpegView`: keep the connection when only the token changed (§13.2).
+  - Snapshot fallback: an `Endpoints` constant for
+    `GET /printers/{id}/camera/snapshot` and a polling tile.
+  - Queue poll while the wall is visible.
+  - Hidden-printer setting (prefs key + picker).
+  - Burn-in shift timer.
 - l10n in 5 locales (`just l10n-check`), `logTag` ids `wall.*`, `log-coverage`
   at zero.
 - Tests: tile overlay states (printing, paused, idle, fault, offline, no
@@ -447,8 +515,10 @@ user is already signed in to, with the credentials it already has.
   at large system text, panel empty/overflow states, panel collapsed/expanded
   on each side of the width threshold, the rail's counts, the remembered
   choice, orientation locked on
-  enter and restored on exit, keep-screen on/off on enter/exit/background and
-  on toggling the setting (fake channel), reconnect paths.
+  enter and restored on exit (including when `/setup` replaces the wall),
+  keep-screen on/off on enter/exit and on toggling the setting (fake channel),
+  dashboard still mounted under the wall, a token-only URL change not
+  reopening the stream, reconnect paths.
 - Docs: store listing mention (5 languages), `docs/logging-guide.md` ids.
 
 ### 13.4 Estimate
@@ -458,9 +528,10 @@ user is already signed in to, with the credentials it already has.
 | Measurement spike (D12): N simultaneous MJPEG streams on emulator profiles + against a real server; keep-screen-on channel | 1–2 days |
 | Tile/overlay widget + grid + settings | 2–3 days |
 | Queue + errors panel and the shared layout (D13) | 2 days |
-| Keep-screen-on, immersive, resilience (reconnects, token expiry, stream fallback) | 1–2 days |
+| Keep-screen-on, immersive, resilience (reconnects, token-only URL change in `MjpegView`, JWT expiry exit path) | 1–2 days |
+| Snapshot fallback, queue poll, hidden printers, burn-in shift | 2–3 days |
 | l10n, log tags, tests | 1–2 days |
-| **Total** | **~1.5–2 weeks** |
+| **Total** | **~2–3 weeks** |
 
 ### 13.5 Open for wall mode
 
@@ -472,3 +543,11 @@ user is already signed in to, with the credentials it already has.
 5. ~~Panel on narrow phones~~ — settled by D16 (collapsed below a threshold,
    expandable).
 6. The D16 width threshold — pick from the spike screenshots.
+7. ~~Error order~~ — settled by D17.
+8. ~~Queue poll interval~~ — settled by D18.
+9. Provisional values in the code, to confirm with the D12 measurement and
+   the spike screenshots: the rail threshold (`panelExpandedFromWidth`, 960
+   dp), a refused stream asked for again after 60 s (`restreamAfter`), the
+   burn-in step (3 min round four offsets of 2 px). The snapshot interval
+   (8 s) is the server's own camera wall's, not a guess.
+10. ~~"Panel shown or hidden"~~ — dropped by D21.

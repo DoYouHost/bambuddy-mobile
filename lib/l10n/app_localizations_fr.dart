@@ -7355,4 +7355,63 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get queueOptConfirmOutcomeSticky =>
       'Cette impression demande déjà son résultat et chaque réimpression aussi';
+
+  @override
+  String get wallModeTitle => 'Mode mural';
+
+  @override
+  String get wallModeExit => 'Quitter le mode mural';
+
+  @override
+  String get wallKeepAwakeTitle => 'Garder l\'écran allumé';
+
+  @override
+  String get wallKeepAwakeDesc =>
+      'L\'écran reste allumé tant que le mode mural est ouvert. Si l\'option est désactivée, la mise en veille de l\'appareil s\'applique.';
+
+  @override
+  String get wallPanelFarm => 'Ferme';
+
+  @override
+  String get wallPanelSettings => 'Paramètres';
+
+  @override
+  String get wallPanelExpand => 'Déplier le panneau';
+
+  @override
+  String get wallPanelCollapse => 'Replier le panneau';
+
+  @override
+  String get wallErrorsTitle => 'Erreurs';
+
+  @override
+  String get wallNoFaults => 'Aucune erreur active';
+
+  @override
+  String wallQueueCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dans la file d\'attente',
+      one: '1 dans la file d\'attente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wallLivePaused => 'Direct en pause';
+
+  @override
+  String get wallLiveCameraTitle => 'Caméra en direct';
+
+  @override
+  String get wallLiveCameraDesc =>
+      'Désactivée, chaque vignette n\'affiche que l\'état de l\'imprimante et n\'ouvre aucun flux vidéo.';
+
+  @override
+  String get wallPrintersTitle => 'Imprimantes sur le mur';
+
+  @override
+  String get wallAllHidden =>
+      'Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.';
 }

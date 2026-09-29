@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -22,7 +23,7 @@ import io.flutter.plugin.common.MethodChannel
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of four platform channels.
+ * Native side of five platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, fires the system prompt — that exemption is what
@@ -39,6 +40,10 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  * `wear_shape` answers whether the display is round. Flutter never surfaces that: a round
  * watch face is not reported as a view inset, so `SafeArea` resolves to zero on it and the
  * layout has to inset itself (`lib/wear/wear_geometry.dart`).
+ *
+ * `window` holds the screen on while wall mode is up (`lib/features/wall/`). A window flag
+ * rather than a wake lock: it needs no permission, acts only while this window is visible,
+ * and so needs nothing re-asserted on resume.
  */
 class MainActivity : FlutterActivity() {
 
@@ -101,6 +106,20 @@ class MainActivity : FlutterActivity() {
                 // change asks again anyway.
                 "isScreenRound" to { _, result ->
                     result.success(resources.configuration.isScreenRound)
+                }
+            )
+        )
+        flutterEngine.serve(
+            WINDOW_CHANNEL,
+            mapOf<String, MethodHandler>(
+                "keepScreenOn" to { call, result ->
+                    val flag = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                    if (call.argument<Boolean>("on") == true) {
+                        window.addFlags(flag)
+                    } else {
+                        window.clearFlags(flag)
+                    }
+                    result.success(null)
                 }
             )
         )
@@ -196,6 +215,7 @@ class MainActivity : FlutterActivity() {
         const val WEAR_INPUT_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_input"
         const val WEAR_SHAPE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_shape"
         const val CLOCK_CHANNEL = "page.codeberg.morganmlgman.bambuddy/clock"
+        const val WINDOW_CHANNEL = "page.codeberg.morganmlgman.bambuddy/window"
 
         const val WEAR_TEXT_KEY = "bambuddy_wear_text"
         const val REQUEST_WEAR_TEXT = 0x7EA1

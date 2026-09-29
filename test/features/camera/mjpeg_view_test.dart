@@ -59,6 +59,9 @@ class _FakeHttpOverrides extends HttpOverrides {
   /// however many times it retried.
   int clients = 0;
 
+  /// Every URL a connection was opened to, in order.
+  final urls = <Uri>[];
+
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     clients++;
@@ -76,6 +79,7 @@ class _FakeClient implements HttpClient {
 
   @override
   Future<HttpClientRequest> getUrl(Uri url) async {
+    _overrides.urls.add(url);
     final body = StreamController<List<int>>();
     _overrides.attempts.add(body);
     return _FakeRequest(_FakeResponse(_overrides.status, body.stream));
@@ -107,11 +111,13 @@ void main() {
   Future<void> show(
     WidgetTester tester, {
     String url = 'http://printer.test/stream?token=t',
+    int? cacheWidth,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         home: MjpegView(
           url: url,
+          cacheWidth: cacheWidth,
           loading: (_) => const Text('connecting'),
           error: (_, _) => const Text('failed'),
           retrying: (_) => const Text('retrying'),
@@ -292,10 +298,98 @@ void main() {
     await show(tester);
     await cachedAfterOneFrame(tester);
 
-    await show(tester, url: 'http://printer.test/stream?token=fresh');
+    await show(tester, url: 'http://printer.test/other-stream?token=t');
     final cache = PaintingBinding.instance.imageCache;
     expect(cache.pendingImageCount + cache.liveImageCount, 0);
     await quiesce(tester);
+  });
+
+  group('a re-minted token', () {
+    testWidgets('leaves a live stream and its picture alone', (tester) async {
+      await show(tester);
+      final held = await cachedAfterOneFrame(tester);
+
+      await show(tester, url: 'http://printer.test/stream?token=fresh');
+      final cache = PaintingBinding.instance.imageCache;
+      expect(http.clients, 1, reason: 'no second connection');
+      expect(cache.pendingImageCount + cache.liveImageCount, held);
+      await quiesce(tester);
+    });
+
+    testWidgets('is what the next reconnect carries', (tester) async {
+      await show(tester);
+      await cachedAfterOneFrame(tester);
+      await show(tester, url: 'http://printer.test/stream?token=fresh');
+
+      await drop(tester);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+
+      expect(http.urls.last.queryParameters['token'], 'fresh');
+      await quiesce(tester);
+    });
+
+    testWidgets('restarts a stream that has no picture yet', (tester) async {
+      await show(tester);
+
+      await show(tester, url: 'http://printer.test/stream?token=fresh');
+
+      expect(http.clients, 2);
+      expect(http.urls.last.queryParameters['token'], 'fresh');
+      await quiesce(tester);
+    });
+  });
+
+  testWidgets('drops a frame decoded at the tile width too', (tester) async {
+    await show(tester, cacheWidth: 64);
+    await cachedAfterOneFrame(tester);
+
+    await tester.pumpWidget(const SizedBox());
+    final cache = PaintingBinding.instance.imageCache;
+    expect(cache.pendingImageCount + cache.liveImageCount, 0);
+    await quiesce(tester);
+  });
+
+  group('sameStreamExceptToken', () {
+    const base = 'http://h:8000/api/v1/printers/1/camera/stream';
+
+    test('a new token alone is the same stream', () {
+      expect(sameStreamExceptToken('$base?token=a', '$base?token=b'), isTrue);
+    });
+
+    test('another printer, host or parameter is another stream', () {
+      expect(
+        sameStreamExceptToken(
+          '$base?token=a',
+          'http://h:8000/api/v1/printers/2/camera/stream?token=a',
+        ),
+        isFalse,
+      );
+      expect(
+        sameStreamExceptToken('$base?token=a', 'http://other:8000/x?token=a'),
+        isFalse,
+      );
+      expect(
+        sameStreamExceptToken('$base?token=a&fps=2', '$base?token=b&fps=10'),
+        isFalse,
+      );
+    });
+
+    test('keeps the other parameters in the comparison', () {
+      expect(
+        sameStreamExceptToken('$base?fps=2&token=a', '$base?token=b&fps=2'),
+        isTrue,
+      );
+    });
+
+    test('gaining or losing the token is not a refresh', () {
+      expect(sameStreamExceptToken(base, '$base?token=b'), isFalse);
+      expect(sameStreamExceptToken('$base?token=a', base), isFalse);
+    });
+
+    test('an unparsable URL is never the same stream', () {
+      expect(sameStreamExceptToken('http://[', '$base?token=b'), isFalse);
+    });
   });
 
   testWidgets('does not retry a URL it cannot parse', (tester) async {
