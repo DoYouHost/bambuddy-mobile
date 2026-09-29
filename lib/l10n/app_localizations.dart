@@ -4232,6 +4232,12 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get inventoryEdit;
 
+  /// No description provided for @inventoryDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get inventoryDuplicate;
+
   /// No description provided for @inventoryDelete.
   ///
   /// In en, this message translates to:

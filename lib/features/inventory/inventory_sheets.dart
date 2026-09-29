@@ -1,10 +1,11 @@
 part of 'inventory_screen.dart';
 
-/// Opens spool create/edit sheet. [existing] != null → edit mode.
-void openSpoolForm(BuildContext context, {Spool? existing}) {
+/// Opens spool create/edit sheet. [existing] != null → edit mode; [copyOf]
+/// fills a create form from another spool.
+void openSpoolForm(BuildContext context, {Spool? existing, Spool? copyOf}) {
   dashSurfaceSheet<void>(
     context,
-    builder: (_) => _SpoolFormSheet(existing: existing),
+    builder: (_) => _SpoolFormSheet(existing: existing, copyOf: copyOf),
   );
 }
 
@@ -320,6 +321,15 @@ class _SpoolActions extends ConsumerWidget {
           icon: Icons.edit_outlined,
           label: l10n.inventoryEdit,
         ).tagged('spool_actions.edit'),
+        _ActionPill(
+          tokens: t,
+          onPressed: () {
+            Navigator.of(context).pop();
+            openSpoolForm(context, copyOf: spool);
+          },
+          icon: Icons.copy_outlined,
+          label: l10n.inventoryDuplicate,
+        ).tagged('spool_actions.duplicate'),
         if (!spool.isArchived)
           if (assignment != null)
             _ActionPill(
@@ -357,6 +367,7 @@ class _SpoolActions extends ConsumerWidget {
         if (spool.consumedWeight > 0)
           _ActionPill(
             tokens: t,
+            variant: _ActionPillVariant.warning,
             onPressed: () => _resetUsage(context, ref, l10n),
             icon: Icons.refresh,
             label: l10n.inventoryResetUsage,
@@ -378,6 +389,7 @@ class _SpoolActions extends ConsumerWidget {
         else
           _ActionPill(
             tokens: t,
+            variant: _ActionPillVariant.secondary,
             onPressed: () => _run(
               context,
               ref,
@@ -473,11 +485,12 @@ class _SpoolActions extends ConsumerWidget {
   }
 }
 
-enum _ActionPillVariant { primary, outline, destructive }
+enum _ActionPillVariant { primary, outline, secondary, warning, destructive }
 
 /// Small pill action button used in the spool detail sheet's action row.
-/// [primary] (Edit) is filled with a tinted accent; other actions are
-/// outlined; [destructive] (Delete) is text-only in the danger color.
+/// [primary] (Edit) is filled with a tinted accent; the rest are outlined:
+/// [outline] in the accent (the default), [secondary] (Archive), [warning]
+/// (Reset usage) and [destructive] (Delete) each in their own color.
 class _ActionPill extends StatelessWidget {
   const _ActionPill({
     required this.tokens,
@@ -495,15 +508,25 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = variant == _ActionPillVariant.destructive
-        ? tokens.dangerInk
-        : tokens.accentGreenInk;
+    final (color, outline) = switch (variant) {
+      _ActionPillVariant.primary => (tokens.accentGreenInk, null),
+      _ActionPillVariant.outline => (tokens.accentGreenInk, tokens.accentGreen),
+      _ActionPillVariant.secondary => (
+        tokens.textSecondary,
+        tokens.textSecondary,
+      ),
+      _ActionPillVariant.warning => (
+        tokens.accentOrangeInk,
+        tokens.accentOrange,
+      ),
+      _ActionPillVariant.destructive => (tokens.dangerInk, tokens.danger),
+    };
     final fill = variant == _ActionPillVariant.primary
         ? tokens.accentGreen.withValues(alpha: 0.16)
         : Colors.transparent;
-    final border = variant == _ActionPillVariant.outline
-        ? Border.all(color: tokens.accentGreen.withValues(alpha: 0.4))
-        : null;
+    final border = outline == null
+        ? null
+        : Border.all(color: outline.withValues(alpha: 0.4));
 
     return Material(
       color: fill,

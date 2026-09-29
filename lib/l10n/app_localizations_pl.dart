@@ -2498,6 +2498,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryEdit => 'Edytuj';
 
   @override
+  String get inventoryDuplicate => 'Duplikuj';
+
+  @override
   String get inventoryDelete => 'Usuń';
 
   @override

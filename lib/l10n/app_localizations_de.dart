@@ -2488,6 +2488,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryEdit => 'Bearbeiten';
 
   @override
+  String get inventoryDuplicate => 'Duplizieren';
+
+  @override
   String get inventoryDelete => 'Löschen';
 
   @override

@@ -1016,6 +1016,7 @@
   "inventorySave": "Zapisz",
   "inventoryQuantityHint": "Dodaj naraz kilka identycznych szpul",
   "inventoryEdit": "Edytuj",
+  "inventoryDuplicate": "Duplikuj",
   "inventoryDelete": "Usuń",
   "inventoryArchive": "Archiwizuj",
   "inventoryRestore": "Przywróć",

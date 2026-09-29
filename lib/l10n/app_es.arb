@@ -1397,6 +1397,7 @@
   "inventorySave": "Guardar",
   "inventoryQuantityHint": "Crear varias bobinas idénticas a la vez",
   "inventoryEdit": "Editar",
+  "inventoryDuplicate": "Duplicar",
   "inventoryDelete": "Eliminar",
   "inventoryArchive": "Archivar",
   "inventoryRestore": "Restaurar",
