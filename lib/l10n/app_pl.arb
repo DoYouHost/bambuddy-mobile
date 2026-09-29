@@ -927,6 +927,12 @@
   "inventoryFilterMaterial": "Materiał",
   "inventoryFilterBrand": "Marka",
   "inventoryFiltersClear": "Wyczyść",
+  "inventorySortLabel": "Sortuj wg",
+  "inventorySortStandard": "Domyślnie",
+  "inventorySortUsage": "Zużycie",
+  "inventorySortAdded": "Data dodania",
+  "inventorySortPrice": "Cena/kg",
+  "inventorySortId": "ID",
   "inventorySpoolCount": "{count, plural, one{{count} szpula} few{{count} szpule} other{{count} szpul}}",
   "@inventorySpoolCount": {
     "placeholders": {

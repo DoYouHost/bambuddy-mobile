@@ -1426,6 +1426,12 @@
   "inventoryFilterMaterial": "Material",
   "inventoryFilterBrand": "Brand",
   "inventoryFiltersClear": "Clear all",
+  "inventorySortLabel": "Sort by",
+  "inventorySortStandard": "Default",
+  "inventorySortUsage": "Usage",
+  "inventorySortAdded": "Date added",
+  "inventorySortPrice": "Price/kg",
+  "inventorySortId": "ID",
   "inventorySpoolCount": "{count} {count, plural, one{spool} other{spools}}",
   "@inventorySpoolCount": {
     "placeholders": {

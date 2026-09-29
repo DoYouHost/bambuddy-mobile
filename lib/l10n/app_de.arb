@@ -1294,6 +1294,12 @@
   "inventoryFilterMaterial": "Material",
   "inventoryFilterBrand": "Marke",
   "inventoryFiltersClear": "Alle zurücksetzen",
+  "inventorySortLabel": "Sortieren nach",
+  "inventorySortStandard": "Standard",
+  "inventorySortUsage": "Verbrauch",
+  "inventorySortAdded": "Hinzugefügt am",
+  "inventorySortPrice": "Preis/kg",
+  "inventorySortId": "ID",
   "inventorySpoolCount": "{count} {count, plural, one{Spule} other{Spulen}}",
   "@inventorySpoolCount": {
     "placeholders": {

@@ -188,10 +188,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
-    final visible = _filter(
-      async.valueOrNull?.spools ?? const [],
-      query,
-      filters,
+    final visible = sortSpools(
+      _filter(async.valueOrNull?.spools ?? const [], query, filters),
+      filters.sort,
+      descending: filters.descending,
     );
 
     // Drop ids that a filter/search change has scrolled out of reach — acting

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -365,9 +366,41 @@ final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
 /// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 
+/// What the spool list is ordered by. [standard] is the order
+/// [InventoryNotifier] loads it in, and has no direction.
+enum InventorySort { standard, usage, added, price, id }
+
+/// [spools] reordered by [sort]. Stable, so ties keep the standard order, and
+/// a spool without a price or an added date goes last in either direction —
+/// "unknown" is not the cheapest nor the oldest.
+List<Spool> sortSpools(
+  List<Spool> spools,
+  InventorySort sort, {
+  required bool descending,
+}) {
+  int nullsLast(Comparable<Object>? a, Comparable<Object>? b) {
+    if (a == null || b == null) return a == null ? (b == null ? 0 : 1) : -1;
+    return descending ? b.compareTo(a) : a.compareTo(b);
+  }
+
+  final int Function(Spool, Spool)? compare = switch (sort) {
+    InventorySort.standard => null,
+    InventorySort.usage => (a, b) => nullsLast(a.weightUsed, b.weightUsed),
+    InventorySort.added => (a, b) => nullsLast(a.createdAt, b.createdAt),
+    InventorySort.price => (a, b) => nullsLast(a.costPerKg, b.costPerKg),
+    InventorySort.id => (a, b) => nullsLast(a.id, b.id),
+  };
+  if (compare == null) return spools;
+  // `List.sort` is not stable; ties must keep the standard order.
+  final sorted = [...spools];
+  mergeSort(sorted, compare: compare);
+  return sorted;
+}
+
 /// Set of inventory filters (apart from search) — chosen in the filter sheet.
 /// All applied client-side on the full spool list. Defaults: active only, no limits.
-/// Empty sets = "all".
+/// Empty sets = "all". [sort] and [descending] are a view preference, not a
+/// filter, so they are left out of [activeCount] and survive "clear all".
 class InventoryFilters {
   const InventoryFilters({
     this.showArchived = false,
@@ -375,6 +408,8 @@ class InventoryFilters {
     this.materials = const {},
     this.brands = const {},
     this.locations = const {},
+    this.sort = InventorySort.standard,
+    this.descending = true,
   });
 
   /// false → active only (default); true → archived only.
@@ -383,6 +418,8 @@ class InventoryFilters {
   final Set<String> materials;
   final Set<String> brands;
   final Set<String> locations;
+  final InventorySort sort;
+  final bool descending;
 
   /// Count of non-default filters — for badge on filter button.
   int get activeCount =>
@@ -398,12 +435,16 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
+    InventorySort? sort,
+    bool? descending,
   }) => InventoryFilters(
     showArchived: showArchived ?? this.showArchived,
     lowStockOnly: lowStockOnly ?? this.lowStockOnly,
     materials: materials ?? this.materials,
     brands: brands ?? this.brands,
     locations: locations ?? this.locations,
+    sort: sort ?? this.sort,
+    descending: descending ?? this.descending,
   );
 }
 

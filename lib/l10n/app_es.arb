@@ -1294,6 +1294,12 @@
   "inventoryFilterMaterial": "Material",
   "inventoryFilterBrand": "Marca",
   "inventoryFiltersClear": "Borrar todo",
+  "inventorySortLabel": "Ordenar por",
+  "inventorySortStandard": "Predeterminado",
+  "inventorySortUsage": "Uso",
+  "inventorySortAdded": "Fecha de alta",
+  "inventorySortPrice": "Precio/kg",
+  "inventorySortId": "ID",
   "inventorySpoolCount": "{count} {count, plural, one{bobina} other{bobinas}}",
   "@inventorySpoolCount": {
     "placeholders": {

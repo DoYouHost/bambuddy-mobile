@@ -75,6 +75,7 @@ class Spool {
     this.trayUuid,
     this.archivedAt,
     this.lastUsed,
+    this.createdAt,
     this.slicerFilament,
     this.slicerFilamentName,
     this.kProfiles = const [],
@@ -109,6 +110,7 @@ class Spool {
     trayUuid: toStringOrNull(json['tray_uuid']),
     archivedAt: toStringOrNull(json['archived_at']),
     lastUsed: toStringOrNull(json['last_used']),
+    createdAt: dateTimeFromJson(json['created_at']),
     slicerFilament: toStringOrNull(json['slicer_filament']),
     slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
     kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
@@ -160,6 +162,11 @@ class Spool {
           toStringOrNull(json['archived_at']) ??
           toStringOrNull(json['archived']),
       lastUsed: toStringOrNull(json['last_used']),
+      // The backend maps Spoolman's `registered` onto `created_at` and leaves it
+      // null when Spoolman has none (`_spoolman_helpers.py::_map_spoolman_spool`).
+      createdAt:
+          dateTimeFromJson(json['created_at']) ??
+          dateTimeFromJson(json['registered']),
     );
   }
 
@@ -214,6 +221,10 @@ class Spool {
 
   final String? archivedAt;
   final String? lastUsed;
+
+  /// When the spool was added to the inventory; null on a Spoolman spool
+  /// without a `registered` timestamp.
+  final DateTime? createdAt;
 
   /// Slicer filament-preset name this spool maps to (e.g. "Bambu PLA Basic
   /// @BBL X2D"). Drives "owned filament" filtering in the slice modal. Native
