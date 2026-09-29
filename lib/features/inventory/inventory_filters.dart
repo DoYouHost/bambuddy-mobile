@@ -79,12 +79,48 @@ class _FilterSheet extends ConsumerWidget {
                 const Spacer(),
                 if (filters.activeCount > 0)
                   TextButton(
-                    onPressed: () => notifier.state = const InventoryFilters(),
+                    onPressed: () => notifier.state = filters.cleared(),
                     child: Text(l10n.inventoryFiltersClear),
                   ).tagged('inventory.filters_clear'),
               ],
             ),
             const SizedBox(height: DashSpace.sm),
+
+            FilterGroupLabel(label: l10n.inventorySortLabel),
+            Wrap(
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.xs,
+              children: [
+                for (final sort in InventorySort.values)
+                  ChoiceChip(
+                    label: Text(_sortLabel(l10n, sort)),
+                    selected: filters.sort == sort,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(sort: sort),
+                  ),
+              ],
+            ),
+            if (filters.sort != InventorySort.standard) ...[
+              const SizedBox(height: DashSpace.sm),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: true,
+                    label: Text(l10n.printLogSortDescending),
+                    icon: const Icon(Icons.arrow_downward),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    label: Text(l10n.printLogSortAscending),
+                    icon: const Icon(Icons.arrow_upward),
+                  ),
+                ],
+                selected: {filters.descending},
+                onSelectionChanged: (s) =>
+                    notifier.state = filters.copyWith(descending: s.first),
+              ),
+            ],
+            const SizedBox(height: DashSpace.lg),
 
             FilterGroupLabel(label: l10n.inventoryFilterStatus),
             SegmentedButton<bool>(
@@ -163,6 +199,14 @@ class _FilterSheet extends ConsumerWidget {
     );
   }
 }
+
+String _sortLabel(AppLocalizations l10n, InventorySort sort) => switch (sort) {
+  InventorySort.standard => l10n.inventorySortStandard,
+  InventorySort.usage => l10n.inventorySortUsage,
+  InventorySort.added => l10n.inventorySortAdded,
+  InventorySort.price => l10n.inventorySortPrice,
+  InventorySort.id => l10n.inventorySortId,
+};
 
 class _ChipWrap extends StatelessWidget {
   const _ChipWrap({

@@ -2356,6 +2356,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryFiltersClear => 'Borrar todo';
 
   @override
+  String get inventorySortLabel => 'Ordenar por';
+
+  @override
+  String get inventorySortStandard => 'Predeterminado';
+
+  @override
+  String get inventorySortUsage => 'Uso';
+
+  @override
+  String get inventorySortAdded => 'Fecha de alta';
+
+  @override
+  String get inventorySortPrice => 'Precio/kg';
+
+  @override
+  String get inventorySortId => 'ID';
+
+  @override
   String inventorySpoolCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -4052,6 +4052,42 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get inventoryFiltersClear;
 
+  /// No description provided for @inventorySortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get inventorySortLabel;
+
+  /// No description provided for @inventorySortStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get inventorySortStandard;
+
+  /// No description provided for @inventorySortUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get inventorySortUsage;
+
+  /// No description provided for @inventorySortAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get inventorySortAdded;
+
+  /// No description provided for @inventorySortPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price/kg'**
+  String get inventorySortPrice;
+
+  /// No description provided for @inventorySortId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID'**
+  String get inventorySortId;
+
   /// No description provided for @inventorySpoolCount.
   ///
   /// In en, this message translates to:
