@@ -2656,25 +2656,27 @@ void main() {
   group('scheduled drying', () {
     /// A printer whose AMS 1 is an AMS 2 Pro — the module type is what decides
     /// whether the dry chip, and with it the schedule, is offered at all.
-    PrinterWithStatus dryable({int dryTime = 0}) => PrinterWithStatus(
-      printer: const Printer(id: 3, name: 'X2D'),
-      status: PrinterStatus(
-        id: 3,
-        connected: true,
-        state: 'IDLE',
-        supportsDrying: true,
-        ams: [
-          AmsUnit(
-            id: 1,
-            humidity: 28,
-            temp: 24,
-            moduleType: 'n3f',
-            dryTime: dryTime,
-            trays: const [AmsTray(id: 0, trayType: 'PLA')],
+    PrinterWithStatus dryable({int dryTime = 0, bool stalled = false}) =>
+        PrinterWithStatus(
+          printer: const Printer(id: 3, name: 'X2D'),
+          status: PrinterStatus(
+            id: 3,
+            connected: true,
+            state: 'IDLE',
+            supportsDrying: true,
+            ams: [
+              AmsUnit(
+                id: 1,
+                humidity: 28,
+                temp: 24,
+                moduleType: 'n3f',
+                dryTime: dryTime,
+                dryCountdownStalled: stalled,
+                trays: const [AmsTray(id: 0, trayType: 'PLA')],
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
 
     ScheduledDrying pending({
       int id = 7,
@@ -2706,10 +2708,11 @@ void main() {
       WidgetTester tester,
       _StubScheduledDrying repo, {
       int dryTime = 0,
+      bool stalled = false,
     }) async {
       await tester.pumpWidget(
         _cardWithProviders(
-          dryable(dryTime: dryTime),
+          dryable(dryTime: dryTime, stalled: stalled),
           extra: [scheduledDryingRepositoryProvider.overrideWithValue(repo)],
         ),
       );
@@ -2855,6 +2858,29 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(repo.listCalls, 2);
       expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+    });
+
+    testWidgets('a parked timer reads as not running, and can be stopped', (
+      tester,
+    ) async {
+      // Server #2896: a start the firmware accepted and never ran keeps its
+      // full dry_time forever; the countdown on the chip would be a lie.
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+      await pumpCard(
+        tester,
+        _StubScheduledDrying(),
+        dryTime: 480,
+        stalled: true,
+      );
+
+      expect(find.text(l10n.ctrlDryNotRunning), findsOneWidget);
+      expect(find.byIcon(Icons.local_fire_department), findsNothing);
+
+      await tester.tap(find.text(l10n.ctrlDryNotRunning));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.ctrlDryNotRunningHint), findsOneWidget);
+      expect(find.text(l10n.ctrlStop), findsOneWidget);
     });
 
     testWidgets('an older server offers the sheet without the later modes', (

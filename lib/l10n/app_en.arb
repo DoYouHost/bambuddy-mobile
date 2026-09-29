@@ -165,6 +165,11 @@
   "ctrlNozzleActive": "Active",
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
+  "ctrlDryNotRunning": "Not running",
+  "@ctrlDryNotRunning": {
+    "description": "Drying chip and sheet: the AMS holds a drying timer that is not counting down (server dry_countdown_stalled)"
+  },
+  "ctrlDryNotRunningHint": "The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.",
   "ctrlDryStart": "Start",
   "ctrlDryFilament": "Filament",
   "ctrlDryTemp": "Temperature",
@@ -3863,6 +3868,8 @@
   "apiKeyScopeCloudHint": "Reads the cloud on behalf of the account that creates the key. Needs authentication switched on server-side.",
   "apiKeyScopeEnergy": "Energy price",
   "apiKeyScopeEnergyHint": "The one settings value a key may write — for a dynamic tariff.",
+  "apiKeyScopeNotifications": "Send notifications",
+  "apiKeyScopeNotificationsHint": "Lets another app post a message to the notification channels that accept messages from connected apps. The key's owner also needs permission to manage notifications.",
   "printLogTitle": "Print log",
   "printLogSearchHint": "Search runs",
   "printLogEmpty": "No runs recorded yet",

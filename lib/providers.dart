@@ -500,7 +500,16 @@ final groupsRepositoryProvider = Provider<GroupsRepository>(
 
 /// The API keys issued on the server. Shares the authenticated Dio.
 final apiKeysRepositoryProvider = Provider<ApiKeysRepository>(
-  (ref) => ApiKeysRepository(ref.watch(apiClientProvider).dio),
+  (ref) => ApiKeysRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the key form may offer "Send notifications". See
+/// `ApiKeysRepository.notificationScopeCapability`.
+final apiKeyNotificationScopeProvider = capabilityGate(
+  (ref) => ref.watch(apiKeysRepositoryProvider).notificationScopeCapability,
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(

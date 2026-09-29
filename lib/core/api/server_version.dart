@@ -72,6 +72,9 @@ enum ServerFeature {
   /// Post-print outcome verdicts on an archive and `confirm_outcome` on a
   /// queue item (#1898); both are taken and ignored below it.
   printOutcome,
+
+  /// `can_send_notifications` on an API key, taken and ignored below it.
+  apiKeyNotificationScope,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -171,6 +174,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.batchGrouping: (0, 2, 4, 8),
     ServerFeature.batchOrders: (1, 2, 5, 3),
     ServerFeature.printOutcome: (1, 2, 6, 0),
+    ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

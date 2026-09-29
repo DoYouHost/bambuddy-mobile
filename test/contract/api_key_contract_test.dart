@@ -205,6 +205,40 @@ void main() {
       },
     );
 
+    test('"send notifications" is kept where the listing shows it, and '
+        'dropped where it does not', () async {
+      final created = await mint('contract probe: notifications', {
+        ApiKeyScope.readStatus,
+        ApiKeyScope.sendNotifications,
+      });
+      await keys.list();
+      final supported = keys.notificationScopeCapability.observedAnswer;
+      expect(supported, isNotNull, reason: 'the listing has a row to read');
+
+      if (supported == false) {
+        // The silent drop the form's gate exists for: the create answers 200
+        // and the key simply lacks the flag.
+        expect(
+          created.apiKey.scopes,
+          isNot(contains(ApiKeyScope.sendNotifications)),
+        );
+        return;
+      }
+      expect(created.apiKey.scopes, contains(ApiKeyScope.sendNotifications));
+
+      // The route it opens, read-only: which channels would deliver. The app
+      // itself never calls it, so it has no constant in Endpoints.
+      const channels =
+          '${Endpoints.apiPrefix}/notifications/app-message/channels';
+      final plain = await mint('contract probe: no notifications', {
+        ApiKeyScope.readStatus,
+      });
+      final allowed = await clientFor(created.key).get<dynamic>(channels);
+      final refused = await clientFor(plain.key).get<dynamic>(channels);
+      expect(allowed.statusCode, 200);
+      expect(refused.statusCode, 403);
+    });
+
     test(
       'a key cannot access admin routes like /api-keys/ and is refused with 403',
       () async {

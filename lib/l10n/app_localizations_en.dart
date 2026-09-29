@@ -364,6 +364,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlDrying => 'Drying';
 
   @override
+  String get ctrlDryNotRunning => 'Not running';
+
+  @override
+  String get ctrlDryNotRunningHint =>
+      'The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.';
+
+  @override
   String get ctrlDryStart => 'Start';
 
   @override
@@ -6514,6 +6521,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'The one settings value a key may write — for a dynamic tariff.';
+
+  @override
+  String get apiKeyScopeNotifications => 'Send notifications';
+
+  @override
+  String get apiKeyScopeNotificationsHint =>
+      'Lets another app post a message to the notification channels that accept messages from connected apps. The key\'s owner also needs permission to manage notifications.';
 
   @override
   String get printLogTitle => 'Print log';

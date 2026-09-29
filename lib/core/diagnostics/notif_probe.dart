@@ -21,8 +21,8 @@ enum NotifSkip {
   /// pair a print cancel always emits.
   userAction,
 
-  /// An HMS code with no catalogue description and no server message, or
-  /// severity below the notification floor. The firmware emits several such
+  /// An HMS code with no catalogue description and no server message, or at a
+  /// level that never alerts (`hmsIsNotifiable`). The firmware emits several such
   /// codes per physical fault; the largest silent drop on the error path.
   undocumented,
 

@@ -187,6 +187,25 @@ void main() {
     });
   });
 
+  group('the short form', () {
+    test('names a print_error fault from a server without full_code', () {
+      const legacy = HmsError(code: '0x8004', attr: 0x03008004);
+      expect(en.describe(legacy), contains('Filament ran out'));
+    });
+
+    test('never lends an hms[] fault a print_error sentence (#2728)', () {
+      // Its module and error groups collapse to 0300_8004, the runout key —
+      // a different fault that only shares the digits.
+      const hms = HmsError(
+        code: '0x28004',
+        attr: 0x03000100,
+        fullCode: '0300010000028004',
+      );
+      expect(hms.shortCode, '0300_8004');
+      expect(en.describe(hms), isNull);
+    });
+  });
+
   group('the sentence the server attaches to a fault', () {
     // `HMSError.description` (hms_errors.py::describe_fault) is English only, so
     // it ranks UNDER the bundled table rather than over it.
@@ -251,10 +270,9 @@ void main() {
       expect(hmsIsDisplayable(blank, description: en.describe(blank)), isFalse);
     });
 
-    test('it does not lift the severity floor on notifications', () {
-      // Displayable and notifiable are different gates: severity 1 is bambuddy's
-      // "informational", and a server sentence does not make it worth waking
-      // anybody for.
+    test('it does not lift the level rule on notifications', () {
+      // Displayable and notifiable are different gates: 0xFxxx carries no real
+      // level, and a server sentence does not make it worth waking anybody for.
       final quiet = printError(0x0300FFFF, severity: 1, description: 'Idle.');
       expect(hmsIsDisplayable(quiet, description: en.describe(quiet)), isTrue);
       expect(hmsIsNotifiable(quiet, description: en.describe(quiet)), isFalse);

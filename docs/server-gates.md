@@ -378,3 +378,19 @@ control exists (download jobs, media token, `StatsRepository._hasSlimListing`).
 7. Tests: the latch in the repository test, with a mocked version service — a
    latch test without one reads `false` from the start and proves nothing; the
    screen with `gate.overrideWithValue(const AsyncData(...))`.
+
+### apiKeyNotificationScope — 1.2.6 (server commit 6855d65d)
+
+`can_send_notifications` on an API key: the one door to
+`POST /notifications/app-message`, which lets another app post through the
+server's notification channels. Only in 1.2.6 dailies from 2026-09-27.
+
+`APIKeyCreate` and `APIKeyUpdate` forbid no extra fields, so an older server
+takes the flag, says nothing and issues a key that cannot send — a switch that
+reads as on and does nothing. `ApiKeysRepository.notificationScopeCapability`
+observes the field on the first row of `GET /api-keys/`, which `APIKeyResponse`
+sends on every row from that commit on; the list screen loads before the form,
+so the row settles it whenever the server has a key at all. With no keys yet, a
+1.2.6b1 daily older than the commit is told yes, and the key it issues simply
+lacks the flag. A key that already holds it keeps its switch either way, so it
+can be taken away again.

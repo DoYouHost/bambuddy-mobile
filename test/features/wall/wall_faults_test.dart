@@ -49,7 +49,7 @@ void main() {
 
   test('puts a fault without a level after every leveled one', () {
     final faults = wallFaults([
-      _printer(1, 'A', [_err('0x8004', 'no level')]),
+      _printer(1, 'A', [_err('0x2001', 'no level')]),
       _printer(2, 'Z', [_err('0x40001', 'info')]),
     ], describe: _noCatalog);
 

@@ -38,17 +38,22 @@ class HmsCatalog {
     _loadedLang = lang;
   }
 
-  /// The code's description, or null when nothing names it. Lookup order is the
-  /// server's own (`HMSErrorModal.tsx::lookupDescription`): the lossless full
-  /// code, then the lossy short form, then the English sentence a 1.2.5.4+
-  /// server attaches — last because this table is the localized one.
+  /// The code's description, or null when nothing names it: the lossless full
+  /// code, then the short form for a `print_error` fault from a server too old
+  /// to send `full_code`, then the English sentence a 1.2.5.4+ server attaches —
+  /// last because this table is the localized one.
+  ///
+  /// Never the short form of an `hms[]` code (`hms_errors.py::lookup_fault`):
+  /// no real one has an error group at or above 0x4000, where every
+  /// `print_error` key sits, so the collapse only ever found a neighbouring
+  /// fault's sentence (#2728).
   String? describe(HmsError e) {
     final full = e.fullCode?.toUpperCase();
     if (full != null) {
       final hit = _map[full];
       if (hit != null) return hit;
     }
-    final short = e.shortCode;
+    final short = e.isHmsChannel ? null : e.shortCode;
     final local = short == null ? null : _map[short.replaceAll('_', '')];
     return local ?? e.description;
   }
@@ -61,9 +66,9 @@ class HmsCatalog {
 /// firmware offers actions for it, so an unnamed error can still get buttons.
 /// A card headed by a bare hex code asks the user to gamble.
 ///
-/// **No "recognized severity" escape hatch, deliberately.** `severity` is not
-/// the HMS level: bambuddy derives it as `(attr >> 8) & 0xF`, BambuStudio's
-/// `part_id`, while the level lives in `code >> 16`. Against the bundled
+/// **No "recognized severity" escape hatch, deliberately.** Before #2728
+/// `severity` was not the HMS level: bambuddy derived it as `(attr >> 8) & 0xF`,
+/// BambuStudio's `part_id`, while the level lives in `code >> 16`. Against the bundled
 /// catalog the two agree on 39% of codes, and 835 arrive as level 1 ("Fatal")
 /// while being nothing of the sort — which is where the invented
 /// `severity · module` label came from ("Fatal · mainboard" on a healthy X2D).
@@ -107,17 +112,24 @@ HmsError? firstDisplayableHmsError(
   return null;
 }
 
-/// Whether an HMS error should fire a NOTIFICATION — [hmsIsDisplayable] plus a
-/// severity floor, which is parity with bambuddy's notification path. One
+/// Whether an HMS error should fire a NOTIFICATION — [hmsIsDisplayable] plus
+/// bambuddy's rule for which levels count (`main.py::_hms_fault_counts`). One
 /// physical fault makes the firmware emit several codes at once, most of them
 /// undocumented, and a described code the card lists can still be too quiet to
 /// wake anybody for.
+///
+/// Read from [HmsError.level], never `severity`: before #2728 the server sent
+/// the part byte there, and the `severity >= 2` floor this used to mirror
+/// dropped exactly the faults that stop a print.
 bool hmsIsNotifiable(HmsError e, {String? description}) {
-  // bambuddy alerts only for `severity >= 2`, dropping severity-1 codes as
-  // "informational/status messages". A null severity only occurs on the legacy
-  // `{code, message}` shape — left to the message check below.
-  final sev = e.severity;
-  if (sev != null && sev < 2) return false;
+  final level = e.level;
+  // A numeric code with no level is Bambu's "invalid" 0. A fault without `attr`
+  // (the legacy `{code, message}` shape) is left to the text checks below.
+  if (level == null && e.ecode != null) return false;
+  // An `hms[]` notification without actions ("top cover open", "chamber hot,
+  // fan up") can stand through a whole print. A `print_error` prompt at the
+  // same level still counts, as it does on the server.
+  if (level == 3 && e.isHmsChannel && e.actions.isEmpty) return false;
   if (e.message?.trim().isNotEmpty ?? false) return true;
   return description?.trim().isNotEmpty ?? false;
 }

@@ -733,7 +733,7 @@ class PrintMonitor {
             NotifSkip.offline,
             printerId: id,
             event: NotifEvent.printerError,
-            fields: {'code': _hmsCode(e), 'sev': e.severity},
+            fields: {'code': _hmsCode(e), 'sev': e.severity, 'lvl': e.level},
           );
         }
         continue;
@@ -752,7 +752,7 @@ class PrintMonitor {
           skip,
           printerId: id,
           event: NotifEvent.printerError,
-          fields: {'code': _hmsCode(e), 'sev': e.severity},
+          fields: {'code': _hmsCode(e), 'sev': e.severity, 'lvl': e.level},
         );
         continue;
       }

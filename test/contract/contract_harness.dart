@@ -13,6 +13,7 @@
 /// these tests SKIP rather than fail, so `just test` on a laptop is unaffected.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
@@ -91,4 +92,47 @@ Future<Dio> authenticatedDio() async {
 
   dio.options.headers['Authorization'] = 'Bearer $token';
   return dio;
+}
+
+/// One report from the stand-in printer, as a Bambu printer publishes it.
+Future<void> publishReport(String serial, Map<String, Object?> print) async {
+  final result = await Process.run('docker', [
+    'exec',
+    contractBrokerContainer!,
+    'mosquitto_pub',
+    '-h',
+    'localhost',
+    '-p',
+    '8883',
+    '--insecure',
+    '--cafile',
+    '/mosquitto/certs/server.crt',
+    '-t',
+    'device/$serial/report',
+    '-m',
+    jsonEncode({'print': print}),
+  ]);
+  if (result.exitCode != 0) {
+    throw StateError('mosquitto_pub failed: ${result.stderr}');
+  }
+}
+
+/// Asks [probe] every [every] until it answers non-null, for server state that
+/// lands some time after the request that caused it. Throws a [StateError]
+/// naming [what] once [within] has passed without an answer.
+Future<T> pollUntil<T extends Object>(
+  String what,
+  Future<T?> Function() probe, {
+  required Duration within,
+  Duration every = const Duration(seconds: 1),
+}) async {
+  final deadline = DateTime.now().add(within);
+  while (true) {
+    final answer = await probe();
+    if (answer != null) return answer;
+    if (!DateTime.now().isBefore(deadline)) {
+      throw StateError('gave up waiting for $what after $within');
+    }
+    await Future<void>.delayed(every);
+  }
 }

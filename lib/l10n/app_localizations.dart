@@ -764,6 +764,18 @@ abstract class AppLocalizations {
   /// **'Drying'**
   String get ctrlDrying;
 
+  /// Drying chip and sheet: the AMS holds a drying timer that is not counting down (server dry_countdown_stalled)
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get ctrlDryNotRunning;
+
+  /// No description provided for @ctrlDryNotRunningHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer holds a drying timer, but it is not counting down, and the AMS reports no drying. The cycle never started or was paused, for example by the power limit or the current print.'**
+  String get ctrlDryNotRunningHint;
+
   /// No description provided for @ctrlDryStart.
   ///
   /// In en, this message translates to:
@@ -10975,6 +10987,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The one settings value a key may write — for a dynamic tariff.'**
   String get apiKeyScopeEnergyHint;
+
+  /// No description provided for @apiKeyScopeNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Send notifications'**
+  String get apiKeyScopeNotifications;
+
+  /// No description provided for @apiKeyScopeNotificationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets another app post a message to the notification channels that accept messages from connected apps. The key\'s owner also needs permission to manage notifications.'**
+  String get apiKeyScopeNotificationsHint;
 
   /// No description provided for @printLogTitle.
   ///

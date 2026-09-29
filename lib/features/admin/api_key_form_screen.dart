@@ -11,6 +11,7 @@ import '../../providers.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
+import '../common/dash_async.dart';
 import 'user_messages.dart';
 import '../common/date_time_picker.dart';
 
@@ -68,6 +69,13 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     final printers =
         ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
     final fmt = DateTimeFormats.of(context);
+    // A key that already holds the flag keeps its switch, so it can be taken
+    // away again whatever the gate says. Read off the key as it was loaded,
+    // not [_scopes]: the switch must not vanish under the tap that clears it.
+    final offerNotifications =
+        ref.watch(apiKeyNotificationScopeProvider).orFalse ||
+        (widget.existing?.scopes.contains(ApiKeyScope.sendNotifications) ??
+            false);
 
     return DashBackground(
       child: Scaffold(
@@ -128,19 +136,21 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                 const SizedBox(height: DashSpace.xs),
                 Text(l10n.apiKeysScopesHint, style: t.microSoft),
                 for (final scope in ApiKeyScope.values)
-                  SwitchListTile(
-                    value: _scopes.contains(scope),
-                    onChanged: (on) => setState(() {
-                      on ? _scopes.add(scope) : _scopes.remove(scope);
-                    }),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(apiKeyScopeLabel(l10n, scope)),
-                    subtitle: switch (apiKeyScopeHint(l10n, scope)) {
-                      final hint? => Text(hint),
-                      _ => null,
-                    },
-                  ).tagged('api_key_form.scope'),
+                  if (scope != ApiKeyScope.sendNotifications ||
+                      offerNotifications)
+                    SwitchListTile(
+                      value: _scopes.contains(scope),
+                      onChanged: (on) => setState(() {
+                        on ? _scopes.add(scope) : _scopes.remove(scope);
+                      }),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(apiKeyScopeLabel(l10n, scope)),
+                      subtitle: switch (apiKeyScopeHint(l10n, scope)) {
+                        final hint? => Text(hint),
+                        _ => null,
+                      },
+                    ).tagged('api_key_form.scope'),
                 if (printers.isNotEmpty) ...[
                   const SizedBox(height: DashSpace.lg),
                   _SectionLabel(text: l10n.apiKeysPrintersHeader),
