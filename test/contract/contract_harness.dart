@@ -116,3 +116,23 @@ Future<void> publishReport(String serial, Map<String, Object?> print) async {
     throw StateError('mosquitto_pub failed: ${result.stderr}');
   }
 }
+
+/// Asks [probe] every [every] until it answers non-null, for server state that
+/// lands some time after the request that caused it. Throws a [StateError]
+/// naming [what] once [within] has passed without an answer.
+Future<T> pollUntil<T extends Object>(
+  String what,
+  Future<T?> Function() probe, {
+  required Duration within,
+  Duration every = const Duration(seconds: 1),
+}) async {
+  final deadline = DateTime.now().add(within);
+  while (true) {
+    final answer = await probe();
+    if (answer != null) return answer;
+    if (!DateTime.now().isBefore(deadline)) {
+      throw StateError('gave up waiting for $what after $within');
+    }
+    await Future<void>.delayed(every);
+  }
+}

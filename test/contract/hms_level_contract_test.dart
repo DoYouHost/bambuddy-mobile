@@ -40,17 +40,20 @@ void main() {
         'print_error': 0x03008004,
       });
 
-      List<HmsError> errors = const [];
-      final deadline = DateTime.now().add(const Duration(seconds: 30));
-      while (errors.length < 2 && DateTime.now().isBefore(deadline)) {
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-        final status = PrinterStatus.fromJson(
-          (await dio.get<Map<String, dynamic>>(
-            Endpoints.printerStatus(printerId),
-          )).data!,
-        );
-        errors = status.hmsErrors ?? const [];
-      }
+      final errors = await pollUntil(
+        'both faults on the printer status',
+        () async {
+          final status = PrinterStatus.fromJson(
+            (await dio.get<Map<String, dynamic>>(
+              Endpoints.printerStatus(printerId),
+            )).data!,
+          );
+          final errors = status.hmsErrors ?? const <HmsError>[];
+          return errors.length >= 2 ? errors : null;
+        },
+        within: const Duration(seconds: 30),
+        every: const Duration(milliseconds: 500),
+      );
 
       final hms = errors.singleWhere((e) => e.isHmsChannel);
       final printError = errors.singleWhere((e) => !e.isHmsChannel);

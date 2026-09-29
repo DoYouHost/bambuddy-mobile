@@ -97,17 +97,18 @@ void main() {
 
 /// The id of the first archive that asks for its outcome, once the server has
 /// made one — a started print that opted in.
-Future<int> _archiveAsking(Dio dio) async {
-  final deadline = DateTime.now().add(const Duration(minutes: 2));
-  while (DateTime.now().isBefore(deadline)) {
+Future<int> _archiveAsking(Dio dio) => pollUntil(
+  'an archive asking for its outcome',
+  () async {
     final rows = (await dio.get<List<dynamic>>(Endpoints.archives)).data!;
     for (final row in rows.whereType<Map<String, dynamic>>()) {
       if (row['confirm_requested'] == true) return row['id'] as int;
     }
-    await Future<void>.delayed(const Duration(seconds: 2));
-  }
-  throw StateError('no archive started asking for its outcome');
-}
+    return null;
+  },
+  within: const Duration(minutes: 2),
+  every: const Duration(seconds: 2),
+);
 
 /// The server's socket, frames as text. Authenticated the way the app does it:
 /// a short-lived token in the query, since the upgrade carries no header.

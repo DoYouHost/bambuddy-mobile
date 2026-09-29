@@ -987,6 +987,38 @@ class _AmsMeta extends StatelessWidget {
   }
 }
 
+/// How an AMS's drying state is drawn, on the chip and in the sheet alike: a
+/// parked timer (neutral), a running cycle (heat colour, time left) or none.
+/// [noTimer] is the word where no time is left to show — "Dry" on the idle
+/// chip, "Drying" through a cycle's cooling phase in the sheet.
+({IconData icon, Color color, String label}) _dryLook(
+  AmsUnit unit,
+  DashTokens t,
+  AppLocalizations l10n, {
+  required String noTimer,
+}) {
+  if (unit.isDryingParked) {
+    return (
+      icon: Icons.hourglass_empty,
+      color: t.textTertiary,
+      label: l10n.ctrlDryNotRunning,
+    );
+  }
+  if (!unit.isDrying) {
+    return (
+      icon: Icons.wb_sunny_outlined,
+      color: t.textTertiary,
+      label: noTimer,
+    );
+  }
+  final remain = unit.dryTime ?? 0;
+  return (
+    icon: Icons.local_fire_department,
+    color: t.accentOrangeInk,
+    label: remain > 0 ? formatMinutes(l10n, remain) : noTimer,
+  );
+}
+
 /// AMS header dry control: a compact chip. While drying it shows the remaining
 /// time in the accent-orange heat colour; idle it reads "Dry". Tapping opens
 /// [_DryingSheet]. Hidden when control is forbidden.
@@ -1012,15 +1044,7 @@ class _AmsDryControl extends ConsumerWidget {
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final parked = unit.isDryingParked;
-    final drying = unit.isDrying && !parked;
-    final remain = unit.dryTime ?? 0;
-    final color = drying ? t.accentOrangeInk : t.textTertiary;
-    final label = parked
-        ? l10n.ctrlDryNotRunning
-        : drying && remain > 0
-        ? formatMinutes(l10n, remain)
-        : l10n.ctrlDry;
+    final look = _dryLook(unit, t, l10n, noTimer: l10n.ctrlDry);
 
     return InkWell(
       onTap: () {
@@ -1048,17 +1072,9 @@ class _AmsDryControl extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              parked
-                  ? Icons.hourglass_empty
-                  : drying
-                  ? Icons.local_fire_department
-                  : Icons.wb_sunny_outlined,
-              size: 13,
-              color: color,
-            ),
+            Icon(look.icon, size: 13, color: look.color),
             const SizedBox(width: DashSpace.xs),
-            Text(label, style: t.monoLabel.copyWith(color: color)),
+            Text(look.label, style: t.monoLabel.copyWith(color: look.color)),
           ],
         ),
       ),
@@ -1269,34 +1285,24 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _runningBody(DashTokens t, AppLocalizations l10n) {
-    final remain = widget.unit.dryTime ?? 0;
-    final parked = widget.unit.isDryingParked;
-    final color = parked ? t.textTertiary : t.accentOrangeInk;
+    final look = _dryLook(widget.unit, t, l10n, noTimer: l10n.ctrlDrying);
     return [
       Center(
         child: Column(
           children: [
-            Icon(
-              parked ? Icons.hourglass_empty : Icons.local_fire_department,
-              size: 32,
-              color: color,
-            ),
+            Icon(look.icon, size: 32, color: look.color),
             const SizedBox(height: DashSpace.sm),
             Text(
-              parked
-                  ? l10n.ctrlDryNotRunning
-                  : remain > 0
-                  ? formatMinutes(l10n, remain)
-                  : l10n.ctrlDrying,
+              look.label,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: color,
+                color: look.color,
               ),
             ),
-            if (parked) ...[
+            if (widget.unit.isDryingParked) ...[
               const SizedBox(height: DashSpace.sm),
               Text(
                 l10n.ctrlDryNotRunningHint,
