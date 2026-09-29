@@ -104,7 +104,12 @@ class ProjectsScreen extends ConsumerWidget {
                 : ListView.builder(
                     padding: withSystemNavInset(
                       context,
-                      const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                      const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.sm,
+                        DashSpace.gutter,
+                        DashSpace.fabClearance,
+                      ),
                     ),
                     itemCount: projects.length,
                     itemBuilder: (_, i) => _ProjectCard(
@@ -166,7 +171,7 @@ class _ProjectCard extends StatelessWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -175,7 +180,7 @@ class _ProjectCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +193,7 @@ class _ProjectCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     cacheBust: project.createdAt,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +201,7 @@ class _ProjectCard extends StatelessWidget {
                         Row(
                           children: [
                             ProjectColorDot(color: project.color),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: DashSpace.sm),
                             Expanded(
                               child: Text(
                                 project.name,
@@ -211,7 +216,7 @@ class _ProjectCard extends StatelessWidget {
                         if (project.description != null &&
                             project.description!.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.only(top: DashSpace.xs),
                             child: Text(
                               project.description!,
                               maxLines: 2,
@@ -219,10 +224,10 @@ class _ProjectCard extends StatelessWidget {
                               style: t.label.copyWith(color: t.textSecondary),
                             ),
                           ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: DashSpace.sm),
                         if (project.progressPercent != null) ...[
                           DashProgressBar(value: fraction, height: 6),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: DashSpace.sm),
                         ],
                         Text(counts.join(' · '), style: t.monoLabel),
                       ],

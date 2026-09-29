@@ -107,12 +107,12 @@ class _DemoUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             text,
             textAlign: TextAlign.center,
@@ -135,7 +135,7 @@ class _Loading extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const CircularProgressIndicator(color: Colors.white),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         Text(text, style: const TextStyle(color: Colors.white70)),
       ],
     );
@@ -154,8 +154,8 @@ class CameraRetryingBadge extends StatelessWidget {
       label: AppLocalizations.of(context).cameraConnecting,
       liveRegion: true,
       child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.all(DashSpace.md),
+        padding: const EdgeInsets.all(DashSpace.sm),
         decoration: const BoxDecoration(
           color: Colors.black54,
           shape: BoxShape.circle,
@@ -179,18 +179,18 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(
             text,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
           FilledButton(
             onPressed: onRetry,
             child: Text(l10n.retry),

@@ -53,7 +53,12 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
           child: ListView(
             padding: withSystemNavInset(
               context,
-              const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.sm,
+                DashSpace.gutter,
+                DashSpace.xl,
+              ),
             ),
             children: [
               // --- Maintenance types ---
@@ -79,7 +84,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                   ).tagged('maintenance_settings.restore_defaults'),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               dashAsyncStrip(
                 context,
                 typesAsync,
@@ -90,15 +95,20 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
 
               // --- Per-printer interval overrides + mute ---
               if (overview.isNotEmpty) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: DashSpace.xl),
                 _SectionHeader(
                   title: l10n.maintenanceOverridesTitle,
                   subtitle: l10n.maintenanceOverridesSubtitle,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 for (final printer in overview) ...[
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+                    padding: const EdgeInsets.fromLTRB(
+                      DashSpace.xs,
+                      DashSpace.md,
+                      DashSpace.xs,
+                      DashSpace.sm,
+                    ),
                     child: Text(
                       printer.printerName,
                       style: t.bodyBold.copyWith(color: t.accentGreenInk),
@@ -165,9 +175,12 @@ class _SectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeading(title, style: t.titleMd),
-        const SizedBox(height: 3),
+        const SizedBox(height: DashSpace.xs),
         Text(subtitle, style: t.label),
-        if (trailing != null) ...[const SizedBox(height: 10), trailing!],
+        if (trailing != null) ...[
+          const SizedBox(height: DashSpace.md),
+          trailing!,
+        ],
       ],
     );
   }
@@ -185,13 +198,18 @@ class _DashCard extends StatelessWidget {
     final t = DashTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(DashSpace.sm),
       decoration: t.cardBox,
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, indent: 12, endIndent: 12, color: t.hairline),
+              Divider(
+                height: 1,
+                indent: DashSpace.md,
+                endIndent: DashSpace.md,
+                color: t.hairline,
+              ),
             children[i],
           ],
         ],
@@ -445,13 +463,18 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
         key: _formKey,
         child: ListView(
           controller: controller,
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          padding: EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl + bottomInset,
+          ),
           children: [
             Text(
               _isEdit ? l10n.maintenanceEditType : l10n.maintenanceAddType,
               style: theme.textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
@@ -463,7 +486,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               validator: (v) =>
                   (v ?? '').trim().isEmpty ? l10n.inventoryFieldRequired : null,
             ).tagged('maintenance_type_form.name'),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -495,7 +518,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DashSpace.md),
                 SizedBox(
                   width: 110,
                   child: TextFormField(
@@ -516,12 +539,12 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             Text(l10n.maintenanceFieldIcon, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 for (final name in maintenanceIconNames)
                   _IconChoice(
@@ -531,7 +554,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             TextFormField(
               controller: _wiki,
               keyboardType: TextInputType.url,
@@ -542,15 +565,15 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               ),
             ).tagged('maintenance_type_form.description'),
             if (!_isEdit && printers.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               Text(
                 l10n.maintenanceAssignPrinters,
                 style: theme.textTheme.labelLarge,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.sm,
                 children: [
                   for (final p in printers)
                     FilterChip(
@@ -567,7 +590,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 ],
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: DashSpace.xl),
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
@@ -665,7 +688,7 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.item.maintenanceTypeName),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           TextField(
             controller: _controller,
             autofocus: true,

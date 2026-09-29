@@ -235,12 +235,12 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
             onDelete: () => _confirmDelete(c),
           ),
       if (inventoryLoaded && uncoded.isNotEmpty) ...[
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         _SectionHeader(label: l10n.swatchSectionUncoded, count: uncoded.length),
         for (final f in uncoded)
           _UncodedTile(identity: f, onGenerate: () => _generateFor(f)),
       ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
-        const SizedBox(height: 10),
+        const SizedBox(height: DashSpace.md),
         _EmptyHint(
           icon: Icons.check_circle_outline_rounded,
           title: l10n.swatchAllCoded,
@@ -287,7 +287,6 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             DashSliverSearchBar(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: DashSearchField(
                 id: 'swatches.search',
                 controller: _searchController,
@@ -301,7 +300,9 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
               // FAB floats above the system nav bar, so its clearance is the
               // button box plus that inset.
               padding: EdgeInsets.only(
-                bottom: 96 + MediaQuery.viewPaddingOf(context).bottom,
+                bottom:
+                    DashSpace.fabClearance +
+                    MediaQuery.viewPaddingOf(context).bottom,
               ),
               sliver: SliverList.builder(
                 itemCount: items.length,
@@ -325,7 +326,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.lg,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Row(
         children: [
           SectionHeading(
@@ -335,9 +341,9 @@ class _SectionHeader extends StatelessWidget {
               letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
             decoration: BoxDecoration(
               color: t.subCard,
               borderRadius: BorderRadius.circular(20),
@@ -397,7 +403,10 @@ class _CodeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.accentGreen.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(7),
@@ -428,7 +437,10 @@ class _SwatchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -437,7 +449,12 @@ class _SwatchTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: onEdit,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.md,
+                DashSpace.md,
+                DashSpace.sm,
+                DashSpace.md,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(18),
@@ -447,7 +464,7 @@ class _SwatchTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _ColorSwatch(rgba: code.rgba),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: DashSpace.lg),
                   Expanded(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -459,12 +476,12 @@ class _SwatchTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: t.titleSm,
                         ),
-                        const SizedBox(height: 7),
+                        const SizedBox(height: DashSpace.sm),
                         _CodeChip(code: code.code),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: DashSpace.xs),
                   logTag(
                     'swatches.copy',
                     IconButton(
@@ -508,7 +525,10 @@ class _UncodedTile extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -517,7 +537,7 @@ class _UncodedTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: onGenerate,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              padding: const EdgeInsets.all(DashSpace.md),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(18),
@@ -526,7 +546,7 @@ class _UncodedTile extends StatelessWidget {
               child: Row(
                 children: [
                   _ColorSwatch(rgba: identity.rgba, size: 40),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: DashSpace.lg),
                   Expanded(
                     child: Text(
                       identity.displayName,
@@ -535,7 +555,7 @@ class _UncodedTile extends StatelessWidget {
                       style: t.bodyStrong,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DashSpace.sm),
                   // Toned-down outlined style so the bold green FAB stays the
                   // single primary action and the two greens don't merge.
                   OutlinedButton.icon(
@@ -545,8 +565,8 @@ class _UncodedTile extends StatelessWidget {
                         color: t.accentGreen.withValues(alpha: 0.55),
                       ),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
+                        horizontal: DashSpace.lg,
+                        vertical: DashSpace.sm,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -582,18 +602,18 @@ class _EmptyHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      padding: const EdgeInsets.all(DashSpace.xl),
       child: Column(
         children: [
           Icon(icon, size: 40, color: t.textTertiary),
-          const SizedBox(height: 10),
+          const SizedBox(height: DashSpace.md),
           Text(
             title,
             textAlign: TextAlign.center,
             style: t.body.copyWith(color: t.textSecondary),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             Text(subtitle!, textAlign: TextAlign.center, style: t.labelSoft),
           ],
         ],
@@ -720,10 +740,10 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
     final bottomInset = mq.viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 4,
-        bottom: bottomInset + 20,
+        left: DashSpace.gutter,
+        right: DashSpace.gutter,
+        top: DashSpace.xs,
+        bottom: bottomInset + DashSpace.xl,
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -736,7 +756,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                 _isEdit ? l10n.swatchEditTitle : l10n.swatchFormTitle,
                 style: theme.textTheme.titleLarge,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               TextFormField(
                 controller: _code,
                 textCapitalization: TextCapitalization.characters,
@@ -769,7 +789,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   return null;
                 },
               ).tagged('swatch_form.code'),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               TextFormField(
                 controller: _brand,
                 textCapitalization: TextCapitalization.words,
@@ -779,7 +799,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   isDense: true,
                 ),
               ).tagged('swatch_form.brand'),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               TextFormField(
                 controller: _material,
                 textCapitalization: TextCapitalization.characters,
@@ -792,7 +812,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                     ? l10n.swatchMaterialRequired
                     : null,
               ).tagged('swatch_form.material'),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               TextFormField(
                 controller: _variant,
                 textCapitalization: TextCapitalization.words,
@@ -802,7 +822,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   isDense: true,
                 ),
               ).tagged('swatch_form.variant'),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               TextFormField(
                 controller: _colorName,
                 textCapitalization: TextCapitalization.words,
@@ -817,7 +837,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   ).tagged('swatch_form.pick_color'),
                 ),
               ).tagged('swatch_form.color_name'),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               TextFormField(
                 controller: _rgba,
                 decoration: InputDecoration(
@@ -827,7 +847,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   border: const OutlineInputBorder(),
                   isDense: true,
                   suffixIcon: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(DashSpace.sm),
                     child: Container(
                       width: 24,
                       decoration: BoxDecoration(
@@ -844,7 +864,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                 ),
                 onChanged: (_) => setState(() {}),
               ).tagged('swatch_form.rgba'),
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               Row(
                 children: [
                   Expanded(
@@ -856,7 +876,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: logTag(
                       'swatch_form.save',
@@ -921,26 +941,26 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
     final bottomInset = mq.viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 4,
-        bottom: bottomInset + 12,
+        left: DashSpace.gutter,
+        right: DashSpace.gutter,
+        top: DashSpace.xs,
+        bottom: bottomInset + DashSpace.md,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(l10n.inventoryColorPickTitle, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           DashSearchField(
             id: 'swatches.color_search',
             hintText: l10n.inventoryColorSearchHint,
             onChanged: (v) => setState(() => _query = v),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           if (colors.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
               child: Text(
                 l10n.swatchNoCatalogColors,
                 textAlign: TextAlign.center,

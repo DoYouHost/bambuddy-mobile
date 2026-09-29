@@ -123,10 +123,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
         ),
         body: SingleChildScrollView(
-          padding: withSystemNavInset(context, const EdgeInsets.all(16)),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.all(DashSpace.lg),
+          ),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(DashSpace.lg),
             decoration: t.cardBox,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,7 +159,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     onSubmitted: (v) => controller.probe(v),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 FilledButton(
                   style: dashPrimaryButtonStyle(t),
                   onPressed: state.busy
@@ -164,7 +167,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       : () => controller.probe(_url.text),
                   child: Text(l10n.testConnection),
                 ).tagged('setup.test_connection'),
-                const SizedBox(height: 4),
+                const SizedBox(height: DashSpace.xs),
                 Center(
                   child: logTag(
                     'setup.demo',
@@ -189,12 +192,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
                 if (state.busy)
                   const Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.all(DashSpace.lg),
                     child: DashLoading(),
                   ),
                 if (state.error != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 16),
+                    padding: const EdgeInsets.only(top: DashSpace.lg),
                     child: Text(
                       setupErrorText(l10n, state.error!),
                       style: t.body.copyWith(color: t.dangerInk),
@@ -226,9 +229,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   ) {
     final method = _method ?? challenge.methods.first;
     return [
-      const SizedBox(height: 24),
+      const SizedBox(height: DashSpace.xl),
       Text(l10n.twoFactorTitle, style: t.titleSm),
-      const SizedBox(height: 8),
+      const SizedBox(height: DashSpace.sm),
       if (challenge.methods.length > 1) ...[
         SegmentedButton<TwoFactorMethod>(
           showSelectedIcon: false,
@@ -245,13 +248,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             _code.clear();
           }),
         ).tagged('setup.two_factor_method'),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
       ],
       Text(
         _methodExplain(l10n, method, sent: state.emailCodeSent),
         style: t.bodySoft,
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       logTag(
         'setup.two_factor_code',
         TextField(
@@ -301,7 +304,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ),
           ),
         ),
-      const SizedBox(height: 4),
+      const SizedBox(height: DashSpace.xs),
       FilledButton(
         style: dashPrimaryButtonStyle(t),
         onPressed: state.busy
@@ -310,7 +313,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   controller.verifyTwoFactor(method: method, code: _code.text),
         child: Text(l10n.twoFactorVerify),
       ).tagged('setup.two_factor_verify'),
-      const SizedBox(height: 4),
+      const SizedBox(height: DashSpace.xs),
       Center(
         child: logTag(
           'setup.two_factor_cancel',
@@ -334,7 +337,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
         ),
       ),
-      const SizedBox(height: 4),
+      const SizedBox(height: DashSpace.xs),
       Text(l10n.twoFactorSessionNote, style: t.label),
     ];
   }
@@ -362,9 +365,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     AppLocalizations l10n,
     SetupController controller,
   ) => [
-    const SizedBox(height: 24),
+    const SizedBox(height: DashSpace.xl),
     Text(l10n.serverRequiresAuth, style: t.titleSm),
-    const SizedBox(height: 8),
+    const SizedBox(height: DashSpace.sm),
     SegmentedButton<bool>(
       segments: [
         ButtonSegment(value: false, label: Text(l10n.authModeApiKey)),
@@ -373,10 +376,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       selected: {_useLogin},
       onSelectionChanged: (s) => setState(() => _useLogin = s.first),
     ).tagged('setup.auth_mode'),
-    const SizedBox(height: 16),
+    const SizedBox(height: DashSpace.lg),
     if (!_useLogin) ...[
       Text(l10n.apiKeyExplain, style: t.bodySoft),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       logTag(
         'setup.api_key',
         TextField(
@@ -395,7 +398,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       FilledButton(
         style: dashPrimaryButtonStyle(t),
         onPressed: () => controller.connectWithApiKey(_apiKey.text),
@@ -403,7 +406,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ).tagged('setup.connect_api_key'),
     ] else ...[
       Text(l10n.loginExplain, style: t.bodySoft),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       logTag(
         'setup.username',
         TextField(
@@ -413,7 +416,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       logTag(
         'setup.password',
         TextField(

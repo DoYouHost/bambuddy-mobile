@@ -60,7 +60,12 @@ class ApiKeysScreen extends ConsumerWidget {
                 : ListView.builder(
                     padding: withSystemNavInset(
                       context,
-                      EdgeInsets.fromLTRB(12, 8, 12, canCreate ? 88 : 24),
+                      EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.sm,
+                        DashSpace.gutter,
+                        canCreate ? DashSpace.fabClearance : DashSpace.xl,
+                      ),
                     ),
                     itemCount: keys.length,
                     itemBuilder: (_, i) => _ApiKeyCard(apiKey: keys[i]),
@@ -97,7 +102,7 @@ class _ApiKeyCard extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -106,7 +111,7 @@ class _ApiKeyCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(22),
             onTap: canEdit ? () => openApiKeyEdit(context, apiKey) : null,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: t.cardBox,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,7 +120,7 @@ class _ApiKeyCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.key_outlined, size: 20, color: accent),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: DashSpace.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +133,7 @@ class _ApiKeyCard extends ConsumerWidget {
                                 color: live ? t.textPrimary : t.textTertiary,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: DashSpace.xs),
                             Text(subtitle.join(' · '), style: t.monoMicro),
                           ],
                         ),
@@ -145,10 +150,10 @@ class _ApiKeyCard extends ConsumerWidget {
                         ).tagged('api_keys.revoke'),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: DashSpace.md),
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: DashSpace.sm,
+                    runSpacing: DashSpace.sm,
                     children: [
                       if (!apiKey.enabled)
                         DashPill(
@@ -264,10 +269,10 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(l10n.apiKeysCreatedWarning),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DashSpace.md),
             decoration: BoxDecoration(
               color: t.subCard,
               borderRadius: BorderRadius.circular(12),

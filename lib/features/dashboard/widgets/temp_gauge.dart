@@ -12,12 +12,14 @@ class TempGauge extends StatelessWidget {
     required this.fraction,
     required this.color,
     required this.trackColor,
-    this.size = 38,
+    this.size = defaultSize,
     this.strokeWidth = 3.2,
     this.centerText,
     this.centerIcon,
     this.centerColor,
   });
+
+  static const defaultSize = 38.0;
 
   final double fraction;
   final Color color;

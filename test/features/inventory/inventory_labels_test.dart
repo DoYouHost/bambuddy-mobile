@@ -94,9 +94,11 @@ void main() {
 
   /// Taps a stock card in the template sheet, scrolling it into range first:
   /// the sheet's list is lazy, and the two Avery entries sit below the fold.
+  /// `hitTestable` because the list builds rows past its bottom edge, and a
+  /// row that is built but not on screen swallows the tap.
   Future<void> pickTemplate(WidgetTester tester, String label) async {
     await tester.scrollUntilVisible(
-      find.text(label),
+      find.text(label).hitTestable(),
       120,
       scrollable: find.byType(Scrollable).last,
     );

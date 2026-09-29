@@ -28,7 +28,12 @@ class AdminScreen extends ConsumerWidget {
         body: ListView(
           padding: withSystemNavInset(
             context,
-            const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.xl,
+            ),
           ),
           children: [
             if (user != null) _SignedInAs(username: user.username),
@@ -75,11 +80,16 @@ class _SignedInAs extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.xs,
+        DashSpace.xs,
+        DashSpace.xs,
+        DashSpace.md,
+      ),
       child: Row(
         children: [
           Icon(Icons.badge_outlined, size: 15, color: t.textTertiary),
-          const SizedBox(width: 6),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Text(l10n.adminSignedInAs(username), style: t.labelSoft),
           ),

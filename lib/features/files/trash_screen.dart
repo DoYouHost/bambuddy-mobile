@@ -56,7 +56,7 @@ class TrashScreen extends ConsumerWidget {
                 : ListView.builder(
                     padding: withSystemNavInset(
                       context,
-                      const EdgeInsets.symmetric(vertical: 6),
+                      const EdgeInsets.symmetric(vertical: DashSpace.sm),
                     ),
                     itemCount: items.length,
                     itemBuilder: (context, i) => _TrashTile(
@@ -174,9 +174,17 @@ class _TrashTile extends StatelessWidget {
       if (file.folderName != null) file.folderName!,
     ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.md,
+          vertical: DashSpace.sm,
+        ),
         decoration: BoxDecoration(
           color: t.subCard,
           borderRadius: BorderRadius.circular(18),

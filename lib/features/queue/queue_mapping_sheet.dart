@@ -1,4 +1,3 @@
-import 'package:dash_kit/dash_kit.dart';
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +9,7 @@ import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../slicer/slice_providers.dart';
@@ -186,10 +186,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     Widget wrap(Widget child) => SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          16,
+          DashSpace.gutter,
           0,
-          16,
-          16 + MediaQuery.of(context).viewInsets.bottom,
+          DashSpace.gutter,
+          DashSpace.lg + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: child,
       ),
@@ -200,7 +200,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         'sheet.queue_mapping',
         wrap(
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
             child: Text(l10n.mappingNoSlots),
           ),
         ),
@@ -218,7 +218,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
     return wrap(
       reqsAsync.isLoading || traysAsync.isLoading
-          ? const Padding(padding: EdgeInsets.all(32), child: DashLoading())
+          ? const Padding(
+              padding: EdgeInsets.all(DashSpace.xxl),
+              child: DashLoading(),
+            )
           : _content(
               theme,
               reqsAsync.valueOrNull ?? const [],
@@ -236,12 +239,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     if (reqs.isEmpty) {
       // No per-slot info — nothing to map; let the caller proceed with defaults.
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
               child: Text(l10n.mappingNoSlots),
             ),
             _confirmButton(const []),
@@ -256,7 +259,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       shrinkWrap: true,
       children: [
         Text(l10n.queueFilamentMapping, style: theme.textTheme.titleLarge),
-        const SizedBox(height: 2),
+        const SizedBox(height: DashSpace.xs),
         Text(
           widget.item.displayName,
           style: theme.textTheme.bodySmall,
@@ -265,7 +268,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
         if (trays.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
               l10n.mappingNoAms(
                 widget.printerName ?? widget.item.printerName ?? '',
@@ -275,10 +278,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               ),
             ),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
         for (var i = 0; i < reqs.length; i++)
           _slotRow(theme, i, reqs[i], trays),
-        const SizedBox(height: 16),
+        const SizedBox(height: DashSpace.lg),
         // Untouched → empty mapping = "let the backend auto-map from live AMS".
         _confirmButton(
           _touched ? [for (final s in _selected) s ?? -1] : const [],
@@ -306,7 +309,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ? matches.first
         : null;
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: ListTile(
         // Show the chosen filament's colour once mapped, else the file's
         // required colour.

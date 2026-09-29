@@ -117,7 +117,12 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             child: ListView(
               padding: withSystemNavInset(
                 context,
-                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                const EdgeInsets.fromLTRB(
+                  DashSpace.gutter,
+                  DashSpace.md,
+                  DashSpace.gutter,
+                  DashSpace.xxl,
+                ),
               ),
               children: [
                 TextFormField(
@@ -132,7 +137,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                       ? l10n.projectNameRequired
                       : null,
                 ).tagged('project_form.name'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _description,
                   style: fieldStyle,
@@ -142,7 +147,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   ),
                   maxLines: 2,
                 ).tagged('project_form.description'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 Row(
                   children: [
                     Expanded(
@@ -169,7 +174,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: dashCombo<String>(
                         context,
@@ -194,11 +199,11 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _colorRow(l10n, t),
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _dueDateRow(l10n, t),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 Row(
                   children: [
                     Expanded(
@@ -212,7 +217,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         keyboardType: TextInputType.number,
                       ).tagged('project_form.target_count'),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     Expanded(
                       child: TextFormField(
                         controller: _targetParts,
@@ -226,7 +231,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 // Sets are a 1.2.5.2 column. An older server ignores the field
                 // rather than failing, so the input stays offered instead of
                 // being gated behind a version probe — but nothing reads it
@@ -241,7 +246,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   ),
                   keyboardType: TextInputType.number,
                 ).tagged('project_form.target_sets'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _budget,
                   style: fieldStyle,
@@ -253,7 +258,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                     decimal: true,
                   ),
                 ).tagged('project_form.budget'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _tags,
                   style: fieldStyle,
@@ -262,7 +267,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                     labelText: l10n.projectTags,
                   ),
                 ).tagged('project_form.tags'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _url,
                   style: fieldStyle,
@@ -272,9 +277,9 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   ),
                   keyboardType: TextInputType.url,
                 ).tagged('project_form.url'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 _parentDropdown(l10n, t, fieldStyle),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _notes,
                   style: fieldStyle,
@@ -303,7 +308,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             style: t.label.copyWith(color: t.textSecondary),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         ProjectColorSelector(
           selected: _color,
           onChanged: (hex) => setState(() => _color = hex),
@@ -319,7 +324,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
-        const SizedBox(width: 12),
+        const SizedBox(width: DashSpace.md),
         Expanded(child: Text(label, style: t.body)),
         if (_dueDate != null)
           IconButton(

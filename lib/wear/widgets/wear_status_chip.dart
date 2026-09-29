@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
@@ -16,7 +17,10 @@ class WearStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = state.color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.xs,
+      ),
       decoration: wearTintedBox(color),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -26,7 +30,7 @@ class WearStatusChip extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 7),
+          const SizedBox(width: DashSpace.sm),
           // Flexible, not bare: the round-safe content width on a 225 dp face is
           // 166 dp, and "Zatrzymywanie"/"Oczekiwanie na płytę" in Polish
           // overflow it — the chip drew its own striped overflow bar right where

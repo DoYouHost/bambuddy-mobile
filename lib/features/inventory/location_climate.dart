@@ -38,8 +38,8 @@ class _ClimatePills extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: DashSpace.sm,
+      runSpacing: DashSpace.sm,
       children: [
         for (final reading in readings)
           Semantics(
@@ -111,18 +111,26 @@ class _LocationClimateSheet extends ConsumerWidget {
         minSize: 0.3,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             Text(l10n.inventoryClimateTitle, style: theme.textTheme.titleLarge),
             InlineNote(
               l10n.inventoryClimateSource,
               icon: Icons.info_outline,
-              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              padding: const EdgeInsets.only(
+                top: DashSpace.sm,
+                bottom: DashSpace.xs,
+              ),
             ),
             for (final climate in entries)
               Container(
-                margin: const EdgeInsets.only(top: 10),
-                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(top: DashSpace.md),
+                padding: const EdgeInsets.all(DashSpace.lg),
                 decoration: BoxDecoration(
                   color: t.subCard,
                   borderRadius: BorderRadius.circular(20),
@@ -146,7 +154,7 @@ class _LocationClimateSheet extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: DashSpace.md),
                     _ClimatePills(readings: climate.readings),
                   ],
                 ),

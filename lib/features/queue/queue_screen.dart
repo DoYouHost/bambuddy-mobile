@@ -140,7 +140,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
               ).tagged('queue.orders'),
             if (queued.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: DashSpace.lg),
                 child: Center(
                   child: DashPill(
                     label: '${queued.length}',
@@ -257,7 +257,7 @@ class _QueueList extends ConsumerWidget {
         for (final it in pinned) _QueueCard(item: it, pinned: true),
         Expanded(
           child: ReorderableListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
             physics: const AlwaysScrollableScrollPhysics(),
             // No default long-press drag — reorder only via explicit handle on left
             // side of tile.
@@ -318,8 +318,11 @@ class _QueueCard extends ConsumerWidget {
     final card = logTag(
       'queue.card',
       Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
+        padding: const EdgeInsets.all(DashSpace.lg),
         decoration: BoxDecoration(
           gradient: t.cardGradient,
           borderRadius: BorderRadius.circular(22),
@@ -338,7 +341,7 @@ class _QueueCard extends ConsumerWidget {
                 ReorderableDragStartListener(
                   index: idx,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.only(right: DashSpace.md),
                     child: Icon(Icons.drag_indicator, color: t.textTertiary),
                   ),
                 ),
@@ -353,7 +356,7 @@ class _QueueCard extends ConsumerWidget {
                     )
                   : PrintThumbnail(archiveId: item.archiveId, size: 56),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +368,7 @@ class _QueueCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: t.titleMd,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: DashSpace.sm),
                   _Subtitle(item: item),
                 ],
               ),
@@ -385,8 +388,11 @@ class _QueueCard extends ConsumerWidget {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.only(right: DashSpace.xl),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
         decoration: BoxDecoration(
           color: t.danger.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
@@ -450,7 +456,7 @@ class _Subtitle extends StatelessWidget {
         _StatusChip(item: item),
         if (parts.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.only(top: DashSpace.xs),
             child: Text(
               parts.join(' · '),
               maxLines: 1,
@@ -494,7 +500,10 @@ class _StatusChip extends StatelessWidget {
     // colored one — there's nothing actionable to draw the eye to.
     final neutral = accent == t.textTertiary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: neutral ? t.subCard : accent.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
@@ -904,7 +913,7 @@ Future<Printer?> _pickQueuePrinter(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(DashSpace.lg),
             child: Text(
               l10n.pickPrinterTitle,
               style: Theme.of(ctx).textTheme.titleMedium,

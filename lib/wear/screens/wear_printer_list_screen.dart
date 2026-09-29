@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
@@ -32,7 +33,7 @@ class WearPrinterListBody extends ConsumerWidget {
         onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: DashSpace.sm),
             child: WearHeader(AppLocalizations.of(context).printersTitle),
           ),
           // Same sentence the control screen carries, for the same reason: a
@@ -45,11 +46,11 @@ class WearPrinterListBody extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: WearText.small.copyWith(color: wearInert),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
           ],
           for (final p in printers)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
               child: _PrinterRow(
                 name: p.printer.name,
                 stateLabel: wearStateOf(
@@ -64,7 +65,7 @@ class WearPrinterListBody extends ConsumerWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 4),
+          const SizedBox(height: DashSpace.xs),
           const WearSettingsEntry(),
         ],
       ),
@@ -97,7 +98,10 @@ class _PrinterRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(wearRadiusRow),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.lg,
+          vertical: DashSpace.md,
+        ),
         child: Row(
           children: [
             Container(
@@ -108,7 +112,7 @@ class _PrinterRow extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: DashSpace.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

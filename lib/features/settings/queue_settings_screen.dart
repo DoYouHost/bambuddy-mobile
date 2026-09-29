@@ -68,16 +68,23 @@ class QueueSettingsScreen extends ConsumerWidget {
                 : ListView(
                     padding: withSystemNavInset(
                       context,
-                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      const EdgeInsets.fromLTRB(
+                        DashSpace.gutter,
+                        DashSpace.sm,
+                        DashSpace.gutter,
+                        DashSpace.xl,
+                      ),
                     ),
                     children: [
                       if (_lockReason(l10n, lock) case final reason?) ...[
                         InlineNote(
                           reason,
                           icon: Icons.lock_outline,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DashSpace.xs,
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: DashSpace.md),
                       ],
                       ..._sections(context, ref, settings, lock),
                     ],
@@ -335,7 +342,7 @@ class QueueSettingsScreen extends ConsumerWidget {
           SettingsSectionHeader(header),
           SettingsCard(rows: rows),
           ?note,
-          const SizedBox(height: 20),
+          const SizedBox(height: DashSpace.xl),
         ];
 
   /// A slider over a span the server keeps in seconds.

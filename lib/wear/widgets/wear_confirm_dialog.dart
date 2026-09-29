@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_geometry.dart';
 import '../wear_theme.dart';
@@ -80,10 +81,10 @@ class WearConfirmDialog extends StatelessWidget {
           ),
           children: [
             Icon(icon, color: confirmColor, size: 28),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             Text(title, textAlign: TextAlign.center, style: WearText.hero),
             if (subtitle != null) ...[
-              const SizedBox(height: 3),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 subtitle!,
                 maxLines: 1,
@@ -123,7 +124,7 @@ class _Answer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Sized from the width the round-safe geometry left, never from a

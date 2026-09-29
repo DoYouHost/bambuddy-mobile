@@ -19,6 +19,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../common/dash_input.dart';
+import '../../common/dash_search_field.dart';
 import '../../../l10n/error_messages.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart'
@@ -194,7 +195,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                0,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -202,36 +208,28 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                     l10n.amsSlotConfigTitle,
                     style: theme.textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: DashSpace.xs),
                   Text(
                     [?target.printerName, target.label].join(' · '),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: DashSpace.lg),
                   _colourField(l10n, t),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                   _kProfileField(l10n, t, choices, failed: table?.failed),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: DashSpace.lg),
                   Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  TextField(
+                  const SizedBox(height: DashSpace.sm),
+                  DashSearchField(
+                    id: 'ams_slot_config.search',
                     controller: _search,
+                    hintText: l10n.amsSlotConfigSearch,
                     onChanged: (_) => setState(() {}),
-                    style: t.bodyPlain.copyWith(color: t.textPrimary),
-                    decoration: dashDecoration(
-                      t,
-                      hintText: l10n.amsSlotConfigSearch,
-                      prefixIcon: Icon(
-                        Icons.search,
-                        size: 18,
-                        color: t.textTertiary,
-                      ),
-                    ),
-                  ).tagged('ams_slot_config.search'),
+                  ),
                   if (view != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DashSpace.sm),
                     ..._filterRow(l10n, t, view),
                   ],
                 ],
@@ -551,7 +549,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        0,
+        DashSpace.gutter,
+        DashSpace.sm,
+      ),
       itemCount: view.presets.length,
       itemBuilder: (_, i) => _presetTile(l10n, t, view.presets[i]),
     );
@@ -560,7 +563,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// A message where the list would be. Scrollable so the sheet still gives on
   /// a drag, and so a long line has somewhere to go on a short screen.
   Widget _scrollableMessage(DashTokens t, String text) => ListView(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
+    padding: const EdgeInsets.symmetric(horizontal: DashSpace.gutter),
     children: [_message(t, text)],
   );
 
@@ -575,7 +578,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     required String model,
     required int hidden,
   }) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.only(bottom: DashSpace.sm),
     child: Align(
       alignment: Alignment.centerLeft,
       child: FilterChip(
@@ -606,7 +609,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   ) {
     final selected = _picked?.pickerId == preset.pickerId;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () => setState(() {
@@ -614,7 +617,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           _userPicked = true;
         }),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DashSpace.md,
+            vertical: DashSpace.md,
+          ),
           decoration: BoxDecoration(
             color: t.subCard,
             borderRadius: BorderRadius.circular(14),
@@ -630,7 +636,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                 size: 18,
                 color: selected ? t.accentGreenInk : t.textTertiary,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,7 +647,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                       overflow: TextOverflow.ellipsis,
                       style: t.body,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: DashSpace.xs),
                     Text(
                       // Says why this one is at the top, so the pinning does
                       // not read as the sort being broken.
@@ -666,8 +672,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   }
 
   Widget _cloudLoginHint(AppLocalizations l10n, DashTokens t) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+    margin: const EdgeInsets.only(bottom: DashSpace.sm),
+    padding: const EdgeInsets.fromLTRB(
+      DashSpace.md,
+      DashSpace.sm,
+      DashSpace.sm,
+      DashSpace.sm,
+    ),
     decoration: BoxDecoration(
       color: t.accentBlue.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(14),
@@ -676,7 +687,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     child: Row(
       children: [
         Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
-        const SizedBox(width: 8),
+        const SizedBox(width: DashSpace.sm),
         Expanded(
           child: Text(
             l10n.amsSlotConfigCloudHint,
@@ -695,7 +706,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   );
 
   Widget _message(DashTokens t, String text) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 16),
+    padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
     child: Text(
       text,
       style: TextStyle(
@@ -726,7 +737,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         color: t.overlaySurface,
         border: Border(top: BorderSide(color: t.overlayBorder)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.md,
+        DashSpace.gutter,
+        DashSpace.xs,
+      ),
       child: SafeArea(
         top: false,
         child: Column(
@@ -736,7 +752,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               onPressed: busy || _picked == null ? null : () => _apply(l10n),
               child: busy ? const DashSpinner() : Text(l10n.amsSlotConfigApply),
             ).tagged('ams_slot_config.apply'),
-            const SizedBox(height: 4),
+            const SizedBox(height: DashSpace.xs),
             TextButton.icon(
               onPressed: busy ? null : () => _reset(l10n),
               icon: const Icon(Icons.layers_clear, size: 18),
@@ -913,7 +929,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
 
     return AlertDialog(
       title: Text(l10n.amsSlotConfigColour),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -922,10 +938,15 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
             if (catalogue.isNotEmpty) ...[
               _label(t, l10n.amsSlotConfigColourCatalogue),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                padding: const EdgeInsets.fromLTRB(
+                  DashSpace.xl,
+                  DashSpace.sm,
+                  DashSpace.xl,
+                  DashSpace.lg,
+                ),
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
                   children: [
                     for (final entry in catalogue)
                       _CatalogueSwatch(
@@ -990,7 +1011,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
   }
 
   Widget _label(DashTokens t, String text) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24),
+    padding: const EdgeInsets.symmetric(horizontal: DashSpace.xl),
     child: Text(text, style: t.micro),
   );
 }

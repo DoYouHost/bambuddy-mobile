@@ -115,8 +115,8 @@ class ProjectColorSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: DashSpace.md,
+      runSpacing: DashSpace.md,
       children: [
         // "None" option.
         _swatch(
@@ -180,7 +180,10 @@ class ProjectStatusChip extends StatelessWidget {
     final t = DashTokens.of(context);
     final color = projectStatusColor(t, status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),

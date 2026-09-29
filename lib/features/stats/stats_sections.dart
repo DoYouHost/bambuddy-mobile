@@ -70,21 +70,21 @@ class FailureAnalysisCard extends ConsumerWidget {
                     '${fmtNum(f.failureRate)}%',
                     style: t.monoDisplay.copyWith(color: rateColor),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: DashSpace.md),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: DashSpace.xs),
                     child: Text(rangeLabel, style: t.labelSoft),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               Text(
                 l10n.statsFailedOfTotal(f.failedPrints, f.totalPrints),
                 style: t.label,
               ),
               if (reasons.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: DashSpace.md),
                   child: Text(
                     l10n.statsNoFailures,
                     style: TextStyle(
@@ -94,15 +94,15 @@ class FailureAnalysisCard extends ConsumerWidget {
                   ),
                 )
               else ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: DashSpace.lg),
                 Text(
                   l10n.statsTopFailureReasons,
                   style: t.micro.copyWith(color: t.accentGreenInk),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: DashSpace.sm),
                 for (final e in reasons.take(5))
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
                     child: Row(
                       children: [
                         Expanded(
@@ -136,6 +136,8 @@ class PrintActivityCard extends StatelessWidget {
   final DateTimeFormats fmt;
 
   static const _margin = 3.0;
+  // Half the gap on each side of a cell; the legend swatches use it too.
+  static const _cellInset = _margin / 2;
   static const _labelW = 30.0;
 
   /// Widest window shown (GitHub-style ~1 year). "All time" on a
@@ -235,7 +237,7 @@ class PrintActivityCard extends StatelessWidget {
                           Container(
                             width: size,
                             height: size,
-                            margin: const EdgeInsets.all(_margin / 2),
+                            margin: const EdgeInsets.all(_cellInset),
                             decoration: BoxDecoration(
                               color: cellColor(dayAt(w, d)),
                               borderRadius: BorderRadius.circular(3),
@@ -248,7 +250,11 @@ class PrintActivityCard extends StatelessWidget {
 
               final content = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [monthRow, const SizedBox(height: 2), body],
+                children: [
+                  monthRow,
+                  const SizedBox(height: DashSpace.xs),
+                  body,
+                ],
               );
               return scroll
                   ? SingleChildScrollView(
@@ -259,17 +265,17 @@ class PrintActivityCard extends StatelessWidget {
                   : content;
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(l10n.statsHeatmapLess, style: labelStyle),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               for (final frac in [0.0, 0.33, 0.66, 1.0])
                 Container(
                   width: 13,
                   height: 13,
-                  margin: const EdgeInsets.all(1.5),
+                  margin: const EdgeInsets.all(_cellInset),
                   decoration: BoxDecoration(
                     color: frac == 0
                         ? track
@@ -277,7 +283,7 @@ class PrintActivityCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
-              const SizedBox(width: 6),
+              const SizedBox(width: DashSpace.sm),
               Text(l10n.statsHeatmapMore, style: labelStyle),
             ],
           ),
@@ -382,12 +388,12 @@ class _RecordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 22, color: t.accentGreenInk),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,7 +409,7 @@ class _RecordRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Text(value, style: t.monoTitle),
         ],
       ),
@@ -439,11 +445,11 @@ class BarList extends StatelessWidget {
                       style: t.body,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DashSpace.sm),
                   Text(rows[i].value, style: t.monoLabel),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               DashProgressBar(
                 value: rows[i].fraction.clamp(0, 1).toDouble(),
                 height: 8,
@@ -451,7 +457,7 @@ class BarList extends StatelessWidget {
               ),
             ],
           ),
-          if (i != rows.length - 1) const SizedBox(height: 10),
+          if (i != rows.length - 1) const SizedBox(height: DashSpace.md),
         ],
       ],
     );
@@ -681,7 +687,7 @@ class _OverTimeChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     return Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: DashSpace.xs),
                       child: Text(
                         fmt.dayNamedMonth(points[i].key),
                         style: axisStyle,
@@ -789,14 +795,14 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: DashSpace.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (var i = 0; i < entries.length; i++)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
                     child: Row(
                       children: [
                         Expanded(
@@ -906,7 +912,7 @@ class ColorDistributionCard extends StatelessWidget {
           // card said — leaving the reader to guess between mass, print count
           // and time, all three of which this screen also reports.
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: DashSpace.md),
             child: Text(l10n.statsColorShareHint, style: t.microSoft),
           ),
           Row(
@@ -965,11 +971,11 @@ class ColorDistributionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: DashSpace.lg),
               Expanded(
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
                   children: [
                     for (final e in top)
                       _ColorChip(
@@ -983,7 +989,7 @@ class ColorDistributionCard extends StatelessWidget {
           ),
           if (moreCount > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: DashSpace.md),
               child: Text(l10n.statsMoreCount(moreCount), style: t.microSoft),
             ),
         ],
@@ -1003,7 +1009,10 @@ class _ColorChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -1021,7 +1030,7 @@ class _ColorChip extends StatelessWidget {
               border: Border.all(color: t.cardBorder),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: DashSpace.sm),
           Text(label, style: t.monoLabel.copyWith(color: t.textPrimary)),
         ],
       ),
@@ -1086,7 +1095,7 @@ class _BarHistogram extends StatelessWidget {
                   }
                   if (i % everyLabel != 0) return const SizedBox.shrink();
                   return Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: DashSpace.xs),
                     child: Text(labels[i], style: axisStyle),
                   );
                 },

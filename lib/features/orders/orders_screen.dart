@@ -71,12 +71,17 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         body: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                DashSpace.gutter,
+                DashSpace.xs,
+                DashSpace.gutter,
+                DashSpace.sm,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DashSpace.sm,
+                  runSpacing: DashSpace.sm,
                   children: [
                     for (final f in _filters)
                       ChoiceChip(
@@ -104,7 +109,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                           )
                         : ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 88),
+                            padding: const EdgeInsets.only(
+                              bottom: DashSpace.fabClearance,
+                            ),
                             children: [
                               for (final b in batches)
                                 _OrderCard(key: ValueKey(b.id), batch: b),
@@ -322,8 +329,16 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
     return logTag(
       'orders.card',
       Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
+        margin: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.xs,
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.lg,
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.lg,
+        ),
         decoration: t.cardBox,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,9 +351,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                   _OrderMenu(enabled: !busy, actions: actions),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: DashSpace.md),
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: DashSpace.sm),
               child: Row(
                 children: [
                   Expanded(
@@ -352,7 +367,7 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                           : t.accentBlue,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: DashSpace.md),
                   Text(
                     l10n.ordersProgress(b.completedCount, total),
                     style: t.monoLabel,
@@ -360,18 +375,21 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                 ],
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             _Numbers(batch: b, open: open),
             if (open && b.stranded > 0)
               Padding(
-                padding: const EdgeInsets.only(top: 6, right: 8),
+                padding: const EdgeInsets.only(
+                  top: DashSpace.sm,
+                  right: DashSpace.sm,
+                ),
                 child: Text(
                   l10n.ordersStrandedNotice(b.stranded, b.remainingCount),
                   style: t.bodySoft.copyWith(color: t.accentOrangeInk),
                 ),
               ),
             if (b.hasTargets && b.plates.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               Divider(height: 1, color: t.hairline),
               for (final p in b.plates)
                 _PlateRow(
@@ -383,7 +401,10 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
             ],
             if (canQueue && b.dispatchable > 0)
               Padding(
-                padding: const EdgeInsets.only(top: 10, right: 8),
+                padding: const EdgeInsets.only(
+                  top: DashSpace.md,
+                  right: DashSpace.sm,
+                ),
                 child: FilledButton.icon(
                   onPressed: busy ? null : _dispatch,
                   icon: const Icon(Icons.playlist_add),
@@ -442,10 +463,10 @@ class _Header extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: t.titleMd,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: DashSpace.sm,
+          runSpacing: DashSpace.sm,
           children: [
             DashPill(
               label: statusLabel,
@@ -470,7 +491,7 @@ class _Header extends StatelessWidget {
         ),
         if (who != null || due != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text.rich(
               TextSpan(
                 style: t.bodySoft,
@@ -492,7 +513,7 @@ class _Header extends StatelessWidget {
           ),
         if (b.notes != null && b.notes!.trim().isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: DashSpace.xs),
             child: Text(
               b.notes!,
               maxLines: 3,
@@ -537,7 +558,7 @@ class _Numbers extends ConsumerWidget {
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: DashSpace.sm),
       child: Text(parts.join(' · '), style: t.monoLabel),
     );
   }
@@ -571,11 +592,11 @@ class _PlateRow extends StatelessWidget {
     ].join(' · ');
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: DashSpace.sm),
       child: Row(
         children: [
           Icon(Icons.layers_outlined, size: 18, color: t.textTertiary),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

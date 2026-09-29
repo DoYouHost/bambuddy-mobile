@@ -79,7 +79,12 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
     return logTag(
       'sheet.outcome',
       SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          0,
+          DashSpace.gutter,
+          DashSpace.lg,
+        ),
         child: dashAsync(
           context,
           ref.watch(archiveDetailProvider(widget.archiveId)),
@@ -90,9 +95,9 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(l10n.outcomeTitle, style: t.titleSm),
-              const SizedBox(height: 12),
+              const SizedBox(height: DashSpace.md),
               _FinishPhoto(archive: archive),
-              const SizedBox(height: 8),
+              const SizedBox(height: DashSpace.sm),
               Text(
                 archive.displayName,
                 maxLines: 2,
@@ -101,7 +106,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
                 style: t.bodyStrong,
               ),
               if (archive.userVerdict case final verdict?) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: DashSpace.xs),
                 Text(
                   [
                     verdictLabel(l10n, verdict),
@@ -111,7 +116,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
                   style: t.labelSoft,
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               if (_rejecting)
                 ..._rejectStep(l10n, archive)
               else
@@ -154,7 +159,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
           ),
         ),
       ),
-      const SizedBox(height: 4),
+      const SizedBox(height: DashSpace.xs),
       if (verdict == null)
         logTag(
           'outcome.later',
@@ -194,7 +199,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         ),
       ),
     ),
-    const SizedBox(height: 12),
+    const SizedBox(height: DashSpace.md),
     ButtonPair(
       primaryLabel: l10n.outcomeSaveReject,
       secondaryLabel: l10n.outcomeRejectAndReprint,
@@ -229,7 +234,7 @@ class _OutcomeSheetState extends ConsumerState<OutcomeSheet> {
         ),
       ),
     ),
-    const SizedBox(height: 4),
+    const SizedBox(height: DashSpace.xs),
     logTag(
       'outcome.back',
       TextButton(

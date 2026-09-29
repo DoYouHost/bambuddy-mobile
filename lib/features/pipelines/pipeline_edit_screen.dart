@@ -63,7 +63,12 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.pipelineEditTitle),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.sm,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         children: [
           TextField(
             controller: _name,
@@ -80,7 +85,7 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
               labelText: l10n.pipelineDescriptionHint,
             ),
           ).tagged('pipeline_edit.description'),
-          const SizedBox(height: 16),
+          const SizedBox(height: DashSpace.lg),
           Text(l10n.pipelineTargetType, style: theme.textTheme.labelLarge),
           RadioGroup<PipelineTargetKind>(
             groupValue: _targetKind,
@@ -106,17 +111,17 @@ class _PipelineEditScreenState extends ConsumerState<PipelineEditScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           if (_targetKind == PipelineTargetKind.specificPrinter)
             _printerDropdown(l10n, printers)
           else ...[
             _classDropdown(l10n, classes),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             // Only a class spreads copies over several printers; with one
             // pinned printer there is nothing to spread.
             _fanoutDropdown(l10n),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: DashSpace.xl),
           FilledButton(
             onPressed: _name.text.trim().isEmpty || _saving ? null : _save,
             child: _saving

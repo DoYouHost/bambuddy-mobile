@@ -47,11 +47,12 @@ class WallScreen extends ConsumerStatefulWidget {
   /// one every [burnInStep]. Provisional values — two logical pixels is far
   /// below what reads as movement, a few minutes far below what burns in.
   static const burnInStep = Duration(minutes: 3);
+  static const burnInRange = 2.0;
   static const burnInOffsets = [
     Offset.zero,
-    Offset(2, 0),
-    Offset(2, 2),
-    Offset(0, 2),
+    Offset(burnInRange, 0),
+    Offset(burnInRange, burnInRange),
+    Offset(0, burnInRange),
   ];
 
   @override
@@ -155,7 +156,8 @@ class _WallScreenState extends ConsumerState<WallScreen> {
   /// while its size — and so the grid's layout — stays the same.
   EdgeInsets get _burnInPadding {
     final o = WallScreen.burnInOffsets[_shift];
-    return EdgeInsets.fromLTRB(o.dx, o.dy, 2 - o.dx, 2 - o.dy);
+    const r = WallScreen.burnInRange;
+    return EdgeInsets.fromLTRB(o.dx, o.dy, r - o.dx, r - o.dy);
   }
 
   void _setExpanded(bool expanded) {
@@ -177,7 +179,12 @@ class _WallScreenState extends ConsumerState<WallScreen> {
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Padding(
-            padding: EdgeInsets.all(12) + _burnInPadding,
+            padding:
+                EdgeInsets.symmetric(
+                  horizontal: DashSpace.gutter,
+                  vertical: DashSpace.md,
+                ) +
+                _burnInPadding,
             child: LayoutBuilder(
               builder: (context, box) {
                 final expanded =
@@ -188,7 +195,7 @@ class _WallScreenState extends ConsumerState<WallScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Expanded(child: _WallGrid()),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DashSpace.md),
                     if (expanded)
                       _WallPanel(
                         settings: _settings,
@@ -338,7 +345,12 @@ class _WallPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
+            padding: const EdgeInsets.fromLTRB(
+              DashSpace.lg,
+              DashSpace.xs,
+              DashSpace.xs,
+              DashSpace.xs,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -368,7 +380,7 @@ class _WallPanel extends StatelessWidget {
           // grid beside it.
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(DashSpace.md),
               children: [
                 if (settings) const _WallSettings() else const _WallFarm(),
               ],
@@ -398,7 +410,7 @@ class _WallFarm extends ConsumerWidget {
           _Quiet(l10n.wallNoFaults)
         else
           for (final f in faults) _FaultItem(fault: f),
-        const SizedBox(height: 14),
+        const SizedBox(height: DashSpace.lg),
         _SectionHeader(title: l10n.navQueue, count: queue.length),
         if (queue.isEmpty)
           _Quiet(l10n.queueEmpty)
@@ -419,7 +431,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.xs,
+        0,
+        DashSpace.xs,
+        DashSpace.sm,
+      ),
       child: Row(
         children: [
           Expanded(child: Text(title, style: t.bodyBold)),
@@ -439,7 +456,12 @@ class _Quiet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
+    padding: const EdgeInsets.fromLTRB(
+      DashSpace.xs,
+      0,
+      DashSpace.xs,
+      DashSpace.sm,
+    ),
     child: Text(text, style: DashTokens.of(context).bodySoft),
   );
 }
@@ -457,7 +479,7 @@ class _PanelItem extends StatelessWidget {
     final t = DashTokens.of(context);
     final stripe = this.stripe;
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: const EdgeInsets.only(bottom: DashSpace.sm),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(12),
@@ -472,7 +494,12 @@ class _PanelItem extends StatelessWidget {
                   start: BorderSide(color: stripe, width: 3),
                 ),
               ),
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.md,
+          DashSpace.sm,
+          DashSpace.md,
+          DashSpace.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: children,
@@ -543,12 +570,12 @@ class _QueueRow extends StatelessWidget {
         Text(target, style: t.bodySoft),
         if (waiting != null && waiting.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: DashSpace.xs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.schedule, size: 14, color: t.accentOrangeInk),
-                const SizedBox(width: 4),
+                const SizedBox(width: DashSpace.xs),
                 // The server's own sentence; it is not localised.
                 Expanded(
                   child: Text(
@@ -589,7 +616,7 @@ class _WallSettings extends ConsumerWidget {
           value: ref.watch(wallLiveCameraProvider),
           onChanged: ref.read(wallLiveCameraProvider.notifier).set,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
         logTag(
           'wall.exit',
           OutlinedButton.icon(
@@ -600,9 +627,14 @@ class _WallSettings extends ConsumerWidget {
         ),
         // Last: the list grows with the farm, and must not push the way out
         // below the fold.
-        const SizedBox(height: 12),
+        const SizedBox(height: DashSpace.md),
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 2),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.xs,
+            0,
+            DashSpace.xs,
+            DashSpace.xs,
+          ),
           child: Text(
             l10n.wallPrintersTitle,
             style: DashTokens.of(context).bodyBold,
@@ -613,7 +645,9 @@ class _WallSettings extends ConsumerWidget {
             'wall.printer_visible',
             CheckboxListTile(
               dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.xs,
+              ),
               title: Text(
                 p.printer.name,
                 maxLines: 1,
@@ -645,7 +679,7 @@ class _WallRail extends ConsumerWidget {
     return Container(
       width: WallScreen.railWidth,
       decoration: t.cardBox,
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Column(
         children: [
           // Read-only counts (D20): a new fault still shows here, and on its
@@ -656,13 +690,13 @@ class _WallRail extends ConsumerWidget {
             excludeSemantics: true,
             child: Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: DashSpace.sm),
                 _RailCount(
                   icon: Icons.error_outline_rounded,
                   count: faults,
                   color: faults > 0 ? t.danger : t.textSecondary,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: DashSpace.lg),
                 _RailCount(
                   icon: Icons.format_list_numbered_rounded,
                   count: queued,
@@ -672,7 +706,12 @@ class _WallRail extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          Divider(height: 13, indent: 18, endIndent: 18, color: t.hairline),
+          Divider(
+            height: DashSpace.md,
+            indent: DashSpace.lg,
+            endIndent: DashSpace.lg,
+            color: t.hairline,
+          ),
           ..._panelButtons(
             context,
             settingsOpen: false,
@@ -703,7 +742,7 @@ class _RailCount extends StatelessWidget {
     return Column(
       children: [
         Icon(icon, size: 22, color: color),
-        const SizedBox(height: 2),
+        const SizedBox(height: DashSpace.xs),
         Text('$count', style: t.monoValue.copyWith(color: color)),
       ],
     );

@@ -169,26 +169,18 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   DashSliverSearchBar(
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DashSearchField(
-                              id: 'print_log.search',
-                              hintText: l10n.printLogSearchHint,
-                              onChanged: _onSearchChanged,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilterButton(
-                            count: filters.activeCount,
-                            tooltip: l10n.printLogFilters,
-                            id: 'print_log.filters',
-                            onTap: _openFilters,
-                          ),
-                        ],
-                      ),
+                    child: DashSearchField(
+                      id: 'print_log.search',
+                      hintText: l10n.printLogSearchHint,
+                      onChanged: _onSearchChanged,
+                      trailing: [
+                        FilterButton(
+                          count: filters.activeCount,
+                          tooltip: l10n.printLogFilters,
+                          id: 'print_log.filters',
+                          onTap: _openFilters,
+                        ),
+                      ],
                     ),
                   ),
                   if (state.items.isEmpty)
@@ -207,7 +199,9 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
                     )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DashSpace.sm,
+                      ),
                       sliver: SliverList.builder(
                         itemCount: state.items.length + 1,
                         itemBuilder: (context, i) => i == state.items.length
@@ -328,7 +322,12 @@ class _ListFooter extends ConsumerWidget {
     final t = DashTokens.of(context);
     if (!state.hasMore) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          DashSpace.gutter,
+          DashSpace.md,
+          DashSpace.gutter,
+          DashSpace.xl,
+        ),
         child: Center(
           child: Text(
             l10n.printLogShowing(state.items.length, state.total),
@@ -338,7 +337,12 @@ class _ListFooter extends ConsumerWidget {
       );
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.md,
+        DashSpace.gutter,
+        DashSpace.xl,
+      ),
       child: Center(
         child: state.loadingMore
             ? const DashSpinner(size: 22)
@@ -390,7 +394,10 @@ class _PrintLogCard extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.xs,
+      ),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -399,7 +406,7 @@ class _PrintLogCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DashSpace.lg),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(20),
@@ -412,7 +419,7 @@ class _PrintLogCard extends ConsumerWidget {
                     printLogEntryId: entry.hasThumbnail ? entry.id : null,
                     size: 52,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +441,7 @@ class _PrintLogCard extends ConsumerWidget {
                                 style: t.titleSm,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: DashSpace.sm),
                             DashPill(
                               dense: true,
                               label: printRunStatusLabel(l10n, entry.status),
@@ -451,7 +458,7 @@ class _PrintLogCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: DashSpace.sm),
                         Text(
                           who.join(' · '),
                           // Wrapping, not an ellipsis: a run whose printer and
@@ -462,7 +469,7 @@ class _PrintLogCard extends ConsumerWidget {
                           style: t.label.copyWith(color: t.textSecondary),
                         ),
                         if (numbers.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: DashSpace.xs),
                           Text(
                             numbers.join(' · '),
                             maxLines: 2,
@@ -471,10 +478,10 @@ class _PrintLogCard extends ConsumerWidget {
                           ),
                         ],
                         if (entry.failureReason != null || entry.isOrphan) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: DashSpace.sm),
                           Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
+                            spacing: DashSpace.sm,
+                            runSpacing: DashSpace.xs,
                             children: [
                               if (entry.failureReason != null)
                                 DashPill(
@@ -535,7 +542,12 @@ class _PrintLogFilterSheet extends ConsumerWidget {
         minSize: 0.35,
         builder: (context, controller) => ListView(
           controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            DashSpace.gutter,
+            0,
+            DashSpace.gutter,
+            DashSpace.xl,
+          ),
           children: [
             SizedBox(
               height: 48,
@@ -559,12 +571,12 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
 
             FilterGroupLabel(label: l10n.printLogFilterStatus),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 // One id per value: the status keys are the server's wire
                 // vocabulary, so the log can say which was picked without
@@ -584,7 +596,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                   ).tagged('print_log.filters.status.$s'),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
 
             if (printers.isNotEmpty) ...[
               FilterGroupLabel(label: l10n.printLogFilterPrinter),
@@ -601,7 +613,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                       : filters.copyWith(printerId: v),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
             ],
 
             if (users.isNotEmpty) ...[
@@ -619,7 +631,7 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                       : filters.copyWith(username: v),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
             ],
 
             FilterGroupLabel(label: l10n.printLogFilterDates),

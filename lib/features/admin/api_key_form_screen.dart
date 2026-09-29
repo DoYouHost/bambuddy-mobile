@@ -93,7 +93,12 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
             child: ListView(
               padding: withSystemNavInset(
                 context,
-                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                const EdgeInsets.fromLTRB(
+                  DashSpace.gutter,
+                  DashSpace.md,
+                  DashSpace.gutter,
+                  DashSpace.xxl,
+                ),
               ),
               children: [
                 TextFormField(
@@ -109,7 +114,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                       : null,
                 ).tagged('api_key_form.name'),
                 if (widget.isEdit) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: DashSpace.sm),
                   SwitchListTile(
                     value: _enabled,
                     onChanged: (v) => setState(() => _enabled = v),
@@ -118,9 +123,9 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                     subtitle: Text(l10n.apiKeysFieldEnabledHint),
                   ).tagged('api_key_form.enabled'),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _SectionLabel(text: l10n.apiKeysScopesHeader),
-                const SizedBox(height: 4),
+                const SizedBox(height: DashSpace.xs),
                 Text(l10n.apiKeysScopesHint, style: t.microSoft),
                 for (final scope in ApiKeyScope.values)
                   SwitchListTile(
@@ -137,9 +142,9 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                     },
                   ).tagged('api_key_form.scope'),
                 if (printers.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: DashSpace.lg),
                   _SectionLabel(text: l10n.apiKeysPrintersHeader),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: DashSpace.xs),
                   SwitchListTile(
                     value: _printerIds == null,
                     onChanged: (all) =>
@@ -151,8 +156,8 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                   ).tagged('api_key_form.all_printers'),
                   if (_printerIds != null)
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: DashSpace.sm,
+                      runSpacing: DashSpace.sm,
                       children: [
                         for (final p in printers)
                           FilterChip(
@@ -167,7 +172,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                       ],
                     ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: DashSpace.lg),
                 _SectionLabel(text: l10n.apiKeysExpiryHeader),
                 ListTile(
                   contentPadding: EdgeInsets.zero,

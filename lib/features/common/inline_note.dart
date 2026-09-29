@@ -31,7 +31,7 @@ class InlineNote extends StatelessWidget {
   const InlineNote(
     this.text, {
     super.key,
-    this.padding = const EdgeInsets.only(top: 6),
+    this.padding = const EdgeInsets.only(top: DashSpace.sm),
     this.icon = Icons.warning_amber_rounded,
     this.urgent = false,
     this.announce = false,
@@ -53,7 +53,7 @@ class InlineNote extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: ink),
-          const SizedBox(width: 6),
+          const SizedBox(width: DashSpace.sm),
           Expanded(child: Text(text, style: t.labelSoft)),
         ],
       ),
@@ -68,7 +68,7 @@ class InlineNote extends StatelessWidget {
 /// — null [text] is "nothing to say", and the caller drops the null.
 InlineNote? inlineNote(
   String? text, {
-  EdgeInsets padding = const EdgeInsets.only(top: 6),
+  EdgeInsets padding = const EdgeInsets.only(top: DashSpace.sm),
   IconData icon = Icons.warning_amber_rounded,
   bool urgent = false,
   bool announce = false,

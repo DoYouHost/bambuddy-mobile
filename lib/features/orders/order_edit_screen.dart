@@ -201,7 +201,12 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
         child: ListView(
           padding: withSystemNavInset(
             context,
-            const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.md,
+              DashSpace.gutter,
+              DashSpace.xxl,
+            ),
           ),
           children: [
             TextField(
@@ -216,7 +221,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
                 errorText: _nameMissing ? l10n.orderEditErrName : null,
               ),
             ).tagged('order_edit.name'),
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             dashPickerField(
               context,
               id: 'order_edit.due',
@@ -230,7 +235,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
               onTap: _pickDue,
             ),
             if (projects != null && projects.isNotEmpty) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: DashSpace.sm),
               dashCombo<int?>(
                 context,
                 id: 'order_edit.project',
@@ -264,7 +269,7 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
                 ],
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             TextField(
               controller: _notes,
               style: t.body,
@@ -276,9 +281,9 @@ class _OrderFormState extends ConsumerState<_OrderForm> {
               ),
             ).tagged('order_edit.notes'),
             if (_b.hasTargets && _b.plates.isNotEmpty) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: DashSpace.xl),
               Text(l10n.orderEditTargets, style: t.titleSm),
-              const SizedBox(height: 4),
+              const SizedBox(height: DashSpace.xs),
               Text(l10n.orderEditTargetsHint, style: t.bodySoft),
               for (final (i, p) in _b.plates.indexed)
                 _TargetRow(
@@ -316,7 +321,7 @@ class _TargetRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: DashSpace.md),
       child: Row(
         children: [
           Expanded(

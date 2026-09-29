@@ -76,7 +76,7 @@ class ArchiveVerdictBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.sm),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: border.withValues(alpha: 0.5)),
@@ -129,7 +129,7 @@ class ArchiveOutcomeRow extends ConsumerWidget {
         DateTimeFormats.of(context).dateTime(at),
     ];
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Row(
         children: [
           Icon(switch (verdict) {
@@ -137,7 +137,7 @@ class ArchiveOutcomeRow extends ConsumerWidget {
             PrintVerdict.reject => Icons.thumb_down_alt_outlined,
             null => Icons.help_outline,
           }, color: t.textSecondary),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

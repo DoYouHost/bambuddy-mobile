@@ -92,12 +92,17 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             child: ListView(
               padding: withSystemNavInset(
                 context,
-                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                const EdgeInsets.fromLTRB(
+                  DashSpace.gutter,
+                  DashSpace.md,
+                  DashSpace.gutter,
+                  DashSpace.xxl,
+                ),
               ),
               children: [
                 if (_locked) ...[
                   _LockedNotice(text: l10n.groupsSystemFormNote),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DashSpace.md),
                 ],
                 TextFormField(
                   controller: _name,
@@ -112,7 +117,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       ? l10n.usersFieldRequired
                       : null,
                 ).tagged('group_form.name'),
-                const SizedBox(height: 12),
+                const SizedBox(height: DashSpace.md),
                 TextFormField(
                   controller: _description,
                   style: fieldStyle,
@@ -122,7 +127,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   ),
                   maxLines: 2,
                 ).tagged('group_form.description'),
-                const SizedBox(height: 20),
+                const SizedBox(height: DashSpace.xl),
                 dashAsync(
                   context,
                   catalog,
@@ -169,7 +174,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         for (final category in catalog.everyday)
           _CategoryTile(
             category: category,
@@ -179,7 +184,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             onToggleAll: _toggleCategory,
           ),
         if (advanced.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: DashSpace.sm),
           logTag(
             'group_form.advanced',
             InkWell(
@@ -187,8 +192,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
               onTap: () => setState(() => _showAdvanced = !_showAdvanced),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 10,
+                  horizontal: DashSpace.xs,
+                  vertical: DashSpace.md,
                 ),
                 child: Row(
                   children: [
@@ -197,7 +202,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       size: 20,
                       color: t.textSecondary,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DashSpace.sm),
                     Expanded(
                       child: Text(
                         l10n.groupsAdvancedPermissions,
@@ -216,7 +221,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            padding: const EdgeInsets.only(
+              left: DashSpace.xs,
+              bottom: DashSpace.sm,
+            ),
             child: Text(l10n.groupsAdvancedHint, style: t.microSoft),
           ),
           if (_showAdvanced)
@@ -332,7 +340,7 @@ class _CategoryTile extends StatelessWidget {
     final all = count == category.permissions.length;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       // Material, not a decorated box: the tile's ripple paints on the nearest
       // Material ancestor, and a coloured box in between would hide it.
       child: Material(
@@ -350,8 +358,13 @@ class _CategoryTile extends StatelessWidget {
           // The stock divider on an ExpansionTile fights the card border.
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-            childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            tilePadding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
+            childrenPadding: const EdgeInsets.fromLTRB(
+              DashSpace.sm,
+              0,
+              DashSpace.sm,
+              DashSpace.sm,
+            ),
             title: Row(
               children: [
                 Expanded(child: Text(category.name, style: t.titleSm)),
@@ -381,7 +394,9 @@ class _CategoryTile extends StatelessWidget {
                       : null,
                   controlAffinity: ListTileControlAffinity.leading,
                   dense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: DashSpace.xs,
+                  ),
                   title: Text(p.label, style: t.body),
                   subtitle: Text(p.value, style: t.monoMicro),
                 ).tagged('group_form.permission'),
@@ -402,7 +417,10 @@ class _LockedNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.md,
+      ),
       decoration: BoxDecoration(
         color: t.accentOrange.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
@@ -412,7 +430,7 @@ class _LockedNotice extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(text, style: t.label.copyWith(color: t.textPrimary)),
           ),

@@ -70,7 +70,7 @@ class ProjectDetailScreen extends ConsumerWidget {
             child: ListView(
               padding: withSystemNavInset(
                 context,
-                const EdgeInsets.only(bottom: 32),
+                const EdgeInsets.only(bottom: DashSpace.xxl),
               ),
               children: [
                 _Header(project: project),
@@ -104,7 +104,12 @@ class _Header extends ConsumerWidget {
     final t = DashTokens.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        DashSpace.gutter,
+        DashSpace.md,
+        DashSpace.gutter,
+        DashSpace.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -119,7 +124,7 @@ class _Header extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(18),
                 cacheBust: project.updatedAt,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: DashSpace.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,14 +132,14 @@ class _Header extends ConsumerWidget {
                     Row(
                       children: [
                         ProjectColorDot(color: project.color),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: DashSpace.sm),
                         Expanded(child: Text(project.name, style: t.display)),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DashSpace.sm),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+                      spacing: DashSpace.sm,
+                      runSpacing: DashSpace.xs,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         ProjectStatusChip(status: project.status),
@@ -159,17 +164,17 @@ class _Header extends ConsumerWidget {
           ),
           if (project.description != null &&
               project.description!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             Text(project.description!, style: t.bodySoft),
           ],
           if (project.url != null && project.url!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             InkWell(
               onTap: () => openWebLink(context, project.url!),
               child: Row(
                 children: [
                   Icon(Icons.link, size: 18, color: t.accentGreenInk),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: DashSpace.sm),
                   Expanded(
                     child: Text(
                       project.url!,
@@ -183,10 +188,10 @@ class _Header extends ConsumerWidget {
             ).tagged('project.open_url'),
           ],
           if (project.tagList.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: DashSpace.md),
             Wrap(
-              spacing: 6,
-              runSpacing: 4,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.xs,
               children: [
                 for (final tag in project.tagList) _DashTag(label: tag),
               ],
@@ -209,15 +214,15 @@ class _Header extends ConsumerWidget {
               ).tagged('project.parent'),
             ),
           if (project.children.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             Text(
               l10n.projectChildren,
               style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: DashSpace.sm),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: DashSpace.sm,
+              runSpacing: DashSpace.sm,
               children: [
                 for (final child in project.children)
                   ActionChip(
@@ -250,7 +255,10 @@ class _DashTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.sm,
+        vertical: DashSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -284,7 +292,7 @@ class _ProgressCard extends ConsumerWidget {
                 ? null
                 : l10n.projectRemainingShort(stats.remainingPrints!),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           _ProgressRow(
             label: l10n.projectStatPartsProgress,
             percent: stats.partsProgressPercent ?? 0,
@@ -319,7 +327,7 @@ class _ProgressCard extends ConsumerWidget {
     final complete = completeSetsFor([for (final f in files) f.id], progress);
 
     return [
-      const SizedBox(height: 12),
+      const SizedBox(height: DashSpace.md),
       _ProgressRow(
         label: l10n.projectStatSets,
         percent: (complete / target * 100).clamp(0, 100).toDouble(),
@@ -358,7 +366,7 @@ class _ProgressRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: DashSpace.sm),
         DashProgressBar(value: progressFraction(percent), height: 8),
       ],
     );
@@ -407,14 +415,17 @@ class _StatCards extends StatelessWidget {
       ),
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.gutter,
+        vertical: DashSpace.sm,
+      ),
       child: GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         childAspectRatio: 2.6,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: DashSpace.sm,
+        mainAxisSpacing: DashSpace.sm,
         children: [
           for (final (icon, label, value) in tiles)
             _StatTile(icon: icon, label: label, value: value),
@@ -439,7 +450,10 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.md,
+        vertical: DashSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(16),
@@ -448,7 +462,7 @@ class _StatTile extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: t.accentGreenInk),
-          const SizedBox(width: 10),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

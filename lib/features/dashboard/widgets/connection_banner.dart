@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/dash_theme.dart';
+
 /// Banner weight: error (server unreachable — data stale) vs info
 /// (WS resuming connection, but polling data still fresh).
 enum BannerTone { error, info }
@@ -34,11 +36,14 @@ class ConnectionBanner extends StatelessWidget {
     return Material(
       color: bg,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.gutter,
+          vertical: DashSpace.md,
+        ),
         child: Row(
           children: [
             Icon(icon, size: 18, color: fg),
-            const SizedBox(width: 8),
+            const SizedBox(width: DashSpace.sm),
             Expanded(
               child: Text(message, style: TextStyle(color: fg)),
             ),

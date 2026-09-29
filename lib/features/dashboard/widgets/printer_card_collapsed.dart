@@ -47,7 +47,7 @@ class _CollapsedCard extends ConsumerWidget {
         afterName: showPercent ? '${progress.toStringAsFixed(0)}%' : null,
         belowName: printing
             ? Padding(
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(top: DashSpace.xs),
                 child: _PrintProgressBar(status: status!, height: 3),
               )
             : null,

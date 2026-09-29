@@ -124,18 +124,23 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
         body: ListView(
           padding: withSystemNavInset(
             context,
-            const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            const EdgeInsets.fromLTRB(
+              DashSpace.gutter,
+              DashSpace.sm,
+              DashSpace.gutter,
+              DashSpace.xxl,
+            ),
           ),
           children: [
             Text(l10n.mwIntro, style: t.bodySoft),
-            const SizedBox(height: 16),
+            const SizedBox(height: DashSpace.lg),
             _UrlBar(
               controller: _urlController,
               loading: resolveAsync.isLoading,
               onResolve: _resolve,
             ),
             if (!canDownload) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DashSpace.lg),
               _LoginBanner(
                 onSignIn: () async {
                   await context.push('/settings/cloud');
@@ -145,11 +150,11 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
                 },
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: DashSpace.sm),
             dashAsyncStrip(
               context,
               resolveAsync,
-              padding: const EdgeInsets.symmetric(vertical: 32),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.xxl),
               failureMessage: l10n.ctrlFailed,
               failureBuilder: (message) =>
                   _InlineError(message: message, onRetry: _resolve),
@@ -163,7 +168,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
                       keyOf: _key,
                     ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: DashSpace.xl),
             _RecentImports(),
           ],
         ),
@@ -209,7 +214,7 @@ class _UrlBar extends StatelessWidget {
               ).copyWith(prefixIcon: Icon(Icons.link, color: t.textTertiary)),
             ).tagged('makerworld.url'),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           logTag(
             'makerworld.resolve',
             FilledButton.icon(
@@ -238,7 +243,7 @@ class _LoginBanner extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: BoxDecoration(
         color: t.accentOrange.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -247,9 +252,9 @@ class _LoginBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(Icons.cloud_off, color: t.accentOrangeInk),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(child: Text(l10n.mwLoginRequired, style: t.body)),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           logTag(
             'makerworld.sign_in',
             FilledButton(
@@ -308,7 +313,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
         ? model.instances
         : model.instances.take(_collapsedCount).toList();
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DashSpace.lg),
       decoration: t.cardBox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +328,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                   size: 72,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DashSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +339,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                       overflow: TextOverflow.ellipsis,
                       style: t.titleMd,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: DashSpace.xs),
                     Text(
                       l10n.mwPlatesCount(model.instances.length),
                       style: t.monoLabel,
@@ -347,7 +352,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
           Divider(height: 24, color: t.hairline),
           if (model.instances.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
               child: Text(l10n.mwNoPlates, style: t.bodyPlain),
             )
           else ...[
@@ -402,14 +407,14 @@ class _PlateRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: MakerWorldThumbnail(coverUrl: plate.coverUrl, size: 48),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: DashSpace.md),
           Expanded(
             child: Text(
               plate.name,
@@ -418,7 +423,7 @@ class _PlateRow extends StatelessWidget {
               style: t.body,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DashSpace.sm),
           if (imported)
             // A state, not an action, so the button is permanently disabled —
             // and the ink has to be handed over as the *disabled* colour. A
@@ -441,7 +446,10 @@ class _PlateRow extends StatelessWidget {
               FilledButton.icon(
                 style: dashPrimaryButtonStyle(t).copyWith(
                   padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    EdgeInsets.symmetric(
+                      horizontal: DashSpace.lg,
+                      vertical: DashSpace.sm,
+                    ),
                   ),
                 ),
                 onPressed: importing ? null : onImport,
@@ -469,10 +477,10 @@ class _RecentImports extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.mwRecentImports, style: t.titleSm),
-        const SizedBox(height: 8),
+        const SizedBox(height: DashSpace.sm),
         async.when(
           loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: DashSpace.lg),
             child: DashLoading(),
           ),
           error: (_, _) => Text(l10n.mwNoRecent, style: emptyStyle),
@@ -498,7 +506,7 @@ class _RecentRow extends StatelessWidget {
     final t = DashTokens.of(context);
     final source = item.sourceUrl;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: DashSpace.sm),
       child: Material(
         color: Colors.transparent,
         child: logTag(
@@ -507,7 +515,10 @@ class _RecentRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: () => context.push('/files'),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DashSpace.md,
+                vertical: DashSpace.sm,
+              ),
               decoration: BoxDecoration(
                 color: t.subCard,
                 borderRadius: BorderRadius.circular(16),
@@ -523,7 +534,7 @@ class _RecentRow extends StatelessWidget {
                       size: 48,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DashSpace.md),
                   Expanded(
                     child: Text(
                       item.filename,
@@ -567,13 +578,13 @@ class _InlineError extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.xl),
       child: Column(
         children: [
           Icon(Icons.error_outline, size: 40, color: t.dangerInk),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           Text(message, textAlign: TextAlign.center, style: t.bodyPlain),
-          const SizedBox(height: 12),
+          const SizedBox(height: DashSpace.md),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
               foregroundColor: t.textPrimary,

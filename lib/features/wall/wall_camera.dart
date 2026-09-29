@@ -175,7 +175,7 @@ class _SnapshotsState extends State<_Snapshots> {
         Align(
           alignment: AlignmentDirectional.topEnd,
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(DashSpace.sm),
             // A pill does not ellipsize; on a narrow tile it shrinks instead.
             child: FittedBox(
               fit: BoxFit.scaleDown,

@@ -29,8 +29,11 @@ class ConnectionModeChip extends ConsumerWidget {
     return Tooltip(
       message: tooltip,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.symmetric(vertical: DashSpace.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.md,
+          vertical: DashSpace.sm,
+        ),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(20),
@@ -50,7 +53,7 @@ class ConnectionModeChip extends ConsumerWidget {
               )
             else
               Icon(Icons.sync, size: 13, color: ink),
-            const SizedBox(width: 6),
+            const SizedBox(width: DashSpace.sm),
             Text(label, style: t.label.copyWith(color: ink)),
           ],
         ),
