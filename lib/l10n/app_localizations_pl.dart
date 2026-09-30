@@ -7403,4 +7403,79 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
+
+  @override
+  String get inventorySuppliersTitle => 'Dostawcy';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Dostawca to sklep, w którym kupujesz filament, a nie marka, która go wyprodukowała. Przypisujesz go w formularzu szpuli; dostawcy przypisanego do szpuli nie da się usunąć.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Nie masz jeszcze dostawców';
+
+  @override
+  String get inventorySuppliersLoadFailed => 'Nie udało się wczytać dostawców';
+
+  @override
+  String get inventorySupplierAdd => 'Dodaj';
+
+  @override
+  String get inventorySupplierNew => 'Nowy dostawca';
+
+  @override
+  String get inventorySupplierEdit => 'Edytuj dostawcę';
+
+  @override
+  String get inventorySupplierFieldName => 'Nazwa';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Strona internetowa';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Twój numer klienta';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Nr klienta: $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Nazwa nie może zawierać średnika';
+
+  @override
+  String get inventorySupplierNameTaken => 'Dostawca o tej nazwie już istnieje';
+
+  @override
+  String get inventorySupplierSaved => 'Zapisano dostawcę';
+
+  @override
+  String get inventorySupplierDeleted => 'Usunięto dostawcę';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return 'Usunąć $name?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Zniknie z listy. Nie jest przypisany do żadnej szpuli.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Przypisany do $count szpuli — najpierw usuń go z nich',
+      many: 'Przypisany do $count szpul — najpierw usuń go z nich',
+      few: 'Przypisany do $count szpul — najpierw usuń go z nich',
+      one: 'Przypisany do 1 szpuli — najpierw usuń go z niej',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Nadal jest przypisany do szpuli — najpierw usuń go stamtąd';
 }

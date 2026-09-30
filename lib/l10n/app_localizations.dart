@@ -12277,6 +12277,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every printer is hidden from this wall — show them in the settings.'**
   String get wallAllHidden;
+
+  /// No description provided for @inventorySuppliersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers'**
+  String get inventorySuppliersTitle;
+
+  /// No description provided for @inventorySuppliersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.'**
+  String get inventorySuppliersHint;
+
+  /// No description provided for @inventorySuppliersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No suppliers yet'**
+  String get inventorySuppliersEmpty;
+
+  /// No description provided for @inventorySuppliersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the suppliers'**
+  String get inventorySuppliersLoadFailed;
+
+  /// Button next to the supplier list's title that opens an empty supplier form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get inventorySupplierAdd;
+
+  /// No description provided for @inventorySupplierNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New supplier'**
+  String get inventorySupplierNew;
+
+  /// No description provided for @inventorySupplierEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit supplier'**
+  String get inventorySupplierEdit;
+
+  /// No description provided for @inventorySupplierFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get inventorySupplierFieldName;
+
+  /// No description provided for @inventorySupplierFieldWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get inventorySupplierFieldWebsite;
+
+  /// The user's own customer number at this supplier, not the supplier's id.
+  ///
+  /// In en, this message translates to:
+  /// **'Your customer number'**
+  String get inventorySupplierFieldCustomerNumber;
+
+  /// No description provided for @inventorySupplierCustomerNumberValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer no. {number}'**
+  String inventorySupplierCustomerNumberValue(String number);
+
+  /// The server joins supplier names with ';' in its CSV export and refuses a name containing one.
+  ///
+  /// In en, this message translates to:
+  /// **'A name can\'t contain a semicolon'**
+  String get inventorySupplierNameSeparator;
+
+  /// No description provided for @inventorySupplierNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A supplier with this name already exists'**
+  String get inventorySupplierNameTaken;
+
+  /// No description provided for @inventorySupplierSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier saved'**
+  String get inventorySupplierSaved;
+
+  /// No description provided for @inventorySupplierDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier deleted'**
+  String get inventorySupplierDeleted;
+
+  /// No description provided for @inventorySupplierDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String inventorySupplierDeleteTitle(String name);
+
+  /// No description provided for @inventorySupplierDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s removed from the list. No spool is assigned to it.'**
+  String get inventorySupplierDeleteBody;
+
+  /// No description provided for @inventorySupplierInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}'**
+  String inventorySupplierInUse(int count);
+
+  /// The server refused a delete because a spool was given this supplier after the list was loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Still assigned to a spool — remove it there first'**
+  String get inventorySupplierInUseUnknown;
 }
 
 class _AppLocalizationsDelegate

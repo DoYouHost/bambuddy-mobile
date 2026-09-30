@@ -4446,5 +4446,57 @@
   "wallAllHidden": "Every printer is hidden from this wall — show them in the settings.",
   "@wallAllHidden": {
     "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
+  },
+  "inventorySuppliersTitle": "Suppliers",
+  "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
+  "inventorySuppliersEmpty": "No suppliers yet",
+  "inventorySuppliersLoadFailed": "Couldn't load the suppliers",
+  "inventorySupplierAdd": "Add",
+  "@inventorySupplierAdd": {
+    "description": "Button next to the supplier list's title that opens an empty supplier form."
+  },
+  "inventorySupplierNew": "New supplier",
+  "inventorySupplierEdit": "Edit supplier",
+  "inventorySupplierFieldName": "Name",
+  "inventorySupplierFieldWebsite": "Website",
+  "inventorySupplierFieldCustomerNumber": "Your customer number",
+  "@inventorySupplierFieldCustomerNumber": {
+    "description": "The user's own customer number at this supplier, not the supplier's id."
+  },
+  "inventorySupplierCustomerNumberValue": "Customer no. {number}",
+  "@inventorySupplierCustomerNumberValue": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierNameSeparator": "A name can't contain a semicolon",
+  "@inventorySupplierNameSeparator": {
+    "description": "The server joins supplier names with ';' in its CSV export and refuses a name containing one."
+  },
+  "inventorySupplierNameTaken": "A supplier with this name already exists",
+  "inventorySupplierSaved": "Supplier saved",
+  "inventorySupplierDeleted": "Supplier deleted",
+  "inventorySupplierDeleteTitle": "Delete {name}?",
+  "@inventorySupplierDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierDeleteBody": "It's removed from the list. No spool is assigned to it.",
+  "inventorySupplierInUse": "{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}",
+  "@inventorySupplierInUse": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
+  "@inventorySupplierInUseUnknown": {
+    "description": "The server refused a delete because a spool was given this supplier after the list was loaded."
   }
 }

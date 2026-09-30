@@ -7355,4 +7355,79 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
+
+  @override
+  String get inventorySuppliersTitle => 'Lieferanten';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Noch keine Lieferanten';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'Lieferanten konnten nicht geladen werden';
+
+  @override
+  String get inventorySupplierAdd => 'Hinzufügen';
+
+  @override
+  String get inventorySupplierNew => 'Neuer Lieferant';
+
+  @override
+  String get inventorySupplierEdit => 'Lieferant bearbeiten';
+
+  @override
+  String get inventorySupplierFieldName => 'Name';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Website';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Deine Kundennummer';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Kundennr. $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Der Name darf kein Semikolon enthalten';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Ein Lieferant mit diesem Namen existiert bereits';
+
+  @override
+  String get inventorySupplierSaved => 'Lieferant gespeichert';
+
+  @override
+  String get inventorySupplierDeleted => 'Lieferant gelöscht';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return '$name löschen?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Er wird aus der Liste entfernt. Keiner Spule ist er zugewiesen.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spulen zugewiesen – entferne ihn zuerst dort',
+      one: 'Einer Spule zugewiesen – entferne ihn zuerst dort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Noch einer Spule zugewiesen – entferne ihn zuerst dort';
 }

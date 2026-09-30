@@ -7378,4 +7378,79 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
+
+  @override
+  String get inventorySuppliersTitle => 'Proveedores';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Los proveedores son las tiendas donde compras el filamento, no la marca que lo fabricó. Asígnalos a una bobina en su formulario; un proveedor que siga asignado a una bobina no se puede eliminar.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Aún no hay proveedores';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'No se pudieron cargar los proveedores';
+
+  @override
+  String get inventorySupplierAdd => 'Añadir';
+
+  @override
+  String get inventorySupplierNew => 'Nuevo proveedor';
+
+  @override
+  String get inventorySupplierEdit => 'Editar proveedor';
+
+  @override
+  String get inventorySupplierFieldName => 'Nombre';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Sitio web';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Tu número de cliente';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'N.º de cliente $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'El nombre no puede contener punto y coma';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Ya existe un proveedor con este nombre';
+
+  @override
+  String get inventorySupplierSaved => 'Proveedor guardado';
+
+  @override
+  String get inventorySupplierDeleted => 'Proveedor eliminado';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return '¿Eliminar $name?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Se quita de la lista. No está asignado a ninguna bobina.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Asignado a $count bobinas: quítalo primero de ellas',
+      one: 'Asignado a 1 bobina: quítalo primero de ella',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Sigue asignado a una bobina: quítalo primero de ella';
 }

@@ -7287,4 +7287,78 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Every printer is hidden from this wall — show them in the settings.';
+
+  @override
+  String get inventorySuppliersTitle => 'Suppliers';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.';
+
+  @override
+  String get inventorySuppliersEmpty => 'No suppliers yet';
+
+  @override
+  String get inventorySuppliersLoadFailed => 'Couldn\'t load the suppliers';
+
+  @override
+  String get inventorySupplierAdd => 'Add';
+
+  @override
+  String get inventorySupplierNew => 'New supplier';
+
+  @override
+  String get inventorySupplierEdit => 'Edit supplier';
+
+  @override
+  String get inventorySupplierFieldName => 'Name';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Website';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Your customer number';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Customer no. $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'A name can\'t contain a semicolon';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'A supplier with this name already exists';
+
+  @override
+  String get inventorySupplierSaved => 'Supplier saved';
+
+  @override
+  String get inventorySupplierDeleted => 'Supplier deleted';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return 'Delete $name?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'It\'s removed from the list. No spool is assigned to it.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Assigned to $count spools — remove it from those spools first',
+      one: 'Assigned to 1 spool — remove it from that spool first',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Still assigned to a spool — remove it there first';
 }

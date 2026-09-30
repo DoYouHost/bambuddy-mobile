@@ -7449,4 +7449,79 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.';
+
+  @override
+  String get inventorySuppliersTitle => 'Fournisseurs';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Les fournisseurs sont les boutiques qui vous vendent le filament, pas la marque qui l\'a fabriqué. Associez-les à une bobine dans son formulaire ; un fournisseur encore associé à une bobine ne peut pas être supprimé.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Aucun fournisseur pour le moment';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'Impossible de charger les fournisseurs';
+
+  @override
+  String get inventorySupplierAdd => 'Ajouter';
+
+  @override
+  String get inventorySupplierNew => 'Nouveau fournisseur';
+
+  @override
+  String get inventorySupplierEdit => 'Modifier le fournisseur';
+
+  @override
+  String get inventorySupplierFieldName => 'Nom';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Site web';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Votre numéro client';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'N° client $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Le nom ne peut pas contenir de point-virgule';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Un fournisseur portant ce nom existe déjà';
+
+  @override
+  String get inventorySupplierSaved => 'Fournisseur enregistré';
+
+  @override
+  String get inventorySupplierDeleted => 'Fournisseur supprimé';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return 'Supprimer $name ?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Il est retiré de la liste. Aucune bobine ne lui est associée.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Associé à $count bobines — retirez-le d\'abord de ces bobines',
+      one: 'Associé à 1 bobine — retirez-le d\'abord de cette bobine',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Encore associé à une bobine — retirez-le d\'abord de celle-ci';
 }

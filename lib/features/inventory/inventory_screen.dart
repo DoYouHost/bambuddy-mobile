@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -15,6 +17,7 @@ import '../../core/models/location_sensor.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
 import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -50,6 +53,7 @@ part 'inventory_form.dart';
 part 'inventory_labels.dart';
 part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
+part 'suppliers_sheet.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -188,6 +192,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
+    final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
       _filter(async.valueOrNull?.spools ?? const [], query, filters),
       filters.sort,
@@ -228,6 +233,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             ? l10n.inventoryClimateTitleAlerting
                             : l10n.inventoryClimateTitle,
                         onPressed: () => _openLocationClimate(context),
+                      ),
+                    ),
+                  if (suppliersSupported)
+                    logTag(
+                      'inventory.suppliers',
+                      IconButton(
+                        icon: const Icon(Icons.storefront_outlined),
+                        tooltip: l10n.inventorySuppliersTitle,
+                        onPressed: () => _openSuppliers(context),
                       ),
                     ),
                   logTag(

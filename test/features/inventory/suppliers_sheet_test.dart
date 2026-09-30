@@ -1,0 +1,233 @@
+import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers.dart';
+import 'fake_suppliers.dart';
+
+class _Shelf extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+    spools: [Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: [])],
+  );
+}
+
+void main() {
+  late AppLocalizations l10n;
+
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('pl'));
+  });
+
+  Future<void> pumpShelf(WidgetTester tester, FakeSuppliers suppliers) async {
+    await pumpPhone(
+      tester,
+      const InventoryScreen(),
+      overrides: [
+        inventoryProvider.overrideWith(_Shelf.new),
+        noServerProfileOverride,
+        suppliersRepositoryProvider.overrideWithValue(suppliers),
+      ],
+    );
+    await settle(tester);
+  }
+
+  Future<void> openSheet(WidgetTester tester) async {
+    await tester.tap(byLogId('inventory.suppliers'));
+    await settle(tester);
+  }
+
+  Future<void> save(WidgetTester tester) async {
+    await tester.ensureVisible(byLogId('supplier_form.save'));
+    await settle(tester);
+    await tester.tap(byLogId('supplier_form.save'));
+    await settle(tester);
+  }
+
+  Finder field(String label) =>
+      find.ancestor(of: find.text(label), matching: find.byType(TextFormField));
+
+  testWidgets('no entry at all on a server without suppliers', (tester) async {
+    await pumpShelf(tester, FakeSuppliers(supported: false));
+    expect(byLogId('inventory.suppliers'), findsNothing);
+  });
+
+  testWidgets('lists each supplier with what the sheet says about it', (
+    tester,
+  ) async {
+    await pumpShelf(
+      tester,
+      FakeSuppliers(
+        suppliers: const [
+          Supplier(
+            id: 3,
+            name: 'Extrudr',
+            website: 'https://extrudr.com',
+            customerNumber: 'K-1',
+            spoolCount: 2,
+          ),
+        ],
+      ),
+    );
+    await openSheet(tester);
+
+    expect(find.text('Extrudr'), findsOneWidget);
+    expect(
+      find.text(
+        'https://extrudr.com · ${l10n.inventorySupplierCustomerNumberValue('K-1')}',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.inventorySpoolCount(2)), findsOneWidget);
+  });
+
+  testWidgets('a new supplier is sent trimmed, blanks as null', (tester) async {
+    final suppliers = FakeSuppliers();
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+    expect(find.text(l10n.inventorySuppliersEmpty), findsOneWidget);
+
+    await tester.tap(byLogId('suppliers.add'));
+    await settle(tester);
+    await tester.enterText(
+      field('${l10n.inventorySupplierFieldName} *'),
+      '  Filament24 ',
+    );
+    await tester.enterText(
+      field(l10n.inventorySupplierFieldCustomerNumber),
+      'C-9',
+    );
+    await save(tester);
+
+    final draft = suppliers.created.single;
+    expect(draft.toJson(), {
+      'name': 'Filament24',
+      'website': null,
+      'customer_number': 'C-9',
+      'note': null,
+    });
+    // The sheet under the form reloaded the list.
+    expect(find.text('Filament24'), findsOneWidget);
+  });
+
+  testWidgets('the separator the CSV export uses is refused before sending', (
+    tester,
+  ) async {
+    final suppliers = FakeSuppliers();
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+    await tester.tap(byLogId('suppliers.add'));
+    await settle(tester);
+
+    await tester.enterText(
+      field('${l10n.inventorySupplierFieldName} *'),
+      'A; B',
+    );
+    await save(tester);
+
+    expect(find.text(l10n.inventorySupplierNameSeparator), findsOneWidget);
+    expect(suppliers.created, isEmpty);
+  });
+
+  testWidgets('a taken name says so on the field and keeps the form', (
+    tester,
+  ) async {
+    final suppliers = FakeSuppliers()..failNextWrite = conflict;
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+    await tester.tap(byLogId('suppliers.add'));
+    await settle(tester);
+
+    await tester.enterText(
+      field('${l10n.inventorySupplierFieldName} *'),
+      'Extrudr',
+    );
+    await save(tester);
+
+    expect(find.text(l10n.inventorySupplierNameTaken), findsOneWidget);
+    expect(byLogId('supplier_form.save'), findsOneWidget);
+
+    await tester.enterText(
+      field('${l10n.inventorySupplierFieldName} *'),
+      'Extrudr DE',
+    );
+    await tester.pump();
+    expect(find.text(l10n.inventorySupplierNameTaken), findsNothing);
+  });
+
+  testWidgets('editing sends the row it came from', (tester) async {
+    final suppliers = FakeSuppliers(
+      suppliers: const [
+        Supplier(id: 3, name: 'Extrudr', website: 'https://extrudr.com'),
+      ],
+    );
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+
+    await tester.tap(find.text('Extrudr'));
+    await settle(tester);
+    expect(find.text(l10n.inventorySupplierEdit), findsOneWidget);
+    await tester.enterText(field(l10n.inventorySupplierFieldWebsite), '');
+    await save(tester);
+
+    final (id, draft) = suppliers.updated.single;
+    expect(id, 3);
+    expect(draft.website, isNull);
+  });
+
+  testWidgets('a supplier still on spools is not offered for deletion', (
+    tester,
+  ) async {
+    final suppliers = FakeSuppliers(
+      suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 2)],
+    );
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+
+    await tester.tap(byLogId('suppliers.delete'));
+    await settle(tester);
+
+    expect(find.text(l10n.inventorySupplierInUse(2)), findsOneWidget);
+    expect(byLogId('suppliers.delete_confirm.confirm'), findsNothing);
+    expect(suppliers.deleted, isEmpty);
+  });
+
+  testWidgets('an unused supplier is deleted after confirming', (tester) async {
+    final suppliers = FakeSuppliers(
+      suppliers: const [Supplier(id: 3, name: 'Extrudr')],
+    );
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+
+    await tester.tap(byLogId('suppliers.delete'));
+    await settle(tester);
+    await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
+    await settle(tester);
+
+    expect(suppliers.deleted, [3]);
+    expect(find.text(l10n.inventorySupplierDeleted), findsOneWidget);
+    expect(find.text(l10n.inventorySuppliersEmpty), findsOneWidget);
+  });
+
+  testWidgets('a 409 on delete means a spool took it since the list loaded', (
+    tester,
+  ) async {
+    final suppliers = FakeSuppliers(
+      suppliers: const [Supplier(id: 3, name: 'Extrudr')],
+    )..failNextWrite = conflict;
+    await pumpShelf(tester, suppliers);
+    await openSheet(tester);
+
+    await tester.tap(byLogId('suppliers.delete'));
+    await settle(tester);
+    await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
+    await settle(tester);
+
+    expect(find.text(l10n.inventorySupplierInUseUnknown), findsOneWidget);
+  });
+}
