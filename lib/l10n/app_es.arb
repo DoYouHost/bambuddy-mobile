@@ -1644,6 +1644,7 @@
     }
   },
   "inventoryBulkEditUnsupported": "Este servidor es demasiado antiguo para la edición masiva. Actualiza Bambuddy o edita las bobinas una a una.",
+  "inventoryBulkEditConfirmSuppliers": "Los proveedores se añadirán a cada bobina seleccionada.",
   "inventoryApply": "Aplicar",
   "inventoryLabelsTitle": "Imprimir etiquetas de bobina",
   "inventoryLabelsPrint": "Imprimir etiquetas",
@@ -3915,6 +3916,7 @@
   "inventorySupplierArticleValue": "Ref. {number}",
   "inventorySupplierQuotedPrice": "ofertado a {price}/kg",
   "inventorySupplierLinksHint": "Dónde se puede comprar este producto. Marca la tienda donde compraste esta bobina.",
+  "inventoryBulkSupplierLinksHint": "Se añaden a cada bobina seleccionada y se mantienen los proveedores que ya tiene. “Comprada aquí” sustituye a la tienda donde se compró.",
   "inventorySupplierAssign": "Añadir proveedor",
   "inventorySupplierUnassign": "Quitar de esta bobina",
   "inventorySupplierFieldArticle": "N.º de artículo",

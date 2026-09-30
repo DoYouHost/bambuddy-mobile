@@ -2940,6 +2940,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Ten serwer jest za stary na edycję masową. Zaktualizuj bambuddy albo edytuj szpule pojedynczo.';
 
   @override
+  String get inventoryBulkEditConfirmSuppliers =>
+      'Dostawcy zostaną dopisani do każdej wybranej szpuli.';
+
+  @override
   String get inventoryApply => 'Zastosuj';
 
   @override
@@ -7476,6 +7480,10 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get inventorySupplierLinksHint =>
       'Gdzie można kupić ten produkt. Zaznacz sklep, w którym kupiono tę szpulę.';
+
+  @override
+  String get inventoryBulkSupplierLinksHint =>
+      'Dostawcy dopisują się do każdej wybranej szpuli, a ci, których szpula już ma, zostają. „Kupiona tutaj” zastępuje sklep, w którym ją kupiono.';
 
   @override
   String get inventorySupplierAssign => 'Dodaj dostawcę';

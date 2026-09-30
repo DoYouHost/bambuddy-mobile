@@ -4892,6 +4892,12 @@ abstract class AppLocalizations {
   /// **'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.'**
   String get inventoryBulkEditUnsupported;
 
+  /// No description provided for @inventoryBulkEditConfirmSuppliers.
+  ///
+  /// In en, this message translates to:
+  /// **'The suppliers are added to every selected spool.'**
+  String get inventoryBulkEditConfirmSuppliers;
+
   /// No description provided for @inventoryApply.
   ///
   /// In en, this message translates to:
@@ -12391,6 +12397,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Where this product can be bought. Mark the one you bought this spool from.'**
   String get inventorySupplierLinksHint;
+
+  /// No description provided for @inventoryBulkSupplierLinksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.'**
+  String get inventoryBulkSupplierLinksHint;
 
   /// Opens a picker to assign a supplier to the spool being edited.
   ///

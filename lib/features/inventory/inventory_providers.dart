@@ -258,13 +258,69 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// fallback worth having here: replaying a 14-field patch as N PATCHes on a
   /// server that never offered mass edit would be a different feature, so an
   /// older server surfaces the 404 and the UI says the server cannot do it.
+  ///
+  /// [addSuppliers] has no bulk route at all: it is one replace per spool, of
+  /// that spool's own list merged with these ([mergeSupplierLinks]). A spool
+  /// whose list the shelf never received is counted failed rather than
+  /// written, since a replace from nothing would wipe what it has.
   Future<BulkOutcome> bulkUpdateSpools(
     Iterable<int> ids,
-    SpoolBulkPatch patch,
-  ) async {
+    SpoolBulkPatch patch, {
+    List<SpoolSupplierLink> addSuppliers = const [],
+  }) async {
     final repo = ref.read(inventoryRepositoryProvider);
+    final linkWriter = ref.read(suppliersRepositoryProvider);
+    final backend = ref.read(inventoryBackendProvider);
+    // Read before the patch: its reload replaces the state.
+    final current = {
+      for (final s in state.valueOrNull?.spools ?? const <Spool>[])
+        s.id: s.suppliers,
+    };
     try {
-      return await repo.bulkUpdate(ids.toList(), patch);
+      final patched = patch.isEmpty
+          ? null
+          : await repo.bulkUpdate(ids.toList(), patch);
+      if (addSuppliers.isEmpty) return patched!;
+
+      var linkFailed = 0;
+      AppApiException? lastRefusal;
+      final skip = patched?.notFound.toSet() ?? const <int>{};
+      for (final id in ids.where((id) => !skip.contains(id))) {
+        final existing = current[id];
+        if (existing == null) {
+          linkFailed++;
+          continue;
+        }
+        try {
+          await linkWriter.saveSpoolLinks(
+            id,
+            mergeSupplierLinks(existing, addSuppliers),
+            backend: backend,
+          );
+        } on AppApiException catch (e) {
+          linkFailed++;
+          lastRefusal = e;
+        } on Object {
+          linkFailed++;
+        }
+      }
+      // Suppliers were the whole edit and not one landed: that is a refusal
+      // (a key without write access, a deleted supplier) the sheet can word,
+      // not a tally of zero.
+      if (patched == null && lastRefusal != null && linkFailed == ids.length) {
+        throw lastRefusal;
+      }
+      if (patched == null) {
+        return BulkOutcome(ok: ids.length - linkFailed, failed: linkFailed);
+      }
+      // A Spoolman proxy error on the patch and a failed replace on the same
+      // spool count twice here; the clamp keeps "ok" from going negative.
+      return BulkOutcome(
+        ok: (patched.ok - linkFailed).clamp(0, patched.ok),
+        skipped: patched.skipped,
+        failed: patched.failed + linkFailed,
+        notFound: patched.notFound,
+      );
     } finally {
       state = await AsyncValue.guard(_load);
     }

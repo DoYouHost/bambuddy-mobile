@@ -2900,6 +2900,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
 
   @override
+  String get inventoryBulkEditConfirmSuppliers =>
+      'The suppliers are added to every selected spool.';
+
+  @override
   String get inventoryApply => 'Apply';
 
   @override
@@ -7360,6 +7364,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get inventorySupplierLinksHint =>
       'Where this product can be bought. Mark the one you bought this spool from.';
+
+  @override
+  String get inventoryBulkSupplierLinksHint =>
+      'Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.';
 
   @override
   String get inventorySupplierAssign => 'Add supplier';

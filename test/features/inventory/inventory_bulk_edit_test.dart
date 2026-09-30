@@ -1,20 +1,23 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import 'fake_suppliers.dart';
 
 /// The mass-edit sheet reached from multi-select. What matters here is what
 /// leaves the phone: a blank field must stay out of the patch, because the
 /// alternative — sending it — would blank that field on every selected spool.
 class _FakeInventory extends InventoryNotifier {
-  _FakeInventory({this.failure, this.outcome});
+  _FakeInventory({this.failure, this.outcome, this.withSuppliers = false});
 
   /// Thrown instead of applying, to stand for a server that refuses.
   final AppApiException? failure;
@@ -22,25 +25,42 @@ class _FakeInventory extends InventoryNotifier {
   /// What the server reports back, when the test cares about the tally.
   final BulkOutcome? outcome;
 
+  /// Whether the spools arrive with their supplier lists, which is what the
+  /// sheet needs before it offers to merge into them.
+  final bool withSuppliers;
+
   SpoolBulkPatch? patch;
   List<int>? ids;
+  List<SpoolSupplierLink>? addedSuppliers;
 
   @override
   Future<InventoryState> build() async => InventoryState(
     spools: [
-      const Spool(id: 1, material: 'PLA', brand: 'Bambu'),
-      const Spool(id: 2, material: 'PETG', brand: 'Polymaker'),
+      Spool(
+        id: 1,
+        material: 'PLA',
+        brand: 'Bambu',
+        suppliers: withSuppliers ? const [] : null,
+      ),
+      Spool(
+        id: 2,
+        material: 'PETG',
+        brand: 'Polymaker',
+        suppliers: withSuppliers ? const [] : null,
+      ),
     ],
   );
 
   @override
   Future<BulkOutcome> bulkUpdateSpools(
     Iterable<int> spoolIds,
-    SpoolBulkPatch newPatch,
-  ) async {
+    SpoolBulkPatch newPatch, {
+    List<SpoolSupplierLink> addSuppliers = const [],
+  }) async {
     if (failure case final f?) throw f;
     ids = spoolIds.toList();
     patch = newPatch;
+    addedSuppliers = addSuppliers;
     return outcome ?? BulkOutcome(ok: spoolIds.length);
   }
 }
@@ -58,8 +78,13 @@ void main() {
     AppApiException? failure,
     BulkOutcome? outcome,
     InventoryBackend backend = InventoryBackend.native,
+    FakeSuppliers? suppliers,
   }) async {
-    final fake = _FakeInventory(failure: failure, outcome: outcome);
+    final fake = _FakeInventory(
+      failure: failure,
+      outcome: outcome,
+      withSuppliers: suppliers != null,
+    );
     await pumpPhone(
       tester,
       const InventoryScreen(),
@@ -67,6 +92,8 @@ void main() {
         inventoryProvider.overrideWith(() => fake),
         noServerProfileOverride,
         inventoryBackendOverride(backend),
+        if (suppliers != null)
+          suppliersRepositoryProvider.overrideWithValue(suppliers),
       ],
     );
     await settle(tester);
@@ -124,6 +151,42 @@ void main() {
 
     // Nothing was picked, so the wheel's starting white comes back, opaque.
     expect(fake.patch!.toNativeJson(), {'rgba': 'FFFFFFFF'});
+  });
+
+  testWidgets('a picked supplier is added, not made the purchase source', (
+    tester,
+  ) async {
+    final fake = await openSheet(
+      tester,
+      suppliers: FakeSuppliers(
+        suppliers: const [Supplier(id: 7, name: 'Extrudr')],
+      ),
+    );
+    await scrollSheetDown(tester, times: 4);
+    await tester.tap(byLogId('bulk_edit.supplier_add'));
+    await settle(tester);
+    await tester.tap(find.text('Extrudr'));
+    await settle(tester);
+    await scrollSheetDown(tester, times: 4);
+
+    // The pick alone is input enough; no other field was touched.
+    await tester.tap(applyButton());
+    await settle(tester);
+    expect(find.text(l10n.inventoryBulkEditConfirmSuppliers), findsOneWidget);
+    await tester.tap(find.text(l10n.inventoryApply));
+    await settle(tester);
+
+    expect(fake.patch!.isEmpty, isTrue);
+    final added = fake.addedSuppliers!.single;
+    expect(added.supplierId, 7);
+    expect(added.isPurchaseSource, isFalse);
+  });
+
+  testWidgets('no supplier section when the spools came without lists', (
+    tester,
+  ) async {
+    await openSheet(tester);
+    expect(byLogId('bulk_edit.supplier_add'), findsNothing);
   });
 
   testWidgets('apply stays dead until a field is filled in', (tester) async {

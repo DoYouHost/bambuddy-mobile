@@ -1644,6 +1644,7 @@
     }
   },
   "inventoryBulkEditUnsupported": "Dieser Server ist zu alt für Massenbearbeitung. Aktualisiere Bambuddy oder bearbeite die Spulen einzeln.",
+  "inventoryBulkEditConfirmSuppliers": "Die Lieferanten werden jeder ausgewählten Spule hinzugefügt.",
   "inventoryApply": "Anwenden",
   "inventoryLabelsTitle": "Spulenetiketten drucken",
   "inventoryLabelsPrint": "Etiketten drucken",
@@ -3915,6 +3916,7 @@
   "inventorySupplierArticleValue": "Art.-Nr. {number}",
   "inventorySupplierQuotedPrice": "Angebot {price}/kg",
   "inventorySupplierLinksHint": "Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.",
+  "inventoryBulkSupplierLinksHint": "Lieferanten werden jeder ausgewählten Spule hinzugefügt, vorhandene bleiben erhalten. „Hier gekauft“ ersetzt den Shop, in dem sie gekauft wurde.",
   "inventorySupplierAssign": "Lieferant hinzufügen",
   "inventorySupplierUnassign": "Von dieser Spule entfernen",
   "inventorySupplierFieldArticle": "Artikelnr.",

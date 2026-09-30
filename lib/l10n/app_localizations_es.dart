@@ -2928,6 +2928,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este servidor es demasiado antiguo para la edición masiva. Actualiza Bambuddy o edita las bobinas una a una.';
 
   @override
+  String get inventoryBulkEditConfirmSuppliers =>
+      'Los proveedores se añadirán a cada bobina seleccionada.';
+
+  @override
   String get inventoryApply => 'Aplicar';
 
   @override
@@ -7452,6 +7456,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get inventorySupplierLinksHint =>
       'Dónde se puede comprar este producto. Marca la tienda donde compraste esta bobina.';
+
+  @override
+  String get inventoryBulkSupplierLinksHint =>
+      'Se añaden a cada bobina seleccionada y se mantienen los proveedores que ya tiene. “Comprada aquí” sustituye a la tienda donde se compró.';
 
   @override
   String get inventorySupplierAssign => 'Añadir proveedor';

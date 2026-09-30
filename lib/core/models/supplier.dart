@@ -130,6 +130,42 @@ List<SpoolSupplierLink> purchaseSourceFirst(List<SpoolSupplierLink> links) => [
   ...links.where((l) => !l.isPurchaseSource),
 ];
 
+/// [existing] with [added] merged in, as the mass edit writes it: nothing is
+/// removed, a supplier already on the spool keeps whatever [added] leaves
+/// blank, and a purchase source in [added] takes the flag from the old one —
+/// the replace route allows only one.
+List<SpoolSupplierLink> mergeSupplierLinks(
+  List<SpoolSupplierLink> existing,
+  List<SpoolSupplierLink> added,
+) {
+  final byId = {for (final l in existing) l.supplierId: l};
+  for (final a in added) {
+    final old = byId[a.supplierId];
+    byId[a.supplierId] = SpoolSupplierLink(
+      supplierId: a.supplierId,
+      supplierName: a.supplierName.isEmpty
+          ? old?.supplierName ?? ''
+          : a.supplierName,
+      articleNumber: a.articleNumber ?? old?.articleNumber,
+      quotedPricePerKg: a.quotedPricePerKg ?? old?.quotedPricePerKg,
+      isPurchaseSource: old?.isPurchaseSource ?? false,
+    );
+  }
+  final source = added.where((l) => l.isPurchaseSource).firstOrNull;
+  return [
+    for (final l in byId.values)
+      source == null
+          ? l
+          : SpoolSupplierLink(
+              supplierId: l.supplierId,
+              supplierName: l.supplierName,
+              articleNumber: l.articleNumber,
+              quotedPricePerKg: l.quotedPricePerKg,
+              isPurchaseSource: l.supplierId == source.supplierId,
+            ),
+  ];
+}
+
 /// One row of `GET /inventory/stats/suppliers` (`SupplierStats`), grouped by
 /// the supplier a spool was **bought** from — alternative sources count
 /// nowhere. The server sorts it by consumption, heaviest first.

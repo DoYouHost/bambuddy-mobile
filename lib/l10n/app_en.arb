@@ -1783,6 +1783,7 @@
     }
   },
   "inventoryBulkEditUnsupported": "This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.",
+  "inventoryBulkEditConfirmSuppliers": "The suppliers are added to every selected spool.",
   "inventoryApply": "Apply",
   "inventoryLabelsTitle": "Print spool labels",
   "inventoryLabelsPrint": "Print labels",
@@ -4497,6 +4498,7 @@
     }
   },
   "inventorySupplierLinksHint": "Where this product can be bought. Mark the one you bought this spool from.",
+  "inventoryBulkSupplierLinksHint": "Added to every selected spool; the suppliers a spool already has stay. “Bought here” replaces its current purchase source.",
   "inventorySupplierAssign": "Add supplier",
   "@inventorySupplierAssign": {
     "description": "Opens a picker to assign a supplier to the spool being edited."

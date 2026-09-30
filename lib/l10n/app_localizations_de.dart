@@ -2933,6 +2933,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Server ist zu alt für Massenbearbeitung. Aktualisiere Bambuddy oder bearbeite die Spulen einzeln.';
 
   @override
+  String get inventoryBulkEditConfirmSuppliers =>
+      'Die Lieferanten werden jeder ausgewählten Spule hinzugefügt.';
+
+  @override
   String get inventoryApply => 'Anwenden';
 
   @override
@@ -7429,6 +7433,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventorySupplierLinksHint =>
       'Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.';
+
+  @override
+  String get inventoryBulkSupplierLinksHint =>
+      'Lieferanten werden jeder ausgewählten Spule hinzugefügt, vorhandene bleiben erhalten. „Hier gekauft“ ersetzt den Shop, in dem sie gekauft wurde.';
 
   @override
   String get inventorySupplierAssign => 'Lieferant hinzufügen';

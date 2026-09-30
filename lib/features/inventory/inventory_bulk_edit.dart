@@ -50,6 +50,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
 
   String? _slicerFilament;
   String? _slicerFilamentName;
+
+  /// Suppliers to add to every selected spool — never a replacement of their
+  /// lists, see [InventoryNotifier.bulkUpdateSpools].
+  final _links = <_LinkDraft>[];
   bool _saving = false;
 
   int get _count => widget.spoolIds.length;
@@ -58,6 +62,9 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   void dispose() {
     for (final c in _c.values) {
       c.dispose();
+    }
+    for (final link in _links) {
+      link.dispose();
     }
     super.dispose();
   }
@@ -74,7 +81,9 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// the button dead with nothing on screen saying why. Enabled, the tap runs
   /// the validator and the field explains itself.
   bool get _hasInput =>
-      _slicerFilament != null || _c.values.any((c) => c.text.trim().isNotEmpty);
+      _slicerFilament != null ||
+      _links.isNotEmpty ||
+      _c.values.any((c) => c.text.trim().isNotEmpty);
 
   SpoolBulkPatch _patch() => SpoolBulkPatch(
     material: _trim('material'),
@@ -103,13 +112,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     // dropped from the patch and the tally would still report success.
     if (!_formKey.currentState!.validate()) return;
     final patch = _patch();
-    if (patch.isEmpty) return;
+    final links = [for (final link in _links) link.toLink()];
+    if (patch.isEmpty && links.isEmpty) return;
 
     final confirmed = await confirmDialog(
       context,
       id: 'bulk_edit.apply',
       title: l10n.inventoryBulkEditConfirmTitle(_count),
-      message: l10n.inventoryBulkEditConfirmBody(patch.fieldCount),
+      message: [
+        if (!patch.isEmpty) l10n.inventoryBulkEditConfirmBody(patch.fieldCount),
+        if (links.isNotEmpty) l10n.inventoryBulkEditConfirmSuppliers,
+      ].join(' '),
       confirmLabel: l10n.inventoryApply,
     );
     if (!confirmed || !mounted) return;
@@ -118,7 +131,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     try {
       final outcome = await ref
           .read(inventoryProvider.notifier)
-          .bulkUpdateSpools(widget.spoolIds, patch);
+          .bulkUpdateSpools(widget.spoolIds, patch, addSuppliers: links);
       if (!mounted) return;
       Navigator.of(context).pop(outcome);
     } on AppApiException catch (e) {
@@ -130,8 +143,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         action: 'bulk_edit.apply',
         // A 404 here is the server saying it has no bulk-update route at all
         // (it predates 0.2.5b1), which the generic wording would report as a
-        // missing spool.
-        message: e.statusCode == 404 ? l10n.inventoryBulkEditUnsupported : null,
+        // missing spool. Without a patch the 404 came from a supplier replace,
+        // where it does mean a missing spool or supplier.
+        message: e.statusCode == 404 && !patch.isEmpty
+            ? l10n.inventoryBulkEditUnsupported
+            : null,
       );
     } on Object {
       if (!mounted) return;
@@ -147,6 +163,14 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final native =
         ref.watch(inventoryBackendProvider) == InventoryBackend.native;
+    // Every selected spool has to have brought its list along: the write
+    // merges into it, and a spool without one cannot be merged into.
+    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final showSuppliers =
+        ref.watch(suppliersSupportedProvider).orFalse &&
+        spools
+            .where((s) => widget.spoolIds.contains(s.id))
+            .every((s) => s.suppliers != null);
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -222,6 +246,14 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               ref.watch(locationOptionsProvider),
             ),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
+
+            if (showSuppliers)
+              _SupplierLinksSection(
+                links: _links,
+                bulk: true,
+                hint: l10n.inventoryBulkSupplierLinksHint,
+                onChanged: setState,
+              ),
 
             const SizedBox(height: DashSpace.xl),
             _applyButton(t, l10n),

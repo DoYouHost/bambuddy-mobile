@@ -39,9 +39,22 @@ class _LinkDraft {
 /// the list for writing — an untouched section on a new spool writes nothing,
 /// so the server can fill it in from another spool of the same product.
 class _SupplierLinksSection extends ConsumerWidget {
-  const _SupplierLinksSection({required this.links, required this.onChanged});
+  const _SupplierLinksSection({
+    required this.links,
+    required this.onChanged,
+    this.bulk = false,
+    this.hint,
+  });
 
   final List<_LinkDraft> links;
+
+  /// In the mass edit the first pick is not made the purchase source on its
+  /// own: that would move the flag on every selected spool unasked.
+  final bool bulk;
+
+  final String? hint;
+
+  String get _area => bulk ? 'bulk_edit' : 'spool_form';
 
   /// Runs [change] inside the form's `setState` and marks the list dirty.
   final void Function(VoidCallback change) onChanged;
@@ -55,7 +68,7 @@ class _SupplierLinksSection extends ConsumerWidget {
         const SizedBox(height: DashSpace.sm),
         _FormSection(label: l10n.inventorySuppliersTitle),
         InlineNote(
-          l10n.inventorySupplierLinksHint,
+          hint ?? l10n.inventorySupplierLinksHint,
           icon: Icons.info_outline,
           padding: const EdgeInsets.only(bottom: DashSpace.xs),
         ),
@@ -72,7 +85,7 @@ class _SupplierLinksSection extends ConsumerWidget {
           onPressed: () => _pick(context),
           icon: const Icon(Icons.add_business_outlined),
           label: Text(l10n.inventorySupplierAssign),
-        ).tagged('spool_form.supplier_add'),
+        ).tagged('$_area.supplier_add'),
       ],
     );
   }
@@ -92,7 +105,7 @@ class _SupplierLinksSection extends ConsumerWidget {
             supplierName: picked.name,
             // The first one in is most likely where the spool came from; the
             // chip is one tap to move if not.
-            isPurchaseSource: links.isEmpty,
+            isPurchaseSource: !bulk && links.isEmpty,
           ),
         ),
       ),
@@ -147,7 +160,7 @@ class _SupplierLinksSection extends ConsumerWidget {
                     other.isPurchaseSource = on && identical(other, link);
                   }
                 }),
-              ).tagged('spool_form.supplier_bought_here'),
+              ).tagged('$_area.supplier_bought_here'),
               IconButton(
                 icon: const Icon(Icons.close),
                 tooltip: l10n.inventorySupplierUnassign,
@@ -155,7 +168,7 @@ class _SupplierLinksSection extends ConsumerWidget {
                   links.remove(link);
                   link.dispose();
                 }),
-              ).tagged('spool_form.supplier_remove'),
+              ).tagged('$_area.supplier_remove'),
             ],
           ),
           const SizedBox(height: DashSpace.xs),
@@ -174,7 +187,7 @@ class _SupplierLinksSection extends ConsumerWidget {
                       labelText: l10n.inventorySupplierFieldArticle,
                     ).copyWith(counterText: ''),
                     onChanged: (_) => onChanged(() {}),
-                  ).tagged('spool_form.supplier_article'),
+                  ).tagged('$_area.supplier_article'),
                 ),
                 const SizedBox(width: DashSpace.md),
                 Expanded(
@@ -199,7 +212,7 @@ class _SupplierLinksSection extends ConsumerWidget {
                       return null;
                     },
                     onChanged: (_) => onChanged(() {}),
-                  ).tagged('spool_form.supplier_price'),
+                  ).tagged('$_area.supplier_price'),
                 ),
               ],
             ),
