@@ -10,6 +10,9 @@ import '../ws_providers.dart';
 /// dashboard: live WebSocket (`connected`) or REST polling (any other state —
 /// the fast 5 s fallback). Styled as the design's "Live" pill (green dot);
 /// polling falls back to an amber sync pill.
+/// The pill's height at the default text size; a larger one grows it.
+const _chipHeight = 32.0;
+
 class ConnectionModeChip extends ConsumerWidget {
   const ConnectionModeChip({super.key});
 
@@ -28,12 +31,13 @@ class ConnectionModeChip extends ConsumerWidget {
 
     return Tooltip(
       message: tooltip,
+      // Sized, not squeezed: the toolbar is 56 dp, and a vertical margin plus
+      // padding left the label less height than its line, so it was drawn from
+      // the top and hung below the middle. The caller centres the chip.
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: DashSpace.md),
-        padding: const EdgeInsets.symmetric(
-          horizontal: DashSpace.md,
-          vertical: DashSpace.sm,
-        ),
+        constraints: const BoxConstraints(minHeight: _chipHeight),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(20),
