@@ -25,6 +25,7 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dar
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
@@ -551,6 +552,31 @@ DioAdapter mockServer(Dio dio) => DioAdapter(
   dio: dio,
   matcher: const FullHttpRequestMatcher(needsExactBody: true),
 );
+
+/// `inventoryBackendProvider` fixed to [backend]; the real notifier reads the
+/// choice from SharedPreferences, which a test would otherwise have to seed.
+Override inventoryBackendOverride([
+  InventoryBackend backend = InventoryBackend.native,
+]) => inventoryBackendProvider.overrideWith(() => _FixedBackend(backend));
+
+class _FixedBackend extends InventoryBackendNotifier {
+  _FixedBackend(this._backend);
+
+  final InventoryBackend _backend;
+
+  @override
+  InventoryBackend build() => _backend;
+}
+
+/// Drags the topmost list up [times] times. Sheets and forms are lazy lists
+/// taller than the screen: what sits below the fold is not built — and a finder
+/// cannot tap it — until it has scrolled into range.
+Future<void> scrollSheetDown(WidgetTester tester, {int times = 8}) async {
+  for (var i = 0; i < times; i++) {
+    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await tester.pump();
+  }
+}
 
 /// `serverProfileProvider` answering with [profile], or with "nothing
 /// configured yet" when it is null.

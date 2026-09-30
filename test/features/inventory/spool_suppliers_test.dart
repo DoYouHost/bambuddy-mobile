@@ -44,15 +44,6 @@ class _FakeInventory extends InventoryNotifier {
   }
 }
 
-class _FixedBackend extends InventoryBackendNotifier {
-  _FixedBackend(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
-}
-
 const _extrudr = SpoolSupplierLink(
   supplierId: 3,
   supplierName: 'Extrudr',
@@ -108,7 +99,7 @@ void main() {
         inventoryRepositoryProvider.overrideWithValue(
           InventoryRepository(NativeInventorySource(Dio())),
         ),
-        inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
+        inventoryBackendOverride(backend),
         presetOverridesSupportedProvider.overrideWithValue(
           const AsyncData(false),
         ),
@@ -127,12 +118,12 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await settle(tester);
     }
-    await scrollDown(tester);
+    await scrollSheetDown(tester);
     return (suppliers, inventory);
   }
 
   Future<void> save(WidgetTester tester) async {
-    await scrollDown(tester);
+    await scrollSheetDown(tester);
     await tester.tap(byLogId('spool_form.save'));
     await settle(tester);
   }
@@ -360,7 +351,7 @@ void main() {
       ]);
       await tester.tap(find.text('Bambu PLA'));
       await settle(tester);
-      await scrollDown(tester);
+      await scrollSheetDown(tester);
 
       // The name is the row's title; what was noted about buying there is
       // the line under it, and a supplier with nothing noted has no such line.
@@ -407,7 +398,7 @@ void main() {
       ]);
       await tester.tap(find.text('Bambu PLA'));
       await settle(tester);
-      await scrollDown(tester);
+      await scrollSheetDown(tester);
 
       // An overflow is reported as an exception, which fails the test.
       expect(find.text(l10n.inventorySupplierBoughtHere), findsOneWidget);
@@ -449,7 +440,7 @@ void main() {
 
       await tester.tap(byLogId('inventory.filters'));
       await settle(tester);
-      await scrollDown(tester);
+      await scrollSheetDown(tester);
       await tester.tap(find.widgetWithText(FilterChip, 'Filamentworld'));
       await settle(tester);
       Navigator.of(tester.element(find.byType(FilterChip).first)).pop();
@@ -459,13 +450,4 @@ void main() {
       expect(find.text('Bambu PETG'), findsNothing);
     });
   });
-}
-
-/// The form and the sheets are lazy lists taller than the screen; what sits
-/// below the fold is not built until it scrolls into range.
-Future<void> scrollDown(WidgetTester tester) async {
-  for (var i = 0; i < 8; i++) {
-    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
-    await tester.pump();
-  }
 }

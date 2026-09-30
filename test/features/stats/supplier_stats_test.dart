@@ -12,15 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 import '../inventory/fake_suppliers.dart';
 
-class _FixedBackend extends InventoryBackendNotifier {
-  _FixedBackend(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
-}
-
 const _rows = [
   SupplierStats(
     supplierId: 3,
@@ -40,7 +31,7 @@ void main() {
   }) => [
     noServerProfileOverride,
     suppliersRepositoryProvider.overrideWithValue(suppliers),
-    inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
+    inventoryBackendOverride(backend),
   ];
 
   group('supplierStatsProvider', () {

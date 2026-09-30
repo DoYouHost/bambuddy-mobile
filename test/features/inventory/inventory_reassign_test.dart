@@ -53,17 +53,12 @@ class _FakeSource implements SpoolInventorySource {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-class _NativeBackend extends InventoryBackendNotifier {
-  @override
-  InventoryBackend build() => InventoryBackend.native;
-}
-
 void main() {
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
     final container = ProviderContainer(
       overrides: [
         fakeServerProfileOverride(),
-        inventoryBackendProvider.overrideWith(_NativeBackend.new),
+        inventoryBackendOverride(),
         inventorySourceProvider.overrideWithValue(source),
       ],
     );
