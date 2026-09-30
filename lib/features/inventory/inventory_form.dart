@@ -250,16 +250,29 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
-      if (!await _savePresetOverrides(repo, spoolId, l10n, messenger)) return;
-      if (linkWriter != null && backend != null && spoolId != null) {
-        final saved = await _saveSupplierLinks(
-          linkWriter,
-          backend,
-          spoolId,
-          l10n,
-          messenger,
+      final overrides = _overrides;
+      if (spoolId case final id? when overrides != null && _overridesDirty) {
+        final saved = await _followUpWrite(
+          () => repo.savePresetOverrides(id, overrides.values.toList()),
+          logId: 'spool_form.save_model_presets',
+          l10n: l10n,
+          messenger: messenger,
+          unexpected: l10n.inventoryPrinterPresetsSaveFailed,
         );
         if (!saved) return;
+        _overridesDirty = false;
+      }
+      if (spoolId case final id? when linkWriter != null && backend != null) {
+        final saved = await _followUpWrite(
+          () => linkWriter.saveSpoolLinks(id, [
+            for (final link in _links) link.toLink(),
+          ], backend: backend),
+          logId: 'spool_form.save_suppliers',
+          l10n: l10n,
+          messenger: messenger,
+        );
+        if (!saved) return;
+        _linksDirty = false;
         // The spool write reloaded the shelf before these landed.
         unawaited(notifier.refresh());
       }
@@ -281,65 +294,33 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
   }
 
-  /// Writes the per-model preset overrides for the spool just saved, and says
-  /// whether the form may close.
+  /// One of the writes that follow the spool's own, and whether the form may
+  /// close.
   ///
-  /// Nothing is sent unless the section was both read and touched: the route
-  /// replaces the whole list, so a blind write is a delete. A failure here
-  /// leaves the sheet open with the picks still in it — the spool itself is
-  /// already saved, and the retry costs one PATCH of a spool that now exists
-  /// either way (see [_createdSpoolId]).
-  Future<bool> _savePresetOverrides(
-    InventoryRepository repo,
-    int? spoolId,
-    AppLocalizations l10n,
-    ScaffoldMessengerState messenger,
-  ) async {
-    final overrides = _overrides;
-    if (spoolId == null || overrides == null || !_overridesDirty) return true;
+  /// A write is only sent once its section was touched (presets also need to
+  /// have been read): each route replaces a whole list, so a blind write is a
+  /// delete. A failure leaves the sheet open with the picks still in it — the
+  /// spool itself is already saved, and the retry costs one PATCH of a spool
+  /// that now exists either way (see [_createdSpoolId]). An unexpected error
+  /// goes on to [_save]'s own handler unless [unexpected] words it here.
+  Future<bool> _followUpWrite(
+    Future<void> Function() write, {
+    required String logId,
+    required AppLocalizations l10n,
+    required ScaffoldMessengerState messenger,
+    String? unexpected,
+  }) async {
     try {
-      await repo.savePresetOverrides(spoolId, overrides.values.toList());
-      _overridesDirty = false;
+      await write();
       return true;
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'spool_form.save_model_presets',
-      );
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       return false;
     } on Object {
+      if (unexpected == null) rethrow;
       if (mounted) setState(() => _saving = false);
-      messenger.snack(l10n.inventoryPrinterPresetsSaveFailed);
-      return false;
-    }
-  }
-
-  /// Writes the supplier assignments of the spool just saved, and says whether
-  /// the form may close — the same contract as [_savePresetOverrides].
-  Future<bool> _saveSupplierLinks(
-    SuppliersRepository repo,
-    InventoryBackend backend,
-    int spoolId,
-    AppLocalizations l10n,
-    ScaffoldMessengerState messenger,
-  ) async {
-    try {
-      await repo.saveSpoolLinks(spoolId, [
-        for (final link in _links) link.toLink(),
-      ], backend: backend);
-      _linksDirty = false;
-      return true;
-    } on AppApiException catch (e) {
-      if (mounted) setState(() => _saving = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'spool_form.save_suppliers',
-      );
+      messenger.snack(unexpected);
       return false;
     }
   }

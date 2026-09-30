@@ -350,6 +350,8 @@ void main() {
     // pick still in it.
     expect(fake.writes, ['create']);
     expect(find.text('Bambu PLA Basic @BBL P1S'), findsOneWidget);
+    // Named for what failed, not the generic "could not save".
+    expect(find.text(l10n.inventoryPrinterPresetsSaveFailed), findsOneWidget);
 
     await tester.tap(saveButton());
     await settle(tester);
