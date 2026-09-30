@@ -7511,4 +7511,19 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get inventorySupplierNoneLeft =>
       'Wszyscy dostawcy są już przypisani do tej szpuli';
+
+  @override
+  String get statsBySupplier => 'Wg dostawcy';
+
+  @override
+  String get statsBySupplierHint =>
+      'Zużycie filamentu ze szpul kupionych u danego dostawcy i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.';
+
+  @override
+  String get statsBySupplierFailed => 'Nie udało się wczytać danych dostawców';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining na stanie · koszt $cost';
+  }
 }

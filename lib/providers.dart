@@ -564,6 +564,12 @@ final suppliersRepositoryProvider = Provider<SuppliersRepository>(
   ),
 );
 
+/// Whether this server has filament suppliers. Read by the Filaments tab and by
+/// the statistics screen's supplier card.
+final suppliersSupportedProvider = capabilityGate(
+  (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   (ref) => LocationSensorsRepository(
     ref.watch(apiClientProvider).dio,

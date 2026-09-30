@@ -3244,5 +3244,9 @@
   "inventorySupplierUnassign": "Usuń z tej szpuli",
   "inventorySupplierFieldArticle": "Nr artykułu",
   "inventorySupplierFieldQuotedPrice": "Cena ofertowa/kg",
-  "inventorySupplierNoneLeft": "Wszyscy dostawcy są już przypisani do tej szpuli"
+  "inventorySupplierNoneLeft": "Wszyscy dostawcy są już przypisani do tej szpuli",
+  "statsBySupplier": "Wg dostawcy",
+  "statsBySupplierHint": "Zużycie filamentu ze szpul kupionych u danego dostawcy i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.",
+  "statsBySupplierFailed": "Nie udało się wczytać danych dostawców",
+  "statsSupplierDetail": "{spools} · {remaining} na stanie · koszt {cost}"
 }

@@ -3944,5 +3944,9 @@
   "inventorySupplierUnassign": "Retirer de cette bobine",
   "inventorySupplierFieldArticle": "Réf. article",
   "inventorySupplierFieldQuotedPrice": "Prix proposé/kg",
-  "inventorySupplierNoneLeft": "Tous les fournisseurs sont déjà associés à cette bobine"
+  "inventorySupplierNoneLeft": "Tous les fournisseurs sont déjà associés à cette bobine",
+  "statsBySupplier": "Par fournisseur",
+  "statsBySupplierHint": "Filament consommé sur les bobines achetées chez chaque fournisseur et son coût. Le stock compte les bobines actives et ne dépend pas de la période.",
+  "statsBySupplierFailed": "Impossible de charger les chiffres des fournisseurs",
+  "statsSupplierDetail": "{spools} · {remaining} en stock · coût {cost}"
 }

@@ -3944,5 +3944,9 @@
   "inventorySupplierUnassign": "Quitar de esta bobina",
   "inventorySupplierFieldArticle": "N.º de artículo",
   "inventorySupplierFieldQuotedPrice": "Precio ofertado/kg",
-  "inventorySupplierNoneLeft": "Todos los proveedores ya están en esta bobina"
+  "inventorySupplierNoneLeft": "Todos los proveedores ya están en esta bobina",
+  "statsBySupplier": "Por proveedor",
+  "statsBySupplierHint": "Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
+  "statsBySupplierFailed": "No se pudieron cargar los datos de proveedores",
+  "statsSupplierDetail": "{spools} · {remaining} en existencias · coste {cost}"
 }

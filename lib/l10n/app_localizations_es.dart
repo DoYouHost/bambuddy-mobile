@@ -7486,4 +7486,20 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get inventorySupplierNoneLeft =>
       'Todos los proveedores ya están en esta bobina';
+
+  @override
+  String get statsBySupplier => 'Por proveedor';
+
+  @override
+  String get statsBySupplierHint =>
+      'Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.';
+
+  @override
+  String get statsBySupplierFailed =>
+      'No se pudieron cargar los datos de proveedores';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining en existencias · coste $cost';
+  }
 }

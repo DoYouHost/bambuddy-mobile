@@ -7394,4 +7394,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get inventorySupplierNoneLeft =>
       'Every supplier is already on this spool';
+
+  @override
+  String get statsBySupplier => 'By supplier';
+
+  @override
+  String get statsBySupplierHint =>
+      'Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.';
+
+  @override
+  String get statsBySupplierFailed => 'Couldn\'t load the supplier figures';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining in stock · cost $cost';
+  }
 }

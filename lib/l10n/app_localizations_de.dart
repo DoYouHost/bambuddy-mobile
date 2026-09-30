@@ -7463,4 +7463,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventorySupplierNoneLeft =>
       'Alle Lieferanten sind dieser Spule schon zugewiesen';
+
+  @override
+  String get statsBySupplier => 'Nach Lieferant';
+
+  @override
+  String get statsBySupplierHint =>
+      'Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsBySupplierFailed =>
+      'Lieferantendaten konnten nicht geladen werden';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining auf Lager · Kosten $cost';
+  }
 }

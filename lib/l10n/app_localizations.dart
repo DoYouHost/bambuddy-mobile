@@ -12445,6 +12445,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every supplier is already on this spool'**
   String get inventorySupplierNoneLeft;
+
+  /// No description provided for @statsBySupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'By supplier'**
+  String get statsBySupplier;
+
+  /// No description provided for @statsBySupplierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsBySupplierHint;
+
+  /// No description provided for @statsBySupplierFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the supplier figures'**
+  String get statsBySupplierFailed;
+
+  /// Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{spools} · {remaining} in stock · cost {cost}'**
+  String statsSupplierDetail(String spools, String remaining, String cost);
 }
 
 class _AppLocalizationsDelegate

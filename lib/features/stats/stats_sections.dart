@@ -10,6 +10,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/models/supplier.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
@@ -460,6 +461,75 @@ class BarList extends StatelessWidget {
           if (i != rows.length - 1) const SizedBox(height: DashSpace.md),
         ],
       ],
+    );
+  }
+}
+
+// ── By supplier ────────────────────────────────────────────────────────────
+
+/// Consumption per purchase-source supplier, heaviest first as the server
+/// sorts it, with stock and spend under each bar.
+///
+/// Absent while it loads and when nothing was bought anywhere: most
+/// inventories never name a supplier, and a card saying so on every visit is
+/// noise. A failed read is shown, because it is not the same answer as "none".
+class SupplierStatsCard extends ConsumerWidget {
+  const SupplierStatsCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final stats = ref.watch(supplierStatsProvider);
+    final rows = stats.valueOrNull ?? const <SupplierStats>[];
+    if (!stats.hasError && rows.isEmpty) return const SizedBox.shrink();
+    final heaviest = rows.fold<double>(
+      1,
+      (m, r) => math.max(m, r.consumedGrams),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.md),
+      child: SectionCard(
+        title: l10n.statsBySupplier,
+        child: stats.hasError
+            ? Text(
+                l10n.statsBySupplierFailed,
+                style: t.bodyPlain.copyWith(color: t.textSecondary),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.statsBySupplierHint,
+                    style: t.label.copyWith(color: t.textSecondary),
+                  ),
+                  const SizedBox(height: DashSpace.md),
+                  for (final (i, row) in rows.indexed) ...[
+                    if (i > 0) const SizedBox(height: DashSpace.md),
+                    BarList(
+                      rows: [
+                        (
+                          label: row.supplierName,
+                          value: fmtGrams(row.consumedGrams),
+                          fraction: row.consumedGrams / heaviest,
+                          color: null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: DashSpace.xs),
+                    Text(
+                      l10n.statsSupplierDetail(
+                        l10n.inventorySpoolCount(row.spoolCount),
+                        fmtGrams(row.remainingGrams),
+                        fmtNum(row.cost),
+                      ),
+                      style: t.label.copyWith(color: t.textSecondary),
+                    ),
+                  ],
+                ],
+              ),
+      ),
     );
   }
 }

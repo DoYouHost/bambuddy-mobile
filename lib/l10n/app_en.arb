@@ -4535,5 +4535,23 @@
   "@inventorySupplierFieldQuotedPrice": {
     "description": "Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at."
   },
-  "inventorySupplierNoneLeft": "Every supplier is already on this spool"
+  "inventorySupplierNoneLeft": "Every supplier is already on this spool",
+  "statsBySupplier": "By supplier",
+  "statsBySupplierHint": "Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.",
+  "statsBySupplierFailed": "Couldn't load the supplier figures",
+  "statsSupplierDetail": "{spools} · {remaining} in stock · cost {cost}",
+  "@statsSupplierDetail": {
+    "description": "Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.",
+    "placeholders": {
+      "spools": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  }
 }

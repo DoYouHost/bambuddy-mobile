@@ -560,11 +560,6 @@ final spoolPresetOverridesProvider = FutureProvider.autoDispose
           .fetchPresetOverrides(spoolId);
     });
 
-/// Whether this server has filament suppliers.
-final suppliersSupportedProvider = capabilityGate(
-  (ref) => ref.watch(suppliersRepositoryProvider).capability,
-);
-
 /// The supplier master list. Empty until the gate says yes, and empty on a
 /// failed read too: it only feeds pickers and the management sheet, while the
 /// assignments a spool form writes back come from the spool itself.

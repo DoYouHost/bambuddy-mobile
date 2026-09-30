@@ -3944,5 +3944,9 @@
   "inventorySupplierUnassign": "Von dieser Spule entfernen",
   "inventorySupplierFieldArticle": "Artikelnr.",
   "inventorySupplierFieldQuotedPrice": "Angebotspreis/kg",
-  "inventorySupplierNoneLeft": "Alle Lieferanten sind dieser Spule schon zugewiesen"
+  "inventorySupplierNoneLeft": "Alle Lieferanten sind dieser Spule schon zugewiesen",
+  "statsBySupplier": "Nach Lieferant",
+  "statsBySupplierHint": "Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.",
+  "statsBySupplierFailed": "Lieferantendaten konnten nicht geladen werden",
+  "statsSupplierDetail": "{spools} · {remaining} auf Lager · Kosten {cost}"
 }
