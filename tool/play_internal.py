@@ -45,9 +45,14 @@ WEAR_OFFSET = 1_000_000_000
 # the client's 60 s socket default; fastlane's supply waits 300 s for the same reason.
 socket.setdefaulttimeout(300)
 
+# Every call backs off and retries on 5xx/429 (googleapiclient doubles the wait,
+# ~2 min in all): Play's API answers 503 often enough that one miss used to
+# fail a whole `ship-dev` after the builds had already been paid for.
+RETRIES = 6
+
 
 def list_tracks(edits, edit_id):
-    tracks = edits.tracks().list(packageName=PACKAGE, editId=edit_id).execute()
+    tracks = edits.tracks().list(packageName=PACKAGE, editId=edit_id).execute(num_retries=RETRIES)
     for track in tracks.get("tracks", []):
         # A track with no releases still gets a line: its name is what we need.
         for release in track.get("releases") or [{}]:
@@ -89,13 +94,13 @@ def release_internal(edits, edit_id, bundles, dry_run):
             for code in release.get("versionCodes", [])
         }
         for track in edits.tracks().list(packageName=PACKAGE, editId=edit_id)
-        .execute().get("tracks", [])
+        .execute(num_retries=RETRIES).get("tracks", [])
     }
     # Bundles already in the app's library — uploaded by a run that died before
     # its commit, or by hand in the Console — only need assigning to the track.
     uploaded = {
         bundle["versionCode"] for bundle in
-        edits.bundles().list(packageName=PACKAGE, editId=edit_id).execute().get("bundles", [])
+        edits.bundles().list(packageName=PACKAGE, editId=edit_id).execute(num_retries=RETRIES).get("bundles", [])
     }
 
     changed = False
@@ -114,7 +119,7 @@ def release_internal(edits, edit_id, bundles, dry_run):
                 packageName=PACKAGE,
                 editId=edit_id,
                 media_body=MediaFileUpload(path, mimetype="application/octet-stream", resumable=True),
-            ).execute()
+            ).execute(num_retries=RETRIES)
         edits.tracks().update(
             packageName=PACKAGE,
             editId=edit_id,
@@ -123,7 +128,7 @@ def release_internal(edits, edit_id, bundles, dry_run):
                 "track": track,
                 "releases": [{"name": release_name, "versionCodes": [str(code)], "status": "completed"}],
             },
-        ).execute()
+        ).execute(num_retries=RETRIES)
         print(f"{track}: {release_name} staged")
         changed = True
     return changed
@@ -147,18 +152,18 @@ def main():
     edits = build("androidpublisher", "v3", credentials=creds, cache_discovery=False).edits()
 
     try:
-        edit_id = edits.insert(packageName=PACKAGE, body={}).execute()["id"]
+        edit_id = edits.insert(packageName=PACKAGE, body={}).execute(num_retries=RETRIES)["id"]
         committed = False
         try:
             if args.command == "tracks":
                 list_tracks(edits, edit_id)
             elif release_internal(edits, edit_id, bundles, args.dry_run):
-                edits.commit(packageName=PACKAGE, editId=edit_id).execute()
+                edits.commit(packageName=PACKAGE, editId=edit_id).execute(num_retries=RETRIES)
                 committed = True
                 print("Released to internal testing.")
         finally:
             if not committed:
-                edits.delete(packageName=PACKAGE, editId=edit_id).execute()
+                edits.delete(packageName=PACKAGE, editId=edit_id).execute(num_retries=RETRIES)
     except HttpError as e:
         # A fresh Play Console grant can take a while to reach the API, so a 403
         # right after setup is not necessarily a wrong permission.
