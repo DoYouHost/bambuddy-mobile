@@ -126,7 +126,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 'files.create',
                 FloatingActionButton(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: state == null
                       ? null
                       : () => _openCreateSheet(state),

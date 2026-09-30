@@ -242,25 +242,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     builder: (context, _) => SizedBox(
       width: double.infinity,
       child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: t.accentGreen,
-          foregroundColor: _onAccentGreen,
-          padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
         onPressed: _saving || !_hasInput ? null : _apply,
         child: _saving
-            ? DashSpinner(size: 20, color: _onAccentGreen)
-            : Text(
-                l10n.inventoryBulkEditApply(_count),
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            ? DashSpinner(size: 20, color: t.onAccent)
+            : Text(l10n.inventoryBulkEditApply(_count)),
       ).tagged('bulk_edit.apply'),
     ),
   );

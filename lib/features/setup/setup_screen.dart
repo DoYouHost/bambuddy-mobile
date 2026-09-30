@@ -435,7 +435,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           style: t.labelSoft.copyWith(color: t.textSecondary),
         ),
         activeColor: t.accentGreen,
-        checkColor: const Color(0xFF0A0C08),
+        checkColor: t.onAccent,
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: EdgeInsets.zero,
       ).tagged('setup.remember_me'),

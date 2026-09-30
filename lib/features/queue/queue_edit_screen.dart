@@ -88,12 +88,6 @@ enum QueueScheduleType { asap, queue, scheduled }
 /// (matches the web `showDualNozzleOptions` model list).
 const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
 
-/// Dark ink for text/icons painted on a solid [DashTokens.accentGreen] fill.
-/// `accentGreenInk` can't be used here: in the dark theme it equals
-/// `accentGreen`, so the label would vanish into the fill. Mirrors the app's
-/// on-accent ink (`dashPrimaryButtonStyle`).
-const Color _onGreenFill = Color(0xFF0A0C08);
-
 class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Target
   late bool _modelMode; // false = specific printer, true = "Any <model>"
@@ -1882,7 +1876,7 @@ class _SegToggle<T> extends StatelessWidget {
                 Icon(
                   seg.icon,
                   size: 16,
-                  color: isSel ? _onGreenFill : t.textSecondary,
+                  color: isSel ? t.onAccent : t.textSecondary,
                 ),
                 const SizedBox(width: DashSpace.sm),
               ],
@@ -1892,7 +1886,7 @@ class _SegToggle<T> extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.bodyBold.copyWith(
-                    color: isSel ? _onGreenFill : t.textPrimary,
+                    color: isSel ? t.onAccent : t.textPrimary,
                   ),
                 ),
               ),

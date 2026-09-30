@@ -57,13 +57,6 @@ part 'location_climate.dart';
 part 'suppliers_sheet.dart';
 part 'spool_form_suppliers.dart';
 
-/// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
-/// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
-/// this isn't theme-adaptive by design — the accent fill itself is a fixed
-/// vivid swatch in both brightnesses, so a near-black ink keeps it readable
-/// either way.
-const Color _onAccentGreen = Color(0xFF08150D);
-
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
 /// turns it into a card. Shared by the Filaments FAB and the home-screen
@@ -299,7 +292,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     FloatingActionButton.extended(
                       heroTag: 'addSpool',
                       backgroundColor: t.accentGreen,
-                      foregroundColor: _onAccentGreen,
+                      foregroundColor: t.onAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),

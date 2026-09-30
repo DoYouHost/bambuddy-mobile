@@ -429,17 +429,9 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: t.accentGreen,
-                    foregroundColor: _onAccentGreen,
-                    padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
                   onPressed: _saving ? null : _save,
                   child: _saving
-                      ? DashSpinner(size: 20, color: _onAccentGreen)
+                      ? DashSpinner(size: 20, color: t.onAccent)
                       : Text(l10n.inventorySave),
                 ).tagged('supplier_form.save'),
               ),

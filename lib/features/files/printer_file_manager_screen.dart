@@ -740,7 +740,7 @@ class _PrinterFileManagerScreenState
                 value: selected,
                 onChanged: (_) => _toggleSelection(file.path),
                 activeColor: t.accentGreen,
-                checkColor: const Color(0xFF0A0C08),
+                checkColor: t.onAccent,
               ),
             ),
             title: Text(

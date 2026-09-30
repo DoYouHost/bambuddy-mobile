@@ -39,7 +39,7 @@ class UsersScreen extends ConsumerWidget {
                 'users.create',
                 FloatingActionButton.extended(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: () => openUserCreate(context),
                   icon: const Icon(Icons.person_add_alt_1),
                   label: Text(l10n.usersCreate),

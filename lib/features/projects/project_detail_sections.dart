@@ -528,7 +528,7 @@ class ProjectBomSection extends ConsumerWidget {
       leading: Checkbox(
         value: item.isComplete,
         activeColor: t.accentGreen,
-        checkColor: const Color(0xFF0A0C08),
+        checkColor: t.onAccent,
         onChanged: (v) => ref
             .read(projectBomProvider(projectId).notifier)
             .edit(

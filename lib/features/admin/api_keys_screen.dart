@@ -39,7 +39,7 @@ class ApiKeysScreen extends ConsumerWidget {
                 'api_keys.create',
                 FloatingActionButton.extended(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: () => openApiKeyCreate(context),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.apiKeysCreate),

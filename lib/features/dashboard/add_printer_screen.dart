@@ -379,7 +379,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                           ? null
                           : (v) => setState(() => _autoArchive = v ?? true),
                       activeColor: t.accentGreen,
-                      checkColor: const Color(0xFF0A0C08),
+                      checkColor: t.onAccent,
                       title: Text(
                         l10n.addPrinterAutoArchive,
                         style: t.bodyStrong,

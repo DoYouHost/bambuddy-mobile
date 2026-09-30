@@ -538,26 +538,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: t.accentGreen,
-                  foregroundColor: _onAccentGreen,
-                  padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
                 onPressed: _saving || copyPresetsPending ? null : _save,
                 child: _saving || copyPresetsPending
-                    ? DashSpinner(size: 20, color: _onAccentGreen)
+                    ? DashSpinner(size: 20, color: t.onAccent)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
                             : l10n.inventorySave,
-                        style: const TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
                       ),
               ).tagged('spool_form.save'),
             ),
