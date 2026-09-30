@@ -209,8 +209,9 @@ void main() {
           data: Matchers.any,
         );
 
+        final repo = nativeRepo();
         await expectLater(
-          nativeRepo().savePresetOverrides(7, const []),
+          repo.savePresetOverrides(7, const []),
           throwsA(
             isA<AuthException>().having(
               (e) => e.code,
@@ -219,6 +220,9 @@ void main() {
             ),
           ),
         );
+        // A missing `inventory:update` is not "no presets here": the section
+        // stays readable.
+        expect(await repo.presetOverridesCapability.supported, isTrue);
       },
     );
   });
