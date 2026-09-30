@@ -175,7 +175,7 @@ class _SupplierRow extends ConsumerWidget {
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: l10n.inventoryDelete,
-            onPressed: () => _delete(context, ref),
+            onPressed: () => _delete(context, ref, onShelf: here.length),
           ).tagged('suppliers.delete'),
           onTap: () => _openSupplierForm(context, existing: supplier),
         ).tagged('suppliers.edit'),
@@ -189,8 +189,8 @@ class _SupplierRow extends ConsumerWidget {
       (spool.suppliers ?? const []).any((l) => l.supplierId == supplier.id);
 
   /// Shows the Filaments list narrowed to this supplier, on the active shelf
-  /// or in the archive. The other filters are cleared so none of the counted
-  /// spools hides behind one.
+  /// or in the archive. The other filters and the search are cleared so none
+  /// of the counted spools hides behind one.
   void _showSpools(
     BuildContext context,
     WidgetRef ref, {
@@ -198,22 +198,26 @@ class _SupplierRow extends ConsumerWidget {
   }) {
     final filters = ref.read(inventoryFiltersProvider.notifier);
     filters.state = filters.state.cleared().copyWith(
-      suppliers: {supplier.name},
+      suppliers: {supplier.id},
       showArchived: archived,
     );
+    ref.read(inventoryQueryProvider.notifier).state = '';
     Navigator.of(context).pop();
   }
 
-  /// A supplier still on a spool is refused by the server (409), so the count
-  /// it already sent says so before anyone confirms anything. The 409 is still
-  /// handled: a spool can have been given this supplier since the list loaded.
-  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+  /// Always asks the server, which alone knows whether the supplier is still
+  /// referenced: the shelf may be stale, and `spool_count` holds rows for
+  /// Spoolman spools deleted in Spoolman itself, which the server prunes only
+  /// while answering this very DELETE
+  /// (`inventory.py::_prune_orphaned_spoolman_supplier_rows`). A refusal is
+  /// worded with the shelf's count when it has one.
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref, {
+    required int onShelf,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (supplier.spoolCount > 0) {
-      messenger.snack(l10n.inventorySupplierInUse(supplier.spoolCount));
-      return;
-    }
     final ok = await confirmDialog(
       context,
       id: 'suppliers.delete_confirm',
@@ -230,7 +234,11 @@ class _SupplierRow extends ConsumerWidget {
       messenger.snack(l10n.inventorySupplierDeleted);
     } on AppApiException catch (e) {
       if (e.statusCode == 409) {
-        messenger.snack(l10n.inventorySupplierInUseUnknown);
+        messenger.snack(
+          onShelf > 0
+              ? l10n.inventorySupplierInUse(onShelf)
+              : l10n.inventorySupplierInUseUnknown,
+        );
       } else {
         showApiFailure(messenger, e, l10n, action: 'suppliers.delete');
       }

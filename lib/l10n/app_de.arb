@@ -3908,7 +3908,7 @@
   "inventorySupplierSaved": "Lieferant gespeichert",
   "inventorySupplierDeleted": "Lieferant gelöscht",
   "inventorySupplierDeleteTitle": "{name} löschen?",
-  "inventorySupplierDeleteBody": "Er wird aus der Liste entfernt. Keiner Spule ist er zugewiesen.",
+  "inventorySupplierDeleteBody": "Er wird aus der Lieferantenliste entfernt.",
   "inventorySupplierInUse": "{count, plural, one{Einer Spule zugewiesen – entferne ihn zuerst dort} other{{count} Spulen zugewiesen – entferne ihn zuerst dort}}",
   "inventorySupplierInUseUnknown": "Noch einer Spule zugewiesen – entferne ihn zuerst dort",
   "inventorySupplierBoughtHere": "Hier gekauft",

@@ -7441,8 +7441,7 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get inventorySupplierDeleteBody =>
-      'Zniknie z listy. Nie jest przypisany do żadnej szpuli.';
+  String get inventorySupplierDeleteBody => 'Zniknie z listy dostawców.';
 
   @override
   String inventorySupplierInUse(int count) {

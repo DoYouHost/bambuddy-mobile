@@ -82,6 +82,24 @@ void main() {
     });
   });
 
+  test('a refused write leaves the read side offered', () async {
+    adapter
+      ..onGet('/api/v1/inventory/suppliers', (s) => s.reply(200, <Object>[]))
+      ..onPost(
+        '/api/v1/inventory/suppliers',
+        (s) => s.reply(403, {'detail': 'Missing required permissions'}),
+        data: const SupplierDraft(name: 'X').toJson(),
+      );
+    await repo.listSuppliers();
+
+    await expectLater(
+      repo.createSupplier(const SupplierDraft(name: 'X')),
+      throwsA(isA<AppApiException>()),
+    );
+
+    expect(repo.capability.observedAnswer, isTrue);
+  });
+
   test('listSuppliers reads every field the sheet shows', () async {
     adapter.onGet(
       '/api/v1/inventory/suppliers',

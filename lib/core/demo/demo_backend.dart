@@ -4941,9 +4941,10 @@ class DemoBackend {
           _supplierNameTaken(body['name'], except: id)) {
         return _duplicateSupplier;
       }
-      for (final key in ['name', 'website', 'customer_number', 'note']) {
+      for (final key in ['website', 'customer_number', 'note']) {
         if (body.containsKey(key)) row[key] = body[key];
       }
+      if (body.containsKey('name')) row['name'] = '${body['name']}'.trim();
       row['updated_at'] = _iso(DateTime.now());
       // The links carry the name flattened, as `supplier_name` does server-side.
       for (final spool in _spools) {
@@ -5570,14 +5571,17 @@ class DemoBackend {
       ...draft,
     };
     // The server's inheritance (`services/supplier_links.py`): the newest spool
-    // of the same product lends its sources, never where it was bought.
+    // of the same product that has any sources lends them, never where it was
+    // bought.
     final donor = _spools.lastWhere(
-      (x) => [
-        'material',
-        'subtype',
-        'brand',
-        'color_name',
-      ].every((k) => x[k] == spool[k]),
+      (x) =>
+          _linksOf(x).isNotEmpty &&
+          [
+            'material',
+            'subtype',
+            'brand',
+            'color_name',
+          ].every((k) => x[k] == spool[k]),
       orElse: () => const {},
     );
     spool['suppliers'] = [

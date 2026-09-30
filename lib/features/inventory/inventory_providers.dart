@@ -422,9 +422,10 @@ class InventoryFilters {
   final Set<String> brands;
   final Set<String> locations;
 
-  /// Supplier names; a spool matches on any assignment, the purchase source or
-  /// an alternative — "what can I get from this shop".
-  final Set<String> suppliers;
+  /// Supplier ids; a spool matches on any assignment, the purchase source or
+  /// an alternative — "what can I get from this shop". Ids, not names: a
+  /// rename reaches the links only with the next reload.
+  final Set<int> suppliers;
   final InventorySort sort;
   final bool descending;
 
@@ -447,7 +448,7 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
-    Set<String>? suppliers,
+    Set<int>? suppliers,
     InventorySort? sort,
     bool? descending,
   }) => InventoryFilters(

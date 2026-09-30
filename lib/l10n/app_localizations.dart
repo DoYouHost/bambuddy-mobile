@@ -12353,7 +12353,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventorySupplierDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'It\'s removed from the list. No spool is assigned to it.'**
+  /// **'It\'s removed from the list of suppliers.'**
   String get inventorySupplierDeleteBody;
 
   /// No description provided for @inventorySupplierInUse.

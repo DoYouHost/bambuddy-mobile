@@ -193,21 +193,55 @@ void main() {
     expect(draft.website, isNull);
   });
 
-  testWidgets('a supplier still on spools is not offered for deletion', (
+  testWidgets('a refusal is worded with the shelf\'s own count', (
     tester,
   ) async {
     final suppliers = FakeSuppliers(
       suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 2)],
+    )..failNextWrite = conflict;
+    await pumpShelf(
+      tester,
+      suppliers,
+      spools: const [
+        Spool(
+          id: 1,
+          material: 'PLA',
+          brand: 'Bambu',
+          suppliers: [
+            SpoolSupplierLink(supplierId: 3, supplierName: 'Extrudr'),
+          ],
+        ),
+      ],
+    );
+    await openSheet(tester);
+
+    await tester.tap(byLogId('suppliers.delete'));
+    await settle(tester);
+    // The server decides — the shelf may be stale.
+    await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
+    await settle(tester);
+
+    expect(find.text(l10n.inventorySupplierInUse(1)), findsOneWidget);
+  });
+
+  testWidgets('a count only the server has still reaches the DELETE', (
+    tester,
+  ) async {
+    // A spool deleted in Spoolman itself leaves a row the server counts and
+    // prunes only while answering the DELETE — refusing here would make the
+    // supplier undeletable.
+    final suppliers = FakeSuppliers(
+      suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 1)],
     );
     await pumpShelf(tester, suppliers);
     await openSheet(tester);
 
     await tester.tap(byLogId('suppliers.delete'));
     await settle(tester);
+    await tester.tap(byLogId('suppliers.delete_confirm.confirm'));
+    await settle(tester);
 
-    expect(find.text(l10n.inventorySupplierInUse(2)), findsOneWidget);
-    expect(byLogId('suppliers.delete_confirm.confirm'), findsNothing);
-    expect(suppliers.deleted, isEmpty);
+    expect(suppliers.deleted, [3]);
   });
 
   testWidgets('an unused supplier is deleted after confirming', (tester) async {
@@ -307,6 +341,49 @@ void main() {
       expect(find.text('Bambu PLA'), findsOneWidget);
       expect(find.text('Bambu PETG'), findsNothing);
       expect(find.text('Bambu ABS'), findsNothing);
+    });
+
+    testWidgets('clears a search that would hide them', (tester) async {
+      await pumpShelf(
+        tester,
+        FakeSuppliers(
+          suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 1)],
+        ),
+        spools: const [
+          Spool(id: 1, material: 'PETG', brand: 'Bambu', suppliers: [extrudr]),
+          Spool(id: 2, material: 'ABS', brand: 'Bambu', suppliers: [other]),
+        ],
+      );
+      await tester.enterText(byLogId('inventory.search'), 'ABS');
+      await settle(tester);
+      expect(find.text('Bambu PETG'), findsNothing);
+
+      await openSheet(tester);
+      await tester.tap(byLogId('suppliers.show_spools'));
+      await settle(tester);
+
+      expect(find.text('Bambu PETG'), findsOneWidget);
+      expect(find.text('ABS'), findsNothing);
+    });
+
+    testWidgets('finds spools whose links still carry an old name', (
+      tester,
+    ) async {
+      // Right after a rename the shelf has not reloaded yet.
+      await pumpShelf(
+        tester,
+        FakeSuppliers(
+          suppliers: const [Supplier(id: 3, name: 'Extrudr DE', spoolCount: 1)],
+        ),
+        spools: const [
+          Spool(id: 1, material: 'PETG', brand: 'Bambu', suppliers: [extrudr]),
+        ],
+      );
+      await openSheet(tester);
+      await tester.tap(byLogId('suppliers.show_spools'));
+      await settle(tester);
+
+      expect(find.text('Bambu PETG'), findsOneWidget);
     });
 
     testWidgets('is plain text when nothing is assigned', (tester) async {

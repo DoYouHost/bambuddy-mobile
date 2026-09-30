@@ -1762,6 +1762,46 @@ void main() {
       );
     });
 
+    test('a spool with no sources is never the donor', () async {
+      final source = NativeInventorySource(dio);
+      final linked = (await source.fetchSpools()).firstWhere(
+        (s) => s.suppliers!.isNotEmpty,
+      );
+      final draft = SpoolDraft(
+        material: linked.material,
+        subtype: linked.subtype,
+        brand: linked.brand,
+        colorName: linked.colorName,
+      );
+      final bare = await source.createSpool(draft);
+      await suppliers.saveSpoolLinks(
+        bare.id,
+        const [],
+        backend: InventoryBackend.native,
+      );
+      final next = await source.createSpool(draft);
+
+      expect(
+        next.suppliers!.map((l) => l.supplierId),
+        linked.suppliers!.map((l) => l.supplierId),
+      );
+      await source.deleteSpool(next.id);
+      await source.deleteSpool(bare.id);
+    });
+
+    test('a rename is trimmed like the create', () async {
+      final created = await suppliers.createSupplier(
+        const SupplierDraft(name: 'Trim test'),
+      );
+      // Raw, because the model's parser trims on its own and would hide it.
+      final res = await dio.patch<Map<String, dynamic>>(
+        '/api/v1/inventory/suppliers/${created.id}',
+        data: const SupplierDraft(name: '  Trim test 2  ').toJson(),
+      );
+      expect(res.data!['name'], 'Trim test 2');
+      await suppliers.deleteSupplier(created.id);
+    });
+
     test('a new spool inherits the sources, not the purchase', () async {
       final source = NativeInventorySource(dio);
       final linked = (await source.fetchSpools()).firstWhere(

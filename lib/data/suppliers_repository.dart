@@ -50,8 +50,12 @@ class SuppliersRepository {
   );
 
   /// A 409 is a name already taken, case-insensitively.
+  ///
+  /// None of the writes settles [capability]: their 403 is a missing
+  /// `inventory:update`, and taking it for "no suppliers here" would hide the
+  /// list, the filter and the statistics from a session that may read them.
   Future<Supplier> createSupplier(SupplierDraft draft) =>
-      capability.watching(() async {
+      capability.watching(observing: const {}, () async {
         final res = await _dio.post<Map<String, dynamic>>(
           Endpoints.inventorySuppliers,
           data: draft.toJson(),
@@ -61,7 +65,7 @@ class SuppliersRepository {
 
   /// A 409 is a rename onto a name already taken; a 404 is the row gone.
   Future<Supplier> updateSupplier(int supplierId, SupplierDraft draft) =>
-      capability.watching(() async {
+      capability.watching(observing: const {}, () async {
         final res = await _dio.patch<Map<String, dynamic>>(
           Endpoints.inventorySupplier(supplierId),
           data: draft.toJson(),
@@ -72,6 +76,7 @@ class SuppliersRepository {
   /// A 409 is a supplier still assigned to a spool: the server refuses rather
   /// than orphan the links.
   Future<void> deleteSupplier(int supplierId) => capability.watching(
+    observing: const {},
     () => _dio.delete<dynamic>(Endpoints.inventorySupplier(supplierId)),
   );
 
@@ -82,6 +87,7 @@ class SuppliersRepository {
     List<SpoolSupplierLink> links, {
     required InventoryBackend backend,
   }) => capability.watching(
+    observing: const {},
     () => _dio.put<dynamic>(
       switch (backend) {
         InventoryBackend.native => Endpoints.inventorySpoolSuppliers(spoolId),

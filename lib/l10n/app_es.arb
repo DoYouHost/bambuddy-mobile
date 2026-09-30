@@ -3908,7 +3908,7 @@
   "inventorySupplierSaved": "Proveedor guardado",
   "inventorySupplierDeleted": "Proveedor eliminado",
   "inventorySupplierDeleteTitle": "¿Eliminar {name}?",
-  "inventorySupplierDeleteBody": "Se quita de la lista. No está asignado a ninguna bobina.",
+  "inventorySupplierDeleteBody": "Se quita de la lista de proveedores.",
   "inventorySupplierInUse": "{count, plural, one{Asignado a 1 bobina: quítalo primero de ella} other{Asignado a {count} bobinas: quítalo primero de ellas}}",
   "inventorySupplierInUseUnknown": "Sigue asignado a una bobina: quítalo primero de ella",
   "inventorySupplierBoughtHere": "Comprada aquí",

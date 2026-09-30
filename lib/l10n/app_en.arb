@@ -4461,7 +4461,7 @@
       }
     }
   },
-  "inventorySupplierDeleteBody": "It's removed from the list. No spool is assigned to it.",
+  "inventorySupplierDeleteBody": "It's removed from the list of suppliers.",
   "inventorySupplierInUse": "{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}",
   "@inventorySupplierInUse": {
     "placeholders": {

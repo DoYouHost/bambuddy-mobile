@@ -55,9 +55,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Supplier assignments as they will be written. Seeded from the spool the
   /// form opened on — they ride on its row, so there is no read to fail.
   ///
-  /// Written only when [_linksDirty]: an untouched new spool sends nothing and
-  /// the server copies the assignments of the newest spool of the same product
-  /// (`services/supplier_links.py`), which an empty list would wipe. A copy is
+  /// Written only when [_linksDirty]: an untouched new spool sends nothing. On
+  /// the built-in inventory the server then copies the assignments of the
+  /// newest spool of the same product (`services/supplier_links.py`), which an
+  /// empty list would wipe; Spoolman mode inherits nothing either way. A copy is
   /// dirty from the start — the form shows the source's suppliers, so they are
   /// what the copy must get, and the server's pick is the newest spool of the
   /// product, not necessarily the one being copied.
@@ -66,9 +67,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
   /// The spool this sheet created, once it has created one.
   ///
-  /// Saving is two writes — the spool, then its per-model presets — and the
-  /// second one failing leaves the sheet open so the picks are not lost. That
-  /// retry must not mint a second spool: from here on the form is editing the
+  /// Saving is up to three writes — the spool, its per-model presets, its
+  /// suppliers — and a later one failing leaves the sheet open so the picks
+  /// are not lost. That retry must not mint a second spool: from here on the form is editing the
   /// one it just made, even though [widget.existing] is still null.
   int? _createdSpoolId;
 
@@ -345,7 +346,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
   /// Whether the supplier section is offered: the server has to have
   /// suppliers, and a bulk "restock" has no spool ids to write them to — the
-  /// server gives every one of those the inherited assignments instead.
+  /// built-in inventory gives each of those the inherited assignments, and
+  /// Spoolman leaves them without any.
   bool _showsSupplierLinks(bool supported) {
     final source = widget.existing ?? widget.copyOf;
     return supported &&

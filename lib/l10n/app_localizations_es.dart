@@ -7419,7 +7419,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inventorySupplierDeleteBody =>
-      'Se quita de la lista. No está asignado a ninguna bobina.';
+      'Se quita de la lista de proveedores.';
 
   @override
   String inventorySupplierInUse(int count) {

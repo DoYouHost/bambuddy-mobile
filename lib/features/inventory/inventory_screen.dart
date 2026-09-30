@@ -163,6 +163,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   bool get _selectionMode => _selected.isNotEmpty;
 
+  /// Held here so the field follows [inventoryQueryProvider] when something
+  /// other than typing clears it — a supplier's spool count does.
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   /// The shelf and the climate readings, which age on their own — the server
   /// polls Home Assistant on its own interval, so whoever asks for the shelf
   /// has to ask for those too.
@@ -190,6 +200,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
+    ref.listen(inventoryQueryProvider, (_, next) {
+      if (_search.text != next) _search.text = next;
+    });
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
@@ -320,6 +333,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   slivers: [
                     DashSliverSearchBar(
                       child: _SearchBar(
+                        controller: _search,
                         filterCount: filters.activeCount,
                         onQuery: (v) =>
                             ref.read(inventoryQueryProvider.notifier).state = v,
@@ -621,7 +635,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         filters.locations.contains(s.storageLocation)))
                   if (filters.suppliers.isEmpty ||
                       (s.suppliers ?? const []).any(
-                        (l) => filters.suppliers.contains(l.supplierName),
+                        (l) => filters.suppliers.contains(l.supplierId),
                       ))
                     if (s.matchesSearch(query)) s,
     ];
@@ -641,11 +655,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),
         locations: _distinct(all.map((s) => s.storageLocation)),
-        suppliers: _distinct([
+        suppliers: {
           for (final s in all)
             for (final link in s.suppliers ?? const <SpoolSupplierLink>[])
-              link.supplierName,
-        ]),
+              link.supplierId: link.supplierName,
+        },
       ),
     );
   }

@@ -7396,7 +7396,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventorySupplierDeleteBody =>
-      'Er wird aus der Liste entfernt. Keiner Spule ist er zugewiesen.';
+      'Er wird aus der Lieferantenliste entfernt.';
 
   @override
   String inventorySupplierInUse(int count) {

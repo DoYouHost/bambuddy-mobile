@@ -7327,7 +7327,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySupplierDeleteBody =>
-      'It\'s removed from the list. No spool is assigned to it.';
+      'It\'s removed from the list of suppliers.';
 
   @override
   String inventorySupplierInUse(int count) {
