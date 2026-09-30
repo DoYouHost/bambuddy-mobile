@@ -742,14 +742,17 @@ class _InfoRow extends StatelessWidget {
                   valueText,
                 ] else
                   Row(
+                    // Both sides loose: each wraps at half the row instead of
+                    // one squeezing the other to nothing at a large text size,
+                    // and spaceBetween keeps the value on the row's right edge
+                    // however short the label is.
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
-                    // Either side wraps at half the row rather than one of
-                    // them squeezing the other to nothing at a large text size.
                     children: [
                       Flexible(child: labelText),
                       const SizedBox(width: DashSpace.md),
-                      Expanded(child: valueText),
+                      Flexible(child: valueText),
                     ],
                   ),
                 if (below != null) ...[

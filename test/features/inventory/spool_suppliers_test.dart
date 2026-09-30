@@ -393,6 +393,31 @@ void main() {
       expect(find.text(l10n.inventoryDetailConsumedSinceReset), findsOneWidget);
     });
 
+    testWidgets('every value ends on the same right edge', (tester) async {
+      usePhoneWindow(tester);
+      await pumpShelf(tester, const [
+        Spool(
+          id: 7,
+          material: 'PLA',
+          brand: 'Bambu',
+          costPerKg: 25.99,
+          weightUsed: 340,
+          storageLocation: 'Dry box',
+          nozzleTempMin: 190,
+          nozzleTempMax: 230,
+        ),
+      ]);
+      await tester.tap(find.text('Bambu PLA'));
+      await settle(tester);
+
+      // Labels of different widths; the values must not follow them.
+      final edges = {
+        for (final value in ['Dry box', '25.99', '190–230 °C'])
+          tester.getTopRight(find.text(value)).dx,
+      };
+      expect(edges, hasLength(1));
+    });
+
     testWidgets('the filter keeps spools that can be bought from a shop', (
       tester,
     ) async {
