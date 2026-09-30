@@ -51,6 +51,10 @@ enum NotifSkip {
   /// The same reading already earned an alert recently. Not a decision about
   /// the condition — it still holds — only about saying so again.
   throttled,
+
+  /// An HMS fault cleared before it had stood long enough to alert — an X2D
+  /// reports its AC board as broken for a few seconds after every power-up.
+  transient,
 }
 
 /// Records what the notification layer decided, and what it decided *not* to do
