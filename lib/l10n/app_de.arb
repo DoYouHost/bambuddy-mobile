@@ -1326,14 +1326,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Seit Zurücksetzen verbraucht: {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryOfTotal": "von {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
@@ -1342,25 +1334,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Geladen in {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "In keinem AMS-Slot geladen",
   "inventoryLocation": "Lagerort",
   "inventoryNozzleTemp": "Düsentemperatur",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Notiz",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Verbrauchsverlauf",
@@ -3948,5 +3923,8 @@
   "statsBySupplier": "Nach Lieferant",
   "statsBySupplierHint": "Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.",
   "statsBySupplierFailed": "Lieferantendaten konnten nicht geladen werden",
-  "statsSupplierDetail": "{spools} · {remaining} auf Lager · Kosten {cost}"
+  "statsSupplierDetail": "{spools} · {remaining} auf Lager · Kosten {cost}",
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Nicht geladen",
+  "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht"
 }

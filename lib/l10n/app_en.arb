@@ -1454,14 +1454,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Consumed since reset: {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -1477,25 +1469,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Loaded in {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Not loaded in any AMS slot",
   "inventoryLocation": "Location",
   "inventoryNozzleTemp": "Nozzle temp",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Usage history",
@@ -4553,5 +4528,11 @@
         "type": "String"
       }
     }
+  },
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Not loaded",
+  "inventoryDetailConsumedSinceReset": "Consumed since reset",
+  "@inventoryDetailNotLoaded": {
+    "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
   }
 }

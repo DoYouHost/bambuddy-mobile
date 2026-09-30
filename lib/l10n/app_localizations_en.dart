@@ -2383,33 +2383,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String inventoryConsumedSinceReset(String weight) {
-    return 'Consumed since reset: $weight';
-  }
-
-  @override
   String inventoryOfTotal(int total) {
     return 'of $total g';
   }
-
-  @override
-  String inventoryLoadedIn(String slot) {
-    return 'Loaded in $slot';
-  }
-
-  @override
-  String get inventoryNotLoaded => 'Not loaded in any AMS slot';
 
   @override
   String get inventoryLocation => 'Location';
 
   @override
   String get inventoryNozzleTemp => 'Nozzle temp';
-
-  @override
-  String inventoryCostPerKg(String cost) {
-    return '$cost/kg';
-  }
 
   @override
   String get inventoryNote => 'Note';
@@ -7409,4 +7391,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String statsSupplierDetail(String spools, String remaining, String cost) {
     return '$spools · $remaining in stock · cost $cost';
   }
+
+  @override
+  String get inventoryDetailSlot => 'Slot';
+
+  @override
+  String get inventoryDetailNotLoaded => 'Not loaded';
+
+  @override
+  String get inventoryDetailConsumedSinceReset => 'Consumed since reset';
 }

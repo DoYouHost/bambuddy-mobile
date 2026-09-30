@@ -945,7 +945,6 @@
   },
   "inventoryRemaining": "zostało {grams} g",
   "inventoryTotalConsumed": "zużyto {weight}",
-  "inventoryConsumedSinceReset": "Zużyte od resetu: {weight}",
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -961,25 +960,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Załadowana w {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Nie załadowana w żadnym slocie AMS",
   "inventoryLocation": "Lokalizacja",
   "inventoryNozzleTemp": "Temp. dyszy",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Notatka",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Historia zużycia",
@@ -3248,5 +3230,8 @@
   "statsBySupplier": "Wg dostawcy",
   "statsBySupplierHint": "Zużycie filamentu ze szpul kupionych u danego dostawcy i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.",
   "statsBySupplierFailed": "Nie udało się wczytać danych dostawców",
-  "statsSupplierDetail": "{spools} · {remaining} na stanie · koszt {cost}"
+  "statsSupplierDetail": "{spools} · {remaining} na stanie · koszt {cost}",
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Nie załadowana",
+  "inventoryDetailConsumedSinceReset": "Zużyte od resetu"
 }

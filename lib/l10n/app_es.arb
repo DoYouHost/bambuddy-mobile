@@ -1326,14 +1326,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Consumido desde el reinicio: {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryOfTotal": "de {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
@@ -1342,25 +1334,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Cargada en {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "No cargada en ninguna ranura del AMS",
   "inventoryLocation": "Ubicación",
   "inventoryNozzleTemp": "Temp. de boquilla",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Nota",
   "inventoryTag": "Etiqueta",
   "inventoryUsageHistory": "Historial de uso",
@@ -3948,5 +3923,8 @@
   "statsBySupplier": "Por proveedor",
   "statsBySupplierHint": "Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.",
   "statsBySupplierFailed": "No se pudieron cargar los datos de proveedores",
-  "statsSupplierDetail": "{spools} · {remaining} en existencias · coste {cost}"
+  "statsSupplierDetail": "{spools} · {remaining} en existencias · coste {cost}",
+  "inventoryDetailSlot": "Ranura",
+  "inventoryDetailNotLoaded": "No cargada",
+  "inventoryDetailConsumedSinceReset": "Consumido desde el reinicio"
 }

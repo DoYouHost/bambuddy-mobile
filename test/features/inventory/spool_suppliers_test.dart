@@ -341,20 +341,56 @@ void main() {
       await settle(tester);
       await scrollDown(tester);
 
-      final lines = tester
-          .widgetList<Text>(find.textContaining('Extrudr'))
-          .followedBy(tester.widgetList<Text>(find.text('Filamentworld')))
-          .map((t) => t.data)
-          .toList();
-      expect(lines, [
-        'Extrudr · ${l10n.inventorySupplierArticleValue('NX2-1')} · '
-            '${l10n.inventorySupplierQuotedPrice('24.50')}',
-        'Filamentworld',
-      ]);
-      final extrudr = tester.getTopLeft(find.textContaining('Extrudr')).dy;
+      // The name is the row's title; what was noted about buying there is
+      // the line under it, and a supplier with nothing noted has no such line.
+      expect(
+        find.text(
+          '${l10n.inventorySupplierArticleValue('NX2-1')} · '
+          '${l10n.inventorySupplierQuotedPrice('24.50')}',
+        ),
+        findsOneWidget,
+      );
+      final extrudr = tester.getTopLeft(find.text('Extrudr')).dy;
       final shop = tester.getTopLeft(find.text('Filamentworld')).dy;
       expect(extrudr, lessThan(shop));
       expect(find.text(l10n.inventorySupplierBoughtHere), findsOneWidget);
+    });
+
+    testWidgets('the card fits a narrow phone at a large text size', (
+      tester,
+    ) async {
+      usePhoneWindow(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpShelf(tester, const [
+        Spool(
+          id: 7,
+          material: 'PLA',
+          brand: 'Bambu',
+          costPerKg: 25.99,
+          weightUsed: 340,
+          storageLocation: 'Shelf A',
+          nozzleTempMin: 190,
+          nozzleTempMax: 230,
+          note: 'Keep it in the dry box after opening, it picks up moisture',
+          suppliers: [
+            SpoolSupplierLink(
+              supplierId: 3,
+              supplierName: 'A supplier with a rather long shop name',
+              articleNumber: 'GFA00-K0-EXTRA-LONG',
+              quotedPricePerKg: 24.99,
+              isPurchaseSource: true,
+            ),
+          ],
+        ),
+      ]);
+      await tester.tap(find.text('Bambu PLA'));
+      await settle(tester);
+      await scrollDown(tester);
+
+      // An overflow is reported as an exception, which fails the test.
+      expect(find.text(l10n.inventorySupplierBoughtHere), findsOneWidget);
+      expect(find.text(l10n.inventoryDetailConsumedSinceReset), findsOneWidget);
     });
 
     testWidgets('the filter keeps spools that can be bought from a shop', (

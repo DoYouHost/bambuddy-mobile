@@ -1326,14 +1326,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Consommé depuis la réinitialisation : {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryOfTotal": "sur {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
@@ -1342,25 +1334,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Chargée dans {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Non chargée dans un emplacement AMS",
   "inventoryLocation": "Emplacement",
   "inventoryNozzleTemp": "Temp. de la buse",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Historique d'utilisation",
@@ -3948,5 +3923,8 @@
   "statsBySupplier": "Par fournisseur",
   "statsBySupplierHint": "Filament consommé sur les bobines achetées chez chaque fournisseur et son coût. Le stock compte les bobines actives et ne dépend pas de la période.",
   "statsBySupplierFailed": "Impossible de charger les chiffres des fournisseurs",
-  "statsSupplierDetail": "{spools} · {remaining} en stock · coût {cost}"
+  "statsSupplierDetail": "{spools} · {remaining} en stock · coût {cost}",
+  "inventoryDetailSlot": "Emplacement",
+  "inventoryDetailNotLoaded": "Non chargée",
+  "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation"
 }

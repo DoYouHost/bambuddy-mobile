@@ -325,7 +325,9 @@ class SpoolSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? t.subCard,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: t.subCardBorder),
+        // Stronger than a card's hairline: a black spool on the dark theme,
+        // or a white one on the light theme, is otherwise just a hole.
+        border: Border.all(color: t.textTertiary.withValues(alpha: 0.4)),
       ),
       child: color == null
           ? Icon(Icons.question_mark, size: size * 0.5, color: t.textTertiary)
@@ -451,157 +453,105 @@ class _SpoolDetailSheet extends ConsumerWidget {
               const SizedBox(height: DashSpace.lg),
             ],
 
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DashSpace.lg,
-                vertical: DashSpace.sm,
-              ),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: t.subCardBorder),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _DetailRow(
-                    icon: Icons.print_outlined,
-                    label: assignment != null
-                        ? l10n.inventoryLoadedIn(
-                            [
-                              if (assignment!.printerName != null)
-                                assignment!.printerName!,
-                              assignmentSlotLabel(l10n, assignment!),
-                            ].join(' · '),
-                          )
-                        : l10n.inventoryNotLoaded,
+            _DetailCard(
+              children: [
+                _InfoRow(
+                  icon: Icons.print_outlined,
+                  label: l10n.inventoryDetailSlot,
+                  value: assignment != null
+                      ? [
+                          if (assignment!.printerName != null)
+                            assignment!.printerName!,
+                          assignmentSlotLabel(l10n, assignment!),
+                        ].join(' · ')
+                      : l10n.inventoryDetailNotLoaded,
+                ),
+                if (spool.storageLocation != null)
+                  _InfoRow(
+                    icon: Icons.place_outlined,
+                    label: l10n.inventoryLocation,
+                    value: spool.storageLocation!,
+                    // What the location's own thermometer or hygrometer
+                    // reads, where one is bound to it — the answer to "is
+                    // this spool sitting somewhere dry", asked at the one
+                    // place the spool and its shelf are both on screen.
+                    below: climate == null
+                        ? null
+                        : _ClimatePills(readings: climate.readings),
                   ),
-                  if (spool.storageLocation != null)
-                    _DetailRow(
-                      icon: Icons.place_outlined,
-                      label:
-                          '${l10n.inventoryLocation}: ${spool.storageLocation}',
-                      // What the location's own thermometer or hygrometer
-                      // reads, where one is bound to it — the answer to "is
-                      // this spool sitting somewhere dry", asked at the one
-                      // place the spool and its shelf are both on screen.
-                      trailing: climate == null
-                          ? null
-                          : _ClimatePills(readings: climate.readings),
-                    ),
-                  // The counter the reset action resets. Without it on screen
-                  // that action had nothing to show for itself: it moves the
-                  // baseline, never the remaining weight above.
-                  if (spool.consumedWeight > 0)
-                    _DetailRow(
-                      icon: Icons.trending_down,
-                      label: l10n.inventoryConsumedSinceReset(
-                        fmtGrams(spool.consumedWeight),
-                      ),
-                    ),
-                  if (spool.costPerKg != null)
-                    _DetailRow(
-                      icon: Icons.payments_outlined,
-                      label: l10n.inventoryCostPerKg(
-                        spool.costPerKg!.toStringAsFixed(2),
-                      ),
-                    ),
-                  if (spool.slicerFilamentName != null ||
-                      spool.slicerFilament != null)
-                    _DetailRow(
-                      icon: Icons.tune,
-                      label:
-                          '${l10n.inventoryFieldSlicerPreset}: '
-                          '${spool.slicerFilamentName ?? spool.slicerFilament}',
-                    ),
-                  if (spool.nozzleTempMin != null ||
-                      spool.nozzleTempMax != null)
-                    _DetailRow(
-                      icon: Icons.thermostat_outlined,
-                      label:
-                          '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
-                    ),
-                  if (spool.tagUid != null)
-                    _DetailRow(
-                      icon: Icons.nfc_outlined,
-                      label: '${l10n.inventoryTag}: ${spool.tagUid}',
-                    ),
-                  if (spool.note != null)
-                    _DetailRow(
-                      icon: Icons.sticky_note_2_outlined,
-                      label: '${l10n.inventoryNote}: ${spool.note}',
-                    ),
-                ],
-              ),
+                // The counter the reset action resets. Without it on screen
+                // that action had nothing to show for itself: it moves the
+                // baseline, never the remaining weight above.
+                if (spool.consumedWeight > 0)
+                  _InfoRow(
+                    icon: Icons.trending_down,
+                    label: l10n.inventoryDetailConsumedSinceReset,
+                    value: fmtGrams(spool.consumedWeight),
+                  ),
+                if (spool.costPerKg != null)
+                  _InfoRow(
+                    icon: Icons.payments_outlined,
+                    label: l10n.inventoryFieldCostPerKg,
+                    value: spool.costPerKg!.toStringAsFixed(2),
+                  ),
+                if (spool.slicerFilamentName ?? spool.slicerFilament
+                    case final preset?)
+                  _InfoRow(
+                    icon: Icons.tune,
+                    label: l10n.inventoryFieldSlicerPreset,
+                    value: preset,
+                  ),
+                if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
+                  _InfoRow(
+                    icon: Icons.thermostat_outlined,
+                    label: l10n.inventoryNozzleTemp,
+                    value:
+                        '${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
+                  ),
+                if (spool.tagUid != null)
+                  _InfoRow(
+                    icon: Icons.nfc_outlined,
+                    label: l10n.inventoryTag,
+                    value: spool.tagUid!,
+                  ),
+                if (spool.note != null)
+                  _InfoRow(
+                    icon: Icons.sticky_note_2_outlined,
+                    label: l10n.inventoryNote,
+                    value: spool.note!,
+                    stacked: true,
+                  ),
+              ],
             ),
 
             if (spool.kProfiles.isNotEmpty) ...[
               const SizedBox(height: DashSpace.lg),
               _SheetSectionTitle(label: l10n.inventoryKProfiles),
-              const SizedBox(height: DashSpace.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DashSpace.lg,
-                  vertical: DashSpace.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: t.subCard,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: t.subCardBorder),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final k in spool.kProfiles)
-                      _DetailRow(
-                        icon: Icons.tune,
-                        label: [
-                          if (k.name != null) k.name!,
-                          l10n.inventoryKProfileLine(
-                            k.nozzleDiameter ?? '?',
-                            k.kValue?.toStringAsFixed(3) ?? '?',
-                          ),
-                        ].join(' · '),
+              const SizedBox(height: DashSpace.sm),
+              _DetailCard(
+                children: [
+                  for (final k in spool.kProfiles)
+                    _InfoRow(
+                      icon: Icons.tune,
+                      label: k.name ?? '—',
+                      value: l10n.inventoryKProfileLine(
+                        k.nozzleDiameter ?? '?',
+                        k.kValue?.toStringAsFixed(3) ?? '?',
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
             ],
 
             if (spool.suppliers case final links? when links.isNotEmpty) ...[
               const SizedBox(height: DashSpace.lg),
               _SheetSectionTitle(label: l10n.inventorySuppliersTitle),
-              const SizedBox(height: DashSpace.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DashSpace.lg,
-                  vertical: DashSpace.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: t.subCard,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: t.subCardBorder),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final link in purchaseSourceFirst(links))
-                      _DetailRow(
-                        icon: link.isPurchaseSource
-                            ? Icons.shopping_bag_outlined
-                            : Icons.storefront_outlined,
-                        label: supplierLinkLine(l10n, link),
-                        trailing: link.isPurchaseSource
-                            ? DashPill(
-                                dense: true,
-                                label: l10n.inventorySupplierBoughtHere,
-                                accent: t.accentGreen,
-                                accentInk: t.accentGreenInk,
-                              )
-                            : null,
-                      ),
-                  ],
-                ),
+              const SizedBox(height: DashSpace.sm),
+              _DetailCard(
+                children: [
+                  for (final link in purchaseSourceFirst(links))
+                    _SupplierLinkRow(link: link),
+                ],
               ),
             ],
 
@@ -697,7 +647,12 @@ class _UsageRow extends StatelessWidget {
               ),
               Text(
                 l10n.inventoryUsageWeight(entry.weightUsed.toStringAsFixed(0)),
-                style: t.monoValue.copyWith(color: t.textSecondary),
+                // Not the mono face: its space is as wide as a digit, which
+                // read as "96  g".
+                style: t.body.copyWith(
+                  color: t.textSecondary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
@@ -711,35 +666,95 @@ class _UsageRow extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, this.trailing});
+/// The sub-card the detail sheet's rows sit on.
+class _DetailCard extends StatelessWidget {
+  const _DetailCard({required this.children});
 
-  final IconData icon;
-  final String label;
-
-  /// Sits under the label rather than beside it: the rows are a narrow column
-  /// inside a sheet, and a couple of pills next to a wrapping sentence leaves
-  /// neither enough room.
-  final Widget? trailing;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DashSpace.lg,
+        vertical: DashSpace.xs,
+      ),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.subCardBorder),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+  }
+}
+
+/// One fact about the spool: what it is on the left, its value on the right,
+/// read first. [stacked] puts the value under the label instead, for free text
+/// that would otherwise wrap into a narrow right-aligned column.
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.below,
+    this.stacked = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  /// Under the whole row, lined up with the label.
+  final Widget? below;
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final labelText = Text(
+      label,
+      style: t.label.copyWith(color: t.textSecondary),
+    );
+    final valueText = Text(
+      value,
+      textAlign: stacked ? TextAlign.start : TextAlign.end,
+      style: t.body.copyWith(color: t.textPrimary),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: t.textSecondary),
+          Padding(
+            padding: const EdgeInsets.only(top: _detailIconNudge),
+            child: Icon(icon, size: 16, color: t.textSecondary),
+          ),
           const SizedBox(width: DashSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: t.label.copyWith(color: t.textSecondary)),
-                if (trailing != null) ...[
+                if (stacked) ...[
+                  labelText,
+                  const SizedBox(height: DashSpace.xs),
+                  valueText,
+                ] else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    // Either side wraps at half the row rather than one of
+                    // them squeezing the other to nothing at a large text size.
+                    children: [
+                      Flexible(child: labelText),
+                      const SizedBox(width: DashSpace.md),
+                      Expanded(child: valueText),
+                    ],
+                  ),
+                if (below != null) ...[
                   const SizedBox(height: DashSpace.sm),
-                  trailing!,
+                  below!,
                 ],
               ],
             ),
@@ -750,10 +765,82 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// One assignment as a line of text: the supplier, then what the user wrote
-/// down about buying there.
-String supplierLinkLine(AppLocalizations l10n, SpoolSupplierLink link) => [
-  link.supplierName,
+/// Puts a 16 dp icon on the first line of body text next to it.
+const _detailIconNudge = 2.0;
+
+/// A supplier the spool can be bought from: the name reads as the row's title,
+/// with the purchase source marked beside it, and what the user noted about
+/// buying there underneath.
+class _SupplierLinkRow extends StatelessWidget {
+  const _SupplierLinkRow({required this.link});
+
+  final SpoolSupplierLink link;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final details = supplierLinkDetails(l10n, link);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: _detailIconNudge),
+            child: Icon(
+              link.isPurchaseSource
+                  ? Icons.shopping_bag_outlined
+                  : Icons.storefront_outlined,
+              size: 16,
+              color: link.isPurchaseSource ? t.accentGreenInk : t.textSecondary,
+            ),
+          ),
+          const SizedBox(width: DashSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        link.supplierName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.bodyBold.copyWith(color: t.textPrimary),
+                      ),
+                    ),
+                    if (link.isPurchaseSource) ...[
+                      const SizedBox(width: DashSpace.sm),
+                      DashPill(
+                        dense: true,
+                        label: l10n.inventorySupplierBoughtHere,
+                        accent: t.accentGreen,
+                        accentInk: t.accentGreenInk,
+                      ),
+                    ],
+                  ],
+                ),
+                if (details.isNotEmpty) ...[
+                  const SizedBox(height: DashSpace.xs),
+                  Text(
+                    details,
+                    style: t.label.copyWith(color: t.textSecondary),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the user noted about buying at a supplier — its article number and
+/// the price quoted there — or an empty string when nothing was.
+String supplierLinkDetails(AppLocalizations l10n, SpoolSupplierLink link) => [
   if (link.articleNumber case final number?)
     l10n.inventorySupplierArticleValue(number),
   if (link.quotedPricePerKg case final price?)

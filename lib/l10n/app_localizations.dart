@@ -4118,29 +4118,11 @@ abstract class AppLocalizations {
   /// **'{weight} consumed'**
   String inventoryTotalConsumed(String weight);
 
-  /// No description provided for @inventoryConsumedSinceReset.
-  ///
-  /// In en, this message translates to:
-  /// **'Consumed since reset: {weight}'**
-  String inventoryConsumedSinceReset(String weight);
-
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
   /// **'of {total} g'**
   String inventoryOfTotal(int total);
-
-  /// No description provided for @inventoryLoadedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Loaded in {slot}'**
-  String inventoryLoadedIn(String slot);
-
-  /// No description provided for @inventoryNotLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Not loaded in any AMS slot'**
-  String get inventoryNotLoaded;
 
   /// No description provided for @inventoryLocation.
   ///
@@ -4153,12 +4135,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nozzle temp'**
   String get inventoryNozzleTemp;
-
-  /// No description provided for @inventoryCostPerKg.
-  ///
-  /// In en, this message translates to:
-  /// **'{cost}/kg'**
-  String inventoryCostPerKg(String cost);
 
   /// No description provided for @inventoryNote.
   ///
@@ -12469,6 +12445,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{spools} · {remaining} in stock · cost {cost}'**
   String statsSupplierDetail(String spools, String remaining, String cost);
+
+  /// No description provided for @inventoryDetailSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get inventoryDetailSlot;
+
+  /// Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get inventoryDetailNotLoaded;
+
+  /// No description provided for @inventoryDetailConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset'**
+  String get inventoryDetailConsumedSinceReset;
 }
 
 class _AppLocalizationsDelegate
