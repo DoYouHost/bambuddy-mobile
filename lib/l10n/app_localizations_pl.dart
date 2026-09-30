@@ -7517,4 +7517,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryDetailConsumedSinceReset => 'Zużyte od resetu';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    return '$count w archiwum';
+  }
 }

@@ -12463,6 +12463,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consumed since reset'**
   String get inventoryDetailConsumedSinceReset;
+
+  /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} archived'**
+  String inventorySupplierArchivedCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -95,7 +95,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text(l10n.inventorySpoolCount(2)), findsOneWidget);
+    // Nothing on the loaded shelf carries it, whatever the server counted.
+    expect(find.text(l10n.inventorySpoolCount(0)), findsOneWidget);
   });
 
   testWidgets('a new supplier is sent trimmed, blanks as null', (tester) async {
@@ -275,13 +276,14 @@ void main() {
       expect(find.text('Bambu ABS'), findsNothing);
     });
 
-    testWidgets('goes to the archive when that is where they all are', (
+    testWidgets('counts active and archived apart, each opening its own', (
       tester,
     ) async {
       await pumpShelf(
         tester,
+        // The server's count includes the archived spool: 2, not 1.
         FakeSuppliers(
-          suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 1)],
+          suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 2)],
         ),
         spools: const [
           Spool(
@@ -291,16 +293,20 @@ void main() {
             archivedAt: '2026-09-01T00:00:00Z',
             suppliers: [extrudr],
           ),
-          Spool(id: 2, material: 'PETG', brand: 'Bambu', suppliers: [other]),
+          Spool(id: 2, material: 'PETG', brand: 'Bambu', suppliers: [extrudr]),
+          Spool(id: 3, material: 'ABS', brand: 'Bambu', suppliers: [other]),
         ],
       );
       await openSheet(tester);
+      expect(find.text(l10n.inventorySpoolCount(1)), findsOneWidget);
+      expect(find.text(l10n.inventorySupplierArchivedCount(1)), findsOneWidget);
 
-      await tester.tap(byLogId('suppliers.show_spools'));
+      await tester.tap(byLogId('suppliers.show_archived_spools'));
       await settle(tester);
 
       expect(find.text('Bambu PLA'), findsOneWidget);
       expect(find.text('Bambu PETG'), findsNothing);
+      expect(find.text('Bambu ABS'), findsNothing);
     });
 
     testWidgets('is plain text when nothing is assigned', (tester) async {

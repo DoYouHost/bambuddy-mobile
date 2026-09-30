@@ -4534,5 +4534,14 @@
   "inventoryDetailConsumedSinceReset": "Consumed since reset",
   "@inventoryDetailNotLoaded": {
     "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
+  },
+  "inventorySupplierArchivedCount": "{count} archived",
+  "@inventorySupplierArchivedCount": {
+    "description": "Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

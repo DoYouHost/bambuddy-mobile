@@ -3926,5 +3926,6 @@
   "statsSupplierDetail": "{spools} · {remaining} en existencias · coste {cost}",
   "inventoryDetailSlot": "Ranura",
   "inventoryDetailNotLoaded": "No cargada",
-  "inventoryDetailConsumedSinceReset": "Consumido desde el reinicio"
+  "inventoryDetailConsumedSinceReset": "Consumido desde el reinicio",
+  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivada} other{{count} archivadas}}"
 }

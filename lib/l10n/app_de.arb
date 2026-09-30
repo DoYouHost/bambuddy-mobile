@@ -3926,5 +3926,6 @@
   "statsSupplierDetail": "{spools} · {remaining} auf Lager · Kosten {cost}",
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nicht geladen",
-  "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht"
+  "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht",
+  "inventorySupplierArchivedCount": "{count} archiviert"
 }

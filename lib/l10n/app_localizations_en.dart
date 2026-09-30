@@ -7400,4 +7400,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryDetailConsumedSinceReset => 'Consumed since reset';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    return '$count archived';
+  }
 }

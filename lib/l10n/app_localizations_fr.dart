@@ -7565,4 +7565,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get inventoryDetailConsumedSinceReset =>
       'Consommé depuis la réinitialisation';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count archivées',
+      one: '$count archivée',
+    );
+    return '$_temp0';
+  }
 }

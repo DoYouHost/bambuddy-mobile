@@ -3233,5 +3233,6 @@
   "statsSupplierDetail": "{spools} · {remaining} na stanie · koszt {cost}",
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nie załadowana",
-  "inventoryDetailConsumedSinceReset": "Zużyte od resetu"
+  "inventoryDetailConsumedSinceReset": "Zużyte od resetu",
+  "inventorySupplierArchivedCount": "{count} w archiwum"
 }

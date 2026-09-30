@@ -3926,5 +3926,6 @@
   "statsSupplierDetail": "{spools} · {remaining} en stock · coût {cost}",
   "inventoryDetailSlot": "Emplacement",
   "inventoryDetailNotLoaded": "Non chargée",
-  "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation"
+  "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation",
+  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}"
 }

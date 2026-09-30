@@ -103,6 +103,21 @@ class _SupplierRow extends ConsumerWidget {
       if (supplier.customerNumber case final number?)
         l10n.inventorySupplierCustomerNumberValue(number),
     ];
+    // Counted from the loaded shelf rather than taken from `spool_count`: the
+    // server's number includes archived spools (and Spoolman rows in native
+    // mode), so "3 spools" opened onto a list of 2. Each count here is exactly
+    // what its link shows.
+    final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final here = [
+      for (final s in spools)
+        if (_suppliedBy(s)) s,
+    ];
+    final active = here.where((s) => !s.isArchived).length;
+    final archived = here.length - active;
+    final linkStyle = TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+    );
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(20),
       side: BorderSide(color: t.subCardBorder),
@@ -115,55 +130,76 @@ class _SupplierRow extends ConsumerWidget {
         child: ListTile(
           shape: shape,
           title: Text(supplier.name, style: t.titleSm),
-          subtitle: details.isEmpty
-              ? null
-              : Text(
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (details.isNotEmpty)
+                Text(
                   details.join(' · '),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: t.label.copyWith(color: t.textSecondary),
                 ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (supplier.spoolCount > 0)
-                TextButton(
-                  onPressed: () => _showSpools(context, ref),
-                  child: Text(l10n.inventorySpoolCount(supplier.spoolCount)),
-                ).tagged('suppliers.show_spools')
-              else
-                Text(
-                  l10n.inventorySpoolCount(0),
-                  style: t.label.copyWith(color: t.textSecondary),
-                ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                tooltip: l10n.inventoryDelete,
-                onPressed: () => _delete(context, ref),
-              ).tagged('suppliers.delete'),
+              Wrap(
+                spacing: DashSpace.lg,
+                runSpacing: DashSpace.xs,
+                children: [
+                  if (active > 0)
+                    TextButton(
+                      style: linkStyle,
+                      onPressed: () =>
+                          _showSpools(context, ref, archived: false),
+                      child: Text(l10n.inventorySpoolCount(active)),
+                    ).tagged('suppliers.show_spools'),
+                  if (archived > 0)
+                    TextButton(
+                      style: linkStyle,
+                      onPressed: () =>
+                          _showSpools(context, ref, archived: true),
+                      child: Text(
+                        l10n.inventorySupplierArchivedCount(archived),
+                      ),
+                    ).tagged('suppliers.show_archived_spools'),
+                  if (here.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: DashSpace.xs),
+                      child: Text(
+                        l10n.inventorySpoolCount(0),
+                        style: t.label.copyWith(color: t.textSecondary),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: l10n.inventoryDelete,
+            onPressed: () => _delete(context, ref),
+          ).tagged('suppliers.delete'),
           onTap: () => _openSupplierForm(context, existing: supplier),
         ).tagged('suppliers.edit'),
       ),
     );
   }
 
-  /// Shows the Filaments list narrowed to this supplier — any assignment, the
-  /// purchase source or an alternative, which is what the count counts.
-  ///
-  /// The other filters are cleared so none of the counted spools hides behind
-  /// one, and the archive is shown when that is the only place they are.
-  void _showSpools(BuildContext context, WidgetRef ref) {
-    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
-    bool here(Spool s) =>
-        (s.suppliers ?? const []).any((l) => l.supplierId == supplier.id);
-    final onlyArchived =
-        spools.any(here) && !spools.any((s) => here(s) && !s.isArchived);
+  /// Any assignment counts, the purchase source or an alternative — the same
+  /// rule as the supplier filter the links open.
+  bool _suppliedBy(Spool spool) =>
+      (spool.suppliers ?? const []).any((l) => l.supplierId == supplier.id);
+
+  /// Shows the Filaments list narrowed to this supplier, on the active shelf
+  /// or in the archive. The other filters are cleared so none of the counted
+  /// spools hides behind one.
+  void _showSpools(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool archived,
+  }) {
     final filters = ref.read(inventoryFiltersProvider.notifier);
     filters.state = filters.state.cleared().copyWith(
       suppliers: {supplier.name},
-      showArchived: onlyArchived,
+      showArchived: archived,
     );
     Navigator.of(context).pop();
   }
