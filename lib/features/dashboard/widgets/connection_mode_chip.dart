@@ -35,9 +35,15 @@ class ConnectionModeChip extends ConsumerWidget {
       // padding left the label less height than its line, so it was drawn from
       // the top and hung below the middle. The caller centres the chip.
       child: Container(
+        // No `alignment`: an Align under the toolbar's finite height takes all
+        // 56 dp. The Row centres the content in the minimum height instead.
         constraints: const BoxConstraints(minHeight: _chipHeight),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: DashSpace.md),
+        // The vertical inset only shows once a large text size outgrows the
+        // minimum height; it keeps the label off the border then.
+        padding: const EdgeInsets.symmetric(
+          horizontal: DashSpace.md,
+          vertical: DashSpace.xs,
+        ),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(20),

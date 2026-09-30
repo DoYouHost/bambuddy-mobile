@@ -235,8 +235,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
-        // A retry after the presets failed: the spool exists, so this is the
-        // PATCH the edit path would send, not another create.
+        // A retry after a follow-up write failed: the spool exists, so this is
+        // the PATCH the edit path would send, not another create.
         await notifier.updateSpool(id, draft);
         spoolId = id;
         message = l10n.inventorySpoolCreated;
@@ -297,9 +297,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// One of the writes that follow the spool's own, and whether the form may
   /// close.
   ///
-  /// A write is only sent once its section was touched (presets also need to
-  /// have been read): each route replaces a whole list, so a blind write is a
-  /// delete. A failure leaves the sheet open with the picks still in it — the
+  /// The caller sends a write only once its section was touched (presets also
+  /// need to have been read): each route replaces a whole list, so a blind
+  /// write is a delete. A failure leaves the sheet open with the picks still in it — the
   /// spool itself is already saved, and the retry costs one PATCH of a spool
   /// that now exists either way (see [_createdSpoolId]). An unexpected error
   /// goes on to [_save]'s own handler unless [unexpected] words it here.

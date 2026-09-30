@@ -72,6 +72,8 @@ void main() {
       );
       final label = tester.getRect(find.byType(Text));
       expect(label.center.dy, closeTo(pill.center.dy, 0.5));
+      // A pill of its own height, not a bar the toolbar's full height.
+      expect(pill.height, closeTo(32, 0.5));
       // A squeezed label keeps a centred box but draws its line from the top,
       // past the box's bottom — so the box has to be as tall as the line.
       final paragraph = tester.renderObject<RenderParagraph>(
