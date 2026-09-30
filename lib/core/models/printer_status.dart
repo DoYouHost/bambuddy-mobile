@@ -1310,10 +1310,11 @@ class HmsError {
 }
 
 /// HMS code arrives as string (`"0x20070"`, `"0500_0100"`) or number — convert
-/// to string for dedup in sets.
+/// to string for dedup in sets. A number becomes `0x…`: [HmsError] reads a bare
+/// digit string as hex, so `65546` spelled in decimal would read as 0x65546.
 String? _toCodeStringOrNull(dynamic value) => switch (value) {
   String s when s.trim().isNotEmpty => s.trim(),
-  num n => n.toString(),
+  num n when n >= 0 && n == n.truncate() => '0x${n.toInt().toRadixString(16)}',
   _ => null,
 };
 

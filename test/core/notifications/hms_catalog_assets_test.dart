@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import '../../hms_samples.dart';
 
 /// The bundled catalog against real server payloads: whether a code can be
 /// named is decided by an asset, so a stubbed resolver proves nothing about
@@ -357,6 +361,127 @@ void main() {
       expect(blank.description, isNull);
       expect(en.describe(blank), isNull);
       expect(hmsIsDisplayable(blank, description: en.describe(blank)), isFalse);
+    });
+  });
+
+  group('the asset files', () {
+    // bambuddy checks its own catalogue file the same way
+    // (test_hms_errors.py::TestCatalogFile): a malformed key does not fail a
+    // lookup, it just never matches, and the fault goes unnamed in silence.
+    Map<String, String> read(String lang) => {
+      for (final e
+          in (jsonDecode(
+                    File(
+                      'assets/hms/print_errors_$lang.json',
+                    ).readAsStringSync(),
+                  )
+                  as Map<String, dynamic>)
+              .entries)
+        e.key: e.value as String,
+    };
+
+    final en = read('en');
+    final pl = read('pl');
+
+    test('keys are uppercase hex, 8 for print_error or 16 for hms[]', () {
+      final key = RegExp(r'^([0-9A-F]{8}|[0-9A-F]{16})$');
+      for (final table in [en, pl]) {
+        expect(table.keys.where((k) => !key.hasMatch(k)), isEmpty);
+      }
+    });
+
+    test('both languages name the same codes', () {
+      expect(pl.keys.toSet(), en.keys.toSet());
+    });
+
+    test('no entry is blank, padded or cut short', () {
+      for (final table in [en, pl]) {
+        for (final MapEntry(:key, :value) in table.entries) {
+          expect(value.trim(), isNotEmpty, reason: key);
+          expect(value, value.trim(), reason: key);
+          // bambuddy's own copy is truncated at 200 characters; ours is taken
+          // from Bambu's full strings instead (tool/fetch_print_error_catalog.py).
+          expect(value, isNot(endsWith('...')), reason: key);
+        }
+      }
+    });
+
+    test('every print_error key carries a level', () {
+      // An error below 0x4000 is a status value the server drops at parse
+      // time; one whose first digit is not 4, 8 or C has no level to alert on.
+      for (final code in en.keys.where((k) => k.length == 8)) {
+        final digit = int.parse(code.substring(4, 5), radix: 16);
+        expect([0x4, 0x8, 0xC], contains(digit), reason: code);
+      }
+    });
+
+    test('the one hms[] entry is the one bambuddy adds by hand', () {
+      expect(en.keys.where((k) => k.length == 16), ['0500050000010007']);
+    });
+  });
+
+  group('real faults, as bambuddy tests them', () {
+    for (final sample in hmsSamples) {
+      test('$sample parses to its level and its key', () {
+        final e = sample.fault;
+        expect(e.level, sample.level);
+        expect(e.fullCode, sample.fullCode);
+        expect(e.isHmsChannel, sample.fullCode.length == 16);
+        if (e.isHmsChannel) expect(e.ecode, sample.fullCode);
+        expect(e.description, sample.description);
+      });
+    }
+
+    test('the level travels in code, whatever severity says', () {
+      // A server before #2728 sent the part byte in severity. Every sample
+      // must read the same with that byte in its place.
+      for (final sample in hmsSamples.where((s) => s.fullCode.length == 16)) {
+        final attr = sample.json['attr']! as int;
+        final old = HmsError.fromJson({
+          ...sample.json,
+          'severity': (attr >> 8) & 0xFF,
+        });
+        expect(old.level, sample.level, reason: '$sample');
+      }
+    });
+
+    test('a server sending code as a number reads the same', () {
+      for (final sample in hmsSamples) {
+        final hex = sample.json['code']! as String;
+        final numeric = HmsError.fromJson({
+          ...sample.json,
+          'code': int.parse(hex.substring(2), radix: 16),
+        });
+        expect(numeric.level, sample.level, reason: '$sample');
+        expect(numeric.ecode, sample.fault.ecode, reason: '$sample');
+      }
+    });
+
+    test('two faults on one part keep two keys (bambuddy #1840)', () {
+      final first = HmsSample.hms('H2C', 0x05000600, 0x00020005, alerts: false);
+      final second = HmsSample.hms(
+        'H2C',
+        0x05000600,
+        0x00020006,
+        alerts: false,
+      );
+      expect(first.fault.attr, second.fault.attr);
+      expect(first.fault.ecode, isNot(second.fault.ecode));
+      // Without full_code, attr and code together still tell them apart.
+      final bare = [
+        for (final s in [first, second])
+          HmsError.fromJson({...s.json, 'full_code': ''}).ecode,
+      ];
+      expect(bare.toSet(), hasLength(2));
+    });
+
+    test('an hms[] code never borrows a print_error sentence', () {
+      // The X2D pair collapses to 0300_000A, a key the print_error table could
+      // one day hold; the lookup must not take that road (#2728).
+      for (final sample in [hmsX2dChamberHeater, hmsX2dHeatbed]) {
+        final e = HmsError.fromJson({...sample.json, 'description': null});
+        expect(en.describe(e), isNull, reason: '$sample');
+      }
     });
   });
 

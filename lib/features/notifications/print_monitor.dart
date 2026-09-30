@@ -56,6 +56,15 @@ const int _maxAlertActions = 3;
 /// bambuddy's `_HMS_CLEAR_GRACE_SECONDS = 30`.
 const Duration _hmsClearGrace = Duration(seconds: 30);
 
+/// How long an HMS fault has to stand before it alerts, counted over the time
+/// the printer actually carries it. Our own rule, not bambuddy's — the server
+/// notifies on first sight. An X2D switched on at the plug reports its AC board
+/// as broken for about five seconds while that board powers up (bug report
+/// #46), and that must not wake anyone. A gap shorter than [_hmsClearGrace]
+/// pauses the count instead of restarting it, so a fault that keeps flickering
+/// through a print still adds up to an alert.
+const Duration _hmsHold = Duration(seconds: 15);
+
 /// Short HMS codes (`MMMM_EEEE`) the firmware echoes during normal user-cancel
 /// sequences — not faults. bambuddy drops these so they don't surface as alerts
 /// or "X problem" badges. Kept here as a safety net (older servers / the
@@ -153,6 +162,11 @@ class _PrinterMemo {
   /// answers again — held here only so the deferral is recorded once instead of
   /// on every frame of the outage. Cleared the moment it is back.
   final Set<String> hmsDeferredOffline = {};
+
+  /// Faults seen, passed every filter, and now standing out [_hmsHold]. Also in
+  /// [hmsLastSeen], which is what keeps a second frame from starting a second
+  /// hold; a hold that ends without an alert takes the code out of both.
+  final Map<String, _Hold> hmsHeld = {};
   final Set<int> lowFilamentTrays = {};
   final Set<int> humidUnits = {};
 
@@ -181,6 +195,42 @@ class _PrinterMemo {
     milestonesSent.clear();
     awaitingBedCool = false;
     previousJob = null;
+  }
+
+  void dispose() {
+    offline.dispose();
+    for (final hold in hmsHeld.values) {
+      hold.pause();
+    }
+    hmsHeld.clear();
+  }
+}
+
+/// The time an HMS fault still has to stand, and the timer counting it down
+/// while the printer carries the fault.
+class _Hold {
+  _Hold(this.fault) : remaining = _hmsHold;
+
+  /// The latest copy of the fault, for the job id and actions its buttons send.
+  HmsError fault;
+  Duration remaining;
+  Timer? _timer;
+  DateTime? _since;
+
+  bool get running => _timer != null;
+
+  void run(TimerFactory timer, void Function() onDone) {
+    _since = clock.now();
+    _timer = timer(remaining, onDone);
+  }
+
+  /// Stops the count and keeps what is left of it.
+  void pause() {
+    final since = _since;
+    if (since != null) remaining -= clock.now().difference(since);
+    _timer?.cancel();
+    _timer = null;
+    _since = null;
   }
 }
 
@@ -256,6 +306,10 @@ class PrintMonitor {
   final String? Function(HmsError)? _hmsDescribe;
 
   final Map<int, _PrinterMemo> _memo = {};
+
+  /// The frames the last [update] brought: a held fault is judged against the
+  /// printer as it is when the hold runs out, not as it was when it started.
+  Map<int, PrinterStatus> _latest = const {};
   _OngoingKey? _lastOngoing;
 
   /// When the last frame arrived, so a gap in the feed itself can be told from
@@ -301,6 +355,7 @@ class PrintMonitor {
 
   /// Called on each status map change (from `printerStatusesProvider`).
   void update(Map<int, PrinterStatus> statuses) {
+    _latest = Map.of(statuses);
     _carryHmsMemoryOverFeedGap();
     for (final entry in statuses.entries) {
       // First frame of each printer is only primed, no alerts from it —
@@ -318,7 +373,7 @@ class PrintMonitor {
     // Printers gone from map — drop their timers and state.
     final gone = _memo.keys.where((id) => !statuses.containsKey(id)).toList();
     for (final id in gone) {
-      _memo.remove(id)?.offline.dispose();
+      _memo.remove(id)?.dispose();
     }
 
     _updateOngoing(statuses);
@@ -342,13 +397,13 @@ class PrintMonitor {
     }
   }
 
-  /// Cancels all pending per-printer offline-grace timers. Call when this
-  /// monitor is being torn down (e.g. `onDestroy` of the background isolate) —
-  /// without it, a timer scheduled just before teardown could still fire and
-  /// touch a notification service that's no longer valid.
+  /// Cancels all pending per-printer timers (offline grace, HMS holds). Call
+  /// when this monitor is being torn down (e.g. `onDestroy` of the background
+  /// isolate) — without it, a timer scheduled just before teardown could still
+  /// fire and touch a notification service that's no longer valid.
   void dispose() {
     for (final memo in _memo.values) {
-      memo.offline.dispose();
+      memo.dispose();
     }
   }
 
@@ -713,9 +768,12 @@ class PrintMonitor {
     // evidence that anything cleared, so the whole memory holds still for the
     // outage rather than ageing out against a clock nothing is answering.
     if (online) {
-      memo.hmsLastSeen.removeWhere(
-        (_, seen) => now.difference(seen) >= _hmsClearGrace,
-      );
+      _pauseAbsentHolds(memo, errors);
+      memo.hmsLastSeen.removeWhere((key, seen) {
+        if (now.difference(seen) < _hmsClearGrace) return false;
+        _dropHold(id, memo, key);
+        return true;
+      });
       memo.hmsDeferredOffline.clear();
     }
 
@@ -739,6 +797,11 @@ class PrintMonitor {
         continue;
       }
       memo.hmsLastSeen[key] = now;
+      final hold = memo.hmsHeld[key];
+      if (hold != null) {
+        hold.fault = e;
+        if (!hold.running && online) _runHold(id, memo, key);
+      }
       // Only ever the first sighting of a code gets this far, so each of the
       // records below is one per code per clear-grace window, not one per frame.
       // A record for the already-known case is deliberately absent: the WebSocket
@@ -756,8 +819,57 @@ class PrintMonitor {
         );
         continue;
       }
-      _alertError(id, status, e);
+      memo.hmsHeld[key] = _Hold(e);
+      _runHold(id, memo, key);
     }
+  }
+
+  /// Counts down what is left of a fault's hold. It alerts only if the
+  /// printer still carries the fault, online, when the count reaches zero.
+  void _runHold(int id, _PrinterMemo memo, String key) {
+    final hold = memo.hmsHeld[key]!;
+    hold.run(_timer, () {
+      memo.hmsHeld.remove(key);
+      final status = _latest[id];
+      if (status == null || status.connected == false) {
+        // Never announced, so it is not latched either — the same deferral a
+        // fault first seen while offline gets. It holds again from the frame
+        // that brings the printer back with it.
+        memo.hmsLastSeen.remove(key);
+        NotifProbe.suppressed(
+          NotifSkip.offline,
+          printerId: id,
+          event: NotifEvent.printerError,
+          fields: {'code': key},
+        );
+        return;
+      }
+      _alertError(id, status, hold.fault);
+    });
+  }
+
+  /// Pauses the hold of every fault an online frame no longer carries. It
+  /// resumes when the fault is back, and ends only once the fault has stayed
+  /// away for [_hmsClearGrace] ([_dropHold]).
+  void _pauseAbsentHolds(_PrinterMemo memo, List<HmsError> errors) {
+    if (memo.hmsHeld.isEmpty) return;
+    final present = errors.map(_hmsKey).toSet();
+    for (final MapEntry(:key, value: hold) in memo.hmsHeld.entries) {
+      if (hold.running && !present.contains(key)) hold.pause();
+    }
+  }
+
+  /// Ends a hold whose fault cleared for good before it had stood long enough.
+  void _dropHold(int id, _PrinterMemo memo, String key) {
+    final hold = memo.hmsHeld.remove(key);
+    if (hold == null) return;
+    hold.pause();
+    NotifProbe.suppressed(
+      NotifSkip.transient,
+      printerId: id,
+      event: NotifEvent.printerError,
+      fields: {'code': key},
+    );
   }
 
   /// Why this HMS code produces no alert, or null when it produces one.

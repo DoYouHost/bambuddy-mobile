@@ -5,6 +5,7 @@ import 'package:app_diagnostics/app_diagnostics.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/notifications/server_tag.dart';
@@ -15,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
+import '../../hms_samples.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 
 /// The instant every case here runs on: the ETAs in the assertions are spelled
@@ -58,6 +60,37 @@ PrinterStatus _status({
 /// tests.
 AmsTray _tray({int id = 0, int? remain, String type = 'PLA'}) =>
     AmsTray(id: id, remain: remain, trayType: type, trayColor: 'FFFFFFFF');
+
+/// The hold an HMS fault stands out before it alerts — the user's figure,
+/// pinned here so a change to it is a change to a test as well.
+const _hmsHold = Duration(seconds: 15);
+
+/// Every timer the monitor starts, run by hand.
+class _Timers {
+  final List<FakeTimer> started = [];
+
+  Timer call(Duration d, void Function() cb) {
+    final t = FakeTimer(d, cb);
+    started.add(t);
+    return t;
+  }
+
+  /// The timers still running: the HMS holds, and the offline grace
+  /// (`OfflineDebounce`) of a disconnect the printer has not answered yet. A
+  /// resumed hold runs for what is left of it, so the duration cannot tell the
+  /// two apart; the cases here keep an offline grace out of the count they
+  /// assert on.
+  Iterable<FakeTimer> get holds => started.where((t) => t.isActive);
+
+  /// Lets every running timer run out — a held fault stands out its hold.
+  void elapseHolds() {
+    final due = holds.toList();
+    started.removeWhere(due.contains);
+    for (final t in due) {
+      t.fire();
+    }
+  }
+}
 
 /// Every event on — for testing individual detections.
 const _allOn = NotificationPrefs(
@@ -1005,17 +1038,20 @@ void main() {
     'again',
     (time) {
       final fake = RecordingNotifications();
-      final m = monitorAll(fake, hmsDescribe: describeAll);
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
       const err = HmsError(code: 'A', severity: 2);
       m.update({1: _status(state: 'RUNNING')}); // priming — no faults
       m.update({
         1: _status(state: 'RUNNING', hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), hasLength(1));
       fake.alerts.clear();
       m.update({
         1: _status(state: 'RUNNING', hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), isEmpty); // the same code
       // A short gap (< grace) and back → still the same fault, no second alert.
       m.update({1: _status(state: 'RUNNING', hms: const [])});
@@ -1023,6 +1059,7 @@ void main() {
       m.update({
         1: _status(state: 'RUNNING', hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), isEmpty);
       // A longer absence (> grace) → the code is forgotten, a new occurrence alerts.
       // Frames keep arriving throughout — silence across the whole feed is a
@@ -1034,20 +1071,842 @@ void main() {
       m.update({
         1: _status(state: 'RUNNING', hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), hasLength(1));
     },
   );
 
+  testAt('HMS fault: alerts once it has stood for 15 s, not before', (_) {
+    final fake = RecordingNotifications();
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+
+    expect(errorAlerts(fake), isEmpty);
+    expect(timers.holds, hasLength(1), reason: 'one hold, not one per frame');
+    timers.elapseHolds();
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
+  testAt(
+    'HMS fault: the X2D power-up pair clears inside the hold (report #46)',
+    (_) {
+      // The frames of bug report #46: the plug switched on, the printer reports
+      // its AC board broken for ~5 s — including a one-frame disconnect — and
+      // then nothing.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+      const chamber = HmsError(
+        code: '0x1000a',
+        attr: 0x03009100,
+        severity: 1,
+        fullCode: '030091000001000A',
+      );
+      const bed = HmsError(
+        code: '0x1000a',
+        attr: 0x03000100,
+        severity: 1,
+        fullCode: '030001000001000A',
+      );
+      m.update({1: _status(state: 'FINISH', connected: false)}); // priming
+      m.update({
+        1: _status(state: 'FINISH', hms: [chamber, bed]),
+      });
+      m.update({
+        1: _status(state: 'FINISH', connected: false, hms: [chamber, bed]),
+      });
+      m.update({
+        1: _status(state: 'FINISH', hms: [chamber, bed]),
+      });
+      m.update({1: _status(state: 'IDLE', hms: const [])});
+
+      expect(timers.holds, isEmpty);
+      timers.elapseHolds();
+      expect(errorAlerts(fake), isEmpty);
+    },
+  );
+
+  testAt('HMS fault: a short gap pauses the hold, it does not restart it', (
+    time,
+  ) {
+    final fake = RecordingNotifications();
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+    time.tick(const Duration(seconds: 5));
+    m.update({1: _status(state: 'RUNNING', hms: const [])});
+    expect(timers.holds, isEmpty, reason: 'paused while the fault is gone');
+
+    // Back inside the clear grace: ten of the fifteen seconds are left.
+    time.tick(const Duration(seconds: 20));
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+    expect(timers.holds.single.duration, const Duration(seconds: 10));
+    timers.elapseHolds();
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
+  testAt('HMS fault: a gap past the clear grace starts the hold over', (time) {
+    final fake = RecordingNotifications();
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+    time.tick(const Duration(seconds: 10));
+    for (var i = 0; i < 4; i++) {
+      m.update({1: _status(state: 'RUNNING', hms: const [])});
+      time.tick(const Duration(seconds: 10));
+    }
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    });
+
+    expect(timers.holds.single.duration, _hmsHold);
+    expect(errorAlerts(fake), isEmpty);
+  });
+
+  testAt('HMS fault: a hold that runs out while offline waits for the return', (
+    _,
+  ) {
+    final fake = RecordingNotifications();
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'IDLE', connected: true)}); // priming
+    m.update({
+      1: _status(state: 'IDLE', connected: true, hms: [err]),
+    });
+    m.update({
+      1: _status(state: 'IDLE', connected: false, hms: [err]),
+    });
+    timers.elapseHolds();
+    expect(errorAlerts(fake), isEmpty);
+
+    m.update({
+      1: _status(state: 'IDLE', connected: true, hms: [err]),
+    });
+    expect(timers.holds, hasLength(1));
+    timers.elapseHolds();
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
+  testAt('HMS fault: a hold dies with the monitor and with the printer', (_) {
+    final fake = RecordingNotifications();
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'RUNNING'), 2: _status(id: 2)}); // priming
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+      2: _status(id: 2, hms: [err]),
+    });
+    expect(timers.holds, hasLength(2));
+
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err]),
+    }); // printer 2 removed
+    expect(timers.holds, hasLength(1));
+    m.dispose();
+    expect(timers.holds, isEmpty);
+    timers.elapseHolds();
+    expect(errorAlerts(fake), isEmpty);
+  });
+
+  group('HMS hold', () {
+    const a = HmsError(code: 'A', severity: 2);
+    const b = HmsError(code: 'B', severity: 2);
+
+    /// A monitor with every event on, its timers in [timers].
+    PrintMonitor held(
+      RecordingNotifications fake,
+      _Timers timers, {
+      NotificationPrefs prefs = _allOn,
+      String? Function(HmsError)? describe,
+    }) => PrintMonitor(
+      fake,
+      serverUrl: _server,
+      prefs: prefs,
+      l10n: () => lookupAppLocalizations(const Locale('en')),
+      timerFactory: timers.call,
+      hmsDescribe: describe ?? describeAll,
+    );
+
+    testAt('of two faults held together, only the one that stands alerts', (_) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers, describe: (e) => 'fault ${e.code}');
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a, b]),
+      });
+      m.update({
+        1: _status(state: 'RUNNING', hms: [b]),
+      });
+
+      expect(timers.holds, hasLength(1));
+      timers.elapseHolds();
+      expect(errorAlerts(fake).single['body'], endsWith('fault B'));
+    });
+
+    testAt('a fault arriving mid-hold gets a hold of its own', (_) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a, b]),
+      });
+
+      expect(timers.holds, hasLength(2));
+      expect(timers.holds.map((t) => t.duration), everyElement(_hmsHold));
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(2));
+    });
+
+    testAt('a frame without the hms field neither ends nor restarts a hold', (
+      _,
+    ) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      m.update({1: _status(state: 'RUNNING')}); // hms: null — nothing changed
+      m.update({1: _status(state: 'RUNNING')});
+
+      expect(timers.holds, hasLength(1));
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt('a frame that never states connected still ends a hold', (_) {
+      // `connected: null` is not offline (OfflineDebounce); a frame that says
+      // nothing about reachability and no longer carries the fault is evidence
+      // that it cleared.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      m.update({1: _status(state: 'RUNNING', hms: const [])});
+
+      expect(timers.holds, isEmpty);
+      timers.elapseHolds();
+      expect(errorAlerts(fake), isEmpty);
+    });
+
+    testAt('an offline frame without the fault does not end its hold', (_) {
+      // mergedWith hands an offline printer its last-known codes, or none; a
+      // frame from a printer nobody can reach says nothing about the fault.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(connected: true)}); // priming
+      m.update({
+        1: _status(connected: true, hms: [a]),
+      });
+      m.update({1: _status(connected: false, hms: const [])});
+      m.update({
+        1: _status(connected: true, hms: [a]),
+      });
+
+      expect(
+        timers.holds,
+        hasLength(1),
+        reason: 'the first hold, not a new one',
+      );
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt('the alert at the end of a hold carries the latest job and buttons', (
+      _,
+    ) {
+      // The job id is echoed back with a button; one frozen at first sight would
+      // send the firmware a job it no longer runs.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      const first = HmsError(
+        code: '0x8004',
+        attr: 0x03008004,
+        fullCode: '03008004',
+        jobId: '111',
+      );
+      const later = HmsError(
+        code: '0x8004',
+        attr: 0x03008004,
+        fullCode: '03008004',
+        jobId: '222',
+        actions: ['RESUME_PRINTING'],
+      );
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', name: 'Old name', hms: [first]),
+      });
+      m.update({
+        1: _status(state: 'RUNNING', name: 'X2D-3DP', hms: [later]),
+      });
+      timers.elapseHolds();
+
+      final alert = errorAlerts(fake).single;
+      expect(alert['payload'], 'hms:1:03008004:222:${serverTag(_server)}');
+      expect((alert['actions']! as List<NotificationAction>).map((x) => x.id), [
+        'hms:RESUME_PRINTING',
+      ]);
+      expect(alert['body'], startsWith('X2D-3DP: '));
+    });
+
+    testAt('a feed that goes quiet mid-hold alerts on the last word', (time) {
+      // No frame is not a frame without the fault: the last one still carried
+      // it, and the socket watchdog is what reports a dead feed.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      time.tick(const Duration(minutes: 1));
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt('a fault flickering through a print adds up to an alert', (time) {
+      // Five seconds on, five off: each stretch spends a third of the hold, and
+      // no gap is long enough to count as the fault clearing.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      final left = <Duration>[];
+      for (var i = 0; i < 3; i++) {
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+        left.add(timers.holds.single.duration);
+        if (i == 2) break;
+        time.tick(const Duration(seconds: 5));
+        m.update({1: _status(state: 'RUNNING', hms: const [])});
+        time.tick(const Duration(seconds: 5));
+      }
+
+      expect(left, const [
+        Duration(seconds: 15),
+        Duration(seconds: 10),
+        Duration(seconds: 5),
+      ]);
+      expect(errorAlerts(fake), isEmpty);
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt('a fault that blinks once a minute never adds up', (time) {
+      // Each one-second blip is separated by more than the clear grace, so each
+      // is a fault that came and went, not one that stands.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      for (var i = 0; i < 10; i++) {
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+        time.tick(const Duration(seconds: 1));
+        for (var j = 0; j < 6; j++) {
+          m.update({1: _status(state: 'RUNNING', hms: const [])});
+          time.tick(const Duration(seconds: 10));
+        }
+      }
+
+      expect(timers.holds, isEmpty);
+      timers.elapseHolds();
+      expect(errorAlerts(fake), isEmpty);
+    });
+
+    testAt('a paused hold waits out an outage and resumes on the return', (
+      time,
+    ) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(connected: true)}); // priming
+      m.update({
+        1: _status(connected: true, hms: [a]),
+      });
+      time.tick(const Duration(seconds: 5));
+      m.update({1: _status(connected: true, hms: const [])});
+      // Offline, with the code carried forward: no evidence it is back.
+      m.update({
+        1: _status(connected: false, hms: [a]),
+      });
+      m.update({
+        1: _status(connected: true, hms: [a]),
+      });
+
+      final running = timers.started.where(
+        (t) => t.isActive && t.duration != _hmsHold,
+      );
+      expect(running.single.duration, const Duration(seconds: 10));
+      running.single.fire();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt(
+      'a hold that runs out on a frame without the hms field still alerts',
+      (_) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers);
+        m.update({1: _status(state: 'RUNNING')}); // priming
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+        m.update({1: _status(state: 'RUNNING')});
+        timers.elapseHolds();
+        expect(errorAlerts(fake), hasLength(1));
+      },
+    );
+
+    testAt('an alerted fault is not held again while it stands', (time) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+
+      for (var i = 0; i < 5; i++) {
+        time.tick(const Duration(seconds: 20));
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+      }
+      expect(timers.holds, isEmpty);
+    });
+
+    testAt('an alerted fault that drops out briefly does not start over', (
+      time,
+    ) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      timers.elapseHolds();
+      m.update({1: _status(state: 'RUNNING', hms: const [])});
+      time.tick(const Duration(seconds: 10));
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+
+      expect(timers.holds, isEmpty, reason: 'inside the clear grace');
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    testAt('an alerted fault gone past the clear grace holds again', (time) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+      timers.elapseHolds();
+      for (var i = 0; i < 4; i++) {
+        time.tick(const Duration(seconds: 10));
+        m.update({1: _status(state: 'RUNNING', hms: const [])});
+      }
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      });
+
+      expect(errorAlerts(fake), hasLength(1), reason: 'not before the hold');
+      expect(timers.holds, hasLength(1));
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(2));
+    });
+
+    testAt('a fault standing when the monitor starts is never held', (time) {
+      // The background isolate restarts on every trip there; a fault it finds
+      // already standing is not news, however long it stands.
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({
+        1: _status(state: 'RUNNING', hms: [a]),
+      }); // priming
+      for (var i = 0; i < 3; i++) {
+        time.tick(const Duration(seconds: 20));
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+      }
+
+      expect(timers.holds, isEmpty);
+      expect(errorAlerts(fake), isEmpty);
+    });
+
+    testAt('the same fault on two printers holds and alerts per printer', (_) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      m.update({1: _status(), 2: _status(id: 2)}); // priming
+      m.update({
+        1: _status(hms: [a]),
+        2: _status(id: 2, hms: [a]),
+      });
+      m.update({
+        1: _status(hms: const []),
+        2: _status(id: 2, hms: [a]),
+      });
+
+      expect(timers.holds, hasLength(1));
+      timers.elapseHolds();
+      final alert = errorAlerts(fake).single;
+      expect(alert['payload'], 'printer:2');
+    });
+
+    testAt('a switched-off type or master switch starts no hold', (_) {
+      for (final prefs in const [
+        NotificationPrefs(enabled: {NotifEvent.printFinished}),
+        NotificationPrefs(
+          enabled: {NotifEvent.printerError},
+          alertsEnabled: false,
+        ),
+      ]) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers, prefs: prefs);
+        m.update({1: _status(state: 'RUNNING')}); // priming
+        m.update({
+          1: _status(state: 'RUNNING', hms: [a]),
+        });
+        expect(timers.holds, isEmpty);
+        timers.elapseHolds();
+        expect(fake.alerts, isEmpty);
+      }
+    });
+
+    testAt('a fault the filters drop starts no hold', (_) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(
+        fake,
+        timers,
+        describe: (e) => e.code == 'U' ? null : 'described',
+      );
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(
+          state: 'RUNNING',
+          hms: const [
+            // Nothing names it.
+            HmsError(code: 'U', severity: 2),
+            // An hms[] notice without actions ("top cover open").
+            HmsError(code: '0x30001', attr: 0x0C000100),
+            // Bambu's invalid level.
+            HmsError(code: '0x1', attr: 0x05000100),
+            // The cancel echo.
+            HmsError(code: '0x400E', attr: 0x05000000, severity: 2),
+          ],
+        ),
+      });
+
+      expect(timers.holds, isEmpty);
+      timers.elapseHolds();
+      expect(errorAlerts(fake), isEmpty);
+    });
+
+    testAt('an hms[] notice that offers actions is held and alerts', (_) {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = held(fake, timers);
+      const notice = HmsError(
+        code: '0x30001',
+        attr: 0x0C000100,
+        fullCode: '0C00010000030001',
+        actions: ['RESUME_PRINTING'],
+      );
+      m.update({1: _status(state: 'RUNNING')}); // priming
+      m.update({
+        1: _status(state: 'RUNNING', hms: [notice]),
+      });
+      expect(timers.holds, hasLength(1));
+      timers.elapseHolds();
+      expect(errorAlerts(fake), hasLength(1));
+    });
+
+    group('deduplication, after bambuddy\'s', () {
+      // test_hms_severity_2728.py::TestNotificationDeduplication. The server
+      // keyed faults by attr alone, which for an hms[] fault is only module and
+      // part, so two faults on one part shared a key.
+      HmsError onPart(int code, {bool fullCode = true}) => HmsError.fromJson({
+        ...HmsSample.hms('H2C, #1840', 0x05000600, code, alerts: true).json,
+        if (!fullCode) 'full_code': '',
+        'description': 'Described.',
+      });
+
+      final first = onPart(0x00020005);
+      final second = onPart(0x00020006);
+
+      testAt('two faults on one part are both notified', (_) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers);
+        m.update({1: _status()}); // priming
+        m.update({
+          1: _status(hms: [first, second]),
+        });
+        timers.elapseHolds();
+
+        final alerts = errorAlerts(fake);
+        expect(alerts, hasLength(2));
+        expect(alerts.map((a) => a['id']).toSet(), hasLength(2));
+      });
+
+      testAt('a fault replaced on the same part is notified', (_) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers);
+        m.update({1: _status()}); // priming
+        m.update({
+          1: _status(hms: [first]),
+        });
+        timers.elapseHolds();
+        m.update({
+          1: _status(hms: [second]),
+        });
+        timers.elapseHolds();
+
+        expect(errorAlerts(fake), hasLength(2));
+      });
+
+      testAt('a standing fault is notified once, a new one beside it is too', (
+        _,
+      ) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers, describe: (e) => 'fault ${e.fullCode}');
+        m.update({1: _status()}); // priming
+        m.update({
+          1: _status(hms: [first]),
+        });
+        timers.elapseHolds();
+        m.update({
+          1: _status(hms: [first]),
+        });
+        timers.elapseHolds();
+        m.update({
+          1: _status(hms: [first, second]),
+        });
+        timers.elapseHolds();
+
+        expect(errorAlerts(fake).map((a) => a['body']), [
+          endsWith('fault 0500060000020005'),
+          endsWith('fault 0500060000020006'),
+        ]);
+      });
+
+      testAt('an entry without a full code still tells faults apart', (_) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers);
+        final a = onPart(0x00020005, fullCode: false);
+        final b = onPart(0x00020006, fullCode: false);
+        expect(a.fullCode, isNull);
+        m.update({1: _status()}); // priming
+        m.update({
+          1: _status(hms: [a, b]),
+        });
+        timers.elapseHolds();
+
+        expect(errorAlerts(fake), hasLength(2));
+      });
+
+      testAt('a print_error and an hms[] fault never share a key', (_) {
+        // Both collapse to 0300_8004 in the short form; only the full code
+        // keeps a runout apart from an hms[] fault with that error number.
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers);
+        final hmsTwin = HmsError.fromJson({
+          ...HmsSample.hms(
+            'synthetic',
+            0x03000100,
+            0x00028004,
+            alerts: true,
+          ).json,
+          'description': 'Described.',
+        });
+        expect(hmsTwin.shortCode, hmsRunout.fault.shortCode);
+        m.update({1: _status()}); // priming
+        m.update({
+          1: _status(hms: [hmsRunout.fault, hmsTwin]),
+        });
+        timers.elapseHolds();
+
+        expect(errorAlerts(fake), hasLength(2));
+      });
+    });
+
+    group('through the bundled catalog', () {
+      late HmsCatalog en;
+      late HmsCatalog pl;
+
+      setUpAll(() async {
+        en = HmsCatalog();
+        await en.load(const Locale('en'));
+        pl = HmsCatalog();
+        await pl.load(const Locale('pl'));
+      });
+
+      /// The X2D power-up pair, as the WebSocket frame of report #46 carries it.
+      List<HmsError> x2dPowerUp() => [
+        for (final (attr, full, text) in const [
+          (
+            0x03009100,
+            '030091000001000A',
+            'The temperature of chamber heater 1 is abnormal. '
+                'The AC board may be broken.',
+          ),
+          (
+            0x03000100,
+            '030001000001000A',
+            'The heatbed temperature control is abnormal; '
+                'the AC board may be broken.',
+          ),
+        ])
+          HmsError.fromJson({
+            'code': '0x1000a',
+            'attr': attr,
+            'module': 3,
+            'severity': 1,
+            'actions': const <String>[],
+            'job_id': null,
+            'full_code': full,
+            'description': text,
+          }),
+      ];
+
+      testAt('the X2D power-up pair is a real, notifiable fault on paper', (_) {
+        // Premise of the hold: nothing but time tells these apart from a
+        // heater that really failed.
+        for (final e in x2dPowerUp()) {
+          expect(e.level, 1);
+          expect(e.isHmsChannel, isTrue);
+          expect(hmsIsNotifiable(e, description: en.describe(e)), isTrue);
+        }
+      });
+
+      testAt('the X2D power-up pair alerts if it stands, in the server words', (
+        _,
+      ) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers, describe: pl.describe);
+        m.update({1: _status(name: 'X2D-3DP', connected: false)}); // priming
+        m.update({
+          1: _status(name: 'X2D-3DP', connected: true, hms: x2dPowerUp()),
+        });
+        timers.elapseHolds();
+
+        // The Polish table has no word for an hms[] code, so the server's
+        // English sentence is what reaches the user.
+        expect(errorAlerts(fake).map((x) => x['body']), [
+          'X2D-3DP: The temperature of chamber heater 1 is abnormal. '
+              'The AC board may be broken.',
+          'X2D-3DP: The heatbed temperature control is abnormal; '
+              'the AC board may be broken.',
+        ]);
+      });
+
+      for (final sample in hmsSamples) {
+        testAt('$sample ${sample.alerts ? 'alerts' : 'stays silent'}', (_) {
+          final fake = RecordingNotifications();
+          final timers = _Timers();
+          final m = held(fake, timers, describe: en.describe);
+          m.update({1: _status(name: 'X1C', state: 'RUNNING')}); // priming
+          m.update({
+            1: _status(name: 'X1C', state: 'RUNNING', hms: [sample.fault]),
+          });
+          timers.elapseHolds();
+
+          if (!sample.alerts) {
+            expect(errorAlerts(fake), isEmpty);
+            return;
+          }
+          final e = sample.fault;
+          expect(errorAlerts(fake).single['body'], 'X1C: ${en.describe(e)}');
+        });
+      }
+
+      testAt('a runout is held and then alerts in Polish', (_) {
+        final fake = RecordingNotifications();
+        final timers = _Timers();
+        final m = held(fake, timers, describe: pl.describe);
+        final runout = HmsError.fromJson(const {
+          'code': '0x8004',
+          'attr': 0x03008004,
+          'severity': 2,
+          'full_code': '03008004',
+          'description': 'Filament ran out. Please load new filament.',
+        });
+        m.update({1: _status(state: 'RUNNING')}); // priming
+        m.update({
+          1: _status(state: 'PAUSE', hms: [runout]),
+        });
+        expect(errorAlerts(fake), isEmpty);
+        timers.elapseHolds();
+        expect(
+          errorAlerts(fake).single['body'],
+          contains(pl.describe(runout)!),
+        );
+        expect(errorAlerts(fake).single['body'], isNot(contains('ran out')));
+      });
+    });
+  });
+
   testAt('HMS fault: silence in the feed does not clear the memory — a reconnect '
       'does not alert again', (time) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
 
     m.update({1: _status(state: 'RUNNING')}); // priming
     m.update({
       1: _status(state: 'RUNNING', hms: [err]),
     });
+    timers.elapseHolds();
     expect(errorAlerts(fake), hasLength(1));
     fake.alerts.clear();
 
@@ -1059,6 +1918,7 @@ void main() {
       1: _status(state: 'RUNNING', hms: [err]),
     });
 
+    timers.elapseHolds();
     expect(errorAlerts(fake), isEmpty);
   });
 
@@ -1067,7 +1927,8 @@ void main() {
     'disconnect does not alert on return, a fresh one does',
     (time) {
       final fake = RecordingNotifications();
-      final m = monitorAll(fake, hmsDescribe: describeAll);
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
       const err = HmsError(code: 'A', severity: 2);
       const other = HmsError(code: 'B', severity: 3);
       // Online with fault A → one alert (the edge). Remembered afterwards.
@@ -1075,6 +1936,7 @@ void main() {
       m.update({
         1: _status(state: 'IDLE', connected: true, hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), hasLength(1));
       fake.alerts.clear();
       // Offline: mergedWith carries the old hms_errors forward — no alert even
@@ -1085,16 +1947,19 @@ void main() {
       m.update({
         1: _status(state: 'IDLE', connected: false, hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), isEmpty);
       // Back online: the same code A from before the disconnect does NOT alert again…
       m.update({
         1: _status(state: 'IDLE', connected: true, hms: [err]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), isEmpty);
       // …but a genuinely new code B after the return does.
       m.update({
         1: _status(state: 'IDLE', connected: true, hms: [err, other]),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), hasLength(1));
     },
   );
@@ -1103,7 +1968,8 @@ void main() {
     time,
   ) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
 
     m.update({1: _status(state: 'RUNNING', connected: true)}); // priming
@@ -1112,6 +1978,7 @@ void main() {
     m.update({
       1: _status(state: 'RUNNING', connected: false, hms: [err]),
     });
+    timers.elapseHolds();
     expect(errorAlerts(fake), isEmpty);
 
     // A second printer keeps sending frames: each one also grinds through the
@@ -1123,6 +1990,7 @@ void main() {
         1: _status(state: 'RUNNING', connected: false, hms: [err]),
       });
     }
+    timers.elapseHolds();
     expect(errorAlerts(fake), isEmpty);
 
     // The printer comes back still carrying that fault — now the user must hear
@@ -1132,12 +2000,14 @@ void main() {
       1: _status(state: 'RUNNING', connected: true, hms: [err]),
     });
 
+    timers.elapseHolds();
     expect(errorAlerts(fake), hasLength(1));
   });
 
   testAt('an HMS alert carries the fault it is about, and its buttons', (_) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     const err = HmsError(
       code: '0x8004',
       attr: 0x03008004,
@@ -1151,6 +2021,7 @@ void main() {
       1: _status(state: 'RUNNING', hms: [err]),
     });
 
+    timers.elapseHolds();
     final alert = errorAlerts(fake).single;
     // The payload is what the background handler rebuilds the command from.
     expect(
@@ -1173,7 +2044,8 @@ void main() {
     // fault a second notification each time instead of replacing the first. A
     // seeded id would not survive the constants below twice.
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     const err = HmsError(code: '0x8004', severity: 3, fullCode: '03008004');
     const other = HmsError(code: 'A', severity: 2);
 
@@ -1182,12 +2054,14 @@ void main() {
       1: _status(state: 'RUNNING', hms: [err, other]),
     });
 
+    timers.elapseHolds();
     expect(errorAlerts(fake).map((a) => a['id']), [8544723, 8921897]);
   });
 
   testAt('an HMS alert offers no buttons the app could not send', (_) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     // No full_code (server pre-0.2.4.8): nothing identifies the fault to the
     // firmware, so the alert stays a plain message.
     const legacy = HmsError(
@@ -1208,6 +2082,7 @@ void main() {
       1: _status(state: 'RUNNING', hms: [legacy, screenOnly]),
     });
 
+    timers.elapseHolds();
     final alerts = errorAlerts(fake);
     expect(alerts, hasLength(2));
     expect(alerts.map((a) => a['actions']), everyElement(isNull));
@@ -1216,7 +2091,8 @@ void main() {
 
   testAt('an alert never grows more buttons than Android draws', (_) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     const err = HmsError(
       code: '0x801a',
       attr: 0x0300801A,
@@ -1234,6 +2110,7 @@ void main() {
       1: _status(state: 'RUNNING', hms: [err]),
     });
 
+    timers.elapseHolds();
     final actions =
         errorAlerts(fake).single['actions']! as List<NotificationAction>;
     expect(actions, hasLength(3));
@@ -1244,13 +2121,15 @@ void main() {
     'ids)',
     (_) {
       final fake = RecordingNotifications();
-      final m = monitorAll(fake, hmsDescribe: describeAll);
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
       const a = HmsError(code: 'A', severity: 2);
       const b = HmsError(code: 'B', severity: 3);
       m.update({1: _status(state: 'RUNNING')}); // priming
       m.update({
         1: _status(state: 'RUNNING', hms: [a, b]),
       });
+      timers.elapseHolds();
       final alerts = errorAlerts(fake);
       expect(alerts, hasLength(2)); // both codes, none lost
       expect(alerts.map((e) => e['id']).toSet(), hasLength(2)); // different ids
@@ -1262,7 +2141,8 @@ void main() {
     (_) {
       final fake = RecordingNotifications();
       // No description resolver → an undocumented code; same for X2D sev 6 noise.
-      final m = monitorAll(fake);
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call);
       m.update({1: _status(state: 'RUNNING')});
       m.update({
         1: _status(
@@ -1292,7 +2172,8 @@ void main() {
     'HMS fault: a server-side description is enough even without the catalog',
     (_) {
       final fake = RecordingNotifications();
-      final m = monitorAll(fake); // no catalog resolver
+      final timers = _Timers();
+      final m = monitorAll(fake, timer: timers.call); // no catalog resolver
       m.update({1: _status(state: 'RUNNING')});
       m.update({
         1: _status(
@@ -1302,13 +2183,15 @@ void main() {
           ],
         ),
       });
+      timers.elapseHolds();
       expect(errorAlerts(fake), hasLength(1));
     },
   );
 
   testAt('HMS fault: a cancel echo (0500_400E) does not alert', (_) {
     final fake = RecordingNotifications();
-    final m = monitorAll(fake, hmsDescribe: describeAll);
+    final timers = _Timers();
+    final m = monitorAll(fake, timer: timers.call, hmsDescribe: describeAll);
     m.update({1: _status(state: 'RUNNING')});
     // ecode = attr(0x05000000) + code(0x400E) → short 0500_400E.
     m.update({
@@ -1324,6 +2207,7 @@ void main() {
         ],
       ),
     });
+    timers.elapseHolds();
     expect(errorAlerts(fake), isEmpty);
   });
 
@@ -1790,7 +2674,8 @@ void main() {
       _,
     ) async {
       final fake = RecordingNotifications();
-      final m = logged(fake, hmsDescribe: describeAll);
+      final timers = _Timers();
+      final m = logged(fake, timer: timers.call, hmsDescribe: describeAll);
       final all = await rows(() {
         m.update({7: _status(id: 7, connected: true)});
         m.update({
@@ -1800,6 +2685,7 @@ void main() {
             hms: [const HmsError(code: '0300_400C', severity: 2)],
           ),
         });
+        timers.elapseHolds();
       });
 
       final posted = only(all, 'posted').single;
@@ -1934,6 +2820,88 @@ void main() {
       expect(skips, hasLength(1));
       expect(skips.single['reason'], 'undocumented');
       expect(skips.single['sev'], 1);
+    });
+
+    testAt('an HMS fault gone for good inside its hold leaves one record', (
+      time,
+    ) async {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = logged(fake, timer: timers.call, hmsDescribe: describeAll);
+      const err = HmsError(code: 'A', severity: 2);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        // Flickers a few times, then stays away.
+        for (var i = 0; i < 3; i++) {
+          m.update({
+            1: _status(connected: true, hms: [err]),
+          });
+          time.tick(const Duration(seconds: 1));
+          m.update({1: _status(connected: true, hms: const [])});
+          time.tick(const Duration(seconds: 5));
+        }
+        for (var i = 0; i < 4; i++) {
+          time.tick(const Duration(seconds: 10));
+          m.update({1: _status(connected: true, hms: const [])});
+        }
+      });
+
+      final skips = only(all, 'suppressed');
+      // One record for the episode, not one per flicker.
+      expect(skips.single['reason'], 'transient');
+      expect(skips.single['code'], 'A');
+      expect(only(all, 'posted'), isEmpty);
+    });
+
+    testAt('a hold that runs out offline says offline, and posts nothing', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = logged(fake, timer: timers.call, hmsDescribe: describeAll);
+      const err = HmsError(code: 'A', severity: 2);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        m.update({
+          1: _status(connected: true, hms: [err]),
+        });
+        m.update({
+          1: _status(connected: false, hms: [err]),
+        });
+        timers.elapseHolds();
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'printerError') r,
+      ];
+      expect(skips.single['reason'], 'offline');
+      // The offline alert itself is due: its window is 15 s as well.
+      expect(only(all, 'posted').map((r) => r['event']), ['printerOffline']);
+    });
+
+    testAt('a fault that stands out its hold is one post and no skip', (
+      _,
+    ) async {
+      final fake = RecordingNotifications();
+      final timers = _Timers();
+      final m = logged(fake, timer: timers.call, hmsDescribe: describeAll);
+      const err = HmsError(code: 'A', severity: 2);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        for (var i = 0; i < 5; i++) {
+          m.update({
+            1: _status(connected: true, hms: [err]),
+          });
+        }
+        timers.elapseHolds();
+        m.update({
+          1: _status(connected: true, hms: [err]),
+        });
+      });
+
+      expect(only(all, 'posted').single['event'], 'printerError');
+      expect(only(all, 'suppressed'), isEmpty);
     });
 
     testAt('HMS on a disconnected printer: reason offline, not typeOff', (
