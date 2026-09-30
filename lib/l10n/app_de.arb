@@ -3935,5 +3935,14 @@
   "inventorySupplierDeleteTitle": "{name} löschen?",
   "inventorySupplierDeleteBody": "Er wird aus der Liste entfernt. Keiner Spule ist er zugewiesen.",
   "inventorySupplierInUse": "{count, plural, one{Einer Spule zugewiesen – entferne ihn zuerst dort} other{{count} Spulen zugewiesen – entferne ihn zuerst dort}}",
-  "inventorySupplierInUseUnknown": "Noch einer Spule zugewiesen – entferne ihn zuerst dort"
+  "inventorySupplierInUseUnknown": "Noch einer Spule zugewiesen – entferne ihn zuerst dort",
+  "inventorySupplierBoughtHere": "Hier gekauft",
+  "inventorySupplierArticleValue": "Art.-Nr. {number}",
+  "inventorySupplierQuotedPrice": "Angebot {price}/kg",
+  "inventorySupplierLinksHint": "Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.",
+  "inventorySupplierAssign": "Lieferant hinzufügen",
+  "inventorySupplierUnassign": "Von dieser Spule entfernen",
+  "inventorySupplierFieldArticle": "Artikelnr.",
+  "inventorySupplierFieldQuotedPrice": "Angebotspreis/kg",
+  "inventorySupplierNoneLeft": "Alle Lieferanten sind dieser Spule schon zugewiesen"
 }

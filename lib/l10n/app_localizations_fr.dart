@@ -7524,4 +7524,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get inventorySupplierInUseUnknown =>
       'Encore associé à une bobine — retirez-le d\'abord de celle-ci';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Achetée ici';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Réf. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'proposé à $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Où acheter ce produit. Indiquez la boutique qui vous a vendu cette bobine.';
+
+  @override
+  String get inventorySupplierAssign => 'Ajouter un fournisseur';
+
+  @override
+  String get inventorySupplierUnassign => 'Retirer de cette bobine';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Réf. article';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Prix proposé/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Tous les fournisseurs sont déjà associés à cette bobine';
 }

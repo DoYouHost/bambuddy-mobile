@@ -12391,6 +12391,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Still assigned to a spool — remove it there first'**
   String get inventorySupplierInUseUnknown;
+
+  /// Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bought here'**
+  String get inventorySupplierBoughtHere;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Art. no. {number}'**
+  String inventorySupplierArticleValue(String number);
+
+  /// A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.
+  ///
+  /// In en, this message translates to:
+  /// **'quoted {price}/kg'**
+  String inventorySupplierQuotedPrice(String price);
+
+  /// No description provided for @inventorySupplierLinksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where this product can be bought. Mark the one you bought this spool from.'**
+  String get inventorySupplierLinksHint;
+
+  /// Opens a picker to assign a supplier to the spool being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Add supplier'**
+  String get inventorySupplierAssign;
+
+  /// No description provided for @inventorySupplierUnassign.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from this spool'**
+  String get inventorySupplierUnassign;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Article no.'**
+  String get inventorySupplierFieldArticle;
+
+  /// Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at.
+  ///
+  /// In en, this message translates to:
+  /// **'Quoted price/kg'**
+  String get inventorySupplierFieldQuotedPrice;
+
+  /// No description provided for @inventorySupplierNoneLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Every supplier is already on this spool'**
+  String get inventorySupplierNoneLeft;
 }
 
 class _AppLocalizationsDelegate

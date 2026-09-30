@@ -52,6 +52,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// Supplier assignments as they will be written. Seeded from the spool the
+  /// form opened on — they ride on its row, so there is no read to fail.
+  ///
+  /// Written only when [_linksDirty]: an untouched new spool sends nothing and
+  /// the server copies the assignments of the newest spool of the same product
+  /// (`services/supplier_links.py`), which an empty list would wipe. A copy is
+  /// dirty from the start — the form shows the source's suppliers, so they are
+  /// what the copy must get, and the server's pick is the newest spool of the
+  /// product, not necessarily the one being copied.
+  late final List<_LinkDraft> _links;
+  bool _linksDirty = false;
+
   /// The spool this sheet created, once it has created one.
   ///
   /// Saving is two writes — the spool, then its per-model presets — and the
@@ -111,12 +123,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     _effectType = s?.effectType;
     _slicerFilament = s?.slicerFilament;
     _slicerFilamentName = s?.slicerFilamentName;
+    // Where a copy was bought is not known; only a real edit keeps it.
+    _links = [
+      for (final link in s?.suppliers ?? const <SpoolSupplierLink>[])
+        _LinkDraft(link, keepPurchaseSource: copy == null),
+    ];
+    _linksDirty = copy != null;
   }
 
   @override
   void dispose() {
     for (final c in _c.values) {
       c.dispose();
+    }
+    for (final link in _links) {
+      link.dispose();
     }
     super.dispose();
   }
@@ -196,6 +217,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // Read before the first await: a WidgetRef is not usable once the sheet it
     // belongs to is gone, and the spool write is what closes it.
     final repo = ref.read(inventoryRepositoryProvider);
+    final writeLinks =
+        _showsSupplierLinks(ref.read(suppliersSupportedProvider).orFalse) &&
+        _linksDirty;
+    final linkWriter = writeLinks
+        ? ref.read(suppliersRepositoryProvider)
+        : null;
+    final backend = writeLinks ? ref.read(inventoryBackendProvider) : null;
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
@@ -222,6 +250,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         message = l10n.inventorySpoolCreated;
       }
       if (!await _savePresetOverrides(repo, spoolId, l10n, messenger)) return;
+      if (linkWriter != null && backend != null && spoolId != null) {
+        final saved = await _saveSupplierLinks(
+          linkWriter,
+          backend,
+          spoolId,
+          l10n,
+          messenger,
+        );
+        if (!saved) return;
+        // The spool write reloaded the shelf before these landed.
+        unawaited(notifier.refresh());
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.snack(message);
@@ -276,6 +316,43 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
   }
 
+  /// Writes the supplier assignments of the spool just saved, and says whether
+  /// the form may close — the same contract as [_savePresetOverrides].
+  Future<bool> _saveSupplierLinks(
+    SuppliersRepository repo,
+    InventoryBackend backend,
+    int spoolId,
+    AppLocalizations l10n,
+    ScaffoldMessengerState messenger,
+  ) async {
+    try {
+      await repo.saveSpoolLinks(spoolId, [
+        for (final link in _links) link.toLink(),
+      ], backend: backend);
+      _linksDirty = false;
+      return true;
+    } on AppApiException catch (e) {
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(
+        mounted ? messenger : null,
+        e,
+        l10n,
+        action: 'spool_form.save_suppliers',
+      );
+      return false;
+    }
+  }
+
+  /// Whether the supplier section is offered: the server has to have
+  /// suppliers, and a bulk "restock" has no spool ids to write them to — the
+  /// server gives every one of those the inherited assignments instead.
+  bool _showsSupplierLinks(bool supported) {
+    final source = widget.existing ?? widget.copyOf;
+    return supported &&
+        (_isEdit || _quantity == 1) &&
+        (source == null || source.suppliers != null);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -301,11 +378,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
     // A copy saved before its presets arrive would be created without them;
     // that includes the gate, which asks for them only once it has answered.
+    final suppliersGate = ref.watch(suppliersSupportedProvider);
+    final showSuppliers = _showsSupplierLinks(suppliersGate.orFalse);
     final copyPresetsPending =
         widget.copyOf != null &&
         _showsPresetOverrides(true) &&
         (overridesGate.offer == ControlOffer.pending ||
-            (showOverrides && stored.isLoading));
+            (showOverrides && stored.isLoading) ||
+            // A copy saved before this answers would leave the source's
+            // suppliers to the server's inheritance, which may pick another
+            // spool's.
+            suppliersGate.offer == ControlOffer.pending);
     final models = showOverrides
         ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
         : const <String>[];
@@ -439,6 +522,15 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
+
+            if (showSuppliers)
+              _SupplierLinksSection(
+                links: _links,
+                onChanged: (change) => setState(() {
+                  change();
+                  _linksDirty = true;
+                }),
+              ),
 
             const SizedBox(height: DashSpace.xl),
             SizedBox(

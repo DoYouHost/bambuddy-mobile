@@ -4498,5 +4498,42 @@
   "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
   "@inventorySupplierInUseUnknown": {
     "description": "The server refused a delete because a spool was given this supplier after the list was loaded."
-  }
+  },
+  "inventorySupplierBoughtHere": "Bought here",
+  "@inventorySupplierBoughtHere": {
+    "description": "Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'."
+  },
+  "inventorySupplierArticleValue": "Art. no. {number}",
+  "@inventorySupplierArticleValue": {
+    "description": "The supplier's own article number for the product.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierQuotedPrice": "quoted {price}/kg",
+  "@inventorySupplierQuotedPrice": {
+    "description": "A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierLinksHint": "Where this product can be bought. Mark the one you bought this spool from.",
+  "inventorySupplierAssign": "Add supplier",
+  "@inventorySupplierAssign": {
+    "description": "Opens a picker to assign a supplier to the spool being edited."
+  },
+  "inventorySupplierUnassign": "Remove from this spool",
+  "inventorySupplierFieldArticle": "Article no.",
+  "@inventorySupplierFieldArticle": {
+    "description": "The supplier's own article number for the product."
+  },
+  "inventorySupplierFieldQuotedPrice": "Quoted price/kg",
+  "@inventorySupplierFieldQuotedPrice": {
+    "description": "Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at."
+  },
+  "inventorySupplierNoneLeft": "Every supplier is already on this spool"
 }

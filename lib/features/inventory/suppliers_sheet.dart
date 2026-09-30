@@ -179,12 +179,14 @@ class _SupplierRow extends ConsumerWidget {
   }
 }
 
-void _openSupplierForm(BuildContext context, {Supplier? existing}) {
-  dashSurfaceSheet<void>(
-    context,
-    builder: (_) => _SupplierFormSheet(existing: existing),
-  );
-}
+/// Answers with the row the server saved, or null when the form was closed.
+Future<Supplier?> _openSupplierForm(
+  BuildContext context, {
+  Supplier? existing,
+}) => dashSurfaceSheet<Supplier>(
+  context,
+  builder: (_) => _SupplierFormSheet(existing: existing),
+);
 
 class _SupplierFormSheet extends ConsumerStatefulWidget {
   const _SupplierFormSheet({this.existing});
@@ -238,17 +240,18 @@ class _SupplierFormSheetState extends ConsumerState<_SupplierFormSheet> {
     setState(() => _saving = true);
     try {
       final existing = widget.existing;
+      final Supplier saved;
       if (existing == null) {
-        await repo.createSupplier(draft);
+        saved = await repo.createSupplier(draft);
       } else {
-        await repo.updateSupplier(existing.id, draft);
+        saved = await repo.updateSupplier(existing.id, draft);
         // Spools carry the supplier's name in their links; a rename has to
         // reach the list and the detail cards too.
         unawaited(container.read(inventoryProvider.notifier).refresh());
       }
       container.invalidate(supplierListProvider);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(saved);
       messenger.snack(l10n.inventorySupplierSaved);
     } on AppApiException catch (e) {
       if (!mounted) return;

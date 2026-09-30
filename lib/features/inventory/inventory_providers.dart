@@ -410,6 +410,7 @@ class InventoryFilters {
     this.materials = const {},
     this.brands = const {},
     this.locations = const {},
+    this.suppliers = const {},
     this.sort = InventorySort.standard,
     this.descending = true,
   });
@@ -420,6 +421,10 @@ class InventoryFilters {
   final Set<String> materials;
   final Set<String> brands;
   final Set<String> locations;
+
+  /// Supplier names; a spool matches on any assignment, the purchase source or
+  /// an alternative — "what can I get from this shop".
+  final Set<String> suppliers;
   final InventorySort sort;
   final bool descending;
 
@@ -429,7 +434,8 @@ class InventoryFilters {
       (lowStockOnly ? 1 : 0) +
       (materials.isNotEmpty ? 1 : 0) +
       (brands.isNotEmpty ? 1 : 0) +
-      (locations.isNotEmpty ? 1 : 0);
+      (locations.isNotEmpty ? 1 : 0) +
+      (suppliers.isNotEmpty ? 1 : 0);
 
   /// Every filter back to its default, the sort left as it was.
   InventoryFilters cleared() =>
@@ -441,6 +447,7 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
+    Set<String>? suppliers,
     InventorySort? sort,
     bool? descending,
   }) => InventoryFilters(
@@ -449,6 +456,7 @@ class InventoryFilters {
     materials: materials ?? this.materials,
     brands: brands ?? this.brands,
     locations: locations ?? this.locations,
+    suppliers: suppliers ?? this.suppliers,
     sort: sort ?? this.sort,
     descending: descending ?? this.descending,
   );

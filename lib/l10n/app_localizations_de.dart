@@ -7430,4 +7430,37 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get inventorySupplierInUseUnknown =>
       'Noch einer Spule zugewiesen – entferne ihn zuerst dort';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Hier gekauft';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Art.-Nr. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'Angebot $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.';
+
+  @override
+  String get inventorySupplierAssign => 'Lieferant hinzufügen';
+
+  @override
+  String get inventorySupplierUnassign => 'Von dieser Spule entfernen';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Artikelnr.';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Angebotspreis/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Alle Lieferanten sind dieser Spule schon zugewiesen';
 }

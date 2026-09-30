@@ -3935,5 +3935,14 @@
   "inventorySupplierDeleteTitle": "¿Eliminar {name}?",
   "inventorySupplierDeleteBody": "Se quita de la lista. No está asignado a ninguna bobina.",
   "inventorySupplierInUse": "{count, plural, one{Asignado a 1 bobina: quítalo primero de ella} other{Asignado a {count} bobinas: quítalo primero de ellas}}",
-  "inventorySupplierInUseUnknown": "Sigue asignado a una bobina: quítalo primero de ella"
+  "inventorySupplierInUseUnknown": "Sigue asignado a una bobina: quítalo primero de ella",
+  "inventorySupplierBoughtHere": "Comprada aquí",
+  "inventorySupplierArticleValue": "Ref. {number}",
+  "inventorySupplierQuotedPrice": "ofertado a {price}/kg",
+  "inventorySupplierLinksHint": "Dónde se puede comprar este producto. Marca la tienda donde compraste esta bobina.",
+  "inventorySupplierAssign": "Añadir proveedor",
+  "inventorySupplierUnassign": "Quitar de esta bobina",
+  "inventorySupplierFieldArticle": "N.º de artículo",
+  "inventorySupplierFieldQuotedPrice": "Precio ofertado/kg",
+  "inventorySupplierNoneLeft": "Todos los proveedores ya están en esta bobina"
 }

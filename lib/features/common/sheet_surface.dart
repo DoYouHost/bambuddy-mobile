@@ -103,7 +103,9 @@ class SheetSurface extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(bottom: navInset),
-              child: child,
+              // The decoration above paints over any Material further up, so a
+              // ListTile's ink would be drawn underneath it and never seen.
+              child: Material(type: MaterialType.transparency, child: child),
             ),
           ),
         ],

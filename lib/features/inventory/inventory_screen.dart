@@ -22,6 +22,7 @@ import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/inventory_repository.dart';
+import '../../data/suppliers_repository.dart';
 import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
 import '../../router.dart';
@@ -54,6 +55,7 @@ part 'inventory_labels.dart';
 part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
 part 'suppliers_sheet.dart';
+part 'spool_form_suppliers.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -598,8 +600,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return l10n.inventoryBulkDone(outcome.ok);
   }
 
-  /// Client-side filter: status (active/archived), stock, material, brand, location,
-  /// and search by material/brand/color/location (case-insensitive). Empty sets in
+  /// Client-side filter: status (active/archived), stock, material, brand,
+  /// location, supplier, and search by material/brand/color/location (case-insensitive). Empty sets in
   /// [filters] = no restriction.
   List<Spool> _filter(
     List<Spool> spools,
@@ -617,7 +619,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 if (filters.locations.isEmpty ||
                     (s.storageLocation != null &&
                         filters.locations.contains(s.storageLocation)))
-                  if (s.matchesSearch(query)) s,
+                  if (filters.suppliers.isEmpty ||
+                      (s.suppliers ?? const []).any(
+                        (l) => filters.suppliers.contains(l.supplierName),
+                      ))
+                    if (s.matchesSearch(query)) s,
     ];
   }
 
@@ -635,6 +641,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),
         locations: _distinct(all.map((s) => s.storageLocation)),
+        suppliers: _distinct([
+          for (final s in all)
+            for (final link in s.suppliers ?? const <SpoolSupplierLink>[])
+              link.supplierName,
+        ]),
       ),
     );
   }

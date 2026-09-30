@@ -7478,4 +7478,37 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get inventorySupplierInUseUnknown =>
       'Nadal jest przypisany do szpuli — najpierw usuń go stamtąd';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Kupiona tutaj';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Nr art. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'cena ofertowa $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Gdzie można kupić ten produkt. Zaznacz sklep, w którym kupiono tę szpulę.';
+
+  @override
+  String get inventorySupplierAssign => 'Dodaj dostawcę';
+
+  @override
+  String get inventorySupplierUnassign => 'Usuń z tej szpuli';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Nr artykułu';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Cena ofertowa/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Wszyscy dostawcy są już przypisani do tej szpuli';
 }

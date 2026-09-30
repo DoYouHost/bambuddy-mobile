@@ -568,6 +568,43 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
             ],
 
+            if (spool.suppliers case final links? when links.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.lg),
+              _SheetSectionTitle(label: l10n.inventorySuppliersTitle),
+              const SizedBox(height: DashSpace.xs),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DashSpace.lg,
+                  vertical: DashSpace.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: t.subCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: t.subCardBorder),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final link in purchaseSourceFirst(links))
+                      _DetailRow(
+                        icon: link.isPurchaseSource
+                            ? Icons.shopping_bag_outlined
+                            : Icons.storefront_outlined,
+                        label: supplierLinkLine(l10n, link),
+                        trailing: link.isPurchaseSource
+                            ? DashPill(
+                                dense: true,
+                                label: l10n.inventorySupplierBoughtHere,
+                                accent: t.accentGreen,
+                                accentInk: t.accentGreenInk,
+                              )
+                            : null,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: DashSpace.lg),
             _SheetSectionTitle(label: l10n.inventoryUsageHistory),
             const SizedBox(height: DashSpace.xs),
@@ -712,3 +749,13 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
+
+/// One assignment as a line of text: the supplier, then what the user wrote
+/// down about buying there.
+String supplierLinkLine(AppLocalizations l10n, SpoolSupplierLink link) => [
+  link.supplierName,
+  if (link.articleNumber case final number?)
+    l10n.inventorySupplierArticleValue(number),
+  if (link.quotedPricePerKg case final price?)
+    l10n.inventorySupplierQuotedPrice(price.toStringAsFixed(2)),
+].join(' · ');

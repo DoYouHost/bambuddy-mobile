@@ -7361,4 +7361,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get inventorySupplierInUseUnknown =>
       'Still assigned to a spool — remove it there first';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Bought here';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Art. no. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'quoted $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Where this product can be bought. Mark the one you bought this spool from.';
+
+  @override
+  String get inventorySupplierAssign => 'Add supplier';
+
+  @override
+  String get inventorySupplierUnassign => 'Remove from this spool';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Article no.';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Quoted price/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Every supplier is already on this spool';
 }

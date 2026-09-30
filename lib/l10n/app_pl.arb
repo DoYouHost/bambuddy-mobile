@@ -3235,5 +3235,14 @@
   "inventorySupplierDeleteTitle": "Usunąć {name}?",
   "inventorySupplierDeleteBody": "Zniknie z listy. Nie jest przypisany do żadnej szpuli.",
   "inventorySupplierInUse": "{count, plural, one{Przypisany do 1 szpuli — najpierw usuń go z niej} few{Przypisany do {count} szpul — najpierw usuń go z nich} many{Przypisany do {count} szpul — najpierw usuń go z nich} other{Przypisany do {count} szpuli — najpierw usuń go z nich}}",
-  "inventorySupplierInUseUnknown": "Nadal jest przypisany do szpuli — najpierw usuń go stamtąd"
+  "inventorySupplierInUseUnknown": "Nadal jest przypisany do szpuli — najpierw usuń go stamtąd",
+  "inventorySupplierBoughtHere": "Kupiona tutaj",
+  "inventorySupplierArticleValue": "Nr art. {number}",
+  "inventorySupplierQuotedPrice": "cena ofertowa {price}/kg",
+  "inventorySupplierLinksHint": "Gdzie można kupić ten produkt. Zaznacz sklep, w którym kupiono tę szpulę.",
+  "inventorySupplierAssign": "Dodaj dostawcę",
+  "inventorySupplierUnassign": "Usuń z tej szpuli",
+  "inventorySupplierFieldArticle": "Nr artykułu",
+  "inventorySupplierFieldQuotedPrice": "Cena ofertowa/kg",
+  "inventorySupplierNoneLeft": "Wszyscy dostawcy są już przypisani do tej szpuli"
 }
