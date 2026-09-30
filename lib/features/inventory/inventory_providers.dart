@@ -271,7 +271,6 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final repo = ref.read(inventoryRepositoryProvider);
     final linkWriter = ref.read(suppliersRepositoryProvider);
     final backend = ref.read(inventoryBackendProvider);
-    // Read before the patch: its reload replaces the state.
     final current = {
       for (final s in state.valueOrNull?.spools ?? const <Spool>[])
         s.id: s.suppliers,
@@ -280,15 +279,17 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       final patched = patch.isEmpty
           ? null
           : await repo.bulkUpdate(ids.toList(), patch);
-      if (addSuppliers.isEmpty) return patched!;
+      if (addSuppliers.isEmpty) return patched ?? BulkOutcome.empty;
 
-      var linkFailed = 0;
+      // Counted per spool, not per write: a spool is done only when every
+      // write to it landed, and one the patch already failed gets no replace.
+      final failedIds = {...?patched?.notFound, ...?patched?.errorIds};
+      var succeeded = 0;
       AppApiException? lastRefusal;
-      final skip = patched?.notFound.toSet() ?? const <int>{};
-      for (final id in ids.where((id) => !skip.contains(id))) {
+      for (final id in ids.where((id) => !failedIds.contains(id))) {
         final existing = current[id];
         if (existing == null) {
-          linkFailed++;
+          failedIds.add(id);
           continue;
         }
         try {
@@ -297,29 +298,26 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
             mergeSupplierLinks(existing, addSuppliers),
             backend: backend,
           );
+          succeeded++;
         } on AppApiException catch (e) {
-          linkFailed++;
+          failedIds.add(id);
           lastRefusal = e;
         } on Object {
-          linkFailed++;
+          failedIds.add(id);
         }
       }
-      // Suppliers were the whole edit and not one landed: that is a refusal
-      // (a key without write access, a deleted supplier) the sheet can word,
-      // not a tally of zero.
-      if (patched == null && lastRefusal != null && linkFailed == ids.length) {
+      // Nothing landed at all: the refusal is the answer, and the sheet stays
+      // open to word it. Once the patch did land the sheet must close on a
+      // tally, or a dismissed error reads as "nothing changed" — and the patch
+      // needs the same permission as the replace, so a 403 cannot follow it.
+      if (patched == null && lastRefusal != null && succeeded == 0) {
         throw lastRefusal;
       }
-      if (patched == null) {
-        return BulkOutcome(ok: ids.length - linkFailed, failed: linkFailed);
-      }
-      // A Spoolman proxy error on the patch and a failed replace on the same
-      // spool count twice here; the clamp keeps "ok" from going negative.
+      final failed = ids.where(failedIds.contains).length;
       return BulkOutcome(
-        ok: (patched.ok - linkFailed).clamp(0, patched.ok),
-        skipped: patched.skipped,
-        failed: patched.failed + linkFailed,
-        notFound: patched.notFound,
+        ok: ids.length - failed,
+        failed: failed,
+        notFound: patched?.notFound ?? const [],
       );
     } finally {
       state = await AsyncValue.guard(_load);

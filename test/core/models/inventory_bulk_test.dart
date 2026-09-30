@@ -144,6 +144,7 @@ void main() {
       expect(outcome.ok, 2);
       expect(outcome.failed, 2);
       expect(outcome.notFound, isEmpty);
+      expect(outcome.errorIds, [5, 6]);
       expect(outcome.isComplete, isFalse);
     });
   });

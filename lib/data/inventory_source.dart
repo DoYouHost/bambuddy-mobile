@@ -255,7 +255,8 @@ Future<BulkOutcome> _postChunked(
       total += await send(chunk);
     } on Object {
       if (done == 0) rethrow;
-      return total + BulkOutcome(failed: ids.length - done);
+      final rest = ids.sublist(done);
+      return total + BulkOutcome(failed: rest.length, errorIds: rest);
     }
     done += chunk.length;
   }

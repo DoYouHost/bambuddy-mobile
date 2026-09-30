@@ -15,10 +15,17 @@ import 'fake_suppliers.dart';
 /// app replaces each spool's list with its own merged one — and a replace built
 /// from the wrong starting list deletes what the spool had.
 class _FakeSource implements SpoolInventorySource {
-  _FakeSource(this.spools, {this.notFound = const []});
+  _FakeSource(
+    this.spools, {
+    this.notFound = const [],
+    this.errorIds = const [],
+  });
 
   final List<Spool> spools;
   final List<int> notFound;
+
+  /// Spoolman's per-spool `errors`, which come without a `not_found` list.
+  final List<int> errorIds;
   final List<SpoolBulkPatch> patches = [];
 
   @override
@@ -36,16 +43,35 @@ class _FakeSource implements SpoolInventorySource {
     SpoolBulkPatch patch,
   ) async {
     patches.add(patch);
+    final failed = notFound.length + errorIds.length;
     return BulkOutcome(
-      ok: spoolIds.length - notFound.length,
-      failed: notFound.length,
+      ok: spoolIds.length - failed,
+      failed: failed,
       notFound: notFound,
+      errorIds: errorIds,
     );
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError(invocation.memberName.toString());
+}
+
+/// Fails the replace of the listed spools with the given error.
+class _SelectiveSuppliers extends FakeSuppliers {
+  _SelectiveSuppliers(this.failures);
+
+  final Map<int, Object> failures;
+
+  @override
+  Future<void> saveSpoolLinks(
+    int spoolId,
+    List<SpoolSupplierLink> links, {
+    required InventoryBackend backend,
+  }) async {
+    if (failures[spoolId] case final failure?) throw failure;
+    return super.saveSpoolLinks(spoolId, links, backend: backend);
+  }
 }
 
 const _shop = SpoolSupplierLink(
@@ -107,9 +133,15 @@ void main() {
     Future<(ProviderContainer, _FakeSource, FakeSuppliers)> harness(
       List<Spool> spools, {
       List<int> notFound = const [],
+      List<int> errorIds = const [],
+      FakeSuppliers? suppliers,
     }) async {
-      final source = _FakeSource(spools, notFound: notFound);
-      final suppliers = FakeSuppliers();
+      final source = _FakeSource(
+        spools,
+        notFound: notFound,
+        errorIds: errorIds,
+      );
+      suppliers ??= FakeSuppliers();
       final container = ProviderContainer(
         overrides: [
           fakeServerProfileOverride(),
@@ -212,6 +244,80 @@ void main() {
         expect(outcome.ok, 1);
         expect(outcome.failed, 1);
         expect(outcome.notFound, [2]);
+      },
+    );
+
+    test(
+      'a spool the Spoolman patch failed is neither written nor counted twice',
+      () async {
+        final (container, _, suppliers) = await harness(
+          [
+            const Spool(id: 1, material: 'PLA', suppliers: []),
+            const Spool(id: 2, material: 'PLA', suppliers: []),
+          ],
+          errorIds: [2],
+        );
+
+        final outcome = await container
+            .read(inventoryProvider.notifier)
+            .bulkUpdateSpools(
+              [1, 2],
+              const SpoolBulkPatch(note: 'restocked'),
+              addSuppliers: [_other],
+            );
+
+        expect(suppliers.savedLinks.map((s) => s.$1), [1]);
+        expect(outcome.ok, 1);
+        expect(outcome.failed, 1);
+      },
+    );
+
+    test('once the patch landed, refused replaces close on a tally', () async {
+      final (container, source, suppliers) = await harness([
+        const Spool(id: 1, material: 'PLA', suppliers: []),
+      ]);
+      suppliers.failNextWrite = const ApiException(
+        AppErrorCode.badResponse,
+        statusCode: 404,
+      );
+
+      final outcome = await container
+          .read(inventoryProvider.notifier)
+          .bulkUpdateSpools(
+            [1],
+            const SpoolBulkPatch(note: 'restocked'),
+            addSuppliers: [_other],
+          );
+
+      expect(source.patches, hasLength(1));
+      expect(outcome.ok, 0);
+      expect(outcome.failed, 1);
+    });
+
+    test(
+      'a refusal still surfaces when another write failed otherwise',
+      () async {
+        final (container, _, _) = await harness(
+          [
+            const Spool(id: 1, material: 'PLA', suppliers: []),
+            const Spool(id: 2, material: 'PLA', suppliers: []),
+          ],
+          suppliers: _SelectiveSuppliers({
+            1: const ApiException(AppErrorCode.badResponse, statusCode: 404),
+            2: StateError('socket closed'),
+          }),
+        );
+
+        await expectLater(
+          container
+              .read(inventoryProvider.notifier)
+              .bulkUpdateSpools(
+                [1, 2],
+                const SpoolBulkPatch(),
+                addSuppliers: [_other],
+              ),
+          throwsA(isA<AppApiException>()),
+        );
       },
     );
   });

@@ -54,6 +54,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// Suppliers to add to every selected spool — never a replacement of their
   /// lists, see [InventoryNotifier.bulkUpdateSpools].
   final _links = <_LinkDraft>[];
+
+  /// Whether the last build showed the supplier section. Drafts it no longer
+  /// shows (a reload lost a spool's list) must not be sent unseen.
+  bool _suppliersShown = false;
   bool _saving = false;
 
   int get _count => widget.spoolIds.length;
@@ -82,7 +86,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// the validator and the field explains itself.
   bool get _hasInput =>
       _slicerFilament != null ||
-      _links.isNotEmpty ||
+      (_suppliersShown && _links.isNotEmpty) ||
       _c.values.any((c) => c.text.trim().isNotEmpty);
 
   SpoolBulkPatch _patch() => SpoolBulkPatch(
@@ -112,7 +116,10 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     // dropped from the patch and the tally would still report success.
     if (!_formKey.currentState!.validate()) return;
     final patch = _patch();
-    final links = [for (final link in _links) link.toLink()];
+    final links = [
+      if (_suppliersShown)
+        for (final link in _links) link.toLink(),
+    ];
     if (patch.isEmpty && links.isEmpty) return;
 
     final confirmed = await confirmDialog(
@@ -142,10 +149,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         l10n,
         action: 'bulk_edit.apply',
         // A 404 here is the server saying it has no bulk-update route at all
-        // (it predates 0.2.5b1), which the generic wording would report as a
-        // missing spool. Without a patch the 404 came from a supplier replace,
-        // where it does mean a missing spool or supplier.
-        message: e.statusCode == 404 && !patch.isEmpty
+        // (it predates 0.2.5b1), which a bare "error 404" would not explain.
+        // A server that offers suppliers is far newer than
+        // that route, so with suppliers in the edit a 404 is a replace that
+        // found no such spool or supplier.
+        message: e.statusCode == 404 && links.isEmpty
             ? l10n.inventoryBulkEditUnsupported
             : null,
       );
@@ -166,11 +174,14 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     // Every selected spool has to have brought its list along: the write
     // merges into it, and a spool without one cannot be merged into.
     final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+    final listed = {
+      for (final s in spools)
+        if (s.suppliers != null) s.id,
+    };
     final showSuppliers =
         ref.watch(suppliersSupportedProvider).orFalse &&
-        spools
-            .where((s) => widget.spoolIds.contains(s.id))
-            .every((s) => s.suppliers != null);
+        widget.spoolIds.every(listed.contains);
+    _suppliersShown = showSuppliers;
 
     return DraggableSheetSurface(
       initialSize: 0.9,

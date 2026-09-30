@@ -121,6 +121,7 @@ class BulkOutcome {
     this.skipped = 0,
     this.failed = 0,
     this.notFound = const [],
+    this.errorIds = const [],
   });
 
   /// Reads `{ok: n, …}` for the four `{ids: […]}` routes.
@@ -143,6 +144,12 @@ class BulkOutcome {
       skipped: skippedKey == null ? 0 : _countOf(data[skippedKey]),
       failed: notFound.length + errorCount,
       notFound: notFound,
+      errorIds: errors is List
+          ? [
+              for (final e in errors)
+                if (e is Map) ?toIntOrNull(e['id']),
+            ]
+          : const [],
     );
   }
 
@@ -171,6 +178,11 @@ class BulkOutcome {
 
   final List<int> notFound;
 
+  /// Ids the call is known to have failed — Spoolman's per-spool `errors`
+  /// and the chunks after one that threw — so a follow-up write can tell
+  /// which spools it would be adding to a failure.
+  final List<int> errorIds;
+
   bool get isComplete => failed == 0;
 
   /// Sums the chunks a selection was split into for the 500-id cap.
@@ -179,6 +191,7 @@ class BulkOutcome {
     skipped: skipped + other.skipped,
     failed: failed + other.failed,
     notFound: [...notFound, ...other.notFound],
+    errorIds: [...errorIds, ...other.errorIds],
   );
 }
 
