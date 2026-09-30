@@ -12,6 +12,7 @@ import 'package:app_util/app_util.dart';
 
 import '../ams/slot_addressing.dart';
 import 'json_utils.dart';
+import 'supplier.dart';
 
 /// Strips everything that is not a hex digit and upper-cases the rest — the
 /// form the server stores RFID identifiers in, so comparing a printer-reported
@@ -79,6 +80,7 @@ class Spool {
     this.slicerFilament,
     this.slicerFilamentName,
     this.kProfiles = const [],
+    this.suppliers,
   });
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
@@ -114,6 +116,10 @@ class Spool {
     slicerFilament: toStringOrNull(json['slicer_filament']),
     slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
     kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
+    suppliers: parseJsonListOrNull(
+      json['suppliers'],
+      SpoolSupplierLink.fromJson,
+    ),
   );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -165,6 +171,11 @@ class Spool {
       // Spoolman's `registered`, renamed by the backend on every route
       // (`_spoolman_helpers.py::_map_spoolman_spool`).
       createdAt: dateTimeFromJson(json['created_at']),
+      // Bambuddy-side rows the server merges into the Spoolman spool.
+      suppliers: parseJsonListOrNull(
+        json['suppliers'],
+        SpoolSupplierLink.fromJson,
+      ),
     );
   }
 
@@ -233,6 +244,11 @@ class Spool {
   final String? slicerFilamentName;
   final List<SpoolKProfile> kProfiles;
 
+  /// Where this spool can be bought (server #2988). Null when the server
+  /// predates suppliers and sent no key at all, which an empty list — a spool
+  /// nobody assigned one to — must not be mistaken for.
+  final List<SpoolSupplierLink>? suppliers;
+
   /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {
     final r = labelWeight - weightUsed;
@@ -290,6 +306,8 @@ class Spool {
       colorName,
       storageLocation,
       category,
+      for (final link in suppliers ?? const <SpoolSupplierLink>[])
+        link.supplierName,
     ]) {
       if (field != null && field.toLowerCase().contains(q)) return true;
     }

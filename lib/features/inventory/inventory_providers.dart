@@ -9,6 +9,7 @@ import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
@@ -70,6 +71,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   Future<InventoryState> _load() async {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
+    ref.read(suppliersRepositoryProvider).observeSpools(spools);
 
     var bySpool = <int, SpoolAssignment>{};
     try {
@@ -549,6 +551,23 @@ final spoolPresetOverridesProvider = FutureProvider.autoDispose
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);
     });
+
+/// Whether this server has filament suppliers.
+final suppliersSupportedProvider = capabilityGate(
+  (ref) => ref.watch(suppliersRepositoryProvider).capability,
+);
+
+/// The supplier master list. Empty until the gate says yes, and empty on a
+/// failed read too: it only feeds pickers and the management sheet, while the
+/// assignments a spool form writes back come from the spool itself.
+final supplierListProvider = FutureProvider.autoDispose<List<Supplier>>((
+  ref,
+) async {
+  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+    return const [];
+  }
+  return ref.watch(suppliersRepositoryProvider).listSuppliers();
+});
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.

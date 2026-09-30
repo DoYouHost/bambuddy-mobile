@@ -44,6 +44,7 @@ import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/heater_history_repository.dart';
 import 'data/location_sensors_repository.dart';
+import 'data/suppliers_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
@@ -555,6 +556,14 @@ final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
 /// Home Assistant sensors bound to a storage location — read-only. Shares
 /// authenticated Dio; the version service answers whether the route family is
 /// there until the listing itself has.
+/// Filament suppliers — one route family for both inventory backends.
+final suppliersRepositoryProvider = Provider<SuppliersRepository>(
+  (ref) => SuppliersRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
 final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
   (ref) => LocationSensorsRepository(
     ref.watch(apiClientProvider).dio,

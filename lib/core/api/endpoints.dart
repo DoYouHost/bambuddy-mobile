@@ -932,6 +932,24 @@ abstract final class Endpoints {
   static String inventorySpoolFilamentPresets(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/filament-presets';
 
+  /// Supplier master list (`SupplierResponse[]`, server #2988) — `POST` here,
+  /// `PATCH`/`DELETE` on [inventorySupplier]. The same list in Spoolman mode:
+  /// the server keeps suppliers Bambuddy-side for both inventories.
+  static const inventorySuppliers = '$apiPrefix/inventory/suppliers';
+
+  static String inventorySupplier(int supplierId) =>
+      '$apiPrefix/inventory/suppliers/$supplierId';
+
+  /// Stock, consumption and cost per purchase-source supplier
+  /// (`SupplierStats[]`). `date_from`/`date_to` narrow the usage half only.
+  static const inventorySupplierStats = '$apiPrefix/inventory/stats/suppliers';
+
+  /// One spool's supplier assignments. `PUT` only — there is no `GET` on the
+  /// built-in side, the rows ride on `SpoolResponse.suppliers` — and it
+  /// replaces the whole list.
+  static String inventorySpoolSuppliers(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/suppliers';
+
   /// Render spool labels as a PDF stream (`POST`, body
   /// `{spool_ids:[int], template:str, monochrome:bool}`). Response is the raw
   /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
@@ -1019,6 +1037,11 @@ abstract final class Endpoints {
   /// keyed by the remote spool id — same body, same replace semantics.
   static String spoolmanSpoolFilamentPresets(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/filament-presets';
+
+  /// Spoolman counterpart of [inventorySpoolSuppliers]: rows stored
+  /// Bambuddy-side and keyed by the remote spool id, same body.
+  static String spoolmanSpoolSuppliers(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/suppliers';
 
   // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';
