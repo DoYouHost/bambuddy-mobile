@@ -8,7 +8,7 @@ class _LinkDraft {
       isPurchaseSource = keepPurchaseSource && link.isPurchaseSource,
       article = TextEditingController(text: link.articleNumber ?? ''),
       price = TextEditingController(
-        text: link.quotedPricePerKg?.toString() ?? '',
+        text: link.quotedPricePerKg?.toStringAsFixed(2) ?? '',
       );
 
   final int supplierId;
@@ -60,14 +60,19 @@ class _SupplierLinksSection extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: DashSpace.xs),
         ),
         for (final link in links) _linkCard(context, l10n, link),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            onPressed: () => _pick(context),
-            icon: const Icon(Icons.add_business_outlined),
-            label: Text(l10n.inventorySupplierAssign),
-          ).tagged('spool_form.supplier_add'),
-        ),
+        const SizedBox(height: DashSpace.sm),
+        // Full width, so it lines up with the cards above it — a text button's
+        // own padding left it indented against them.
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          onPressed: () => _pick(context),
+          icon: const Icon(Icons.add_business_outlined),
+          label: Text(l10n.inventorySupplierAssign),
+        ).tagged('spool_form.supplier_add'),
       ],
     );
   }
@@ -102,11 +107,14 @@ class _SupplierLinksSection extends ConsumerWidget {
     final t = DashTokens.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+      // The close button's 48 dp touch box draws its 24 dp icon 12 dp in, so
+      // the card gives it xs on the right and the fields below take md more:
+      // the icon's edge and the fields' edge then both sit lg from the border.
       padding: const EdgeInsets.fromLTRB(
         DashSpace.lg,
-        DashSpace.sm,
-        DashSpace.sm,
-        DashSpace.md,
+        DashSpace.xs,
+        DashSpace.xs,
+        DashSpace.lg,
       ),
       decoration: BoxDecoration(
         color: t.subCard,
@@ -150,8 +158,9 @@ class _SupplierLinksSection extends ConsumerWidget {
               ).tagged('spool_form.supplier_remove'),
             ],
           ),
+          const SizedBox(height: DashSpace.xs),
           Padding(
-            padding: const EdgeInsets.only(right: DashSpace.sm),
+            padding: const EdgeInsets.only(right: DashSpace.md),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -142,6 +142,27 @@ void main() {
     expect(find.text(l10n.inventorySupplierLinksHint), findsNothing);
   });
 
+  testWidgets('the supplier cards line up with each other and the button', (
+    tester,
+  ) async {
+    await openForm(tester);
+
+    // The close icon's edge is where the fields end, not wherever its touch
+    // box happens to leave it.
+    final icon = tester.getTopRight(find.byIcon(Icons.close).first).dx;
+    final field = tester
+        .getTopRight(byLogId('spool_form.supplier_price').first)
+        .dx;
+    expect(icon, field);
+
+    final card = find
+        .ancestor(of: find.text('Extrudr'), matching: find.byType(Container))
+        .first;
+    final button = byLogId('spool_form.supplier_add');
+    expect(tester.getTopLeft(button).dx, tester.getTopLeft(card).dx);
+    expect(tester.getTopRight(button).dx, tester.getTopRight(card).dx);
+  });
+
   testWidgets('an untouched edit writes nothing', (tester) async {
     final (suppliers, inventory) = await openForm(tester);
     expect(find.text('Extrudr'), findsOneWidget);
