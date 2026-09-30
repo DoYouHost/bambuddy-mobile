@@ -52,8 +52,9 @@ enum NotifSkip {
   /// the condition — it still holds — only about saying so again.
   throttled,
 
-  /// An HMS fault cleared before it had stood long enough to alert — an X2D
-  /// reports its AC board as broken for a few seconds after every power-up.
+  /// An HMS fault that stayed away for the clear grace before it had stood long
+  /// enough to alert — an X2D reports its AC board as broken for a few seconds
+  /// after every power-up.
   transient,
 }
 

@@ -42,6 +42,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+import '../../hms_samples.dart';
 
 /// Filament runout as the server reports it on the `print_error` channel — the
 /// fault the panel exists for.
@@ -2229,6 +2230,21 @@ void main() {
       // The rest of the card is untouched — hiding the code is not a blackout.
       expect(find.text('X2D Warsztat'), findsOneWidget);
       expect(find.text('RUNNING'), findsOneWidget);
+    });
+
+    testWidgets('an hms[] fault reads in the server words the alert uses', (
+      tester,
+    ) async {
+      // The Polish table has no word for an hms[] code, so the card, the alert,
+      // the watch and the home widget must all fall back to the same sentence.
+      await tester.pumpWidget(
+        _cardWithProviders(itemWith([hmsX2dChamberHeater.fault])),
+      );
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(hmsX2dChamberHeater.description!), findsOneWidget);
+      expect(find.text('0300-9100-0001-000A'), findsOneWidget);
     });
 
     testWidgets('a print error is announced by count and opens on a tap', (

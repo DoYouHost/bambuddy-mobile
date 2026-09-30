@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import '../hms_samples.dart';
 
 /// Filament runout, as the server reports it on the `print_error` channel.
 const _runout = HmsError(
@@ -91,6 +92,14 @@ void main() {
     // Last row of a fault card that already fills the face: a scroll away.
     await revealOnWatch(tester, find.text('Odrzuć wszystkie'));
     expect(find.text('Odrzuć wszystkie'), findsOneWidget);
+  });
+
+  testWidgets('an hms[] fault reads in the server words the phone uses', (
+    tester,
+  ) async {
+    await _pumpControl(tester, [hmsX2dChamberHeater.fault]);
+
+    expect(find.text(hmsX2dChamberHeater.description!), findsOneWidget);
   });
 
   testWidgets('an unreachable printer offers no faults to act on', (
