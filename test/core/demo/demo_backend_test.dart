@@ -41,6 +41,8 @@ import 'package:bambuddy_mobile/data/server_settings_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
+import 'package:bambuddy_mobile/data/suppliers_repository.dart';
+import 'package:bambuddy_mobile/core/models/supplier.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
@@ -1647,6 +1649,138 @@ void main() {
       final temps = status['temperatures'] as Map;
       expect(temps['nozzle_target'], greaterThan(0));
       expect(temps['bed_target'], greaterThan(0));
+    });
+  });
+
+  test('the demo reports a version every gate says yes to', () async {
+    // The demo presents every feature; its version is invented, so it must
+    // never be the thing that hides one. A new gate above it fails here.
+    final version = await ServerVersionService(dio).current();
+    expect(version, isNotNull);
+    expect([
+      for (final f in ServerFeature.values)
+        if (!version!.supports(f)) f.name,
+    ], isEmpty);
+  });
+
+  group('suppliers', () {
+    final suppliers = SuppliersRepository(dio);
+
+    test('the gate opens off the spool rows alone', () async {
+      final spools = await NativeInventorySource(dio).fetchSpools();
+      final repo = SuppliersRepository(dio);
+      repo.observeSpools(spools);
+      expect(repo.capability.observedAnswer, isTrue);
+      final linked = spools.where((s) => s.suppliers!.isNotEmpty).toList();
+      expect(linked, isNotEmpty);
+      expect(
+        linked.any((s) => s.suppliers!.any((l) => l.isPurchaseSource)),
+        isTrue,
+      );
+      // A spool with none, so the filter and the card's absence show too.
+      expect(spools.any((s) => s.suppliers!.isEmpty), isTrue);
+    });
+
+    test('the list has one deletable row and refuses the others', () async {
+      final rows = await suppliers.listSuppliers();
+      expect(rows.length, greaterThanOrEqualTo(3));
+      expect(rows.where((r) => r.spoolCount == 0), isNotEmpty);
+      final used = rows.firstWhere((r) => r.spoolCount > 0);
+      await expectLater(
+        suppliers.deleteSupplier(used.id),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+        ),
+      );
+      await expectLater(
+        suppliers.createSupplier(SupplierDraft(name: used.name.toUpperCase())),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 409),
+        ),
+      );
+    });
+
+    test('create, rename onto the links, delete', () async {
+      final created = await suppliers.createSupplier(
+        const SupplierDraft(name: 'Demo test shop'),
+      );
+      final source = NativeInventorySource(dio);
+      final spool = (await source.fetchSpools()).last;
+      final before = spool.suppliers!;
+      await suppliers.saveSpoolLinks(spool.id, [
+        ...before,
+        SpoolSupplierLink(supplierId: created.id),
+      ], backend: InventoryBackend.native);
+
+      await suppliers.updateSupplier(
+        created.id,
+        const SupplierDraft(name: 'Demo test shop 2'),
+      );
+      final reread = (await source.fetchSpools()).firstWhere(
+        (s) => s.id == spool.id,
+      );
+      expect(reread.suppliers!.last.supplierName, 'Demo test shop 2');
+
+      await suppliers.saveSpoolLinks(
+        spool.id,
+        before,
+        backend: InventoryBackend.native,
+      );
+      await suppliers.deleteSupplier(created.id);
+      expect(
+        (await suppliers.listSuppliers()).any((r) => r.id == created.id),
+        isFalse,
+      );
+    });
+
+    test('two purchase sources are refused like the route does', () async {
+      final spool = (await NativeInventorySource(dio).fetchSpools()).first;
+      await expectLater(
+        suppliers.saveSpoolLinks(spool.id, const [
+          SpoolSupplierLink(supplierId: 1, isPurchaseSource: true),
+          SpoolSupplierLink(supplierId: 2, isPurchaseSource: true),
+        ], backend: InventoryBackend.native),
+        throwsA(
+          isA<AppApiException>().having((e) => e.statusCode, 'status', 400),
+        ),
+      );
+    });
+
+    test('stats: purchase sources only, and the range narrows usage', () async {
+      final all = await suppliers.fetchStats();
+      expect(all, isNotEmpty);
+      expect(all.first.consumedGrams, greaterThan(0));
+      expect(all.any((r) => r.supplierName == 'Printed Solid'), isFalse);
+
+      final far = DateTime(2000);
+      final none = await suppliers.fetchStats(from: far, to: far);
+      expect(none.every((r) => r.consumedGrams == 0), isTrue);
+      // Stock is point-in-time and ignores the range.
+      expect(
+        none.map((r) => r.remainingGrams),
+        all.map((r) => r.remainingGrams),
+      );
+    });
+
+    test('a new spool inherits the sources, not the purchase', () async {
+      final source = NativeInventorySource(dio);
+      final linked = (await source.fetchSpools()).firstWhere(
+        (s) => s.suppliers!.any((l) => l.isPurchaseSource),
+      );
+      final created = await source.createSpool(
+        SpoolDraft(
+          material: linked.material,
+          subtype: linked.subtype,
+          brand: linked.brand,
+          colorName: linked.colorName,
+        ),
+      );
+      expect(
+        created.suppliers!.map((l) => l.supplierId),
+        linked.suppliers!.map((l) => l.supplierId),
+      );
+      expect(created.suppliers!.every((l) => !l.isPurchaseSource), isTrue);
+      await source.deleteSpool(created.id);
     });
   });
 }
