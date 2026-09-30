@@ -126,10 +126,16 @@ class _SupplierRow extends ConsumerWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                l10n.inventorySpoolCount(supplier.spoolCount),
-                style: t.label.copyWith(color: t.textSecondary),
-              ),
+              if (supplier.spoolCount > 0)
+                TextButton(
+                  onPressed: () => _showSpools(context, ref),
+                  child: Text(l10n.inventorySpoolCount(supplier.spoolCount)),
+                ).tagged('suppliers.show_spools')
+              else
+                Text(
+                  l10n.inventorySpoolCount(0),
+                  style: t.label.copyWith(color: t.textSecondary),
+                ),
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: l10n.inventoryDelete,
@@ -141,6 +147,25 @@ class _SupplierRow extends ConsumerWidget {
         ).tagged('suppliers.edit'),
       ),
     );
+  }
+
+  /// Shows the Filaments list narrowed to this supplier — any assignment, the
+  /// purchase source or an alternative, which is what the count counts.
+  ///
+  /// The other filters are cleared so none of the counted spools hides behind
+  /// one, and the archive is shown when that is the only place they are.
+  void _showSpools(BuildContext context, WidgetRef ref) {
+    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
+    bool here(Spool s) =>
+        (s.suppliers ?? const []).any((l) => l.supplierId == supplier.id);
+    final onlyArchived =
+        spools.any(here) && !spools.any((s) => here(s) && !s.isArchived);
+    final filters = ref.read(inventoryFiltersProvider.notifier);
+    filters.state = filters.state.cleared().copyWith(
+      suppliers: {supplier.name},
+      showArchived: onlyArchived,
+    );
+    Navigator.of(context).pop();
   }
 
   /// A supplier still on a spool is refused by the server (409), so the count

@@ -11,10 +11,16 @@ import '../../helpers.dart';
 import 'fake_suppliers.dart';
 
 class _Shelf extends InventoryNotifier {
+  _Shelf([
+    this.spools = const [
+      Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: []),
+    ],
+  ]);
+
+  final List<Spool> spools;
+
   @override
-  Future<InventoryState> build() async => const InventoryState(
-    spools: [Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: [])],
-  );
+  Future<InventoryState> build() async => InventoryState(spools: spools);
 }
 
 void main() {
@@ -24,12 +30,18 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('pl'));
   });
 
-  Future<void> pumpShelf(WidgetTester tester, FakeSuppliers suppliers) async {
+  Future<void> pumpShelf(
+    WidgetTester tester,
+    FakeSuppliers suppliers, {
+    List<Spool>? spools,
+  }) async {
     await pumpPhone(
       tester,
       const InventoryScreen(),
       overrides: [
-        inventoryProvider.overrideWith(_Shelf.new),
+        inventoryProvider.overrideWith(
+          () => spools == null ? _Shelf() : _Shelf(spools),
+        ),
         noServerProfileOverride,
         suppliersRepositoryProvider.overrideWithValue(suppliers),
       ],
@@ -229,5 +241,77 @@ void main() {
     await settle(tester);
 
     expect(find.text(l10n.inventorySupplierInUseUnknown), findsOneWidget);
+  });
+
+  group('the spool count', () {
+    const extrudr = SpoolSupplierLink(supplierId: 3, supplierName: 'Extrudr');
+    const other = SpoolSupplierLink(supplierId: 5, supplierName: 'Other');
+
+    testWidgets('opens the list narrowed to that supplier', (tester) async {
+      await pumpShelf(
+        tester,
+        FakeSuppliers(
+          suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 2)],
+        ),
+        spools: const [
+          Spool(id: 1, material: 'PLA', brand: 'Bambu', suppliers: [extrudr]),
+          Spool(
+            id: 2,
+            material: 'PETG',
+            brand: 'Bambu',
+            suppliers: [other, extrudr],
+          ),
+          Spool(id: 3, material: 'ABS', brand: 'Bambu', suppliers: [other]),
+        ],
+      );
+      await openSheet(tester);
+
+      await tester.tap(byLogId('suppliers.show_spools'));
+      await settle(tester);
+
+      expect(byLogId('sheet.suppliers'), findsNothing);
+      expect(find.text('Bambu PLA'), findsOneWidget);
+      expect(find.text('Bambu PETG'), findsOneWidget);
+      expect(find.text('Bambu ABS'), findsNothing);
+    });
+
+    testWidgets('goes to the archive when that is where they all are', (
+      tester,
+    ) async {
+      await pumpShelf(
+        tester,
+        FakeSuppliers(
+          suppliers: const [Supplier(id: 3, name: 'Extrudr', spoolCount: 1)],
+        ),
+        spools: const [
+          Spool(
+            id: 1,
+            material: 'PLA',
+            brand: 'Bambu',
+            archivedAt: '2026-09-01T00:00:00Z',
+            suppliers: [extrudr],
+          ),
+          Spool(id: 2, material: 'PETG', brand: 'Bambu', suppliers: [other]),
+        ],
+      );
+      await openSheet(tester);
+
+      await tester.tap(byLogId('suppliers.show_spools'));
+      await settle(tester);
+
+      expect(find.text('Bambu PLA'), findsOneWidget);
+      expect(find.text('Bambu PETG'), findsNothing);
+    });
+
+    testWidgets('is plain text when nothing is assigned', (tester) async {
+      await pumpShelf(
+        tester,
+        FakeSuppliers(suppliers: const [Supplier(id: 3, name: 'Extrudr')]),
+      );
+      await openSheet(tester);
+
+      expect(byLogId('suppliers.show_spools'), findsNothing);
+      expect(find.text(l10n.inventorySpoolCount(0)), findsOneWidget);
+    });
   });
 }
