@@ -28,6 +28,18 @@ void main() {
         ApiKeyCreateInput(name: name, scopes: scopes),
       );
       minted.add(created.apiKey.id);
+      // The create route only flushes; `get_db` commits after the reply has
+      // gone out, so a key used at once can still be unknown and answer 401
+      // (1 in 100 on a throttled container, CI run 36677355174). The listing
+      // shows the row once it is committed.
+      await pollUntil(
+        'key ${created.apiKey.id} to be committed',
+        () async => (await keys.list()).any((k) => k.id == created.apiKey.id)
+            ? true
+            : null,
+        within: const Duration(seconds: 10),
+        every: const Duration(milliseconds: 100),
+      );
       return created;
     }
 
