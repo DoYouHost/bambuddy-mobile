@@ -184,24 +184,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
             const SizedBox(height: DashSpace.xl),
 
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.accentGreen,
-                foregroundColor: _onAccentGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
-                  ? DashSpinner(color: _onAccentGreen)
+                  ? DashSpinner(color: t.onAccent)
                   : const Icon(Icons.add_link, size: 18),
-              label: Text(
-                l10n.inventoryAssignConfirm,
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              label: Text(l10n.inventoryAssignConfirm),
             ).tagged('spool_assign.save'),
           ],
         ],

@@ -325,7 +325,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                 style: dashPrimaryButtonStyle(t),
                 onPressed: _busy ? null : (_verifying ? _verify : _signIn),
                 child: _busy
-                    ? DashSpinner(color: Color(0xFF0A0C08))
+                    ? DashSpinner(color: DashTokens.of(context).onAccent)
                     : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
               ).tagged('cloud.sign_in'),
             ],

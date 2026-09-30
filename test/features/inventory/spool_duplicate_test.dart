@@ -114,16 +114,8 @@ void main() {
   VoidCallback? saveAction(WidgetTester tester) =>
       tester.widget<FilledButton>(find.byType(FilledButton).last).onPressed;
 
-  Future<void> scrollToSave(WidgetTester tester) async {
-    // The form is a lazy ListView taller than the screen.
-    for (var i = 0; i < 8; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pump();
-    }
-  }
-
   Future<void> save(WidgetTester tester) async {
-    await scrollToSave(tester);
+    await scrollSheetDown(tester);
     await tester.tap(saveButton());
     await settle(tester);
   }
@@ -193,7 +185,7 @@ void main() {
   ) async {
     final read = Completer<List<SpoolPresetOverride>>();
     await openCopy(tester, presetsSupported: true, pendingRead: read.future);
-    await scrollToSave(tester);
+    await scrollSheetDown(tester);
     expect(saveAction(tester), isNull);
 
     read.complete(const []);
@@ -203,7 +195,7 @@ void main() {
 
   testWidgets('a copy waits for the presets gate too', (tester) async {
     await openCopy(tester, gate: const AsyncLoading());
-    await scrollToSave(tester);
+    await scrollSheetDown(tester);
     expect(saveAction(tester), isNull);
   });
 

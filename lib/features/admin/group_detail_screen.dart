@@ -47,7 +47,7 @@ class GroupDetailScreen extends ConsumerWidget {
                 'group_detail.add_member',
                 FloatingActionButton.extended(
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   onPressed: () => _addMember(context, ref, async.value!),
                   icon: const Icon(Icons.person_add_alt_1),
                   label: Text(l10n.groupsAddMember),

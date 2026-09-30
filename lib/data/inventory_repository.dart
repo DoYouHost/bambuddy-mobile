@@ -133,10 +133,15 @@ class InventoryRepository {
 
   /// Replaces every override on [spoolId]. Throws on any failure: the user
   /// pressed Save, so a refusal has to reach them.
+  ///
+  /// Its 403 settles nothing: that is a missing `inventory:update`, and taking
+  /// it for "no presets here" would hide the section from a session that can
+  /// still read it.
   Future<void> savePresetOverrides(
     int spoolId,
     List<SpoolPresetOverride> overrides,
   ) => presetOverridesCapability.watching(
+    observing: const {},
     () => _source.savePresetOverrides(spoolId, overrides),
   );
 }

@@ -2,11 +2,13 @@ part of 'inventory_screen.dart';
 
 class _SearchBar extends StatelessWidget {
   const _SearchBar({
+    required this.controller,
     required this.filterCount,
     required this.onQuery,
     required this.onOpenFilters,
   });
 
+  final TextEditingController controller;
   final int filterCount;
   final ValueChanged<String> onQuery;
   final VoidCallback onOpenFilters;
@@ -17,6 +19,7 @@ class _SearchBar extends StatelessWidget {
     // Outer padding is supplied by the enclosing [DashSliverSearchBar].
     return DashSearchField(
       id: 'inventory.search',
+      controller: controller,
       hintText: l10n.inventorySearchHint,
       onChanged: onQuery,
       trailing: [
@@ -31,7 +34,7 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/// Inventory filter sheet: status, stock, material, brand, location.
+/// Inventory filter sheet: status, stock, material, brand, location, supplier.
 /// Changes saved immediately to [inventoryFiltersProvider] — list below updates live.
 /// Options passed from view (values that actually occur).
 class _FilterSheet extends ConsumerWidget {
@@ -39,11 +42,15 @@ class _FilterSheet extends ConsumerWidget {
     required this.materials,
     required this.brands,
     required this.locations,
+    required this.suppliers,
   });
 
   final List<String> materials;
   final List<String> brands;
   final List<String> locations;
+
+  /// Supplier id → name, for the suppliers some spool carries.
+  final Map<int, String> suppliers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,7 +59,7 @@ class _FilterSheet extends ConsumerWidget {
     final filters = ref.watch(inventoryFiltersProvider);
     final notifier = ref.read(inventoryFiltersProvider.notifier);
 
-    Set<String> toggled(Set<String> set, String value) {
+    Set<T> toggled<T>(Set<T> set, T value) {
       final next = {...set};
       if (!next.remove(value)) next.add(value);
       return next;
@@ -191,6 +198,29 @@ class _FilterSheet extends ConsumerWidget {
                 onToggle: (v) => notifier.state = filters.copyWith(
                   locations: toggled(filters.locations, v),
                 ),
+              ),
+            ],
+            if (suppliers.isNotEmpty) ...[
+              const SizedBox(height: DashSpace.lg),
+              FilterGroupLabel(label: l10n.inventorySuppliersTitle),
+              Wrap(
+                spacing: DashSpace.sm,
+                runSpacing: DashSpace.xs,
+                children: [
+                  for (final MapEntry(key: id, value: name)
+                      in (suppliers.entries.toList()..sort(
+                        (a, b) => a.value.toLowerCase().compareTo(
+                          b.value.toLowerCase(),
+                        ),
+                      )))
+                    FilterChip(
+                      label: Text(name),
+                      selected: filters.suppliers.contains(id),
+                      onSelected: (_) => notifier.state = filters.copyWith(
+                        suppliers: toggled(filters.suppliers, id),
+                      ),
+                    ),
+                ],
               ),
             ],
           ],

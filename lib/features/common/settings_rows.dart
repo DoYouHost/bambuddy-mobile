@@ -243,9 +243,9 @@ class SettingsSlider extends StatelessWidget {
                 thumbColor: t.accentGreen,
                 overlayColor: t.accentGreen.withValues(alpha: 0.15),
                 valueIndicatorColor: t.accentGreen,
-                valueIndicatorTextStyle: const TextStyle(
+                valueIndicatorTextStyle: TextStyle(
                   fontFamily: DashTokens.fontMono,
-                  color: Color(0xFF0A0C08),
+                  color: t.onAccent,
                   fontWeight: FontWeight.w700,
                 ),
               ),

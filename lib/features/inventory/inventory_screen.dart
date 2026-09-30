@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -15,10 +17,10 @@ import '../../core/models/location_sensor.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
 import '../../core/slicer/preset_filters.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../data/inventory_repository.dart';
 import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
 import '../../router.dart';
@@ -50,13 +52,8 @@ part 'inventory_form.dart';
 part 'inventory_labels.dart';
 part 'inventory_bulk_edit.dart';
 part 'location_climate.dart';
-
-/// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
-/// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
-/// this isn't theme-adaptive by design — the accent fill itself is a fixed
-/// vivid swatch in both brightnesses, so a near-black ink keeps it readable
-/// either way.
-const Color _onAccentGreen = Color(0xFF08150D);
+part 'suppliers_sheet.dart';
+part 'spool_form_suppliers.dart';
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -157,6 +154,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   bool get _selectionMode => _selected.isNotEmpty;
 
+  /// Held here so the field follows [inventoryQueryProvider] when something
+  /// other than typing clears it — a supplier's spool count does.
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   /// The shelf and the climate readings, which age on their own — the server
   /// polls Home Assistant on its own interval, so whoever asks for the shelf
   /// has to ask for those too.
@@ -184,10 +191,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
+    ref.listen(inventoryQueryProvider, (_, next) {
+      if (_search.text != next) _search.text = next;
+    });
     final filters = ref.watch(inventoryFiltersProvider);
     final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final climates = ref.watch(locationClimateProvider).valueOrNull ?? const {};
     final climateAlerting = climates.values.any((c) => c.alerting);
+    final suppliersSupported = ref.watch(suppliersSupportedProvider).orFalse;
     final visible = sortSpools(
       _filter(async.valueOrNull?.spools ?? const [], query, filters),
       filters.sort,
@@ -230,6 +241,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         onPressed: () => _openLocationClimate(context),
                       ),
                     ),
+                  if (suppliersSupported)
+                    logTag(
+                      'inventory.suppliers',
+                      IconButton(
+                        icon: const Icon(Icons.storefront_outlined),
+                        tooltip: l10n.inventorySuppliersTitle,
+                        onPressed: () => _openSuppliers(context),
+                      ),
+                    ),
                   logTag(
                     'inventory.print_labels_all',
                     IconButton(
@@ -270,7 +290,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     FloatingActionButton.extended(
                       heroTag: 'addSpool',
                       backgroundColor: t.accentGreen,
-                      foregroundColor: _onAccentGreen,
+                      foregroundColor: t.onAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
@@ -304,6 +324,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   slivers: [
                     DashSliverSearchBar(
                       child: _SearchBar(
+                        controller: _search,
                         filterCount: filters.activeCount,
                         onQuery: (v) =>
                             ref.read(inventoryQueryProvider.notifier).state = v,
@@ -584,8 +605,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return l10n.inventoryBulkDone(outcome.ok);
   }
 
-  /// Client-side filter: status (active/archived), stock, material, brand, location,
-  /// and search by material/brand/color/location (case-insensitive). Empty sets in
+  /// Client-side filter: status (active/archived), stock, material, brand,
+  /// location, supplier, and search by material/brand/color/location (case-insensitive). Empty sets in
   /// [filters] = no restriction.
   List<Spool> _filter(
     List<Spool> spools,
@@ -603,7 +624,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 if (filters.locations.isEmpty ||
                     (s.storageLocation != null &&
                         filters.locations.contains(s.storageLocation)))
-                  if (s.matchesSearch(query)) s,
+                  if (filters.suppliers.isEmpty ||
+                      (s.suppliers ?? const []).any(
+                        (l) => filters.suppliers.contains(l.supplierId),
+                      ))
+                    if (s.matchesSearch(query)) s,
     ];
   }
 
@@ -621,6 +646,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),
         locations: _distinct(all.map((s) => s.storageLocation)),
+        suppliers: {
+          for (final s in all)
+            for (final link in s.suppliers ?? const <SpoolSupplierLink>[])
+              link.supplierId: link.supplierName,
+        },
       ),
     );
   }

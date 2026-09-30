@@ -5,7 +5,6 @@ import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,15 +45,6 @@ class _FakeInventory extends InventoryNotifier {
   }
 }
 
-class _FixedBackend extends InventoryBackendNotifier {
-  _FixedBackend(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
-}
-
 void main() {
   late AppLocalizations l10n;
 
@@ -76,7 +66,7 @@ void main() {
       overrides: [
         inventoryProvider.overrideWith(() => fake),
         noServerProfileOverride,
-        inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
+        inventoryBackendOverride(backend),
       ],
     );
     await settle(tester);
@@ -92,10 +82,7 @@ void main() {
     // The sheet is a lazy ListView taller than the screen: Apply and the last
     // fields are not built until they scroll into range, and a finder cannot
     // tap what was never built.
-    for (var i = 0; i < 4; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pump();
-    }
+    await scrollSheetDown(tester, times: 4);
     return fake;
   }
 
@@ -129,10 +116,7 @@ void main() {
 
     await tester.tap(find.text(l10n.inventoryColorSelect));
     await settle(tester);
-    for (var i = 0; i < 4; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pump();
-    }
+    await scrollSheetDown(tester, times: 4);
     await tester.tap(applyButton());
     await settle(tester);
     await tester.tap(find.text(l10n.inventoryApply));

@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/theme/dash_theme.dart';
 
-/// Ink on [DashTokens.accentGreen] — the badge count has to stay readable on
-/// the accent, which is too light for white.
-const Color _onAccentGreen = Color(0xFF08150D);
-
 /// Square button opening a list screen's filter sheet; the badge shows how many
 /// filters are active. Size matches the search field (48×48) so the two line up
 /// in the same row.
@@ -36,7 +32,7 @@ class FilterButton extends StatelessWidget {
         isLabelVisible: active,
         label: Text('$count'),
         backgroundColor: t.accentGreen,
-        textColor: _onAccentGreen,
+        textColor: t.onAccent,
         child: SizedBox(
           width: 48,
           height: 48,

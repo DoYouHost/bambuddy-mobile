@@ -4727,9 +4727,10 @@ class DemoBackend {
       'last_used': _iso(_daysAgo(id % 6)),
       'created_at': _iso(_daysAgo(30 + id)),
       'k_profiles': const <Object>[],
+      'suppliers': <Map<String, dynamic>>[],
     };
 
-    return [
+    final spools = [
       spool(
         'PLA',
         'Basic',
@@ -4804,6 +4805,251 @@ class DemoBackend {
         archivedAt: _iso(_daysAgo(10)),
       ),
     ];
+    // Bought from the Bambu store with Filament24 as the alternative, bought
+    // at Filament24, and nothing at all — the three states the spool card and
+    // the supplier filter have to show. Printed Solid stays unassigned, so the
+    // supplier list has one row that can be deleted and two that cannot.
+    _linkSeed(spools[0], [
+      (1, 'GFA00-K0', 24.99, true),
+      (2, 'BL-PLA-BK-1', 22.90, false),
+    ]);
+    _linkSeed(spools[1], [(1, null, 24.99, true)]);
+    _linkSeed(spools[3], [(2, 'BL-PETG-HF-W', 27.50, true)]);
+    _linkSeed(spools[7], [(2, null, null, true)]);
+    return spools;
+  }
+
+  void _linkSeed(
+    Map<String, dynamic> spool,
+    List<(int, String?, double?, bool)> links,
+  ) {
+    spool['suppliers'] = [
+      for (final (supplierId, article, price, bought) in links)
+        _supplierLink(supplierId, {
+          'supplier_article_number': article,
+          'quoted_price_per_kg': price,
+          'is_purchase_source': bought,
+        }),
+    ];
+  }
+
+  // --- Suppliers (#2988) ---
+
+  late final List<Map<String, dynamic>> _suppliers = [
+    _supplierRow(1, 'Bambu Lab Store', website: 'https://store.bambulab.com'),
+    _supplierRow(
+      2,
+      'Filament24',
+      website: 'https://filament24.example',
+      customerNumber: 'K-10442',
+    ),
+    _supplierRow(3, 'Printed Solid', note: 'Ships from the US'),
+  ];
+  int _nextSupplierId = 10;
+  int _nextSupplierLinkId = 1;
+
+  Map<String, dynamic> _supplierRow(
+    int id,
+    String name, {
+    String? website,
+    String? customerNumber,
+    String? note,
+  }) => {
+    'id': id,
+    'name': name,
+    'website': website,
+    'customer_number': customerNumber,
+    'note': note,
+    'created_at': _iso(_daysAgo(60)),
+    'updated_at': _iso(_daysAgo(60)),
+  };
+
+  Map<String, dynamic> _supplierLink(
+    int supplierId,
+    Map<dynamic, dynamic> input,
+  ) => {
+    'id': _nextSupplierLinkId++,
+    'supplier_id': supplierId,
+    'supplier_name':
+        _suppliers.where((x) => x['id'] == supplierId).firstOrNull?['name'] ??
+        '',
+    'supplier_article_number': input['supplier_article_number'],
+    'quoted_price_per_kg': input['quoted_price_per_kg'],
+    'is_purchase_source': input['is_purchase_source'] == true,
+  };
+
+  Iterable<Map<String, dynamic>> _linksOf(Map<String, dynamic> spool) =>
+      (spool['suppliers'] as List? ?? const []).cast<Map<String, dynamic>>();
+
+  int _supplierSpoolCount(int supplierId) => _spools
+      .where((sp) => _linksOf(sp).any((l) => l['supplier_id'] == supplierId))
+      .length;
+
+  Map<String, dynamic> _supplierResponse(Map<String, dynamic> row) => {
+    ...row,
+    'spool_count': _supplierSpoolCount(row['id'] as int),
+  };
+
+  bool _supplierNameTaken(Object? name, {int? except}) {
+    final key = '$name'.trim().toLowerCase();
+    return _suppliers.any(
+      (x) => x['id'] != except && '${x['name']}'.toLowerCase() == key,
+    );
+  }
+
+  static const _duplicateSupplier = (
+    status: 409,
+    body: {'detail': 'A supplier with this name already exists'},
+  );
+
+  /// `/inventory/suppliers` and `/inventory/suppliers/{id}`, with the two 409s
+  /// the real routes answer: a name taken case-insensitively, and a delete of a
+  /// supplier some spool still references.
+  DemoResult _suppliersRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2) {
+      if (m == 'GET') {
+        final rows = [..._suppliers]
+          ..sort(
+            (a, b) => '${a['name']}'.toLowerCase().compareTo(
+              '${b['name']}'.toLowerCase(),
+            ),
+          );
+        return _ok([for (final r in rows) _supplierResponse(r)]);
+      }
+      if (m == 'POST') {
+        if (_supplierNameTaken(body['name'])) return _duplicateSupplier;
+        final row = _supplierRow(
+          _nextSupplierId++,
+          '${body['name']}'.trim(),
+          website: body['website'] as String?,
+          customerNumber: body['customer_number'] as String?,
+          note: body['note'] as String?,
+        );
+        _suppliers.add(row);
+        return (status: 201, body: _supplierResponse(row));
+      }
+    }
+    final id = int.tryParse(s.length > 2 ? s[2] : '');
+    final row = _suppliers.where((x) => x['id'] == id).firstOrNull;
+    if (row == null || s.length != 3) return _notFound();
+    if (m == 'PATCH') {
+      if (body.containsKey('name') &&
+          _supplierNameTaken(body['name'], except: id)) {
+        return _duplicateSupplier;
+      }
+      for (final key in ['website', 'customer_number', 'note']) {
+        if (body.containsKey(key)) row[key] = body[key];
+      }
+      if (body.containsKey('name')) row['name'] = '${body['name']}'.trim();
+      row['updated_at'] = _iso(DateTime.now());
+      // The links carry the name flattened, as `supplier_name` does server-side.
+      for (final spool in _spools) {
+        for (final link in _linksOf(spool)) {
+          if (link['supplier_id'] == id) link['supplier_name'] = row['name'];
+        }
+      }
+      return _ok(_supplierResponse(row));
+    }
+    if (m == 'DELETE') {
+      if (_supplierSpoolCount(id!) > 0) {
+        return (
+          status: 409,
+          body: {
+            'detail': 'Supplier has spools assigned and cannot be deleted',
+          },
+        );
+      }
+      _suppliers.remove(row);
+      return _ok(const {'status': 'deleted'});
+    }
+    return _fallback(m);
+  }
+
+  /// `PUT /inventory/spools/{id}/suppliers` — replace-all, with the route's two
+  /// 400s so the form's one-purchase-source rule is not the only guard.
+  DemoResult _replaceSpoolSuppliers(
+    Map<String, dynamic> spool,
+    Object? rawBody,
+  ) {
+    final sent = (rawBody is List ? rawBody : const []).whereType<Map>();
+    final ids = [for (final l in sent) l['supplier_id']];
+    if (ids.toSet().length != ids.length) {
+      return (
+        status: 400,
+        body: {'detail': 'Duplicate supplier in assignment list'},
+      );
+    }
+    if (sent.where((l) => l['is_purchase_source'] == true).length > 1) {
+      return (
+        status: 400,
+        body: {'detail': 'Only one assignment can be the purchase source'},
+      );
+    }
+    if (ids.any((id) => !_suppliers.any((x) => x['id'] == id))) {
+      return _notFound();
+    }
+    spool['suppliers'] = [
+      for (final l in sent) _supplierLink(l['supplier_id'] as int, l),
+    ];
+    return _ok(spool['suppliers']);
+  }
+
+  /// `GET /inventory/stats/suppliers`: grouped by the purchase source only,
+  /// stock from active spools, consumption and cost from the usage rows inside
+  /// the date range — archived spools included, as their use happened.
+  DemoResult _supplierStats(Map<String, String> q) {
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final rows = <int, Map<String, dynamic>>{};
+    for (final spool in _spools) {
+      final bought = _linksOf(
+        spool,
+      ).where((l) => l['is_purchase_source'] == true).firstOrNull;
+      if (bought == null) continue;
+      final id = bought['supplier_id'] as int;
+      final row = rows.putIfAbsent(
+        id,
+        () => {
+          'supplier_id': id,
+          'supplier_name': bought['supplier_name'],
+          'spool_count': 0,
+          'remaining_g': 0.0,
+          'consumed_g': 0.0,
+          'cost': 0.0,
+        },
+      );
+      if (spool['archived_at'] == null) {
+        final left =
+            (spool['label_weight'] as num) - (spool['weight_used'] as num);
+        row['spool_count'] = (row['spool_count'] as int) + 1;
+        row['remaining_g'] =
+            (row['remaining_g'] as double) + (left > 0 ? left : 0);
+      }
+      for (final use in _spoolUsage(spool['id'] as int)) {
+        final at = DateTime.parse(use['created_at'] as String).toLocal();
+        final day = DateTime(at.year, at.month, at.day);
+        if (from != null && day.isBefore(from)) continue;
+        if (to != null && day.isAfter(to)) continue;
+        row['consumed_g'] =
+            (row['consumed_g'] as double) + (use['weight_used'] as num);
+        row['cost'] = (row['cost'] as double) + (use['cost'] as num);
+      }
+    }
+    final out = rows.values.toList()
+      ..sort((a, b) {
+        final byUse = (b['consumed_g'] as double).compareTo(
+          a['consumed_g'] as double,
+        );
+        if (byUse != 0) return byUse;
+        return '${a['supplier_name']}'.toLowerCase().compareTo(
+          '${b['supplier_name']}'.toLowerCase(),
+        );
+      });
+    return _ok(out);
   }
 
   late final List<Map<String, dynamic>> _assignments = [
@@ -5037,6 +5283,8 @@ class DemoBackend {
               return _ok(_spoolUsage(spoolId!));
             case 'k-profiles':
               return _ok(const <Object>[]);
+            case 'suppliers':
+              if (m == 'PUT') return _replaceSpoolSuppliers(spool, rawBody);
             case 'filament-presets':
               if (m == 'GET') {
                 return _ok(_presetOverrides[spoolId] ?? const <Object>[]);
@@ -5097,6 +5345,13 @@ class DemoBackend {
         }
         return _fallback(m);
 
+      case 'suppliers':
+        return _suppliersRoute(m, s, body);
+      case 'stats':
+        if (s.length == 3 && s[2] == 'suppliers' && m == 'GET') {
+          return _supplierStats(q);
+        }
+        return _fallback(m);
       case 'catalog':
         return _ok(_coreWeights);
       case 'colors':
@@ -5315,6 +5570,27 @@ class DemoBackend {
       'k_profiles': const <Object>[],
       ...draft,
     };
+    // The server's inheritance (`services/supplier_links.py`): the newest spool
+    // of the same product that has any sources lends them, never where it was
+    // bought.
+    final donor = _spools.lastWhere(
+      (x) =>
+          _linksOf(x).isNotEmpty &&
+          [
+            'material',
+            'subtype',
+            'brand',
+            'color_name',
+          ].every((k) => x[k] == spool[k]),
+      orElse: () => const {},
+    );
+    spool['suppliers'] = [
+      for (final link in _linksOf(donor))
+        _supplierLink(link['supplier_id'] as int, {
+          ...link,
+          'is_purchase_source': false,
+        }),
+    ];
     _spools.add(spool);
     return spool;
   }

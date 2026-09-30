@@ -945,7 +945,6 @@
   },
   "inventoryRemaining": "zostało {grams} g",
   "inventoryTotalConsumed": "zużyto {weight}",
-  "inventoryConsumedSinceReset": "Zużyte od resetu: {weight}",
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -961,25 +960,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Załadowana w {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Nie załadowana w żadnym slocie AMS",
   "inventoryLocation": "Lokalizacja",
   "inventoryNozzleTemp": "Temp. dyszy",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Notatka",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Historia zużycia",
@@ -3216,5 +3198,41 @@
   "wallLiveCameraTitle": "Kamera na żywo",
   "wallLiveCameraDesc": "Po wyłączeniu kafle pokazują sam status drukarki i nie otwierają strumienia kamery.",
   "wallPrintersTitle": "Drukarki na ścianie",
-  "wallAllHidden": "Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach."
+  "wallAllHidden": "Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.",
+  "inventorySuppliersTitle": "Dostawcy",
+  "inventorySuppliersHint": "Dostawca to sklep, w którym kupujesz filament, a nie marka, która go wyprodukowała. Przypisujesz go w formularzu szpuli; dostawcy przypisanego do szpuli nie da się usunąć.",
+  "inventorySuppliersEmpty": "Nie masz jeszcze dostawców",
+  "inventorySuppliersLoadFailed": "Nie udało się wczytać dostawców",
+  "inventorySupplierAdd": "Dodaj",
+  "inventorySupplierNew": "Nowy dostawca",
+  "inventorySupplierEdit": "Edytuj dostawcę",
+  "inventorySupplierFieldName": "Nazwa",
+  "inventorySupplierFieldWebsite": "Strona internetowa",
+  "inventorySupplierFieldCustomerNumber": "Twój numer klienta",
+  "inventorySupplierCustomerNumberValue": "Nr klienta: {number}",
+  "inventorySupplierNameSeparator": "Nazwa nie może zawierać średnika",
+  "inventorySupplierNameTaken": "Dostawca o tej nazwie już istnieje",
+  "inventorySupplierSaved": "Zapisano dostawcę",
+  "inventorySupplierDeleted": "Usunięto dostawcę",
+  "inventorySupplierDeleteTitle": "Usunąć {name}?",
+  "inventorySupplierDeleteBody": "Zniknie z listy dostawców.",
+  "inventorySupplierInUse": "{count, plural, one{Przypisany do 1 szpuli — najpierw usuń go z niej} few{Przypisany do {count} szpul — najpierw usuń go z nich} many{Przypisany do {count} szpul — najpierw usuń go z nich} other{Przypisany do {count} szpuli — najpierw usuń go z nich}}",
+  "inventorySupplierInUseUnknown": "Nadal jest przypisany do szpuli — najpierw usuń go stamtąd",
+  "inventorySupplierBoughtHere": "Kupiona tutaj",
+  "inventorySupplierArticleValue": "Nr art. {number}",
+  "inventorySupplierQuotedPrice": "cena ofertowa {price}/kg",
+  "inventorySupplierLinksHint": "Gdzie można kupić ten produkt. Zaznacz sklep, w którym kupiono tę szpulę.",
+  "inventorySupplierAssign": "Dodaj dostawcę",
+  "inventorySupplierUnassign": "Usuń z tej szpuli",
+  "inventorySupplierFieldArticle": "Nr artykułu",
+  "inventorySupplierFieldQuotedPrice": "Cena ofertowa/kg",
+  "inventorySupplierNoneLeft": "Wszyscy dostawcy są już przypisani do tej szpuli",
+  "statsBySupplier": "Wg dostawcy",
+  "statsBySupplierHint": "Zużycie filamentu ze szpul kupionych u danego dostawcy i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.",
+  "statsBySupplierFailed": "Nie udało się wczytać danych dostawców",
+  "statsSupplierDetail": "{spools} · {remaining} na stanie · koszt {cost}",
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Nie załadowana",
+  "inventoryDetailConsumedSinceReset": "Zużyte od resetu",
+  "inventorySupplierArchivedCount": "{count} w archiwum"
 }

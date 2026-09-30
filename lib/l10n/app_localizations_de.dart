@@ -2411,33 +2411,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String inventoryConsumedSinceReset(String weight) {
-    return 'Seit Zurücksetzen verbraucht: $weight';
-  }
-
-  @override
   String inventoryOfTotal(int total) {
     return 'von $total g';
   }
-
-  @override
-  String inventoryLoadedIn(String slot) {
-    return 'Geladen in $slot';
-  }
-
-  @override
-  String get inventoryNotLoaded => 'In keinem AMS-Slot geladen';
 
   @override
   String get inventoryLocation => 'Lagerort';
 
   @override
   String get inventoryNozzleTemp => 'Düsentemperatur';
-
-  @override
-  String inventoryCostPerKg(String cost) {
-    return '$cost/kg';
-  }
 
   @override
   String get inventoryNote => 'Notiz';
@@ -7355,4 +7337,143 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.';
+
+  @override
+  String get inventorySuppliersTitle => 'Lieferanten';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Noch keine Lieferanten';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'Lieferanten konnten nicht geladen werden';
+
+  @override
+  String get inventorySupplierAdd => 'Hinzufügen';
+
+  @override
+  String get inventorySupplierNew => 'Neuer Lieferant';
+
+  @override
+  String get inventorySupplierEdit => 'Lieferant bearbeiten';
+
+  @override
+  String get inventorySupplierFieldName => 'Name';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Website';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Deine Kundennummer';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Kundennr. $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Der Name darf kein Semikolon enthalten';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Ein Lieferant mit diesem Namen existiert bereits';
+
+  @override
+  String get inventorySupplierSaved => 'Lieferant gespeichert';
+
+  @override
+  String get inventorySupplierDeleted => 'Lieferant gelöscht';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return '$name löschen?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Er wird aus der Lieferantenliste entfernt.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Spulen zugewiesen – entferne ihn zuerst dort',
+      one: 'Einer Spule zugewiesen – entferne ihn zuerst dort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Noch einer Spule zugewiesen – entferne ihn zuerst dort';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Hier gekauft';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Art.-Nr. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'Angebot $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.';
+
+  @override
+  String get inventorySupplierAssign => 'Lieferant hinzufügen';
+
+  @override
+  String get inventorySupplierUnassign => 'Von dieser Spule entfernen';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Artikelnr.';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Angebotspreis/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Alle Lieferanten sind dieser Spule schon zugewiesen';
+
+  @override
+  String get statsBySupplier => 'Nach Lieferant';
+
+  @override
+  String get statsBySupplierHint =>
+      'Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.';
+
+  @override
+  String get statsBySupplierFailed =>
+      'Lieferantendaten konnten nicht geladen werden';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining auf Lager · Kosten $cost';
+  }
+
+  @override
+  String get inventoryDetailSlot => 'Slot';
+
+  @override
+  String get inventoryDetailNotLoaded => 'Nicht geladen';
+
+  @override
+  String get inventoryDetailConsumedSinceReset =>
+      'Seit Zurücksetzen verbraucht';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    return '$count archiviert';
+  }
 }

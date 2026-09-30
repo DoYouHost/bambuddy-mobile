@@ -158,7 +158,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                 FloatingActionButton.extended(
                   onPressed: () => _startNext(context, ref, firstQueued, l10n),
                   backgroundColor: t.accentGreen,
-                  foregroundColor: const Color(0xFF0A0C08),
+                  foregroundColor: t.onAccent,
                   icon: const Icon(Icons.play_arrow),
                   label: Text(l10n.queueStartNext),
                 ),

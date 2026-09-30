@@ -75,6 +75,9 @@ enum ServerFeature {
 
   /// `can_send_notifications` on an API key, taken and ignored below it.
   apiKeyNotificationScope,
+
+  /// `/inventory/suppliers*` and a spool's supplier assignments.
+  spoolSuppliers,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -175,6 +178,7 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.batchOrders: (1, 2, 5, 3),
     ServerFeature.printOutcome: (1, 2, 6, 0),
     ServerFeature.apiKeyNotificationScope: (1, 2, 6, 0),
+    ServerFeature.spoolSuppliers: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

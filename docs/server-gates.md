@@ -394,3 +394,17 @@ so the row settles it whenever the server has a key at all. With no keys yet, a
 1.2.6b1 daily older than the commit is told yes, and the key it issues simply
 lacks the flag. A key that already holds it keeps its switch either way, so it
 can be taken away again.
+
+### spoolSuppliers — 1.2.6 (server #2988, PR #2996, commit 053cfa73)
+
+Where filament is bought: the master list on `/inventory/suppliers`, a spool's
+assignments (`PUT /inventory/spools/{id}/suppliers` and the Spoolman twin), and
+`GET /inventory/stats/suppliers`. Only in 1.2.6 dailies from 2026-09-28.
+
+A route family, and nothing shadows it on an older server — `/inventory` has no
+`/{id}` route — so the listing's 404 settles `SuppliersRepository.capability`.
+So does the first spool row: `SpoolResponse` defaults `suppliers` on every row
+from the commit on, and the Spoolman listing merges it in, so an inventory with
+a single spool answers before any supplier route is asked. Being early costs a
+1.2.6b1 daily older than the commit one 404 on the listing and a supplier entry
+that disappears with it; nothing is written to a server that could drop it.

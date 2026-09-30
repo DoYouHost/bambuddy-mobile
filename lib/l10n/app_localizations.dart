@@ -4118,29 +4118,11 @@ abstract class AppLocalizations {
   /// **'{weight} consumed'**
   String inventoryTotalConsumed(String weight);
 
-  /// No description provided for @inventoryConsumedSinceReset.
-  ///
-  /// In en, this message translates to:
-  /// **'Consumed since reset: {weight}'**
-  String inventoryConsumedSinceReset(String weight);
-
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
   /// **'of {total} g'**
   String inventoryOfTotal(int total);
-
-  /// No description provided for @inventoryLoadedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Loaded in {slot}'**
-  String inventoryLoadedIn(String slot);
-
-  /// No description provided for @inventoryNotLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Not loaded in any AMS slot'**
-  String get inventoryNotLoaded;
 
   /// No description provided for @inventoryLocation.
   ///
@@ -4153,12 +4135,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nozzle temp'**
   String get inventoryNozzleTemp;
-
-  /// No description provided for @inventoryCostPerKg.
-  ///
-  /// In en, this message translates to:
-  /// **'{cost}/kg'**
-  String inventoryCostPerKg(String cost);
 
   /// No description provided for @inventoryNote.
   ///
@@ -12277,6 +12253,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every printer is hidden from this wall — show them in the settings.'**
   String get wallAllHidden;
+
+  /// No description provided for @inventorySuppliersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers'**
+  String get inventorySuppliersTitle;
+
+  /// No description provided for @inventorySuppliersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can\'t be deleted.'**
+  String get inventorySuppliersHint;
+
+  /// No description provided for @inventorySuppliersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No suppliers yet'**
+  String get inventorySuppliersEmpty;
+
+  /// No description provided for @inventorySuppliersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the suppliers'**
+  String get inventorySuppliersLoadFailed;
+
+  /// Button next to the supplier list's title that opens an empty supplier form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get inventorySupplierAdd;
+
+  /// No description provided for @inventorySupplierNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New supplier'**
+  String get inventorySupplierNew;
+
+  /// No description provided for @inventorySupplierEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit supplier'**
+  String get inventorySupplierEdit;
+
+  /// No description provided for @inventorySupplierFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get inventorySupplierFieldName;
+
+  /// No description provided for @inventorySupplierFieldWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get inventorySupplierFieldWebsite;
+
+  /// The user's own customer number at this supplier, not the supplier's id.
+  ///
+  /// In en, this message translates to:
+  /// **'Your customer number'**
+  String get inventorySupplierFieldCustomerNumber;
+
+  /// No description provided for @inventorySupplierCustomerNumberValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer no. {number}'**
+  String inventorySupplierCustomerNumberValue(String number);
+
+  /// The server joins supplier names with ';' in its CSV export and refuses a name containing one.
+  ///
+  /// In en, this message translates to:
+  /// **'A name can\'t contain a semicolon'**
+  String get inventorySupplierNameSeparator;
+
+  /// No description provided for @inventorySupplierNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A supplier with this name already exists'**
+  String get inventorySupplierNameTaken;
+
+  /// No description provided for @inventorySupplierSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier saved'**
+  String get inventorySupplierSaved;
+
+  /// No description provided for @inventorySupplierDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier deleted'**
+  String get inventorySupplierDeleted;
+
+  /// No description provided for @inventorySupplierDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String inventorySupplierDeleteTitle(String name);
+
+  /// No description provided for @inventorySupplierDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s removed from the list of suppliers.'**
+  String get inventorySupplierDeleteBody;
+
+  /// No description provided for @inventorySupplierInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}'**
+  String inventorySupplierInUse(int count);
+
+  /// The server refused a delete because a spool was given this supplier after the list was loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Still assigned to a spool — remove it there first'**
+  String get inventorySupplierInUseUnknown;
+
+  /// Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bought here'**
+  String get inventorySupplierBoughtHere;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Art. no. {number}'**
+  String inventorySupplierArticleValue(String number);
+
+  /// A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.
+  ///
+  /// In en, this message translates to:
+  /// **'quoted {price}/kg'**
+  String inventorySupplierQuotedPrice(String price);
+
+  /// No description provided for @inventorySupplierLinksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where this product can be bought. Mark the one you bought this spool from.'**
+  String get inventorySupplierLinksHint;
+
+  /// Opens a picker to assign a supplier to the spool being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Add supplier'**
+  String get inventorySupplierAssign;
+
+  /// No description provided for @inventorySupplierUnassign.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from this spool'**
+  String get inventorySupplierUnassign;
+
+  /// The supplier's own article number for the product.
+  ///
+  /// In en, this message translates to:
+  /// **'Article no.'**
+  String get inventorySupplierFieldArticle;
+
+  /// Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at.
+  ///
+  /// In en, this message translates to:
+  /// **'Quoted price/kg'**
+  String get inventorySupplierFieldQuotedPrice;
+
+  /// No description provided for @inventorySupplierNoneLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Every supplier is already on this spool'**
+  String get inventorySupplierNoneLeft;
+
+  /// No description provided for @statsBySupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'By supplier'**
+  String get statsBySupplier;
+
+  /// No description provided for @statsBySupplierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.'**
+  String get statsBySupplierHint;
+
+  /// No description provided for @statsBySupplierFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the supplier figures'**
+  String get statsBySupplierFailed;
+
+  /// Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{spools} · {remaining} in stock · cost {cost}'**
+  String statsSupplierDetail(String spools, String remaining, String cost);
+
+  /// No description provided for @inventoryDetailSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get inventoryDetailSlot;
+
+  /// Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded'**
+  String get inventoryDetailNotLoaded;
+
+  /// No description provided for @inventoryDetailConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset'**
+  String get inventoryDetailConsumedSinceReset;
+
+  /// Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} archived'**
+  String inventorySupplierArchivedCount(int count);
 }
 
 class _AppLocalizationsDelegate

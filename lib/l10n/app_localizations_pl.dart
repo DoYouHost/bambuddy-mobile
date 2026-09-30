@@ -2420,33 +2420,15 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String inventoryConsumedSinceReset(String weight) {
-    return 'Zużyte od resetu: $weight';
-  }
-
-  @override
   String inventoryOfTotal(int total) {
     return 'z $total g';
   }
-
-  @override
-  String inventoryLoadedIn(String slot) {
-    return 'Załadowana w $slot';
-  }
-
-  @override
-  String get inventoryNotLoaded => 'Nie załadowana w żadnym slocie AMS';
 
   @override
   String get inventoryLocation => 'Lokalizacja';
 
   @override
   String get inventoryNozzleTemp => 'Temp. dyszy';
-
-  @override
-  String inventoryCostPerKg(String cost) {
-    return '$cost/kg';
-  }
 
   @override
   String get inventoryNote => 'Notatka';
@@ -7403,4 +7385,140 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Wszystkie drukarki są ukryte na tej ścianie — pokaż je w ustawieniach.';
+
+  @override
+  String get inventorySuppliersTitle => 'Dostawcy';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Dostawca to sklep, w którym kupujesz filament, a nie marka, która go wyprodukowała. Przypisujesz go w formularzu szpuli; dostawcy przypisanego do szpuli nie da się usunąć.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Nie masz jeszcze dostawców';
+
+  @override
+  String get inventorySuppliersLoadFailed => 'Nie udało się wczytać dostawców';
+
+  @override
+  String get inventorySupplierAdd => 'Dodaj';
+
+  @override
+  String get inventorySupplierNew => 'Nowy dostawca';
+
+  @override
+  String get inventorySupplierEdit => 'Edytuj dostawcę';
+
+  @override
+  String get inventorySupplierFieldName => 'Nazwa';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Strona internetowa';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Twój numer klienta';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'Nr klienta: $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'Nazwa nie może zawierać średnika';
+
+  @override
+  String get inventorySupplierNameTaken => 'Dostawca o tej nazwie już istnieje';
+
+  @override
+  String get inventorySupplierSaved => 'Zapisano dostawcę';
+
+  @override
+  String get inventorySupplierDeleted => 'Usunięto dostawcę';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return 'Usunąć $name?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody => 'Zniknie z listy dostawców.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Przypisany do $count szpuli — najpierw usuń go z nich',
+      many: 'Przypisany do $count szpul — najpierw usuń go z nich',
+      few: 'Przypisany do $count szpul — najpierw usuń go z nich',
+      one: 'Przypisany do 1 szpuli — najpierw usuń go z niej',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Nadal jest przypisany do szpuli — najpierw usuń go stamtąd';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Kupiona tutaj';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Nr art. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'cena ofertowa $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Gdzie można kupić ten produkt. Zaznacz sklep, w którym kupiono tę szpulę.';
+
+  @override
+  String get inventorySupplierAssign => 'Dodaj dostawcę';
+
+  @override
+  String get inventorySupplierUnassign => 'Usuń z tej szpuli';
+
+  @override
+  String get inventorySupplierFieldArticle => 'Nr artykułu';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Cena ofertowa/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Wszyscy dostawcy są już przypisani do tej szpuli';
+
+  @override
+  String get statsBySupplier => 'Wg dostawcy';
+
+  @override
+  String get statsBySupplierHint =>
+      'Zużycie filamentu ze szpul kupionych u danego dostawcy i jego koszt. Zapas liczy aktywne szpule i nie zależy od zakresu dat.';
+
+  @override
+  String get statsBySupplierFailed => 'Nie udało się wczytać danych dostawców';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining na stanie · koszt $cost';
+  }
+
+  @override
+  String get inventoryDetailSlot => 'Slot';
+
+  @override
+  String get inventoryDetailNotLoaded => 'Nie załadowana';
+
+  @override
+  String get inventoryDetailConsumedSinceReset => 'Zużyte od resetu';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    return '$count w archiwum';
+  }
 }

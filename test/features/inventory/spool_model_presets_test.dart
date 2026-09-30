@@ -133,10 +133,7 @@ void main() {
     }
     // The form is a lazy ListView taller than the screen — the section and the
     // save button below it are not built until they scroll into range.
-    for (var i = 0; i < 8; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pump();
-    }
+    await scrollSheetDown(tester);
     return repo;
   }
 
@@ -350,6 +347,8 @@ void main() {
     // pick still in it.
     expect(fake.writes, ['create']);
     expect(find.text('Bambu PLA Basic @BBL P1S'), findsOneWidget);
+    // Named for what failed, not the generic "could not save".
+    expect(find.text(l10n.inventoryPrinterPresetsSaveFailed), findsOneWidget);
 
     await tester.tap(saveButton());
     await settle(tester);

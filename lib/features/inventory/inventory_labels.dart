@@ -434,28 +434,14 @@ class _LabelFooter extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.accentGreen,
-                foregroundColor: _onAccentGreen,
-                padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
               onPressed: onPrint,
               icon: busy
-                  ? DashSpinner(color: _onAccentGreen)
+                  ? DashSpinner(color: t.onAccent)
                   : Icon(
                       share ? Icons.ios_share : Icons.print_outlined,
                       size: 18,
                     ),
-              label: Text(
-                '${l10n.inventoryLabelsPrint} ($count)',
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              label: Text('${l10n.inventoryLabelsPrint} ($count)'),
             ).tagged('labels.print'),
           ),
         ],

@@ -52,11 +52,24 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Map<String, SpoolPresetOverride>? _overrides;
   bool _overridesDirty = false;
 
+  /// Supplier assignments as they will be written. Seeded from the spool the
+  /// form opened on — they ride on its row, so there is no read to fail.
+  ///
+  /// Written only when [_linksDirty]: an untouched new spool sends nothing. On
+  /// the built-in inventory the server then copies the assignments of the
+  /// newest spool of the same product (`services/supplier_links.py`), which an
+  /// empty list would wipe; Spoolman mode inherits nothing either way. A copy is
+  /// dirty from the start — the form shows the source's suppliers, so they are
+  /// what the copy must get, and the server's pick is the newest spool of the
+  /// product, not necessarily the one being copied.
+  late final List<_LinkDraft> _links;
+  bool _linksDirty = false;
+
   /// The spool this sheet created, once it has created one.
   ///
-  /// Saving is two writes — the spool, then its per-model presets — and the
-  /// second one failing leaves the sheet open so the picks are not lost. That
-  /// retry must not mint a second spool: from here on the form is editing the
+  /// Saving is up to three writes — the spool, its per-model presets, its
+  /// suppliers — and a later one failing leaves the sheet open so the picks
+  /// are not lost. That retry must not mint a second spool: from here on the form is editing the
   /// one it just made, even though [widget.existing] is still null.
   int? _createdSpoolId;
 
@@ -111,12 +124,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     _effectType = s?.effectType;
     _slicerFilament = s?.slicerFilament;
     _slicerFilamentName = s?.slicerFilamentName;
+    // Where a copy was bought is not known; only a real edit keeps it.
+    _links = [
+      for (final link in s?.suppliers ?? const <SpoolSupplierLink>[])
+        _LinkDraft(link, keepPurchaseSource: copy == null),
+    ];
+    _linksDirty = copy != null;
   }
 
   @override
   void dispose() {
     for (final c in _c.values) {
       c.dispose();
+    }
+    for (final link in _links) {
+      link.dispose();
     }
     super.dispose();
   }
@@ -196,6 +218,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // Read before the first await: a WidgetRef is not usable once the sheet it
     // belongs to is gone, and the spool write is what closes it.
     final repo = ref.read(inventoryRepositoryProvider);
+    final writeLinks =
+        _showsSupplierLinks(ref.read(suppliersSupportedProvider).orFalse) &&
+        _linksDirty;
+    final linkWriter = writeLinks
+        ? ref.read(suppliersRepositoryProvider)
+        : null;
+    final backend = writeLinks ? ref.read(inventoryBackendProvider) : null;
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
@@ -206,8 +235,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_createdSpoolId case final id?) {
-        // A retry after the presets failed: the spool exists, so this is the
-        // PATCH the edit path would send, not another create.
+        // A retry after a follow-up write failed: the spool exists, so this is
+        // the PATCH the edit path would send, not another create.
         await notifier.updateSpool(id, draft);
         spoolId = id;
         message = l10n.inventorySpoolCreated;
@@ -221,7 +250,32 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
-      if (!await _savePresetOverrides(repo, spoolId, l10n, messenger)) return;
+      final overrides = _overrides;
+      if (spoolId case final id? when overrides != null && _overridesDirty) {
+        final saved = await _followUpWrite(
+          () => repo.savePresetOverrides(id, overrides.values.toList()),
+          logId: 'spool_form.save_model_presets',
+          l10n: l10n,
+          messenger: messenger,
+          unexpected: l10n.inventoryPrinterPresetsSaveFailed,
+        );
+        if (!saved) return;
+        _overridesDirty = false;
+      }
+      if (spoolId case final id? when linkWriter != null && backend != null) {
+        final saved = await _followUpWrite(
+          () => linkWriter.saveSpoolLinks(id, [
+            for (final link in _links) link.toLink(),
+          ], backend: backend),
+          logId: 'spool_form.save_suppliers',
+          l10n: l10n,
+          messenger: messenger,
+        );
+        if (!saved) return;
+        _linksDirty = false;
+        // The spool write reloaded the shelf before these landed.
+        unawaited(notifier.refresh());
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.snack(message);
@@ -240,40 +294,46 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
   }
 
-  /// Writes the per-model preset overrides for the spool just saved, and says
-  /// whether the form may close.
+  /// One of the writes that follow the spool's own, and whether the form may
+  /// close.
   ///
-  /// Nothing is sent unless the section was both read and touched: the route
-  /// replaces the whole list, so a blind write is a delete. A failure here
-  /// leaves the sheet open with the picks still in it — the spool itself is
-  /// already saved, and the retry costs one PATCH of a spool that now exists
-  /// either way (see [_createdSpoolId]).
-  Future<bool> _savePresetOverrides(
-    InventoryRepository repo,
-    int? spoolId,
-    AppLocalizations l10n,
-    ScaffoldMessengerState messenger,
-  ) async {
-    final overrides = _overrides;
-    if (spoolId == null || overrides == null || !_overridesDirty) return true;
+  /// The caller sends a write only once its section was touched (presets also
+  /// need to have been read): each route replaces a whole list, so a blind
+  /// write is a delete. A failure leaves the sheet open with the picks still in it — the
+  /// spool itself is already saved, and the retry costs one PATCH of a spool
+  /// that now exists either way (see [_createdSpoolId]). An unexpected error
+  /// goes on to [_save]'s own handler unless [unexpected] words it here.
+  Future<bool> _followUpWrite(
+    Future<void> Function() write, {
+    required String logId,
+    required AppLocalizations l10n,
+    required ScaffoldMessengerState messenger,
+    String? unexpected,
+  }) async {
     try {
-      await repo.savePresetOverrides(spoolId, overrides.values.toList());
-      _overridesDirty = false;
+      await write();
       return true;
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'spool_form.save_model_presets',
-      );
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
       return false;
     } on Object {
+      if (unexpected == null) rethrow;
       if (mounted) setState(() => _saving = false);
-      messenger.snack(l10n.inventoryPrinterPresetsSaveFailed);
+      messenger.snack(unexpected);
       return false;
     }
+  }
+
+  /// Whether the supplier section is offered: the server has to have
+  /// suppliers, and a bulk "restock" has no spool ids to write them to — the
+  /// built-in inventory gives each of those the inherited assignments, and
+  /// Spoolman leaves them without any.
+  bool _showsSupplierLinks(bool supported) {
+    final source = widget.existing ?? widget.copyOf;
+    return supported &&
+        (_isEdit || _quantity == 1) &&
+        (source == null || source.suppliers != null);
   }
 
   @override
@@ -301,11 +361,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
     // A copy saved before its presets arrive would be created without them;
     // that includes the gate, which asks for them only once it has answered.
+    final suppliersGate = ref.watch(suppliersSupportedProvider);
+    final showSuppliers = _showsSupplierLinks(suppliersGate.orFalse);
     final copyPresetsPending =
         widget.copyOf != null &&
         _showsPresetOverrides(true) &&
         (overridesGate.offer == ControlOffer.pending ||
-            (showOverrides && stored.isLoading));
+            (showOverrides && stored.isLoading) ||
+            // A copy saved before this answers would leave the source's
+            // suppliers to the server's inheritance, which may pick another
+            // spool's.
+            suppliersGate.offer == ControlOffer.pending);
     final models = showOverrides
         ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
         : const <String>[];
@@ -440,30 +506,26 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
             if (showOverrides) ..._presetOverridesSection(l10n, stored, models),
 
+            if (showSuppliers)
+              _SupplierLinksSection(
+                links: _links,
+                onChanged: (change) => setState(() {
+                  change();
+                  _linksDirty = true;
+                }),
+              ),
+
             const SizedBox(height: DashSpace.xl),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: t.accentGreen,
-                  foregroundColor: _onAccentGreen,
-                  padding: const EdgeInsets.symmetric(vertical: DashSpace.lg),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
                 onPressed: _saving || copyPresetsPending ? null : _save,
                 child: _saving || copyPresetsPending
-                    ? DashSpinner(size: 20, color: _onAccentGreen)
+                    ? DashSpinner(size: 20, color: t.onAccent)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
                             : l10n.inventorySave,
-                        style: const TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
                       ),
               ).tagged('spool_form.save'),
             ),

@@ -5,8 +5,10 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive_slim.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/models/failure_analysis.dart';
+import '../../core/models/supplier.dart';
 import '../../core/models/user_summary.dart';
 import '../../data/failure_analysis_cache.dart';
+import '../../data/inventory_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'stats_computed.dart';
@@ -222,6 +224,27 @@ final archiveSlimProvider = FutureProvider.autoDispose<List<ArchiveSlim>>((
 /// asks `/users/slim` first and falls back to the full listing, so on 1.2.6+
 /// the picker also appears for API-key sessions holding the Read Status scope,
 /// where before it never could.
+/// Stock and spend per purchase-source supplier, over the screen's date range.
+///
+/// Empty on a server without suppliers and in Spoolman mode: the aggregate
+/// reads the built-in spool table, which Spoolman leaves empty, so it would
+/// answer "nothing bought anywhere" next to an inventory that shows suppliers.
+final supplierStatsProvider = FutureProvider.autoDispose<List<SupplierStats>>((
+  ref,
+) async {
+  ref.watch(serverProfileProvider);
+  if (ref.watch(inventoryBackendProvider) != InventoryBackend.native) {
+    return const [];
+  }
+  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+    return const [];
+  }
+  final (from, to) = StatsNotifier._resolveDates(
+    ref.watch(statsFilterProvider),
+  );
+  return ref.watch(suppliersRepositoryProvider).fetchStats(from: from, to: to);
+});
+
 final statsUsersProvider = FutureProvider.autoDispose<List<UserSummary>>((
   ref,
 ) async {

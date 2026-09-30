@@ -1326,14 +1326,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Consommé depuis la réinitialisation : {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryOfTotal": "sur {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
@@ -1342,25 +1334,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Chargée dans {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Non chargée dans un emplacement AMS",
   "inventoryLocation": "Emplacement",
   "inventoryNozzleTemp": "Temp. de la buse",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Historique d'utilisation",
@@ -3916,5 +3891,41 @@
   "wallLiveCameraTitle": "Caméra en direct",
   "wallLiveCameraDesc": "Désactivée, chaque vignette n'affiche que l'état de l'imprimante et n'ouvre aucun flux vidéo.",
   "wallPrintersTitle": "Imprimantes sur le mur",
-  "wallAllHidden": "Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres."
+  "wallAllHidden": "Toutes les imprimantes sont masquées sur ce mur — affichez-les dans les paramètres.",
+  "inventorySuppliersTitle": "Fournisseurs",
+  "inventorySuppliersHint": "Les fournisseurs sont les boutiques qui vous vendent le filament, pas la marque qui l'a fabriqué. Associez-les à une bobine dans son formulaire ; un fournisseur encore associé à une bobine ne peut pas être supprimé.",
+  "inventorySuppliersEmpty": "Aucun fournisseur pour le moment",
+  "inventorySuppliersLoadFailed": "Impossible de charger les fournisseurs",
+  "inventorySupplierAdd": "Ajouter",
+  "inventorySupplierNew": "Nouveau fournisseur",
+  "inventorySupplierEdit": "Modifier le fournisseur",
+  "inventorySupplierFieldName": "Nom",
+  "inventorySupplierFieldWebsite": "Site web",
+  "inventorySupplierFieldCustomerNumber": "Votre numéro client",
+  "inventorySupplierCustomerNumberValue": "N° client {number}",
+  "inventorySupplierNameSeparator": "Le nom ne peut pas contenir de point-virgule",
+  "inventorySupplierNameTaken": "Un fournisseur portant ce nom existe déjà",
+  "inventorySupplierSaved": "Fournisseur enregistré",
+  "inventorySupplierDeleted": "Fournisseur supprimé",
+  "inventorySupplierDeleteTitle": "Supprimer {name} ?",
+  "inventorySupplierDeleteBody": "Il est retiré de la liste des fournisseurs.",
+  "inventorySupplierInUse": "{count, plural, one{Associé à 1 bobine — retirez-le d'abord de cette bobine} other{Associé à {count} bobines — retirez-le d'abord de ces bobines}}",
+  "inventorySupplierInUseUnknown": "Encore associé à une bobine — retirez-le d'abord de celle-ci",
+  "inventorySupplierBoughtHere": "Achetée ici",
+  "inventorySupplierArticleValue": "Réf. {number}",
+  "inventorySupplierQuotedPrice": "proposé à {price}/kg",
+  "inventorySupplierLinksHint": "Où acheter ce produit. Indiquez la boutique qui vous a vendu cette bobine.",
+  "inventorySupplierAssign": "Ajouter un fournisseur",
+  "inventorySupplierUnassign": "Retirer de cette bobine",
+  "inventorySupplierFieldArticle": "Réf. article",
+  "inventorySupplierFieldQuotedPrice": "Prix proposé/kg",
+  "inventorySupplierNoneLeft": "Tous les fournisseurs sont déjà associés à cette bobine",
+  "statsBySupplier": "Par fournisseur",
+  "statsBySupplierHint": "Filament consommé sur les bobines achetées chez chaque fournisseur et son coût. Le stock compte les bobines actives et ne dépend pas de la période.",
+  "statsBySupplierFailed": "Impossible de charger les chiffres des fournisseurs",
+  "statsSupplierDetail": "{spools} · {remaining} en stock · coût {cost}",
+  "inventoryDetailSlot": "Emplacement",
+  "inventoryDetailNotLoaded": "Non chargée",
+  "inventoryDetailConsumedSinceReset": "Consommé depuis la réinitialisation",
+  "inventorySupplierArchivedCount": "{count, plural, one{{count} archivée} other{{count} archivées}}"
 }

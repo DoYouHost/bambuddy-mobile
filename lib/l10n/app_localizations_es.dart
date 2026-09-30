@@ -2402,33 +2402,15 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String inventoryConsumedSinceReset(String weight) {
-    return 'Consumido desde el reinicio: $weight';
-  }
-
-  @override
   String inventoryOfTotal(int total) {
     return 'de $total g';
   }
-
-  @override
-  String inventoryLoadedIn(String slot) {
-    return 'Cargada en $slot';
-  }
-
-  @override
-  String get inventoryNotLoaded => 'No cargada en ninguna ranura del AMS';
 
   @override
   String get inventoryLocation => 'Ubicación';
 
   @override
   String get inventoryNozzleTemp => 'Temp. de boquilla';
-
-  @override
-  String inventoryCostPerKg(String cost) {
-    return '$cost/kg';
-  }
 
   @override
   String get inventoryNote => 'Nota';
@@ -7378,4 +7360,148 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get wallAllHidden =>
       'Todas las impresoras están ocultas en esta pared — muéstralas en los ajustes.';
+
+  @override
+  String get inventorySuppliersTitle => 'Proveedores';
+
+  @override
+  String get inventorySuppliersHint =>
+      'Los proveedores son las tiendas donde compras el filamento, no la marca que lo fabricó. Asígnalos a una bobina en su formulario; un proveedor que siga asignado a una bobina no se puede eliminar.';
+
+  @override
+  String get inventorySuppliersEmpty => 'Aún no hay proveedores';
+
+  @override
+  String get inventorySuppliersLoadFailed =>
+      'No se pudieron cargar los proveedores';
+
+  @override
+  String get inventorySupplierAdd => 'Añadir';
+
+  @override
+  String get inventorySupplierNew => 'Nuevo proveedor';
+
+  @override
+  String get inventorySupplierEdit => 'Editar proveedor';
+
+  @override
+  String get inventorySupplierFieldName => 'Nombre';
+
+  @override
+  String get inventorySupplierFieldWebsite => 'Sitio web';
+
+  @override
+  String get inventorySupplierFieldCustomerNumber => 'Tu número de cliente';
+
+  @override
+  String inventorySupplierCustomerNumberValue(String number) {
+    return 'N.º de cliente $number';
+  }
+
+  @override
+  String get inventorySupplierNameSeparator =>
+      'El nombre no puede contener punto y coma';
+
+  @override
+  String get inventorySupplierNameTaken =>
+      'Ya existe un proveedor con este nombre';
+
+  @override
+  String get inventorySupplierSaved => 'Proveedor guardado';
+
+  @override
+  String get inventorySupplierDeleted => 'Proveedor eliminado';
+
+  @override
+  String inventorySupplierDeleteTitle(String name) {
+    return '¿Eliminar $name?';
+  }
+
+  @override
+  String get inventorySupplierDeleteBody =>
+      'Se quita de la lista de proveedores.';
+
+  @override
+  String inventorySupplierInUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Asignado a $count bobinas: quítalo primero de ellas',
+      one: 'Asignado a 1 bobina: quítalo primero de ella',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventorySupplierInUseUnknown =>
+      'Sigue asignado a una bobina: quítalo primero de ella';
+
+  @override
+  String get inventorySupplierBoughtHere => 'Comprada aquí';
+
+  @override
+  String inventorySupplierArticleValue(String number) {
+    return 'Ref. $number';
+  }
+
+  @override
+  String inventorySupplierQuotedPrice(String price) {
+    return 'ofertado a $price/kg';
+  }
+
+  @override
+  String get inventorySupplierLinksHint =>
+      'Dónde se puede comprar este producto. Marca la tienda donde compraste esta bobina.';
+
+  @override
+  String get inventorySupplierAssign => 'Añadir proveedor';
+
+  @override
+  String get inventorySupplierUnassign => 'Quitar de esta bobina';
+
+  @override
+  String get inventorySupplierFieldArticle => 'N.º de artículo';
+
+  @override
+  String get inventorySupplierFieldQuotedPrice => 'Precio ofertado/kg';
+
+  @override
+  String get inventorySupplierNoneLeft =>
+      'Todos los proveedores ya están en esta bobina';
+
+  @override
+  String get statsBySupplier => 'Por proveedor';
+
+  @override
+  String get statsBySupplierHint =>
+      'Filamento consumido de las bobinas compradas a cada proveedor y su coste. Las existencias cuentan las bobinas activas y no dependen del rango de fechas.';
+
+  @override
+  String get statsBySupplierFailed =>
+      'No se pudieron cargar los datos de proveedores';
+
+  @override
+  String statsSupplierDetail(String spools, String remaining, String cost) {
+    return '$spools · $remaining en existencias · coste $cost';
+  }
+
+  @override
+  String get inventoryDetailSlot => 'Ranura';
+
+  @override
+  String get inventoryDetailNotLoaded => 'No cargada';
+
+  @override
+  String get inventoryDetailConsumedSinceReset => 'Consumido desde el reinicio';
+
+  @override
+  String inventorySupplierArchivedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count archivadas',
+      one: '$count archivada',
+    );
+    return '$_temp0';
+  }
 }

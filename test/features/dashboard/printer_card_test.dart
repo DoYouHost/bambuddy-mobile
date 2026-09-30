@@ -234,17 +234,6 @@ class _StubScheduledDrying extends ScheduledDryingRepository {
   }
 }
 
-/// The card tests run without a settings repository, and the real backend
-/// notifier reads one — so the choice is staged here instead.
-class _FixedBackendNotifier extends InventoryBackendNotifier {
-  _FixedBackendNotifier(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
-}
-
 /// A plug with fixed state; records [control] calls (no network/timer),
 /// so tests can check the "cut power mid-print" block and confirmation.
 class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
@@ -334,7 +323,7 @@ Widget _scope(
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
-    inventoryBackendProvider.overrideWith(() => _FixedBackendNotifier(backend)),
+    inventoryBackendOverride(backend),
     mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
@@ -1246,9 +1235,7 @@ void main() {
           inertChamberMaxOverride,
           ...inertHistorySupportOverrides,
           inertSmartPlugsOverride,
-          inventoryBackendProvider.overrideWith(
-            () => _FixedBackendNotifier(InventoryBackend.native),
-          ),
+          inventoryBackendOverride(),
           inventoryProvider.overrideWith(_AssignedInventory.new),
           // The spool card fetches its usage on open; the repository behind it
           // has no server here and this test is about arriving, not about what

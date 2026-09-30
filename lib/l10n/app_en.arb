@@ -1454,14 +1454,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Consumed since reset: {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "@inventoryRemaining": {
     "placeholders": {
       "grams": {
@@ -1477,25 +1469,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Loaded in {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "Not loaded in any AMS slot",
   "inventoryLocation": "Location",
   "inventoryNozzleTemp": "Nozzle temp",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Note",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Usage history",
@@ -4446,5 +4421,127 @@
   "wallAllHidden": "Every printer is hidden from this wall — show them in the settings.",
   "@wallAllHidden": {
     "description": "Shown in place of the wall's tiles when the server has printers but all are hidden on this device"
+  },
+  "inventorySuppliersTitle": "Suppliers",
+  "inventorySuppliersHint": "Suppliers are where you buy filament, not the brand that made it. Assign them to a spool in its form; one still assigned to a spool can't be deleted.",
+  "inventorySuppliersEmpty": "No suppliers yet",
+  "inventorySuppliersLoadFailed": "Couldn't load the suppliers",
+  "inventorySupplierAdd": "Add",
+  "@inventorySupplierAdd": {
+    "description": "Button next to the supplier list's title that opens an empty supplier form."
+  },
+  "inventorySupplierNew": "New supplier",
+  "inventorySupplierEdit": "Edit supplier",
+  "inventorySupplierFieldName": "Name",
+  "inventorySupplierFieldWebsite": "Website",
+  "inventorySupplierFieldCustomerNumber": "Your customer number",
+  "@inventorySupplierFieldCustomerNumber": {
+    "description": "The user's own customer number at this supplier, not the supplier's id."
+  },
+  "inventorySupplierCustomerNumberValue": "Customer no. {number}",
+  "@inventorySupplierCustomerNumberValue": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierNameSeparator": "A name can't contain a semicolon",
+  "@inventorySupplierNameSeparator": {
+    "description": "The server joins supplier names with ';' in its CSV export and refuses a name containing one."
+  },
+  "inventorySupplierNameTaken": "A supplier with this name already exists",
+  "inventorySupplierSaved": "Supplier saved",
+  "inventorySupplierDeleted": "Supplier deleted",
+  "inventorySupplierDeleteTitle": "Delete {name}?",
+  "@inventorySupplierDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierDeleteBody": "It's removed from the list of suppliers.",
+  "inventorySupplierInUse": "{count, plural, one{Assigned to 1 spool — remove it from that spool first} other{Assigned to {count} spools — remove it from those spools first}}",
+  "@inventorySupplierInUse": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inventorySupplierInUseUnknown": "Still assigned to a spool — remove it there first",
+  "@inventorySupplierInUseUnknown": {
+    "description": "The server refused a delete because a spool was given this supplier after the list was loaded."
+  },
+  "inventorySupplierBoughtHere": "Bought here",
+  "@inventorySupplierBoughtHere": {
+    "description": "Marks the one supplier a spool was actually bought from; the others are alternative sources. Agrees with 'spool'."
+  },
+  "inventorySupplierArticleValue": "Art. no. {number}",
+  "@inventorySupplierArticleValue": {
+    "description": "The supplier's own article number for the product.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierQuotedPrice": "quoted {price}/kg",
+  "@inventorySupplierQuotedPrice": {
+    "description": "A price per kg quoted at this supplier, for comparing sources. Not what the spool cost.",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "inventorySupplierLinksHint": "Where this product can be bought. Mark the one you bought this spool from.",
+  "inventorySupplierAssign": "Add supplier",
+  "@inventorySupplierAssign": {
+    "description": "Opens a picker to assign a supplier to the spool being edited."
+  },
+  "inventorySupplierUnassign": "Remove from this spool",
+  "inventorySupplierFieldArticle": "Article no.",
+  "@inventorySupplierFieldArticle": {
+    "description": "The supplier's own article number for the product."
+  },
+  "inventorySupplierFieldQuotedPrice": "Quoted price/kg",
+  "@inventorySupplierFieldQuotedPrice": {
+    "description": "Price per kg at this supplier, for comparing sources; the spool's own cost per kg stays what prints are charged at."
+  },
+  "inventorySupplierNoneLeft": "Every supplier is already on this spool",
+  "statsBySupplier": "By supplier",
+  "statsBySupplierHint": "Filament used from spools bought at each supplier, and what it cost. Stock counts active spools and ignores the date range.",
+  "statsBySupplierFailed": "Couldn't load the supplier figures",
+  "statsSupplierDetail": "{spools} · {remaining} in stock · cost {cost}",
+  "@statsSupplierDetail": {
+    "description": "Line under one supplier's bar. {spools} is already a counted phrase such as '2 spools'; {remaining} is a weight with its unit.",
+    "placeholders": {
+      "spools": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Not loaded",
+  "inventoryDetailConsumedSinceReset": "Consumed since reset",
+  "@inventoryDetailNotLoaded": {
+    "description": "Value of the detail sheet's Slot row when the spool is in no AMS slot or external holder. Agrees with 'spool'."
+  },
+  "inventorySupplierArchivedCount": "{count} archived",
+  "@inventorySupplierArchivedCount": {
+    "description": "Link under a supplier to its archived spools; sits next to the active count ('2 spools'), so the noun is left out. Agrees with 'spool'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

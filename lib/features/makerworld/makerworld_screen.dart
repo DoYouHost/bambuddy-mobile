@@ -221,7 +221,7 @@ class _UrlBar extends StatelessWidget {
               style: dashPrimaryButtonStyle(t),
               onPressed: loading ? null : onResolve,
               icon: loading
-                  ? DashSpinner(color: Color(0xFF0A0C08))
+                  ? DashSpinner(color: DashTokens.of(context).onAccent)
                   : const Icon(Icons.arrow_forward),
               label: Text(l10n.mwResolve),
             ),
@@ -454,7 +454,10 @@ class _PlateRow extends StatelessWidget {
                 ),
                 onPressed: importing ? null : onImport,
                 icon: importing
-                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08))
+                    ? DashSpinner(
+                        size: 16,
+                        color: DashTokens.of(context).onAccent,
+                      )
                     : const Icon(Icons.download, size: 18),
                 label: Text(l10n.mwImport),
               ),

@@ -1326,14 +1326,6 @@
       }
     }
   },
-  "inventoryConsumedSinceReset": "Seit Zurücksetzen verbraucht: {weight}",
-  "@inventoryConsumedSinceReset": {
-    "placeholders": {
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryOfTotal": "von {total} g",
   "@inventoryOfTotal": {
     "placeholders": {
@@ -1342,25 +1334,8 @@
       }
     }
   },
-  "inventoryLoadedIn": "Geladen in {slot}",
-  "@inventoryLoadedIn": {
-    "placeholders": {
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
-  "inventoryNotLoaded": "In keinem AMS-Slot geladen",
   "inventoryLocation": "Lagerort",
   "inventoryNozzleTemp": "Düsentemperatur",
-  "inventoryCostPerKg": "{cost}/kg",
-  "@inventoryCostPerKg": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
   "inventoryNote": "Notiz",
   "inventoryTag": "Tag",
   "inventoryUsageHistory": "Verbrauchsverlauf",
@@ -3916,5 +3891,41 @@
   "wallLiveCameraTitle": "Live-Kamera",
   "wallLiveCameraDesc": "Ausgeschaltet zeigt jede Kachel nur den Druckerstatus und öffnet keinen Kamerastream.",
   "wallPrintersTitle": "Drucker an der Wand",
-  "wallAllHidden": "Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein."
+  "wallAllHidden": "Alle Drucker sind auf dieser Wand ausgeblendet — blende sie in den Einstellungen ein.",
+  "inventorySuppliersTitle": "Lieferanten",
+  "inventorySuppliersHint": "Lieferanten sind die Shops, in denen du Filament kaufst – nicht die Marke, die es hergestellt hat. Du weist sie im Formular der Spule zu; ein Lieferant, der noch einer Spule zugewiesen ist, lässt sich nicht löschen.",
+  "inventorySuppliersEmpty": "Noch keine Lieferanten",
+  "inventorySuppliersLoadFailed": "Lieferanten konnten nicht geladen werden",
+  "inventorySupplierAdd": "Hinzufügen",
+  "inventorySupplierNew": "Neuer Lieferant",
+  "inventorySupplierEdit": "Lieferant bearbeiten",
+  "inventorySupplierFieldName": "Name",
+  "inventorySupplierFieldWebsite": "Website",
+  "inventorySupplierFieldCustomerNumber": "Deine Kundennummer",
+  "inventorySupplierCustomerNumberValue": "Kundennr. {number}",
+  "inventorySupplierNameSeparator": "Der Name darf kein Semikolon enthalten",
+  "inventorySupplierNameTaken": "Ein Lieferant mit diesem Namen existiert bereits",
+  "inventorySupplierSaved": "Lieferant gespeichert",
+  "inventorySupplierDeleted": "Lieferant gelöscht",
+  "inventorySupplierDeleteTitle": "{name} löschen?",
+  "inventorySupplierDeleteBody": "Er wird aus der Lieferantenliste entfernt.",
+  "inventorySupplierInUse": "{count, plural, one{Einer Spule zugewiesen – entferne ihn zuerst dort} other{{count} Spulen zugewiesen – entferne ihn zuerst dort}}",
+  "inventorySupplierInUseUnknown": "Noch einer Spule zugewiesen – entferne ihn zuerst dort",
+  "inventorySupplierBoughtHere": "Hier gekauft",
+  "inventorySupplierArticleValue": "Art.-Nr. {number}",
+  "inventorySupplierQuotedPrice": "Angebot {price}/kg",
+  "inventorySupplierLinksHint": "Wo es dieses Produkt zu kaufen gibt. Markiere den Shop, in dem du diese Spule gekauft hast.",
+  "inventorySupplierAssign": "Lieferant hinzufügen",
+  "inventorySupplierUnassign": "Von dieser Spule entfernen",
+  "inventorySupplierFieldArticle": "Artikelnr.",
+  "inventorySupplierFieldQuotedPrice": "Angebotspreis/kg",
+  "inventorySupplierNoneLeft": "Alle Lieferanten sind dieser Spule schon zugewiesen",
+  "statsBySupplier": "Nach Lieferant",
+  "statsBySupplierHint": "Verbrauch aus Spulen, die bei einem Lieferanten gekauft wurden, und was er gekostet hat. Der Bestand zählt aktive Spulen und ignoriert den Zeitraum.",
+  "statsBySupplierFailed": "Lieferantendaten konnten nicht geladen werden",
+  "statsSupplierDetail": "{spools} · {remaining} auf Lager · Kosten {cost}",
+  "inventoryDetailSlot": "Slot",
+  "inventoryDetailNotLoaded": "Nicht geladen",
+  "inventoryDetailConsumedSinceReset": "Seit Zurücksetzen verbraucht",
+  "inventorySupplierArchivedCount": "{count} archiviert"
 }

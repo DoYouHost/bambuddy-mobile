@@ -9,6 +9,7 @@ import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
 import '../../core/models/spool_preset_override.dart';
+import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
@@ -70,6 +71,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   Future<InventoryState> _load() async {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
+    ref.read(suppliersRepositoryProvider).observeSpools(spools);
 
     var bySpool = <int, SpoolAssignment>{};
     try {
@@ -408,6 +410,7 @@ class InventoryFilters {
     this.materials = const {},
     this.brands = const {},
     this.locations = const {},
+    this.suppliers = const {},
     this.sort = InventorySort.standard,
     this.descending = true,
   });
@@ -418,6 +421,11 @@ class InventoryFilters {
   final Set<String> materials;
   final Set<String> brands;
   final Set<String> locations;
+
+  /// Supplier ids; a spool matches on any assignment, the purchase source or
+  /// an alternative — "what can I get from this shop". Ids, not names: a
+  /// rename reaches the links only with the next reload.
+  final Set<int> suppliers;
   final InventorySort sort;
   final bool descending;
 
@@ -427,7 +435,8 @@ class InventoryFilters {
       (lowStockOnly ? 1 : 0) +
       (materials.isNotEmpty ? 1 : 0) +
       (brands.isNotEmpty ? 1 : 0) +
-      (locations.isNotEmpty ? 1 : 0);
+      (locations.isNotEmpty ? 1 : 0) +
+      (suppliers.isNotEmpty ? 1 : 0);
 
   /// Every filter back to its default, the sort left as it was.
   InventoryFilters cleared() =>
@@ -439,6 +448,7 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
+    Set<int>? suppliers,
     InventorySort? sort,
     bool? descending,
   }) => InventoryFilters(
@@ -447,6 +457,7 @@ class InventoryFilters {
     materials: materials ?? this.materials,
     brands: brands ?? this.brands,
     locations: locations ?? this.locations,
+    suppliers: suppliers ?? this.suppliers,
     sort: sort ?? this.sort,
     descending: descending ?? this.descending,
   );
@@ -549,6 +560,18 @@ final spoolPresetOverridesProvider = FutureProvider.autoDispose
           .watch(inventoryRepositoryProvider)
           .fetchPresetOverrides(spoolId);
     });
+
+/// The supplier master list. Empty until the gate says yes, and empty on a
+/// failed read too: it only feeds pickers and the management sheet, while the
+/// assignments a spool form writes back come from the spool itself.
+final supplierListProvider = FutureProvider.autoDispose<List<Supplier>>((
+  ref,
+) async {
+  if (!(ref.watch(suppliersSupportedProvider).valueOrNull ?? false)) {
+    return const [];
+  }
+  return ref.watch(suppliersRepositoryProvider).listSuppliers();
+});
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.
