@@ -154,6 +154,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     if (shown) {
       // Coming back is a "try again", as it is on resume.
       _attempt = 0;
+      _error = null;
       unawaited(_start());
     } else {
       _stop();
@@ -169,13 +170,23 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
       _evictAt(_frame, old.cacheWidth);
     }
     if (old.url == widget.url) return;
-    // A live stream survives a re-minted token: the server checks the token
-    // only when the connection opens (a route dependency; the fan-out never
-    // re-checks), and `_start` reads `widget.url`, so the next reconnect
-    // already carries the new one. Restarting here blanked every open camera
-    // to a spinner once an hour.
-    final live = _client != null && _frame != null && _error == null;
-    if (live && sameStreamExceptToken(old.url, widget.url)) return;
+    if (sameStreamExceptToken(old.url, widget.url)) {
+      // A live stream survives a re-minted token: the server checks the token
+      // only when the connection opens (a route dependency; the fan-out never
+      // re-checks), and `_start` reads `widget.url`, so the next reconnect
+      // already carries the new one. Restarting here blanked every open camera
+      // to a spinner once an hour. A stream stopped while hidden or in the
+      // background has no connection to keep, but the same `_start` opens its
+      // next one, so it keeps its frame too.
+      if (_frame != null && _error == null) return;
+      // Connecting or failed on the old token: start over on the new one, but
+      // the picture is still this camera's, so it stays.
+      _stop();
+      _error = null;
+      _attempt = 0;
+      if (_shown ?? false) unawaited(_start());
+      return;
+    }
     // Any other change is another stream: the URL is what identifies it here,
     // not the widget position.
     _stop();
@@ -189,11 +200,33 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (_client != null || !(_shown ?? false)) return;
       // Also when the stream is showing an error: coming back to the screen is
       // as clear a "try again" as the button is, and the blip that broke it is
-      // usually over by now.
-      _attempt = 0;
-      if (_client == null && (_shown ?? false)) unawaited(_start());
+      // usually over by now. The error goes too — with `_attempt` back at zero
+      // it would otherwise replace the kept frame until the new connection
+      // delivers one.
+      setState(() {
+        _attempt = 0;
+        _error = null;
+      });
+      // After the first frame: callbacks reach observers before it, and a
+      // token re-minted in the background reaches `widget.url` only in it.
+      // Starting now opened the stream on the expired token, which the server
+      // refused with a 401 and the caller re-minted for again.
+      //
+      // A vsync asked for by the resume still draws after a pause that beat
+      // it, so the callback checks the app is still in front: the pause has
+      // already been handled, and nothing would stop a stream opened here.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final inFront = switch (WidgetsBinding.instance.lifecycleState) {
+          AppLifecycleState.resumed || AppLifecycleState.inactive => true,
+          _ => false,
+        };
+        if (mounted && inFront && _client == null && (_shown ?? false)) {
+          unawaited(_start());
+        }
+      });
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _stop();
@@ -277,7 +310,10 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
 
   ImageProvider _imageAt(Uint8List frame, int? width) {
     final memory = MemoryImage(frame);
-    return width == null ? memory : ResizeImage(memory, width: width);
+    // A zero width (a box not laid out yet) fails `TargetImageSize`'s assert.
+    return width == null || width <= 0
+        ? memory
+        : ResizeImage(memory, width: width);
   }
 
   void _evict(Uint8List? frame) => _evictAt(frame, widget.cacheWidth);
