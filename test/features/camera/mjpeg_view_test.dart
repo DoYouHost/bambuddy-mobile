@@ -62,6 +62,9 @@ class _FakeHttpOverrides extends HttpOverrides {
   /// Every URL a connection was opened to, in order.
   final urls = <Uri>[];
 
+  /// Clients the view closed. A stream is live while `clients - closed` is one.
+  int closed = 0;
+
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     clients++;
@@ -86,11 +89,15 @@ class _FakeClient implements HttpClient {
   }
 
   @override
-  void close({bool force = false}) {}
+  void close({bool force = false}) => _overrides.closed++;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// A full page pushed over the view, the way a wall tile opens its camera.
+Route<void> _coveringPage() =>
+    MaterialPageRoute<void>(builder: (_) => const Text('on top'));
 
 void main() {
   late _FakeHttpOverrides http;
@@ -112,20 +119,25 @@ void main() {
     WidgetTester tester, {
     String url = 'http://printer.test/stream?token=t',
     int? cacheWidth,
+    bool shown = true,
+    List<Duration> reconnectDelays = const [
+      Duration(milliseconds: 100),
+      Duration(milliseconds: 200),
+      Duration(milliseconds: 400),
+    ],
   }) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: MjpegView(
-          url: url,
-          cacheWidth: cacheWidth,
-          loading: (_) => const Text('connecting'),
-          error: (_, _) => const Text('failed'),
-          retrying: (_) => const Text('retrying'),
-          reconnectDelays: const [
-            Duration(milliseconds: 100),
-            Duration(milliseconds: 200),
-            Duration(milliseconds: 400),
-          ],
+        home: TickerMode(
+          enabled: shown,
+          child: MjpegView(
+            url: url,
+            cacheWidth: cacheWidth,
+            loading: (_) => const Text('connecting'),
+            error: (_, _) => const Text('failed'),
+            retrying: (_) => const Text('retrying'),
+            reconnectDelays: reconnectDelays,
+          ),
         ),
       ),
     );
@@ -472,5 +484,147 @@ void main() {
     await tester.pump();
     expect(find.text('failed'), findsOneWidget);
     await quiesce(tester);
+  });
+
+  group('out of sight', () {
+    /// The navigator of the screen [show] put the view on.
+    NavigatorState navigator(WidgetTester tester) =>
+        tester.state<NavigatorState>(find.byType(Navigator));
+
+    /// Pushes [_coveringPage] and lets its transition finish — the navigator
+    /// turns the tickers of the route underneath off only once it is covered.
+    Future<void> cover(WidgetTester tester) async {
+      unawaited(navigator(tester).push(_coveringPage()));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    Future<void> uncover(WidgetTester tester) async {
+      navigator(tester).pop();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+
+    testWidgets('closes the stream under a covering route and keeps the '
+        'picture', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+
+      await cover(tester);
+
+      expect(http.closed, 1, reason: 'the connection is still open');
+      // A stream the view gave up on itself must not reconnect either.
+      await tester.pump(const Duration(seconds: 30));
+      expect(http.clients, 1);
+      expect(find.byType(Image, skipOffstage: false), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('opens a stream again when the route on top goes, without a '
+        'spinner', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await cover(tester);
+
+      await uncover(tester);
+
+      expect(http.clients, 2);
+      expect(http.clients - http.closed, 1, reason: 'one live connection');
+      expect(find.text('connecting'), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('keeps streaming under a dialog', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+
+      // Not opaque: the view is still on screen around the dialog.
+      unawaited(
+        showDialog<void>(
+          context: tester.element(find.byType(Image)),
+          builder: (_) => const Text('dialog'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(http.closed, 0);
+      http.attempts.last.add(tinyJpeg());
+      await tester.pump();
+      expect(find.byType(Image), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('cancels a reconnect that was waiting when it got covered', (
+      tester,
+    ) async {
+      // Longer than the push transition, which is what turns tickers off.
+      await show(tester, reconnectDelays: const [Duration(seconds: 5)]);
+      await feedFrame(tester);
+      await drop(tester);
+      expect(find.text('retrying'), findsOneWidget);
+
+      await cover(tester);
+      await tester.pump(const Duration(seconds: 30));
+      expect(http.clients, 1);
+
+      // Back on screen is a fresh start: at once, not after the backoff.
+      await uncover(tester);
+      expect(http.clients, 2);
+      await quiesce(tester);
+    });
+
+    testWidgets('does not connect on resume while covered', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await cover(tester);
+
+      for (final state in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pump();
+      await tester.pump();
+
+      expect(http.clients, 1);
+      await quiesce(tester);
+    });
+
+    testWidgets('connects only once a hidden view is shown', (tester) async {
+      // A tab that is not on screen builds its view with tickers off.
+      await show(tester, shown: false);
+      expect(http.clients, 0);
+
+      await show(tester);
+      expect(http.clients, 1);
+      expect(http.attempts, hasLength(1));
+      await quiesce(tester);
+    });
+
+    testWidgets('does not connect to a new URL while hidden', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await show(tester, shown: false);
+
+      await show(
+        tester,
+        url: 'http://printer.test/other-stream?token=t',
+        shown: false,
+      );
+      expect(http.clients, 1);
+
+      await show(tester, url: 'http://printer.test/other-stream?token=t');
+      expect(http.clients, 2);
+      expect(http.urls.last.path, '/other-stream');
+      await quiesce(tester);
+    });
   });
 }

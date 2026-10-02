@@ -383,6 +383,73 @@ void main() {
       expect(find.byType(CameraView), findsOneWidget);
     });
 
+    group('under the full-screen camera it opened', () {
+      /// Opens the tile's camera and returns how many times [path] had been
+      /// asked for once the camera was on screen.
+      Future<int> openCamera(
+        WidgetTester tester,
+        _CameraServer server,
+        String path,
+      ) async {
+        await tester.tap(byLogId('wall.tile'));
+        await tester.pumpAndSettle();
+        expect(find.byType(CameraView), findsOneWidget);
+        return server.asked.where((u) => u.path.endsWith(path)).length;
+      }
+
+      testWidgets('does not ask for a refused stream again', (tester) async {
+        final server = _serve(stream: 503);
+        await pumpTile(tester, _printing, camera: true);
+        await tester.pump();
+        await tester.pump();
+
+        final asked = await openCamera(tester, server, '/stream');
+        await tester.pump(WallCamera.restreamAfter * 3);
+        await tester.pump();
+
+        // The camera on top asked once; a tile restreaming behind it would be
+        // one more per minute, each one an upstream started on the server.
+        expect(
+          server.asked.where((u) => u.path.endsWith('/stream')).length,
+          asked,
+        );
+      });
+
+      testWidgets('skips its snapshots, and takes them again once back', (
+        tester,
+      ) async {
+        final server = _serve(stream: 503, snapshot: 200);
+        int shots() =>
+            server.asked.where((u) => u.path.endsWith('/snapshot')).length;
+        await pumpTile(tester, _printing, camera: true);
+        await tester.pump();
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        expect(shots(), greaterThan(0));
+
+        final asked = await openCamera(tester, server, '/snapshot');
+        for (var i = 0; i < 3; i++) {
+          await tester.pump(WallCamera.snapshotEvery);
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+        }
+        expect(shots(), asked);
+
+        tester.state<NavigatorState>(find.byType(Navigator)).pop();
+        await tester.pumpAndSettle();
+        await tester.pump(WallCamera.snapshotEvery);
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        expect(shots(), greaterThan(asked));
+      });
+    });
+
     testWidgets('an offline printer gets the status card, not a dead stream', (
       tester,
     ) async {

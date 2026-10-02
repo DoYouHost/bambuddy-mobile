@@ -47,9 +47,14 @@ bool sameStreamExceptToken(String a, String b) {
 
 /// Renders an MJPEG stream (`multipart/x-mixed-replace`).
 ///
-/// The connection lives exactly as long as the widget is mounted and the app is
-/// in the foreground; going to the background stops the socket but keeps the
-/// last frame on screen, so returning to it does not flash a spinner.
+/// The connection lives exactly as long as the widget is mounted, shown and the
+/// app is in the foreground; going to the background stops the socket but keeps
+/// the last frame on screen, so returning to it does not flash a spinner.
+///
+/// "Shown" is [TickerMode], which the navigator turns off for a route another
+/// opaque route covers and `StatefulShellRoute` for a tab that is not on
+/// screen. Without it the camera wall kept every tile streaming and decoding
+/// behind the full-screen camera a tile opens.
 ///
 /// A connection that drops is retried on its own, on the backoff in
 /// [reconnectDelays]: a two-second Wi-Fi blip is not something the user should
@@ -129,11 +134,29 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   Timer? _reconnect;
   int _attempt = 0;
 
+  /// Null until the first [didChangeDependencies], which is what starts the
+  /// first connection — `initState` cannot read [TickerMode] yet.
+  bool? _shown;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_start());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shown = TickerMode.valuesOf(context).enabled;
+    if (shown == _shown) return;
+    _shown = shown;
+    if (shown) {
+      // Coming back is a "try again", as it is on resume.
+      _attempt = 0;
+      unawaited(_start());
+    } else {
+      _stop();
+    }
   }
 
   @override
@@ -154,7 +177,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     _frame = null;
     _error = null;
     _attempt = 0;
-    unawaited(_start());
+    if (_shown ?? false) unawaited(_start());
   }
 
   @override
@@ -164,7 +187,7 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
       // as clear a "try again" as the button is, and the blip that broke it is
       // usually over by now.
       _attempt = 0;
-      if (_client == null) unawaited(_start());
+      if (_client == null && (_shown ?? false)) unawaited(_start());
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _stop();
