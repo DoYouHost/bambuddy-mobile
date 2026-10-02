@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:bambuddy_mobile/features/camera/mjpeg_view.dart';
 import 'package:flutter/material.dart';
@@ -484,6 +485,60 @@ void main() {
     await tester.pump();
     expect(find.text('failed'), findsOneWidget);
     await quiesce(tester);
+  });
+
+  testWidgets('drops the frame cached at the old width when the width '
+      'changes', (tester) async {
+    await show(tester, cacheWidth: 64);
+    await cachedAfterOneFrame(tester);
+
+    // A phone turned to landscape: the same stream, decoded wider.
+    await show(tester, cacheWidth: 128);
+    await feedFrame(tester);
+    await tester.pumpWidget(const SizedBox());
+
+    // Only the frame at 64 px could still be here — every later one is evicted
+    // under the width it was drawn at.
+    final cache = PaintingBinding.instance.imageCache;
+    expect(cache.pendingImageCount + cache.liveImageCount, 0);
+    await quiesce(tester);
+  });
+
+  group('decode width', () {
+    /// Feeds [wideJpeg] and returns the image the real codec decoded from it.
+    Future<ui.Image> decoded(WidgetTester tester) async {
+      http.attempts.last.add(wideJpeg());
+      await tester.pump();
+      await tester.pump();
+      // The codec runs outside fake async, so it gets real time to finish in.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      final image = tester.widget<RawImage>(find.byType(RawImage)).image;
+      expect(image, isNotNull, reason: 'the frame was not decoded');
+      return image!;
+    }
+
+    testWidgets('a frame is decoded at cacheWidth, keeping its aspect', (
+      tester,
+    ) async {
+      await show(tester, cacheWidth: 16);
+
+      final image = await decoded(tester);
+      expect((image.width, image.height), (16, 9));
+      await quiesce(tester);
+    });
+
+    testWidgets('a frame narrower than cacheWidth is not blown up', (
+      tester,
+    ) async {
+      await show(tester, cacheWidth: 64);
+
+      final image = await decoded(tester);
+      expect((image.width, image.height), (32, 18));
+      await quiesce(tester);
+    });
   });
 
   group('out of sight', () {

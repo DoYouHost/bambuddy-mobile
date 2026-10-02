@@ -107,7 +107,8 @@ class MjpegView extends StatefulWidget {
 
   /// Decode frames at this width rather than the camera's own. A wall of
   /// small tiles otherwise decodes a 1080p frame per tile, several times a
-  /// second each.
+  /// second each, and the full-screen camera a 1920 px frame for a phone
+  /// 1080 px wide.
   final int? cacheWidth;
 
   /// How long a live stream may say nothing before it counts as dead. A remote
@@ -162,6 +163,11 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(MjpegView old) {
     super.didUpdateWidget(old);
+    if (old.cacheWidth != widget.cacheWidth) {
+      // The frame on screen was cached under the old width, which [_show]
+      // would no longer find to evict when the next frame replaces it.
+      _evictAt(_frame, old.cacheWidth);
+    }
     if (old.url == widget.url) return;
     // A live stream survives a re-minted token: the server checks the token
     // only when the connection opens (a route dependency; the fan-out never
@@ -267,14 +273,17 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   }
 
   /// The cache key a frame is drawn under — the same one [_evict] must drop.
-  ImageProvider _image(Uint8List frame) {
-    final width = widget.cacheWidth;
+  ImageProvider _image(Uint8List frame) => _imageAt(frame, widget.cacheWidth);
+
+  ImageProvider _imageAt(Uint8List frame, int? width) {
     final memory = MemoryImage(frame);
     return width == null ? memory : ResizeImage(memory, width: width);
   }
 
-  void _evict(Uint8List? frame) {
-    if (frame != null) unawaited(_image(frame).evict());
+  void _evict(Uint8List? frame) => _evictAt(frame, widget.cacheWidth);
+
+  void _evictAt(Uint8List? frame, int? width) {
+    if (frame != null) unawaited(_imageAt(frame, width).evict());
   }
 
   void _fail(Object error, HttpClient from) {
