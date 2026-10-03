@@ -1921,14 +1921,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Za dużo prób — serwer blokuje logowanie na kilka minut. Odczekaj i spróbuj ponownie albo użyj klucza API.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Ten slot nie ma czytelnego tagu RFID — Spoolman wiąże szpule po tagu, więc tego nie przyjmie. Wbudowany magazyn przypisuje po slocie.';
-
-  @override
-  String get errPrinterOffline =>
-      'Drukarka jest offline, więc apka nie odczyta, co jest w slocie. Połącz ją ponownie i spróbuj jeszcze raz.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent% · ETA $eta';
   }

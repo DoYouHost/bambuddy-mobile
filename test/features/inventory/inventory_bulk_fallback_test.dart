@@ -40,9 +40,6 @@ class _FakeSource implements SpoolInventorySource {
       const [];
 
   @override
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft) async {}
-
-  @override
   Future<BulkOutcome> bulkArchive(List<int> spoolIds) async {
     bulkCalls.add(spoolIds);
     if (bulkFailure case final failure?) throw failure;

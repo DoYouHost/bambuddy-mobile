@@ -69,9 +69,6 @@ class InventoryRepository {
   Future<List<SpoolAssignment>> fetchAssignments({int? printerId}) =>
       _on((s) => s.fetchAssignments(printerId: printerId));
 
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft) =>
-      _on((s) => s.ensureAssignable(draft));
-
   Future<void> assignSpool(SpoolAssignmentDraft draft) =>
       _on((s) => s.assignSpool(draft));
 

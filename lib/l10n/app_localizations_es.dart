@@ -1903,14 +1903,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave API.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Esta ranura no tiene una etiqueta RFID legible — Spoolman vincula las bobinas por etiqueta, por lo que no puede admitir esta. El inventario integrado las asigna por ranura.';
-
-  @override
-  String get errPrinterOffline =>
-      'La impresora está desconectada, por lo que la aplicación no puede leer lo que contiene la ranura. Vuelve a conectarla e inténtalo de nuevo.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent% · ETA $eta';
   }

@@ -1919,14 +1919,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Trop de tentatives — le serveur bloque la connexion pendant quelques minutes. Patientez et réessayez ou utilisez une clé API.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Cet emplacement ne comporte pas de tag RFID lisible — Spoolman associe les bobines par tag et ne peut donc pas accepter celle-ci. L\'inventaire intégré les assigne par emplacement.';
-
-  @override
-  String get errPrinterOffline =>
-      'L\'imprimante est hors ligne, l\'application ne peut donc pas lire le contenu de l\'emplacement. Reconnectez-la et réessayez.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent % · fin $eta';
   }
