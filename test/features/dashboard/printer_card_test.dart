@@ -1384,6 +1384,7 @@ void main() {
           findsOneWidget,
         );
         expect(control('assign_spool.unassign'), findsNothing);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
       });
 
       testWidgets('an unknown tag still lets a spool be picked', (

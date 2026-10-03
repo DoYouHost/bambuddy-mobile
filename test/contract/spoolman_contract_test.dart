@@ -249,10 +249,17 @@ void main() {
 
         expect(spool.material, 'PETG');
         // The sync also pins it to the slot — the card shows a tagged slot
-        // from that row, as the web does (#1457).
-        expect((await slotsOf(spool.id)).map((a) => (a.amsId, a.trayId)), [
-          (0, 3),
-        ]);
+        // from that row, as the web does (#1457). Written after the whole AMS
+        // pass, so later than the spool itself.
+        final slots = await pollUntil(
+          'spool ${spool.id} pinned to its slot',
+          () async {
+            final rows = await slotsOf(spool.id);
+            return rows.isEmpty ? null : rows;
+          },
+          within: const Duration(seconds: 10),
+        );
+        expect(slots.map((a) => (a.amsId, a.trayId)), [(0, 3)]);
       },
     );
 

@@ -2128,14 +2128,17 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
               ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
-            if (slot.lockedByTag)
-              Text(
-                l10n.inventoryTagBound,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            if (slot.lockedByTag) ...[
+              // Only true of the spool the tag names; one pinned by hand in
+              // the meantime (the next AMS sync replaces it) gets no reason.
+              if (current?.id == slot.tagSpool?.id)
+                Text(
+                  l10n.inventoryTagBound,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              )
-            else ...[
+            ] else ...[
               Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
               const SizedBox(height: DashSpace.sm),
               _spoolSearchRow(l10n),
