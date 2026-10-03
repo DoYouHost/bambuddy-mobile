@@ -47,9 +47,14 @@ bool sameStreamExceptToken(String a, String b) {
 
 /// Renders an MJPEG stream (`multipart/x-mixed-replace`).
 ///
-/// The connection lives exactly as long as the widget is mounted and the app is
-/// in the foreground; going to the background stops the socket but keeps the
-/// last frame on screen, so returning to it does not flash a spinner.
+/// The connection lives exactly as long as the widget is mounted, shown and the
+/// app is in the foreground; going to the background stops the socket but keeps
+/// the last frame on screen, so returning to it does not flash a spinner.
+///
+/// "Shown" is [TickerMode], which the navigator turns off for a route another
+/// opaque route covers and `StatefulShellRoute` for a tab that is not on
+/// screen. Without it the camera wall kept every tile streaming and decoding
+/// behind the full-screen camera a tile opens.
 ///
 /// A connection that drops is retried on its own, on the backoff in
 /// [reconnectDelays]: a two-second Wi-Fi blip is not something the user should
@@ -102,7 +107,8 @@ class MjpegView extends StatefulWidget {
 
   /// Decode frames at this width rather than the camera's own. A wall of
   /// small tiles otherwise decodes a 1080p frame per tile, several times a
-  /// second each.
+  /// second each, and the full-screen camera a 1920 px frame for a phone
+  /// 1080 px wide.
   final int? cacheWidth;
 
   /// How long a live stream may say nothing before it counts as dead. A remote
@@ -129,24 +135,58 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   Timer? _reconnect;
   int _attempt = 0;
 
+  /// Null until the first [didChangeDependencies], which is what starts the
+  /// first connection — `initState` cannot read [TickerMode] yet.
+  bool? _shown;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_start());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shown = TickerMode.valuesOf(context).enabled;
+    if (shown == _shown) return;
+    _shown = shown;
+    if (shown) {
+      // Coming back is a "try again", as it is on resume.
+      _attempt = 0;
+      _error = null;
+      unawaited(_start());
+    } else {
+      _stop();
+    }
   }
 
   @override
   void didUpdateWidget(MjpegView old) {
     super.didUpdateWidget(old);
+    if (old.cacheWidth != widget.cacheWidth) {
+      // The frame on screen was cached under the old width, which [_show]
+      // would no longer find to evict when the next frame replaces it.
+      _evictAt(_frame, old.cacheWidth);
+    }
     if (old.url == widget.url) return;
-    // A live stream survives a re-minted token: the server checks the token
-    // only when the connection opens (a route dependency; the fan-out never
-    // re-checks), and `_start` reads `widget.url`, so the next reconnect
-    // already carries the new one. Restarting here blanked every open camera
-    // to a spinner once an hour.
-    final live = _client != null && _frame != null && _error == null;
-    if (live && sameStreamExceptToken(old.url, widget.url)) return;
+    if (sameStreamExceptToken(old.url, widget.url)) {
+      // A live stream survives a re-minted token: the server checks the token
+      // only when the connection opens (a route dependency; the fan-out never
+      // re-checks), and `_start` reads `widget.url`, so the next reconnect
+      // already carries the new one. Restarting here blanked every open camera
+      // to a spinner once an hour. A stream stopped while hidden or in the
+      // background has no connection to keep, but the same `_start` opens its
+      // next one, so it keeps its frame too.
+      if (_frame != null && _error == null) return;
+      // Connecting or failed on the old token: start over on the new one, but
+      // the picture is still this camera's, so it stays.
+      _stop();
+      _error = null;
+      _attempt = 0;
+      if (_shown ?? false) unawaited(_start());
+      return;
+    }
     // Any other change is another stream: the URL is what identifies it here,
     // not the widget position.
     _stop();
@@ -154,17 +194,39 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
     _frame = null;
     _error = null;
     _attempt = 0;
-    unawaited(_start());
+    if (_shown ?? false) unawaited(_start());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (_client != null || !(_shown ?? false)) return;
       // Also when the stream is showing an error: coming back to the screen is
       // as clear a "try again" as the button is, and the blip that broke it is
-      // usually over by now.
-      _attempt = 0;
-      if (_client == null) unawaited(_start());
+      // usually over by now. The error goes too — with `_attempt` back at zero
+      // it would otherwise replace the kept frame until the new connection
+      // delivers one.
+      setState(() {
+        _attempt = 0;
+        _error = null;
+      });
+      // After the first frame: callbacks reach observers before it, and a
+      // token re-minted in the background reaches `widget.url` only in it.
+      // Starting now opened the stream on the expired token, which the server
+      // refused with a 401 and the caller re-minted for again.
+      //
+      // A vsync asked for by the resume still draws after a pause that beat
+      // it, so the callback checks the app is still in front: the pause has
+      // already been handled, and nothing would stop a stream opened here.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final inFront = switch (WidgetsBinding.instance.lifecycleState) {
+          AppLifecycleState.resumed || AppLifecycleState.inactive => true,
+          _ => false,
+        };
+        if (mounted && inFront && _client == null && (_shown ?? false)) {
+          unawaited(_start());
+        }
+      });
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _stop();
@@ -244,14 +306,20 @@ class _MjpegViewState extends State<MjpegView> with WidgetsBindingObserver {
   }
 
   /// The cache key a frame is drawn under — the same one [_evict] must drop.
-  ImageProvider _image(Uint8List frame) {
-    final width = widget.cacheWidth;
+  ImageProvider _image(Uint8List frame) => _imageAt(frame, widget.cacheWidth);
+
+  ImageProvider _imageAt(Uint8List frame, int? width) {
     final memory = MemoryImage(frame);
-    return width == null ? memory : ResizeImage(memory, width: width);
+    // A zero width (a box not laid out yet) fails `TargetImageSize`'s assert.
+    return width == null || width <= 0
+        ? memory
+        : ResizeImage(memory, width: width);
   }
 
-  void _evict(Uint8List? frame) {
-    if (frame != null) unawaited(_image(frame).evict());
+  void _evict(Uint8List? frame) => _evictAt(frame, widget.cacheWidth);
+
+  void _evictAt(Uint8List? frame, int? width) {
+    if (frame != null) unawaited(_imageAt(frame, width).evict());
   }
 
   void _fail(Object error, HttpClient from) {

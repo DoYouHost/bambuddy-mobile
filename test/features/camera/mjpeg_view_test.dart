@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:bambuddy_mobile/features/camera/mjpeg_view.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +63,9 @@ class _FakeHttpOverrides extends HttpOverrides {
   /// Every URL a connection was opened to, in order.
   final urls = <Uri>[];
 
+  /// Clients the view closed. A stream is live while `clients - closed` is one.
+  int closed = 0;
+
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     clients++;
@@ -86,11 +90,15 @@ class _FakeClient implements HttpClient {
   }
 
   @override
-  void close({bool force = false}) {}
+  void close({bool force = false}) => _overrides.closed++;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// A full page pushed over the view, the way a wall tile opens its camera.
+Route<void> _coveringPage() =>
+    MaterialPageRoute<void>(builder: (_) => const Text('on top'));
 
 void main() {
   late _FakeHttpOverrides http;
@@ -112,20 +120,25 @@ void main() {
     WidgetTester tester, {
     String url = 'http://printer.test/stream?token=t',
     int? cacheWidth,
+    bool shown = true,
+    List<Duration> reconnectDelays = const [
+      Duration(milliseconds: 100),
+      Duration(milliseconds: 200),
+      Duration(milliseconds: 400),
+    ],
   }) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: MjpegView(
-          url: url,
-          cacheWidth: cacheWidth,
-          loading: (_) => const Text('connecting'),
-          error: (_, _) => const Text('failed'),
-          retrying: (_) => const Text('retrying'),
-          reconnectDelays: const [
-            Duration(milliseconds: 100),
-            Duration(milliseconds: 200),
-            Duration(milliseconds: 400),
-          ],
+        home: TickerMode(
+          enabled: shown,
+          child: MjpegView(
+            url: url,
+            cacheWidth: cacheWidth,
+            loading: (_) => const Text('connecting'),
+            error: (_, _) => const Text('failed'),
+            retrying: (_) => const Text('retrying'),
+            reconnectDelays: reconnectDelays,
+          ),
         ),
       ),
     );
@@ -472,5 +485,378 @@ void main() {
     await tester.pump();
     expect(find.text('failed'), findsOneWidget);
     await quiesce(tester);
+  });
+
+  testWidgets('drops the frame cached at the old width when the width '
+      'changes', (tester) async {
+    await show(tester, cacheWidth: 64);
+    await cachedAfterOneFrame(tester);
+
+    // A phone turned to landscape: the same stream, decoded wider.
+    await show(tester, cacheWidth: 128);
+    await feedFrame(tester);
+    await tester.pumpWidget(const SizedBox());
+
+    // Only the frame at 64 px could still be here — every later one is evicted
+    // under the width it was drawn at.
+    final cache = PaintingBinding.instance.imageCache;
+    expect(cache.pendingImageCount + cache.liveImageCount, 0);
+    await quiesce(tester);
+  });
+
+  group('decode width', () {
+    /// Feeds [wideJpeg] and returns the image the real codec decoded from it.
+    Future<ui.Image> decoded(WidgetTester tester) async {
+      http.attempts.last.add(wideJpeg());
+      await tester.pump();
+      await tester.pump();
+      // The codec runs outside fake async, so it gets real time to finish in.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      final image = tester.widget<RawImage>(find.byType(RawImage)).image;
+      expect(image, isNotNull, reason: 'the frame was not decoded');
+      return image!;
+    }
+
+    testWidgets('a frame is decoded at cacheWidth, keeping its aspect', (
+      tester,
+    ) async {
+      await show(tester, cacheWidth: 16);
+
+      final image = await decoded(tester);
+      expect((image.width, image.height), (16, 9));
+      await quiesce(tester);
+    });
+
+    testWidgets('a zero cacheWidth decodes at the frame\'s own width', (
+      tester,
+    ) async {
+      // What a box that has not been laid out yet measures; `ResizeImage`
+      // with it fails an assert in the codec's target size.
+      await show(tester, cacheWidth: 0);
+
+      final image = await decoded(tester);
+      expect((image.width, image.height), (32, 18));
+      await quiesce(tester);
+    });
+
+    testWidgets('a frame narrower than cacheWidth is not blown up', (
+      tester,
+    ) async {
+      await show(tester, cacheWidth: 64);
+
+      final image = await decoded(tester);
+      expect((image.width, image.height), (32, 18));
+      await quiesce(tester);
+    });
+  });
+
+  group('out of sight', () {
+    /// The navigator of the screen [show] put the view on.
+    NavigatorState navigator(WidgetTester tester) =>
+        tester.state<NavigatorState>(find.byType(Navigator));
+
+    /// Pushes [_coveringPage] and lets its transition finish — the navigator
+    /// turns the tickers of the route underneath off only once it is covered.
+    Future<void> cover(WidgetTester tester) async {
+      unawaited(navigator(tester).push(_coveringPage()));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    Future<void> uncover(WidgetTester tester) async {
+      navigator(tester).pop();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+
+    testWidgets('closes the stream under a covering route and keeps the '
+        'picture', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+
+      await cover(tester);
+
+      expect(http.closed, 1, reason: 'the connection is still open');
+      // A stream the view gave up on itself must not reconnect either.
+      await tester.pump(const Duration(seconds: 30));
+      expect(http.clients, 1);
+      expect(find.byType(Image, skipOffstage: false), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('opens a stream again when the route on top goes, without a '
+        'spinner', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await cover(tester);
+
+      await uncover(tester);
+
+      expect(http.clients, 2);
+      expect(http.clients - http.closed, 1, reason: 'one live connection');
+      expect(find.text('connecting'), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('keeps streaming under a dialog', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+
+      // Not opaque: the view is still on screen around the dialog.
+      unawaited(
+        showDialog<void>(
+          context: tester.element(find.byType(Image)),
+          builder: (_) => const Text('dialog'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(http.closed, 0);
+      http.attempts.last.add(tinyJpeg());
+      await tester.pump();
+      expect(find.byType(Image), findsOneWidget);
+      await quiesce(tester);
+    });
+
+    testWidgets('cancels a reconnect that was waiting when it got covered', (
+      tester,
+    ) async {
+      // Longer than the push transition, which is what turns tickers off.
+      await show(tester, reconnectDelays: const [Duration(seconds: 5)]);
+      await feedFrame(tester);
+      await drop(tester);
+      expect(find.text('retrying'), findsOneWidget);
+
+      await cover(tester);
+      await tester.pump(const Duration(seconds: 30));
+      expect(http.clients, 1);
+
+      // Back on screen is a fresh start: at once, not after the backoff.
+      await uncover(tester);
+      expect(http.clients, 2);
+      await quiesce(tester);
+    });
+
+    testWidgets('does not connect on resume while covered', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await cover(tester);
+
+      for (final state in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pump();
+      await tester.pump();
+
+      expect(http.clients, 1);
+      await quiesce(tester);
+    });
+
+    testWidgets('connects only once a hidden view is shown', (tester) async {
+      // A tab that is not on screen builds its view with tickers off.
+      await show(tester, shown: false);
+      expect(http.clients, 0);
+
+      await show(tester);
+      expect(http.clients, 1);
+      expect(http.attempts, hasLength(1));
+      await quiesce(tester);
+    });
+
+    /// Steps the app into the background and back, the order Android reports.
+    void background(WidgetTester tester) {
+      for (final state in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+    }
+
+    void foreground(WidgetTester tester) {
+      for (final state in const [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+    }
+
+    /// A view whose URL the test changes the way a re-minted token does:
+    /// through a rebuild of what is under it, wherever it is in the navigator.
+    Future<ValueNotifier<String>> showListening(
+      WidgetTester tester, {
+      List<Duration> reconnectDelays = const [Duration(seconds: 5)],
+    }) async {
+      final url = ValueNotifier('http://printer.test/stream?token=old');
+      addTearDown(url.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder(
+            valueListenable: url,
+            builder: (_, value, _) => MjpegView(
+              url: value,
+              reconnectDelays: reconnectDelays,
+              loading: (_) => const Text('connecting'),
+              error: (_, _) => const Text('failed'),
+              retrying: (_) => const Text('retrying'),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await feedFrame(tester);
+      return url;
+    }
+
+    void expectReconnectedOnFreshToken(WidgetTester tester) {
+      expect(find.text('connecting'), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+      expect(http.clients, 2);
+      expect(http.urls.last.queryParameters['token'], 'fresh');
+    }
+
+    testWidgets('keeps the frame of a covered stream across a re-minted '
+        'token', (tester) async {
+      final url = await showListening(tester);
+      await cover(tester);
+
+      // The hourly re-mint reaches the wall tiles under the camera too — here
+      // in the same frame as the pop, the latest it could: the rebuild that
+      // carries the token and the one that turns tickers back on are one
+      // `update`, where `didUpdateWidget` runs before `didChangeDependencies`.
+      url.value = 'http://printer.test/stream?token=fresh';
+      await uncover(tester);
+
+      expectReconnectedOnFreshToken(tester);
+      await quiesce(tester);
+    });
+
+    testWidgets('comes back from the background on the token re-minted '
+        'there', (tester) async {
+      final url = await showListening(tester);
+      background(tester);
+      await tester.pump();
+
+      // No frames in the background: the new URL reaches the view only in
+      // the first one after resume, which comes after the resume callback.
+      url.value = 'http://printer.test/stream?token=fresh';
+      foreground(tester);
+      await tester.pump();
+
+      expectReconnectedOnFreshToken(tester);
+      expect(http.urls.map((u) => u.queryParameters['token']), [
+        'old',
+        'fresh',
+      ]);
+      await quiesce(tester);
+    });
+
+    testWidgets('keeps the picture of a retrying stream across a re-minted '
+        'token', (tester) async {
+      final url = await showListening(tester);
+      await drop(tester);
+      expect(find.text('retrying'), findsOneWidget);
+
+      url.value = 'http://printer.test/stream?token=fresh';
+      await tester.pump();
+      await tester.pump();
+
+      expectReconnectedOnFreshToken(tester);
+      await quiesce(tester);
+    });
+
+    testWidgets('does not connect when the app goes back before the first '
+        'frame after resume', (tester) async {
+      await showListening(tester);
+      background(tester);
+      await tester.pump();
+
+      // A wake that the user turns straight back off: the vsync that resume
+      // asked for still arrives, after the app is already in the background.
+      foreground(tester);
+      background(tester);
+      tester.binding
+        ..handleBeginFrame(null)
+        ..handleDrawFrame();
+
+      expect(http.clients, 1);
+      await quiesce(tester);
+    });
+
+    group('a retrying stream keeps its picture, not the error,', () {
+      Future<void> showRetrying(WidgetTester tester) async {
+        // Longer than a push transition, so the retry is still pending.
+        await show(tester, reconnectDelays: const [Duration(seconds: 5)]);
+        await feedFrame(tester);
+        await drop(tester);
+        expect(find.text('retrying'), findsOneWidget);
+      }
+
+      testWidgets('when it is uncovered', (tester) async {
+        await showRetrying(tester);
+        await cover(tester);
+
+        await uncover(tester);
+
+        expect(find.text('failed'), findsNothing);
+        expect(find.byType(Image), findsOneWidget);
+        expect(http.clients, 2);
+        await quiesce(tester);
+      });
+
+      testWidgets('when the app comes back', (tester) async {
+        await showRetrying(tester);
+        background(tester);
+        await tester.pump();
+
+        foreground(tester);
+        await tester.pump();
+
+        expect(find.text('failed'), findsNothing);
+        expect(find.byType(Image), findsOneWidget);
+        expect(http.clients, 2);
+        await quiesce(tester);
+      });
+    });
+
+    testWidgets('does not connect to a new URL while hidden', (tester) async {
+      await show(tester);
+      await feedFrame(tester);
+      await show(tester, shown: false);
+
+      await show(
+        tester,
+        url: 'http://printer.test/other-stream?token=t',
+        shown: false,
+      );
+      expect(http.clients, 1);
+
+      await show(tester, url: 'http://printer.test/other-stream?token=t');
+      expect(http.clients, 2);
+      expect(http.urls.last.path, '/other-stream');
+      await quiesce(tester);
+    });
   });
 }

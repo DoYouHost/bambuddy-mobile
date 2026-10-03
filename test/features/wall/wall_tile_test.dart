@@ -9,6 +9,7 @@ import 'package:bambuddy_mobile/features/wall/wall_camera.dart';
 import 'package:bambuddy_mobile/features/wall/wall_tile.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fixtures/tiny_jpeg.dart';
@@ -321,6 +322,111 @@ void main() {
       expect(shot.image, isNotNull, reason: 'the snapshot was decoded');
     });
 
+    testWidgets('drops a snapshot cached at the old width when the tile '
+        'resizes', (tester) async {
+      _serve(stream: 503, snapshot: 200);
+      final cache = PaintingBinding.instance.imageCache..clear();
+      int held() =>
+          cache.currentSize + cache.liveImageCount + cache.pendingImageCount;
+      Future<void> showAt(Size size) async {
+        await pumpTile(tester, _printing, camera: true, size: size);
+        await tester.pump();
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+      }
+
+      await showAt(const Size(260, 170));
+      expect(held(), greaterThan(0), reason: 'nothing was cached to evict');
+
+      // The wall re-flowing its grid, or the phone turned.
+      await showAt(const Size(320, 200));
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(held(), 0);
+    });
+
+    testWidgets('drops a snapshot cached under the old token on a re-mint', (
+      tester,
+    ) async {
+      _serve(stream: 503, snapshot: 200);
+      final cache = PaintingBinding.instance.imageCache..clear();
+      int held() =>
+          cache.currentSize + cache.liveImageCount + cache.pendingImageCount;
+      var mints = 0;
+      Future<void> settleShot() async {
+        await tester.pump();
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+      }
+
+      await pumpPhone(
+        tester,
+        Center(
+          child: SizedBox(
+            width: 260,
+            height: 170,
+            child: WallTile(
+              item: PrinterWithStatus(printer: _printer, status: _printing),
+              camera: true,
+            ),
+          ),
+        ),
+        overrides: [
+          fakeServerProfileOverride(),
+          cameraTokenProvider.overrideWith((ref) async => 'tok${++mints}'),
+        ],
+      );
+      await settleShot();
+      expect(held(), greaterThan(0), reason: 'nothing was cached to evict');
+
+      ProviderScope.containerOf(
+        tester.element(find.byType(WallTile)),
+      ).invalidate(cameraTokenProvider);
+      await settleShot();
+      expect(mints, 2);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(held(), 0);
+    });
+
+    testWidgets('a snapshot for a tile not laid out yet still decodes', (
+      tester,
+    ) async {
+      _serve(stream: 503, snapshot: 200);
+
+      // A zero width is what a box measures before layout, and `ResizeImage`
+      // with it fails `TargetImageSize`'s assert.
+      await pumpPhone(
+        tester,
+        const SizedBox(
+          width: 260,
+          height: 170,
+          child: WallCamera(printerId: 1, cacheWidth: 0),
+        ),
+        overrides: [
+          fakeServerProfileOverride(),
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        ],
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+
+      final shot = tester.widget<RawImage>(find.byType(RawImage).first);
+      expect(shot.image, isNotNull, reason: 'the snapshot was decoded');
+    });
+
     testWidgets('asks for a refused stream again after a minute', (
       tester,
     ) async {
@@ -381,6 +487,73 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(CameraView), findsOneWidget);
+    });
+
+    group('under the full-screen camera it opened', () {
+      /// Opens the tile's camera and returns how many times [path] had been
+      /// asked for once the camera was on screen.
+      Future<int> openCamera(
+        WidgetTester tester,
+        _CameraServer server,
+        String path,
+      ) async {
+        await tester.tap(byLogId('wall.tile'));
+        await tester.pumpAndSettle();
+        expect(find.byType(CameraView), findsOneWidget);
+        return server.asked.where((u) => u.path.endsWith(path)).length;
+      }
+
+      testWidgets('does not ask for a refused stream again', (tester) async {
+        final server = _serve(stream: 503);
+        await pumpTile(tester, _printing, camera: true);
+        await tester.pump();
+        await tester.pump();
+
+        final asked = await openCamera(tester, server, '/stream');
+        await tester.pump(WallCamera.restreamAfter * 3);
+        await tester.pump();
+
+        // The camera on top asked once; a tile restreaming behind it would be
+        // one more per minute, each one an upstream started on the server.
+        expect(
+          server.asked.where((u) => u.path.endsWith('/stream')).length,
+          asked,
+        );
+      });
+
+      testWidgets('skips its snapshots, and takes them again once back', (
+        tester,
+      ) async {
+        final server = _serve(stream: 503, snapshot: 200);
+        int shots() =>
+            server.asked.where((u) => u.path.endsWith('/snapshot')).length;
+        await pumpTile(tester, _printing, camera: true);
+        await tester.pump();
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        expect(shots(), greaterThan(0));
+
+        final asked = await openCamera(tester, server, '/snapshot');
+        for (var i = 0; i < 3; i++) {
+          await tester.pump(WallCamera.snapshotEvery);
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+        }
+        expect(shots(), asked);
+
+        tester.state<NavigatorState>(find.byType(Navigator)).pop();
+        await tester.pumpAndSettle();
+        await tester.pump(WallCamera.snapshotEvery);
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        expect(shots(), greaterThan(asked));
+      });
     });
 
     testWidgets('an offline printer gets the status card, not a dead stream', (

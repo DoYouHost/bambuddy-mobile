@@ -133,18 +133,46 @@ class _SnapshotsState extends State<_Snapshots> {
   late final Timer _tick;
   int _n = 0;
 
+  /// [TickerMode], as in [MjpegView]: a tile under the full-screen camera it
+  /// opened skips its shots rather than fetching and decoding them unseen.
+  bool _shown = true;
+
+  ImageProvider _shot(int n) => _shotOf(widget, n);
+
   // A fresh query per shot, or the image cache answers with the first one.
-  ImageProvider _shot(int n) =>
-      ResizeImage(NetworkImage('${widget.url}&n=$n'), width: widget.cacheWidth);
+  // A zero width (a tile not laid out yet) fails `TargetImageSize`'s assert.
+  static ImageProvider _shotOf(_Snapshots tile, int n) {
+    final shot = NetworkImage('${tile.url}&n=$n');
+    return tile.cacheWidth <= 0
+        ? shot
+        : ResizeImage(shot, width: tile.cacheWidth);
+  }
 
   @override
   void initState() {
     super.initState();
     _tick = Timer.periodic(WallCamera.snapshotEvery, (_) {
+      if (!_shown) return;
       final previous = _shot(_n);
       setState(() => _n++);
       unawaited(previous.evict());
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _shown = TickerMode.valuesOf(context).enabled;
+  }
+
+  @override
+  void didUpdateWidget(_Snapshots old) {
+    super.didUpdateWidget(old);
+    // A new token never lands here: the stream restarts on it and takes this
+    // fallback down, and `dispose` evicts under the old URL.
+    if (old.cacheWidth == widget.cacheWidth) return;
+    // Cached under the old width, which the next tick would no longer find.
+    unawaited(_shotOf(old, _n).evict());
   }
 
   @override

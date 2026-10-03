@@ -74,24 +74,30 @@ class _CameraViewState extends ConsumerState<CameraView> {
   Widget _stream(String baseUrl, String token, AppLocalizations l10n) {
     final url =
         '$baseUrl${Endpoints.cameraStream(widget.printerId)}?token=$token';
-    return MjpegView(
-      url: url,
-      fit: BoxFit.contain,
-      loading: (_) => _Loading(text: l10n.cameraConnecting),
-      retrying: (_) => const CameraRetryingBadge(),
-      error: (context, error) {
-        // 401 = token expired -> once force re-mint and restart stream.
-        if (_isTokenExpired(error) && _remintedFor != token) {
-          _remintedFor = token;
-          Future.microtask(() {
-            if (!mounted) return;
-            ref.read(cameraTokenServiceProvider).invalidate();
-            ref.invalidate(cameraTokenProvider);
-          });
-          return _Loading(text: l10n.cameraConnecting);
-        }
-        return _Message(text: l10n.cameraError, onRetry: _retry);
-      },
+    return LayoutBuilder(
+      builder: (context, box) => MjpegView(
+        url: url,
+        fit: BoxFit.contain,
+        // `contain` never draws wider than the box, so neither is the decode.
+        cacheWidth: box.maxWidth.isFinite
+            ? (box.maxWidth * MediaQuery.devicePixelRatioOf(context)).round()
+            : null,
+        loading: (_) => _Loading(text: l10n.cameraConnecting),
+        retrying: (_) => const CameraRetryingBadge(),
+        error: (context, error) {
+          // 401 = token expired -> once force re-mint and restart stream.
+          if (_isTokenExpired(error) && _remintedFor != token) {
+            _remintedFor = token;
+            Future.microtask(() {
+              if (!mounted) return;
+              ref.read(cameraTokenServiceProvider).invalidate();
+              ref.invalidate(cameraTokenProvider);
+            });
+            return _Loading(text: l10n.cameraConnecting);
+          }
+          return _Message(text: l10n.cameraError, onRetry: _retry);
+        },
+      ),
     );
   }
 }

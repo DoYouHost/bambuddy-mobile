@@ -26,6 +26,17 @@ class _CameraServer {
 
   String get url => 'http://127.0.0.1:${_server!.port}/stream';
 
+  /// Streaming connections the app has opened so far.
+  int connections = 0;
+
+  /// The connection [push] writes to: the newest, so a view that reconnects
+  /// keeps being fed.
+  HttpResponse? _latest;
+
+  /// Connections a write has already found hung up. Writing to one again only
+  /// waits out another flush timeout.
+  final _dead = <HttpResponse>{};
+
   Future<void> start({int status = 200}) async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     _server = server;
@@ -40,6 +51,8 @@ class _CameraServer {
         HttpHeaders.contentTypeHeader,
         'multipart/x-mixed-replace; boundary=frame',
       );
+      connections++;
+      _latest = response;
       if (!_connected.isCompleted) _connected.complete(response);
     });
   }
@@ -53,9 +66,12 @@ class _CameraServer {
     // client hanging up, passing a test that proves nothing.
     if (_pushing) return;
     _pushing = true;
-    final response = await _connected.future.timeout(
-      const Duration(seconds: 10),
-    );
+    await _connected.future.timeout(const Duration(seconds: 10));
+    final response = _latest!;
+    if (_dead.contains(response)) {
+      _pushing = false;
+      return;
+    }
     try {
       response.add('--frame\r\nContent-Type: image/jpeg\r\n\r\n'.codeUnits);
       response.add(frame);
@@ -67,13 +83,13 @@ class _CameraServer {
       // what keeps a loaded emulator from reading as a disconnect.
       await response.flush().timeout(const Duration(seconds: 2));
     } on SocketException {
-      _noteHungUp();
+      _noteHungUp(response);
     } on HttpException {
-      _noteHungUp();
+      _noteHungUp(response);
     } on TimeoutException {
       // A write to a socket nobody is reading any more does not always fail —
       // it can simply never finish, which is the other face of a hang-up.
-      _noteHungUp();
+      _noteHungUp(response);
     } finally {
       _pushing = false;
     }
@@ -82,7 +98,8 @@ class _CameraServer {
   /// Deliberately not a blanket `on Object`: a `StateError` here would be this
   /// server's bug, and swallowing it as "the client left" is how the test used
   /// to pass while proving nothing. Anything unlisted escapes and fails loudly.
-  void _noteHungUp() {
+  void _noteHungUp(HttpResponse response) {
+    _dead.add(response);
     if (!_hungUp.isCompleted) _hungUp.complete();
   }
 
@@ -250,6 +267,42 @@ void main() {
       // A view that keeps its connection after being disposed is a camera stream
       // running behind whatever screen the user opened next.
       expect(await server.clientHungUp(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'hangs up under a covering route and reconnects once it is gone',
+    timeout: const Timeout(Duration(seconds: 90)),
+    (tester) async {
+      server = _CameraServer();
+      await server.start();
+      await show(tester, reconnectDelays: const [Duration(seconds: 1)]);
+      await pumpUntil(tester, find.byType(CircularProgressIndicator));
+      server.pushEvery(tinyJpeg());
+      await pumpUntil(tester, find.byType(Image));
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+
+      // What a wall tile does when tapped: a full page over the stream.
+      unawaited(
+        navigator.push(
+          MaterialPageRoute<void>(builder: (_) => const Text('camera')),
+        ),
+      );
+      await pumpUntil(tester, find.text('camera'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(await server.clientHungUp(), isTrue);
+      expect(server.connections, 1, reason: 'reconnected while covered');
+
+      navigator.pop();
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (server.connections < 2 && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 50));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      expect(server.connections, 2);
+      await pumpUntil(tester, find.byType(Image));
+      expect(reportedError, isNull);
     },
   );
 }
