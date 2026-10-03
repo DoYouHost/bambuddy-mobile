@@ -42,24 +42,25 @@ void main() {
 
     tearDownAll(() async {
       final quiet = Options(validateStatus: (_) => true);
-      for (final id in spoolIds) {
-        await dio.delete<dynamic>(
-          '/api/v1/spoolman/inventory/slot-assignments/$id',
-          options: quiet,
-        );
-        await dio.delete<dynamic>(
-          '/api/v1/spoolman/inventory/spools/$id',
-          options: quiet,
-        );
+      Future<void> tryDelete(String path) =>
+          dio.delete<dynamic>(path, options: quiet).catchError((Object _) {
+            return Response<dynamic>(requestOptions: RequestOptions());
+          });
+      try {
+        for (final id in spoolIds) {
+          await tryDelete('/api/v1/spoolman/inventory/slot-assignments/$id');
+          await tryDelete('/api/v1/spoolman/inventory/spools/$id');
+        }
+        for (final id in keyIds) {
+          await tryDelete('/api/v1/api-keys/$id');
+        }
+      } finally {
+        // Every other contract test reads the built-in inventory.
+        await putSpoolman({
+          'spoolman_enabled': settingsBefore?['spoolman_enabled'] ?? 'false',
+          'spoolman_url': settingsBefore?['spoolman_url'] ?? '',
+        });
       }
-      for (final id in keyIds) {
-        await dio.delete<dynamic>('/api/v1/api-keys/$id', options: quiet);
-      }
-      // Every other contract test reads the built-in inventory.
-      await putSpoolman({
-        'spoolman_enabled': settingsBefore?['spoolman_enabled'] ?? 'false',
-        'spoolman_url': settingsBefore?['spoolman_url'] ?? '',
-      });
     });
 
     Future<Spool> newSpool() async {
@@ -109,6 +110,7 @@ void main() {
       );
 
       await source.assignSpool(draft);
+      addTearDown(() => source.unassignSpool(printerId, 0, 3));
       expect((await slotsOf(spool.id)).map((a) => (a.amsId, a.trayId)), [
         (0, 3),
       ]);
@@ -147,10 +149,10 @@ void main() {
           trayId: 2,
         ),
       );
+      addTearDown(() => source.unassignSpool(printerId, 0, 2));
       expect((await slotsOf(spool.id)).map((a) => (a.amsId, a.trayId)), [
         (0, 2),
       ]);
-      await source.unassignSpool(printerId, 0, 2);
     });
 
     test('switched off, the server is the built-in inventory again', () async {

@@ -179,6 +179,9 @@ jobs:
           echo "::group::stand-in printer"
           docker logs "${{ steps.server.outputs.broker }}" 2>&1 | tail -50
           echo "::endgroup::"
+          echo "::group::spoolman"
+          docker logs "${{ steps.server.outputs.spoolman }}" 2>&1 | tail -50
+          echo "::endgroup::"
 
       # --rm covers the ordinary exit; this covers a cancelled job, and the
       # runner wrapper sweeps whatever survives even that before the next job.
