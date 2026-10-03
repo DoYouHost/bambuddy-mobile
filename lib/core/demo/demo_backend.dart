@@ -491,7 +491,7 @@ class DemoBackend {
         if (at(1, 'status')) {
           return _ok(const {'enabled': false, 'connected': false, 'url': null});
         }
-        return m == 'GET' ? _ok(const <Object>[]) : _fallback(m);
+        return _fallback(m);
 
       case 'filament-catalog':
         return _ok(_filamentPresets);

@@ -43,10 +43,17 @@ Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
     if (status == 403 || status == 404) return InventoryBackend.native;
     throw mapDioException(e);
   }
-  if (body is! Map) throw const ApiException(AppErrorCode.malformedResponse);
+  // Only a boolean `enabled` is an answer (the route's `response_model`);
+  // anything else is asked again rather than read as either backend.
   final spoolman = switch (body) {
     {'enabled': true, 'url': final String url} => url.trim().isNotEmpty,
-    _ => false,
+    {'enabled': bool _} => false,
+    _ => throw const ApiException(
+      AppErrorCode.malformedResponse,
+      statusCode: 200,
+      method: 'GET',
+      path: Endpoints.spoolmanStatus,
+    ),
   };
   if (!spoolman) return InventoryBackend.native;
   try {

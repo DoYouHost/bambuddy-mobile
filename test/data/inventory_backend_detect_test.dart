@@ -97,12 +97,19 @@ void main() {
       );
     });
 
-    test('an odd body is native rather than a crash', () async {
-      expect(await answer({}), InventoryBackend.native);
-      expect(
-        await answer({'enabled': 'true', 'url': 'http://spoolman:8000'}),
-        InventoryBackend.native,
-      );
+    test('a map without a boolean enabled is an error, not a guess', () async {
+      for (final body in [
+        <String, dynamic>{},
+        {'detail': 'maintenance'},
+        {'enabled': 'true', 'url': 'http://spoolman:8000'},
+      ]) {
+        adapter.onGet(status, (s) => s.reply(200, body));
+        await expectLater(
+          detectInventoryBackend(dio),
+          throwsA(isA<ApiException>()),
+          reason: '$body',
+        );
+      }
     });
 
     test('a server without the Spoolman inventory routes keeps the built-in '
