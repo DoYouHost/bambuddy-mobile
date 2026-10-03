@@ -2688,6 +2688,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryAssignPick => 'Pick a spool';
 
   @override
+  String get inventoryTagBound =>
+      'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.';
+
+  @override
   String get inventoryReassignTitle => 'Move spool?';
 
   @override

@@ -2709,6 +2709,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inventoryAssignPick => 'Selecciona una bobina';
 
   @override
+  String get inventoryTagBound =>
+      'La bobina de esta ranura tiene etiqueta RFID, así que se vincula por la etiqueta y no se asigna aquí.';
+
+  @override
   String get inventoryReassignTitle => '¿Mover bobina?';
 
   @override

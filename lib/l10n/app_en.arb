@@ -1627,6 +1627,10 @@
   "inventoryAssignTitle": "Assign spool",
   "inventoryAssignCurrent": "Currently in this slot",
   "inventoryAssignPick": "Pick a spool",
+  "inventoryTagBound": "The spool in this slot has a tag, so it is linked by the tag rather than assigned here.",
+  "@inventoryTagBound": {
+    "description": "Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign."
+  },
   "inventoryReassignTitle": "Move spool?",
   "inventoryReassignMessage": "This spool is currently in {slot}. It will be removed from there and assigned to this slot.",
   "@inventoryReassignMessage": {

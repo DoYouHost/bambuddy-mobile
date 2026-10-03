@@ -1312,6 +1312,65 @@ void main() {
       expect(registerButton(), findsNothing);
     });
 
+    group('a tagged slot in Spoolman mode', () {
+      // The server binds such a spool by its tag at every AMS sync and charges
+      // usage to it first; the web offers no assign or unassign there.
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+
+      // These ids carry the material after an `@`.
+      Finder control(String id) => find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.identifier ?? '').startsWith(id),
+      );
+
+      testWidgets('shows the spool its tag is bound to, and no picker', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _TaggedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        expect(control('assign_spool.current'), findsOneWidget);
+        expect(control('assign_spool.unassign'), findsNothing);
+        expect(control('assign_spool.option'), findsNothing);
+        expect(find.text(l10n.inventoryAssignPick), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryTagBound));
+        expect(find.text(l10n.inventoryTagBound), findsOneWidget);
+      });
+
+      testWidgets('the built-in inventory still lets it be picked', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _TaggedInventory.new,
+        );
+
+        expect(control('assign_spool.current'), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('an untagged slot is still assigned by hand', (tester) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          inventory: _TaggedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+    });
+
     testWidgets('a tag already on a spool is picked, not registered again', (
       tester,
     ) async {

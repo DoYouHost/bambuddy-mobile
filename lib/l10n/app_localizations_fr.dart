@@ -2733,6 +2733,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryAssignPick => 'Choisir une bobine';
 
   @override
+  String get inventoryTagBound =>
+      'La bobine de cet emplacement a un tag RFID : elle est associée par ce tag et non assignée ici.';
+
+  @override
   String get inventoryReassignTitle => 'Déplacer la bobine ?';
 
   @override

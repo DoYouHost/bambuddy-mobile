@@ -1094,6 +1094,7 @@
   "inventoryAssignTitle": "Przypisz szpulę",
   "inventoryAssignCurrent": "Obecnie w tym slocie",
   "inventoryAssignPick": "Wybierz szpulę",
+  "inventoryTagBound": "Szpula w tym slocie ma czip, więc jest wiązana po tagu, a nie przypisywana tutaj.",
   "inventoryReassignTitle": "Przenieść szpulę?",
   "inventoryReassignMessage": "Ta szpula jest teraz w {slot}. Zostanie stamtąd odpięta i przypisana do tego slotu.",
   "@inventoryReassignMessage": {

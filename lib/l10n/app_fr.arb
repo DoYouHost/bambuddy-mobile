@@ -1488,6 +1488,7 @@
   "inventoryAssignTitle": "Assigner la bobine",
   "inventoryAssignCurrent": "Actuellement dans cet emplacement",
   "inventoryAssignPick": "Choisir une bobine",
+  "inventoryTagBound": "La bobine de cet emplacement a un tag RFID : elle est associée par ce tag et non assignée ici.",
   "inventoryReassignTitle": "Déplacer la bobine ?",
   "inventoryReassignMessage": "Cette bobine est actuellement dans {slot}. Elle en sera retirée et assignée à cet emplacement.",
   "@inventoryReassignMessage": {

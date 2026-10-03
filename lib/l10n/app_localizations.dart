@@ -4658,6 +4658,12 @@ abstract class AppLocalizations {
   /// **'Pick a spool'**
   String get inventoryAssignPick;
 
+  /// Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign.
+  ///
+  /// In en, this message translates to:
+  /// **'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.'**
+  String get inventoryTagBound;
+
   /// No description provided for @inventoryReassignTitle.
   ///
   /// In en, this message translates to:

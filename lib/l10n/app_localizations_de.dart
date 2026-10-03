@@ -2719,6 +2719,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get inventoryAssignPick => 'Spule auswählen';
 
   @override
+  String get inventoryTagBound =>
+      'Die Spule in diesem Slot hat einen Tag, daher wird sie über den Tag verknüpft und nicht hier zugewiesen.';
+
+  @override
   String get inventoryReassignTitle => 'Spule verschieben?';
 
   @override

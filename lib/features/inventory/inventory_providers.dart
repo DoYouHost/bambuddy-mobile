@@ -8,9 +8,11 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/spool_preset_override.dart';
 import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
+import '../../data/inventory_source.dart';
 import '../../providers.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
@@ -384,7 +386,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 /// Built from [InventoryState]; matching depends on assignment structure
 /// (see [[inventory-filaments]]).
 class AssignedSpools {
-  const AssignedSpools(this.printerId, this._byKey, this._byExtruder);
+  const AssignedSpools(
+    this.printerId,
+    this._byKey,
+    this._byExtruder, [
+    this._tagShelf,
+  ]);
 
   /// Empty resolver (inventory not loaded / error) — enriches nothing.
   static const empty = AssignedSpools(-1, {}, {});
@@ -405,6 +412,28 @@ class AssignedSpools {
   Spool? forExtruder(int? extruder) =>
       extruder == null ? null : _byExtruder[extruder];
 
+  /// The shelf to match tags against — set only in Spoolman mode, where the
+  /// server binds a tagged spool by its tag rather than by slot.
+  final InventoryState? _tagShelf;
+
+  /// Whether [tray]'s spool is bound by its RFID tag rather than by a slot
+  /// assignment. In Spoolman mode bambuddy links a tagged spool on its own at
+  /// every AMS sync (`spoolman.py::sync_ams_tray`) and charges usage to it
+  /// before any slot assignment (`spoolman_tracking.py`); the web offers no
+  /// assign or unassign on such a slot (`isBambuLabSpool` in PrintersPage).
+  bool tagBinds(AmsTray tray) =>
+      _tagShelf != null &&
+      (_readable(normalizeTrayUuid(tray.trayUuid)) ||
+          _readable(normalizeTagUid(tray.tagUid)));
+
+  /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one.
+  Spool? boundByTag(AmsTray tray) => tagBinds(tray)
+      ? _tagShelf!.spoolForTag(tagUid: tray.tagUid, trayUuid: tray.trayUuid)
+      : null;
+
+  // An unread tag arrives as zeros, which still normalises to digits.
+  static bool _readable(String id) => id.contains(RegExp('[^0]'));
+
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
 }
 
@@ -415,6 +444,9 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
   (ref, printerId) {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     if (inv == null) return AssignedSpools.empty;
+    final spoolman =
+        ref.watch(inventoryBackendProvider).valueOrNull ==
+        InventoryBackend.spoolman;
     final spoolById = {for (final s in inv.spools) s.id: s};
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
@@ -429,7 +461,7 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
         byKey[a.amsId * 1000 + a.trayId] = spool;
       }
     }
-    return AssignedSpools(printerId, byKey, byExtruder);
+    return AssignedSpools(printerId, byKey, byExtruder, spoolman ? inv : null);
   },
 );
 

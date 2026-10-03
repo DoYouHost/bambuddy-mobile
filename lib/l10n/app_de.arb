@@ -1488,6 +1488,7 @@
   "inventoryAssignTitle": "Spule zuweisen",
   "inventoryAssignCurrent": "Derzeit in diesem Slot",
   "inventoryAssignPick": "Spule auswählen",
+  "inventoryTagBound": "Die Spule in diesem Slot hat einen Tag, daher wird sie über den Tag verknüpft und nicht hier zugewiesen.",
   "inventoryReassignTitle": "Spule verschieben?",
   "inventoryReassignMessage": "Diese Spule befindet sich derzeit in {slot}. Sie wird von dort entfernt und diesem Slot zugewiesen.",
   "@inventoryReassignMessage": {

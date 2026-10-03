@@ -2729,6 +2729,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryAssignPick => 'Wybierz szpulę';
 
   @override
+  String get inventoryTagBound =>
+      'Szpula w tym slocie ma czip, więc jest wiązana po tagu, a nie przypisywana tutaj.';
+
+  @override
   String get inventoryReassignTitle => 'Przenieść szpulę?';
 
   @override

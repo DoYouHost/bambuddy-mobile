@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -157,6 +158,93 @@ void main() {
         (0, 2),
       ]);
     });
+
+    test(
+      'a tray reading a tag gets a spool the shelf finds by that tag',
+      skip: brokerSkipReason,
+      () async {
+        // What the printer card leans on: the server links a tagged spool on
+        // its own at the AMS sync (`spoolman.py::sync_ams_tray`), and the shelf
+        // the app reads carries the tag back out of Spoolman's `extra.tag`.
+        final printer =
+            ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                as Map<String, dynamic>);
+        final serial = printer['serial_number'] as String;
+        final uuid = 'C0FFEE${stamp.toRadixString(16).padLeft(26, '0')}'
+            .substring(0, 32)
+            .toUpperCase();
+        Map<String, Object?> amsWith(List<Map<String, Object?>> extra) => {
+          'ams': {
+            'ams': [
+              {
+                'id': 0,
+                'tray': [
+                  {
+                    'id': 0,
+                    'tray_type': 'PLA',
+                    'tray_color': 'FF0000FF',
+                    'tray_info_idx': 'GFL99',
+                    'tray_sub_brands': 'PLA Basic',
+                  },
+                  {
+                    'id': 1,
+                    'tray_type': 'PLA',
+                    'tray_color': '00FF00FF',
+                    'tray_info_idx': 'GFL99',
+                    'tray_sub_brands': 'PLA Basic',
+                  },
+                  ...extra,
+                ],
+              },
+            ],
+            'ams_exist_bits': '1',
+          },
+        };
+        // Back to the seeded trays, so no later test meets the tag.
+        addTearDown(() => publishReport(serial, amsWith(const [])));
+
+        await publishReport(
+          serial,
+          amsWith([
+            {
+              'id': 3,
+              'tray_type': 'PETG',
+              'tray_color': '0000FFFF',
+              'tray_info_idx': 'GFG00',
+              'tray_sub_brands': 'PETG Basic',
+              'tray_weight': '1000',
+              'remain': 80,
+              'tray_uuid': uuid,
+              'tag_uid': '0102030405060708',
+            },
+          ]),
+        );
+
+        // The server makes the spool, so it is found by its tag to be removed —
+        // also when the wait below gives up after the server made it anyway.
+        // Read raw, so the cleanup does not lean on the parser under test.
+        addTearDown(() async {
+          final rows = (await dio.get<List<dynamic>>(
+            '/api/v1/spoolman/inventory/spools',
+            queryParameters: {'include_archived': true},
+          )).data!.cast<Map<String, dynamic>>();
+          for (final row in rows) {
+            if ('${row['tray_uuid']}'.toUpperCase() == uuid) {
+              await source.deleteSpool(row['id'] as int);
+            }
+          }
+        });
+        final spool = await pollUntil(
+          'a Spoolman spool carrying tray $uuid',
+          () async => InventoryState(
+            spools: await source.fetchSpools(),
+          ).spoolForTag(trayUuid: uuid),
+          within: const Duration(seconds: 30),
+        );
+
+        expect(spool.material, 'PETG');
+      },
+    );
 
     test('switched off, the server is the built-in inventory again', () async {
       // Last on purpose: nothing after it needs Spoolman, and tearDownAll puts

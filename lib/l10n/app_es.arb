@@ -1488,6 +1488,7 @@
   "inventoryAssignTitle": "Asignar bobina",
   "inventoryAssignCurrent": "Actualmente en esta ranura",
   "inventoryAssignPick": "Selecciona una bobina",
+  "inventoryTagBound": "La bobina de esta ranura tiene etiqueta RFID, así que se vincula por la etiqueta y no se asigna aquí.",
   "inventoryReassignTitle": "¿Mover bobina?",
   "inventoryReassignMessage": "Esta bobina está actualmente en {slot}. Se retirará de allí y se asignará a esta ranura.",
   "@inventoryReassignMessage": {

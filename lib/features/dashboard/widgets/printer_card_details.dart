@@ -523,9 +523,13 @@ class _DetailsPanel extends ConsumerWidget {
           extruderOf: dual
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
-          assignedOf: (i) => assigned.forExtruder(
-            dual ? status.extruderForExternal(spools[i].id) : 1,
-          ),
+          assignedOf: (i) =>
+              assigned.boundByTag(spools[i]) ??
+              assigned.forExtruder(
+                dual ? status.extruderForExternal(spools[i].id) : 1,
+              ),
+          tagBindsOf: (i) => assigned.tagBinds(spools[i]),
+          boundByTagOf: (i) => assigned.boundByTag(spools[i]),
           trayIdOf: trayIdOf,
           printerId: printerId,
           printerName: printerName,
@@ -723,10 +727,11 @@ class _AmsSection extends ConsumerWidget {
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
-              assignedSpool: assigned.forAmsSlot(
-                unit.id ?? unitIndex,
-                trays[i].id ?? 0,
-              ),
+              // The tag wins where it binds, the order the server charges
+              // usage in and the web reads the fill in.
+              assignedSpool:
+                  assigned.boundByTag(trays[i]) ??
+                  assigned.forAmsSlot(unit.id ?? unitIndex, trays[i].id ?? 0),
               allowRemain: true,
               last: i == trays.length - 1,
               slot: _SlotRef(
@@ -744,6 +749,8 @@ class _AmsSection extends ConsumerWidget {
                 canRereadRfid: true,
                 tagUid: trays[i].tagUid,
                 trayUuid: trays[i].trayUuid,
+                tagBound: assigned.tagBinds(trays[i]),
+                tagSpool: assigned.boundByTag(trays[i]),
                 trayInfoIdx: trays[i].trayInfoIdx,
                 trayColour: trays[i].trayColor,
                 caliIdx: trays[i].caliIdx,
@@ -767,6 +774,8 @@ class _SpoolSection extends StatelessWidget {
     required this.active,
     required this.extruderOf,
     required this.assignedOf,
+    required this.tagBindsOf,
+    required this.boundByTagOf,
     required this.trayIdOf,
     required this.printerId,
     required this.printerName,
@@ -779,6 +788,8 @@ class _SpoolSection extends StatelessWidget {
   final AmsTray? active;
   final int? Function(int index) extruderOf;
   final Spool? Function(int index) assignedOf;
+  final bool Function(int index) tagBindsOf;
+  final Spool? Function(int index) boundByTagOf;
   final int Function(int index) trayIdOf;
   final int printerId;
   final String? printerName;
@@ -831,6 +842,8 @@ class _SpoolSection extends StatelessWidget {
               nozzleDiameter: nozzleDiameterOf(i),
               printerModel: printerModel,
               extruderId: extruderOf(i),
+              tagBound: tagBindsOf(i),
+              tagSpool: boundByTagOf(i),
             ),
           ),
       ],
@@ -1599,6 +1612,8 @@ class _SlotRef {
     this.canRereadRfid = false,
     this.tagUid,
     this.trayUuid,
+    this.tagBound = false,
+    this.tagSpool,
     this.trayInfoIdx,
     this.trayColour,
     this.caliIdx,
@@ -1642,6 +1657,14 @@ class _SlotRef {
   /// (`backend/app/api/routes/inventory.py::create_spool_from_slot`).
   final String? tagUid;
   final String? trayUuid;
+
+  /// Whether the server binds this slot's spool by its RFID tag — Spoolman
+  /// mode with a tag read ([AssignedSpools.tagBinds]). The sheet then shows
+  /// the bound spool and offers neither assign nor unassign, as the web.
+  final bool tagBound;
+
+  /// The spool that tag is bound to, when the shelf has it.
+  final Spool? tagSpool;
 
   /// Whether a spool can be created out of what this slot holds. Needs a
   /// readable tag — a tagless slot has no identity to re-link to, so the
@@ -1998,15 +2021,15 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     final spools = inv?.spools ?? const <Spool>[];
 
-    Spool? current;
+    var current = slot.tagSpool;
     for (final s in spools) {
+      if (current != null) break;
       final a = inv?.assignmentFor(s.id);
       if (a != null &&
           a.printerId == slot.printerId &&
           a.amsId == slot.amsId &&
           a.trayId == slot.trayId) {
         current = s;
-        break;
       }
     }
 
@@ -2085,61 +2108,75 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                       )
                     : null,
                 onTap: () => _openInInventory(context, current!.id),
-                trailing: TextButton.icon(
-                  onPressed: () => _unassign(context, ref, l10n),
-                  icon: const Icon(Icons.link_off, size: 18),
-                  label: Text(l10n.inventoryUnassign),
-                ).taggedMaterial('assign_spool.unassign', current.material),
+                trailing: slot.tagBound
+                    ? null
+                    : TextButton.icon(
+                        onPressed: () => _unassign(context, ref, l10n),
+                        icon: const Icon(Icons.link_off, size: 18),
+                        label: Text(l10n.inventoryUnassign),
+                      ).taggedMaterial(
+                        'assign_spool.unassign',
+                        current.material,
+                      ),
               ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
-            Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: DashSpace.sm),
-            _spoolSearchRow(l10n),
-            const SizedBox(height: DashSpace.sm),
-            if (options.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
-                child: Text(
-                  // Told apart on purpose: an empty inventory and a search that
-                  // matched nothing look identical otherwise, and only one of
-                  // them is fixed by clearing the field.
-                  offered.isEmpty
-                      ? l10n.inventoryEmpty
-                      : l10n.noSearchResults(_query),
-                  style: theme.textTheme.bodyMedium,
+            if (slot.tagBound)
+              Text(
+                l10n.inventoryTagBound,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               )
-            else
-              for (final s in options)
-                Builder(
-                  builder: (context) {
-                    final from = inv?.assignmentFor(s.id);
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: SpoolSwatch(rgba: s.rgba),
-                      title: Text(s.displayName),
-                      subtitle: Text(
-                        [
-                          if (s.remainingFraction != null)
-                            l10n.inventoryRemaining(
-                              s.remainingWeight.toStringAsFixed(0),
-                            ),
-                          '#${s.id}',
-                          if (from != null)
-                            [
-                              ?from.printerName,
-                              assignmentSlotLabel(l10n, from),
-                            ].join(' '),
-                        ].join(' · '),
-                      ),
-                      trailing: from != null
-                          ? const Icon(Icons.swap_horiz, size: 20)
-                          : null,
-                      onTap: () => _assign(context, ref, l10n, s, from: from),
-                    ).taggedMaterial('assign_spool.option', s.material);
-                  },
-                ),
+            else ...[
+              Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
+              const SizedBox(height: DashSpace.sm),
+              _spoolSearchRow(l10n),
+              const SizedBox(height: DashSpace.sm),
+              if (options.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: DashSpace.md),
+                  child: Text(
+                    // Told apart on purpose: an empty inventory and a search that
+                    // matched nothing look identical otherwise, and only one of
+                    // them is fixed by clearing the field.
+                    offered.isEmpty
+                        ? l10n.inventoryEmpty
+                        : l10n.noSearchResults(_query),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                )
+              else
+                for (final s in options)
+                  Builder(
+                    builder: (context) {
+                      final from = inv?.assignmentFor(s.id);
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: SpoolSwatch(rgba: s.rgba),
+                        title: Text(s.displayName),
+                        subtitle: Text(
+                          [
+                            if (s.remainingFraction != null)
+                              l10n.inventoryRemaining(
+                                s.remainingWeight.toStringAsFixed(0),
+                              ),
+                            '#${s.id}',
+                            if (from != null)
+                              [
+                                ?from.printerName,
+                                assignmentSlotLabel(l10n, from),
+                              ].join(' '),
+                          ].join(' · '),
+                        ),
+                        trailing: from != null
+                            ? const Icon(Icons.swap_horiz, size: 20)
+                            : null,
+                        onTap: () => _assign(context, ref, l10n, s, from: from),
+                      ).taggedMaterial('assign_spool.option', s.material);
+                    },
+                  ),
+            ],
           ],
         ),
       ),
