@@ -115,6 +115,27 @@ class _AssignedInventory extends InventoryNotifier {
   );
 }
 
+/// The tagged spool on the shelf and a different one pinned to the same slot,
+/// for which of the two the slot shows.
+class _PinnedOverTagInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+    spools: [
+      _AssignedInventory.spool,
+      Spool(
+        id: 21,
+        material: 'PLA',
+        subtype: 'Basic',
+        brand: 'Bambu',
+        tagUid: 'a1b2c3d4e5f60708',
+      ),
+    ],
+    assignmentBySpool: {
+      42: SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
+    },
+  );
+}
+
 /// A shelf that already holds the spool whose tag sits in the slot, so the
 /// sheet must offer to pick it rather than to create a second row for it.
 class _TaggedInventory extends InventoryNotifier {
@@ -316,7 +337,7 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
-  InventoryBackend backend = InventoryBackend.native,
+  InventoryBackend? backend = InventoryBackend.native,
   bool apiKeySession = false,
   MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
@@ -324,7 +345,13 @@ Widget _scope(
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
-    inventoryBackendOverride(backend),
+    if (backend == null)
+      // The server has not said yet.
+      inventoryBackendProvider.overrideWith(
+        (ref) => Completer<InventoryBackend>().future,
+      )
+    else
+      inventoryBackendOverride(backend),
     mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
@@ -789,7 +816,7 @@ void main() {
       bool stocked = false,
       bool tagged = false,
       InventoryNotifier Function()? inventory,
-      InventoryBackend backend = InventoryBackend.native,
+      InventoryBackend? backend = InventoryBackend.native,
       bool apiKeySession = false,
       FilaSwitch? filaSwitch,
       Map<int, ExtruderSlot>? extruderSlots,
@@ -1306,6 +1333,111 @@ void main() {
       expect(registerButton(), findsNothing);
     });
 
+    group('a tagged slot in Spoolman mode', () {
+      // The server binds such a spool by its tag at every AMS sync and charges
+      // usage to it first; the web offers no assign or unassign there.
+      final l10n = lookupAppLocalizations(const Locale('pl'));
+
+      // These ids carry the material after an `@`.
+      Finder control(String id) => find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.identifier ?? '').startsWith(id),
+      );
+
+      testWidgets('shows the spool its tag is bound to, and no picker', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _TaggedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        expect(control('assign_spool.current'), findsOneWidget);
+        expect(control('assign_spool.unassign'), findsNothing);
+        expect(control('assign_spool.option'), findsNothing);
+        expect(find.text(l10n.inventoryAssignPick), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryTagBound));
+        expect(find.text(l10n.inventoryTagBound), findsOneWidget);
+      });
+
+      testWidgets('a slot assignment outranks the tag, as the web', (
+        tester,
+      ) async {
+        // PrintersPage #1457: the assignment is the user's explicit act, and
+        // the AMS sync writes the tag's spool into it anyway.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _PinnedOverTagInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        final current = control('assign_spool.current');
+        expect(
+          find.descendant(
+            of: current,
+            matching: find.textContaining('Bambu Lab'),
+          ),
+          findsOneWidget,
+        );
+        expect(control('assign_spool.unassign'), findsNothing);
+        // The reason would sit at the very end of a lazy list: scrolled to,
+        // so its absence is not merely its not being built yet.
+        await scrollSheetDown(tester);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('an unknown tag still lets a spool be picked', (
+        tester,
+      ) async {
+        // No spool carries the tag (auto-add off): the server then charges
+        // usage to the slot assignment, and the app has no Link to offer.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _StockedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('the built-in inventory still lets it be picked', (
+        tester,
+      ) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _TaggedInventory.new,
+        );
+
+        expect(control('assign_spool.current'), findsNothing);
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
+      testWidgets('an untagged slot is still assigned by hand', (tester) async {
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          inventory: _TaggedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+    });
+
     testWidgets('a tag already on a spool is picked, not registered again', (
       tester,
     ) async {
@@ -1349,6 +1481,24 @@ void main() {
         state: 'IDLE',
         tagged: true,
         apiKeySession: true,
+      );
+      await reveal(tester, registerButton());
+
+      expect(registerButton(), findsOneWidget);
+    });
+
+    testWidgets('the key keeps the button while the backend is unknown', (
+      tester,
+    ) async {
+      // The server's own rule (`inventory_mode.py`) reads an unknown mode as
+      // the built-in inventory; hiding it would lock a native key out for as
+      // long as the answer is missing.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        apiKeySession: true,
+        backend: null,
       );
       await reveal(tester, registerButton());
 

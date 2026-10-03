@@ -3266,18 +3266,6 @@ abstract class AppLocalizations {
   /// **'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.'**
   String get errTooManyAttempts;
 
-  /// No description provided for @errSlotTagUnreadable.
-  ///
-  /// In en, this message translates to:
-  /// **'This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.'**
-  String get errSlotTagUnreadable;
-
-  /// No description provided for @errPrinterOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.'**
-  String get errPrinterOffline;
-
   /// No description provided for @notifOngoingBody.
   ///
   /// In en, this message translates to:
@@ -4669,6 +4657,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a spool'**
   String get inventoryAssignPick;
+
+  /// Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign.
+  ///
+  /// In en, this message translates to:
+  /// **'The spool in this slot has a tag, so it is linked by the tag rather than assigned here.'**
+  String get inventoryTagBound;
 
   /// No description provided for @inventoryReassignTitle.
   ///

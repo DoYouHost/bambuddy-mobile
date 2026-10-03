@@ -990,8 +990,6 @@
   "errMissingTwoFactorCode": "Code eingeben",
   "errApiKeyRejected": "API-Schlüssel abgelehnt — überprüfe den Schlüssel und seinen Scope (can_read_status erforderlich)",
   "errTooManyAttempts": "Zu viele Versuche — der Server blockiert die Anmeldung für einige Minuten. Warte kurz und versuche es erneut, oder verwende einen API-Schlüssel.",
-  "errSlotTagUnreadable": "Dieser Slot hat keinen lesbaren RFID-Tag — Spoolman verknüpft Spulen per Tag und kann diese daher nicht übernehmen. Der integrierte Bestand weist stattdessen nach Slot zu.",
-  "errPrinterOffline": "Der Drucker ist offline, daher kann die App den Inhalt des Slots nicht auslesen. Verbinde ihn erneut und versuche es noch einmal.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "gleich",
   "@notifOngoingBody": {
@@ -1490,6 +1488,7 @@
   "inventoryAssignTitle": "Spule zuweisen",
   "inventoryAssignCurrent": "Derzeit in diesem Slot",
   "inventoryAssignPick": "Spule auswählen",
+  "inventoryTagBound": "Die Spule in diesem Slot hat einen Tag, daher wird sie über den Tag verknüpft und nicht hier zugewiesen.",
   "inventoryReassignTitle": "Spule verschieben?",
   "inventoryReassignMessage": "Diese Spule befindet sich derzeit in {slot}. Sie wird von dort entfernt und diesem Slot zugewiesen.",
   "@inventoryReassignMessage": {

@@ -8,9 +8,11 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/location_sensor.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/spool_preset_override.dart';
 import '../../core/models/supplier.dart';
 import '../../data/inventory_repository.dart';
+import '../../data/inventory_source.dart';
 import '../../providers.dart';
 
 /// Inventory snapshot for the screen: all spools (including archived) plus a map
@@ -59,12 +61,12 @@ final inventoryProvider =
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
-/// knowing which slot they occupy. Rebuilds on profile/backend change.
+/// knowing which slot they occupy. Rebuilds on profile change.
 class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
     ref.watch(serverProfileProvider);
-    ref.watch(inventoryBackendProvider);
+    ref.watch(inventoryRepositoryProvider);
     return _load();
   }
 
@@ -100,7 +102,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }
 
   /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
-  Future<void> refresh() async {
+  ///
+  /// [askBackend] is for what the user asked for (a pull, Retry): it asks the
+  /// server again which backend it runs, which an automatic reload after every
+  /// pushed change would send for nothing.
+  Future<void> refresh({bool askBackend = false}) async {
+    if (askBackend) ref.invalidate(inventoryBackendProvider);
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }
@@ -157,17 +164,43 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     SpoolAssignmentDraft draft, {
     SpoolAssignment? from,
   }) => _mutate((repo) async {
-    if (from != null &&
+    final moving =
+        from != null &&
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
-            from.trayId == draft.trayId)) {
-      // The target has to be refused before the source is given up, or a move
-      // onto a slot this backend cannot write leaves the spool in neither.
-      await repo.ensureAssignable(draft);
+            from.trayId == draft.trayId);
+    // The old slot is cleared first: Spoolman takes a spool off by its id, so
+    // clearing after the new assignment would take that off too.
+    if (moving) {
       await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
     }
-    await repo.assignSpool(draft);
+    try {
+      await repo.assignSpool(draft);
+    } on Object {
+      // A move that fails halfway puts the spool back where it was, rather
+      // than leaving it in neither slot. If that fails too, the reload after
+      // the error shows where the spool really is.
+      if (moving) {
+        await repo
+            .assignSpool(
+              SpoolAssignmentDraft(
+                spoolId: from.spoolId,
+                printerId: from.printerId,
+                amsId: from.amsId,
+                trayId: from.trayId,
+              ),
+            )
+            .then(
+              (_) => _nudgeRepublish(from.printerId),
+              onError: (Object _) {},
+            );
+      }
+      rethrow;
+    }
     _nudgeRepublish(draft.printerId);
+    if (moving && from.printerId != draft.printerId) {
+      _nudgeRepublish(from.printerId);
+    }
     return null;
   });
 
@@ -270,7 +303,6 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }) async {
     final repo = ref.read(inventoryRepositoryProvider);
     final linkWriter = ref.read(suppliersRepositoryProvider);
-    final backend = ref.read(inventoryBackendProvider);
     final current = {
       for (final s in state.valueOrNull?.spools ?? const <Spool>[])
         s.id: s.suppliers,
@@ -296,7 +328,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
           await linkWriter.saveSpoolLinks(
             id,
             mergeSupplierLinks(existing, addSuppliers),
-            backend: backend,
+            backend: await repo.backend(),
           );
           succeeded++;
         } on AppApiException catch (e) {
@@ -354,7 +386,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 /// Built from [InventoryState]; matching depends on assignment structure
 /// (see [[inventory-filaments]]).
 class AssignedSpools {
-  const AssignedSpools(this.printerId, this._byKey, this._byExtruder);
+  const AssignedSpools(
+    this.printerId,
+    this._byKey,
+    this._byExtruder, [
+    this._tagShelf,
+  ]);
 
   /// Empty resolver (inventory not loaded / error) — enriches nothing.
   static const empty = AssignedSpools(-1, {}, {});
@@ -375,6 +412,31 @@ class AssignedSpools {
   Spool? forExtruder(int? extruder) =>
       extruder == null ? null : _byExtruder[extruder];
 
+  /// The shelf to match tags against — set only in Spoolman mode, where the
+  /// server binds a tagged spool by its tag rather than by slot.
+  final InventoryState? _tagShelf;
+
+  /// Whether [tray]'s spool is bound by its RFID tag rather than by a slot
+  /// assignment. In Spoolman mode bambuddy links a tagged spool on its own at
+  /// every AMS sync (`spoolman.py::sync_ams_tray`) and charges usage to it
+  /// before any slot assignment (`spoolman_tracking.py`); the web offers no
+  /// assign or unassign on such a slot (`isBambuLabSpool` in PrintersPage).
+  bool tagBinds(AmsTray tray) =>
+      _tagShelf != null &&
+      (_read(normalizeTrayUuid(tray.trayUuid)) != null ||
+          _read(normalizeTagUid(tray.tagUid)) != null);
+
+  /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one.
+  Spool? boundByTag(AmsTray tray) => tagBinds(tray)
+      ? _tagShelf!.spoolForTag(
+          tagUid: _read(normalizeTagUid(tray.tagUid)),
+          trayUuid: _read(normalizeTrayUuid(tray.trayUuid)),
+        )
+      : null;
+
+  // An unread tag arrives as zeros, which still normalises to digits.
+  static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
+
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
 }
 
@@ -385,6 +447,9 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
   (ref, printerId) {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     if (inv == null) return AssignedSpools.empty;
+    final spoolman =
+        ref.watch(inventoryBackendProvider).valueOrNull ==
+        InventoryBackend.spoolman;
     final spoolById = {for (final s in inv.spools) s.id: s};
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
@@ -399,7 +464,7 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
         byKey[a.amsId * 1000 + a.trayId] = spool;
       }
     }
-    return AssignedSpools(printerId, byKey, byExtruder);
+    return AssignedSpools(printerId, byKey, byExtruder, spoolman ? inv : null);
   },
 );
 

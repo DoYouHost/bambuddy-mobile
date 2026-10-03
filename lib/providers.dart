@@ -1085,48 +1085,53 @@ final makerworldRecentImportsProvider =
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
 
-/// Chosen filament inventory backend (native by default). User toggle;
-/// Spoolman is drop-in — see [SpoolInventorySource].
-final inventoryBackendProvider =
-    NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
-      InventoryBackendNotifier.new,
-    );
+/// The filament inventory the server runs — asked once per server, the server
+/// being where the choice is made. A failed ask is an error rather than a
+/// guess; [inventoryRepositoryProvider] asks again on its next call.
+final inventoryBackendProvider = FutureProvider<InventoryBackend>(
+  (ref) => detectInventoryBackend(ref.watch(apiClientProvider).dio),
+);
 
-class InventoryBackendNotifier extends Notifier<InventoryBackend> {
-  @override
-  InventoryBackend build() {
-    final raw = ref.watch(settingsRepositoryProvider).loadInventoryBackend();
-    return InventoryBackend.values.firstWhere(
-      (b) => b.name == raw,
-      orElse: () => InventoryBackend.native,
-    );
-  }
-
-  Future<void> set(InventoryBackend backend) async {
-    await ref
-        .read(settingsRepositoryProvider)
-        .saveInventoryBackend(backend.name);
-    state = backend;
-  }
-}
-
-/// Inventory data source dependent on chosen backend. Shares authenticated Dio;
-/// rebuilt on profile or backend change.
-final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
+/// Inventory data source for the backend the server runs. Shares authenticated
+/// Dio; rebuilt on profile or backend change.
+final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
+  ref,
+) async {
   final dio = ref.watch(apiClientProvider).dio;
-  return switch (ref.watch(inventoryBackendProvider)) {
+  return switch (await ref.watch(inventoryBackendProvider.future)) {
     InventoryBackend.native => NativeInventorySource(dio),
     InventoryBackend.spoolman => SpoolmanInventorySource(dio),
   };
 });
 
-/// Filament inventory. Facade over chosen source.
-final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(
-    ref.watch(inventorySourceProvider),
+/// Filament inventory. Facade over the chosen source, usable before the server
+/// has said which one: its calls wait for the answer.
+///
+/// A failed answer is not kept — the next call asks again, so Retry and
+/// pull-to-refresh recover once the server is back. Only a settled failure:
+/// one still being asked again is awaited, not doubled. Code that needs the
+/// backend itself reads [InventoryRepository.backend] for the same reason,
+/// never [inventoryBackendProvider]'s future.
+final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
+  void askAgainIfFailed() {
+    final asked = ref.read(inventoryBackendProvider);
+    if (asked.hasError && !asked.isLoading) {
+      ref.invalidate(inventoryBackendProvider);
+    }
+  }
+
+  return InventoryRepository.resolving(
+    () {
+      askAgainIfFailed();
+      return ref.read(inventorySourceProvider.future);
+    },
+    () {
+      askAgainIfFailed();
+      return ref.read(inventoryBackendProvider.future);
+    },
     ref.watch(serverVersionServiceProvider),
-  ),
-);
+  );
+});
 
 /// Service minting the camera stream token (the live view; on servers older
 /// than #3025 also every other `?token=` image). Rebuilt with client on profile

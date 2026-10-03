@@ -8,9 +8,8 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 import '../helpers.dart';
 
 /// Assigning a spool to a slot and taking it back off, on both inventory
-/// backends. They write differently — the native one keys on the slot triple,
-/// Spoolman on the tag the slot reads — so what is pinned here is that both
-/// end up saying the same thing about where a spool sits (issue #5).
+/// backends. Both key the write on the slot triple; Spoolman takes a spool off
+/// by its id, so the slot is resolved to one first (issue #5).
 ///
 /// The assertions read the requests off an interceptor rather than trusting the
 /// mock to match: a stub declared on the wrong method answers with an error
@@ -106,104 +105,33 @@ void main() {
       trayId: 2,
     );
 
-    /// A status whose AMS 0 holds one tray at slot 2, carrying whichever half
-    /// of the RFID identity the test is about.
-    void printerStatusWith({String? trayUuid, String? tagUid}) {
-      adapter.onGet(
-        '/api/v1/printers/1/status',
-        (s) => s.reply(200, {
-          'id': 1,
-          'ams': [
-            {
-              'id': 0,
-              'tray': [
-                {'id': 2, 'tray_uuid': trayUuid, 'tag_uid': tagUid},
-              ],
-            },
-          ],
-        }),
-      );
-    }
-
-    test(
-      'links the spool to the tag the slot reads, carrying the triple',
-      () async {
-        printerStatusWith(trayUuid: '0123456789ABCDEF0123456789ABCDEF');
-        adapter.onPost(
-          '/api/v1/spoolman/spools/12/link',
-          (s) => s.reply(200, {'success': true}),
-          data: Matchers.any,
-        );
-
-        await SpoolmanInventorySource(dio).assignSpool(draft);
-
-        expect(sent.calls, [
-          'GET /api/v1/printers/1/status',
-          'POST /api/v1/spoolman/spools/12/link',
-        ]);
-        expect(sent.last.data, {
-          'tray_uuid': '0123456789ABCDEF0123456789ABCDEF',
-          'printer_id': 1,
-          'ams_id': 0,
-          'tray_id': 2,
-        });
-      },
-    );
-
-    // Only the UUID survives a re-spool, so it wins wherever both are present —
-    // the same precedence the server applies when matching a spool by tag.
-    test('prefers the tray UUID when the slot reports both', () async {
-      printerStatusWith(
-        trayUuid: '0123456789ABCDEF0123456789ABCDEF',
-        tagUid: 'FEDCBA9876543210',
-      );
+    test('assign posts the slot triple, needing no tag', () async {
       adapter.onPost(
-        '/api/v1/spoolman/spools/12/link',
-        (s) => s.reply(200, {'success': true}),
+        '/api/v1/spoolman/inventory/slot-assignments',
+        (s) => s.reply(200, {'id': 12}),
         data: Matchers.any,
       );
 
       await SpoolmanInventorySource(dio).assignSpool(draft);
 
-      expect(
-        sent.last.data,
-        containsPair('tray_uuid', '0123456789ABCDEF0123456789ABCDEF'),
-      );
-      expect(sent.last.data, isNot(contains('tag_uid')));
+      // The printer is never asked what the slot reads: a spool without RFID
+      // is assigned the same way, as the web dialog does.
+      expect(sent.calls, ['POST /api/v1/spoolman/inventory/slot-assignments']);
+      expect(sent.last.data, {
+        'spoolman_spool_id': 12,
+        'printer_id': 1,
+        'ams_id': 0,
+        'tray_id': 2,
+      });
     });
 
-    test('falls back to the tag UID when there is no UUID', () async {
-      printerStatusWith(tagUid: 'FEDCBA9876543210');
+    test('an external spool is addressed as AMS 255', () async {
       adapter.onPost(
-        '/api/v1/spoolman/spools/12/link',
-        (s) => s.reply(200, {'success': true}),
+        '/api/v1/spoolman/inventory/slot-assignments',
+        (s) => s.reply(200, {'id': 12}),
         data: Matchers.any,
       );
 
-      await SpoolmanInventorySource(dio).assignSpool(draft);
-
-      expect(sent.last.data, containsPair('tag_uid', 'FEDCBA9876543210'));
-    });
-
-    test('an external spool is read off vt_tray by its global id', () async {
-      adapter
-        ..onGet(
-          '/api/v1/printers/1/status',
-          (s) => s.reply(200, {
-            'id': 1,
-            'vt_tray': [
-              {'id': 254, 'tray_uuid': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'},
-              {'id': 255, 'tray_uuid': 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'},
-            ],
-          }),
-        )
-        ..onPost(
-          '/api/v1/spoolman/spools/12/link',
-          (s) => s.reply(200, {'success': true}),
-          data: Matchers.any,
-        );
-
-      // Ext-R: local (255, 1), global 255.
       await SpoolmanInventorySource(dio).assignSpool(
         const SpoolAssignmentDraft(
           spoolId: 12,
@@ -213,116 +141,22 @@ void main() {
         ),
       );
 
+      expect(sent.last.data, containsPair('ams_id', 255));
+      expect(sent.last.data, containsPair('tray_id', 1));
+    });
+
+    test('a slot the server refuses surfaces as the error', () {
+      adapter.onPost(
+        '/api/v1/spoolman/inventory/slot-assignments',
+        (s) => s.reply(404, {'detail': 'Printer not found'}),
+        data: Matchers.any,
+      );
+
       expect(
-        sent.last.data,
-        containsPair('tray_uuid', 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'),
+        () => SpoolmanInventorySource(dio).assignSpool(draft),
+        throwsA(isA<AppApiException>()),
       );
     });
-
-    // A bare 400 from the server would reach the user as "error 400". The slot
-    // is checked here so the refusal can say what is actually wrong with it.
-    test(
-      'a slot with no readable tag is refused before anything is written',
-      () async {
-        printerStatusWith();
-
-        await expectLater(
-          SpoolmanInventorySource(dio).assignSpool(draft),
-          throwsA(
-            isA<ApiException>().having(
-              (e) => e.code,
-              'code',
-              AppErrorCode.slotTagUnreadable,
-            ),
-          ),
-        );
-
-        expect(sent.calls, ['GET /api/v1/printers/1/status']);
-      },
-    );
-
-    // The server rejects a malformed or all-zero tag with a bare 400, so the
-    // same rules are mirrored here — one case per `raise` in link_spool.
-    group('a tag the server would reject never leaves the app', () {
-      for (final (name, tag) in const [
-        ('all zeros', '00000000000000000000000000000000'),
-        ('non-hex', 'ZZZZZZZZZZZZZZZZ'),
-        ('wrong length', '0123456789ABCD'),
-      ]) {
-        test(name, () async {
-          printerStatusWith(trayUuid: tag);
-
-          await expectLater(
-            SpoolmanInventorySource(dio).assignSpool(draft),
-            throwsA(
-              isA<ApiException>().having(
-                (e) => e.code,
-                'code',
-                AppErrorCode.slotTagUnreadable,
-              ),
-            ),
-          );
-
-          expect(sent.calls, ['GET /api/v1/printers/1/status']);
-        });
-      }
-
-      test('an unusable UUID still lets a good tag UID through', () async {
-        printerStatusWith(
-          trayUuid: '00000000000000000000000000000000',
-          tagUid: 'FEDCBA9876543210',
-        );
-        adapter.onPost(
-          '/api/v1/spoolman/spools/12/link',
-          (s) => s.reply(200, {'success': true}),
-          data: Matchers.any,
-        );
-
-        await SpoolmanInventorySource(dio).assignSpool(draft);
-
-        expect(sent.last.data, containsPair('tag_uid', 'FEDCBA9876543210'));
-      });
-    });
-
-    // An offline printer reports no slots at all, which is not the same as a
-    // slot without a tag and must not be described as one.
-    test('an offline printer is named as the reason, not the tag', () async {
-      adapter.onGet(
-        '/api/v1/printers/1/status',
-        (s) => s.reply(200, {'id': 1, 'connected': false}),
-      );
-
-      await expectLater(
-        SpoolmanInventorySource(dio).assignSpool(draft),
-        throwsA(
-          isA<ApiException>().having(
-            (e) => e.code,
-            'code',
-            AppErrorCode.printerOffline,
-          ),
-        ),
-      );
-    });
-
-    test(
-      'ensureAssignable refuses the same slot assign would, writing nothing',
-      () async {
-        printerStatusWith();
-
-        await expectLater(
-          SpoolmanInventorySource(dio).ensureAssignable(draft),
-          throwsA(
-            isA<ApiException>().having(
-              (e) => e.code,
-              'code',
-              AppErrorCode.slotTagUnreadable,
-            ),
-          ),
-        );
-
-        expect(sent.calls, ['GET /api/v1/printers/1/status']);
-      },
-    );
 
     test('unassign asks only about the printer it is clearing', () async {
       adapter
@@ -338,18 +172,21 @@ void main() {
           ]),
           queryParameters: {'printer_id': 1},
         )
-        ..onPost(
-          '/api/v1/spoolman/spools/9/unlink',
-          (s) => s.reply(200, {'success': true}),
+        ..onDelete(
+          '/api/v1/spoolman/inventory/slot-assignments/9',
+          (s) => s.reply(200, {'id': 9}),
         );
 
       await SpoolmanInventorySource(dio).unassignSpool(1, 0, 2);
 
-      expect(sent.calls.last, 'POST /api/v1/spoolman/spools/9/unlink');
+      expect(
+        sent.calls.last,
+        'DELETE /api/v1/spoolman/inventory/slot-assignments/9',
+      );
     });
 
-    // A row whose spool id did not parse arrives as -1; unlinking it would
-    // address `/spools/-1/unlink`.
+    // A row whose spool id did not parse arrives as -1, which the route
+    // refuses.
     test('a ledger row with an unparseable spool id is left alone', () async {
       adapter.onGet(
         '/api/v1/spoolman/inventory/slot-assignments/all',
@@ -363,7 +200,7 @@ void main() {
       expect(sent.calls, hasLength(1));
     });
 
-    test('unassign unlinks the spool the slot ledger holds there', () async {
+    test('unassign removes the spool the slot ledger holds there', () async {
       adapter
         ..onGet(
           '/api/v1/spoolman/inventory/slot-assignments/all',
@@ -382,20 +219,20 @@ void main() {
             },
           ]),
         )
-        ..onPost(
-          '/api/v1/spoolman/spools/9/unlink',
-          (s) => s.reply(200, {'success': true}),
+        ..onDelete(
+          '/api/v1/spoolman/inventory/slot-assignments/9',
+          (s) => s.reply(200, {'id': 9}),
         );
 
       await SpoolmanInventorySource(dio).unassignSpool(1, 0, 2);
 
       expect(sent.calls, [
         'GET /api/v1/spoolman/inventory/slot-assignments/all',
-        'POST /api/v1/spoolman/spools/9/unlink',
+        'DELETE /api/v1/spoolman/inventory/slot-assignments/9',
       ]);
     });
 
-    test('an empty slot unlinks nothing', () async {
+    test('an empty slot removes nothing', () async {
       adapter.onGet(
         '/api/v1/spoolman/inventory/slot-assignments/all',
         (s) => s.reply(200, const []),

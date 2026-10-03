@@ -990,8 +990,6 @@
   "errMissingTwoFactorCode": "Introduce el código",
   "errApiKeyRejected": "Clave API rechazada — comprueba la clave y su alcance (se requiere can_read_status)",
   "errTooManyAttempts": "Demasiados intentos — el servidor está bloqueando el inicio de sesión durante unos minutos. Espera e inténtalo de nuevo, o usa una clave API.",
-  "errSlotTagUnreadable": "Esta ranura no tiene una etiqueta RFID legible — Spoolman vincula las bobinas por etiqueta, por lo que no puede admitir esta. El inventario integrado las asigna por ranura.",
-  "errPrinterOffline": "La impresora está desconectada, por lo que la aplicación no puede leer lo que contiene la ranura. Vuelve a conectarla e inténtalo de nuevo.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "enseguida",
   "@notifOngoingBody": {
@@ -1490,6 +1488,7 @@
   "inventoryAssignTitle": "Asignar bobina",
   "inventoryAssignCurrent": "Actualmente en esta ranura",
   "inventoryAssignPick": "Selecciona una bobina",
+  "inventoryTagBound": "La bobina de esta ranura tiene etiqueta RFID, así que se vincula por la etiqueta y no se asigna aquí.",
   "inventoryReassignTitle": "¿Mover bobina?",
   "inventoryReassignMessage": "Esta bobina está actualmente en {slot}. Se retirará de allí y se asignará a esta ranura.",
   "@inventoryReassignMessage": {

@@ -8,18 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Moving a spool from one slot to another.
-///
-/// A move is two writes with no transaction behind them, so their order is the
-/// whole design: the target is refused before the source is given up. On the
-/// Spoolman backend a slot can genuinely refuse — it binds to the tag the slot
-/// reads, and a slot with no readable tag has nothing to bind to — and unpinning
-/// first would leave the spool in neither slot with nothing to undo it.
+/// Moving a spool from one slot to another: the old slot is cleared first,
+/// since neither backend takes a spool off the slot it leaves on its own.
 class _FakeSource implements SpoolInventorySource {
-  _FakeSource({this.refusesTarget = false});
+  _FakeSource({this.refusesTray});
 
-  /// Stands for a Spoolman slot the backend cannot write.
-  final bool refusesTarget;
+  /// A tray whose assignment the server refuses.
+  final int? refusesTray;
 
   final List<String> calls = [];
 
@@ -33,16 +28,12 @@ class _FakeSource implements SpoolInventorySource {
       const [];
 
   @override
-  Future<void> ensureAssignable(SpoolAssignmentDraft draft) async {
-    calls.add('ensure');
-    if (refusesTarget) {
-      throw const ApiException(AppErrorCode.slotTagUnreadable);
+  Future<void> assignSpool(SpoolAssignmentDraft draft) async {
+    calls.add('assign ${draft.trayId}');
+    if (draft.trayId == refusesTray) {
+      throw const ApiException(AppErrorCode.badResponse);
     }
   }
-
-  @override
-  Future<void> assignSpool(SpoolAssignmentDraft draft) async =>
-      calls.add('assign');
 
   @override
   Future<void> unassignSpool(int printerId, int amsId, int trayId) async =>
@@ -54,12 +45,17 @@ class _FakeSource implements SpoolInventorySource {
 }
 
 void main() {
+  late RecordingCommands commands;
+
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
     final container = ProviderContainer(
       overrides: [
         fakeServerProfileOverride(),
         inventoryBackendOverride(),
-        inventorySourceProvider.overrideWithValue(source),
+        inventorySourceProvider.overrideWith((ref) => source),
+        printerCommandsRepositoryProvider.overrideWithValue(
+          commands = RecordingCommands(),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -76,47 +72,54 @@ void main() {
     trayId: 2,
   );
 
-  test('a move clears the target before giving up the source', () async {
+  test('a move clears the old slot, then fills the new one', () async {
     final (container, source) = await harness(_FakeSource());
 
     await container
         .read(inventoryProvider.notifier)
         .assignSpool(to, from: from);
 
-    expect(source.calls, ['ensure', 'unassign', 'assign']);
+    expect(source.calls, ['unassign', 'assign 2']);
   });
 
-  test('a refused target leaves the spool where it was', () async {
-    final (container, source) = await harness(_FakeSource(refusesTarget: true));
+  test('a move the new slot refuses puts the spool back', () async {
+    final (container, source) = await harness(_FakeSource(refusesTray: 2));
 
-    // The refusal reaches the screen, which is what puts the reason in front of
-    // the user instead of a silent no-op.
     await expectLater(
       container.read(inventoryProvider.notifier).assignSpool(to, from: from),
-      throwsA(
-        isA<ApiException>().having(
-          (e) => e.code,
-          'code',
-          AppErrorCode.slotTagUnreadable,
-        ),
-      ),
+      throwsA(isA<ApiException>()),
     );
 
-    expect(
-      source.calls,
-      ['ensure'],
-      reason: 'the source slot must not be unpinned for a move that failed',
-    );
+    expect(source.calls, ['unassign', 'assign 2', 'assign 0']);
+    expect(commands.calls, ['refreshStatus:1']);
   });
 
-  // Assigning into a free slot is one write, so there is nothing to lose and
-  // nothing to check first.
-  test('a plain assign asks nothing beforehand', () async {
+  test('a move to another printer nudges both printers', () async {
+    final (container, _) = await harness(_FakeSource());
+
+    await container
+        .read(inventoryProvider.notifier)
+        .assignSpool(
+          const SpoolAssignmentDraft(
+            spoolId: 1,
+            printerId: 2,
+            amsId: 0,
+            trayId: 0,
+          ),
+          from: from,
+        );
+
+    // Neither firmware echoes the change back on its own: the one the spool
+    // left keeps showing it until told to speak.
+    expect(commands.calls, ['refreshStatus:2', 'refreshStatus:1']);
+  });
+
+  test('a plain assign is one write', () async {
     final (container, source) = await harness(_FakeSource());
 
     await container.read(inventoryProvider.notifier).assignSpool(to);
 
-    expect(source.calls, ['assign']);
+    expect(source.calls, ['assign 2']);
   });
 
   test(
@@ -136,7 +139,7 @@ void main() {
             from: from,
           );
 
-      expect(source.calls, ['assign']);
+      expect(source.calls, ['assign 0']);
     },
   );
 }

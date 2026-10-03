@@ -667,6 +667,10 @@ void main() {
   });
 
   group('inventory (native)', () {
+    test('the demo says it runs the built-in inventory', () async {
+      expect(await detectInventoryBackend(dio), InventoryBackend.native);
+    });
+
     final source = NativeInventorySource(dio);
 
     test('spools, assignments, reference data', () async {

@@ -1919,14 +1919,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Trop de tentatives — le serveur bloque la connexion pendant quelques minutes. Patientez et réessayez ou utilisez une clé API.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Cet emplacement ne comporte pas de tag RFID lisible — Spoolman associe les bobines par tag et ne peut donc pas accepter celle-ci. L\'inventaire intégré les assigne par emplacement.';
-
-  @override
-  String get errPrinterOffline =>
-      'L\'imprimante est hors ligne, l\'application ne peut donc pas lire le contenu de l\'emplacement. Reconnectez-la et réessayez.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent % · fin $eta';
   }
@@ -2739,6 +2731,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryAssignPick => 'Choisir une bobine';
+
+  @override
+  String get inventoryTagBound =>
+      'La bobine de cet emplacement a un tag RFID : elle est associée par ce tag et non assignée ici.';
 
   @override
   String get inventoryReassignTitle => 'Déplacer la bobine ?';

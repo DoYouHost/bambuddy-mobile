@@ -21,7 +21,6 @@ class SettingsRepository {
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
-  static const _inventoryBackendKey = 'inventory_backend';
   static const _demoPrintingKey = 'demo_printing_count';
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
@@ -209,14 +208,6 @@ class SettingsRepository {
   Future<void> setMaintenanceDirty(bool dirty) => dirty
       ? _prefs.setBool(_maintDirtyKey, true)
       : _prefs.remove(_maintDirtyKey);
-
-  /// Filament inventory backend: `native` (default) or `spoolman`. Stored as enum name;
-  /// unknown/corrupted → native.
-  String loadInventoryBackend() =>
-      _prefs.getString(_inventoryBackendKey) ?? 'native';
-
-  Future<void> saveInventoryBackend(String backend) =>
-      _prefs.setString(_inventoryBackendKey, backend);
 
   /// Print toggles the user last sent with a new job — what the print form
   /// starts from, so a preference like "no flow calibration" survives instead of

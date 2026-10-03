@@ -355,7 +355,8 @@ a `maybeWhen(data: (v) => v, …)` read.
 Not on this path, on purpose: gates over `/settings` (`serverGate`, same idea
 over one warmed fetch), permissions from `/auth/me` (enter a gate as a
 synchronous input), and latches that choose *how* to call rather than whether a
-control exists (download jobs, media token, `StatsRepository._hasSlimListing`).
+control exists (download jobs, media token, `StatsRepository._hasSlimListing`,
+the inventory backend from `/spoolman/status`).
 
 ## Adding a gate
 

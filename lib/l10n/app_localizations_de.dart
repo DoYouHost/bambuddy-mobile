@@ -1911,14 +1911,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zu viele Versuche — der Server blockiert die Anmeldung für einige Minuten. Warte kurz und versuche es erneut, oder verwende einen API-Schlüssel.';
 
   @override
-  String get errSlotTagUnreadable =>
-      'Dieser Slot hat keinen lesbaren RFID-Tag — Spoolman verknüpft Spulen per Tag und kann diese daher nicht übernehmen. Der integrierte Bestand weist stattdessen nach Slot zu.';
-
-  @override
-  String get errPrinterOffline =>
-      'Der Drucker ist offline, daher kann die App den Inhalt des Slots nicht auslesen. Verbinde ihn erneut und versuche es noch einmal.';
-
-  @override
   String notifOngoingBody(int percent, String eta) {
     return '$percent% · ETA $eta';
   }
@@ -2725,6 +2717,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inventoryAssignPick => 'Spule auswählen';
+
+  @override
+  String get inventoryTagBound =>
+      'Die Spule in diesem Slot hat einen Tag, daher wird sie über den Tag verknüpft und nicht hier zugewiesen.';
 
   @override
   String get inventoryReassignTitle => 'Spule verschieben?';

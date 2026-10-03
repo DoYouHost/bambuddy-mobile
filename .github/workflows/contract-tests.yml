@@ -105,14 +105,21 @@ jobs:
 
           broker="fake-printer-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           server="bambuddy-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
+          spoolman="spoolman-ci-${GITHUB_RUN_ID}-${{ matrix.tag }}"
           echo "broker=$broker" >> "$GITHUB_OUTPUT"
           echo "name=$server" >> "$GITHUB_OUTPUT"
+          echo "spoolman=$spoolman" >> "$GITHUB_OUTPUT"
 
           docker pull --quiet eclipse-mosquitto:2
           docker create --rm --name "$broker" eclipse-mosquitto:2
           docker cp tool/ci/mosquitto.conf "$broker":/mosquitto/config/mosquitto.conf
           docker cp "$certs" "$broker":/mosquitto/certs
           docker start "$broker"
+
+          # Off until spoolman_contract_test switches the server to it for its
+          # own run; the default bridge has no DNS, so the server gets an IP.
+          docker pull --quiet ghcr.io/donkie/spoolman:latest
+          docker run -d --rm --name "$spoolman" ghcr.io/donkie/spoolman:latest
 
           docker pull --quiet "$BAMBUDDY_IMAGE"
           docker run -d --rm --name "$server" \
@@ -122,6 +129,8 @@ jobs:
 
           broker_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$broker")"
           echo "broker_ip=$broker_ip" >> "$GITHUB_OUTPUT"
+          spoolman_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$spoolman")"
+          echo "spoolman_url=http://${spoolman_ip}:8000" >> "$GITHUB_OUTPUT"
           echo "base=http://${gateway}:8000" >> "$GITHUB_OUTPUT"
 
       # Waits for /health itself, then walks the server up to one printer
@@ -148,6 +157,7 @@ jobs:
           # For the bed-jog test, which reads the G-code the server publishes.
           BAMBUDDY_CONTRACT_BROKER: ${{ steps.server.outputs.broker }}
           BAMBUDDY_CONTRACT_BROKER_IP: ${{ steps.server.outputs.broker_ip }}
+          BAMBUDDY_CONTRACT_SPOOLMAN_URL: ${{ steps.server.outputs.spoolman_url }}
           # NOT decoration, and not cosmetic either: the runner is UTC, where a
           # naive timestamp read as local and the same one read as UTC are the
           # same instant — so the timestamp contract would pass no matter which
@@ -169,6 +179,9 @@ jobs:
           echo "::group::stand-in printer"
           docker logs "${{ steps.server.outputs.broker }}" 2>&1 | tail -50
           echo "::endgroup::"
+          echo "::group::spoolman"
+          docker logs "${{ steps.server.outputs.spoolman }}" 2>&1 | tail -50
+          echo "::endgroup::"
 
       # --rm covers the ordinary exit; this covers a cancelled job, and the
       # runner wrapper sweeps whatever survives even that before the next job.
@@ -177,3 +190,4 @@ jobs:
         run: |
           docker rm -f "${{ steps.server.outputs.name }}" >/dev/null 2>&1 || true
           docker rm -f "${{ steps.server.outputs.broker }}" >/dev/null 2>&1 || true
+          docker rm -f "${{ steps.server.outputs.spoolman }}" >/dev/null 2>&1 || true

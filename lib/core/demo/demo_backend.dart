@@ -487,8 +487,11 @@ class DemoBackend {
         return _inventoryRoute(m, s, q, body, rawBody);
 
       case 'spoolman':
-        // Demo runs the native backend; Spoolman variant serves empty data.
-        return m == 'GET' ? _ok(const <Object>[]) : _fallback(m);
+        // Demo runs the native backend, and says so where the app asks.
+        if (at(1, 'status')) {
+          return _ok(const {'enabled': false, 'connected': false, 'url': null});
+        }
+        return _fallback(m);
 
       case 'filament-catalog':
         return _ok(_filamentPresets);

@@ -224,7 +224,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final linkWriter = writeLinks
         ? ref.read(suppliersRepositoryProvider)
         : null;
-    final backend = writeLinks ? ref.read(inventoryBackendProvider) : null;
     try {
       final String message;
       // Which spool the per-model presets belong to. Null for a restock, which
@@ -262,11 +261,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         if (!saved) return;
         _overridesDirty = false;
       }
-      if (spoolId case final id? when linkWriter != null && backend != null) {
+      if (spoolId case final id? when linkWriter != null) {
         final saved = await _followUpWrite(
-          () => linkWriter.saveSpoolLinks(id, [
+          () async => linkWriter.saveSpoolLinks(id, [
             for (final link in _links) link.toLink(),
-          ], backend: backend),
+          ], backend: await repo.backend()),
           logId: 'spool_form.save_suppliers',
           l10n: l10n,
           messenger: messenger,

@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/supplier.dart';
-import 'package:bambuddy_mobile/data/inventory_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
-import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -29,7 +27,7 @@ class _FakeInventory extends InventoryNotifier {
   Future<InventoryState> build() async => InventoryState(spools: spools);
 
   @override
-  Future<void> refresh() async {}
+  Future<void> refresh({bool askBackend = false}) async {}
 
   @override
   Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) async {
@@ -95,10 +93,9 @@ void main() {
         inventoryProvider.overrideWith(() => inventory),
         noServerProfileOverride,
         suppliersRepositoryProvider.overrideWithValue(suppliers),
-        // Never called: the preset section is off, so nothing reaches it.
-        inventoryRepositoryProvider.overrideWithValue(
-          InventoryRepository(NativeInventorySource(Dio())),
-        ),
+        // Only its backend is read: the preset section is off, so no request
+        // reaches the source.
+        inventoryRepositoryOf(backend),
         inventoryBackendOverride(backend),
         presetOverridesSupportedProvider.overrideWithValue(
           const AsyncData(false),

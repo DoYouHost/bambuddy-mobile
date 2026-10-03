@@ -19,7 +19,7 @@ class _Shelf extends InventoryNotifier {
   }
 
   @override
-  Future<void> refresh() async {
+  Future<void> refresh({bool askBackend = false}) async {
     loads++;
   }
 }

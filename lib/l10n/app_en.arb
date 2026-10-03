@@ -1116,8 +1116,6 @@
   "errMissingTwoFactorCode": "Enter the code",
   "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
   "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
-  "errSlotTagUnreadable": "This slot has no readable RFID tag — Spoolman binds spools by tag, so it cannot take this one. The built-in inventory assigns by slot instead.",
-  "errPrinterOffline": "The printer is offline, so the app cannot read what the slot holds. Reconnect it and try again.",
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "notifEtaSoon": "soon",
   "@notifOngoingBody": {
@@ -1629,6 +1627,10 @@
   "inventoryAssignTitle": "Assign spool",
   "inventoryAssignCurrent": "Currently in this slot",
   "inventoryAssignPick": "Pick a spool",
+  "inventoryTagBound": "The spool in this slot has a tag, so it is linked by the tag rather than assigned here.",
+  "@inventoryTagBound": {
+    "description": "Slot sheet, Spoolman mode: a slot whose spool has an RFID tag is bound by that tag on the server, so the sheet offers no assign or unassign."
+  },
   "inventoryReassignTitle": "Move spool?",
   "inventoryReassignMessage": "This spool is currently in {slot}. It will be removed from there and assigned to this slot.",
   "@inventoryReassignMessage": {
