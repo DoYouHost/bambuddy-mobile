@@ -167,9 +167,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// The shelf and the climate readings, which age on their own — the server
   /// polls Home Assistant on its own interval, so whoever asks for the shelf
   /// has to ask for those too.
-  Future<void> _refreshShelfAndClimate() {
+  Future<void> _refreshShelfAndClimate({bool askBackend = false}) {
     ref.invalidate(locationClimateProvider);
-    return ref.read(inventoryProvider.notifier).refresh();
+    return ref.read(inventoryProvider.notifier).refresh(askBackend: askBackend);
   }
 
   void _toggleSelect(int id) {
@@ -314,11 +314,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           child: dashAsync(
             context,
             async,
-            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+            onRetry: () =>
+                ref.read(inventoryProvider.notifier).refresh(askBackend: true),
             data: (inv) {
               final spools = visible;
               return RefreshIndicator(
-                onRefresh: _refreshShelfAndClimate,
+                onRefresh: () => _refreshShelfAndClimate(askBackend: true),
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [

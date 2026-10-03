@@ -18,13 +18,27 @@ class InventoryRepository {
   InventoryRepository(
     SpoolInventorySource source, [
     ServerVersionService? serverVersion,
-  ]) : this.resolving(() async => source, serverVersion);
+  ]) : this.resolving(
+         () async => source,
+         () async => source is SpoolmanInventorySource
+             ? InventoryBackend.spoolman
+             : InventoryBackend.native,
+         serverVersion,
+       );
 
   /// Over a source still being decided: every call waits for [_source], so
   /// none can reach the backend the server is not running.
-  InventoryRepository.resolving(this._source, [this._serverVersion]);
+  InventoryRepository.resolving(
+    this._source,
+    this.backend, [
+    this._serverVersion,
+  ]);
 
   final Future<SpoolInventorySource> Function() _source;
+
+  /// Which backend [_source] talks to, for the writes that address the two
+  /// differently (supplier links) or the screens that read one only.
+  final Future<InventoryBackend> Function() backend;
 
   Future<T> _on<T>(Future<T> Function(SpoolInventorySource s) call) async =>
       call(await _source());

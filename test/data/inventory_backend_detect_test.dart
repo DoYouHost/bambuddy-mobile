@@ -317,11 +317,60 @@ void main() {
           ]),
           queryParameters: {'include_archived': true},
         );
-      await c.read(inventoryProvider.notifier).refresh();
+      await c.read(inventoryProvider.notifier).refresh(askBackend: true);
 
       expect(c.read(inventoryProvider).requireValue.spools.map((s) => s.id), [
         3,
       ]);
+    });
+
+    test(
+      'a reload after a pushed change does not ask about the backend',
+      () async {
+        adapter
+          ..onGet(
+            status,
+            (s) => s.reply(200, {
+              'enabled': false,
+              'connected': false,
+              'url': null,
+            }),
+          )
+          ..onGet(
+            '/api/v1/inventory/spools',
+            (s) => s.reply(200, []),
+            queryParameters: {'include_archived': true},
+          )
+          ..onGet('/api/v1/inventory/assignments', (s) => s.reply(200, []));
+        final c = container();
+        final keep = c.listen(inventoryProvider, (_, _) {});
+        addTearDown(keep.close);
+        await c.read(inventoryProvider.future);
+
+        await c.read(inventoryProvider.notifier).refresh();
+
+        expect(sent.calls.where((call) => call == 'GET $status'), hasLength(1));
+      },
+    );
+
+    test('backend() asks again after a failed answer', () async {
+      adapter.onGet(
+        status,
+        (s) => s.throws(
+          0,
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: status),
+            reason: 'refused',
+          ),
+        ),
+      );
+      final repo = container().read(inventoryRepositoryProvider);
+      await expectLater(repo.backend(), throwsA(isA<NetworkException>()));
+
+      adapter.onGet(status, (s) => s.reply(200, spoolmanOn));
+      adapter.onGet(ledger, (s) => s.reply(200, []));
+
+      expect(await repo.backend(), InventoryBackend.spoolman);
     });
   });
 }

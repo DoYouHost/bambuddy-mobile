@@ -233,7 +233,7 @@ final supplierStatsProvider = FutureProvider.autoDispose<List<SupplierStats>>((
   ref,
 ) async {
   ref.watch(serverProfileProvider);
-  if (await ref.watch(inventoryBackendProvider.future) !=
+  if (await ref.watch(inventoryRepositoryProvider).backend() !=
       InventoryBackend.native) {
     return const [];
   }

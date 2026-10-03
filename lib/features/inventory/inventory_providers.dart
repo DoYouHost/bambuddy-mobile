@@ -59,8 +59,7 @@ final inventoryProvider =
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
-/// knowing which slot they occupy. Rebuilds on profile change; pull-to-refresh
-/// also asks the server again which backend it runs.
+/// knowing which slot they occupy. Rebuilds on profile change.
 class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
@@ -101,8 +100,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }
 
   /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
-  Future<void> refresh() async {
-    ref.invalidate(inventoryBackendProvider);
+  ///
+  /// [askBackend] is for what the user asked for (a pull, Retry): it asks the
+  /// server again which backend it runs, which an automatic reload after every
+  /// pushed change would send for nothing.
+  Future<void> refresh({bool askBackend = false}) async {
+    if (askBackend) ref.invalidate(inventoryBackendProvider);
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }
@@ -272,7 +275,6 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }) async {
     final repo = ref.read(inventoryRepositoryProvider);
     final linkWriter = ref.read(suppliersRepositoryProvider);
-    final backend = await ref.read(inventoryBackendProvider.future);
     final current = {
       for (final s in state.valueOrNull?.spools ?? const <Spool>[])
         s.id: s.suppliers,
@@ -298,7 +300,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
           await linkWriter.saveSpoolLinks(
             id,
             mergeSupplierLinks(existing, addSuppliers),
-            backend: backend,
+            backend: await repo.backend(),
           );
           succeeded++;
         } on AppApiException catch (e) {

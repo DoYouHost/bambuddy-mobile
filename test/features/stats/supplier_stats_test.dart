@@ -31,7 +31,7 @@ void main() {
   }) => [
     noServerProfileOverride,
     suppliersRepositoryProvider.overrideWithValue(suppliers),
-    inventoryBackendOverride(backend),
+    inventoryRepositoryOf(backend),
   ];
 
   group('supplierStatsProvider', () {

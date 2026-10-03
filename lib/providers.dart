@@ -1109,16 +1109,28 @@ final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
 ///
 /// A failed answer is not kept — the next call asks again, so Retry and
 /// pull-to-refresh recover once the server is back. Only a settled failure:
-/// one still being asked again is awaited, not doubled.
+/// one still being asked again is awaited, not doubled. Code that needs the
+/// backend itself reads [InventoryRepository.backend] for the same reason,
+/// never [inventoryBackendProvider]'s future.
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
-  ref.watch(apiClientProvider);
-  return InventoryRepository.resolving(() {
+  void askAgainIfFailed() {
     final asked = ref.read(inventoryBackendProvider);
     if (asked.hasError && !asked.isLoading) {
       ref.invalidate(inventoryBackendProvider);
     }
-    return ref.read(inventorySourceProvider.future);
-  }, ref.watch(serverVersionServiceProvider));
+  }
+
+  return InventoryRepository.resolving(
+    () {
+      askAgainIfFailed();
+      return ref.read(inventorySourceProvider.future);
+    },
+    () {
+      askAgainIfFailed();
+      return ref.read(inventoryBackendProvider.future);
+    },
+    ref.watch(serverVersionServiceProvider),
+  );
 });
 
 /// Service minting the camera stream token (the live view; on servers older

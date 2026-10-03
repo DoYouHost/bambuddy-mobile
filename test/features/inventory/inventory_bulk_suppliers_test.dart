@@ -135,6 +135,7 @@ void main() {
       List<int> notFound = const [],
       List<int> errorIds = const [],
       FakeSuppliers? suppliers,
+      Override? backend,
     }) async {
       final source = _FakeSource(
         spools,
@@ -145,7 +146,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           fakeServerProfileOverride(),
-          inventoryBackendOverride(),
+          backend ?? inventoryBackendOverride(),
           inventorySourceProvider.overrideWith((ref) => source),
           suppliersRepositoryProvider.overrideWithValue(suppliers),
         ],
@@ -155,6 +156,26 @@ void main() {
       await container.read(inventoryProvider.future);
       return (container, source, suppliers);
     }
+
+    test('a patch without suppliers does not wait on the backend', () async {
+      // The backend only addresses the supplier write; a failed answer about
+      // it must not take an unrelated patch down with it.
+      final (container, source, _) = await harness(
+        [const Spool(id: 1, material: 'PLA', suppliers: [])],
+        backend: inventoryBackendProvider.overrideWith(
+          (ref) => Future<InventoryBackend>.error(
+            const NetworkException(AppErrorCode.connectionError),
+          ),
+        ),
+      );
+
+      final outcome = await container
+          .read(inventoryProvider.notifier)
+          .bulkUpdateSpools([1], const SpoolBulkPatch(note: 'x'));
+
+      expect(source.patches, hasLength(1));
+      expect(outcome.ok, 1);
+    });
 
     test('suppliers alone send no patch and merge into each spool', () async {
       final (container, source, suppliers) = await harness([
