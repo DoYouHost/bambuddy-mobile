@@ -1386,6 +1386,24 @@ void main() {
         expect(control('assign_spool.unassign'), findsNothing);
       });
 
+      testWidgets('an unknown tag still lets a spool be picked', (
+        tester,
+      ) async {
+        // No spool carries the tag (auto-add off): the server then charges
+        // usage to the slot assignment, and the app has no Link to offer.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _StockedInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        await reveal(tester, find.text(l10n.inventoryAssignPick));
+        expect(find.text(l10n.inventoryAssignPick), findsOneWidget);
+        expect(find.text(l10n.inventoryTagBound), findsNothing);
+      });
+
       testWidgets('the built-in inventory still lets it be picked', (
         tester,
       ) async {

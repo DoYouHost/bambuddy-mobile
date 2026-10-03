@@ -1660,12 +1660,17 @@ class _SlotRef {
   final String? trayUuid;
 
   /// Whether the server binds this slot's spool by its RFID tag — Spoolman
-  /// mode with a tag read ([AssignedSpools.tagBinds]). The sheet then shows
-  /// the bound spool and offers neither assign nor unassign, as the web.
+  /// mode with a tag read ([AssignedSpools.tagBinds]).
   final bool tagBound;
 
   /// The spool that tag is bound to, when the shelf has it.
   final Spool? tagSpool;
+
+  /// Whether the sheet locks assigning: only once the tag names a spool. The
+  /// web disables Assign for an unknown tag too and offers Link instead, which
+  /// the app has not got — and there the server charges usage to the slot
+  /// assignment (`spoolman_tracking.py`), so assigning still works.
+  bool get lockedByTag => tagBound && tagSpool != null;
 
   /// Whether a spool can be created out of what this slot holds. Needs a
   /// readable tag — a tagless slot has no identity to re-link to, so the
@@ -2110,7 +2115,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                       )
                     : null,
                 onTap: () => _openInInventory(context, current!.id),
-                trailing: slot.tagBound
+                trailing: slot.lockedByTag
                     ? null
                     : TextButton.icon(
                         onPressed: () => _unassign(context, ref, l10n),
@@ -2123,7 +2128,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
               ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
-            if (slot.tagBound)
+            if (slot.lockedByTag)
               Text(
                 l10n.inventoryTagBound,
                 style: theme.textTheme.bodyMedium?.copyWith(
