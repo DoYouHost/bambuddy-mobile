@@ -81,6 +81,12 @@ void main() {
       );
     });
 
+    test('a body that is not a map is native rather than an error', () async {
+      // What the demo answered before it served this route.
+      adapter.onGet(status, (s) => s.reply(200, []));
+      expect(await detectInventoryBackend(dio), InventoryBackend.native);
+    });
+
     test('an odd body is native rather than a crash', () async {
       expect(await answer({}), InventoryBackend.native);
       expect(

@@ -33,18 +33,20 @@ enum InventoryBackend { native, spoolman }
 /// server itself falls back to (`inventory_mode.py`). Anything else is thrown,
 /// so the caller asks again rather than settling on a backend it never heard.
 Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
-  final Map<String, dynamic> body;
+  final Object? body;
   try {
-    final res = await dio.get<Map<String, dynamic>>(Endpoints.spoolmanStatus);
-    body = res.data ?? const <String, dynamic>{};
+    // Untyped: a typed get fails on a body of another shape as if the network
+    // had, and that would be asked again forever instead of read as native.
+    body = (await dio.get<dynamic>(Endpoints.spoolmanStatus)).data;
   } on DioException catch (e) {
     final status = e.response?.statusCode;
     if (status == 403 || status == 404) return InventoryBackend.native;
     throw mapDioException(e);
   }
-  final url = body['url'];
-  final spoolman =
-      body['enabled'] == true && url is String && url.trim().isNotEmpty;
+  final spoolman = switch (body) {
+    {'enabled': true, 'url': final String url} => url.trim().isNotEmpty,
+    _ => false,
+  };
   if (!spoolman) return InventoryBackend.native;
   try {
     await dio.get<dynamic>(Endpoints.spoolmanAssignments);
