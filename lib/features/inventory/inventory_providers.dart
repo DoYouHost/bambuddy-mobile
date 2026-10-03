@@ -423,16 +423,19 @@ class AssignedSpools {
   /// assign or unassign on such a slot (`isBambuLabSpool` in PrintersPage).
   bool tagBinds(AmsTray tray) =>
       _tagShelf != null &&
-      (_readable(normalizeTrayUuid(tray.trayUuid)) ||
-          _readable(normalizeTagUid(tray.tagUid)));
+      (_read(normalizeTrayUuid(tray.trayUuid)) != null ||
+          _read(normalizeTagUid(tray.tagUid)) != null);
 
   /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one.
   Spool? boundByTag(AmsTray tray) => tagBinds(tray)
-      ? _tagShelf!.spoolForTag(tagUid: tray.tagUid, trayUuid: tray.trayUuid)
+      ? _tagShelf!.spoolForTag(
+          tagUid: _read(normalizeTagUid(tray.tagUid)),
+          trayUuid: _read(normalizeTrayUuid(tray.trayUuid)),
+        )
       : null;
 
   // An unread tag arrives as zeros, which still normalises to digits.
-  static bool _readable(String id) => id.contains(RegExp('[^0]'));
+  static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
 
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
 }

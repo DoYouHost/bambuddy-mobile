@@ -200,9 +200,6 @@ void main() {
             'ams_exist_bits': '1',
           },
         };
-        // Back to the seeded trays, so no later test meets the tag.
-        addTearDown(() => publishReport(serial, amsWith(const [])));
-
         await publishReport(
           serial,
           amsWith([
@@ -223,6 +220,8 @@ void main() {
         // The server makes the spool, so it is found by its tag to be removed —
         // also when the wait below gives up after the server made it anyway.
         // Read raw, so the cleanup does not lean on the parser under test.
+        // Teardowns run last-first: the tray goes back to the seeded ones
+        // before the spool is removed, so no sync can make it again.
         addTearDown(() async {
           final rows = (await dio.get<List<dynamic>>(
             '/api/v1/spoolman/inventory/spools',
@@ -230,10 +229,16 @@ void main() {
           )).data!.cast<Map<String, dynamic>>();
           for (final row in rows) {
             if ('${row['tray_uuid']}'.toUpperCase() == uuid) {
-              await source.deleteSpool(row['id'] as int);
+              final id = row['id'] as int;
+              await dio.delete<dynamic>(
+                '/api/v1/spoolman/inventory/slot-assignments/$id',
+                options: Options(validateStatus: (_) => true),
+              );
+              await source.deleteSpool(id);
             }
           }
         });
+        addTearDown(() => publishReport(serial, amsWith(const [])));
         final spool = await pollUntil(
           'a Spoolman spool carrying tray $uuid',
           () async => InventoryState(
@@ -243,6 +248,11 @@ void main() {
         );
 
         expect(spool.material, 'PETG');
+        // The sync also pins it to the slot — the card shows a tagged slot
+        // from that row, as the web does (#1457).
+        expect((await slotsOf(spool.id)).map((a) => (a.amsId, a.trayId)), [
+          (0, 3),
+        ]);
       },
     );
 

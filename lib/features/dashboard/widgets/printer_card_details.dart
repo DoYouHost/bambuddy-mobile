@@ -524,10 +524,10 @@ class _DetailsPanel extends ConsumerWidget {
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
           assignedOf: (i) =>
-              assigned.boundByTag(spools[i]) ??
               assigned.forExtruder(
                 dual ? status.extruderForExternal(spools[i].id) : 1,
-              ),
+              ) ??
+              assigned.boundByTag(spools[i]),
           tagBindsOf: (i) => assigned.tagBinds(spools[i]),
           boundByTagOf: (i) => assigned.boundByTag(spools[i]),
           trayIdOf: trayIdOf,
@@ -727,11 +727,12 @@ class _AmsSection extends ConsumerWidget {
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
-              // The tag wins where it binds, the order the server charges
-              // usage in and the web reads the fill in.
+              // The slot assignment first, as the web (#1457); the AMS sync
+              // writes the tag's spool there itself, so the tag only answers
+              // until that sync has run.
               assignedSpool:
-                  assigned.boundByTag(trays[i]) ??
-                  assigned.forAmsSlot(unit.id ?? unitIndex, trays[i].id ?? 0),
+                  assigned.forAmsSlot(unit.id ?? unitIndex, trays[i].id ?? 0) ??
+                  assigned.boundByTag(trays[i]),
               allowRemain: true,
               last: i == trays.length - 1,
               slot: _SlotRef(
@@ -2021,17 +2022,18 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     final spools = inv?.spools ?? const <Spool>[];
 
-    var current = slot.tagSpool;
+    Spool? current;
     for (final s in spools) {
-      if (current != null) break;
       final a = inv?.assignmentFor(s.id);
       if (a != null &&
           a.printerId == slot.printerId &&
           a.amsId == slot.amsId &&
           a.trayId == slot.trayId) {
         current = s;
+        break;
       }
     }
+    current ??= slot.tagSpool;
 
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
     final offered = [

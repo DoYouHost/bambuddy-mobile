@@ -115,6 +115,27 @@ class _AssignedInventory extends InventoryNotifier {
   );
 }
 
+/// The tagged spool on the shelf and a different one pinned to the same slot,
+/// for which of the two the slot shows.
+class _PinnedOverTagInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+    spools: [
+      _AssignedInventory.spool,
+      Spool(
+        id: 21,
+        material: 'PLA',
+        subtype: 'Basic',
+        brand: 'Bambu',
+        tagUid: 'a1b2c3d4e5f60708',
+      ),
+    ],
+    assignmentBySpool: {
+      42: SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
+    },
+  );
+}
+
 /// A shelf that already holds the spool whose tag sits in the slot, so the
 /// sheet must offer to pick it rather than to create a second row for it.
 class _TaggedInventory extends InventoryNotifier {
@@ -1339,6 +1360,30 @@ void main() {
         expect(find.text(l10n.inventoryAssignPick), findsNothing);
         await reveal(tester, find.text(l10n.inventoryTagBound));
         expect(find.text(l10n.inventoryTagBound), findsOneWidget);
+      });
+
+      testWidgets('a slot assignment outranks the tag, as the web', (
+        tester,
+      ) async {
+        // PrintersPage #1457: the assignment is the user's explicit act, and
+        // the AMS sync writes the tag's spool into it anyway.
+        await openSlotSheet(
+          tester,
+          state: 'IDLE',
+          tagged: true,
+          inventory: _PinnedOverTagInventory.new,
+          backend: InventoryBackend.spoolman,
+        );
+
+        final current = control('assign_spool.current');
+        expect(
+          find.descendant(
+            of: current,
+            matching: find.textContaining('Bambu Lab'),
+          ),
+          findsOneWidget,
+        );
+        expect(control('assign_spool.unassign'), findsNothing);
       });
 
       testWidgets('the built-in inventory still lets it be picked', (
