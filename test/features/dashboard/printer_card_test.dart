@@ -1384,6 +1384,9 @@ void main() {
           findsOneWidget,
         );
         expect(control('assign_spool.unassign'), findsNothing);
+        // The reason would sit at the very end of a lazy list: scrolled to,
+        // so its absence is not merely its not being built yet.
+        await scrollSheetDown(tester);
         expect(find.text(l10n.inventoryTagBound), findsNothing);
       });
 
