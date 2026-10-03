@@ -162,13 +162,35 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     SpoolAssignmentDraft draft, {
     SpoolAssignment? from,
   }) => _mutate((repo) async {
-    if (from != null &&
+    final moving =
+        from != null &&
         !(from.printerId == draft.printerId &&
             from.amsId == draft.amsId &&
-            from.trayId == draft.trayId)) {
+            from.trayId == draft.trayId);
+    // The old slot is cleared first: Spoolman takes a spool off by its id, so
+    // clearing after the new assignment would take that off too.
+    if (moving) {
       await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
     }
-    await repo.assignSpool(draft);
+    try {
+      await repo.assignSpool(draft);
+    } on Object {
+      // A move that fails halfway puts the spool back where it was, rather
+      // than leaving it in neither slot.
+      if (moving) {
+        await repo
+            .assignSpool(
+              SpoolAssignmentDraft(
+                spoolId: draft.spoolId,
+                printerId: from.printerId,
+                amsId: from.amsId,
+                trayId: from.trayId,
+              ),
+            )
+            .catchError((Object _) {});
+      }
+      rethrow;
+    }
     _nudgeRepublish(draft.printerId);
     return null;
   });
