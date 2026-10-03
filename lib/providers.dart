@@ -1085,45 +1085,38 @@ final makerworldRecentImportsProvider =
       (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
     );
 
-/// Chosen filament inventory backend (native by default). User toggle;
-/// Spoolman is drop-in — see [SpoolInventorySource].
-final inventoryBackendProvider =
-    NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
-      InventoryBackendNotifier.new,
-    );
-
-class InventoryBackendNotifier extends Notifier<InventoryBackend> {
-  @override
-  InventoryBackend build() {
-    final raw = ref.watch(settingsRepositoryProvider).loadInventoryBackend();
-    return InventoryBackend.values.firstWhere(
-      (b) => b.name == raw,
-      orElse: () => InventoryBackend.native,
-    );
-  }
-
-  Future<void> set(InventoryBackend backend) async {
-    await ref
-        .read(settingsRepositoryProvider)
-        .saveInventoryBackend(backend.name);
-    state = backend;
-  }
-}
-
-/// Inventory data source dependent on chosen backend. Shares authenticated Dio;
-/// rebuilt on profile or backend change.
-final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
+/// The filament inventory the server runs — asked once per server, the server
+/// being where the choice is made. A failed ask is an error rather than a
+/// guess, and is asked again on the next regained contact
+/// (`serverContactEpochProvider`), so an app started away from the LAN
+/// recovers without a restart.
+final inventoryBackendProvider = FutureProvider<InventoryBackend>((ref) async {
   final dio = ref.watch(apiClientProvider).dio;
-  return switch (ref.watch(inventoryBackendProvider)) {
+  try {
+    return await detectInventoryBackend(dio);
+  } on Object {
+    ref.listen(serverContactEpochProvider, (_, _) => ref.invalidateSelf());
+    rethrow;
+  }
+});
+
+/// Inventory data source for the backend the server runs. Shares authenticated
+/// Dio; rebuilt on profile or backend change.
+final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
+  ref,
+) async {
+  final dio = ref.watch(apiClientProvider).dio;
+  return switch (await ref.watch(inventoryBackendProvider.future)) {
     InventoryBackend.native => NativeInventorySource(dio),
     InventoryBackend.spoolman => SpoolmanInventorySource(dio),
   };
 });
 
-/// Filament inventory. Facade over chosen source.
+/// Filament inventory. Facade over the chosen source, usable before the server
+/// has said which one: its calls wait for the answer.
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(
-    ref.watch(inventorySourceProvider),
+  (ref) => InventoryRepository.pending(
+    ref.watch(inventorySourceProvider.future),
     ref.watch(serverVersionServiceProvider),
   ),
 );

@@ -64,7 +64,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
     ref.watch(serverProfileProvider);
-    ref.watch(inventoryBackendProvider);
+    ref.watch(inventoryRepositoryProvider);
     return _load();
   }
 
@@ -270,7 +270,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   }) async {
     final repo = ref.read(inventoryRepositoryProvider);
     final linkWriter = ref.read(suppliersRepositoryProvider);
-    final backend = ref.read(inventoryBackendProvider);
+    final backend = await ref.read(inventoryBackendProvider.future);
     final current = {
       for (final s in state.valueOrNull?.spools ?? const <Spool>[])
         s.id: s.suppliers,

@@ -972,6 +972,11 @@ abstract final class Endpoints {
       '$apiPrefix/location-ha-sensors/by-location/$locationId/readings';
 
   // Backend Spoolman (drop-in replacement — different data shape).
+
+  /// `GET` → `{enabled, connected, url}`. Decides which of the two inventory
+  /// backends the app talks to (`detectInventoryBackend`); `connected` is a live
+  /// health check of Spoolman, not part of that decision.
+  static const spoolmanStatus = '$apiPrefix/spoolman/status';
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
   static const spoolmanSpoolsBulk = '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>

@@ -2178,8 +2178,11 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
     if (inv.spoolForTag(tagUid: slot.tagUid, trayUuid: slot.trayUuid) != null) {
       return false;
     }
+    // Unknown counts as Spoolman: the offer appears once the server says
+    // native, rather than vanishing under a finger once it says otherwise.
     final onSpoolman =
-        ref.watch(inventoryBackendProvider) == InventoryBackend.spoolman;
+        ref.watch(inventoryBackendProvider).valueOrNull !=
+        InventoryBackend.native;
     final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
     return !(onSpoolman && keyed);
   }

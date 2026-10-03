@@ -12,9 +12,35 @@ import '../core/models/printer_status.dart';
 import '../core/models/spool_label.dart';
 import '../core/models/spool_preset_override.dart';
 
-/// Filament inventory backend. User has native, but app should also work on Spoolman —
-/// selected via setting (see `inventoryBackendProvider`).
+/// Filament inventory backend, decided by the server (see
+/// [detectInventoryBackend]).
 enum InventoryBackend { native, spoolman }
+
+/// Which inventory the server runs, decided the way its own inventory page does
+/// (`InventoryPage.tsx`: `spoolman_enabled` and a URL).
+///
+/// `connected` is left out on purpose: an unreachable Spoolman is still the
+/// inventory the user keeps, and falling back would show the built-in table —
+/// empty, or stale from before the switch — and send writes to it.
+///
+/// 403 and 404 settle on native: the status route sits behind the same API-key
+/// scope as the inventory routes (`can_read_status`), and a server without it
+/// has no Spoolman mode. Anything else is thrown, so the caller asks again
+/// rather than settling on a backend it never heard.
+Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
+  try {
+    final res = await dio.get<Map<String, dynamic>>(Endpoints.spoolmanStatus);
+    final body = res.data ?? const <String, dynamic>{};
+    final url = body['url'];
+    final spoolman =
+        body['enabled'] == true && url is String && url.trim().isNotEmpty;
+    return spoolman ? InventoryBackend.spoolman : InventoryBackend.native;
+  } on DioException catch (e) {
+    final status = e.response?.statusCode;
+    if (status == 403 || status == 404) return InventoryBackend.native;
+    throw mapDioException(e);
+  }
+}
 
 /// Whether the server would accept [tag] as a link target, by its own rules
 /// (`spoolman.py::link_spool`): 16 or 32 hex digits, not all zeros. The status

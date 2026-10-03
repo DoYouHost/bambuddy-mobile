@@ -146,7 +146,7 @@ void main() {
         overrides: [
           fakeServerProfileOverride(),
           inventoryBackendOverride(),
-          inventorySourceProvider.overrideWithValue(source),
+          inventorySourceProvider.overrideWith((ref) => source),
           suppliersRepositoryProvider.overrideWithValue(suppliers),
         ],
       );

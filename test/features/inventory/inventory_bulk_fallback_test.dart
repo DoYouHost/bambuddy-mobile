@@ -70,7 +70,7 @@ void main() {
       overrides: [
         fakeServerProfileOverride(),
         inventoryBackendOverride(),
-        inventorySourceProvider.overrideWithValue(source),
+        inventorySourceProvider.overrideWith((ref) => source),
       ],
     );
     addTearDown(container.dispose);

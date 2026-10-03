@@ -553,20 +553,11 @@ DioAdapter mockServer(Dio dio) => DioAdapter(
   matcher: const FullHttpRequestMatcher(needsExactBody: true),
 );
 
-/// `inventoryBackendProvider` fixed to [backend]; the real notifier reads the
-/// choice from SharedPreferences, which a test would otherwise have to seed.
+/// `inventoryBackendProvider` fixed to [backend]; the real one asks the
+/// server's `/spoolman/status`, which a test would otherwise have to mock.
 Override inventoryBackendOverride([
   InventoryBackend backend = InventoryBackend.native,
-]) => inventoryBackendProvider.overrideWith(() => _FixedBackend(backend));
-
-class _FixedBackend extends InventoryBackendNotifier {
-  _FixedBackend(this._backend);
-
-  final InventoryBackend _backend;
-
-  @override
-  InventoryBackend build() => _backend;
-}
+]) => inventoryBackendProvider.overrideWith((ref) => backend);
 
 /// Drags the topmost list up [times] times. Sheets and forms are lazy lists
 /// taller than the screen: what sits below the fold is not built — and a finder
