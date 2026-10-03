@@ -45,12 +45,17 @@ class _FakeSource implements SpoolInventorySource {
 }
 
 void main() {
+  late RecordingCommands commands;
+
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
     final container = ProviderContainer(
       overrides: [
         fakeServerProfileOverride(),
         inventoryBackendOverride(),
         inventorySourceProvider.overrideWith((ref) => source),
+        printerCommandsRepositoryProvider.overrideWithValue(
+          commands = RecordingCommands(),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -86,6 +91,27 @@ void main() {
     );
 
     expect(source.calls, ['unassign', 'assign 2', 'assign 0']);
+    expect(commands.calls, ['refreshStatus:1']);
+  });
+
+  test('a move to another printer nudges both printers', () async {
+    final (container, _) = await harness(_FakeSource());
+
+    await container
+        .read(inventoryProvider.notifier)
+        .assignSpool(
+          const SpoolAssignmentDraft(
+            spoolId: 1,
+            printerId: 2,
+            amsId: 0,
+            trayId: 0,
+          ),
+          from: from,
+        );
+
+    // Neither firmware echoes the change back on its own: the one the spool
+    // left keeps showing it until told to speak.
+    expect(commands.calls, ['refreshStatus:2', 'refreshStatus:1']);
   });
 
   test('a plain assign is one write', () async {

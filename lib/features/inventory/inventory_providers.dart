@@ -176,22 +176,29 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       await repo.assignSpool(draft);
     } on Object {
       // A move that fails halfway puts the spool back where it was, rather
-      // than leaving it in neither slot.
+      // than leaving it in neither slot. If that fails too, the reload after
+      // the error shows where the spool really is.
       if (moving) {
         await repo
             .assignSpool(
               SpoolAssignmentDraft(
-                spoolId: draft.spoolId,
+                spoolId: from.spoolId,
                 printerId: from.printerId,
                 amsId: from.amsId,
                 trayId: from.trayId,
               ),
             )
-            .catchError((Object _) {});
+            .then(
+              (_) => _nudgeRepublish(from.printerId),
+              onError: (Object _) {},
+            );
       }
       rethrow;
     }
     _nudgeRepublish(draft.printerId);
+    if (moving && from.printerId != draft.printerId) {
+      _nudgeRepublish(from.printerId);
+    }
     return null;
   });
 
