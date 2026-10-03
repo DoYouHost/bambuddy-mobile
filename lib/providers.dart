@@ -1087,18 +1087,10 @@ final makerworldRecentImportsProvider =
 
 /// The filament inventory the server runs — asked once per server, the server
 /// being where the choice is made. A failed ask is an error rather than a
-/// guess, and is asked again on the next regained contact
-/// (`serverContactEpochProvider`), so an app started away from the LAN
-/// recovers without a restart.
-final inventoryBackendProvider = FutureProvider<InventoryBackend>((ref) async {
-  final dio = ref.watch(apiClientProvider).dio;
-  try {
-    return await detectInventoryBackend(dio);
-  } on Object {
-    ref.listen(serverContactEpochProvider, (_, _) => ref.invalidateSelf());
-    rethrow;
-  }
-});
+/// guess; [inventoryRepositoryProvider] asks again on its next call.
+final inventoryBackendProvider = FutureProvider<InventoryBackend>(
+  (ref) => detectInventoryBackend(ref.watch(apiClientProvider).dio),
+);
 
 /// Inventory data source for the backend the server runs. Shares authenticated
 /// Dio; rebuilt on profile or backend change.
@@ -1114,12 +1106,20 @@ final inventorySourceProvider = FutureProvider<SpoolInventorySource>((
 
 /// Filament inventory. Facade over the chosen source, usable before the server
 /// has said which one: its calls wait for the answer.
-final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository.pending(
-    ref.watch(inventorySourceProvider.future),
-    ref.watch(serverVersionServiceProvider),
-  ),
-);
+///
+/// A failed answer is not kept — the next call asks again, so Retry and
+/// pull-to-refresh recover once the server is back. Only a settled failure:
+/// one still being asked again is awaited, not doubled.
+final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
+  ref.watch(apiClientProvider);
+  return InventoryRepository.resolving(() {
+    final asked = ref.read(inventoryBackendProvider);
+    if (asked.hasError && !asked.isLoading) {
+      ref.invalidate(inventoryBackendProvider);
+    }
+    return ref.read(inventorySourceProvider.future);
+  }, ref.watch(serverVersionServiceProvider));
+});
 
 /// Service minting the camera stream token (the live view; on servers older
 /// than #3025 also every other `?token=` image). Rebuilt with client on profile

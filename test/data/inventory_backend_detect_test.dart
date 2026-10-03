@@ -15,6 +15,12 @@ import '../helpers.dart';
 /// Spoolman user saw an empty shelf (issue #5).
 void main() {
   const status = '/api/v1/spoolman/status';
+  const ledger = '/api/v1/spoolman/inventory/slot-assignments/all';
+  const spoolmanOn = {
+    'enabled': true,
+    'connected': true,
+    'url': 'http://spoolman:8000',
+  };
   late Dio dio;
   late DioAdapter adapter;
   late RequestLog sent;
@@ -27,7 +33,9 @@ void main() {
 
   group('detectInventoryBackend', () {
     Future<InventoryBackend> answer(Map<String, dynamic> body) {
-      adapter.onGet(status, (s) => s.reply(200, body));
+      adapter
+        ..onGet(status, (s) => s.reply(200, body))
+        ..onGet(ledger, (s) => s.reply(200, []));
       return detectInventoryBackend(dio);
     }
 
@@ -78,6 +86,30 @@ void main() {
         await answer({'enabled': 'true', 'url': 'http://spoolman:8000'}),
         InventoryBackend.native,
       );
+    });
+
+    test('a server without the Spoolman inventory routes keeps the built-in '
+        'one', () async {
+      // 0.2.3.x: Spoolman can be on, but `/spoolman/inventory/*` arrived in
+      // 0.2.4 — the shelf it showed before was the built-in one.
+      adapter
+        ..onGet(status, (s) => s.reply(200, spoolmanOn))
+        ..onGet(ledger, (s) => s.reply(404, {'detail': 'Not Found'}));
+
+      expect(await detectInventoryBackend(dio), InventoryBackend.native);
+      expect(sent.calls, ['GET $status', 'GET $ledger']);
+    });
+
+    test('a disabled Spoolman asks nothing further', () async {
+      adapter.onGet(
+        status,
+        (s) =>
+            s.reply(200, {'enabled': false, 'connected': false, 'url': null}),
+      );
+
+      await detectInventoryBackend(dio);
+
+      expect(sent.calls, ['GET $status']);
     });
 
     for (final code in [403, 404]) {
@@ -136,14 +168,8 @@ void main() {
 
     test('a Spoolman server is read through the Spoolman routes only', () async {
       adapter
-        ..onGet(
-          status,
-          (s) => s.reply(200, {
-            'enabled': true,
-            'connected': true,
-            'url': 'http://spoolman:8000',
-          }),
-        )
+        ..onGet(status, (s) => s.reply(200, spoolmanOn))
+        ..onGet(ledger, (s) => s.reply(200, []))
         ..onGet(
           '/api/v1/spoolman/inventory/spools',
           (s) => s.reply(200, [
@@ -161,12 +187,12 @@ void main() {
       expect(spools.map((s) => s.id), [3]);
       expect(sent.calls, [
         'GET $status',
+        'GET $ledger',
         'GET /api/v1/spoolman/inventory/spools',
       ]);
     });
 
-    test('a failed ask fails the call and is asked again on regained '
-        'contact', () async {
+    test('a failed ask fails the call, and the next call asks again', () async {
       adapter.onGet(
         status,
         (s) => s.throws(
@@ -196,12 +222,7 @@ void main() {
           (s) => s.reply(200, []),
           queryParameters: {'include_archived': false},
         );
-      c.read(serverContactEpochProvider.notifier).bump();
-
-      expect(
-        await c.read(inventoryBackendProvider.future),
-        InventoryBackend.native,
-      );
+      // What Retry and pull-to-refresh do: call the same repository again.
       await c.read(inventoryRepositoryProvider).fetchSpools();
       expect(sent.calls, [
         'GET $status',
@@ -210,19 +231,28 @@ void main() {
       ]);
     });
 
-    test('a settled answer is not asked again on regained contact', () async {
-      adapter.onGet(
-        status,
-        (s) =>
-            s.reply(200, {'enabled': false, 'connected': false, 'url': null}),
-      );
-      final c = container();
-      await c.read(inventoryBackendProvider.future);
+    test('a settled answer is not asked again', () async {
+      adapter
+        ..onGet(
+          status,
+          (s) =>
+              s.reply(200, {'enabled': false, 'connected': false, 'url': null}),
+        )
+        ..onGet(
+          '/api/v1/inventory/spools',
+          (s) => s.reply(200, []),
+          queryParameters: {'include_archived': false},
+        );
+      final repo = container().read(inventoryRepositoryProvider);
 
-      c.read(serverContactEpochProvider.notifier).bump();
-      await c.read(inventoryBackendProvider.future);
+      await repo.fetchSpools();
+      await repo.fetchSpools();
 
-      expect(sent.calls, ['GET $status']);
+      expect(sent.calls, [
+        'GET $status',
+        'GET /api/v1/inventory/spools',
+        'GET /api/v1/inventory/spools',
+      ]);
     });
   });
 }

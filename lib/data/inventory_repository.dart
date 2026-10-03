@@ -18,19 +18,16 @@ class InventoryRepository {
   InventoryRepository(
     SpoolInventorySource source, [
     ServerVersionService? serverVersion,
-  ]) : this.pending(Future.value(source), serverVersion);
+  ]) : this.resolving(() async => source, serverVersion);
 
-  /// Over a source still being decided: every call waits for it, so none can
-  /// reach the backend the server is not running. A failed decision fails each
-  /// call with its error instead of surfacing as an unhandled one.
-  InventoryRepository.pending(this._source, [this._serverVersion]) {
-    _source.ignore();
-  }
+  /// Over a source still being decided: every call waits for [_source], so
+  /// none can reach the backend the server is not running.
+  InventoryRepository.resolving(this._source, [this._serverVersion]);
 
-  final Future<SpoolInventorySource> _source;
+  final Future<SpoolInventorySource> Function() _source;
 
   Future<T> _on<T>(Future<T> Function(SpoolInventorySource s) call) async =>
-      call(await _source);
+      call(await _source());
 
   /// Answers [presetOverridesCapability] until the route itself has, and
   /// [labelStartingPositionCapability] always.

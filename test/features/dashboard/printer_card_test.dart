@@ -316,7 +316,7 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 Widget _scope(
   Widget child, {
   List<Override> extra = const [],
-  InventoryBackend backend = InventoryBackend.native,
+  InventoryBackend? backend = InventoryBackend.native,
   bool apiKeySession = false,
   MediaAuth media = const MediaAuth(queryToken: 'tok'),
 }) => ProviderScope(
@@ -324,7 +324,13 @@ Widget _scope(
     fakeServerProfileOverride(
       authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none,
     ),
-    inventoryBackendOverride(backend),
+    if (backend == null)
+      // The server has not said yet.
+      inventoryBackendProvider.overrideWith(
+        (ref) => Completer<InventoryBackend>().future,
+      )
+    else
+      inventoryBackendOverride(backend),
     mediaAuthProvider.overrideWith((ref) async => media),
     inertFirmwareOverride,
     inertTotalPrintHoursOverride,
@@ -789,7 +795,7 @@ void main() {
       bool stocked = false,
       bool tagged = false,
       InventoryNotifier Function()? inventory,
-      InventoryBackend backend = InventoryBackend.native,
+      InventoryBackend? backend = InventoryBackend.native,
       bool apiKeySession = false,
       FilaSwitch? filaSwitch,
       Map<int, ExtruderSlot>? extruderSlots,
@@ -1349,6 +1355,24 @@ void main() {
         state: 'IDLE',
         tagged: true,
         apiKeySession: true,
+      );
+      await reveal(tester, registerButton());
+
+      expect(registerButton(), findsOneWidget);
+    });
+
+    testWidgets('the key keeps the button while the backend is unknown', (
+      tester,
+    ) async {
+      // The server's own rule (`inventory_mode.py`) reads an unknown mode as
+      // the built-in inventory; hiding it would lock a native key out for as
+      // long as the answer is missing.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        apiKeySession: true,
+        backend: null,
       );
       await reveal(tester, registerButton());
 
