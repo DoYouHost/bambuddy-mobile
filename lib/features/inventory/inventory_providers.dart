@@ -59,7 +59,8 @@ final inventoryProvider =
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
-/// knowing which slot they occupy. Rebuilds on profile/backend change.
+/// knowing which slot they occupy. Rebuilds on profile change; pull-to-refresh
+/// also asks the server again which backend it runs.
 class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
@@ -101,6 +102,7 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 
   /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
   Future<void> refresh() async {
+    ref.invalidate(inventoryBackendProvider);
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }

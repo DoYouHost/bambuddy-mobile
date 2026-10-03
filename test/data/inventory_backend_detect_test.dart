@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,6 +101,38 @@ void main() {
       expect(sent.calls, ['GET $status', 'GET $ledger']);
     });
 
+    for (final code in [403, 500]) {
+      test('a $code from the slot ledger is still Spoolman', () async {
+        // Only a 404 means the routes are missing; a refused or failing ledger
+        // comes from a server that has them.
+        adapter
+          ..onGet(status, (s) => s.reply(200, spoolmanOn))
+          ..onGet(ledger, (s) => s.reply(code, {'detail': 'x'}));
+
+        expect(await detectInventoryBackend(dio), InventoryBackend.spoolman);
+      });
+    }
+
+    test('no network on the slot ledger is thrown, not guessed', () async {
+      adapter
+        ..onGet(status, (s) => s.reply(200, spoolmanOn))
+        ..onGet(
+          ledger,
+          (s) => s.throws(
+            0,
+            DioException.connectionError(
+              requestOptions: RequestOptions(path: ledger),
+              reason: 'refused',
+            ),
+          ),
+        );
+
+      await expectLater(
+        detectInventoryBackend(dio),
+        throwsA(isA<NetworkException>()),
+      );
+    });
+
     test('a disabled Spoolman asks nothing further', () async {
       adapter.onGet(
         status,
@@ -150,6 +183,7 @@ void main() {
     ProviderContainer container() {
       final c = ProviderContainer(
         overrides: [
+          fakeServerProfileOverride(),
           apiClientProvider.overrideWithValue(
             ApiClient(
               profile: const ServerProfile(
@@ -252,6 +286,41 @@ void main() {
         'GET $status',
         'GET /api/v1/inventory/spools',
         'GET /api/v1/inventory/spools',
+      ]);
+    });
+
+    test('pull-to-refresh picks up Spoolman switched on since', () async {
+      adapter
+        ..onGet(
+          status,
+          (s) =>
+              s.reply(200, {'enabled': false, 'connected': false, 'url': null}),
+        )
+        ..onGet(
+          '/api/v1/inventory/spools',
+          (s) => s.reply(200, []),
+          queryParameters: {'include_archived': true},
+        )
+        ..onGet('/api/v1/inventory/assignments', (s) => s.reply(200, []));
+      final c = container();
+      final keep = c.listen(inventoryProvider, (_, _) {});
+      addTearDown(keep.close);
+      await c.read(inventoryProvider.future);
+
+      adapter
+        ..onGet(status, (s) => s.reply(200, spoolmanOn))
+        ..onGet(ledger, (s) => s.reply(200, []))
+        ..onGet(
+          '/api/v1/spoolman/inventory/spools',
+          (s) => s.reply(200, [
+            {'id': 3, 'material': 'PLA'},
+          ]),
+          queryParameters: {'include_archived': true},
+        );
+      await c.read(inventoryProvider.notifier).refresh();
+
+      expect(c.read(inventoryProvider).requireValue.spools.map((s) => s.id), [
+        3,
       ]);
     });
   });

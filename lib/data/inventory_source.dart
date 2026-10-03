@@ -16,39 +16,45 @@ import '../core/models/spool_preset_override.dart';
 /// [detectInventoryBackend]).
 enum InventoryBackend { native, spoolman }
 
-/// Which inventory the server runs: Spoolman when it is enabled with a URL —
-/// the rule the web inventory page applies to `/settings/spoolman`. Read from
-/// `/spoolman/status` instead because that route sits behind the same API-key
-/// scope as the inventory itself (`can_read_status`), where settings are a
-/// separate permission a custom group may lack.
+/// Which inventory the server runs: Spoolman when `/spoolman/status` reports it
+/// enabled with a URL — the rule the web inventory page applies to the same
+/// two settings.
 ///
 /// `connected` is left out on purpose: an unreachable Spoolman is still the
 /// inventory the user keeps, and falling back would show the built-in table —
 /// empty, or stale from before the switch — and send writes to it.
 ///
 /// A server older than the Spoolman inventory routes (0.2.4) keeps the
-/// built-in one even with Spoolman on, which is what the app showed it before:
-/// a 404 from the slot ledger says so.
+/// built-in one even with Spoolman on, which is what the app showed it before.
+/// Only a 404 from the slot ledger says that; any other refusal there comes
+/// from a server that has the routes.
 ///
-/// 403 and 404 settle on native: a session refused one is refused the
-/// inventory either way, and a server without the route has no Spoolman mode.
-/// Anything else is thrown, so the caller asks again rather than settling on a
-/// backend it never heard.
+/// A 403 or 404 from the status route settles on native: a server without it
+/// has no Spoolman mode, and a session refused it gets the built-in rule the
+/// server itself falls back to (`inventory_mode.py`). Anything else is thrown,
+/// so the caller asks again rather than settling on a backend it never heard.
 Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
+  final Map<String, dynamic> body;
   try {
     final res = await dio.get<Map<String, dynamic>>(Endpoints.spoolmanStatus);
-    final body = res.data ?? const <String, dynamic>{};
-    final url = body['url'];
-    final spoolman =
-        body['enabled'] == true && url is String && url.trim().isNotEmpty;
-    if (!spoolman) return InventoryBackend.native;
-    await dio.get<dynamic>(Endpoints.spoolmanAssignments);
-    return InventoryBackend.spoolman;
+    body = res.data ?? const <String, dynamic>{};
   } on DioException catch (e) {
     final status = e.response?.statusCode;
     if (status == 403 || status == 404) return InventoryBackend.native;
     throw mapDioException(e);
   }
+  final url = body['url'];
+  final spoolman =
+      body['enabled'] == true && url is String && url.trim().isNotEmpty;
+  if (!spoolman) return InventoryBackend.native;
+  try {
+    await dio.get<dynamic>(Endpoints.spoolmanAssignments);
+  } on DioException catch (e) {
+    final status = e.response?.statusCode;
+    if (status == 404) return InventoryBackend.native;
+    if (status == null) throw mapDioException(e);
+  }
+  return InventoryBackend.spoolman;
 }
 
 /// Whether the server would accept [tag] as a link target, by its own rules
