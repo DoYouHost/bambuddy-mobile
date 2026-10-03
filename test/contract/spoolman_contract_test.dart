@@ -17,7 +17,6 @@ void main() {
     late SpoolmanInventorySource source;
     late int printerId;
     Map<String, dynamic>? settingsBefore;
-    final spoolIds = <int>[];
     final keyIds = <int>[];
     final stamp = DateTime.now().millisecondsSinceEpoch;
 
@@ -41,25 +40,27 @@ void main() {
     });
 
     tearDownAll(() async {
-      final quiet = Options(validateStatus: (_) => true);
-      Future<void> tryDelete(String path) =>
-          dio.delete<dynamic>(path, options: quiet).catchError((Object _) {
-            return Response<dynamic>(requestOptions: RequestOptions());
-          });
       try {
-        for (final id in spoolIds) {
-          await tryDelete('/api/v1/spoolman/inventory/slot-assignments/$id');
-          await tryDelete('/api/v1/spoolman/inventory/spools/$id');
-        }
         for (final id in keyIds) {
-          await tryDelete('/api/v1/api-keys/$id');
+          await dio
+              .delete<dynamic>(
+                '/api/v1/api-keys/$id',
+                options: Options(validateStatus: (_) => true),
+              )
+              .catchError(
+                (Object _) =>
+                    Response<dynamic>(requestOptions: RequestOptions()),
+              );
         }
       } finally {
-        // Every other contract test reads the built-in inventory.
-        await putSpoolman({
-          'spoolman_enabled': settingsBefore?['spoolman_enabled'] ?? 'false',
-          'spoolman_url': settingsBefore?['spoolman_url'] ?? '',
-        });
+        // Every other contract test reads the built-in inventory. Unread, the
+        // setting was never changed either.
+        if (settingsBefore case final before?) {
+          await putSpoolman({
+            'spoolman_enabled': before['spoolman_enabled'] ?? 'false',
+            'spoolman_url': before['spoolman_url'] ?? '',
+          });
+        }
       }
     });
 
@@ -72,7 +73,9 @@ void main() {
           weightUsed: 300,
         ),
       );
-      spoolIds.add(spool.id);
+      // Removed by the test that made it, while Spoolman is still on: the
+      // Spoolman routes refuse once the last test switches it off.
+      addTearDown(() => source.deleteSpool(spool.id));
       return spool;
     }
 
@@ -156,13 +159,9 @@ void main() {
     });
 
     test('switched off, the server is the built-in inventory again', () async {
+      // Last on purpose: nothing after it needs Spoolman, and tearDownAll puts
+      // back whatever the server had.
       await putSpoolman({'spoolman_enabled': 'false'});
-      addTearDown(
-        () => putSpoolman({
-          'spoolman_enabled': 'true',
-          'spoolman_url': contractSpoolmanUrl,
-        }),
-      );
 
       expect(await detectInventoryBackend(dio), InventoryBackend.native);
     });

@@ -50,8 +50,8 @@ String? get brokerSkipReason =>
         ? 'BAMBUDDY_CONTRACT_BROKER / _BROKER_IP are unset'
         : null);
 
-/// A Spoolman the server under test can reach, as the server would address it
-/// (`http://<container>:8000`). The Spoolman tests point the server at it for
+/// A Spoolman the server under test can reach, as the server would address it:
+/// `http://<ip>:8000` on Docker's default bridge, which resolves no names. The Spoolman tests point the server at it for
 /// their own run and put the setting back after.
 String? get contractSpoolmanUrl =>
     Platform.environment['BAMBUDDY_CONTRACT_SPOOLMAN_URL'];
