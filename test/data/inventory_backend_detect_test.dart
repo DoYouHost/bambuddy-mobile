@@ -81,10 +81,20 @@ void main() {
       );
     });
 
-    test('a body that is not a map is native rather than an error', () async {
-      // What the demo answered before it served this route.
+    test('a body that is not a map is an error, not a guess', () async {
+      // A proxy's page or the demo's old blanket list: no answer about the
+      // inventory, so it is asked again rather than settled on native.
       adapter.onGet(status, (s) => s.reply(200, []));
-      expect(await detectInventoryBackend(dio), InventoryBackend.native);
+      await expectLater(
+        detectInventoryBackend(dio),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.malformedResponse,
+          ),
+        ),
+      );
     });
 
     test('an odd body is native rather than a crash', () async {

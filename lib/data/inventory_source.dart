@@ -35,14 +35,15 @@ enum InventoryBackend { native, spoolman }
 Future<InventoryBackend> detectInventoryBackend(Dio dio) async {
   final Object? body;
   try {
-    // Untyped: a typed get fails on a body of another shape as if the network
-    // had, and that would be asked again forever instead of read as native.
+    // Untyped, so a body of another shape — a proxy's page, say — is told
+    // apart below; a typed get turns it into a transport error.
     body = (await dio.get<dynamic>(Endpoints.spoolmanStatus)).data;
   } on DioException catch (e) {
     final status = e.response?.statusCode;
     if (status == 403 || status == 404) return InventoryBackend.native;
     throw mapDioException(e);
   }
+  if (body is! Map) throw const ApiException(AppErrorCode.malformedResponse);
   final spoolman = switch (body) {
     {'enabled': true, 'url': final String url} => url.trim().isNotEmpty,
     _ => false,
