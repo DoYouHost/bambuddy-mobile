@@ -185,12 +185,28 @@ void main() {
       container.listen(assignedSpoolsProvider(printerId), (_, _) {});
       await container.read(inventoryBackendProvider.future);
       await container.read(inventoryProvider.future);
-      final inSlot = container
+      final fill = container
           .read(assignedSpoolsProvider(printerId))
-          .inAmsSlot(0, const AmsTray(id: 2, remain: 100));
+          .fillOf(
+            const AmsTray(id: 2, trayType: 'PLA', remain: 100),
+            amsId: 0,
+            trayId: 2,
+          );
 
-      expect(inSlot?.id, spool.id);
-      expect(trayFillPercent(remain: 100, spool: inSlot), 10);
+      expect(fill.spool?.id, spool.id);
+      expect(fill.percent, 10);
+    });
+
+    test('an assignment carries its spool, which the queue reads', () async {
+      // The web's mapping shows grams from `assignment.spool` and nothing
+      // else (`FilamentMapping.tsx`), so the spool has to come inside.
+      final spool = await assignWeighed(0);
+
+      final row = (await repo.fetchAssignments(
+        printerId: printerId,
+      )).singleWhere((a) => a.spoolId == spool.id);
+      expect(row.spool?.id, spool.id);
+      expect(row.spool?.remainingWeight, 102);
     });
 
     test("a user's AMS label names the unit, not the slot", () async {

@@ -177,6 +177,28 @@ void main() {
       expect(assign(129).slotLabel, 'HT-B');
     });
 
+    test('a built-in assignment carries its spool, a Spoolman one not', () {
+      final native = SpoolAssignment.fromNative({
+        'spool_id': 3,
+        'printer_id': 1,
+        'ams_id': 0,
+        'tray_id': 1,
+        'spool': {
+          'id': 3,
+          'material': 'PETG',
+          'label_weight': 1000,
+          'weight_used': 250,
+        },
+      });
+      expect(native.spool?.id, 3);
+      expect(native.spool?.remainingWeight, 750);
+      expect(SpoolAssignment.fromNative({'spool_id': 3}).spool, isNull);
+      expect(
+        SpoolAssignment.fromSpoolman({'spoolman_spool_id': 3}).spool,
+        isNull,
+      );
+    });
+
     test('ams_label from the server names the unit, the slot stays', () {
       const a = SpoolAssignment(
         spoolId: 1,

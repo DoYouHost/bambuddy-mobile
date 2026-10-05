@@ -13,4 +13,5 @@ Printer _$PrinterFromJson(Map<String, dynamic> json) => Printer(
   ipAddress: json['ip_address'] as String?,
   location: json['location'] as String?,
   isActive: json['is_active'] as bool?,
+  serialNumber: json['serial_number'] as String?,
 );

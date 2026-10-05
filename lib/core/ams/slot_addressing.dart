@@ -75,6 +75,23 @@ String amsSlotName(int amsId, int trayId, {String? unit}) {
   return amsId >= amsHtUnitBase ? unit : '$unit · ${trayId + 1}';
 }
 
+/// The tag bambuddy links a spool without RFID to a slot by, in Spoolman's
+/// `extra.tag`: a 32-bit FNV-1a of the serial, then the unit and the tray as
+/// four hex digits each. Byte for byte `amsHelpers.ts::getFallbackSpoolTag`
+/// and `spoolman_tracking.py::get_fallback_spool_tag_for_slot`, which must
+/// agree for the web to find the spool. Null without a serial, as the server.
+String? fallbackSpoolTag(String? serial, int amsId, int trayId) {
+  final input = (serial ?? '').trim().toUpperCase();
+  if (input.isEmpty) return null;
+  var hash = 0x811c9dc5;
+  for (final unit in input.codeUnits) {
+    hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+  }
+  String hex(int value, int width) =>
+      value.toRadixString(16).toUpperCase().padLeft(width, '0');
+  return '${hex(hash, 8)}${hex(amsId, 4)}${hex(trayId, 4)}';
+}
+
 /// The inverse of [globalTrayId], for labelling a slot picked by its global id.
 ({int amsId, int trayId}) localSlotOf(int global) {
   final side = externalSideOf(global);

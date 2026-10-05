@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/slot_addressing.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_bulk.dart';
@@ -23,10 +25,17 @@ class InventoryState {
   const InventoryState({
     this.spools = const [],
     this.assignmentBySpool = const {},
+    this.builtInSlots = const [],
   });
 
   final List<Spool> spools;
   final Map<int, SpoolAssignment> assignmentBySpool;
+
+  /// In Spoolman mode, the built-in inventory's slot assignments, each with
+  /// its spool: the web reads a slot's fill from them after Spoolman's own
+  /// (`getAssignment` in `PrintersPage.tsx`, fetched whatever the mode). In
+  /// built-in mode those are [assignmentBySpool], and this stays empty.
+  final List<SpoolAssignment> builtInSlots;
 
   SpoolAssignment? assignmentFor(int spoolId) => assignmentBySpool[spoolId];
 
@@ -83,6 +92,17 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       // Assignments are a bonus — their absence must not break the screen.
       bySpool = const {};
     }
+    var builtInSlots = const <SpoolAssignment>[];
+    try {
+      if (await ref.read(inventoryBackendProvider.future) ==
+          InventoryBackend.spoolman) {
+        builtInSlots = await NativeInventorySource(
+          ref.read(apiClientProvider).dio,
+        ).fetchAssignments();
+      }
+    } on Object {
+      // Only a fill fallback, as the web's query (gated on a permission).
+    }
 
     spools.sort((a, b) {
       // Active before archived; among active, assigned (in AMS or external) before loose.
@@ -98,7 +118,11 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       }
       return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
     });
-    return InventoryState(spools: spools, assignmentBySpool: bySpool);
+    return InventoryState(
+      spools: spools,
+      assignmentBySpool: bySpool,
+      builtInSlots: builtInSlots,
+    );
   }
 
   /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
@@ -391,6 +415,8 @@ class AssignedSpools {
     this._byKey,
     this._byExtruder, [
     this._tagShelf,
+    this._spoolmanSlots = const {},
+    this._builtInSlots = const {},
   ]);
 
   /// Empty resolver (inventory not loaded / error) — enriches nothing.
@@ -437,35 +463,79 @@ class AssignedSpools {
   // An unread tag arrives as zeros, which still normalises to digits.
   static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
 
-  /// The spool sitting in [tray] of unit [amsId]. The slot assignment first,
-  /// as the web (#1457); the AMS sync writes the tag's spool there itself, so
-  /// the tag only answers until that sync has run.
-  Spool? inAmsSlot(int amsId, AmsTray tray) =>
-      forAmsSlot(amsId, tray.id ?? 0) ?? boundByTag(tray);
+  /// Raw `ams_id`/`tray_id` → spool, as the web matches its rows: Spoolman's
+  /// slot ledger (Spoolman mode only) and the built-in inventory's.
+  final Map<int, Spool> _spoolmanSlots;
+  final Map<int, Spool> _builtInSlots;
 
-  /// The spool on the external holder [tray] of [status]'s printer. A
-  /// single-nozzle printer keeps its one holder under extruder 1.
-  Spool? onHolder(PrinterStatus status, AmsTray tray) =>
-      forExtruder(
-        status.isDualExtruder ? status.extruderForExternal(tray.id) : 1,
-      ) ??
-      boundByTag(tray);
+  static int slotKey(int amsId, int trayId) => amsId * 1000 + trayId;
+
+  /// The built-in inventory's spool in a slot — for the external holder
+  /// [amsId] 255 and the side as [trayId].
+  Spool? builtInAt(int amsId, int trayId) =>
+      _builtInSlots[slotKey(amsId, trayId)];
+
+  /// The fill a slot shows, and the spool it was read from — null when the
+  /// AMS's own reading won. The web's chain branch for branch
+  /// (`PrintersPage.tsx`, ~5532 for an AMS slot, ~6299 for the holder): the
+  /// Spoolman spool linked by the tray's tag, the Spoolman spool assigned to
+  /// the slot, the built-in inventory's spool, the AMS. For the external
+  /// holder [amsId] is 255 and [trayId] the side.
+  ({int? percent, Spool? spool}) fillOf(
+    AmsTray tray, {
+    required int amsId,
+    required int trayId,
+    String? serial,
+  }) {
+    final shelf = _tagShelf;
+    if (shelf != null) {
+      // `tray_uuid || tag_uid || fallback`: only the first one present is
+      // looked up, as the web keys its linked map by a single tag.
+      final tag =
+          _nonEmpty(tray.trayUuid) ??
+          _nonEmpty(tray.tagUid) ??
+          fallbackSpoolTag(serial, amsId, trayId);
+      // Spoolman's `extra.tag` maps to a tray UUID at 32 hex digits and to a
+      // tag UID below (`_spoolman_helpers.py::_map_spoolman_spool`).
+      final linked = tag == null
+          ? null
+          : tag.length == 32
+          ? shelf.spoolForTag(trayUuid: tag)
+          : shelf.spoolForTag(tagUid: tag);
+      // `getSpoolmanFillLevel`: nothing left reads as no answer.
+      if (linked != null &&
+          linked.remainingWeight > 0 &&
+          linked.labelWeight > 0) {
+        return (percent: min(100, _percentOf(linked)), spool: linked);
+      }
+      final slot = _spoolmanSlots[slotKey(amsId, trayId)];
+      if (slot != null && slot.labelWeight > 0) {
+        return (percent: _percentOf(slot), spool: slot);
+      }
+    }
+    final remain = tray.remain;
+    final ams =
+        _nonEmpty(tray.trayType) != null && remain != null && remain >= 0
+        ? remain
+        : null;
+    final builtIn = builtInAt(amsId, trayId);
+    if (builtIn != null && builtIn.labelWeight > 0) {
+      final percent = _percentOf(builtIn);
+      // Read as empty while the AMS still sees filament: a stale
+      // `weight_used`, and the AMS wins (#676).
+      if (percent != 0 || (ams ?? 0) <= 0) {
+        return (percent: percent, spool: builtIn);
+      }
+    }
+    return (percent: ams, spool: null);
+  }
+
+  static int _percentOf(Spool s) =>
+      (max(0, s.labelWeight - s.weightUsed) / s.labelWeight * 100).round();
+
+  static String? _nonEmpty(String? s) => (s?.isEmpty ?? true) ? null : s;
 
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
-}
-
-/// Fill percent shown for a slot, in the web's order (`PrintersPage.tsx`, the
-/// fill-level chain): the [spool] in it first, the AMS's own [remain] only
-/// without one. An AMS reads 100% for any spool it has no RFID data for, so
-/// its number is a last resort. The exception is a spool at 0% while the AMS
-/// still sees filament: its `weight_used` is stale (server #676) and the AMS
-/// wins.
-int? trayFillPercent({int? remain, Spool? spool}) {
-  final ams = remain != null && remain >= 0 ? remain : null;
-  final fraction = spool?.remainingFraction;
-  if (fraction == null) return ams;
-  final percent = (fraction * 100).round();
-  return percent == 0 && (ams ?? 0) > 0 ? ams : percent;
 }
 
 /// Assignment resolver for one printer (by `printerId`). Reads `inventoryProvider`
@@ -481,10 +551,12 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
     final spoolById = {for (final s in inv.spools) s.id: s};
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
+    final bySlot = <int, Spool>{};
     for (final a in inv.assignmentBySpool.values) {
       if (a.printerId != printerId) continue;
       final spool = spoolById[a.spoolId];
       if (spool == null) continue;
+      bySlot[AssignedSpools.slotKey(a.amsId, a.trayId)] = spool;
       if (a.isExternalSpool) {
         final ext = a.extruder;
         if (ext != null) byExtruder[ext] = spool;
@@ -492,7 +564,21 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
         byKey[a.amsId * 1000 + a.trayId] = spool;
       }
     }
-    return AssignedSpools(printerId, byKey, byExtruder, spoolman ? inv : null);
+    final builtIn = spoolman
+        ? {
+            for (final a in inv.builtInSlots)
+              if (a.printerId == printerId && a.spool != null)
+                AssignedSpools.slotKey(a.amsId, a.trayId): a.spool!,
+          }
+        : bySlot;
+    return AssignedSpools(
+      printerId,
+      byKey,
+      byExtruder,
+      spoolman ? inv : null,
+      spoolman ? bySlot : const {},
+      builtIn,
+    );
   },
 );
 

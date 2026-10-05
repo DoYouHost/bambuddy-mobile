@@ -16,18 +16,7 @@ import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
-///
-/// [spoolIn] finds the slot's spool on the shelf the sheet watches, so the
-/// fill is resolved there: the inventory loading later must not re-run this
-/// provider, which would refetch the status and blank the sheet to a spinner.
-typedef _Tray = ({
-  int global,
-  String? type,
-  String? color,
-  int? remain,
-  Spool? Function(AssignedSpools) spoolIn,
-  bool external,
-});
+typedef _Tray = ({int global, String? type, String? color, bool external});
 
 /// Loaded filaments for a printer's AMS. Prefers the printer's LIVE AMS state:
 /// that's the source of truth the firmware resolves the mapping against, so a
@@ -65,8 +54,6 @@ final printerTraysProvider = FutureProvider.autoDispose
           global: global,
           type: s?.material,
           color: s?.rgba,
-          remain: null,
-          spoolIn: (_) => s,
           external: a.isExternalSpool,
         ));
       }
@@ -94,8 +81,6 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
         global: global,
         type: t.trayType,
         color: t.trayColor,
-        remain: t.remain,
-        spoolIn: (assigned) => assigned.inAmsSlot(unitId, t),
         external: false,
       ));
     }
@@ -108,8 +93,6 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
       global: global,
       type: e.trayType,
       color: e.trayColor,
-      remain: e.remain,
-      spoolIn: (assigned) => assigned.onHolder(status, e),
       external: true,
     ));
   }
@@ -224,8 +207,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       )),
     );
     final traysAsync = ref.watch(printerTraysProvider(widget.printerId));
-    // Loads the shelf while the sheet is open, for the picker's fill — a
-    // listen, as nothing on this sheet shows it.
+    // Loads the shelf while the sheet is open, for the picker's grams — a
+    // listen, as nothing on this sheet shows them.
     ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
 
     return wrap(
@@ -358,6 +341,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             final assigned = ref.watch(
               assignedSpoolsProvider(widget.printerId),
             );
+            Spool? spoolOf(_Tray t) {
+              final slot = localSlotOf(t.global);
+              return assigned.builtInAt(slot.amsId, slot.trayId);
+            }
+
             return ListView(
               shrinkWrap: true,
               children: [
@@ -368,12 +356,14 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                     subtitle: Text(
                       [
                         ?t.type,
-                        if (trayFillPercent(
-                              remain: t.remain,
-                              spool: t.spoolIn(assigned),
-                            )
-                            case final fill?)
-                          '$fill%',
+                        // What the web's mapping shows: the built-in
+                        // inventory's spool for the slot, in grams, and no
+                        // percent (`FilamentMapping.tsx`,
+                        // trayRemainingWeightMap).
+                        if (spoolOf(t) case final spool?)
+                          _l10n.inventoryRemaining(
+                            spool.remainingWeight.toStringAsFixed(0),
+                          ),
                       ].join(' · '),
                     ),
                     trailing: _selected[slot] == t.global

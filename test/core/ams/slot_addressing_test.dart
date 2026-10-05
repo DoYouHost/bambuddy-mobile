@@ -108,4 +108,19 @@ void main() {
       expect(() => amsUnitName(externalHolderUnit), throwsAssertionError);
     });
   });
+
+  group('fallbackSpoolTag', () {
+    test('matches the server byte for byte', () {
+      // Expected values computed by running
+      // spoolman_tracking.py::get_fallback_spool_tag_for_slot.
+      expect(fallbackSpoolTag('01P00A123456789', 0, 2), '45FACEC400000002');
+      expect(fallbackSpoolTag('0948ad5c1800123', 255, 1), 'E6D056A600FF0001');
+      expect(fallbackSpoolTag(' x1c-test ', 129, 0), 'B0139FDA00810000');
+    });
+
+    test('there is none without a serial', () {
+      expect(fallbackSpoolTag(null, 0, 0), isNull);
+      expect(fallbackSpoolTag('  ', 0, 0), isNull);
+    });
+  });
 }

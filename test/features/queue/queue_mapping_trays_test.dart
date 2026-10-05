@@ -14,9 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// The fill the slot picker shows while mapping a print — the same reading as
-/// the printer card, so the slot a user picks by "how much is left" is not
-/// the one the AMS calls 100% for want of an RFID tag (issue #5).
+/// What the slot picker says about a slot while mapping a print — the web's
+/// mapping: grams left on the built-in inventory's spool, and no percent at
+/// all (`FilamentMapping.tsx`, trayRemainingWeightMap).
 class _Printers extends PrintersRepository {
   _Printers() : super(Dio());
 
@@ -57,7 +57,7 @@ class _Shelf extends InventoryNotifier {
 }
 
 void main() {
-  testWidgets('a slot with a spool offers its fill, the rest the AMS one', (
+  testWidgets('a slot with a spool shows its grams, the rest only the type', (
     tester,
   ) async {
     final printers = _Printers();
@@ -99,8 +99,8 @@ void main() {
     await tester.tap(find.text('Filament 1'));
     await tester.pumpAndSettle();
 
-    expect(find.text('PLA · 10%'), findsOneWidget);
-    expect(find.text('PETG · 66%'), findsOneWidget);
+    expect(find.text('PLA · zostało 102 g'), findsOneWidget);
+    expect(find.text('PETG'), findsOneWidget);
     // The shelf arriving late re-reads nothing: the status was fetched once.
     expect(printers.fetches, 1);
   });

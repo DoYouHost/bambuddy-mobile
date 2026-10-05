@@ -5317,7 +5317,19 @@ class DemoBackend {
 
       case 'assignments':
         if (s.length == 2) {
-          if (m == 'GET') return _ok(_assignments);
+          if (m == 'GET') {
+            // The server sends each row with its spool inside
+            // (`SpoolAssignmentResponse.spool`), which the slot picker reads.
+            return _ok([
+              for (final a in _assignments)
+                {
+                  ...a,
+                  'spool': _spools
+                      .where((sp) => sp['id'] == a['spool_id'])
+                      .firstOrNull,
+                },
+            ]);
+          }
           if (m == 'POST') {
             _assignments.removeWhere(
               (a) =>

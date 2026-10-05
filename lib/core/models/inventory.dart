@@ -447,6 +447,7 @@ class SpoolAssignment {
     required this.trayId,
     this.printerName,
     this.amsLabel,
+    this.spool,
   });
 
   factory SpoolAssignment.fromNative(Map<String, dynamic> json) =>
@@ -457,6 +458,10 @@ class SpoolAssignment {
         trayId: toIntOrNull(json['tray_id']) ?? -1,
         printerName: toStringOrNull(json['printer_name']),
         amsLabel: toStringOrNull(json['ams_label']),
+        spool: switch (json['spool']) {
+          final Map<String, dynamic> spool => Spool.fromNative(spool),
+          _ => null,
+        },
       );
 
   factory SpoolAssignment.fromSpoolman(Map<String, dynamic> json) =>
@@ -475,6 +480,11 @@ class SpoolAssignment {
   final int trayId;
   final String? printerName;
   final String? amsLabel;
+
+  /// The spool itself, which the built-in inventory sends inside each
+  /// assignment (`SpoolAssignmentResponse.spool`); the web reads a slot's
+  /// fill from it. Null from Spoolman, whose slot rows carry only the id.
+  final Spool? spool;
 
   /// External spool (external holder), NOT in an AMS unit — the inventory
   /// backend marks it with an `ams_id` of 254 or 255. Then "slot" is the

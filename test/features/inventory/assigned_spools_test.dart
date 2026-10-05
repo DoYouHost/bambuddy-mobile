@@ -67,18 +67,6 @@ void main() {
       expect(assigned.boundByTag(const AmsTray()), isNull);
       expect(assigned.forAmsSlot(0, 0), pinned);
     });
-
-    test(
-      'a slot assignment outranks the tag, which answers elsewhere',
-      () async {
-        final assigned = await resolve(InventoryBackend.spoolman);
-        const tray = AmsTray(id: 0, tagUid: 'A1B2C3D4E5F60708');
-
-        expect(assigned.inAmsSlot(0, tray), pinned);
-        expect(assigned.inAmsSlot(1, tray), tagged);
-        expect(assigned.inAmsSlot(1, const AmsTray(id: 0)), isNull);
-      },
-    );
   });
 
   test('the built-in inventory binds nothing by tag', () async {
@@ -87,37 +75,6 @@ void main() {
 
     expect(assigned.tagBinds(tray), isFalse);
     expect(assigned.boundByTag(tray), isNull);
-  });
-
-  group('trayFillPercent', () {
-    Spool weighed(double used, {int label = 1000}) =>
-        Spool(id: 1, material: 'PLA', labelWeight: label, weightUsed: used);
-
-    test('a spool outranks the AMS, which reads 100% without RFID', () {
-      expect(trayFillPercent(remain: 100, spool: weighed(898)), 10);
-    });
-
-    test('without a spool the AMS answers, unless it has no reading', () {
-      expect(trayFillPercent(remain: 66), 66);
-      expect(trayFillPercent(remain: -1), isNull);
-      expect(trayFillPercent(), isNull);
-    });
-
-    test('a spool of unknown size leaves it to the AMS', () {
-      expect(trayFillPercent(remain: 40, spool: weighed(0, label: 0)), 40);
-    });
-
-    test('an empty spool yields to an AMS that still sees filament', () {
-      // A stale weight_used, server #676.
-      expect(trayFillPercent(remain: 40, spool: weighed(1000)), 40);
-      expect(trayFillPercent(remain: 0, spool: weighed(1000)), 0);
-      expect(trayFillPercent(spool: weighed(1200)), 0);
-    });
-
-    test('rounds as the web does', () {
-      expect(trayFillPercent(spool: weighed(995)), 1);
-      expect(trayFillPercent(spool: weighed(996)), 0);
-    });
   });
 }
 
