@@ -53,7 +53,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     final status = _printerId == null
         ? null
         : ref.watch(printerStatusesProvider)[_printerId];
-    final dual = status?.isDualExtruder ?? false;
+    final printer = roster
+        .where((p) => p.printer.id == _printerId)
+        .firstOrNull
+        ?.printer;
+    final dual = status?.isDualNozzle(printer?.nozzleCount) ?? false;
     // AMS units detected live (their ids) — if none, provide 0..3.
     final unitIds =
         (status?.ams ?? const []).map((u) => u.id ?? 0).toSet().toList()

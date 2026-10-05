@@ -15,6 +15,7 @@ class Printer {
     this.location,
     this.isActive,
     this.serialNumber,
+    this.nozzleCount,
   });
 
   factory Printer.fromJson(Map<String, dynamic> json) =>
@@ -30,6 +31,9 @@ class Printer {
   /// Hashed into the tag bambuddy links a spool without RFID by
   /// (`fallbackSpoolTag`).
   final String? serialNumber;
+
+  /// 1 or 2, detected by the server from the printer's reports.
+  final int? nozzleCount;
 }
 
 /// The distinct models of [printers], sorted, spelled exactly as the server

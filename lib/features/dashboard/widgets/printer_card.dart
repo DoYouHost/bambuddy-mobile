@@ -360,6 +360,7 @@ class _PrinterCardState extends State<PrinterCard> {
                           _DetailsPanel(
                             status: status,
                             serial: widget.item.printer.serialNumber,
+                            nozzleCount: widget.item.printer.nozzleCount,
                           ),
                       ],
                     )

@@ -14,4 +14,5 @@ Printer _$PrinterFromJson(Map<String, dynamic> json) => Printer(
   location: json['location'] as String?,
   isActive: json['is_active'] as bool?,
   serialNumber: json['serial_number'] as String?,
+  nozzleCount: (json['nozzle_count'] as num?)?.toInt(),
 );

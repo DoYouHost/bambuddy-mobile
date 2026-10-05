@@ -473,10 +473,11 @@ class _DetailsToggle extends StatelessWidget {
 /// Expanded details section: AMS unit(s) and external spool as list rows inside
 /// a grouping card, followed by the connectivity (Wi-Fi/door) row.
 class _DetailsPanel extends ConsumerWidget {
-  const _DetailsPanel({required this.status, this.serial});
+  const _DetailsPanel({required this.status, this.serial, this.nozzleCount});
 
   final PrinterStatus status;
   final String? serial;
+  final int? nozzleCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -484,7 +485,7 @@ class _DetailsPanel extends ConsumerWidget {
     final ams = status.ams ?? const [];
     final spools = status.externalSpools;
     final active = status.activeTray;
-    final dual = status.isDualExtruder;
+    final dual = status.isDualNozzle(nozzleCount);
     final activeExtruder = status.activeExtruder;
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;

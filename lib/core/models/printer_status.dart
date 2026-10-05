@@ -665,29 +665,21 @@ class PrinterStatus {
     return list;
   }
 
-  /// Dual-head machine — UI then distinguishes which material on which extruder
-  /// (single-head doesn't need this).
-  bool get isDualExtruder =>
-      externalSpools.length > 1 ||
-      (amsExtruderMap?.length ?? 0) > 1 ||
-      // A Filament Track Switch exists to feed two nozzles from one AMS, and
-      // the units it binds drop out of `ams_extruder_map` — on such a machine
-      // the inlet map is the only thing left saying "dual".
-      (amsSwitchInlet?.isNotEmpty ?? false);
+  /// Two-nozzle machine, by the web's rule wherever it has the printer and its
+  /// status (`PrintersPage.tsx`, `AssignToAmsModal.tsx`): the printer row's
+  /// `nozzle_count` ([nozzleCount], from `GET /printers`) or a second nozzle
+  /// temperature, which the server reports only for a second nozzle.
+  bool isDualNozzle(int? nozzleCount) =>
+      nozzleCount == 2 || (temperatures?.containsKey('nozzle_2') ?? false);
 
   /// Extruder fed by the external spool whose `vt_tray` id is [trayId], or null
-  /// when this printer reports no such spool.
-  ///
-  /// The pair is inverted against id order — [extruderForExternalSide] holds
-  /// that table and the live verification behind it. A printer with a single
-  /// holder has a single nozzle, and that one is extruder 0 however the holder
-  /// happens to be numbered.
+  /// when this printer reports no such spool. The holder's id says it alone —
+  /// 254 is the left one — as on the web, never how many holders the latest
+  /// report happened to carry; a single-nozzle machine does not ask
+  /// ([isDualNozzle]). [extruderForExternalSide] holds the table.
   int? extruderForExternal(int? trayId) {
-    final spools = externalSpools;
-    if (!spools.any((t) => t.id == trayId)) return null;
-    return spools.length == 1
-        ? 0
-        : extruderForExternalSide(externalSideOf(trayId));
+    if (!externalSpools.any((t) => t.id == trayId)) return null;
+    return extruderForExternalSide(externalSideOf(trayId));
   }
 
   /// The tray a slot triple names, or null when this printer reports no such

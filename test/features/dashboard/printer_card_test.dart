@@ -697,11 +697,14 @@ void main() {
     /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
     /// this fixture comes from has none — the printer runs third-party spools
     /// — and a tag is what the "add to inventory" affordance hangs off.
-    PrinterWithStatus realItem({bool tagged = false}) {
+    PrinterWithStatus realItem({bool tagged = false, bool oneHolder = false}) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
       data['id'] = frame['printer_id'];
+      if (oneHolder) {
+        data['vt_tray'] = [(data['vt_tray'] as List).first];
+      }
       // The cover thumbnail (network) is tested separately — we remove it here
       // to isolate the AMS section and not wait for an HTTP request in the test.
       data.remove('cover_url');
@@ -754,6 +757,31 @@ void main() {
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
+    });
+
+    testWidgets('a lone 254 holder on a two-nozzle printer is the left one', (
+      tester,
+    ) async {
+      // The server can hold a single `vt_tray` until `vir_slot` arrives; the
+      // web labels by the id alone (`PrintersPage.tsx`), where the app used to
+      // call the only holder the right one.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: PrinterCard(item: realItem(oneHolder: true)),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.textContaining('L · '), findsOneWidget);
+      expect(find.textContaining('P · '), findsNothing);
     });
 
     testWidgets('a slot with a spool reads its fill from the spool', (
