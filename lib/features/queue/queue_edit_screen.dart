@@ -444,7 +444,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (p.ipAddress != null) p.ipAddress!,
             ].join(' • '),
             onTap: () => setState(() {
-              if (_printerId != p.id) _nozzleRackChoice.clear();
+              if (_printerId != p.id) {
+                _nozzleRackChoice.clear();
+                // A slot id names another spool on another printer; the web
+                // drops its picks on a switch too (`PrintModal/index.tsx`).
+                _amsMapping = null;
+              }
               _printerId = p.id;
             }),
           ).tagged('queue_edit.printer'),
@@ -697,6 +702,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   printerName: _selectedPrinterName(printerId),
                   confirmLabel: l10n.fmSave,
                   plateId: _plateId,
+                  startFrom: _amsMapping ?? const [],
                 );
                 // Empty: the printer reported nothing to map to, and the web
                 // sends no mapping then — keep the stored one.

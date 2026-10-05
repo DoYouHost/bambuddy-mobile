@@ -75,6 +75,7 @@ void main() {
     PrinterStatus? status = _twoReds,
     List<FilamentRequirement> requirements = const [_redPla],
     List<int>? stored,
+    List<int>? startFrom,
   }) async {
     printers = _Printers(status);
     answer = null;
@@ -104,6 +105,7 @@ void main() {
                 ),
                 printerId: 1,
                 confirmLabel: 'OK',
+                startFrom: startFrom,
               ),
               child: const Text('open'),
             ),
@@ -134,6 +136,19 @@ void main() {
     await open(tester, stored: [1]);
     await confirm(tester);
     expect(answer, [1]);
+  });
+
+  testWidgets('the caller\'s newer mapping outranks the stored one', (
+    tester,
+  ) async {
+    // The edit form after a pick, and after a printer switch emptied it.
+    await open(tester, startFrom: [1]);
+    await confirm(tester);
+    expect(answer, [1]);
+
+    await open(tester, stored: [1], startFrom: const []);
+    await confirm(tester);
+    expect(answer, [0]);
   });
 
   testWidgets('dropping a pick lets the match decide again', (tester) async {

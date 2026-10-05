@@ -42,6 +42,9 @@ final mappingInventoryRemainProvider = FutureProvider.autoDispose
 /// caller knows the printer currently selected in the form — the item's own
 /// `printer_name` is the one it was filed under, which is stale after a switch
 /// and absent entirely on a draft.
+/// [startFrom] is the mapping to start from when the caller holds a newer one
+/// than the item's stored mapping — the edit form after a pick, or `[]` once a
+/// printer or plate switch dropped it, as the web drops its picks then.
 /// [plateId] overrides the plate the slots are read for — pass it when the
 /// caller holds a newer plate than the item does, which is the queue-create
 /// form after the user picked one. Null falls back to the item's own plate.
@@ -52,6 +55,7 @@ Future<List<int>?> showQueueMappingSheet(
   required String confirmLabel,
   String? printerName,
   int? plateId,
+  List<int>? startFrom,
 }) {
   return dashSheet<List<int>>(
     context,
@@ -61,6 +65,7 @@ Future<List<int>?> showQueueMappingSheet(
       confirmLabel: confirmLabel,
       printerName: printerName,
       plateId: plateId,
+      startFrom: startFrom,
     ),
   );
 }
@@ -72,12 +77,14 @@ class _MappingSheet extends ConsumerStatefulWidget {
     required this.confirmLabel,
     this.printerName,
     this.plateId,
+    this.startFrom,
   });
   final QueueItem item;
   final int printerId;
   final String confirmLabel;
   final String? printerName;
   final int? plateId;
+  final List<int>? startFrom;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -88,7 +95,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   /// mapping as the web's edit form is (`PrintModal/index.tsx`); every other
   /// slot is auto-matched.
   late final Map<int, int> _manual = {
-    for (final (i, global) in (widget.item.amsMapping ?? const <int>[]).indexed)
+    for (final (i, global)
+        in (widget.startFrom ?? widget.item.amsMapping ?? const <int>[])
+            .indexed)
       if (global != -1) i + 1: global,
   };
 

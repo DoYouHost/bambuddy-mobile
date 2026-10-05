@@ -425,8 +425,11 @@ List<FilamentComparison> buildFilamentComparison(
               if (f.extruderId == req.nozzleId) f,
           ];
         }
+        // `mergeSort`, not `sort`: Dart's sort is not stable and the
+        // web's is, and two external holders tie on every key.
         if (preferLowest) {
-          available = [...available]..sort(byLowest);
+          available = [...available];
+          mergeSort(available, compare: byLowest);
         }
 
         bool sameType(LoadedFilament f) =>
@@ -448,7 +451,7 @@ List<FilamentComparison> buildFilamentComparison(
           if (idxMatches.length == 1) {
             idxMatch = idxMatches.single;
           } else if (idxMatches.length > 1) {
-            if (preferLowest) idxMatches.sort(byLowest);
+            if (preferLowest) mergeSort(idxMatches, compare: byLowest);
             exactMatch = idxMatches
                 .where((f) => sameType(f) && sameColor(f))
                 .firstOrNull;
