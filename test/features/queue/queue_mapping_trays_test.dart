@@ -159,4 +159,60 @@ void main() {
       },
     );
   });
+
+  testWidgets('two external holders are Ext-L and Ext-R, as the web', (
+    tester,
+  ) async {
+    // `useFilamentMapping.ts`: the letters on the machine, untranslated.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          fakeServerProfileOverride(),
+          printersRepositoryProvider.overrideWithValue(
+            _Reporting(
+              const PrinterStatus(
+                id: 1,
+                vtTray: [
+                  AmsTray(id: 254, trayType: 'TPU'),
+                  AmsTray(id: 255, trayType: 'PLA'),
+                ],
+              ),
+            ),
+          ),
+          inventoryBackendOverride(),
+          inventoryProvider.overrideWith(_Shelf.new),
+          filamentRequirementsProvider.overrideWith(
+            (ref, key) async => const [
+              FilamentRequirement(slotId: 1, type: 'PLA'),
+            ],
+          ),
+        ],
+        child: plApp(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showQueueMappingSheet(
+                context,
+                item: const QueueItem(
+                  id: 1,
+                  position: 1,
+                  status: 'pending',
+                  archiveId: 5,
+                ),
+                printerId: 1,
+                confirmLabel: 'OK',
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Filament 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ext-L'), findsOneWidget);
+    expect(find.text('Ext-R'), findsOneWidget);
+  });
 }

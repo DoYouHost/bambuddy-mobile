@@ -67,11 +67,12 @@ void main() {
         )).data!;
         final printerId = (printers.first as Map<String, dynamic>)['id'] as int;
         final status = await PrintersRepository(dio).fetchStatus(printerId);
+        final units = status?.ams ?? const [];
         final loaded = [
-          for (final unit in status?.ams ?? const [])
-            for (final tray in unit.trays ?? const [])
+          for (var u = 0; u < units.length; u++)
+            for (final tray in units[u].trays ?? const [])
               if (tray.trayType?.isNotEmpty ?? false)
-                globalTrayId(amsId: unit.id ?? 0, trayId: tray.id ?? 0),
+                globalTrayId(amsId: units[u].id ?? u, trayId: tray.id ?? 0),
           for (final ext in status?.externalSpools ?? const [])
             if (ext.trayType?.isNotEmpty ?? false) ext.id ?? externalTrayIdBase,
         ];

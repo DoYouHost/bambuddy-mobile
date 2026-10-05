@@ -15,7 +15,13 @@ import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
-typedef _Tray = ({int global, String? type, String? color, bool external});
+typedef _Tray = ({
+  int global,
+  String? type,
+  String? color,
+  bool external,
+  bool dualExternal,
+});
 
 /// Loaded filaments for a printer's AMS, from its live status only — as the
 /// web's mapping (`useFilamentMapping.ts::buildLoadedFilaments`): that is
@@ -53,6 +59,7 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
         type: t.trayType,
         color: t.trayColor,
         external: false,
+        dualExternal: false,
       ));
     }
   }
@@ -65,6 +72,7 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
       type: e.trayType,
       color: e.trayColor,
       external: true,
+      dualExternal: status.externalSpools.length > 1,
     ));
   }
   return out;
@@ -390,6 +398,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   }
 
   String _trayLabel(_Tray t) {
+    // `useFilamentMapping.ts`: Ext-L/Ext-R when the printer reports two
+    // holders — the letters on the machine, not translated.
+    if (t.external && t.dualExternal) {
+      return t.global == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
+    }
     if (t.external) return _l10n.mappingExternalSpool;
     final slot = localSlotOf(t.global);
     return amsSlotName(slot.amsId, slot.trayId);
