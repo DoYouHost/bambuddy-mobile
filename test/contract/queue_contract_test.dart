@@ -127,5 +127,32 @@ void main() {
         }
       },
     );
+
+    test('a save without ams_mapping keeps the stored one', () async {
+      // What the edit form relies on when the printer reports no loaded slot:
+      // like the web, it sends no mapping then, and that must not clear it.
+      // On a printer job — a model job keeps no mapping at all (#3239).
+      final printerId =
+          ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                  as Map<String, dynamic>)['id']
+              as int;
+      final item = (await queue.fetch()).firstWhere(
+        (i) => i.libraryFileId != null,
+      );
+      addTearDown(
+        () => queue.updateItem(
+          item.id,
+          printerId: item.printerId,
+          targetModel: item.targetModel,
+          amsMapping: item.amsMapping,
+        ),
+      );
+      await queue.updateItem(item.id, printerId: printerId, targetModel: null);
+
+      await queue.setAmsMapping(item.id, [1]);
+      await queue.updateItem(item.id, manualStart: item.manualStart);
+      final kept = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+      expect(kept.amsMapping, [1]);
+    });
   });
 }

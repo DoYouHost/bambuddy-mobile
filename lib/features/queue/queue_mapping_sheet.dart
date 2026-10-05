@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/ams/filament_mapping.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag_material.dart';
+import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
+import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../inventory/inventory_providers.dart';
@@ -31,6 +33,62 @@ final mappingInventoryRemainProvider = FutureProvider.autoDispose
       (ref, printerId) =>
           ref.watch(printersRepositoryProvider).fetchInventoryRemain(printerId),
     );
+
+/// Manual picks from a stored mapping, as the web's edit form seeds them
+/// (`PrintModal/index.tsx`): `slot_id` → global tray id, `-1` left to the
+/// match.
+Map<int, int> _manualFrom(List<int>? mapping) => {
+  for (final (i, global) in (mapping ?? const <int>[]).indexed)
+    if (global != -1) i + 1: global,
+};
+
+List<FilamentComparison> _compare(
+  List<FilamentRequirement> requirements,
+  PrinterStatus? status,
+  List<LoadedFilament> loaded,
+  Map<int, int> manual,
+  Map<int, double>? remain,
+  bool? preferLowestSetting,
+) => buildFilamentComparison(
+  requirements,
+  loaded,
+  manual,
+  preferLowest: effectivePreferLowest(
+    preferLowestSetting,
+    status?.amsFilamentBackup,
+  ),
+  inventoryByTrayId: remain,
+  ftsActive: status?.filaSwitch?.installed ?? false,
+);
+
+/// The `ams_mapping` the web sends when it saves or adds a job for
+/// [printerId] (`getMappingForPrinter`): the plate's [requirements] matched
+/// afresh against the live status, starting from [startFrom]. Null when the
+/// printer reports no loaded slot — the web then sends no mapping at all.
+Future<List<int>?> queueMappingToSend({
+  required List<FilamentRequirement> requirements,
+  required PrintersRepository printers,
+  required int printerId,
+  List<int>? startFrom,
+  bool? preferLowestSetting,
+}) async {
+  final (status, remain) = await (
+    printers.fetchStatus(printerId),
+    printers.fetchInventoryRemain(printerId),
+  ).wait;
+  final loaded = buildLoadedFilaments(status);
+  if (loaded.isEmpty) return null;
+  return buildAmsMapping(
+    _compare(
+      requirements,
+      status,
+      loaded,
+      _manualFrom(startFrom),
+      remain,
+      preferLowestSetting,
+    ),
+  );
+}
 
 /// Opens the filament-mapping screen for [item] against [printerId], matched
 /// as the web matches (`lib/core/ams/filament_mapping.dart`) and starting from
@@ -94,12 +152,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   /// `slot_id` → global tray id the user picked, seeded from the stored
   /// mapping as the web's edit form is (`PrintModal/index.tsx`); every other
   /// slot is auto-matched.
-  late final Map<int, int> _manual = {
-    for (final (i, global)
-        in (widget.startFrom ?? widget.item.amsMapping ?? const <int>[])
-            .indexed)
-      if (global != -1) i + 1: global,
-  };
+  late final Map<int, int> _manual = _manualFrom(
+    widget.startFrom ?? widget.item.amsMapping,
+  );
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
@@ -168,16 +223,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     }
     final status = statusAsync.valueOrNull;
     final loaded = buildLoadedFilaments(status);
-    final comparison = buildFilamentComparison(
+    final comparison = _compare(
       reqsAsync.valueOrNull ?? const [],
+      status,
       loaded,
       _manual,
-      preferLowest: effectivePreferLowest(
-        preferLowest,
-        status?.amsFilamentBackup,
-      ),
-      inventoryByTrayId: remain,
-      ftsActive: status?.filaSwitch?.installed ?? false,
+      remain,
+      preferLowest,
     );
     return wrap(
       _content(

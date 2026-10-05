@@ -108,6 +108,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   final Map<int, ({String type, String color})> _overrides = {};
   final Map<int, bool> _forceColorMatch = {};
 
+  /// The last model actually targeted — nulls skipped — as the web's
+  /// `prevTargetModel`, for [_dropOverridesOnRetarget].
+  late String? _lastTargetModel = widget.item.targetModel;
+
   // Nozzle rack (H2C, printer mode): filament group → 1-based rack position.
   // A group with no entry is left to the scheduler, which assigns from the rack
   // as it stands at dispatch.
@@ -476,7 +480,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               items: [
                 for (final m in models) (value: m, label: m, swatch: null),
               ],
-              onChanged: (v) => setState(() => _targetModel = v),
+              onChanged: (v) => setState(() {
+                _targetModel = v;
+                _dropOverridesOnRetarget(plateChanged: false);
+              }),
             ),
           ),
         _Dropdown<String?>(
@@ -678,6 +685,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     setState(() {
       _plateId = picked;
       _amsMapping = null;
+      _dropOverridesOnRetarget(plateChanged: true);
       // The pick names filament groups of the plate it was made for; another
       // plate's groups are another set, and a group id that survives means a
       // position chosen for a filament nobody asked about.
@@ -1416,6 +1424,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     setState(() => _saving = true);
     _logGcodeInjection();
+    _sentMapping = _modelMode ? null : await _matchMapping();
 
     final result = await ref
         .read(queueProvider.notifier)
@@ -1440,6 +1449,57 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
     if (result.isOk) navigator.pop(widget._isCreate);
+  }
+
+  /// The web's rule for the filament overrides when the target model or the
+  /// plate changes (`PrintModal/index.tsx`): they go, unless this is the first
+  /// model after none — a choice, not a change — or an edit of a job that had
+  /// no model before. Leaving "any P2S" for a printer keeps them: they are
+  /// the job's filament, not a tray (#3133).
+  void _dropOverridesOnRetarget({required bool plateChanged}) {
+    final previous = _lastTargetModel;
+    final modelChanged = _targetModel != null && _targetModel != previous;
+    if (!modelChanged && !plateChanged) return;
+    if (modelChanged) _lastTargetModel = _targetModel;
+    if (modelChanged && !plateChanged && previous == null) return;
+    if (widget._isCreate || previous != null) {
+      _overrides.clear();
+      _forceColorMatch.clear();
+    }
+  }
+
+  /// What [_update] and [_create] send as `ams_mapping`, worked out just
+  /// before; null is "send none".
+  List<int>? _sentMapping;
+
+  /// The mapping the web sends on save (`getMappingForPrinter`): matched
+  /// afresh against the printer as it is now, from the form's own picks. None
+  /// when the printer reports no loaded slot, which keeps the stored one.
+  Future<List<int>?> _matchMapping() async {
+    final printerId = _printerId;
+    final it = widget.item;
+    final source = it.archiveId ?? it.libraryFileId;
+    if (printerId == null || source == null) return null;
+    try {
+      return await queueMappingToSend(
+        // The provider the form already watches, so this is no second fetch.
+        requirements: await ref.read(
+          printRequirementsProvider((
+            isArchive: it.archiveId != null,
+            id: source,
+            plate: _plateId ?? 1,
+          )).future,
+        ),
+        printers: ref.read(printersRepositoryProvider),
+        printerId: printerId,
+        startFrom: _amsMapping ?? const [],
+        preferLowestSetting: ref.read(preferLowestFilamentProvider).valueOrNull,
+      );
+    } on Object {
+      // A lost session surfaces on the write itself; the mapping only rides
+      // along with it.
+      return null;
+    }
   }
 
   /// The print toggles as they stand in the form.
@@ -1587,7 +1647,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     printerId: _modelMode ? null : _printerId,
     targetModel: _modelMode ? _targetModel : null,
     targetLocation: _modelMode ? _targetLocation : null,
-    amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
+    amsMapping: _modelMode
+        ? kQueueUpdateUnset
+        : _sentMapping ?? kQueueUpdateUnset,
     filamentOverrides: _modelMode
         ? _buildFilamentOverrides()
         : kQueueUpdateUnset,
@@ -1634,7 +1696,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
       filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
-      amsMapping: _modelMode ? null : _amsMapping,
+      amsMapping: _modelMode ? null : _sentMapping,
       scheduledTime: _scheduledTimeIso,
       requirePreviousSuccess: _requirePreviousSuccess,
       autoOffAfter: _autoOffAfter,
