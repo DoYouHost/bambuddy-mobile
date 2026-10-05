@@ -10,29 +10,13 @@ import '../../helpers.dart';
 void main() {
   final golden = readFixture('color_names_golden.json') as Map<String, dynamic>;
 
-  // The web's family names, which the app translates.
-  const english = {
-    ColorFamily.red: 'Red',
-    ColorFamily.orange: 'Orange',
-    ColorFamily.yellow: 'Yellow',
-    ColorFamily.green: 'Green',
-    ColorFamily.cyan: 'Cyan',
-    ColorFamily.blue: 'Blue',
-    ColorFamily.purple: 'Purple',
-    ColorFamily.pink: 'Pink',
-    ColorFamily.brown: 'Brown',
-    ColorFamily.white: 'White',
-    ColorFamily.lightGray: 'Light Gray',
-    ColorFamily.gray: 'Gray',
-    ColorFamily.darkGray: 'Dark Gray',
-    ColorFamily.black: 'Black',
-    ColorFamily.clear: 'Clear',
-  };
+  // The web's own family names, which go to the server as they are.
+  String? english(ColorFamily? f) => f == null ? null : colorFamilyWireName(f);
 
   test('every hex falls in the family the web puts it in', () {
     for (final c in (golden['families'] as List).cast<Map<String, dynamic>>()) {
       expect(
-        english[colorFamily(c['hex'] as String)],
+        english(colorFamily(c['hex'] as String)),
         c['family'],
         reason: c['hex'] as String,
       );
@@ -47,11 +31,22 @@ void main() {
       final hex = c['hex'] as String;
       expect(
         catalog.nameOf(hex, material: c['material'] as String?) ??
-            english[colorFamily(hex)],
+            english(colorFamily(hex)),
         c['name'],
         reason: hex,
       );
     }
+  });
+
+  test('the name sent to the server is the web\'s getColorName', () {
+    final catalog = ColorCatalog.fromJson(
+      golden['catalog'] as Map<String, dynamic>,
+    );
+    for (final c in (golden['names'] as List).cast<Map<String, dynamic>>()) {
+      if (c['material'] != null) continue;
+      expect(colorNameForServer(catalog, c['hex'] as String), c['name']);
+    }
+    expect(colorNameForServer(ColorCatalog.empty, ''), 'Unknown');
   });
 
   test('two colours that read alike get their hex', () {

@@ -22,6 +22,36 @@ enum ColorFamily {
   clear,
 }
 
+/// The web's own name for a family — what `getColorName` writes into a
+/// `color_name` the server shows in its waiting reasons. Wire data, so not
+/// translated.
+String colorFamilyWireName(ColorFamily family) => switch (family) {
+  ColorFamily.red => 'Red',
+  ColorFamily.orange => 'Orange',
+  ColorFamily.yellow => 'Yellow',
+  ColorFamily.green => 'Green',
+  ColorFamily.cyan => 'Cyan',
+  ColorFamily.blue => 'Blue',
+  ColorFamily.purple => 'Purple',
+  ColorFamily.pink => 'Pink',
+  ColorFamily.brown => 'Brown',
+  ColorFamily.white => 'White',
+  ColorFamily.lightGray => 'Light Gray',
+  ColorFamily.gray => 'Gray',
+  ColorFamily.darkGray => 'Dark Gray',
+  ColorFamily.black => 'Black',
+  ColorFamily.clear => 'Clear',
+};
+
+/// `getColorName` exactly as the web sends it: the catalogue's name, else the
+/// family's, else `Unknown`.
+String colorNameForServer(ColorCatalog catalog, String? hex) =>
+    catalog.nameOf(hex) ??
+    switch (colorFamily(hex)) {
+      final family? => colorFamilyWireName(family),
+      null => 'Unknown',
+    };
+
 /// `colorFamily`: the family a hex reads as, `RRGGBB` or `RRGGBBAA` with or
 /// without `#`; null when it is no colour. Fully transparent is [clear]
 /// whatever the RGB says, so Bambu's `00000000` is not black.

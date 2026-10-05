@@ -189,13 +189,16 @@ void main() {
             'slot_id': slot,
             'type': 'PETG',
             'color': '#00FF00',
-            'color_name': '#00FF00',
+            'color_name': 'Green',
+            'tray_info_idx': 'GFG00',
             'force_color_match': true,
           },
         ],
       );
       final kept = (await queue.fetch()).firstWhere((i) => i.id == item.id);
       expect(kept.filamentOverrides?.single['force_color_match'], isTrue);
+      // The stored variant comes back for the next edit to keep.
+      expect(kept.filamentOverrides?.single['tray_info_idx'], 'GFG00');
 
       await queue.updateItem(item.id, filamentOverrides: null);
       final cleared = (await queue.fetch()).firstWhere((i) => i.id == item.id);

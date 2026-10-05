@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
+import '../../core/ams/color_names.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/format/filament_colour.dart';
@@ -291,6 +292,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    // Loaded with the form, so the overrides name their colours on save.
+    ref.watch(mappingColorCatalogProvider);
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -1167,6 +1170,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
+    final catalog =
+        ref.read(mappingColorCatalogProvider).valueOrNull ?? ColorCatalog.empty;
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
       final ov = _overrides[r.slotId];
@@ -1182,11 +1187,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         'slot_id': r.slotId,
         'type': type,
         'color': color,
-        'color_name': color,
+        // The web's `getColorName`: the server quotes it back in its waiting
+        // reasons, where a bare hex tells the reader nothing.
+        'color_name': colorNameForServer(catalog, color),
+        ...?_storedVariant(r.slotId, type, color),
         'force_color_match': force,
       });
     }
     return entries.isEmpty ? null : entries;
+  }
+
+  /// The web's `storedVariantFor`: a slot still asking for the filament its
+  /// stored override named keeps that override's `tray_info_idx` — the exact
+  /// variant a forced colour match is held to (`print_scheduler.py`). Any
+  /// change of type or colour drops it. Only an edit has stored overrides.
+  Map<String, String>? _storedVariant(int slotId, String type, String color) {
+    if (widget._isCreate) return null;
+    String hex(Object? c) {
+      final clean = (c?.toString() ?? '').replaceFirst('#', '').toLowerCase();
+      return clean.length > 6 ? clean.substring(0, 6) : clean;
+    }
+
+    for (final o
+        in widget.item.filamentOverrides ?? const <Map<String, dynamic>>[]) {
+      if (o['slot_id'] != slotId) continue;
+      final idx = o['tray_info_idx'];
+      final same =
+          (o['type']?.toString() ?? '').toUpperCase() == type.toUpperCase() &&
+          hex(o['color']) == hex(color);
+      return idx is String && idx.isNotEmpty && same
+          ? {'tray_info_idx': idx}
+          : null;
+    }
+    return null;
   }
 
   Color? _swatch(String hex) => colorFromHex(hex);

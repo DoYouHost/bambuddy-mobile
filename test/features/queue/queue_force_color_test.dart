@@ -92,4 +92,24 @@ void main() {
     final sent = capturedBody?['filament_overrides'] as List<dynamic>;
     expect(sent.single, containsPair('force_color_match', false));
   });
+
+  testWidgets('an unchanged slot keeps the variant it was stored with', (
+    tester,
+  ) async {
+    // The web's `storedVariantFor`: the scheduler holds a forced colour to
+    // that exact variant.
+    await tester.pumpWidget(
+      form(
+        overrides: [
+          {...changed, 'color': '#00ff00ff', 'tray_info_idx': 'GFG00'},
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await submitQueueForm(tester, edit: true);
+
+    final sent = capturedBody?['filament_overrides'] as List<dynamic>;
+    expect(sent.single, containsPair('tray_info_idx', 'GFG00'));
+    expect(sent.single, containsPair('color_name', 'Green'));
+  });
 }
