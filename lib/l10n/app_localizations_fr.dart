@@ -5360,6 +5360,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mappingReRead => 'Relire';
 
   @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'Tous les filaments de cette impression sont sur l’entrée IN-$inlet du Filament Track Switch. Changer de filament sur la même entrée est plus lent : déplacez-en un vers un AMS de l’autre entrée pour accélérer le changement.';
+  }
+
+  @override
   String get colorFamilyRed => 'Rouge';
 
   @override

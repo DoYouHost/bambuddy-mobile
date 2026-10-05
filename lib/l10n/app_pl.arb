@@ -2334,6 +2334,7 @@
   "mappingUseSlicer": "Mapowanie ze slicera",
   "mappingUseSlicerHint": "Wybierz każdy slot z mapowania AMS, które slicer zapisał razem z tym wydrukiem, zamiast dopasowywać po typie i kolorze.",
   "mappingReRead": "Odczytaj ponownie",
+  "mappingFtsSameInlet": "Wszystkie filamenty tego wydruku są na wlocie IN-{inlet} przełącznika Filament Track Switch. Zmiana filamentu na tym samym wlocie trwa dłużej — przenieś jeden do AMS na drugim wlocie, żeby ją przyspieszyć.",
   "colorFamilyRed": "Czerwony",
   "colorFamilyOrange": "Pomarańczowy",
   "colorFamilyYellow": "Żółty",

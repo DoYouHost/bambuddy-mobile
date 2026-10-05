@@ -100,6 +100,27 @@ String mappingColorName(
       null => l10n.colorFamilyUnknown,
     };
 
+/// `sameInletWarning`: the one Filament Track Switch inlet every filament of
+/// the print comes through, when it is one — then every change in the job is
+/// the slow kind, retracted all the way back to its AMS. Null with no switch
+/// (no inlets), with an external spool or an unmatched filament in the mix,
+/// or with fewer than two filaments.
+String? _sameInlet(
+  List<FilamentComparison> comparison,
+  String? Function(int amsId) inletOf,
+) {
+  final inlets = <String>{};
+  for (final c in comparison) {
+    final pick = c.loaded;
+    if (pick == null || pick.isExternal) return null;
+    final inlet = inletOf(pick.amsId);
+    if (inlet == null) return null;
+    inlets.add(inlet);
+  }
+  if (comparison.length < 2 || inlets.length != 1) return null;
+  return inlets.single;
+}
+
 /// `extractMaterialHint`: "Bambu PLA Matte" → "PLA Matte", the material the
 /// colour lookup is narrowed by.
 String _materialHint(String name) {
@@ -429,6 +450,29 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           ],
         ),
         _actions(comparison),
+        if (_sameInlet(comparison, options.inletOf) case final inlet?)
+          Padding(
+            padding: const EdgeInsets.only(top: DashSpace.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 18,
+                  color: t.warningInk,
+                ),
+                const SizedBox(width: DashSpace.sm),
+                Expanded(
+                  child: Text(
+                    l10n.mappingFtsSameInlet(inlet),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: t.warningInk,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (loaded.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.sm),

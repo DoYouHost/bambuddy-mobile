@@ -223,4 +223,72 @@ void main() {
 
     expect(find.text('Wybrany ręcznie'), findsOneWidget);
   });
+
+  group('the Filament Track Switch inlet', () {
+    const two = [
+      FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
+      FilamentRequirement(slotId: 2, type: 'PETG', color: '#00FF00'),
+    ];
+    const warning =
+        'Wszystkie filamenty tego wydruku są na wlocie IN-A przełącznika '
+        'Filament Track Switch.';
+
+    testWidgets('one inlet for every filament is the slow case', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        requirements: two,
+        status: amsOf(
+          [_tray(0, 'PLA', 'FF0000FF'), _tray(1, 'PETG', '00FF00FF')],
+          inlets: const {0: 'A'},
+        ),
+      );
+
+      expect(find.textContaining(warning), findsOneWidget);
+    });
+
+    testWidgets('two inlets are not', (tester) async {
+      await open(
+        tester,
+        requirements: two,
+        status: const PrinterStatus(
+          id: 1,
+          ams: [
+            AmsUnit(
+              id: 0,
+              trays: [
+                AmsTray(id: 0, trayType: 'PLA', trayColor: 'FF0000FF'),
+                AmsTray(id: 1, trayType: 'ABS', trayColor: '000000FF'),
+              ],
+            ),
+            AmsUnit(
+              id: 1,
+              trays: [
+                AmsTray(id: 0, trayType: 'PETG', trayColor: '00FF00FF'),
+                AmsTray(id: 1, trayType: 'ABS', trayColor: '000000FF'),
+              ],
+            ),
+          ],
+          amsSwitchInlet: {0: 'A', 1: 'B'},
+          filaSwitch: FilaSwitch(installed: true, ready: true),
+        ),
+      );
+
+      expect(find.textContaining('IN-'), findsNothing);
+    });
+
+    testWidgets('no switch, no inlet', (tester) async {
+      await open(
+        tester,
+        requirements: two,
+        status: amsOf([
+          _tray(0, 'PLA', 'FF0000FF'),
+          _tray(1, 'PETG', '00FF00FF'),
+        ]),
+      );
+
+      expect(find.textContaining('IN-'), findsNothing);
+    });
+  });
 }

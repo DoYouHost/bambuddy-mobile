@@ -8888,6 +8888,12 @@ abstract class AppLocalizations {
   /// **'Re-read'**
   String get mappingReRead;
 
+  /// Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.
+  ///
+  /// In en, this message translates to:
+  /// **'All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.'**
+  String mappingFtsSameInlet(String inlet);
+
   /// Color name for a hex the color catalog does not know, by hue family.
   ///
   /// In en, this message translates to:

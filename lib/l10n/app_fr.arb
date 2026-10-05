@@ -2982,6 +2982,7 @@
   "mappingUseSlicer": "Correspondance du slicer",
   "mappingUseSlicerHint": "Choisir chaque emplacement d’après la correspondance AMS enregistrée par le slicer avec cette impression, plutôt que par type et couleur.",
   "mappingReRead": "Relire",
+  "mappingFtsSameInlet": "Tous les filaments de cette impression sont sur l’entrée IN-{inlet} du Filament Track Switch. Changer de filament sur la même entrée est plus lent : déplacez-en un vers un AMS de l’autre entrée pour accélérer le changement.",
   "colorFamilyRed": "Rouge",
   "colorFamilyOrange": "Orange",
   "colorFamilyYellow": "Jaune",

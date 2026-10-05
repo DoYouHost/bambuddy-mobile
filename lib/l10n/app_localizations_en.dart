@@ -5241,6 +5241,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mappingReRead => 'Re-read';
 
   @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'All filaments for this print are on Filament Track Switch IN-$inlet. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.';
+  }
+
+  @override
   String get colorFamilyRed => 'Red';
 
   @override

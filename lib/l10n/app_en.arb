@@ -3216,6 +3216,15 @@
   "@mappingReRead": {
     "description": "Filament mapping button: ask the printer to report its AMS again."
   },
+  "mappingFtsSameInlet": "All filaments for this print are on Filament Track Switch IN-{inlet}. Switching between filaments on the same inlet is slower — move one to an AMS on the other inlet to speed it up.",
+  "@mappingFtsSameInlet": {
+    "description": "Filament mapping warning on a printer with a Filament Track Switch. {inlet} is the inlet letter, A or B.",
+    "placeholders": {
+      "inlet": {
+        "type": "String"
+      }
+    }
+  },
   "colorFamilyRed": "Red",
   "@colorFamilyRed": {
     "description": "Color name for a hex the color catalog does not know, by hue family."

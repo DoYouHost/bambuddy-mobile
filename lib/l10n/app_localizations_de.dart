@@ -5291,6 +5291,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mappingReRead => 'Neu einlesen';
 
   @override
+  String mappingFtsSameInlet(String inlet) {
+    return 'Alle Filamente dieses Drucks hängen am Eingang IN-$inlet des Filament Track Switch. Ein Wechsel zwischen Filamenten am selben Eingang dauert länger – verschiebe eines in ein AMS am anderen Eingang, um ihn zu beschleunigen.';
+  }
+
+  @override
   String get colorFamilyRed => 'Rot';
 
   @override

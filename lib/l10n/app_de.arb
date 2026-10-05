@@ -2982,6 +2982,7 @@
   "mappingUseSlicer": "Slicer-Zuordnung",
   "mappingUseSlicerHint": "Jeden Slot aus der AMS-Zuordnung wählen, die der Slicer mit diesem Druck gespeichert hat, statt nach Typ und Farbe abzugleichen.",
   "mappingReRead": "Neu einlesen",
+  "mappingFtsSameInlet": "Alle Filamente dieses Drucks hängen am Eingang IN-{inlet} des Filament Track Switch. Ein Wechsel zwischen Filamenten am selben Eingang dauert länger – verschiebe eines in ein AMS am anderen Eingang, um ihn zu beschleunigen.",
   "colorFamilyRed": "Rot",
   "colorFamilyOrange": "Orange",
   "colorFamilyYellow": "Gelb",
