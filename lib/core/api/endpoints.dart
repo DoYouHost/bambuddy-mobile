@@ -1281,6 +1281,21 @@ abstract final class Endpoints {
   /// the filament picker always has.
   static const cloudBuiltinFilaments = '$apiPrefix/cloud/builtin-filaments';
 
+  /// `GET` → `{filament_id: name}` for the user's own cloud presets,
+  /// which the built-in table cannot name. Needs a cloud login: without one
+  /// the answer is an error, and the built-in names are all there is.
+  static const cloudFilamentIdMap = '$apiPrefix/cloud/filament-id-map';
+
+  /// `GET` → the colour catalogue, `{colors: {hex: name}, by_material:
+  /// {"material|hex": name}}`. Not gated on an inventory permission:
+  /// every view that names a sliced colour needs it (`routes/inventory.py`).
+  static const inventoryColorMap = '$apiPrefix/inventory/colors/map';
+
+  /// `GET ?hex=&material=` → `{color_name}`, null when the catalogue has no
+  /// such hex. The material picks between colours sharing one hex.
+  static const inventoryColorByMaterial =
+      '$apiPrefix/inventory/colors/by-material';
+
   /// Presets imported from a slicer bundle (`GET`) — same grouping as
   /// [cloudSettings], entries carry `filament_type`, `nozzle_temp_min/max` and
   /// a JSON-encoded `compatible_printers` string. Gated on `settings:read`, so

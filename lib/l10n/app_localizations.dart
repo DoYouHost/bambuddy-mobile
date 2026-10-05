@@ -8816,6 +8816,156 @@ abstract class AppLocalizations {
   /// **'Filament mapping saved'**
   String get mappingSaved;
 
+  /// Filament mapping sheet header: every filament has a slot of its type and color.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get mappingStatusReady;
+
+  /// Filament mapping sheet header: a filament got a slot of its type but another color.
+  ///
+  /// In en, this message translates to:
+  /// **'Color mismatch'**
+  String get mappingStatusColorMismatch;
+
+  /// Filament mapping sheet header: a filament found no slot of its type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type not found'**
+  String get mappingStatusTypeNotFound;
+
+  /// Hint under the filament mapping sheet title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a filament to change its slot'**
+  String get mappingTapToChange;
+
+  /// Slot picker: the slot holds exactly the color the file asks for.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact color match'**
+  String get mappingExactColor;
+
+  /// Filament row warning. {required} and {loaded} are color names.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type, different color: needs {required}, slot has {loaded}'**
+  String mappingSameTypeOtherColor(String required, String loaded);
+
+  /// Filament row warning: no loaded slot holds this filament type.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament type not loaded'**
+  String get mappingTypeNotLoaded;
+
+  /// Filament row: the user chose this slot rather than the automatic match. Agrees with "slot".
+  ///
+  /// In en, this message translates to:
+  /// **'Picked by hand'**
+  String get mappingManual;
+
+  /// Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.
+  ///
+  /// In en, this message translates to:
+  /// **'Required: {name}, {color}'**
+  String mappingRequired(String name, String color);
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorFamilyRed;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorFamilyOrange;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorFamilyYellow;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorFamilyGreen;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyan'**
+  String get colorFamilyCyan;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorFamilyBlue;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorFamilyPurple;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get colorFamilyPink;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get colorFamilyBrown;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colorFamilyWhite;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Light gray'**
+  String get colorFamilyLightGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get colorFamilyGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark gray'**
+  String get colorFamilyDarkGray;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorFamilyBlack;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get colorFamilyClear;
+
+  /// Color name for a hex the color catalog does not know, by hue family.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get colorFamilyUnknown;
+
   /// No description provided for @plateClearTitle.
   ///
   /// In en, this message translates to:

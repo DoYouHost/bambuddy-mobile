@@ -3152,6 +3152,122 @@
   "mappingPickTray": "Select AMS slot",
   "mappingExternalSpool": "External spool",
   "mappingSaved": "Filament mapping saved",
+  "mappingStatusReady": "Ready",
+  "@mappingStatusReady": {
+    "description": "Filament mapping sheet header: every filament has a slot of its type and color."
+  },
+  "mappingStatusColorMismatch": "Color mismatch",
+  "@mappingStatusColorMismatch": {
+    "description": "Filament mapping sheet header: a filament got a slot of its type but another color."
+  },
+  "mappingStatusTypeNotFound": "Type not found",
+  "@mappingStatusTypeNotFound": {
+    "description": "Filament mapping sheet header: a filament found no slot of its type."
+  },
+  "mappingTapToChange": "Tap a filament to change its slot",
+  "@mappingTapToChange": {
+    "description": "Hint under the filament mapping sheet title."
+  },
+  "mappingExactColor": "Exact color match",
+  "@mappingExactColor": {
+    "description": "Slot picker: the slot holds exactly the color the file asks for."
+  },
+  "mappingSameTypeOtherColor": "Same type, different color: needs {required}, slot has {loaded}",
+  "@mappingSameTypeOtherColor": {
+    "description": "Filament row warning. {required} and {loaded} are color names.",
+    "placeholders": {
+      "required": {
+        "type": "String"
+      },
+      "loaded": {
+        "type": "String"
+      }
+    }
+  },
+  "mappingTypeNotLoaded": "Filament type not loaded",
+  "@mappingTypeNotLoaded": {
+    "description": "Filament row warning: no loaded slot holds this filament type."
+  },
+  "mappingManual": "Picked by hand",
+  "@mappingManual": {
+    "description": "Filament row: the user chose this slot rather than the automatic match. Agrees with \"slot\"."
+  },
+  "mappingRequired": "Required: {name}, {color}",
+  "@mappingRequired": {
+    "description": "Long-press hint on a filament color swatch. {name} is the filament, {color} its color name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "colorFamilyRed": "Red",
+  "@colorFamilyRed": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyOrange": "Orange",
+  "@colorFamilyOrange": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyYellow": "Yellow",
+  "@colorFamilyYellow": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGreen": "Green",
+  "@colorFamilyGreen": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyCyan": "Cyan",
+  "@colorFamilyCyan": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlue": "Blue",
+  "@colorFamilyBlue": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPurple": "Purple",
+  "@colorFamilyPurple": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyPink": "Pink",
+  "@colorFamilyPink": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBrown": "Brown",
+  "@colorFamilyBrown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyWhite": "White",
+  "@colorFamilyWhite": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyLightGray": "Light gray",
+  "@colorFamilyLightGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyGray": "Gray",
+  "@colorFamilyGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyDarkGray": "Dark gray",
+  "@colorFamilyDarkGray": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyBlack": "Black",
+  "@colorFamilyBlack": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyClear": "Clear",
+  "@colorFamilyClear": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
+  "colorFamilyUnknown": "Unknown",
+  "@colorFamilyUnknown": {
+    "description": "Color name for a hex the color catalog does not know, by hue family."
+  },
   "plateClearTitle": "Is the plate clear?",
   "plateClearBody": "Make sure the build plate is empty before starting this print.",
   "plateClearConfirm": "Plate is clear",

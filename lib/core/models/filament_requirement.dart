@@ -14,6 +14,7 @@ class FilamentRequirement {
     this.group,
     this.trayInfoIdx,
     this.nozzleId,
+    this.usedGrams,
   });
 
   factory FilamentRequirement.fromJson(
@@ -29,6 +30,7 @@ class FilamentRequirement {
     group: parseJsonObjectOrNull(json['group'], RackGroup.fromJson),
     trayInfoIdx: json['tray_info_idx'] as String?,
     nozzleId: toIntOrNull(json['nozzle_id']),
+    usedGrams: toDoubleOrNull(json['used_grams']),
   );
 
   /// Parse the `filaments` list, skipping unused/unparseable slots.
@@ -80,6 +82,9 @@ class FilamentRequirement {
   /// The nozzle the slicer put this slot on — 0 right, 1 left — sent only for
   /// a two-nozzle plate (`services/filament_requirements.py`).
   final int? nozzleId;
+
+  /// Grams the plate uses of this filament, as sliced.
+  final double? usedGrams;
 }
 
 /// One filament group's hotend requirement on a nozzle-rack plate, from a

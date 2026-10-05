@@ -31,8 +31,8 @@ class _Printers extends PrintersRepository {
   }
 
   @override
-  Future<Map<int, double>> fetchInventoryRemain(int printerId) async =>
-      const {};
+  Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
+      (grams: const <int, double>{}, spools: const <int, SlotSpool>{});
 }
 
 class _Shelf extends InventoryNotifier {
@@ -153,7 +153,7 @@ void main() {
 
   testWidgets('dropping a pick lets the match decide again', (tester) async {
     await open(tester, stored: [1]);
-    await tester.tap(find.text('Filament 1'));
+    await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Wybierz slot AMS').last);
     await tester.pumpAndSettle();
@@ -169,7 +169,6 @@ void main() {
         FilamentRequirement(slotId: 3, type: 'PLA', color: '#FF0000'),
       ],
     );
-    expect(find.text('Filament 3'), findsOneWidget);
     await confirm(tester);
     expect(answer, [-1, -1, 0]);
   });
@@ -211,11 +210,12 @@ void main() {
         ],
       ),
     );
-    await tester.tap(find.text('Filament 1'));
+    await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('PLA · zostało 102 g'), findsOneWidget);
-    expect(find.text('PETG'), findsOneWidget);
+    // Slot 1 has a spool on the shelf, slot 2 none.
+    expect(find.text('zostało 102 g'), findsOneWidget);
+    expect(find.textContaining('A2: PETG'), findsOneWidget);
     // The shelf arriving late re-reads nothing: the status was fetched once.
     expect(printers.fetches, 1);
   });
@@ -234,10 +234,10 @@ void main() {
         ],
       ),
     );
-    await tester.tap(find.text('Filament 1'));
+    await tester.tap(find.text('PLA').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Ext-L'), findsWidgets);
-    expect(find.text('Ext-R'), findsOneWidget);
+    expect(find.textContaining('Ext-L: TPU'), findsOneWidget);
+    expect(find.textContaining('Ext-R: PLA'), findsWidgets);
   });
 }

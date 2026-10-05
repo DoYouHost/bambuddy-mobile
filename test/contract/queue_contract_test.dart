@@ -99,7 +99,7 @@ void main() {
         );
 
         final remain = await printers.fetchInventoryRemain(printerId);
-        expect(remain, isA<Map<int, double>>());
+        expect(remain.grams, isA<Map<int, double>>());
         final settings = (await dio.get<Map<String, dynamic>>(
           '/api/v1/settings/',
         )).data!;
@@ -114,7 +114,7 @@ void main() {
               settings['prefer_lowest_filament'] as bool?,
               status?.amsFilamentBackup,
             ),
-            inventoryByTrayId: remain,
+            inventoryByTrayId: remain.grams,
             ftsActive: status?.filaSwitch?.installed ?? false,
           ),
         );

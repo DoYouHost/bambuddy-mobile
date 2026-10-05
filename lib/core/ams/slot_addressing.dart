@@ -75,6 +75,16 @@ String amsSlotName(int amsId, int trayId, {String? unit}) {
   return amsId >= amsHtUnitBase ? unit : '$unit · ${trayId + 1}';
 }
 
+/// `formatSlotLabel`, the slot names of the web's mapping dialog: `A1` for
+/// AMS A slot 1, `HT-A` for an AMS-HT. The external holder is the caller's
+/// to name (`Ext-L`/`Ext-R`/`External`).
+String formatSlotLabel(int amsId, int trayId, {required bool isHt}) {
+  final letter = String.fromCharCode(
+    0x41 + (amsId >= amsHtUnitBase ? amsId - amsHtUnitBase : amsId),
+  );
+  return isHt ? 'HT-$letter' : '$letter${trayId + 1}';
+}
+
 /// The tag bambuddy links a spool without RFID to a slot by, in Spoolman's
 /// `extra.tag`: a 32-bit FNV-1a of the serial, then the unit and the tray as
 /// four hex digits each. Byte for byte `amsHelpers.ts::getFallbackSpoolTag`

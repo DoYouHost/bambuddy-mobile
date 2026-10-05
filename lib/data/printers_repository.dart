@@ -41,6 +41,12 @@ class PrinterWithStatus {
 
 /// REST data source for printers. M2 will add WebSocket merging — this path
 /// remains as backfill on resume and fallback.
+/// A slot's bound spool as the mapping names it.
+typedef SlotSpool = ({String? name, String? colorName});
+
+/// [PrintersRepository.fetchInventoryRemain]'s answer.
+typedef SlotInventory = ({Map<int, double> grams, Map<int, SlotSpool> spools});
+
 class PrintersRepository {
   PrintersRepository(this._dio);
 
@@ -64,26 +70,46 @@ class PrintersRepository {
     return body == null ? null : PrinterStatus.fromJson(body);
   });
 
-  /// Grams left by global tray id ([Endpoints.printerInventoryRemain]);
-  /// empty on any failure short of a lost session, a 403 included — it only
-  /// orders slots, as the web's query.
-  Future<Map<int, double>> fetchInventoryRemain(int printerId) async {
+  /// What the inventory knows of [printerId]'s slots
+  /// ([Endpoints.printerInventoryRemain]), by global tray id: grams left on
+  /// each bound spool that is loaded, and the bound spool's name and colour
+  /// for every binding (`slot_materials`). Empty on any failure short of a
+  /// lost session, a 403 included — it only orders and names slots, as the
+  /// web's query.
+  Future<SlotInventory> fetchInventoryRemain(int printerId) async {
     final body = await guardOrNullAllowingForbidden(() async {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.printerInventoryRemain(printerId),
       );
       return res.data;
     });
-    final grams = body?['inventory_remain_g'];
-    if (grams is! Map<String, dynamic>) return const {};
-    return {
-      for (final MapEntry(:key, :value) in grams.entries)
-        if ((int.tryParse(key), toDoubleOrNull(value)) case (
-          final int id,
-          final double g,
-        ))
-          id: g,
-    };
+    final grams = <int, double>{};
+    if (body?['inventory_remain_g'] case final Map<String, dynamic> raw) {
+      for (final MapEntry(:key, :value) in raw.entries) {
+        final id = int.tryParse(key);
+        final g = toDoubleOrNull(value);
+        if (id != null && g != null) grams[id] = g;
+      }
+    }
+    final spools = <int, SlotSpool>{};
+    if (body?['slot_materials'] case final List<dynamic> slots) {
+      for (final slot in slots.whereType<Map<String, dynamic>>()) {
+        final id = toIntOrNull(slot['global_tray_id']);
+        final spool = slot['spool'];
+        if (id == null || spool is! Map<String, dynamic>) continue;
+        // Brand, material, subtype — the web's `spoolDisplayName`.
+        final name = [
+          for (final k in const ['brand', 'material', 'subtype'])
+            if (toStringOrNull(spool[k]) case final part? when part.isNotEmpty)
+              part,
+        ].join(' ');
+        spools[id] = (
+          name: name.isEmpty ? null : name,
+          colorName: toStringOrNull(spool['color_name'])?.trim(),
+        );
+      }
+    }
+    return (grams: grams, spools: spools);
   }
 
   /// Filaments loaded on active printers of [model] (optionally filtered by

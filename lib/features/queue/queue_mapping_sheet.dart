@@ -2,9 +2,11 @@ import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/color_names.dart';
 import '../../core/ams/filament_mapping.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag_material.dart';
+import '../../core/models/ams_filament_preset.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
@@ -26,13 +28,83 @@ final mappingStatusProvider = FutureProvider.autoDispose
           ref.watch(printersRepositoryProvider).fetchStatus(printerId),
     );
 
-/// Grams left on the spools bound to [printerId]'s slots, by global tray id —
-/// the first tier of the "prefer lowest remaining" sort.
+/// What the inventory knows of [printerId]'s slots: the grams the "prefer
+/// lowest remaining" sort reads first, and the spool names the slots go by.
 final mappingInventoryRemainProvider = FutureProvider.autoDispose
-    .family<Map<int, double>, int>(
+    .family<SlotInventory, int>(
       (ref, printerId) =>
           ref.watch(printersRepositoryProvider).fetchInventoryRemain(printerId),
     );
+
+/// `filament_id` → name, the way the web names a sliced filament
+/// (`useFilamentLabels.ts`): Bambu's built-in table, then the user's cloud
+/// presets, which win. Either may be missing; the 3MF's type stands in then.
+final mappingFilamentNamesProvider =
+    FutureProvider.autoDispose<Map<String, String>>((ref) async {
+      final repo = ref.watch(amsSlotConfigRepositoryProvider);
+      final (builtin, cloud) = await (
+        repo.builtinFilaments().catchError((Object _) => <AmsFilamentPreset>[]),
+        repo.cloudFilamentNames(),
+      ).wait;
+      return {
+        for (final f in builtin)
+          if (f.id.isNotEmpty) f.id: f.name,
+        ...cloud,
+      };
+    });
+
+/// The server's colour catalogue; empty when it cannot be read, and names
+/// then come from the hue alone.
+final mappingColorCatalogProvider = FutureProvider.autoDispose<ColorCatalog>(
+  (ref) => ref
+      .watch(amsSlotConfigRepositoryProvider)
+      .colorCatalog()
+      .catchError((Object _) => ColorCatalog.empty),
+);
+
+/// The catalogue's name for a hex within a material, which the flat map can
+/// get wrong where one hex names two colours (`/inventory/colors/by-material`).
+final mappingColorByMaterialProvider = FutureProvider.autoDispose
+    .family<String?, ({String hex, String material})>(
+      (ref, key) => ref
+          .watch(amsSlotConfigRepositoryProvider)
+          .colorByMaterial(key.hex, key.material)
+          .catchError((Object _) => null),
+    );
+
+/// `getColorName`: the catalogue's name, else the hue family's.
+String mappingColorName(
+  AppLocalizations l10n,
+  ColorCatalog catalog,
+  String? hex, {
+  String? material,
+}) =>
+    catalog.nameOf(hex, material: material) ??
+    switch (colorFamily(hex)) {
+      ColorFamily.red => l10n.colorFamilyRed,
+      ColorFamily.orange => l10n.colorFamilyOrange,
+      ColorFamily.yellow => l10n.colorFamilyYellow,
+      ColorFamily.green => l10n.colorFamilyGreen,
+      ColorFamily.cyan => l10n.colorFamilyCyan,
+      ColorFamily.blue => l10n.colorFamilyBlue,
+      ColorFamily.purple => l10n.colorFamilyPurple,
+      ColorFamily.pink => l10n.colorFamilyPink,
+      ColorFamily.brown => l10n.colorFamilyBrown,
+      ColorFamily.white => l10n.colorFamilyWhite,
+      ColorFamily.lightGray => l10n.colorFamilyLightGray,
+      ColorFamily.gray => l10n.colorFamilyGray,
+      ColorFamily.darkGray => l10n.colorFamilyDarkGray,
+      ColorFamily.black => l10n.colorFamilyBlack,
+      ColorFamily.clear => l10n.colorFamilyClear,
+      null => l10n.colorFamilyUnknown,
+    };
+
+/// `extractMaterialHint`: "Bambu PLA Matte" → "PLA Matte", the material the
+/// colour lookup is narrowed by.
+String _materialHint(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  return parts.length <= 1 ? name.trim() : parts.skip(1).join(' ');
+}
 
 /// Manual picks from a stored mapping, as the web's edit form seeds them
 /// (`PrintModal/index.tsx`): `slot_id` → global tray id, `-1` left to the
@@ -84,7 +156,7 @@ Future<List<int>?> queueMappingToSend({
       status,
       loaded,
       _manualFrom(startFrom),
-      remain,
+      remain.grams,
       preferLowestSetting,
     ),
   );
@@ -228,7 +300,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       status,
       loaded,
       _manual,
-      remain,
+      remain?.grams,
       preferLowest,
     );
     return wrap(
@@ -236,7 +308,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         theme,
         comparison,
         loaded,
-        dualExternal: (status?.vtTray?.length ?? 0) > 1,
+        status: status,
+        spools: remain?.spools ?? const {},
       ),
     );
   }
@@ -245,7 +318,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     ThemeData theme,
     List<FilamentComparison> comparison,
     List<LoadedFilament> loaded, {
-    required bool dualExternal,
+    required PrinterStatus? status,
+    required Map<int, SlotSpool> spools,
   }) {
     final l10n = _l10n;
     if (comparison.isEmpty) {
@@ -265,7 +339,35 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       );
     }
 
-    String label(LoadedFilament f) => _trayLabel(f, dualExternal: dualExternal);
+    final t = DashTokens.of(context);
+    final catalog =
+        ref.watch(mappingColorCatalogProvider).valueOrNull ??
+        ColorCatalog.empty;
+    final names =
+        ref.watch(mappingFilamentNamesProvider).valueOrNull ?? const {};
+    final options = _SlotOptions(
+      l10n: l10n,
+      catalog: catalog,
+      spools: spools,
+      dualExternal: (status?.vtTray?.length ?? 0) > 1,
+      // `ftsInletForAms`: the inlet an AMS is plumbed into, when a Filament
+      // Track Switch is fitted.
+      inletOf: (amsId) {
+        if (!(status?.filaSwitch?.installed ?? false)) return null;
+        return status?.amsSwitchInlet?[amsId];
+      },
+    );
+    // `FilamentMapping.tsx`: the nozzle badge shows when the file was sliced
+    // for two nozzles.
+    final dualNozzle = comparison.any((c) => c.requirement.nozzleId != null);
+    final (
+      summary,
+      summaryInk,
+    ) = comparison.any((c) => c.status == FilamentMatch.mismatch)
+        ? (l10n.mappingStatusTypeNotFound, t.dangerInk)
+        : comparison.any((c) => c.status == FilamentMatch.typeOnly)
+        ? (l10n.mappingStatusColorMismatch, t.warningInk)
+        : (l10n.mappingStatusReady, t.accentGreenInk);
 
     return ListView(
       shrinkWrap: true,
@@ -278,6 +380,19 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
+        const SizedBox(height: DashSpace.sm),
+        Row(
+          children: [
+            Icon(Icons.circle, size: 10, color: summaryInk),
+            const SizedBox(width: DashSpace.sm),
+            Expanded(
+              child: Text(
+                summary,
+                style: theme.textTheme.labelLarge?.copyWith(color: summaryInk),
+              ),
+            ),
+          ],
+        ),
         if (loaded.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -289,9 +404,28 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: DashSpace.xs),
+            child: Text(
+              l10n.mappingTapToChange,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         const SizedBox(height: DashSpace.md),
-        for (final c in comparison) _slotRow(theme, c, loaded, label),
+        for (final c in comparison)
+          _slotRow(
+            theme,
+            t,
+            c,
+            loaded,
+            options,
+            name: _filamentName(c.requirement, names),
+            dualNozzle: dualNozzle,
+          ),
         const SizedBox(height: DashSpace.lg),
         // The web sends no mapping when the printer reports no slot, which
         // leaves the stored one alone and the start to the server.
@@ -302,6 +436,14 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     );
   }
 
+  /// `useFilamentLabels`: the sliced filament's name by its `tray_info_idx`,
+  /// else the 3MF's type.
+  String _filamentName(FilamentRequirement req, Map<String, String> names) {
+    final idx = req.trayInfoIdx;
+    final named = idx == null || idx.isEmpty ? null : names[idx];
+    return named ?? req.type ?? '';
+  }
+
   Widget _confirmButton(List<int> mapping) => FilledButton.icon(
     icon: const Icon(Icons.check),
     label: Text(widget.confirmLabel),
@@ -310,32 +452,101 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
   Widget _slotRow(
     ThemeData theme,
+    DashTokens t,
     FilamentComparison c,
     List<LoadedFilament> loaded,
-    String Function(LoadedFilament) label,
-  ) {
+    _SlotOptions options, {
+    required String name,
+    required bool dualNozzle,
+  }) {
     final l10n = _l10n;
     final req = c.requirement;
     final pick = c.loaded;
+    final hex = req.color ?? '';
+    // `useFilamentLabels`: the catalogue's name within the filament's own
+    // material, else the flat lookup.
+    final byMaterial = hex.isEmpty
+        ? null
+        : ref
+              .watch(
+                mappingColorByMaterialProvider((
+                  hex: hex,
+                  material: _materialHint(name),
+                )),
+              )
+              .valueOrNull;
+    final required = byMaterial ?? mappingColorName(l10n, options.catalog, hex);
+    final (requiredLabel, loadedLabel) = disambiguateColorNames(
+      (name: required, hex: hex),
+      (name: pick == null ? null : options.colorOf(pick), hex: pick?.color),
+    );
+    final warning = switch (c.status) {
+      FilamentMatch.match => null,
+      FilamentMatch.typeOnly => (
+        l10n.mappingSameTypeOtherColor(requiredLabel, loadedLabel),
+        t.warningInk,
+      ),
+      FilamentMatch.mismatch => (l10n.mappingTypeNotLoaded, t.dangerInk),
+    };
+    final nozzle = !dualNozzle
+        ? null
+        : switch (req.nozzleId) {
+            1 => l10n.extruderLeftShort,
+            0 => l10n.extruderRightShort,
+            _ => null,
+          };
+    final grams = req.usedGrams;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: ListTile(
-        // Show the chosen filament's colour once mapped, else the file's
-        // required colour.
-        leading: _swatch(theme, pick?.color ?? req.color, 28),
-        title: Text(
-          l10n.sliceFilamentNumbered('${req.slotId}'),
-          style: theme.textTheme.labelMedium,
+        leading: Tooltip(
+          message: l10n.mappingRequired(name, requiredLabel),
+          child: _swatch(theme, req.color, 28),
         ),
-        subtitle: Text(
-          pick == null ? l10n.mappingPickTray : '${label(pick)} · ${pick.type}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        title: Row(
+          children: [
+            if (nozzle != null) ...[
+              _Badge(nozzle),
+              const SizedBox(width: DashSpace.xs),
+            ],
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge,
+              ),
+            ),
+            if (grams != null)
+              Text(
+                ' (${l10n.inventoryUsageWeight(grams.toStringAsFixed(0))})',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
         ),
-        trailing: const Icon(Icons.chevron_right),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              pick == null ? l10n.mappingPickTray : options.labelOf(pick),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (c.isManual) Text(l10n.mappingManual),
+            if (warning != null)
+              Text(warning.$1, style: TextStyle(color: warning.$2)),
+          ],
+        ),
+        trailing: Icon(
+          warning == null ? Icons.check_circle : Icons.warning_amber_rounded,
+          color: warning?.$2 ?? t.accentGreenInk,
+        ),
         onTap: loaded.isEmpty || req.slotId <= 0
             ? null
-            : () => _pickTray(req.slotId, pick, loaded, label),
+            : () => _pickTray(req, pick, loaded, options),
         // The material the *file* asks for, not the tray picked for it: a
         // mapping report is about the two disagreeing.
       ).taggedMaterial('queue_mapping.slot', req.type),
@@ -346,13 +557,14 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   /// feeds (#1722 on the web); the first entry drops the pick and lets the
   /// match decide again, as the web's empty choice does.
   Future<void> _pickTray(
-    int slotId,
+    FilamentRequirement req,
     LoadedFilament? current,
     List<LoadedFilament> loaded,
-    String Function(LoadedFilament) label,
+    _SlotOptions options,
   ) async {
     const auto = -1;
     final theme = Theme.of(context);
+    final wanted = normalizeColorForCompare(req.color);
     final picked = await dashSheet<int>(
       context,
       scrollControlled: false,
@@ -379,10 +591,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                 for (final f in loaded)
                   ListTile(
                     leading: _swatch(theme, f.color, 28),
-                    title: Text(label(f)),
+                    title: Text(options.labelOf(f)),
                     subtitle: Text(
                       [
-                        f.type,
                         // What the web's mapping shows: the built-in
                         // inventory's spool for the slot, in grams, and no
                         // percent (`FilamentMapping.tsx`,
@@ -391,6 +602,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                           _l10n.inventoryRemaining(
                             spool.remainingWeight.toStringAsFixed(0),
                           ),
+                        ?options.inletBadge(f),
+                        if (wanted.isNotEmpty &&
+                            normalizeColorForCompare(f.color) == wanted)
+                          _l10n.mappingExactColor,
                       ].join(' · '),
                     ),
                     trailing: current?.globalTrayId == f.globalTrayId
@@ -407,22 +622,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     if (picked == null) return;
     setState(() {
       if (picked == auto) {
-        _manual.remove(slotId);
+        _manual.remove(req.slotId);
       } else {
-        _manual[slotId] = picked;
+        _manual[req.slotId] = picked;
       }
     });
-  }
-
-  String _trayLabel(LoadedFilament f, {required bool dualExternal}) {
-    // `useFilamentMapping.ts`: Ext-L/Ext-R when the printer reports two
-    // holders — the letters on the machine, not translated.
-    if (f.isExternal && dualExternal) {
-      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
-    }
-    if (f.isExternal) return _l10n.mappingExternalSpool;
-    final slot = localSlotOf(f.globalTrayId);
-    return amsSlotName(slot.amsId, slot.trayId);
   }
 
   Widget _swatch(ThemeData theme, String? hex, double size) {
@@ -442,6 +646,83 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
               color: theme.colorScheme.onSurfaceVariant,
             )
           : null,
+    );
+  }
+}
+
+/// How a loaded slot reads in the mapping (`FilamentMapping.tsx`):
+/// `A1: Devil Design PLA Basic (Orange)` — the slot, the spool bound to it or
+/// the printer's own name for the filament, and its colour.
+class _SlotOptions {
+  const _SlotOptions({
+    required this.l10n,
+    required this.catalog,
+    required this.spools,
+    required this.dualExternal,
+    required this.inletOf,
+  });
+
+  final AppLocalizations l10n;
+  final ColorCatalog catalog;
+  final Map<int, SlotSpool> spools;
+  final bool dualExternal;
+  final String? Function(int amsId) inletOf;
+
+  String slotOf(LoadedFilament f) {
+    if (f.isExternal) {
+      // `useFilamentMapping.ts`: the letters on the machine, not translated.
+      if (!dualExternal) return l10n.mappingExternalSpool;
+      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
+    }
+    return formatSlotLabel(f.amsId, f.trayId, isHt: f.isHt);
+  }
+
+  String colorOf(LoadedFilament f) {
+    final bound = spools[f.globalTrayId]?.colorName;
+    if (bound != null && bound.isNotEmpty) return bound;
+    return mappingColorName(
+      l10n,
+      catalog,
+      f.color,
+      material: f.traySubBrands.isEmpty ? null : f.traySubBrands,
+    );
+  }
+
+  String labelOf(LoadedFilament f) {
+    final what =
+        spools[f.globalTrayId]?.name ??
+        (f.traySubBrands.isNotEmpty ? f.traySubBrands : f.type);
+    return '${slotOf(f)}: $what (${colorOf(f)})';
+  }
+
+  /// `[L]`/`[R]` for the Filament Track Switch inlet a slot's AMS feeds —
+  /// In-A reads as L, In-B as R, as the printer card letters them.
+  String? inletBadge(LoadedFilament f) {
+    if (f.isExternal) return null;
+    return switch (inletOf(f.amsId)) {
+      'A' => '[L]',
+      'B' => '[R]',
+      _ => null,
+    };
+  }
+}
+
+/// The one-letter nozzle badge of a filament row.
+class _Badge extends StatelessWidget {
+  const _Badge(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: DashSpace.xs),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text, style: theme.textTheme.labelSmall),
     );
   }
 }

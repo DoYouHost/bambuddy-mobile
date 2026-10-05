@@ -5318,6 +5318,86 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mappingSaved => 'Mappage des filaments enregistré';
 
   @override
+  String get mappingStatusReady => 'Prêt';
+
+  @override
+  String get mappingStatusColorMismatch => 'Couleur différente';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Type introuvable';
+
+  @override
+  String get mappingTapToChange =>
+      'Appuyez sur un filament pour changer son emplacement';
+
+  @override
+  String get mappingExactColor => 'Couleur exacte';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Même type, autre couleur : il faut $required, l’emplacement contient $loaded';
+  }
+
+  @override
+  String get mappingTypeNotLoaded => 'Type de filament non chargé';
+
+  @override
+  String get mappingManual => 'Choisi manuellement';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Requis : $name, $color';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rouge';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Jaune';
+
+  @override
+  String get colorFamilyGreen => 'Vert';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Bleu';
+
+  @override
+  String get colorFamilyPurple => 'Violet';
+
+  @override
+  String get colorFamilyPink => 'Rose';
+
+  @override
+  String get colorFamilyBrown => 'Marron';
+
+  @override
+  String get colorFamilyWhite => 'Blanc';
+
+  @override
+  String get colorFamilyLightGray => 'Gris clair';
+
+  @override
+  String get colorFamilyGray => 'Gris';
+
+  @override
+  String get colorFamilyDarkGray => 'Gris foncé';
+
+  @override
+  String get colorFamilyBlack => 'Noir';
+
+  @override
+  String get colorFamilyClear => 'Transparent';
+
+  @override
+  String get colorFamilyUnknown => 'Inconnu';
+
+  @override
   String get plateClearTitle => 'Le plateau est-il dégagé ?';
 
   @override

@@ -5249,6 +5249,86 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mappingSaved => 'Filament-Zuordnung gespeichert';
 
   @override
+  String get mappingStatusReady => 'Bereit';
+
+  @override
+  String get mappingStatusColorMismatch => 'Andere Farbe';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Typ nicht gefunden';
+
+  @override
+  String get mappingTapToChange =>
+      'Tippe auf ein Filament, um seinen Slot zu ändern';
+
+  @override
+  String get mappingExactColor => 'Exakt diese Farbe';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Gleicher Typ, andere Farbe: benötigt $required, im Slot $loaded';
+  }
+
+  @override
+  String get mappingTypeNotLoaded => 'Filamenttyp nicht geladen';
+
+  @override
+  String get mappingManual => 'Von Hand gewählt';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Benötigt: $name, $color';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rot';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Gelb';
+
+  @override
+  String get colorFamilyGreen => 'Grün';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Blau';
+
+  @override
+  String get colorFamilyPurple => 'Lila';
+
+  @override
+  String get colorFamilyPink => 'Rosa';
+
+  @override
+  String get colorFamilyBrown => 'Braun';
+
+  @override
+  String get colorFamilyWhite => 'Weiß';
+
+  @override
+  String get colorFamilyLightGray => 'Hellgrau';
+
+  @override
+  String get colorFamilyGray => 'Grau';
+
+  @override
+  String get colorFamilyDarkGray => 'Dunkelgrau';
+
+  @override
+  String get colorFamilyBlack => 'Schwarz';
+
+  @override
+  String get colorFamilyClear => 'Transparent';
+
+  @override
+  String get colorFamilyUnknown => 'Unbekannt';
+
+  @override
   String get plateClearTitle => 'Ist die Druckplatte frei?';
 
   @override

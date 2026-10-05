@@ -5268,6 +5268,85 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mappingSaved => 'Mapeo de filamentos guardado';
 
   @override
+  String get mappingStatusReady => 'Listo';
+
+  @override
+  String get mappingStatusColorMismatch => 'Color distinto';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Tipo no encontrado';
+
+  @override
+  String get mappingTapToChange => 'Toca un filamento para cambiar su ranura';
+
+  @override
+  String get mappingExactColor => 'Color exacto';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Mismo tipo, otro color: necesita $required, la ranura tiene $loaded';
+  }
+
+  @override
+  String get mappingTypeNotLoaded => 'Tipo de filamento no cargado';
+
+  @override
+  String get mappingManual => 'Elegido a mano';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Necesario: $name, $color';
+  }
+
+  @override
+  String get colorFamilyRed => 'Rojo';
+
+  @override
+  String get colorFamilyOrange => 'Naranja';
+
+  @override
+  String get colorFamilyYellow => 'Amarillo';
+
+  @override
+  String get colorFamilyGreen => 'Verde';
+
+  @override
+  String get colorFamilyCyan => 'Cian';
+
+  @override
+  String get colorFamilyBlue => 'Azul';
+
+  @override
+  String get colorFamilyPurple => 'Morado';
+
+  @override
+  String get colorFamilyPink => 'Rosa';
+
+  @override
+  String get colorFamilyBrown => 'Marrón';
+
+  @override
+  String get colorFamilyWhite => 'Blanco';
+
+  @override
+  String get colorFamilyLightGray => 'Gris claro';
+
+  @override
+  String get colorFamilyGray => 'Gris';
+
+  @override
+  String get colorFamilyDarkGray => 'Gris oscuro';
+
+  @override
+  String get colorFamilyBlack => 'Negro';
+
+  @override
+  String get colorFamilyClear => 'Transparente';
+
+  @override
+  String get colorFamilyUnknown => 'Desconocido';
+
+  @override
   String get plateClearTitle => '¿Está despejada la placa?';
 
   @override

@@ -108,4 +108,36 @@ for (let n = 0; n < 400; n++) {
 console.log(JSON.stringify(cases));
 TS
 node --experimental-strip-types --no-warnings "$work/gen.ts" > test/fixtures/filament_mapping_golden.json
+
+# The colour names the mapping writes next to every slot (utils/colors.ts),
+# and the web's slot labels.
+cp "$src/utils/colors.ts" "$work/utils/colors.ts"
+cat > "$work/colors.ts" <<'TS'
+import { colorFamily, getColorName, setColorCatalog, disambiguateColorNames } from './utils/colors.ts';
+import { formatSlotLabel } from './utils/amsHelpers.ts';
+
+let seed = 7;
+const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+const hex2 = () => Math.floor(rnd() * 256).toString(16).padStart(2, '0');
+const families = [];
+for (let n = 0; n < 600; n++) {
+  const alpha = rnd() < 0.1 ? '00' : rnd() < 0.5 ? 'FF' : '';
+  const hex = `${rnd() < 0.5 ? '#' : ''}${hex2()}${hex2()}${hex2()}${alpha}`;
+  families.push({ hex, family: colorFamily(hex) });
+}
+const catalog = { colors: { ffffff: 'Jade White', '000000': 'Black' }, by_material: { 'PLA Matte|#FFFFFF': 'Ivory White' } };
+setColorCatalog(catalog.colors, catalog.by_material);
+const names = [
+  ['FFFFFFFF', 'PLA Matte'], ['#ffffff', null], ['000000ff', 'pla matte'], ['12345600', null], ['FF0000', null],
+].map(([hex, material]) => ({ hex, material, name: getColorName(hex as string, material as string | null) }));
+const pairs = [
+  [['Blue', '#0028FF'], ['Blue', '#0A2989']], [['Blue', '#0028FF'], ['Navy', '#0A2989']],
+  [['', '#0028FF'], ['Red', 'FF0000FF']], [['Red', ''], ['red', null]], [[null, 'zz'], ['Red', '#FF0000']],
+].map(([a, b]) => ({ a, b, out: disambiguateColorNames({ name: a[0], hex: a[1] }, { name: b[0], hex: b[1] }) }));
+const labels = [[0, 0, false], [1, 3, false], [128, 0, true], [129, 0, true], [3, 2, false]]
+  .map(([a, t, ht]) => ({ ams: a, tray: t, ht, label: formatSlotLabel(a as number, t as number, ht as boolean, false) }));
+console.log(JSON.stringify({ families, catalog, names, pairs, labels }));
+TS
+node --experimental-strip-types --no-warnings "$work/colors.ts" > test/fixtures/color_names_golden.json
+echo "wrote colour names"
 echo "wrote $(python3 -c 'import json;print(len(json.load(open("test/fixtures/filament_mapping_golden.json"))))') cases"

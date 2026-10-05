@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../core/ams/color_names.dart';
 import '../core/ams/slot_configuration.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
@@ -56,6 +57,39 @@ class AmsSlotConfigRepository {
   Future<List<AmsFilamentPreset>> builtinFilaments() async {
     final json = await _get<List<dynamic>>(Endpoints.cloudBuiltinFilaments);
     return _presets(json, AmsFilamentPreset.fromBuiltinJson);
+  }
+
+  /// `filament_id` → name of the user's cloud presets; empty without a cloud
+  /// login, which is an ordinary answer here.
+  Future<Map<String, String>> cloudFilamentNames() async {
+    try {
+      final json = await _get<Map<String, dynamic>>(
+        Endpoints.cloudFilamentIdMap,
+      );
+      return {
+        for (final MapEntry(:key, :value) in (json ?? const {}).entries)
+          if (value is String && value.isNotEmpty) key: value,
+      };
+    } on AppApiException {
+      return const {};
+    }
+  }
+
+  /// The colour catalogue ([Endpoints.inventoryColorMap]).
+  Future<ColorCatalog> colorCatalog() async {
+    final json = await _get<Map<String, dynamic>>(Endpoints.inventoryColorMap);
+    return json == null ? ColorCatalog.empty : ColorCatalog.fromJson(json);
+  }
+
+  /// The catalogue's name for [hex] within [material]
+  /// ([Endpoints.inventoryColorByMaterial]).
+  Future<String?> colorByMaterial(String hex, String? material) async {
+    final json = await _get<Map<String, dynamic>>(
+      Endpoints.inventoryColorByMaterial,
+      query: {'hex': hex, 'material': ?material},
+    );
+    final name = json?['color_name'];
+    return name is String && name.isNotEmpty ? name : null;
   }
 
   /// Filament presets imported from a slicer bundle.

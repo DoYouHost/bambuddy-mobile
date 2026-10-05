@@ -29,6 +29,7 @@ class LoadedFilament {
     required this.isExternal,
     required this.globalTrayId,
     this.trayInfoIdx = '',
+    this.traySubBrands = '',
     this.extruderId,
     this.remain = -1,
   });
@@ -43,6 +44,10 @@ class LoadedFilament {
   final bool isExternal;
   final int globalTrayId;
   final String trayInfoIdx;
+
+  /// The printer's name for the variant ("PLA Matte"); empty for anything
+  /// but a Bambu spool.
+  final String traySubBrands;
 
   /// 0 = right, 1 = left; null on a single-nozzle printer.
   final int? extruderId;
@@ -86,6 +91,7 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
           isExternal: false,
           globalTrayId: globalTrayId(amsId: amsId, trayId: trayId),
           trayInfoIdx: tray.trayInfoIdx ?? '',
+          traySubBrands: tray.traySubBrands ?? '',
           extruderId: extruderMap?[amsId],
           remain: tray.remain ?? -1,
         ),
@@ -107,6 +113,7 @@ List<LoadedFilament> buildLoadedFilaments(PrinterStatus? status) {
         // The holder's global id is its tray id, 254 or 255.
         globalTrayId: id,
         trayInfoIdx: ext.trayInfoIdx ?? '',
+        traySubBrands: ext.traySubBrands ?? '',
         extruderId: hasDualNozzle ? 255 - id : null,
         remain: ext.remain ?? -1,
       ),

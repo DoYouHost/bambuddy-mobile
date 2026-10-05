@@ -135,8 +135,8 @@ class _LivePrinters extends PrintersRepository {
   Future<PrinterStatus?> fetchStatus(int printerId) async => _status[printerId];
 
   @override
-  Future<Map<int, double>> fetchInventoryRemain(int printerId) async =>
-      const {};
+  Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
+      (grams: const <int, double>{}, spools: const <int, SlotSpool>{});
 }
 
 /// The print form, wired to answers instead of a server.

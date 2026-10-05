@@ -5200,6 +5200,85 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mappingSaved => 'Filament mapping saved';
 
   @override
+  String get mappingStatusReady => 'Ready';
+
+  @override
+  String get mappingStatusColorMismatch => 'Color mismatch';
+
+  @override
+  String get mappingStatusTypeNotFound => 'Type not found';
+
+  @override
+  String get mappingTapToChange => 'Tap a filament to change its slot';
+
+  @override
+  String get mappingExactColor => 'Exact color match';
+
+  @override
+  String mappingSameTypeOtherColor(String required, String loaded) {
+    return 'Same type, different color: needs $required, slot has $loaded';
+  }
+
+  @override
+  String get mappingTypeNotLoaded => 'Filament type not loaded';
+
+  @override
+  String get mappingManual => 'Picked by hand';
+
+  @override
+  String mappingRequired(String name, String color) {
+    return 'Required: $name, $color';
+  }
+
+  @override
+  String get colorFamilyRed => 'Red';
+
+  @override
+  String get colorFamilyOrange => 'Orange';
+
+  @override
+  String get colorFamilyYellow => 'Yellow';
+
+  @override
+  String get colorFamilyGreen => 'Green';
+
+  @override
+  String get colorFamilyCyan => 'Cyan';
+
+  @override
+  String get colorFamilyBlue => 'Blue';
+
+  @override
+  String get colorFamilyPurple => 'Purple';
+
+  @override
+  String get colorFamilyPink => 'Pink';
+
+  @override
+  String get colorFamilyBrown => 'Brown';
+
+  @override
+  String get colorFamilyWhite => 'White';
+
+  @override
+  String get colorFamilyLightGray => 'Light gray';
+
+  @override
+  String get colorFamilyGray => 'Gray';
+
+  @override
+  String get colorFamilyDarkGray => 'Dark gray';
+
+  @override
+  String get colorFamilyBlack => 'Black';
+
+  @override
+  String get colorFamilyClear => 'Clear';
+
+  @override
+  String get colorFamilyUnknown => 'Unknown';
+
+  @override
   String get plateClearTitle => 'Is the plate clear?';
 
   @override
