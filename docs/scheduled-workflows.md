@@ -1,53 +1,56 @@
-# Scheduled workflows start hours late
+# Scheduled workflows are dispatched by Dagu
 
-Both workflows with a `schedule:` trigger fire hours after their cron time, and
-changing the cron minute does not help. Left as is on purpose (2026-09-26):
-neither job needs to land at a particular hour. Nothing has been dropped yet.
+`server-drift.yml` and `contract-tests.yml` have no `schedule:` trigger. They
+are started through `workflow_dispatch` by [Dagu](https://github.com/dagu-org/dagu)
+on `lxc-dagu` (`http://lxc-dagu.lan:8080`, an LXC on `pv1-rpi4` defined in
+TofuSkierkiV2 `lxc_dagu.tf`). GitHub's own scheduler started them 4–8 hours
+late and, on 2026-10-05, not at all (see below).
 
-## What we measured
+| DAG | Workflow | When (UTC) |
+|---|---|---|
+| `bambuddy-server-drift` | `server-drift.yml` | Mon 06:37 |
+| `bambuddy-contract-tests` | `contract-tests.yml` | daily 04:23 |
+
+## Configuration lives in the Dagu web UI
+
+Tofu only builds the container and installs Dagu. The DAGs and the token are
+set up in the UI and exist nowhere else:
+
+- **DAGs**: one per workflow. A DAG is a single `http.request` step doing
+  `POST https://api.github.com/repos/DoYouHost/bambuddy-mobile/actions/workflows/<file>/dispatches`
+  with body `{"ref":"master"}` and headers `Authorization: Bearer ${GITHUB_TOKEN}`,
+  `Accept: application/vnd.github+json`. To change a time, edit `schedule:`.
+  "Start" runs the DAG immediately. A non-2xx answer fails the run.
+- **Token**: Profiles → Secret Refs, a `dagu-managed` secret, which Dagu stores
+  encrypted. The DAG reads it with
+  `secrets: [{name: GITHUB_TOKEN, ref: <secret ref>}]`, which keeps it masked
+  in the run history. A plain `env`/`dotenv` value would be stored in clear
+  text in every run's status. The token is a fine-grained PAT owned by
+  `DoYouHost`, scoped to the `bambuddy-mobile` repository only, with
+  **Actions: read and write**. When it expires, the runs fail with 401. Use
+  "Rotate Secret" to put in the new token.
+
+## Why not `schedule:` (measured before the switch)
 
 | Workflow | Cron (UTC) | Run created | Late by |
 |---|---|---|---|
-| `server-drift.yml` | Mon 06:37 | 2026-09-14 13:15, 2026-09-21 13:15 | ~6h38m |
+| `server-drift.yml` | Mon 06:37 | 2026-09-14 13:15, 2026-09-21 13:15, 2026-09-28 14:23 | 6h38m–7h46m |
 | `server-drift.yml` (on `0 6`) | Mon 06:00 | 2026-08-31 12:22, 2026-09-07 11:16 | 5h16m–6h22m |
-| `contract-tests.yml` | daily 04:23 | 2026-09-12 … 09-26, 08:41–10:03 | 4h20m–5h40m |
+| `server-drift.yml` | Mon 06:37 | 2026-10-05: no run by 14:46 | 8h+ |
+| `contract-tests.yml` | daily 04:23 | 2026-09-12 … 10-05, 08:41–11:38 | 4h20m–7h15m |
 
-`created_at == run_started_at` on every one of them: GitHub creates the run
-late, the self-hosted runner picks it up within seconds. A `workflow_dispatch`
-of the same workflow starts immediately. Moving `server-drift` from `:00` to
-`:37` changed nothing, so the delay is the scheduler, not the top-of-hour rush.
+`created_at == run_started_at` on every one of them. GitHub created the run
+late, and the self-hosted runner picked it up within seconds. Moving the minute
+off `:00` changed nothing.
 
-The repo is public, created 2026-07-25; every scheduled run we have is after
-the 2026-08-26 incident below, so there is no "before" to compare with.
-
-## What others report
-
-- [community #196910](https://github.com/orgs/community/discussions/196910)
-  (May 2026) — drift grew from ~1h40m (2025) to 4h30m+. A GitHub staff member
-  answered that it is deliberate load balancing ("scheduled drops have grown
-  >30% in 2ish months") and that a fix is a roadmap item, not imminent.
-- [community #207346](https://github.com/orgs/community/discussions/207346)
-  (opened 2026-09-09) — 4–6 h late and runs dropped since 2026-08-26, public and
-  private repos, same `created_at == run_started_at` signature. No staff answer;
-  commenters suspect per-repo scheduler state broken by that incident and point
-  to GitHub Support with run ids as the only way to get it reset.
-- [community #201738](https://github.com/orgs/community/discussions/201738)
-  (July 2026) — 8–14 h late, changing the minute did not help. The accepted
-  answer (a user, not staff, undocumented) claims young Free-tier repos sit in a
-  low-priority queue swept once or twice a day.
-- GitHub's own docs only say `schedule` "can be delayed during periods of high
+- [community #196910](https://github.com/orgs/community/discussions/196910):
+  GitHub staff call it deliberate load balancing. A fix is on the roadmap,
+  with no date.
+- [community #207346](https://github.com/orgs/community/discussions/207346):
+  runs 4–6 h late and dropped since 2026-08-26, with the same signature.
+- GitHub's docs say only that `schedule` "can be delayed during periods of high
   loads" and that queued jobs "may be dropped".
 
-## If it starts to matter
-
-1. **External trigger** — the only workaround that bypasses the scheduler:
-   a systemd timer on the runner host calling `gh workflow run <file>` at the
-   cron time, keeping the `schedule:` entry as a fallback. Needs a fine-grained
-   PAT with Actions write on this repo only, stored on that host — a new
-   credential, so it needs an explicit yes first.
-2. **GitHub Support ticket** with run ids and timestamps, e.g. `34848170695`
-   and `35604464968` (server-drift), in case it is the per-repo state from
-   #207346.
-
-A dropped run is the signal to act: `server-drift` would then skip a week and
-the next range would simply be larger, while `contract-tests` would miss a day.
+A `schedule:` kept as a fallback would make every run a double, so there is none.
+If `lxc-dagu` is down, nothing fires. Start the workflow by hand from the
+Actions tab.

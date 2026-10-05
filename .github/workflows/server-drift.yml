@@ -8,7 +8,8 @@
 # ever hear about. Seed it once by hand with `from_sha`.
 #
 # The tree checked out is `dev`, because "do we already have this" is a question
-# about our integration branch, not about the default branch the cron runs from.
+# about our integration branch, not about the default branch the dispatch runs
+# from.
 # That also means the skill and `tool/server-ref-diff.sh` this job obeys are
 # `dev`'s copies, not this file's neighbours on master.
 #
@@ -28,13 +29,10 @@
 name: Server drift
 
 on:
-  schedule:
-    # Monday 06:37 UTC. The server does ~100 commits a fortnight but touches the
-    # contract in about 20 files, so a daily run would mostly report nothing.
-    # GitHub delivers this ~6.5 hours late whatever the minute — moving off
-    # '0 6' changed nothing; see docs/scheduled-workflows.md. Nothing downstream
-    # cares when it lands.
-    - cron: '37 6 * * 1'
+  # Weekly, Monday 06:37 UTC, dispatched by Dagu on lxc-dagu rather than a
+  # `schedule:` here — see docs/scheduled-workflows.md. The server does ~100
+  # commits a fortnight but touches the contract in about 20 files, so a daily
+  # run would mostly report nothing.
   workflow_dispatch:
     inputs:
       from_sha:
