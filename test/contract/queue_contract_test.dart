@@ -154,5 +154,52 @@ void main() {
       final kept = (await queue.fetch()).firstWhere((i) => i.id == item.id);
       expect(kept.amsMapping, [1]);
     });
+
+    test('a printer job keeps its changed slots, null clears them', () async {
+      // What the edit form sends for one printer (`printerOverridesForPlate`
+      // on the web). The server narrows the list to the slots the plate
+      // prints, so the slot comes from the plate's own requirements.
+      final printerId =
+          ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                  as Map<String, dynamic>)['id']
+              as int;
+      final item = (await queue.fetch()).firstWhere(
+        (i) => i.libraryFileId != null,
+      );
+      final slot = (await SlicerRepository(dio).filamentRequirements(
+        id: item.libraryFileId!,
+        isArchive: false,
+        fullSlots: false,
+      )).first.slotId;
+      addTearDown(
+        () => queue.updateItem(
+          item.id,
+          printerId: item.printerId,
+          targetModel: item.targetModel,
+          filamentOverrides: item.filamentOverrides,
+        ),
+      );
+
+      await queue.updateItem(
+        item.id,
+        printerId: printerId,
+        targetModel: null,
+        filamentOverrides: [
+          {
+            'slot_id': slot,
+            'type': 'PETG',
+            'color': '#00FF00',
+            'color_name': '#00FF00',
+            'force_color_match': true,
+          },
+        ],
+      );
+      final kept = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+      expect(kept.filamentOverrides?.single['force_color_match'], isTrue);
+
+      await queue.updateItem(item.id, filamentOverrides: null);
+      final cleared = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+      expect(cleared.filamentOverrides, isNull);
+    });
   });
 }

@@ -172,6 +172,8 @@ Future<List<int>?> queueMappingToSend({
 /// caller knows the printer currently selected in the form — the item's own
 /// `printer_name` is the one it was filed under, which is stale after a switch
 /// and absent entirely on a draft.
+/// [forceColorMatch] and [onForceColorMatch] put the web's per-filament
+/// "force colour match" box on each row.
 /// [startFrom] is the mapping to start from when the caller holds a newer one
 /// than the item's stored mapping — the edit form after a pick, or `[]` once a
 /// printer or plate switch dropped it, as the web drops its picks then.
@@ -186,6 +188,8 @@ Future<List<int>?> showQueueMappingSheet(
   String? printerName,
   int? plateId,
   List<int>? startFrom,
+  Map<int, bool>? forceColorMatch,
+  void Function(int slotId, bool value)? onForceColorMatch,
 }) {
   return dashSheet<List<int>>(
     context,
@@ -196,6 +200,8 @@ Future<List<int>?> showQueueMappingSheet(
       printerName: printerName,
       plateId: plateId,
       startFrom: startFrom,
+      forceColorMatch: forceColorMatch,
+      onForceColorMatch: onForceColorMatch,
     ),
   );
 }
@@ -208,6 +214,8 @@ class _MappingSheet extends ConsumerStatefulWidget {
     this.printerName,
     this.plateId,
     this.startFrom,
+    this.forceColorMatch,
+    this.onForceColorMatch,
   });
   final QueueItem item;
   final int printerId;
@@ -215,6 +223,11 @@ class _MappingSheet extends ConsumerStatefulWidget {
   final String? printerName;
   final int? plateId;
   final List<int>? startFrom;
+
+  /// Per-slot "force colour match" (#1717 on the web): shown when the caller
+  /// keeps the flags, which only the edit form does.
+  final Map<int, bool>? forceColorMatch;
+  final void Function(int slotId, bool value)? onForceColorMatch;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -227,6 +240,10 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   late final Map<int, int> _manual = _manualFrom(
     widget.startFrom ?? widget.item.amsMapping,
   );
+
+  /// The caller's flags, mirrored here: this route is not rebuilt by the
+  /// form's own state.
+  late final Map<int, bool> _force = {...?widget.forceColorMatch};
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
@@ -538,6 +555,22 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             if (c.isManual) Text(l10n.mappingManual),
             if (warning != null)
               Text(warning.$1, style: TextStyle(color: warning.$2)),
+            if (widget.onForceColorMatch case final onForce?
+                when req.slotId > 0)
+              Row(
+                children: [
+                  Checkbox(
+                    value: _force[req.slotId] ?? false,
+                    onChanged: (v) {
+                      setState(() => _force[req.slotId] = v ?? false);
+                      onForce(req.slotId, v ?? false);
+                    },
+                  ).tagged('queue_mapping.force_color'),
+                  const Icon(Icons.palette_outlined, size: 16),
+                  const SizedBox(width: DashSpace.xs),
+                  Flexible(child: Text(l10n.queueEditForceColorMatch)),
+                ],
+              ),
           ],
         ),
         trailing: Icon(

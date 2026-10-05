@@ -711,6 +711,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   confirmLabel: l10n.fmSave,
                   plateId: _plateId,
                   startFrom: _amsMapping ?? const [],
+                  forceColorMatch: _forceColorMatch,
+                  onForceColorMatch: (slotId, value) => setState(() {
+                    if (value) {
+                      _forceColorMatch[slotId] = true;
+                    } else {
+                      _forceColorMatch.remove(slotId);
+                    }
+                  }),
                 );
                 // Empty: the printer reported nothing to map to, and the web
                 // sends no mapping then — keep the stored one.
@@ -1144,6 +1152,20 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   /// force-only slot carries the ORIGINAL type/color. Returns null when empty
   /// (sent as an explicit clear). `color_name` has no catalogue on mobile, so
   /// the hex stands in — the backend uses it only for display messages.
+  /// The web's `printerOverridesForPlate`: a job for one printer carries only
+  /// the slots whose filament was changed (#3133) — the mapping was matched
+  /// against them, and the scheduler needs them if it maps again at
+  /// dispatch. A force-colour flag on its own stays behind, as the web's
+  /// does: printer mode never sent one.
+  List<Map<String, dynamic>>? _buildPrinterOverrides() {
+    final entries = [
+      for (final o
+          in _buildFilamentOverrides() ?? const <Map<String, dynamic>>[])
+        if (_overrides.containsKey(o['slot_id'])) o,
+    ];
+    return entries.isEmpty ? null : entries;
+  }
+
   List<Map<String, dynamic>>? _buildFilamentOverrides() {
     final entries = <Map<String, dynamic>>[];
     for (final r in _requirements()) {
@@ -1650,9 +1672,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     amsMapping: _modelMode
         ? kQueueUpdateUnset
         : _sentMapping ?? kQueueUpdateUnset,
+    // Null, not unset: a job moved to a printer must not keep a model job's
+    // overrides it no longer carries (#3133).
     filamentOverrides: _modelMode
         ? _buildFilamentOverrides()
-        : kQueueUpdateUnset,
+        : _buildPrinterOverrides(),
     scheduledTime: _scheduledTimeIso,
     requirePreviousSuccess: _requirePreviousSuccess,
     autoOffAfter: _autoOffAfter,
@@ -1695,7 +1719,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       plateId: orderId == null ? _plateId : plate.id,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
-      filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
+      filamentOverrides: _modelMode
+          ? _buildFilamentOverrides()
+          : _buildPrinterOverrides(),
       amsMapping: _modelMode ? null : _sentMapping,
       scheduledTime: _scheduledTimeIso,
       requirePreviousSuccess: _requirePreviousSuccess,
