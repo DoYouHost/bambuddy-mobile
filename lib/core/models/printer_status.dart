@@ -56,6 +56,7 @@ class PrinterStatus {
     this.nozzles,
     this.nozzleRack,
     this.filaSwitch,
+    this.amsFilamentBackup,
     this.extruderSlots,
   });
 
@@ -235,6 +236,12 @@ class PrinterStatus {
   @JsonKey(fromJson: _toFilaSwitchOrNull)
   final FilaSwitch? filaSwitch;
 
+  /// AMS Filament Backup — whether the printer moves to a second spool of the
+  /// same filament when one runs out. Null when the model does not report it
+  /// (A1 family). Off is what stops "prefer lowest remaining" from picking a
+  /// near-empty spool (`effectivePreferLowest`).
+  final bool? amsFilamentBackup;
+
   /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
   /// main, 1 = left / deputy). Null on servers and printers that do not report
   /// it; [trayNow] is printer-wide and cannot answer the same question, because
@@ -324,6 +331,7 @@ class PrinterStatus {
     nozzleRack,
     filaSwitch,
     extruderSlots,
+    amsFilamentBackup,
   ];
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -410,6 +418,7 @@ class PrinterStatus {
       nozzleRack: nozzleRack ?? previous.nozzleRack,
       filaSwitch: filaSwitch ?? previous.filaSwitch,
       extruderSlots: extruderSlots ?? previous.extruderSlots,
+      amsFilamentBackup: amsFilamentBackup ?? previous.amsFilamentBackup,
     )._clearedIfOffline();
   }
 
@@ -440,7 +449,8 @@ class PrinterStatus {
   /// wins over the inherited value in [mergedWith] the same as any other field.
   ///
   /// Kept: identity/hardware
-  /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`),
+  /// (`name`/`model`/`supportsDrying`/`nozzles`/`nozzleRack`/`filaSwitch`/
+  /// `amsFilamentBackup`),
   /// the physical AMS inventory
   /// (`ams`/`vtTray`/`amsExtruderMap`/`amsSwitchInlet`/`extruderSlots`/`trayNow`/`activeExtruder`)
   /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
@@ -464,6 +474,7 @@ class PrinterStatus {
       trayNow: trayNow,
       activeExtruder: activeExtruder,
       filaSwitch: filaSwitch,
+      amsFilamentBackup: amsFilamentBackup,
       extruderSlots: extruderSlots,
       hmsErrors: hmsErrors,
       awaitingPlateClear: awaitingPlateClear,

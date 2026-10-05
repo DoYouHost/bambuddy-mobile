@@ -698,7 +698,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   confirmLabel: l10n.fmSave,
                   plateId: _plateId,
                 );
-                if (mapping != null) setState(() => _amsMapping = mapping);
+                // Empty: the printer reported nothing to map to, and the web
+                // sends no mapping then — keep the stored one.
+                if (mapping != null && mapping.isNotEmpty) {
+                  setState(() => _amsMapping = mapping);
+                }
               },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -919,9 +923,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Filament override (model mode) ---
 
-  /// The filament slots as the server parsed them out of the 3MF, or empty when
-  /// the job has no source to parse (a queued reprint whose archive is created
-  /// only at print start) and while the request is in flight.
+  /// The filament slots the plate prints with, as the server parsed them out of
+  /// the 3MF — unused project slots left out, as the web's print dialog reads
+  /// them — or empty when the job has no source to parse (a queued reprint
+  /// whose archive is created only at print start) and while the request is in
+  /// flight.
   ///
   /// Separate from [_requirements] because that one flattens the records down to
   /// what the override rows need, and the rack picker needs the filament-group
@@ -931,7 +937,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.archiveId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: true,
                   id: it.archiveId!,
                   plate: _plateId ?? 1,
@@ -943,7 +949,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (it.libraryFileId != null) {
       return ref
               .watch(
-                filamentRequirementsProvider((
+                printRequirementsProvider((
                   isArchive: false,
                   id: it.libraryFileId!,
                   plate: _plateId ?? 1,

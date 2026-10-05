@@ -2,9 +2,9 @@ import 'package:app_util/app_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/filament_mapping.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag_material.dart';
-import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
@@ -14,74 +14,29 @@ import '../../providers.dart';
 import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
-/// One AMS slot (or external spool) a file filament can be mapped to.
-typedef _Tray = ({
-  int global,
-  String? type,
-  String? color,
-  bool external,
-  bool dualExternal,
-});
-
-/// Loaded filaments for a printer's AMS, from its live status only — as the
-/// web's mapping (`useFilamentMapping.ts::buildLoadedFilaments`): that is
-/// what the firmware resolves the mapping against, and a slot offered from
-/// anywhere else is how a job gets rejected with "unable to fetch AMS
-/// mapping". No status, or no loaded slot, offers nothing and leaves the
-/// mapping to the server.
-final printerTraysProvider = FutureProvider.autoDispose
-    .family<List<_Tray>, int>(
-      (ref, printerId) async => _traysFromStatus(
-        await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
-      ),
+/// The printer's live status — the only source of slots the web's mapping
+/// reads (`useFilamentMapping.ts::buildLoadedFilaments`): it is what the
+/// firmware resolves the mapping against, and a slot offered from anywhere
+/// else is how a job gets rejected with "unable to fetch AMS mapping".
+final mappingStatusProvider = FutureProvider.autoDispose
+    .family<PrinterStatus?, int>(
+      (ref, printerId) =>
+          ref.watch(printersRepositoryProvider).fetchStatus(printerId),
     );
 
-List<_Tray> _traysFromStatus(PrinterStatus? status) {
-  if (status == null) return const [];
-  final out = <_Tray>[];
-  final units = status.ams ?? const <AmsUnit>[];
-  for (var u = 0; u < units.length; u++) {
-    // Global AMS index is keyed by the unit's real hardware id (what the
-    // firmware/`ams_mapping` actually understands), falling back to list
-    // position only when the unit reports no id — same convention as
-    // `printer_card_details.dart` and `print_monitor.dart`'s `_trayRemains`.
-    // Keying by list position instead breaks as soon as `ams[].id` doesn't
-    // match position (e.g. a single remaining AMS unit reporting id=1 after
-    // the first one was unplugged), offering a global index the printer
-    // rejects with "unable to fetch AMS mapping".
-    final unitId = units[u].id ?? u;
-    for (final t in units[u].trays ?? const <AmsTray>[]) {
-      // The web's test is the type alone: a transparent colour is a filament.
-      if (t.trayType?.isEmpty ?? true) continue;
-      final int global = globalTrayId(amsId: unitId, trayId: t.id ?? 0);
-      out.add((
-        global: global,
-        type: t.trayType,
-        color: t.trayColor,
-        external: false,
-        dualExternal: false,
-      ));
-    }
-  }
-  for (final e in status.externalSpools) {
-    if (e.trayType?.isEmpty ?? true) continue;
-    // `vt_tray` reports the holder's global id directly.
-    final int global = e.id ?? externalTrayIdBase;
-    out.add((
-      global: global,
-      type: e.trayType,
-      color: e.trayColor,
-      external: true,
-      dualExternal: status.externalSpools.length > 1,
-    ));
-  }
-  return out;
-}
+/// Grams left on the spools bound to [printerId]'s slots, by global tray id —
+/// the first tier of the "prefer lowest remaining" sort.
+final mappingInventoryRemainProvider = FutureProvider.autoDispose
+    .family<Map<int, double>, int>(
+      (ref, printerId) =>
+          ref.watch(printersRepositoryProvider).fetchInventoryRemain(printerId),
+    );
 
-/// Opens the filament-mapping screen for [item] against [printerId]. Pre-fills
-/// auto-matched defaults; the user may adjust, leave slots on "auto", or just
-/// confirm. Returns the `ams_mapping` array (`-1` = auto for unset slots), or
-/// null if dismissed. Persisting/starting is the caller's job — [confirmLabel]
+/// Opens the filament-mapping screen for [item] against [printerId], matched
+/// as the web matches (`lib/core/ams/filament_mapping.dart`) and starting from
+/// the item's stored mapping. Returns the whole `ams_mapping` the web would
+/// send — `-1` for a filament no slot matches — an empty list when the printer
+/// reports nothing to map to, or null if dismissed. Persisting/starting is the caller's job — [confirmLabel]
 /// is the action verb on the button (e.g. "Start" or "Save").
 /// [printerName] names [printerId] in the "no AMS" note. Pass it whenever the
 /// caller knows the printer currently selected in the form — the item's own
@@ -129,15 +84,13 @@ class _MappingSheet extends ConsumerStatefulWidget {
 }
 
 class _MappingSheetState extends ConsumerState<_MappingSheet> {
-  // Selected global AMS tray per filament slot (null = auto / -1).
-  List<int?> _selected = [];
-
-  // Whether the user explicitly picked a tray for any slot. While false we
-  // return an empty mapping so the caller skips the PATCH and lets the backend
-  // auto-compute from the printer's LIVE AMS (its robust path), instead of us
-  // forcing a pre-filled auto-match that may reference an unloaded tray and
-  // trip "unable to fetch AMS mapping" on the printer.
-  bool _touched = false;
+  /// `slot_id` → global tray id the user picked, seeded from the stored
+  /// mapping as the web's edit form is (`PrintModal/index.tsx`); every other
+  /// slot is auto-matched.
+  late final Map<int, int> _manual = {
+    for (final (i, global) in (widget.item.amsMapping ?? const <int>[]).indexed)
+      if (global != -1) i + 1: global,
+  };
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
@@ -179,38 +132,62 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     }
 
     final reqsAsync = ref.watch(
-      filamentRequirementsProvider((
+      printRequirementsProvider((
         isArchive: _isArchive,
         id: sourceId,
         plate: _plateId,
       )),
     );
-    final traysAsync = ref.watch(printerTraysProvider(widget.printerId));
+    final statusAsync = ref.watch(mappingStatusProvider(widget.printerId));
+    // Neither holds the sheet: like the web's queries they only reorder
+    // slots once they answer.
+    final remain = ref
+        .watch(mappingInventoryRemainProvider(widget.printerId))
+        .valueOrNull;
+    final preferLowest = ref.watch(preferLowestFilamentProvider).valueOrNull;
     // Loads the shelf while the sheet is open, for the picker's grams — a
     // listen, as nothing on this sheet shows them.
     ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
 
+    if (reqsAsync.isLoading || statusAsync.isLoading) {
+      return wrap(
+        const Padding(
+          padding: EdgeInsets.all(DashSpace.xxl),
+          child: DashLoading(),
+        ),
+      );
+    }
+    final status = statusAsync.valueOrNull;
+    final loaded = buildLoadedFilaments(status);
+    final comparison = buildFilamentComparison(
+      reqsAsync.valueOrNull ?? const [],
+      loaded,
+      _manual,
+      preferLowest: effectivePreferLowest(
+        preferLowest,
+        status?.amsFilamentBackup,
+      ),
+      inventoryByTrayId: remain,
+      ftsActive: status?.filaSwitch?.installed ?? false,
+    );
     return wrap(
-      reqsAsync.isLoading || traysAsync.isLoading
-          ? const Padding(
-              padding: EdgeInsets.all(DashSpace.xxl),
-              child: DashLoading(),
-            )
-          : _content(
-              theme,
-              reqsAsync.valueOrNull ?? const [],
-              traysAsync.valueOrNull ?? const [],
-            ),
+      _content(
+        theme,
+        comparison,
+        loaded,
+        dualExternal: (status?.vtTray?.length ?? 0) > 1,
+      ),
     );
   }
 
   Widget _content(
     ThemeData theme,
-    List<FilamentRequirement> reqs,
-    List<_Tray> trays,
-  ) {
+    List<FilamentComparison> comparison,
+    List<LoadedFilament> loaded, {
+    required bool dualExternal,
+  }) {
     final l10n = _l10n;
-    if (reqs.isEmpty) {
+    if (comparison.isEmpty) {
       // No per-slot info — nothing to map; let the caller proceed with defaults.
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
@@ -227,7 +204,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       );
     }
 
-    _initSelection(reqs, trays);
+    String label(LoadedFilament f) => _trayLabel(f, dualExternal: dualExternal);
 
     return ListView(
       shrinkWrap: true,
@@ -240,7 +217,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        if (trays.isEmpty)
+        if (loaded.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.sm),
             child: Text(
@@ -253,12 +230,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             ),
           ),
         const SizedBox(height: DashSpace.md),
-        for (var i = 0; i < reqs.length; i++)
-          _slotRow(theme, i, reqs[i], trays),
+        for (final c in comparison) _slotRow(theme, c, loaded, label),
         const SizedBox(height: DashSpace.lg),
-        // Untouched → empty mapping = "let the backend auto-map from live AMS".
+        // The web sends no mapping when the printer reports no slot, which
+        // leaves the stored one alone and the start to the server.
         _confirmButton(
-          _touched ? [for (final s in _selected) s ?? -1] : const [],
+          loaded.isEmpty ? const [] : buildAmsMapping(comparison) ?? const [],
         ),
       ],
     );
@@ -272,42 +249,48 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
   Widget _slotRow(
     ThemeData theme,
-    int i,
-    FilamentRequirement req,
-    List<_Tray> trays,
+    FilamentComparison c,
+    List<LoadedFilament> loaded,
+    String Function(LoadedFilament) label,
   ) {
     final l10n = _l10n;
-    final sel = _selected[i];
-    final matches = sel == null ? null : trays.where((t) => t.global == sel);
-    final selTray = (matches != null && matches.isNotEmpty)
-        ? matches.first
-        : null;
+    final req = c.requirement;
+    final pick = c.loaded;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
       child: ListTile(
         // Show the chosen filament's colour once mapped, else the file's
         // required colour.
-        leading: _swatch(theme, selTray?.color ?? req.color, 28),
+        leading: _swatch(theme, pick?.color ?? req.color, 28),
         title: Text(
-          l10n.sliceFilamentNumbered('${i + 1}'),
+          l10n.sliceFilamentNumbered('${req.slotId}'),
           style: theme.textTheme.labelMedium,
         ),
         subtitle: Text(
-          selTray == null
-              ? l10n.mappingPickTray
-              : '${_trayLabel(selTray)} · ${selTray.type ?? ''}',
+          pick == null ? l10n.mappingPickTray : '${label(pick)} · ${pick.type}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: trays.isEmpty ? null : () => _pickTray(i, trays),
+        onTap: loaded.isEmpty || req.slotId <= 0
+            ? null
+            : () => _pickTray(req.slotId, pick, loaded, label),
         // The material the *file* asks for, not the tray picked for it: a
         // mapping report is about the two disagreeing.
       ).taggedMaterial('queue_mapping.slot', req.type),
     );
   }
 
-  Future<void> _pickTray(int slot, List<_Tray> trays) async {
+  /// Every loaded slot is offered for every filament, whichever nozzle it
+  /// feeds (#1722 on the web); the first entry drops the pick and lets the
+  /// match decide again, as the web's empty choice does.
+  Future<void> _pickTray(
+    int slotId,
+    LoadedFilament? current,
+    List<LoadedFilament> loaded,
+    String Function(LoadedFilament) label,
+  ) async {
+    const auto = -1;
     final theme = Theme.of(context);
     final picked = await dashSheet<int>(
       context,
@@ -320,91 +303,64 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             final assigned = ref.watch(
               assignedSpoolsProvider(widget.printerId),
             );
-            Spool? spoolOf(_Tray t) {
-              final slot = localSlotOf(t.global);
-              return assigned.builtInAt(slot.amsId, slot.trayId);
-            }
+            Spool? spoolOf(LoadedFilament f) => assigned.builtInAt(
+              f.isExternal ? externalHolderUnit : f.amsId,
+              f.trayId,
+            );
 
             return ListView(
               shrinkWrap: true,
               children: [
-                for (final t in trays)
+                ListTile(
+                  title: Text(_l10n.mappingPickTray),
+                  onTap: () => Navigator.pop(ctx, auto),
+                ).tagged('queue_mapping.tray_auto'),
+                for (final f in loaded)
                   ListTile(
-                    leading: _swatch(theme, t.color, 28),
-                    title: Text(_trayLabel(t)),
+                    leading: _swatch(theme, f.color, 28),
+                    title: Text(label(f)),
                     subtitle: Text(
                       [
-                        ?t.type,
+                        f.type,
                         // What the web's mapping shows: the built-in
                         // inventory's spool for the slot, in grams, and no
                         // percent (`FilamentMapping.tsx`,
                         // trayRemainingWeightMap).
-                        if (spoolOf(t) case final spool?)
+                        if (spoolOf(f) case final spool?)
                           _l10n.inventoryRemaining(
                             spool.remainingWeight.toStringAsFixed(0),
                           ),
                       ].join(' · '),
                     ),
-                    trailing: _selected[slot] == t.global
+                    trailing: current?.globalTrayId == f.globalTrayId
                         ? Icon(Icons.check, color: theme.colorScheme.primary)
                         : null,
-                    onTap: () => Navigator.pop(ctx, t.global),
-                  ).taggedMaterial('queue_mapping.tray_option', t.type),
+                    onTap: () => Navigator.pop(ctx, f.globalTrayId),
+                  ).taggedMaterial('queue_mapping.tray_option', f.type),
               ],
             );
           },
         ),
       ),
     );
-    if (picked != null) {
-      setState(() {
-        _selected[slot] = picked;
-        _touched = true;
-      });
-    }
-  }
-
-  // --- helpers ---
-
-  /// Seed each slot from the item's existing mapping, else auto-match by
-  /// material then closest colour. Runs once (when sizing matches).
-  void _initSelection(List<FilamentRequirement> reqs, List<_Tray> trays) {
-    if (_selected.length == reqs.length) return;
-    final existing = widget.item.amsMapping;
-    _selected = List<int?>.generate(reqs.length, (i) {
-      if (existing != null && i < existing.length && existing[i] >= 0) {
-        final g = existing[i];
-        if (trays.any((t) => t.global == g)) return g;
+    if (picked == null) return;
+    setState(() {
+      if (picked == auto) {
+        _manual.remove(slotId);
+      } else {
+        _manual[slotId] = picked;
       }
-      return _autoMatch(reqs[i], trays);
     });
   }
 
-  int? _autoMatch(FilamentRequirement req, List<_Tray> trays) {
-    final ofType =
-        [
-          for (final t in trays)
-            if (req.type == null ||
-                (t.type != null && _typeMatches(t.type!, req.type!)))
-              t,
-        ]..sort(
-          (a, b) => colorDistance(
-            a.color,
-            req.color,
-          ).compareTo(colorDistance(b.color, req.color)),
-        );
-    if (ofType.isNotEmpty) return ofType.first.global;
-    return trays.length == 1 ? trays.first.global : null;
-  }
-
-  String _trayLabel(_Tray t) {
+  String _trayLabel(LoadedFilament f, {required bool dualExternal}) {
     // `useFilamentMapping.ts`: Ext-L/Ext-R when the printer reports two
     // holders — the letters on the machine, not translated.
-    if (t.external && t.dualExternal) {
-      return t.global == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
+    if (f.isExternal && dualExternal) {
+      return f.globalTrayId == externalTrayIdBase ? 'Ext-L' : 'Ext-R';
     }
-    if (t.external) return _l10n.mappingExternalSpool;
-    final slot = localSlotOf(t.global);
+    if (f.isExternal) return _l10n.mappingExternalSpool;
+    final slot = localSlotOf(f.globalTrayId);
     return amsSlotName(slot.amsId, slot.trayId);
   }
 
@@ -427,9 +383,4 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
           : null,
     );
   }
-}
-
-bool _typeMatches(String a, String b) {
-  final x = a.toUpperCase().trim(), y = b.toUpperCase().trim();
-  return x == y || x.startsWith(y) || y.startsWith(x);
 }

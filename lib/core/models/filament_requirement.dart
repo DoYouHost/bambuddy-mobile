@@ -1,8 +1,8 @@
 import 'package:app_util/app_util.dart';
 
 /// One filament slot a model needs, from `.../filament-requirements`
-/// (`{filaments: [{slot_id, type, color, used_grams, used_meters,
-/// used_in_plate}]}`). A multicolor 3MF yields several; the slice request maps
+/// (`{filaments: [{slot_id, type, color, tray_info_idx, used_grams,
+/// used_meters, used_in_plate, nozzle_id?}]}`). A multicolor 3MF yields several; the slice request maps
 /// `filament_presets[i]` to slot `i+1` in order.
 class FilamentRequirement {
   const FilamentRequirement({
@@ -12,6 +12,8 @@ class FilamentRequirement {
     this.usedInPlate = true,
     this.groupId,
     this.group,
+    this.trayInfoIdx,
+    this.nozzleId,
   });
 
   factory FilamentRequirement.fromJson(
@@ -25,6 +27,8 @@ class FilamentRequirement {
     usedInPlate: json['used_in_plate'] as bool? ?? true,
     groupId: toIntOrNull(json['group_id']),
     group: parseJsonObjectOrNull(json['group'], RackGroup.fromJson),
+    trayInfoIdx: json['tray_info_idx'] as String?,
+    nozzleId: toIntOrNull(json['nozzle_id']),
   );
 
   /// Parse the `filaments` list, skipping unused/unparseable slots.
@@ -67,6 +71,15 @@ class FilamentRequirement {
   /// `routes/library.py`), so all-true means either "all really used" or "could
   /// not tell". Use [anyUnused] before telling the user anything.
   final bool usedInPlate;
+
+  /// The filament variant the slice was made for (`GFA00` is Bambu PLA
+  /// Basic), `""` when the 3MF names none. The mapping's first pick: a variant
+  /// loaded in exactly one slot goes there.
+  final String? trayInfoIdx;
+
+  /// The nozzle the slicer put this slot on — 0 right, 1 left — sent only for
+  /// a two-nozzle plate (`services/filament_requirements.py`).
+  final int? nozzleId;
 }
 
 /// One filament group's hotend requirement on a nozzle-rack plate, from a

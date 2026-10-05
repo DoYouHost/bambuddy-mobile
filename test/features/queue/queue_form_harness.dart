@@ -168,7 +168,7 @@ Widget queueFormScreen(
       if (platesDelay != null) await Future<void>.delayed(platesDelay);
       return plates;
     }),
-    filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
+    printRequirementsProvider.overrideWith((ref, arg) async => requirements),
     printerStatusOnceProvider.overrideWith(
       (ref, id) async => PrinterStatus(id: id, nozzleRack: nozzleRack),
     ),

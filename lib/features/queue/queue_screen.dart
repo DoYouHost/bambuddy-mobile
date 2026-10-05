@@ -579,7 +579,9 @@ class _QueueActions extends ConsumerWidget {
               printerId: printerId,
               confirmLabel: l10n.fmSave,
             );
-            if (mapping == null) return;
+            // Empty: the printer reported nothing to map to, and the web sends
+            // no mapping then — saving [] would clear the stored one.
+            if (mapping == null || mapping.isEmpty) return;
             final r = await notifier.saveMapping(item.id, mapping);
             messenger.snack(queueWriteMessage(l10n, r) ?? l10n.mappingSaved);
             return;

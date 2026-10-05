@@ -77,6 +77,14 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// `GET` → `{inventory_remain_g: {"254": grams, …}, slot_materials:
+  /// [...]}`: grams left on the spool bound to each loaded slot, which the
+  /// web's mapping sorts by when "prefer lowest remaining" is on
+  /// (`routes/printers.py::get_inventory_remain`). Newer than most servers in
+  /// the field — a 404 is the same as nothing bound.
+  static String printerInventoryRemain(int printerId) =>
+      '$apiPrefix/printers/$printerId/inventory-remain';
+
   /// Pre-save connection diagnostic for the Add-Printer flow (`POST`, body
   /// `{ip_address, serial_number?, access_code?}`). Returns
   /// `PrinterDiagnosticResult` (`{overall, checks:[{id,status,params}]}`).

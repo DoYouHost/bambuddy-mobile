@@ -1,9 +1,11 @@
-import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
+import 'dart:math';
+
+import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
-import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
+import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,32 +61,70 @@ void main() {
     });
 
     test(
-      'the mapping offers exactly the loaded slots of the live status',
+      'the seeded print maps onto the seeded printer as the web maps it',
       () async {
-        // Nothing from the inventory: the web has no other source.
-        final printers = (await dio.get<List<dynamic>>(
-          '/api/v1/printers/',
-        )).data!;
-        final printerId = (printers.first as Map<String, dynamic>)['id'] as int;
-        final status = await PrintersRepository(dio).fetchStatus(printerId);
-        final units = status?.ams ?? const [];
-        final loaded = [
-          for (var u = 0; u < units.length; u++)
-            for (final tray in units[u].trays ?? const [])
-              if (tray.trayType?.isNotEmpty ?? false)
-                globalTrayId(amsId: units[u].id ?? u, trayId: tray.id ?? 0),
-          for (final ext in status?.externalSpools ?? const [])
-            if (ext.trayType?.isNotEmpty ?? false) ext.id ?? externalTrayIdBase,
-        ];
-        expect(loaded, isNotEmpty, reason: 'the seed loads two PLA slots');
-
-        final container = contractContainer(dio);
-        container.listen(printerTraysProvider(printerId), (_, _) {});
-        final trays = await container.read(
-          printerTraysProvider(printerId).future,
+        // The whole path the mapping sheet takes, against the server's own
+        // answers: the plate's used filaments (no full_slots), the live slots,
+        // the grams the "prefer lowest" sort reads and the setting itself.
+        final printers = PrintersRepository(dio);
+        final printerId =
+            ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                    as Map<String, dynamic>)['id']
+                as int;
+        final item = (await queue.fetch()).firstWhere(
+          (i) => i.libraryFileId != null,
         );
 
-        expect([for (final t in trays) t.global], loaded);
+        final requirements = await SlicerRepository(dio).filamentRequirements(
+          id: item.libraryFileId!,
+          isArchive: false,
+          fullSlots: false,
+        );
+        expect(requirements, isNotEmpty);
+        for (final r in requirements) {
+          expect(r.slotId, greaterThan(0));
+          expect(
+            r.trayInfoIdx,
+            isNotNull,
+            reason: 'tray_info_idx is always sent',
+          );
+        }
+
+        final status = await printers.fetchStatus(printerId);
+        final loaded = buildLoadedFilaments(status);
+        expect(
+          [for (final f in loaded) f.globalTrayId],
+          [0, 1],
+          reason: 'the seed loads red and green PLA in AMS 0',
+        );
+
+        final remain = await printers.fetchInventoryRemain(printerId);
+        expect(remain, isA<Map<int, double>>());
+        final settings = (await dio.get<Map<String, dynamic>>(
+          '/api/v1/settings/',
+        )).data!;
+        expect(settings['prefer_lowest_filament'], isA<bool?>());
+
+        final mapping = buildAmsMapping(
+          buildFilamentComparison(
+            requirements,
+            loaded,
+            const {},
+            preferLowest: effectivePreferLowest(
+              settings['prefer_lowest_filament'] as bool?,
+              status?.amsFilamentBackup,
+            ),
+            inventoryByTrayId: remain,
+            ftsActive: status?.filaSwitch?.installed ?? false,
+          ),
+        );
+        expect(
+          mapping,
+          hasLength(requirements.map((r) => r.slotId).reduce(max)),
+        );
+        for (final global in mapping!) {
+          expect(global == -1 || global == 0 || global == 1, isTrue);
+        }
       },
     );
   });

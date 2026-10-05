@@ -1050,6 +1050,12 @@ final requirePlateClearProvider = serverGate<bool>(
   (settings) => settings.settingBool('require_plate_clear'),
 );
 
+/// "Prefer lowest remaining filament": among equal matches the mapping picks
+/// the emptiest spool, as the web's (`effectivePreferLowest`).
+final preferLowestFilamentProvider = serverGate<bool>(
+  (settings) => settings.settingBool('prefer_lowest_filament'),
+);
+
 /// Printer models with an auto-print G-code snippet configured on the server.
 /// Gates the print form's `gcode_injection` checkbox (see
 /// [gcodeSnippetModels]): without snippets the flag does nothing, so the web

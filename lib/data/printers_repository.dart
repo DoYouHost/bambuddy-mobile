@@ -64,6 +64,28 @@ class PrintersRepository {
     return body == null ? null : PrinterStatus.fromJson(body);
   });
 
+  /// Grams left by global tray id ([Endpoints.printerInventoryRemain]);
+  /// empty on any failure short of a lost session, a 403 included — it only
+  /// orders slots, as the web's query.
+  Future<Map<int, double>> fetchInventoryRemain(int printerId) async {
+    final body = await guardOrNullAllowingForbidden(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.printerInventoryRemain(printerId),
+      );
+      return res.data;
+    });
+    final grams = body?['inventory_remain_g'];
+    if (grams is! Map<String, dynamic>) return const {};
+    return {
+      for (final MapEntry(:key, :value) in grams.entries)
+        if ((int.tryParse(key), toDoubleOrNull(value)) case (
+          final int id,
+          final double g,
+        ))
+          id: g,
+    };
+  }
+
   /// Filaments loaded on active printers of [model] (optionally filtered by
   /// [location]) — options for model-based filament overrides. Degrades to an
   /// empty list on failure (the override UI just shows no alternatives).
