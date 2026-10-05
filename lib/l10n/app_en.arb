@@ -796,14 +796,6 @@
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
   "cameraDemoUnavailable": "Camera preview is not available in demo mode",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
   "amsSlotFilament": "Filament",
@@ -3159,17 +3151,6 @@
   },
   "mappingPickTray": "Select AMS slot",
   "mappingExternalSpool": "External spool",
-  "mappingAmsSlot": "AMS {unit} · slot {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Filament mapping saved",
   "plateClearTitle": "Is the plate clear?",
   "plateClearBody": "Make sure the build plate is empty before starting this print.",

@@ -51,6 +51,30 @@ int globalTrayId({required int amsId, required int trayId}) {
   return amsId * 4 + trayId;
 }
 
+/// Unit id the backend gives an A2L's AMS Lite (its physical 16, normalised at
+/// ingest). No regular AMS uses it.
+const amsLiteUnit = 6;
+
+/// The unit's name as the web names it (`amsHelpers.ts::getAmsLabel`): AMS-A,
+/// AMS-B… by unit id, HT-A… for an AMS-HT. Product names, so not localised;
+/// the external holder is the caller's to name.
+String amsUnitName(int amsId) {
+  assert(!isExternalHolder(amsId), 'the external holder has no unit name');
+  if (amsId == amsLiteUnit) return 'AMS Lite';
+  final ht = amsId >= amsHtUnitBase;
+  final letter = String.fromCharCode(
+    0x41 + (ht ? amsId - amsHtUnitBase : amsId),
+  );
+  return ht ? 'HT-$letter' : 'AMS-$letter';
+}
+
+/// "AMS-A · 2". An AMS-HT holds a single tray, so its unit name is the whole
+/// label. [unit] overrides the generated name with the user's own.
+String amsSlotName(int amsId, int trayId, {String? unit}) {
+  unit ??= amsUnitName(amsId);
+  return amsId >= amsHtUnitBase ? unit : '$unit · ${trayId + 1}';
+}
+
 /// The inverse of [globalTrayId], for labelling a slot picked by its global id.
 ({int amsId, int trayId}) localSlotOf(int global) {
   final side = externalSideOf(global);

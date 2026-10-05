@@ -115,6 +115,22 @@ class _AssignedInventory extends InventoryNotifier {
   );
 }
 
+/// A part-used spool in the fixture's PLA slot (AMS 0, tray 3) and another on
+/// the left side of the external holder.
+class _WeighedInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
+      Spool(id: 2, material: 'TPU', labelWeight: 500, weightUsed: 250),
+    ],
+    assignmentBySpool: {
+      1: SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+      2: SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
+    },
+  );
+}
+
 /// The tagged spool on the shelf and a different one pinned to the same slot,
 /// for which of the two the slot shows.
 class _PinnedOverTagInventory extends InventoryNotifier {
@@ -700,7 +716,7 @@ void main() {
 
       // Collapsed: there's a "Details" toggle, no AMS content.
       expect(find.text('Szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsNothing);
+      expect(find.text('AMS-A'), findsNothing);
 
       // The card is tall — make sure the toggle is visible before tapping.
       await tester.ensureVisible(find.text('Szczegóły'));
@@ -712,7 +728,7 @@ void main() {
 
       // Expanded: AMS, external spool and metadata visible.
       expect(find.text('Ukryj szczegóły'), findsOneWidget);
-      expect(find.text('AMS 1'), findsOneWidget);
+      expect(find.text('AMS-A'), findsOneWidget);
       expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
       // Filament row: material and remaining amount as separate texts.
       expect(find.text('PLA Basic'), findsWidgets);
@@ -720,6 +736,33 @@ void main() {
       // Connectivity metadata.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
+    });
+
+    testWidgets('a slot with a spool reads its fill from the spool', (
+      tester,
+    ) async {
+      // The AMS reports 66% for the PLA in slot 4, but only a tagged Bambu
+      // spool gives it anything to measure — without one it says 100% for
+      // ever (issue #5). The spool's own weight is what the web shows.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_WeighedInventory.new)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('10% · 102 g'), findsOneWidget);
+      expect(find.text('66%'), findsNothing);
+      // The holder reports no fill of its own, so it had nothing to show
+      // until a spool sat on it.
+      expect(find.text('50% · 250 g'), findsOneWidget);
     });
 
     testWidgets(

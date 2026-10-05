@@ -676,14 +676,6 @@
   "cameraConnecting": "Connexion à la caméra…",
   "cameraError": "Impossible de charger le flux de la caméra",
   "cameraDemoUnavailable": "L'aperçu de la caméra n'est pas disponible en mode démo",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "Bobine externe",
   "traySlotEmpty": "Vide",
   "amsSlotFilament": "Filament",
@@ -2977,17 +2969,6 @@
   },
   "mappingPickTray": "Sélectionner un emplacement AMS",
   "mappingExternalSpool": "Bobine externe",
-  "mappingAmsSlot": "AMS {unit} · emplacement {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Mappage des filaments enregistré",
   "plateClearTitle": "Le plateau est-il dégagé ?",
   "plateClearBody": "Assurez-vous que le plateau d'impression est vide avant de lancer cette impression.",

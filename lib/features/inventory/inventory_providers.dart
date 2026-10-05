@@ -437,7 +437,35 @@ class AssignedSpools {
   // An unread tag arrives as zeros, which still normalises to digits.
   static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
 
+  /// The spool sitting in [tray] of unit [amsId]. The slot assignment first,
+  /// as the web (#1457); the AMS sync writes the tag's spool there itself, so
+  /// the tag only answers until that sync has run.
+  Spool? inAmsSlot(int amsId, AmsTray tray) =>
+      forAmsSlot(amsId, tray.id ?? 0) ?? boundByTag(tray);
+
+  /// The spool on the external holder [tray] of [status]'s printer. A
+  /// single-nozzle printer keeps its one holder under extruder 1.
+  Spool? onHolder(PrinterStatus status, AmsTray tray) =>
+      forExtruder(
+        status.isDualExtruder ? status.extruderForExternal(tray.id) : 1,
+      ) ??
+      boundByTag(tray);
+
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
+}
+
+/// Fill percent shown for a slot, in the web's order (`PrintersPage.tsx`, the
+/// fill-level chain): the [spool] in it first, the AMS's own [remain] only
+/// without one. An AMS reads 100% for any spool it has no RFID data for, so
+/// its number is a last resort. The exception is a spool at 0% while the AMS
+/// still sees filament: its `weight_used` is stale (server #676) and the AMS
+/// wins.
+int? trayFillPercent({int? remain, Spool? spool}) {
+  final ams = remain != null && remain >= 0 ? remain : null;
+  final fraction = spool?.remainingFraction;
+  if (fraction == null) return ams;
+  final percent = (fraction * 100).round();
+  return percent == 0 && (ams ?? 0) > 0 ? ams : percent;
 }
 
 /// Assignment resolver for one printer (by `printerId`). Reads `inventoryProvider`

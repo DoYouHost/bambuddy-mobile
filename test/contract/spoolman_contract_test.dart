@@ -1,8 +1,10 @@
 import 'package:bambuddy_mobile/core/models/api_key.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/api_keys_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -122,6 +124,36 @@ void main() {
       await source.unassignSpool(printerId, 0, 3);
       expect(await slotsOf(spool.id), isEmpty);
     });
+
+    test(
+      "the printer card reads a slot's fill from its Spoolman spool",
+      () async {
+        // The reporter's second screenshot: an AMS without RFID data says 100%,
+        // while Spoolman holds 700 of 1000 g. Followed through the providers the
+        // card reads, so the backend detection is part of what is checked.
+        final spool = await newSpool();
+        await source.assignSpool(
+          SpoolAssignmentDraft(
+            spoolId: spool.id,
+            printerId: printerId,
+            amsId: 0,
+            trayId: 3,
+          ),
+        );
+        addTearDown(() => source.unassignSpool(printerId, 0, 3));
+
+        final container = contractContainer(dio);
+        container.listen(assignedSpoolsProvider(printerId), (_, _) {});
+        await container.read(inventoryBackendProvider.future);
+        await container.read(inventoryProvider.future);
+        final inSlot = container
+            .read(assignedSpoolsProvider(printerId))
+            .inAmsSlot(0, const AmsTray(id: 3, remain: 100));
+
+        expect(inSlot?.id, spool.id);
+        expect(trayFillPercent(remain: 100, spool: inSlot), 70);
+      },
+    );
 
     test('an API key with manage-inventory can assign by slot', () async {
       final keys = ApiKeysRepository(dio);

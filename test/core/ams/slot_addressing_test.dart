@@ -83,4 +83,29 @@ void main() {
       }
     });
   });
+
+  group('AMS names', () {
+    test('a unit is lettered from its id, as the web letters it', () {
+      expect(amsUnitName(0), 'AMS-A');
+      expect(amsUnitName(3), 'AMS-D');
+      expect(amsUnitName(128), 'HT-A');
+      expect(amsUnitName(129), 'HT-B');
+      expect(amsUnitName(amsLiteUnit), 'AMS Lite');
+    });
+
+    test('a slot adds its 1-based tray, except on a one-tray AMS-HT', () {
+      expect(amsSlotName(0, 0), 'AMS-A · 1');
+      expect(amsSlotName(1, 3), 'AMS-B · 4');
+      expect(amsSlotName(128, 0), 'HT-A');
+    });
+
+    test("the user's own unit name replaces the letter only", () {
+      expect(amsSlotName(0, 2, unit: 'Dryer box'), 'Dryer box · 3');
+      expect(amsSlotName(128, 0, unit: 'Dryer box'), 'Dryer box');
+    });
+
+    test('the external holder is not a unit', () {
+      expect(() => amsUnitName(externalHolderUnit), throwsAssertionError);
+    });
+  });
 }

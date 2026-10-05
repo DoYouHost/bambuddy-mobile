@@ -1368,11 +1368,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'L\'aperçu de la caméra n\'est pas disponible en mode démo';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'Bobine externe';
 
   @override
@@ -5318,11 +5313,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mappingExternalSpool => 'Bobine externe';
-
-  @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · emplacement $slot';
-  }
 
   @override
   String get mappingSaved => 'Mappage des filaments enregistré';

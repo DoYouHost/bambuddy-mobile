@@ -676,14 +676,6 @@
   "cameraConnecting": "Verbindung zur Kamera wird hergestellt…",
   "cameraError": "Kamerastream konnte nicht geladen werden",
   "cameraDemoUnavailable": "Kameravorschau ist im Demo-Modus nicht verfügbar",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "Externe Spule",
   "traySlotEmpty": "Leer",
   "amsSlotFilament": "Filament",
@@ -2977,17 +2969,6 @@
   },
   "mappingPickTray": "AMS-Slot auswählen",
   "mappingExternalSpool": "Externe Spule",
-  "mappingAmsSlot": "AMS {unit} · Slot {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Filament-Zuordnung gespeichert",
   "plateClearTitle": "Ist die Druckplatte frei?",
   "plateClearBody": "Stelle sicher, dass die Druckplatte leer ist, bevor du diesen Druck startest.",

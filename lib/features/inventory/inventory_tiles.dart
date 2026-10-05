@@ -87,7 +87,7 @@ class _SpoolTile extends StatelessWidget {
     // took whatever it wanted first, and the Spacer — a flex child itself —
     // then halved what was left with the label. The label got 50% of the
     // remainder at best and nothing at all once the weight text filled the row:
-    // "AMS0 ·…", or no slot at all. Which half gives way is decided here
+    // "AMS-A ·…", or no slot at all. Which half gives way is decided here
     // instead, and it is the weight line: it ends in `/ 1000g`, which the
     // progress bar above already shows, while the slot is what the reader
     // came for.
@@ -294,7 +294,7 @@ class _LowBadge extends StatelessWidget {
   }
 }
 
-/// Label of where a spool sits. Real AMS slot → "AMS0 · 2".
+/// Label of where a spool sits. Real AMS slot → "AMS-A · 2".
 /// External spool (id 254/255) is NOT an AMS unit — show extruder (left/right),
 /// consistent with dashboard; mapping from [SpoolAssignment.extruder].
 String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {

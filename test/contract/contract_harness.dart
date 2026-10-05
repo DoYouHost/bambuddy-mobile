@@ -18,7 +18,13 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../helpers.dart';
 
 /// Reason to skip, or `null` when a server was supplied. Pass straight to the
 /// `skip:` argument of `group`.
@@ -104,6 +110,29 @@ Future<Dio> authenticatedDio() async {
 
   dio.options.headers['Authorization'] = 'Bearer $token';
   return dio;
+}
+
+/// The app's providers on top of [dio], for a test that has to follow a
+/// reading through the same chain a screen does rather than through one
+/// repository. Disposed with the test.
+ProviderContainer contractContainer(Dio dio) {
+  final container = ProviderContainer(
+    overrides: [
+      fakeServerProfileOverride(),
+      apiClientProvider.overrideWithValue(
+        ApiClient(
+          profile: ServerProfile(
+            baseUrl: contractBaseUrl,
+            authMode: AuthMode.none,
+          ),
+          credentials: InMemoryCredentialsStore(),
+          dio: dio,
+        ),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+  return container;
 }
 
 /// One report from the stand-in printer, as a Bambu printer publishes it.

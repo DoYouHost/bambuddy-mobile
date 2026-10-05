@@ -1373,11 +1373,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Podgląd kamery nie jest dostępny w trybie demo';
 
   @override
-  String amsUnit(int number) {
-    return 'AMS $number';
-  }
-
-  @override
   String get externalSpool => 'Szpula zewnętrzna';
 
   @override
@@ -5278,11 +5273,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get mappingExternalSpool => 'Szpula zewnętrzna';
-
-  @override
-  String mappingAmsSlot(String unit, String slot) {
-    return 'AMS $unit · slot $slot';
-  }
 
   @override
   String get mappingSaved => 'Zapisano mapowanie filamentów';

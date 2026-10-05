@@ -523,11 +523,7 @@ class _DetailsPanel extends ConsumerWidget {
           extruderOf: dual
               ? (i) => status.extruderForExternal(spools[i].id)
               : (_) => null,
-          assignedOf: (i) =>
-              assigned.forExtruder(
-                dual ? status.extruderForExternal(spools[i].id) : 1,
-              ) ??
-              assigned.boundByTag(spools[i]),
+          assignedOf: (i) => assigned.onHolder(status, spools[i]),
           tagBindsOf: (i) => assigned.tagBinds(spools[i]),
           boundByTagOf: (i) => assigned.boundByTag(spools[i]),
           trayIdOf: trayIdOf,
@@ -633,7 +629,6 @@ class _AmsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
     final history = ref.watch(amsHistorySupportedProvider).orFalse;
 
@@ -642,7 +637,7 @@ class _AmsSection extends ConsumerWidget {
             context,
             printerId: printerId,
             amsId: unit.id ?? unitIndex,
-            amsLabel: l10n.amsUnit(unitIndex + 1),
+            amsLabel: amsUnitName(unit.id ?? unitIndex),
             initialMetric: metric,
           )
         : null;
@@ -673,7 +668,7 @@ class _AmsSection extends ConsumerWidget {
         Row(
           children: [
             Text(
-              l10n.amsUnit(unitIndex + 1).toUpperCase(),
+              amsUnitName(unit.id ?? unitIndex).toUpperCase(),
               style: t.bodyBold.copyWith(
                 color: t.textPrimary,
                 letterSpacing: 0.4,
@@ -698,7 +693,7 @@ class _AmsSection extends ConsumerWidget {
               _AmsDryControl(
                 printerId: printerId,
                 amsId: unit.id ?? unitIndex,
-                amsLabel: l10n.amsUnit(unitIndex + 1),
+                amsLabel: amsUnitName(unit.id ?? unitIndex),
                 unit: unit,
               ),
             ],
@@ -727,12 +722,7 @@ class _AmsSection extends ConsumerWidget {
             _FilamentRow(
               tray: trays[i],
               active: identical(trays[i], active),
-              // The slot assignment first, as the web (#1457); the AMS sync
-              // writes the tag's spool there itself, so the tag only answers
-              // until that sync has run.
-              assignedSpool:
-                  assigned.forAmsSlot(unit.id ?? unitIndex, trays[i].id ?? 0) ??
-                  assigned.boundByTag(trays[i]),
+              assignedSpool: assigned.inAmsSlot(unit.id ?? unitIndex, trays[i]),
               allowRemain: true,
               last: i == trays.length - 1,
               slot: _SlotRef(
@@ -740,8 +730,7 @@ class _AmsSection extends ConsumerWidget {
                 printerName: printerName,
                 amsId: unit.id ?? unitIndex,
                 trayId: trays[i].id ?? 0,
-                label:
-                    '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                label: amsSlotName(unit.id ?? unitIndex, trays[i].id ?? 0),
                 printing: printing,
                 loadTrayId: amsLoadTrayId(
                   amsId: unit.id ?? unitIndex,
@@ -886,13 +875,17 @@ class _FilamentRow extends StatelessWidget {
         : (tray.materialLabel ?? l10n.traySlotEmpty);
     final label = sidePrefix == null ? material : '$sidePrefix · $material';
 
-    final remain = tray.remain;
-    final showRemain = allowRemain && !empty && remain != null && remain >= 0;
     final spool = empty ? null : assignedSpool;
+    final fill = empty
+        ? null
+        : trayFillPercent(
+            remain: allowRemain ? tray.remain : null,
+            spool: spool,
+          );
     final grams = spool == null
         ? null
         : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
-    final trailing = [if (showRemain) '$remain%', ?grams].join(' · ');
+    final trailing = [if (fill != null) '$fill%', ?grams].join(' · ');
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;
 
@@ -1630,7 +1623,7 @@ class _SlotRef {
   final int amsId;
   final int trayId;
 
-  /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
+  /// Readable slot label (e.g., "AMS-A · 2" or "Left extruder").
   final String label;
 
   /// Whether a job is actively running on this printer. A paused one does not

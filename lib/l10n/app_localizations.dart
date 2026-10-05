@@ -2318,12 +2318,6 @@ abstract class AppLocalizations {
   /// **'Camera preview is not available in demo mode'**
   String get cameraDemoUnavailable;
 
-  /// No description provided for @amsUnit.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {number}'**
-  String amsUnit(int number);
-
   /// No description provided for @externalSpool.
   ///
   /// In en, this message translates to:
@@ -8815,12 +8809,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'External spool'**
   String get mappingExternalSpool;
-
-  /// No description provided for @mappingAmsSlot.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS {unit} · slot {slot}'**
-  String mappingAmsSlot(String unit, String slot);
 
   /// No description provided for @mappingSaved.
   ///

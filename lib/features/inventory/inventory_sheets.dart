@@ -164,8 +164,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       id: 'spool_assign.unit',
                       label: l10n.inventoryAssignUnit,
                       value: _amsUnit,
-                      // Display 1-based, value is unit id.
-                      items: {for (final u in unitOptions) u: '${u + 1}'},
+                      items: {for (final u in unitOptions) u: amsUnitName(u)},
                       onChanged: (v) => setState(() => _amsUnit = v),
                     ),
                   ),

@@ -490,9 +490,10 @@ class SpoolAssignment {
   /// [slot_addressing] for the two.
   int? get extruder => isExternalSpool ? extruderForExternalSide(trayId) : null;
 
-  /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
-  /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.
-  String get slotLabel => amsLabel ?? 'AMS$amsId · ${trayId + 1}';
+  /// AMS slot label for UI, the unit named by the user's `ams_label` when it
+  /// has one. For external spool, label built in UI (needs l10n) — see
+  /// `assignmentSlotLabel`.
+  String get slotLabel => amsSlotName(amsId, trayId, unit: amsLabel);
 }
 
 /// Spool-to-slot assignment request (`SpoolAssignmentCreate`). Physical key

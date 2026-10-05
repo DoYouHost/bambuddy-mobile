@@ -12,6 +12,7 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
@@ -19,7 +20,7 @@ typedef _Tray = ({
   int global,
   String? type,
   String? color,
-  int? remain,
+  int? fill,
   bool external,
 });
 
@@ -32,9 +33,11 @@ typedef _Tray = ({
 /// server-side), so mapping save-ahead-of-time still works.
 final printerTraysProvider = FutureProvider.autoDispose
     .family<List<_Tray>, int>((ref, printerId) async {
+      final assigned = ref.watch(assignedSpoolsProvider(printerId));
       try {
         final live = _traysFromStatus(
           await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
+          assigned,
         );
         if (live.isNotEmpty) return live;
       } on AppApiException {
@@ -59,14 +62,14 @@ final printerTraysProvider = FutureProvider.autoDispose
           global: global,
           type: s?.material,
           color: s?.rgba,
-          remain: null,
+          fill: trayFillPercent(spool: s),
           external: a.isExternalSpool,
         ));
       }
       return out;
     });
 
-List<_Tray> _traysFromStatus(PrinterStatus? status) {
+List<_Tray> _traysFromStatus(PrinterStatus? status, AssignedSpools assigned) {
   if (status == null) return const [];
   final out = <_Tray>[];
   final units = status.ams ?? const <AmsUnit>[];
@@ -87,7 +90,10 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
         global: global,
         type: t.trayType,
         color: t.trayColor,
-        remain: t.remain,
+        fill: trayFillPercent(
+          remain: t.remain,
+          spool: assigned.inAmsSlot(unitId, t),
+        ),
         external: false,
       ));
     }
@@ -100,7 +106,10 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
       global: global,
       type: e.trayType,
       color: e.trayColor,
-      remain: e.remain,
+      fill: trayFillPercent(
+        remain: e.remain,
+        spool: assigned.onHolder(status, e),
+      ),
       external: true,
     ));
   }
@@ -347,10 +356,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                 leading: _swatch(theme, t.color, 28),
                 title: Text(_trayLabel(t)),
                 subtitle: Text(
-                  [
-                    ?t.type,
-                    if (t.remain != null && t.remain! >= 0) '${t.remain}%',
-                  ].join(' · '),
+                  [?t.type, if (t.fill != null) '${t.fill}%'].join(' · '),
                 ),
                 trailing: _selected[slot] == t.global
                     ? Icon(Icons.check, color: theme.colorScheme.primary)
@@ -405,7 +411,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   String _trayLabel(_Tray t) {
     if (t.external) return _l10n.mappingExternalSpool;
     final slot = localSlotOf(t.global);
-    return _l10n.mappingAmsSlot('${slot.amsId + 1}', '${slot.trayId + 1}');
+    return amsSlotName(slot.amsId, slot.trayId);
   }
 
   Widget _swatch(ThemeData theme, String? hex, double size) {

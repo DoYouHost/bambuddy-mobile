@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers.dart';
 
 /// The spool tile's meta line, where the AMS slot label was being clipped to
-/// "AMS0 ·…".
+/// "AMS-A ·…".
 ///
 /// The cause was a `Spacer` between the weight text and the label: both are flex
 /// children, so whatever space the fixed weight text left over was split evenly
@@ -82,7 +82,7 @@ void main() {
   }
 
   /// The slot label as [assignmentSlotLabel] builds it for AMS unit 0, tray 0.
-  final slotLabel = find.text('AMS0 · 1');
+  final slotLabel = find.text('AMS-A · 1');
 
   testWidgets('the AMS slot label is not clipped on a 360 dp phone', (
     tester,

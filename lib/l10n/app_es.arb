@@ -676,14 +676,6 @@
   "cameraConnecting": "Conectando con la cámara…",
   "cameraError": "No se pudo cargar la transmisión de la cámara",
   "cameraDemoUnavailable": "La vista previa de la cámara no está disponible en modo demo",
-  "amsUnit": "AMS {number}",
-  "@amsUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
   "externalSpool": "Bobina externa",
   "traySlotEmpty": "Vacía",
   "amsSlotFilament": "Filamento",
@@ -2977,17 +2969,6 @@
   },
   "mappingPickTray": "Seleccionar ranura de AMS",
   "mappingExternalSpool": "Bobina externa",
-  "mappingAmsSlot": "AMS {unit} · ranura {slot}",
-  "@mappingAmsSlot": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      },
-      "slot": {
-        "type": "String"
-      }
-    }
-  },
   "mappingSaved": "Mapeo de filamentos guardado",
   "plateClearTitle": "¿Está despejada la placa?",
   "plateClearBody": "Asegúrate de que la placa de impresión esté vacía antes de iniciar esta impresión.",
