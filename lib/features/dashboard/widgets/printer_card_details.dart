@@ -727,6 +727,8 @@ class _AmsSection extends ConsumerWidget {
             ),
           )
         else
+          // The web addresses a slot by its index (`slotIdx`) — its fill,
+          // label and every action alike.
           for (var i = 0; i < trays.length; i++)
             _FilamentRow(
               tray: trays[i],
@@ -734,7 +736,7 @@ class _AmsSection extends ConsumerWidget {
               fill: assigned.fillOf(
                 trays[i],
                 amsId: unit.id ?? unitIndex,
-                trayId: trays[i].id ?? 0,
+                trayId: i,
                 serial: serial,
               ),
               last: i == trays.length - 1,
@@ -742,12 +744,12 @@ class _AmsSection extends ConsumerWidget {
                 printerId: printerId,
                 printerName: printerName,
                 amsId: unit.id ?? unitIndex,
-                trayId: trays[i].id ?? 0,
-                label: amsSlotName(unit.id ?? unitIndex, trays[i].id ?? 0),
+                trayId: i,
+                label: amsSlotName(unit.id ?? unitIndex, i),
                 printing: printing,
                 loadTrayId: amsLoadTrayId(
                   amsId: unit.id ?? unitIndex,
-                  trayId: trays[i].id ?? 0,
+                  trayId: i,
                 ),
                 canRereadRfid: true,
                 tagUid: trays[i].tagUid,
@@ -769,7 +771,7 @@ class _AmsSection extends ConsumerWidget {
   }
 }
 
-/// External spool section (design "SZPULA ZEWNĘTRZNA"): title + one row per spool,
+/// External spool section (design "EXTERNAL SPOOL"): title + one row per spool,
 /// each prefixed with its extruder side on dual machines.
 class _SpoolSection extends StatelessWidget {
   const _SpoolSection({
@@ -790,7 +792,7 @@ class _SpoolSection extends StatelessWidget {
   final List<AmsTray> trays;
   final AmsTray? active;
   final int? Function(int index) extruderOf;
-  final ({int? percent, Spool? spool}) Function(int index) fillOf;
+  final TrayFill Function(int index) fillOf;
   final bool Function(int index) tagBindsOf;
   final Spool? Function(int index) boundByTagOf;
   final int Function(int index) trayIdOf;
@@ -869,9 +871,10 @@ class _FilamentRow extends StatelessWidget {
   final AmsTray tray;
   final bool active;
 
-  /// [AssignedSpools.fillOf]: the percent, and the spool whose grams go with
-  /// it — none when the AMS's own number won, so the two never disagree.
-  final ({int? percent, Spool? spool}) fill;
+  /// [AssignedSpools.fillOf]: the percent, and the grams and name of the
+  /// spool it was read from — none when the AMS's own number won, so the two
+  /// never disagree.
+  final TrayFill fill;
   final bool last;
   final String? sidePrefix;
   final _SlotRef? slot;
@@ -889,10 +892,11 @@ class _FilamentRow extends StatelessWidget {
     final label = sidePrefix == null ? material : '$sidePrefix · $material';
 
     final percent = empty ? null : fill.percent;
+    final remaining = empty ? null : fill.grams;
     final spool = empty ? null : fill.spool;
-    final grams = spool == null
+    final grams = remaining == null
         ? null
-        : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
+        : l10n.inventoryUsageWeight(remaining.toStringAsFixed(0));
     final trailing = [if (percent != null) '$percent%', ?grams].join(' · ');
 
     final textColor = active ? t.accentGreenInk : t.textSecondary;

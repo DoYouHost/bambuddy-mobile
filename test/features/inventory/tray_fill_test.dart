@@ -32,14 +32,8 @@ void main() {
     return container.read(assignedSpoolsProvider(1));
   }
 
-  Spool weighed(int id, double used, {int label = 1000, String? tagUid}) =>
-      Spool(
-        id: id,
-        material: 'PLA',
-        labelWeight: label,
-        weightUsed: used,
-        tagUid: tagUid,
-      );
+  Spool weighed(int id, double used, {int label = 1000}) =>
+      Spool(id: id, material: 'PLA', labelWeight: label, weightUsed: used);
 
   SpoolAssignment at(int spoolId, int amsId, int trayId, {Spool? spool}) =>
       SpoolAssignment(
@@ -57,7 +51,7 @@ void main() {
       final spool = weighed(1, 898);
       final assigned = await resolve(
         InventoryBackend.native,
-        InventoryState(spools: [spool], assignmentBySpool: {1: at(1, 0, 0)}),
+        InventoryState(spools: [spool], assignments: [at(1, 0, 0)]),
       );
 
       final fill = assigned.fillOf(pla, amsId: 0, trayId: 0);
@@ -66,10 +60,7 @@ void main() {
     });
 
     test('without a spool the AMS answers, if it has a reading', () async {
-      final assigned = await resolve(
-        InventoryBackend.native,
-        const InventoryState(),
-      );
+      final assigned = await resolve(InventoryBackend.native, InventoryState());
 
       expect(assigned.fillOf(pla, amsId: 0, trayId: 0).percent, 100);
       expect(assigned.fillOf(pla, amsId: 0, trayId: 0).spool, isNull);
@@ -86,7 +77,7 @@ void main() {
         InventoryBackend.native,
         InventoryState(
           spools: [weighed(1, 1000), weighed(2, 1000)],
-          assignmentBySpool: {1: at(1, 0, 0), 2: at(2, 0, 1)},
+          assignments: [at(1, 0, 0), at(2, 0, 1)],
         ),
       );
 
@@ -110,7 +101,7 @@ void main() {
         InventoryBackend.native,
         InventoryState(
           spools: [weighed(1, 0, label: 0)],
-          assignmentBySpool: {1: at(1, 0, 0)},
+          assignments: [at(1, 0, 0)],
         ),
       );
 
@@ -123,10 +114,7 @@ void main() {
         final spool = weighed(1, 250, label: 500);
         final assigned = await resolve(
           InventoryBackend.native,
-          InventoryState(
-            spools: [spool],
-            assignmentBySpool: {1: at(1, 255, 1)},
-          ),
+          InventoryState(spools: [spool], assignments: [at(1, 255, 1)]),
         );
 
         const right = AmsTray(id: 255, trayType: 'PLA', remain: 0);
@@ -136,12 +124,28 @@ void main() {
       },
     );
 
+    test('one spool in two slots fills both', () async {
+      // The server keys a row by the slot alone.
+      final spool = weighed(1, 500);
+      final assigned = await resolve(
+        InventoryBackend.native,
+        InventoryState(
+          spools: [spool],
+          assignments: [at(1, 0, 0), at(1, 0, 1)],
+        ),
+      );
+
+      const second = AmsTray(id: 1, trayType: 'PLA', remain: 100);
+      expect(assigned.fillOf(pla, amsId: 0, trayId: 0).percent, 50);
+      expect(assigned.fillOf(second, amsId: 0, trayId: 1).percent, 50);
+    });
+
     test('rounds as the web does', () async {
       final assigned = await resolve(
         InventoryBackend.native,
         InventoryState(
           spools: [weighed(1, 995), weighed(2, 996)],
-          assignmentBySpool: {1: at(1, 0, 0), 2: at(2, 0, 1)},
+          assignments: [at(1, 0, 0), at(2, 0, 1)],
         ),
       );
 
@@ -152,23 +156,29 @@ void main() {
   });
 
   group('Spoolman', () {
+    // `/spoolman/spools/linked`: raw Spoolman weights by upper-case tag.
+    LinkedSpool link(int id, double? remaining, [double? net = 1000]) =>
+        LinkedSpool(id: id, remaining: remaining, filament: net);
+
+    const tagged = AmsTray(
+      id: 0,
+      trayType: 'PLA',
+      remain: 100,
+      tagUid: 'a1b2c3d4e5f60708',
+    );
+
     test('the spool linked by the tag outranks the one in the slot', () async {
-      final linked = weighed(1, 300, tagUid: 'A1B2C3D4E5F60708');
+      final linked = weighed(1, 300);
       final inSlot = weighed(2, 898);
       final assigned = await resolve(
         InventoryBackend.spoolman,
         InventoryState(
           spools: [linked, inSlot],
-          assignmentBySpool: {2: at(2, 0, 0)},
+          assignments: [at(2, 0, 0)],
+          linkedTags: {'A1B2C3D4E5F60708': link(1, 700)},
         ),
       );
 
-      const tagged = AmsTray(
-        id: 0,
-        trayType: 'PLA',
-        remain: 100,
-        tagUid: 'A1B2C3D4E5F60708',
-      );
       final fill = assigned.fillOf(tagged, amsId: 0, trayId: 0);
       expect((fill.percent, fill.spool), (70, linked));
       // No tag on the tray: the slot's spool.
@@ -176,10 +186,13 @@ void main() {
     });
 
     test('a tray without a tag is looked up by its fallback tag', () async {
-      final linked = weighed(1, 600, tagUid: fallbackSpoolTag(serial, 0, 0));
+      final linked = weighed(1, 600);
       final assigned = await resolve(
         InventoryBackend.spoolman,
-        InventoryState(spools: [linked]),
+        InventoryState(
+          spools: [linked],
+          linkedTags: {fallbackSpoolTag(serial, 0, 0)!: link(1, 400)},
+        ),
       );
 
       final fill = assigned.fillOf(pla, amsId: 0, trayId: 0, serial: serial);
@@ -189,10 +202,12 @@ void main() {
 
     test('only the first tag present is looked up', () async {
       // The web keys its linked map by `tray_uuid || tag_uid || fallback`.
-      final byUid = weighed(1, 300, tagUid: 'A1B2C3D4E5F60708');
       final assigned = await resolve(
         InventoryBackend.spoolman,
-        InventoryState(spools: [byUid]),
+        InventoryState(
+          spools: [weighed(1, 300)],
+          linkedTags: {'A1B2C3D4E5F60708': link(1, 700)},
+        ),
       );
 
       const both = AmsTray(
@@ -202,28 +217,58 @@ void main() {
         tagUid: 'A1B2C3D4E5F60708',
         trayUuid: '0123456789ABCDEF0123456789ABCDEF',
       );
-      expect(assigned.fillOf(both, amsId: 0, trayId: 0).spool, isNull);
+      expect(assigned.fillOf(both, amsId: 0, trayId: 0).percent, 100);
     });
 
-    test('a linked spool with nothing left gives way to the slot', () async {
-      // `getSpoolmanFillLevel` reads remaining_weight 0 as no answer.
-      final spent = weighed(1, 1000, tagUid: 'A1B2C3D4E5F60708');
+    test('a link with no remaining or no net weight gives way', () async {
+      // `getSpoolmanFillLevel`; the shelf would say 1000 g for the latter.
       final inSlot = weighed(2, 500);
+      Future<int?> percentWith(LinkedSpool linked) async {
+        final assigned = await resolve(
+          InventoryBackend.spoolman,
+          InventoryState(
+            spools: [weighed(1, 0), inSlot],
+            assignments: [at(2, 0, 0)],
+            linkedTags: {'A1B2C3D4E5F60708': linked},
+          ),
+        );
+        return assigned.fillOf(tagged, amsId: 0, trayId: 0).percent;
+      }
+
+      expect(await percentWith(link(1, 0)), 50);
+      expect(await percentWith(link(1, null)), 50);
+      expect(await percentWith(link(1, 250, null)), 50);
+      expect(await percentWith(link(1, 250, 0)), 50);
+      expect(await percentWith(link(1, 1200)), 100);
+      // Not clamped at 0, and rounded as `Math.round`: -1.5 → -1.
+      expect(await percentWith(link(1, -15)), -1);
+    });
+
+    test('a linked spool off the shelf still gives its fill', () async {
       final assigned = await resolve(
         InventoryBackend.spoolman,
-        InventoryState(
-          spools: [spent, inSlot],
-          assignmentBySpool: {2: at(2, 0, 0)},
-        ),
+        InventoryState(linkedTags: {'A1B2C3D4E5F60708': link(9, 700)}),
       );
 
-      const tagged = AmsTray(
-        id: 0,
-        trayType: 'PLA',
-        remain: 100,
-        tagUid: 'A1B2C3D4E5F60708',
+      final fill = assigned.fillOf(tagged, amsId: 0, trayId: 0);
+      expect((fill.percent, fill.grams, fill.spool), (70, 700, null));
+    });
+
+    test('an archived spool in the slot is not read', () async {
+      // The web lists Spoolman spools without the archived ones.
+      final archived = Spool(
+        id: 2,
+        material: 'PLA',
+        labelWeight: 1000,
+        weightUsed: 500,
+        archivedAt: '2026-10-01T00:00:00Z',
       );
-      expect(assigned.fillOf(tagged, amsId: 0, trayId: 0).spool, inSlot);
+      final assigned = await resolve(
+        InventoryBackend.spoolman,
+        InventoryState(spools: [archived], assignments: [at(2, 0, 0)]),
+      );
+
+      expect(assigned.fillOf(pla, amsId: 0, trayId: 0).percent, 100);
     });
 
     test('the built-in inventory answers after Spoolman', () async {
@@ -241,10 +286,7 @@ void main() {
       // #676 is the built-in inventory's rule only.
       final assigned = await resolve(
         InventoryBackend.spoolman,
-        InventoryState(
-          spools: [weighed(2, 1000)],
-          assignmentBySpool: {2: at(2, 0, 0)},
-        ),
+        InventoryState(spools: [weighed(2, 1000)], assignments: [at(2, 0, 0)]),
       );
 
       expect(assigned.fillOf(pla, amsId: 0, trayId: 0).percent, 0);

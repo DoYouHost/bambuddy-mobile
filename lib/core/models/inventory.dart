@@ -437,6 +437,23 @@ class SpoolDraft {
   };
 }
 
+/// One entry of `GET /spoolman/spools/linked`, the map the web reads a slot's
+/// fill from first (`getSpoolmanFillLevel`). Raw Spoolman weights: either
+/// may be null, and [filament] is null where Spoolman has no net weight.
+class LinkedSpool {
+  const LinkedSpool({required this.id, this.remaining, this.filament});
+
+  factory LinkedSpool.fromJson(Map<String, dynamic> json) => LinkedSpool(
+    id: toIntOrNull(json['id']) ?? -1,
+    remaining: toDoubleOrNull(json['remaining_weight']),
+    filament: toDoubleOrNull(json['filament_weight']),
+  );
+
+  final int id;
+  final double? remaining;
+  final double? filament;
+}
+
 /// Spool assignment to AMS slot — normalized from native
 /// `SpoolAssignmentResponse` and Spoolman `SpoolmanSlotAssignmentEnriched`.
 class SpoolAssignment {

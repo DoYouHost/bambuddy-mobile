@@ -23,10 +23,8 @@ class _Shelf extends InventoryNotifier {
   final SpoolAssignment _assignment;
 
   @override
-  Future<InventoryState> build() async => InventoryState(
-    spools: [_spool],
-    assignmentBySpool: {_spool.id: _assignment},
-  );
+  Future<InventoryState> build() async =>
+      InventoryState(spools: [_spool], assignments: [_assignment]);
 }
 
 void main() {

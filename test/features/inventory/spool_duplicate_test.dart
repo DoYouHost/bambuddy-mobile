@@ -22,7 +22,7 @@ class _FakeInventory extends InventoryNotifier {
   SpoolDraft? created;
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<Spool?> createSpool(SpoolDraft draft) async {

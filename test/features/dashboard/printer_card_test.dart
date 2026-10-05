@@ -69,13 +69,13 @@ const _runoutWithActions = HmsError(
 /// the printer-side actions above that list, so it stays empty and offline.
 class _EmptyInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 }
 
 /// A stocked shelf, for the half of the sheet that offers spools.
 class _StockedInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
       Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
@@ -101,17 +101,17 @@ class _AssignedInventory extends InventoryNotifier {
   );
 
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [spool],
-    assignmentBySpool: {
-      42: SpoolAssignment(
+    assignments: [
+      SpoolAssignment(
         spoolId: 42,
         printerId: 1,
         amsId: 0,
         trayId: 0,
         printerName: 'X2D-3DP',
       ),
-    },
+    ],
   );
 }
 
@@ -119,29 +119,29 @@ class _AssignedInventory extends InventoryNotifier {
 /// the left side of the external holder.
 class _WeighedInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
       Spool(id: 2, material: 'TPU', labelWeight: 500, weightUsed: 250),
     ],
-    assignmentBySpool: {
-      1: SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
-      2: SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
-    },
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+      SpoolAssignment(spoolId: 2, printerId: 1, amsId: 255, trayId: 0),
+    ],
   );
 }
 
 /// A spool whose counter says it is empty, in the slot the AMS reads at 66%.
 class _SpentInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     // 0.4 g left: 0% and "0 g" both, without being exactly zero.
     spools: [
       Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 999.6),
     ],
-    assignmentBySpool: {
-      1: SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
-    },
+    assignments: [
+      SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+    ],
   );
 }
 
@@ -149,7 +149,7 @@ class _SpentInventory extends InventoryNotifier {
 /// for which of the two the slot shows.
 class _PinnedOverTagInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       _AssignedInventory.spool,
       Spool(
@@ -160,9 +160,11 @@ class _PinnedOverTagInventory extends InventoryNotifier {
         tagUid: 'a1b2c3d4e5f60708',
       ),
     ],
-    assignmentBySpool: {
-      42: SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
-    },
+    assignments: [
+      SpoolAssignment(spoolId: 42, printerId: 1, amsId: 0, trayId: 0),
+    ],
+    // What `/spoolman/spools/linked` says of a tagged spool.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
   );
 }
 
@@ -170,7 +172,7 @@ class _PinnedOverTagInventory extends InventoryNotifier {
 /// sheet must offer to pick it rather than to create a second row for it.
 class _TaggedInventory extends InventoryNotifier {
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [
       Spool(
         id: 21,
@@ -180,6 +182,8 @@ class _TaggedInventory extends InventoryNotifier {
         tagUid: 'a1b2c3d4e5f60708',
       ),
     ],
+    // What `/spoolman/spools/linked` says of it, read in Spoolman mode.
+    linkedTags: const {'A1B2C3D4E5F60708': LinkedSpool(id: 21)},
   );
 }
 
@@ -189,7 +193,7 @@ class _RecordingInventory extends InventoryNotifier {
   static final calls = <String>[];
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
@@ -208,7 +212,7 @@ class _RefusingInventory extends InventoryNotifier {
   );
 
   @override
-  Future<InventoryState> build() async => const InventoryState();
+  Future<InventoryState> build() async => InventoryState();
 
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {

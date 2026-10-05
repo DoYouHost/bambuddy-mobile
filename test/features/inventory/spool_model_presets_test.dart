@@ -29,7 +29,7 @@ class _FakeInventory extends InventoryNotifier {
   final List<String> writes = [];
 
   @override
-  Future<InventoryState> build() async => const InventoryState(
+  Future<InventoryState> build() async => InventoryState(
     spools: [Spool(id: 7, material: 'PLA', brand: 'Bambu')],
   );
 

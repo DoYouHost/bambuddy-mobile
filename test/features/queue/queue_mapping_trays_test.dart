@@ -45,13 +45,13 @@ class _Shelf extends InventoryNotifier {
   Future<InventoryState> build() async {
     // Arrives after the trays, as a shelf nobody had open does.
     await Future<void>.delayed(const Duration(milliseconds: 50));
-    return const InventoryState(
+    return InventoryState(
       spools: [
         Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 898),
       ],
-      assignmentBySpool: {
-        1: SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 0),
-      },
+      assignments: [
+        SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 0),
+      ],
     );
   }
 }

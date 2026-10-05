@@ -978,6 +978,14 @@ abstract final class Endpoints {
   /// health check of Spoolman, not part of that decision.
   static const spoolmanStatus = '$apiPrefix/spoolman/status';
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
+
+  /// `GET` → `{linked: {TAG: {id, remaining_weight, filament_weight}}}`: every
+  /// non-archived Spoolman spool with an `extra.tag`, keyed by the tag in
+  /// upper case (`routes/spoolman.py::get_linked_spools`). The web reads a
+  /// slot's fill from it first. Its `filament_weight` is null where Spoolman
+  /// knows no net weight; the inventory routes give such a spool 1000
+  /// (`_spoolman_helpers.py::_map_spoolman_spool`).
+  static const spoolmanLinkedSpools = '$apiPrefix/spoolman/spools/linked';
   static const spoolmanSpoolsBulk = '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';

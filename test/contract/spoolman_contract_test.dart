@@ -189,6 +189,20 @@ void main() {
       expect(fill.percent, 70);
     });
 
+    test('the linked map keys a spool by its tag with raw weights', () async {
+      // The web's first fill source (`getSpoolmanFillLevel`).
+      final spool = await newSpool();
+      await dio.post<dynamic>(
+        '/api/v1/spoolman/spools/${spool.id}/link',
+        data: {'spool_tag': 'a1b2c3d4e5f6a7b8'},
+      );
+
+      final linked = (await source.fetchLinkedSpools())['A1B2C3D4E5F6A7B8'];
+      expect(linked?.id, spool.id);
+      expect(linked?.remaining, 700);
+      expect(linked?.filament, 1000);
+    });
+
     test('the built-in inventory still answers under Spoolman', () async {
       // The web fetches /inventory/assignments whatever the mode and reads a
       // slot's fill from it after Spoolman's own.

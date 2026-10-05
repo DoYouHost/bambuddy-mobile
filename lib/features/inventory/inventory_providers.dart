@@ -22,20 +22,34 @@ import '../../providers.dart';
 /// client-side on this list — data changes infrequently, so a single fetch suffices
 /// and toggles respond instantly.
 class InventoryState {
-  const InventoryState({
+  InventoryState({
     this.spools = const [],
-    this.assignmentBySpool = const {},
+    this.assignments = const [],
     this.builtInSlots = const [],
-  });
+    this.linkedTags = const {},
+  }) : assignmentBySpool = {for (final a in assignments) a.spoolId: a};
 
   final List<Spool> spools;
+
+  /// Every slot assignment the backend lists. The server keys a row by the
+  /// slot alone, so one spool can sit in several slots — the slot lookups
+  /// read this, never [assignmentBySpool].
+  final List<SpoolAssignment> assignments;
+
+  /// One row per spool, for the Filaments list's "where is it": the last one
+  /// listed when a spool sits in several slots.
   final Map<int, SpoolAssignment> assignmentBySpool;
 
   /// In Spoolman mode, the built-in inventory's slot assignments, each with
   /// its spool: the web reads a slot's fill from them after Spoolman's own
   /// (`getAssignment` in `PrintersPage.tsx`, fetched whatever the mode). In
-  /// built-in mode those are [assignmentBySpool], and this stays empty.
+  /// built-in mode those are [assignments], and this stays empty.
   final List<SpoolAssignment> builtInSlots;
+
+  /// In Spoolman mode, `GET /spoolman/spools/linked`: the web's first source
+  /// of a slot's fill, keyed by tag. Not the shelf: it leaves out archived
+  /// spools and keeps a missing net weight null rather than 1000.
+  final Map<String, LinkedSpool> linkedTags;
 
   SpoolAssignment? assignmentFor(int spoolId) => assignmentBySpool[spoolId];
 
@@ -84,24 +98,32 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final spools = await repo.fetchSpools(includeArchived: true);
     ref.read(suppliersRepositoryProvider).observeSpools(spools);
 
-    var bySpool = <int, SpoolAssignment>{};
+    var assignments = const <SpoolAssignment>[];
     try {
-      final assignments = await repo.fetchAssignments();
-      bySpool = {for (final a in assignments) a.spoolId: a};
+      assignments = await repo.fetchAssignments();
     } on Object {
       // Assignments are a bonus — their absence must not break the screen.
-      bySpool = const {};
     }
+    final bySpool = {for (final a in assignments) a.spoolId: a};
     var builtInSlots = const <SpoolAssignment>[];
+    var linkedTags = const <String, LinkedSpool>{};
+    // Both only feed the fill, and the web runs both queries whatever they
+    // answer: a failure, the backend question's included, leaves them empty
+    // rather than taking the spool list down.
     try {
-      if (await ref.read(inventoryBackendProvider.future) ==
-          InventoryBackend.spoolman) {
-        builtInSlots = await NativeInventorySource(
-          ref.read(apiClientProvider).dio,
-        ).fetchAssignments();
+      if (await repo.backend() == InventoryBackend.spoolman) {
+        final dio = ref.read(apiClientProvider).dio;
+        (builtInSlots, linkedTags) = await (
+          NativeInventorySource(
+            dio,
+          ).fetchAssignments().catchError((Object _) => <SpoolAssignment>[]),
+          SpoolmanInventorySource(dio).fetchLinkedSpools().catchError(
+            (Object _) => <String, LinkedSpool>{},
+          ),
+        ).wait;
       }
     } on Object {
-      // Only a fill fallback, as the web's query (gated on a permission).
+      // The backend is unknown, so neither query applies yet.
     }
 
     spools.sort((a, b) {
@@ -120,8 +142,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     });
     return InventoryState(
       spools: spools,
-      assignmentBySpool: bySpool,
+      assignments: assignments,
       builtInSlots: builtInSlots,
+      linkedTags: linkedTags,
     );
   }
 
@@ -405,6 +428,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   );
 }
 
+/// [AssignedSpools.fillOf]'s answer.
+typedef TrayFill = ({int? percent, double? grams, Spool? spool});
+
 /// Resolves which spool from inventory sits in a given slot of a specific printer —
 /// to enrich AMS chips on the dashboard (exact remaining weight + name).
 /// Built from [InventoryState]; matching depends on assignment structure
@@ -452,13 +478,18 @@ class AssignedSpools {
       (_read(normalizeTrayUuid(tray.trayUuid)) != null ||
           _read(normalizeTagUid(tray.tagUid)) != null);
 
-  /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one.
-  Spool? boundByTag(AmsTray tray) => tagBinds(tray)
-      ? _tagShelf!.spoolForTag(
-          tagUid: _read(normalizeTagUid(tray.tagUid)),
-          trayUuid: _read(normalizeTrayUuid(tray.trayUuid)),
-        )
-      : null;
+  /// The spool [tray]'s tag is bound to, if [tagBinds] and the server has one:
+  /// looked up as the web does, in `/spoolman/spools/linked` by the first tag
+  /// present, so an archived spool still carrying the tag binds nothing.
+  Spool? boundByTag(AmsTray tray) {
+    final shelf = _tagShelf;
+    if (shelf == null || !tagBinds(tray)) return null;
+    final tag = _nonEmpty(tray.trayUuid) ?? _nonEmpty(tray.tagUid);
+    final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+    return linked == null
+        ? null
+        : shelf.spools.firstWhereOrNull((s) => s.id == linked.id);
+  }
 
   // An unread tag arrives as zeros, which still normalises to digits.
   static String? _read(String id) => id.contains(RegExp('[^0]')) ? id : null;
@@ -475,13 +506,14 @@ class AssignedSpools {
   Spool? builtInAt(int amsId, int trayId) =>
       _builtInSlots[slotKey(amsId, trayId)];
 
-  /// The fill a slot shows, and the spool it was read from — null when the
-  /// AMS's own reading won. The web's chain branch for branch
+  /// The fill a slot shows, the grams left on the spool it was read from and
+  /// that spool — both null when the AMS's own reading won. A linked spool
+  /// off the shelf still has its grams, from the linked map. The web's chain branch for branch
   /// (`PrintersPage.tsx`, ~5532 for an AMS slot, ~6299 for the holder): the
   /// Spoolman spool linked by the tray's tag, the Spoolman spool assigned to
   /// the slot, the built-in inventory's spool, the AMS. For the external
   /// holder [amsId] is 255 and [trayId] the side.
-  ({int? percent, Spool? spool}) fillOf(
+  TrayFill fillOf(
     AmsTray tray, {
     required int amsId,
     required int trayId,
@@ -495,22 +527,30 @@ class AssignedSpools {
           _nonEmpty(tray.trayUuid) ??
           _nonEmpty(tray.tagUid) ??
           fallbackSpoolTag(serial, amsId, trayId);
-      // Spoolman's `extra.tag` maps to a tray UUID at 32 hex digits and to a
-      // tag UID below (`_spoolman_helpers.py::_map_spoolman_spool`).
-      final linked = tag == null
-          ? null
-          : tag.length == 32
-          ? shelf.spoolForTag(trayUuid: tag)
-          : shelf.spoolForTag(tagUid: tag);
-      // `getSpoolmanFillLevel`: nothing left reads as no answer.
+      final linked = tag == null ? null : shelf.linkedTags[tag.toUpperCase()];
+      final remaining = linked?.remaining;
+      final net = linked?.filament;
+      // `getSpoolmanFillLevel`: no remaining weight (0 included) or no net
+      // weight reads as no answer.
       if (linked != null &&
-          linked.remainingWeight > 0 &&
-          linked.labelWeight > 0) {
-        return (percent: min(100, _percentOf(linked)), spool: linked);
+          remaining != null &&
+          remaining != 0 &&
+          net != null &&
+          net > 0) {
+        return (
+          percent: min(100, _jsRound(remaining / net * 100)),
+          grams: remaining,
+          spool: shelf.spools.firstWhereOrNull((s) => s.id == linked.id),
+        );
       }
+      // The web's Spoolman list leaves archived spools out.
       final slot = _spoolmanSlots[slotKey(amsId, trayId)];
-      if (slot != null && slot.labelWeight > 0) {
-        return (percent: _percentOf(slot), spool: slot);
+      if (slot != null && !slot.isArchived && slot.labelWeight > 0) {
+        return (
+          percent: _percentOf(slot),
+          grams: slot.remainingWeight,
+          spool: slot,
+        );
       }
     }
     final remain = tray.remain;
@@ -524,14 +564,23 @@ class AssignedSpools {
       // Read as empty while the AMS still sees filament: a stale
       // `weight_used`, and the AMS wins (#676).
       if (percent != 0 || (ams ?? 0) <= 0) {
-        return (percent: percent, spool: builtIn);
+        return (
+          percent: percent,
+          grams: builtIn.remainingWeight,
+          spool: builtIn,
+        );
       }
     }
-    return (percent: ams, spool: null);
+    return (percent: ams, grams: null, spool: null);
   }
 
   static int _percentOf(Spool s) =>
-      (max(0, s.labelWeight - s.weightUsed) / s.labelWeight * 100).round();
+      _jsRound(max(0, s.labelWeight - s.weightUsed) / s.labelWeight * 100);
+
+  /// `Math.round`: halves go up, so -1.5 is -1 where Dart's `round` says -2.
+  /// Only a linked spool can go negative (Spoolman's remaining weight is not
+  /// clamped), and the web shows that number as it is.
+  static int _jsRound(double x) => (x + 0.5).floor();
 
   static String? _nonEmpty(String? s) => (s?.isEmpty ?? true) ? null : s;
 
@@ -552,9 +601,9 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
     final byKey = <int, Spool>{};
     final byExtruder = <int, Spool>{};
     final bySlot = <int, Spool>{};
-    for (final a in inv.assignmentBySpool.values) {
+    for (final a in inv.assignments) {
       if (a.printerId != printerId) continue;
-      final spool = spoolById[a.spoolId];
+      final spool = spoolById[a.spoolId] ?? a.spool;
       if (spool == null) continue;
       bySlot[AssignedSpools.slotKey(a.amsId, a.trayId)] = spool;
       if (a.isExternalSpool) {
