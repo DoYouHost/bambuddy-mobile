@@ -7,6 +7,7 @@ import '../../core/ams/filament_mapping.dart';
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag_material.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/models/archive.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
@@ -105,6 +106,15 @@ String _materialHint(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
   return parts.length <= 1 ? name.trim() : parts.skip(1).join(' ');
 }
+
+/// The archive a queued reprint comes from, for the mapping its slicer sent.
+final mappingArchiveProvider = FutureProvider.autoDispose.family<Archive?, int>(
+  (ref, archiveId) => ref
+      .watch(archiveRepositoryProvider)
+      .byId(archiveId)
+      .then<Archive?>((a) => a)
+      .catchError((Object _) => null),
+);
 
 /// Manual picks from a stored mapping, as the web's edit form seeds them
 /// (`PrintModal/index.tsx`): `slot_id` → global tray id, `-1` left to the
@@ -245,6 +255,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   /// form's own state.
   late final Map<int, bool> _force = {...?widget.forceColorMatch};
 
+  /// The slots the slicer-mapping toggle wrote into [_manual], so turning it
+  /// off takes back exactly those and no pick made by hand
+  /// (`FilamentMapping.tsx`); empty while it is off.
+  List<int> _fromSlicer = const [];
+  bool _rereading = false;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
   int? get _sourceId => widget.item.archiveId ?? widget.item.libraryFileId;
@@ -302,7 +318,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // listen, as nothing on this sheet shows them.
     ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
 
-    if (reqsAsync.isLoading || statusAsync.isLoading) {
+    // A re-read keeps what is on screen until the new answer is in.
+    if (!reqsAsync.hasValue && reqsAsync.isLoading ||
+        !statusAsync.hasValue && statusAsync.isLoading) {
       return wrap(
         const Padding(
           padding: EdgeInsets.all(DashSpace.xxl),
@@ -410,6 +428,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             ),
           ],
         ),
+        _actions(comparison),
         if (loaded.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.sm),
@@ -451,6 +470,90 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
       ],
     );
+  }
+
+  /// The web's two header buttons: the slicer's own mapping, offered only for
+  /// the printer it was resolved against (`resolveArchiveSlicerAmsMapping`),
+  /// and a re-read of the AMS.
+  Widget _actions(List<FilamentComparison> comparison) {
+    final l10n = _l10n;
+    final archiveId = widget.item.archiveId;
+    final saved = archiveId == null
+        ? null
+        : ref
+              .watch(mappingArchiveProvider(archiveId))
+              .valueOrNull
+              ?.slicerAmsMapping;
+    final slicer = saved?.printerId == widget.printerId ? saved!.mapping : null;
+    return Padding(
+      padding: const EdgeInsets.only(top: DashSpace.sm),
+      child: Wrap(
+        spacing: DashSpace.sm,
+        runSpacing: DashSpace.sm,
+        children: [
+          if (slicer != null)
+            Tooltip(
+              message: l10n.mappingUseSlicerHint,
+              child: FilterChip(
+                label: Text(l10n.mappingUseSlicer),
+                selected: _fromSlicer.isNotEmpty,
+                onSelected: (_) => _toggleSlicer(slicer, comparison),
+              ).tagged('queue_mapping.use_slicer'),
+            ),
+          ActionChip(
+            avatar: _rereading
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh, size: 18),
+            label: Text(l10n.mappingReRead),
+            onPressed: _rereading ? null : _reread,
+          ).tagged('queue_mapping.reread'),
+        ],
+      ),
+    );
+  }
+
+  /// `toggleArchiveMapping`: on, every filament the slicer resolved to a
+  /// slot (`>= 0`) takes that slot as a manual pick; off, those picks go.
+  void _toggleSlicer(List<int> slicer, List<FilamentComparison> comparison) {
+    setState(() {
+      if (_fromSlicer.isNotEmpty) {
+        _fromSlicer.forEach(_manual.remove);
+        _fromSlicer = const [];
+        return;
+      }
+      final applied = <int>[];
+      for (final c in comparison) {
+        final slotId = c.requirement.slotId;
+        final idx = slotId - 1;
+        if (slotId > 0 && idx < slicer.length && slicer[idx] >= 0) {
+          _manual[slotId] = slicer[idx];
+          applied.add(slotId);
+        }
+      }
+      _fromSlicer = applied;
+    });
+  }
+
+  /// `handleRefresh`: ask the printer to report everything again, give it a
+  /// moment, then read the status anew. The answer to the request itself
+  /// does not matter — a disconnected printer refuses it, and the read
+  /// still shows what there is.
+  Future<void> _reread() async {
+    setState(() => _rereading = true);
+    try {
+      await ref
+          .read(printerCommandsRepositoryProvider)
+          .refreshStatus(widget.printerId);
+    } on Object {
+      // A hint, as everywhere else it is sent.
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    ref.invalidate(mappingStatusProvider(widget.printerId));
+    setState(() => _rereading = false);
   }
 
   /// `useFilamentLabels`: the sliced filament's name by its `tray_info_idx`,

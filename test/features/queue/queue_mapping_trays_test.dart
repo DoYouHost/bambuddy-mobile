@@ -1,7 +1,9 @@
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
@@ -33,6 +35,16 @@ class _Printers extends PrintersRepository {
   @override
   Future<SlotInventory> fetchInventoryRemain(int printerId) async =>
       (grams: const <int, double>{}, spools: const <int, SlotSpool>{});
+}
+
+/// Counts the re-reads the sheet asks for.
+class _Commands extends PrinterCommandsRepository {
+  _Commands() : super(Dio());
+
+  int refreshes = 0;
+
+  @override
+  Future<void> refreshStatus(int printerId) async => refreshes++;
 }
 
 class _Shelf extends InventoryNotifier {
@@ -68,6 +80,7 @@ const _redPla = FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000');
 
 void main() {
   late _Printers printers;
+  late _Commands commands;
   List<int>? answer;
 
   Future<void> open(
@@ -76,8 +89,10 @@ void main() {
     List<FilamentRequirement> requirements = const [_redPla],
     List<int>? stored,
     List<int>? startFrom,
+    ({int printerId, List<int> mapping})? slicer,
   }) async {
     printers = _Printers(status);
+    commands = _Commands();
     answer = null;
     await tester.pumpWidget(
       ProviderScope(
@@ -89,6 +104,15 @@ void main() {
           serverSettingsOverride(const {}),
           printRequirementsProvider.overrideWith(
             (ref, key) async => requirements,
+          ),
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+          mappingArchiveProvider.overrideWith(
+            (ref, id) async => Archive(
+              id: id,
+              filename: 'cube.3mf',
+              status: 'completed',
+              slicerAmsMapping: slicer,
+            ),
           ),
         ],
         child: plApp(
@@ -239,5 +263,45 @@ void main() {
 
     expect(find.textContaining('Ext-L: TPU'), findsOneWidget);
     expect(find.textContaining('Ext-R: PLA'), findsWidgets);
+  });
+
+  group('the slicer\'s mapping', () {
+    testWidgets('is offered for the printer it was made for', (tester) async {
+      await open(tester, slicer: (printerId: 1, mapping: [1]));
+      expect(find.text('Mapowanie ze slicera'), findsOneWidget);
+
+      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.pumpAndSettle();
+      await confirm(tester);
+      expect(answer, [1]);
+    });
+
+    testWidgets('turned off, gives the match back', (tester) async {
+      await open(tester, slicer: (printerId: 1, mapping: [1]));
+      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mapowanie ze slicera'));
+      await tester.pumpAndSettle();
+      await confirm(tester);
+      expect(answer, [0]);
+    });
+
+    testWidgets('is not offered to another printer', (tester) async {
+      await open(tester, slicer: (printerId: 2, mapping: [1]));
+      expect(find.text('Mapowanie ze slicera'), findsNothing);
+    });
+  });
+
+  testWidgets('re-read asks the printer and reads the status again', (
+    tester,
+  ) async {
+    await open(tester);
+    expect(printers.fetches, 1);
+
+    await tester.tap(find.text('Odczytaj ponownie'));
+    await tester.pumpAndSettle();
+
+    expect(commands.refreshes, 1);
+    expect(printers.fetches, 2);
   });
 }

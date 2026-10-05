@@ -5309,6 +5309,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get mappingUseSlicer => 'Mapowanie ze slicera';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Wybierz każdy slot z mapowania AMS, które slicer zapisał razem z tym wydrukiem, zamiast dopasowywać po typie i kolorze.';
+
+  @override
+  String get mappingReRead => 'Odczytaj ponownie';
+
+  @override
   String get colorFamilyRed => 'Czerwony';
 
   @override

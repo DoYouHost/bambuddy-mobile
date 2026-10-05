@@ -5299,6 +5299,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get mappingUseSlicer => 'Asignación del slicer';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Elige cada ranura según la asignación de AMS que el slicer guardó con esta impresión, en lugar de emparejar por tipo y color.';
+
+  @override
+  String get mappingReRead => 'Volver a leer';
+
+  @override
   String get colorFamilyRed => 'Rojo';
 
   @override

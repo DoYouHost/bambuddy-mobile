@@ -5350,6 +5350,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get mappingUseSlicer => 'Correspondance du slicer';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Choisir chaque emplacement d’après la correspondance AMS enregistrée par le slicer avec cette impression, plutôt que par type et couleur.';
+
+  @override
+  String get mappingReRead => 'Relire';
+
+  @override
   String get colorFamilyRed => 'Rouge';
 
   @override

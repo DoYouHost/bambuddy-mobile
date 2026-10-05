@@ -5281,6 +5281,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get mappingUseSlicer => 'Slicer-Zuordnung';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Jeden Slot aus der AMS-Zuordnung wählen, die der Slicer mit diesem Druck gespeichert hat, statt nach Typ und Farbe abzugleichen.';
+
+  @override
+  String get mappingReRead => 'Neu einlesen';
+
+  @override
   String get colorFamilyRed => 'Rot';
 
   @override

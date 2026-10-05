@@ -8870,6 +8870,24 @@ abstract class AppLocalizations {
   /// **'Required: {name}, {color}'**
   String mappingRequired(String name, String color);
 
+  /// Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicer mapping'**
+  String get mappingUseSlicer;
+
+  /// Long-press hint on the slicer mapping toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.'**
+  String get mappingUseSlicerHint;
+
+  /// Filament mapping button: ask the printer to report its AMS again.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read'**
+  String get mappingReRead;
+
   /// Color name for a hex the color catalog does not know, by hue family.
   ///
   /// In en, this message translates to:

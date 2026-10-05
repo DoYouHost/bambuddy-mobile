@@ -53,6 +53,7 @@ class Archive {
     this.userVerdictAt,
     this.confirmRequested = false,
     this.failureReason,
+    this.slicerAmsMapping,
   });
 
   factory Archive.fromJson(Map<String, dynamic> json) =>
@@ -211,6 +212,13 @@ class Archive {
   /// `failureReasonLabel`).
   final String? failureReason;
 
+  /// The AMS mapping the slicer sent with this print, and the printer it was
+  /// resolved against — `extra_data.slicer_ams_mapping`, only on archives a
+  /// virtual printer received. The web offers it as one "Mapping" button for
+  /// that printer alone (`archiveAmsMapping.ts`).
+  @JsonKey(name: 'extra_data', fromJson: _slicerAmsMapping)
+  final ({int printerId, List<int> mapping})? slicerAmsMapping;
+
   /// The question is still open: the web's "unconfirmed" badge. Only a
   /// completed print is asked — a failed one already has its answer.
   bool get awaitsVerdict =>
@@ -254,4 +262,20 @@ enum PrintVerdict {
   /// an unknown verdict is not a verdict it can show.
   static PrintVerdict? fromWire(Object? value) =>
       values.where((v) => v.wire == value).firstOrNull;
+}
+
+({int printerId, List<int> mapping})? _slicerAmsMapping(Object? extraData) {
+  if (extraData is! Map<String, dynamic>) return null;
+  final saved = extraData['slicer_ams_mapping'];
+  if (saved is! Map<String, dynamic>) return null;
+  final printerId = toIntOrNull(saved['printer_id']);
+  final mapping = saved['mapping'];
+  if (printerId == null || mapping is! List || mapping.isEmpty) return null;
+  final ids = <int>[];
+  for (final v in mapping) {
+    final id = toIntOrNull(v);
+    if (id == null) return null;
+    ids.add(id);
+  }
+  return (printerId: printerId, mapping: ids);
 }

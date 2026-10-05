@@ -3204,6 +3204,18 @@
       }
     }
   },
+  "mappingUseSlicer": "Slicer mapping",
+  "@mappingUseSlicer": {
+    "description": "Filament mapping toggle: take every slot from the mapping the slicer sent with this archived print."
+  },
+  "mappingUseSlicerHint": "Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.",
+  "@mappingUseSlicerHint": {
+    "description": "Long-press hint on the slicer mapping toggle."
+  },
+  "mappingReRead": "Re-read",
+  "@mappingReRead": {
+    "description": "Filament mapping button: ask the printer to report its AMS again."
+  },
   "colorFamilyRed": "Red",
   "@colorFamilyRed": {
     "description": "Color name for a hex the color catalog does not know, by hue family."

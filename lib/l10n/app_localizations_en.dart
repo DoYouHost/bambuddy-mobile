@@ -5231,6 +5231,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get mappingUseSlicer => 'Slicer mapping';
+
+  @override
+  String get mappingUseSlicerHint =>
+      'Pick every slot from the AMS mapping the slicer saved with this print, instead of matching by type and color.';
+
+  @override
+  String get mappingReRead => 'Re-read';
+
+  @override
   String get colorFamilyRed => 'Red';
 
   @override

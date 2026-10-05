@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/ams/color_names.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,6 +79,17 @@ void main() {
       final inventory = await printers.fetchInventoryRemain(printerId);
       expect(inventory.spools[0]?.name, 'Contract PLA Basic');
       expect(inventory.grams[0], 750);
+    });
+
+    test('a re-read is accepted for the seeded printer', () async {
+      final printerId =
+          ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                  as Map<String, dynamic>)['id']
+              as int;
+      await expectLater(
+        PrinterCommandsRepository(dio).refreshStatus(printerId),
+        completes,
+      );
     });
   });
 }
