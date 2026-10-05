@@ -1,6 +1,9 @@
+import 'package:bambuddy_mobile/core/ams/slot_addressing.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
+import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -54,5 +57,34 @@ void main() {
       // Reorder with the current single ID preserves order
       await expectLater(queue.reorder([(id: item.id, position: 0)]), completes);
     });
+
+    test(
+      'the mapping offers exactly the loaded slots of the live status',
+      () async {
+        // Nothing from the inventory: the web has no other source.
+        final printers = (await dio.get<List<dynamic>>(
+          '/api/v1/printers/',
+        )).data!;
+        final printerId = (printers.first as Map<String, dynamic>)['id'] as int;
+        final status = await PrintersRepository(dio).fetchStatus(printerId);
+        final loaded = [
+          for (final unit in status?.ams ?? const [])
+            for (final tray in unit.trays ?? const [])
+              if (tray.trayType?.isNotEmpty ?? false)
+                globalTrayId(amsId: unit.id ?? 0, trayId: tray.id ?? 0),
+          for (final ext in status?.externalSpools ?? const [])
+            if (ext.trayType?.isNotEmpty ?? false) ext.id ?? externalTrayIdBase,
+        ];
+        expect(loaded, isNotEmpty, reason: 'the seed loads two PLA slots');
+
+        final container = contractContainer(dio);
+        container.listen(printerTraysProvider(printerId), (_, _) {});
+        final trays = await container.read(
+          printerTraysProvider(printerId).future,
+        );
+
+        expect([for (final t in trays) t.global], loaded);
+      },
+    );
   });
 }

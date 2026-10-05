@@ -40,6 +40,16 @@ class _Printers extends PrintersRepository {
   }
 }
 
+/// A printer answering with [status] and nothing else.
+class _Reporting extends PrintersRepository {
+  _Reporting(this._status) : super(Dio());
+
+  final PrinterStatus? _status;
+
+  @override
+  Future<PrinterStatus?> fetchStatus(int printerId) async => _status;
+}
+
 class _Shelf extends InventoryNotifier {
   @override
   Future<InventoryState> build() async {
@@ -103,5 +113,50 @@ void main() {
     expect(find.text('PETG'), findsOneWidget);
     // The shelf arriving late re-reads nothing: the status was fetched once.
     expect(printers.fetches, 1);
+  });
+
+  group('the slots offered', () {
+    Future<List<int>> globalsFor(PrinterStatus? status) async {
+      final container = ProviderContainer(
+        overrides: [
+          printersRepositoryProvider.overrideWithValue(_Reporting(status)),
+          inventoryBackendOverride(),
+          inventoryProvider.overrideWith(_Shelf.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      final trays = await container.read(printerTraysProvider(1).future);
+      return [for (final t in trays) t.global];
+    }
+
+    test('come from the live status alone, never the assignments', () async {
+      // The web has no other source (`useFilamentMapping.ts`); a slot the
+      // inventory remembers but the printer does not report is how a job
+      // gets rejected. The shelf assigns a spool to the first slot here.
+      const unloaded = PrinterStatus(
+        id: 1,
+        ams: [
+          AmsUnit(id: 0, trays: [AmsTray(id: 0)]),
+        ],
+      );
+      expect(await globalsFor(unloaded), isEmpty);
+      expect(await globalsFor(null), isEmpty);
+    });
+
+    test(
+      'include a transparent filament, as the web tests the type only',
+      () async {
+        const clear = PrinterStatus(
+          id: 1,
+          ams: [
+            AmsUnit(
+              id: 0,
+              trays: [AmsTray(id: 2, trayType: 'PETG', trayColor: 'FFFFFF00')],
+            ),
+          ],
+        );
+        expect(await globalsFor(clear), [2]);
+      },
+    );
   });
 }

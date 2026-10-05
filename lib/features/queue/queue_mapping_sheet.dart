@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag_material.dart';
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
@@ -18,47 +17,18 @@ import '../slicer/slice_providers.dart';
 /// One AMS slot (or external spool) a file filament can be mapped to.
 typedef _Tray = ({int global, String? type, String? color, bool external});
 
-/// Loaded filaments for a printer's AMS. Prefers the printer's LIVE AMS state:
-/// that's the source of truth the firmware resolves the mapping against, so a
-/// tray offered here is one that actually exists on the machine right now.
-/// Offering a global index that isn't loaded is exactly what makes the printer
-/// reject the job with "unable to fetch AMS mapping". Falls back to persisted
-/// inventory assignments only when the printer is OFFLINE (assignments survive
-/// server-side), so mapping save-ahead-of-time still works.
+/// Loaded filaments for a printer's AMS, from its live status only — as the
+/// web's mapping (`useFilamentMapping.ts::buildLoadedFilaments`): that is
+/// what the firmware resolves the mapping against, and a slot offered from
+/// anywhere else is how a job gets rejected with "unable to fetch AMS
+/// mapping". No status, or no loaded slot, offers nothing and leaves the
+/// mapping to the server.
 final printerTraysProvider = FutureProvider.autoDispose
-    .family<List<_Tray>, int>((ref, printerId) async {
-      try {
-        final live = _traysFromStatus(
-          await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
-        );
-        if (live.isNotEmpty) return live;
-      } on AppApiException {
-        // Offline / unreachable — fall through to inventory assignments.
-      }
-      final inv = ref.watch(inventoryRepositoryProvider);
-      var assignments = const <SpoolAssignment>[];
-      var spools = const <Spool>[];
-      try {
-        assignments = await inv.fetchAssignments();
-        spools = await inv.fetchSpools();
-      } on AppApiException {
-        return const [];
-      }
-      final byId = {for (final s in spools) s.id: s};
-      final out = <_Tray>[];
-      for (final a in assignments) {
-        if (a.printerId != printerId) continue;
-        final s = byId[a.spoolId];
-        final global = globalTrayId(amsId: a.amsId, trayId: a.trayId);
-        out.add((
-          global: global,
-          type: s?.material,
-          color: s?.rgba,
-          external: a.isExternalSpool,
-        ));
-      }
-      return out;
-    });
+    .family<List<_Tray>, int>(
+      (ref, printerId) async => _traysFromStatus(
+        await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
+      ),
+    );
 
 List<_Tray> _traysFromStatus(PrinterStatus? status) {
   if (status == null) return const [];
@@ -75,7 +45,8 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
     // rejects with "unable to fetch AMS mapping".
     final unitId = units[u].id ?? u;
     for (final t in units[u].trays ?? const <AmsTray>[]) {
-      if (t.isEmpty) continue;
+      // The web's test is the type alone: a transparent colour is a filament.
+      if (t.trayType?.isEmpty ?? true) continue;
       final int global = globalTrayId(amsId: unitId, trayId: t.id ?? 0);
       out.add((
         global: global,
@@ -86,7 +57,7 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
     }
   }
   for (final e in status.externalSpools) {
-    if (e.isEmpty) continue;
+    if (e.trayType?.isEmpty ?? true) continue;
     // `vt_tray` reports the holder's global id directly.
     final int global = e.id ?? externalTrayIdBase;
     out.add((
