@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:bambuddy_mobile/core/ams/filament_mapping.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
@@ -204,5 +205,78 @@ void main() {
       final cleared = (await queue.fetch()).firstWhere((i) => i.id == item.id);
       expect(cleared.filamentOverrides, isNull);
     });
+
+    test('a rack pick comes back keyed by group, null clears it', () async {
+      // What the mapping's rack picker writes (#1784): every group once one is
+      // picked, as `{group: position}` with the keys stringified on the wire.
+      final printerId =
+          ((await dio.get<List<dynamic>>('/api/v1/printers/')).data!.first
+                  as Map<String, dynamic>)['id']
+              as int;
+      final item = (await queue.fetch()).firstWhere(
+        (i) => i.libraryFileId != null,
+      );
+      addTearDown(
+        () => queue.updateItem(
+          item.id,
+          printerId: item.printerId,
+          targetModel: item.targetModel,
+          nozzleRackChoice: item.nozzleRackChoice,
+        ),
+      );
+
+      await queue.updateItem(
+        item.id,
+        printerId: printerId,
+        targetModel: null,
+        nozzleRackChoice: const {1: 3, 2: 3},
+      );
+      final kept = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+      // Two groups on one position is stored as sent: refusing it is the
+      // dispatcher's job, and the picker leaves it to that, as the web does.
+      expect(kept.nozzleRackChoice, {1: 3, 2: 3});
+
+      await queue.updateItem(item.id, nozzleRackChoice: null);
+      final cleared = (await queue.fetch()).firstWhere((i) => i.id == item.id);
+      expect(cleared.nozzleRackChoice, isNull);
+    });
+
+    test(
+      'a cancelled item reaches the history, and leaves it on delete',
+      () async {
+        final file = (await LibraryRepository(
+          dio,
+        ).listFiles()).firstWhere((f) => f.filename == 'contract-probe.3mf');
+        final before = {for (final i in await queue.fetch()) i.id};
+        await queue.addFromLibraryFile(
+          file.id,
+          options: const QueueCreateOptions(manualStart: true),
+        );
+        final id = (await queue.fetch())
+            .firstWhere((i) => !before.contains(i.id))
+            .id;
+
+        await queue.cancel(id);
+        final history = await queue.fetchHistory();
+        final cancelled = history.singleWhere((i) => i.id == id);
+        expect(cancelled.statusKind, QueueItemStatusKind.cancelled);
+        // The row's "added by"; the contract user queued it.
+        expect(cancelled.createdByUsername, isNotEmpty);
+        expect(
+          history.every(
+            (i) => const {
+              QueueItemStatusKind.completed,
+              QueueItemStatusKind.failed,
+              QueueItemStatusKind.skipped,
+              QueueItemStatusKind.cancelled,
+            }.contains(i.statusKind),
+          ),
+          isTrue,
+        );
+
+        expect(await queue.delete(id), isTrue);
+        expect((await queue.fetchHistory()).any((i) => i.id == id), isFalse);
+      },
+    );
   });
 }

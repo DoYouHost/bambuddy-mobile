@@ -2335,6 +2335,12 @@
   "mappingUseSlicerHint": "Wybierz każdy slot z mapowania AMS, które slicer zapisał razem z tym wydrukiem, zamiast dopasowywać po typie i kolorze.",
   "mappingReRead": "Odczytaj ponownie",
   "mappingFtsSameInlet": "Wszystkie filamenty tego wydruku są na wlocie IN-{inlet} przełącznika Filament Track Switch. Zmiana filamentu na tym samym wlocie trwa dłużej — przenieś jeden do AMS na drugim wlocie, żeby ją przyspieszyć.",
+  "mappingRackPosition": "Pozycja w magazynie",
+  "mappingRackPositionHint": "Wybierz, która dysza z magazynu drukuje ten filament. Pozycje są numerowane jak na drukarce.",
+  "mappingRackNeeds": "Ten filament potrzebuje dyszy {nozzle}.",
+  "mappingRackEmptyPosition": "Ta pozycja w magazynie jest pusta",
+  "mappingRackWrongNozzle": "Ma dyszę {has}, a ten filament potrzebuje {needs}",
+  "mappingRackSlot": "R{position}",
   "colorFamilyRed": "Czerwony",
   "colorFamilyOrange": "Pomarańczowy",
   "colorFamilyYellow": "Żółty",
@@ -2558,54 +2564,6 @@
     }
   },
   "queueEditForceColorMatch": "Wymuś zgodność koloru",
-  "queueEditNozzleRack": "Magazyn dysz",
-  "queueEditNozzleRackDesc": "Wybierz, z której dyszy w magazynie drukuje każdy filament. Bez wyboru pasująca pozycja zostanie dobrana przy starcie wydruku.",
-  "queueEditRackGroupLabel": "Filament {slots} · {nozzle}",
-  "@queueEditRackGroupLabel": {
-    "placeholders": {
-      "slots": {
-        "type": "String"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackAuto": "Automatycznie",
-  "queueEditRackPosition": "Pozycja {position} · {nozzle}",
-  "@queueEditRackPosition": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionTaken": "Pozycja {position} · {nozzle} — już wybrana",
-  "@queueEditRackPositionTaken": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackPositionUnfit": "Pozycja {position} · {nozzle} — nie pasuje",
-  "@queueEditRackPositionUnfit": {
-    "placeholders": {
-      "position": {
-        "type": "int"
-      },
-      "nozzle": {
-        "type": "String"
-      }
-    }
-  },
-  "queueEditRackEmpty": "pusta",
   "queueEditRackPickStale": "Wybrana pozycja już nie pasuje do tego filamentu — wybierz inną, inaczej wydruk zostanie odrzucony przy starcie.",
   "queueEditRackNoFit": "Żadna pozycja w magazynie nie ma dyszy {nozzle} — włóż taką albo drukarka wybierze sama.",
   "@queueEditRackNoFit": {
@@ -3252,5 +3210,39 @@
   "inventoryDetailSlot": "Slot",
   "inventoryDetailNotLoaded": "Nie załadowana",
   "inventoryDetailConsumedSinceReset": "Zużyte od resetu",
-  "inventorySupplierArchivedCount": "{count} w archiwum"
+  "inventorySupplierArchivedCount": "{count} w archiwum",
+  "timeJustNow": "Przed chwilą",
+  "timeNow": "Teraz",
+  "timeMinutesAgo": "{count} min temu",
+  "timeInMinutes": "za {count} min",
+  "timeHoursAgo": "{count} godz. temu",
+  "timeInHours": "za {count} godz.",
+  "timeDaysAgo": "{count, plural, =1{1 dzień temu} other{{count} dni temu}}",
+  "timeInDays": "{count, plural, =1{za 1 dzień} other{za {count} dni}}",
+  "queueHistory": "Historia",
+  "queueItemCount": "{count, plural, =1{1 element} few{{count} elementy} other{{count} elementów}}",
+  "queueHistoryEmpty": "Historia jest pusta. Pojawią się tu zakończone, anulowane i nieudane wydruki.",
+  "queueHistoryShowMore": "Pokaż więcej",
+  "queueHistoryShowing": "Widoczne: {shown} z {total}",
+  "queueHistorySort": "Sortowanie",
+  "queueHistorySortDate": "Według daty",
+  "queueHistorySortName": "Według nazwy",
+  "queueHistorySortPrinter": "Według drukarki",
+  "queueHistoryNewestFirst": "Najnowsze najpierw",
+  "queueHistoryOldestFirst": "Najstarsze najpierw",
+  "queueHistoryClear": "Wyczyść historię",
+  "queueHistoryClearTitle": "Wyczyścić historię?",
+  "queueHistoryClearMessage": "{count, plural, =1{Usunąć 1 element z historii?} few{Usunąć wszystkie {count} elementy z historii?} other{Usunąć wszystkie {count} elementów z historii?}}",
+  "queueHistoryCleared": "{count, plural, =1{Usunięto 1 element historii.} few{Usunięto {count} elementy historii.} other{Usunięto {count} elementów historii.}}",
+  "queueHistoryKeptForOrders": "Zostawiono {kept}, bo zamówienia nadal ich potrzebują.",
+  "queueHistoryClearFailed": "Nie udało się wyczyścić historii.",
+  "queueHistoryNoClear": "Nie masz uprawnień do wyczyszczenia całej historii",
+  "queueHistoryRequeue": "Dodaj ponownie do kolejki",
+  "queueHistoryNoRequeue": "Nie masz uprawnień do ponownego dodawania do kolejki",
+  "queueHistoryRemove": "Usuń",
+  "queueHistoryNoRemove": "Nie masz uprawnień do usunięcia tego elementu",
+  "queueHistoryRemoveTitle": "Usunąć z historii?",
+  "queueHistoryRemoveMessage": "Usunąć „{name}” z historii kolejki?",
+  "queueHistoryAddedBy": "Dodane przez: {name}",
+  "queueHistoryBatch": "Partia"
 }

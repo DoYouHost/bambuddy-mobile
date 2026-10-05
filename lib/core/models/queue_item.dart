@@ -16,6 +16,10 @@ enum QueueItemStatusKind {
   completed,
   cancelled,
   failed,
+
+  /// Passed over by the scheduler, e.g. behind a failed print that the next
+  /// one required to succeed (`require_previous_success`).
+  skipped,
   unknown,
 }
 
@@ -77,6 +81,7 @@ class QueueItem {
     this.batchId,
     this.batchName,
     this.createdById,
+    this.createdByUsername,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -302,6 +307,10 @@ class QueueItem {
   /// without it the server skips the item without a word.
   final int? createdById;
 
+  /// Their username, for the history row's "added by". Null when nobody is
+  /// logged in on the server or the account is gone.
+  final String? createdByUsername;
+
   /// Cross-model alternatives in priority order (server #671) — several sliced
   /// files, one job, whichever printer frees up first. Empty for every ordinary
   /// item and on every server before 1.2.6.
@@ -340,6 +349,8 @@ class QueueItem {
       case 'failed':
       case 'error':
         return QueueItemStatusKind.failed;
+      case 'skipped':
+        return QueueItemStatusKind.skipped;
       default:
         return QueueItemStatusKind.unknown;
     }

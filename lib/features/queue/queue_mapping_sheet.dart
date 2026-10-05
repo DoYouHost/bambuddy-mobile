@@ -12,6 +12,7 @@ import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/printers/nozzle_rack.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -205,6 +206,9 @@ Future<List<int>?> queueMappingToSend({
 /// and absent entirely on a draft.
 /// [forceColorMatch] and [onForceColorMatch] put the web's per-filament
 /// "force colour match" box on each row.
+/// [rackChoice] is the nozzle-rack position per filament group the caller
+/// holds, and [onRackChoice] makes it pickable from the rows; without it the
+/// positions are shown and cannot be changed, as the web's disabled picker.
 /// [startFrom] is the mapping to start from when the caller holds a newer one
 /// than the item's stored mapping — the edit form after a pick, or `[]` once a
 /// printer or plate switch dropped it, as the web drops its picks then.
@@ -221,6 +225,8 @@ Future<List<int>?> showQueueMappingSheet(
   List<int>? startFrom,
   Map<int, bool>? forceColorMatch,
   void Function(int slotId, bool value)? onForceColorMatch,
+  Map<int, int>? rackChoice,
+  void Function(Map<int, int> choice)? onRackChoice,
 }) {
   return dashSheet<List<int>>(
     context,
@@ -233,8 +239,47 @@ Future<List<int>?> showQueueMappingSheet(
       startFrom: startFrom,
       forceColorMatch: forceColorMatch,
       onForceColorMatch: onForceColorMatch,
+      rackChoice: rackChoice,
+      onRackChoice: onRackChoice,
     ),
   );
+}
+
+/// What the rows need to offer rack positions: the live rack by position, the
+/// plate's filament groups, and the position each rack-bound group prints
+/// from.
+typedef _Rack = ({
+  Map<int, NozzleRackSlot> byPosition,
+  Map<int, RackGroup> groups,
+  Map<int, int> positions,
+});
+
+/// A nozzle as the rack rows name it: `0.4 High flow`. The flow type is
+/// dropped when nothing states it, rather than guessed at standard.
+String rackNozzleLabel(
+  AppLocalizations l10n, {
+  required String? diameter,
+  required bool? highFlow,
+}) {
+  final flow = switch (highFlow) {
+    true => l10n.nozzleFlowHigh,
+    false => l10n.nozzleFlowStandard,
+    null => '',
+  };
+  return [
+    nozzleDiameterLabel(diameter),
+    flow,
+  ].where((part) => part.isNotEmpty).join(' ');
+}
+
+bool _fitsGroup(_Rack rack, int position, RackGroup group) {
+  final slot = rack.byPosition[position];
+  return slot != null &&
+      rackSlotFits(
+        slot,
+        diameter: group.nozzleDiameter,
+        volumeType: group.volumeType,
+      );
 }
 
 class _MappingSheet extends ConsumerStatefulWidget {
@@ -247,6 +292,8 @@ class _MappingSheet extends ConsumerStatefulWidget {
     this.startFrom,
     this.forceColorMatch,
     this.onForceColorMatch,
+    this.rackChoice,
+    this.onRackChoice,
   });
   final QueueItem item;
   final int printerId;
@@ -259,6 +306,9 @@ class _MappingSheet extends ConsumerStatefulWidget {
   /// keeps the flags, which only the edit form does.
   final Map<int, bool>? forceColorMatch;
   final void Function(int slotId, bool value)? onForceColorMatch;
+
+  final Map<int, int>? rackChoice;
+  final void Function(Map<int, int> choice)? onRackChoice;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -275,6 +325,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   /// The caller's flags, mirrored here: this route is not rebuilt by the
   /// form's own state.
   late final Map<int, bool> _force = {...?widget.forceColorMatch};
+
+  /// The rack positions picked so far, mirrored for the same reason; the item's
+  /// stored ones when the caller keeps none.
+  late Map<int, int> _rack = {
+    ...?(widget.rackChoice ?? widget.item.nozzleRackChoice),
+  };
 
   /// The slots the slicer-mapping toggle wrote into [_manual], so turning it
   /// off takes back exactly those and no pick made by hand
@@ -416,6 +472,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     // `FilamentMapping.tsx`: the nozzle badge shows when the file was sliced
     // for two nozzles.
     final dualNozzle = comparison.any((c) => c.requirement.nozzleId != null);
+    final rack = _rackOf(status, comparison);
     final (
       summary,
       summaryInk,
@@ -505,6 +562,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             options,
             name: _filamentName(c.requirement, names),
             dualNozzle: dualNozzle,
+            rack: rack,
           ),
         const SizedBox(height: DashSpace.lg),
         // The web sends no mapping when the printer reports no slot, which
@@ -600,6 +658,194 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     setState(() => _rereading = false);
   }
 
+  /// `hasRack` and `effectiveRackChoice` (`FilamentMapping.tsx`, #1784): a
+  /// rack is offered when the printer reports one and the plate binds a group
+  /// to it, and each group shows the position the server would give it around
+  /// the picks made so far — or the picks as they stand, when those cannot all
+  /// be placed.
+  _Rack? _rackOf(PrinterStatus? status, List<FilamentComparison> comparison) {
+    final slots = status?.nozzleRack;
+    final groups = <int, RackGroup>{
+      for (final c in comparison)
+        if ((c.requirement.groupId, c.requirement.group) case (
+          final id?,
+          final group?,
+        ))
+          id: group,
+    };
+    final hasRack = slots?.any((s) => (s.id ?? 0) >= 16) ?? false;
+    if (!hasRack || !groups.values.any((g) => g.onRack)) return null;
+    return (
+      byPosition: rackByPosition(slots),
+      groups: groups,
+      positions: autoAssignRackPositions(slots, groups, _rack) ?? _rack,
+    );
+  }
+
+  /// The row's rack picker, `R2 · 0.4`: the position the group prints from
+  /// and the nozzle sitting there.
+  Widget _rackButton(_Rack rack, int groupId, RackGroup group) {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final position = rack.positions[groupId];
+    final diameter = nozzleDiameterLabel(
+      position == null ? null : rack.byPosition[position]?.nozzleDiameter,
+    );
+    final enabled = widget.onRackChoice != null;
+    return Tooltip(
+      message: l10n.mappingRackPositionHint,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: enabled ? () => _pickRackPosition(rack, groupId, group) : null,
+        child: Container(
+          padding: const EdgeInsets.only(left: DashSpace.xs),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: enabled
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                [
+                  position == null ? '–' : l10n.mappingRackSlot(position),
+                  if (diameter.isNotEmpty) diameter,
+                ].join(' · '),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down, size: 18),
+            ],
+          ),
+        ),
+      ).tagged('queue_mapping.rack'),
+    );
+  }
+
+  /// All six positions, as the web lists them (`rackOptionsForGroup`): one the
+  /// group cannot print from is greyed out with the reason under it — the
+  /// web's tooltip, which a touch screen has no hover for. A position another
+  /// group holds is not refused; the server does that at dispatch, and says
+  /// why on the item.
+  Future<void> _pickRackPosition(
+    _Rack rack,
+    int groupId,
+    RackGroup group,
+  ) async {
+    final l10n = _l10n;
+    final theme = Theme.of(context);
+    final current = rack.positions[groupId];
+    final needs = rackNozzleLabel(
+      l10n,
+      diameter: group.nozzleDiameter,
+      highFlow: highFlowFromName(group.volumeType),
+    );
+    // All six fit without a scroll on a phone only past the 9/16 cap.
+    final picked = await dashSheet<int>(
+      context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              title: Text(
+                l10n.mappingRackPosition,
+                style: theme.textTheme.titleMedium,
+              ),
+              subtitle: Text(
+                '${l10n.mappingRackNeeds(needs)} '
+                '${l10n.mappingRackPositionHint}',
+              ),
+            ),
+            for (final position in rackPositions)
+              _rackOption(ctx, rack, position, group, needs, current),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    // Every group is written back, not just this one, as the web does: left
+    // implicit, the others could be re-assigned around the new pick and move a
+    // hotend the operator had already seen.
+    setState(() => _rack = {...rack.positions, groupId: picked});
+    widget.onRackChoice?.call(_rack);
+  }
+
+  Widget _rackOption(
+    BuildContext ctx,
+    _Rack rack,
+    int position,
+    RackGroup group,
+    String needs,
+    int? current,
+  ) {
+    final l10n = _l10n;
+    final slot = rack.byPosition[position];
+    final empty = slot == null || slot.isEmpty;
+    final diameter = nozzleDiameterLabel(slot?.nozzleDiameter);
+    final eligible = _fitsGroup(rack, position, group);
+    final reason = eligible
+        ? null
+        : empty
+        ? l10n.mappingRackEmptyPosition
+        : l10n.mappingRackWrongNozzle(
+            rackNozzleLabel(
+              l10n,
+              diameter: slot.nozzleDiameter,
+              highFlow: highFlowFromCode(slot.nozzleType),
+            ),
+            needs,
+          );
+    return ListTile(
+      enabled: eligible,
+      title: Text(
+        [
+          l10n.mappingRackSlot(position),
+          if (diameter.isNotEmpty) diameter,
+        ].join(' · '),
+      ),
+      subtitle: reason == null ? null : Text(reason),
+      trailing: current == position
+          ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+          : null,
+      onTap: () => Navigator.pop(ctx, position),
+    ).tagged(
+      'queue_mapping.rack_position_$position',
+      selected: current == position,
+    );
+  }
+
+  /// Under the row, kept from the app's own rack section: a pick the live
+  /// rack no longer fits — the server fails the item at dispatch rather than
+  /// print from another nozzle — and a group no position can take.
+  (String, Color)? _rackWarning(
+    _Rack rack,
+    int groupId,
+    RackGroup group,
+    DashTokens t,
+  ) {
+    final picked = _rack[groupId];
+    if (picked != null && !_fitsGroup(rack, picked, group)) {
+      return (_l10n.queueEditRackPickStale, t.dangerInk);
+    }
+    if (rackPositions.any((p) => _fitsGroup(rack, p, group))) return null;
+    return (
+      _l10n.queueEditRackNoFit(
+        rackNozzleLabel(
+          _l10n,
+          diameter: group.nozzleDiameter,
+          highFlow: highFlowFromName(group.volumeType),
+        ),
+      ),
+      t.warningInk,
+    );
+  }
+
   /// `useFilamentLabels`: the sliced filament's name by its `tray_info_idx`,
   /// else the 3MF's type.
   String _filamentName(FilamentRequirement req, Map<String, String> names) {
@@ -622,6 +868,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     _SlotOptions options, {
     required String name,
     required bool dualNozzle,
+    required _Rack? rack,
   }) {
     final l10n = _l10n;
     final req = c.requirement;
@@ -660,6 +907,18 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             _ => null,
           };
     final grams = req.usedGrams;
+    final groupId = req.groupId;
+    final group = groupId == null ? null : rack?.groups[groupId];
+    // On a rack plate the group decides the badge (`FilamentMapping.tsx`): a
+    // picker for a rack-bound group, `L` for one on the fixed hotend.
+    final Widget? lead = switch (group) {
+      RackGroup(onRack: true) => _rackButton(rack!, groupId!, group),
+      RackGroup() => _Badge(l10n.extruderLeftShort),
+      null => nozzle == null ? null : _Badge(nozzle),
+    };
+    final rackWarning = group != null && group.onRack
+        ? _rackWarning(rack!, groupId!, group, t)
+        : null;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: DashSpace.xs),
@@ -670,10 +929,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
         title: Row(
           children: [
-            if (nozzle != null) ...[
-              _Badge(nozzle),
-              const SizedBox(width: DashSpace.xs),
-            ],
+            if (lead != null) ...[lead, const SizedBox(width: DashSpace.xs)],
             Flexible(
               child: Text(
                 name,
@@ -702,6 +958,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
             if (c.isManual) Text(l10n.mappingManual),
             if (warning != null)
               Text(warning.$1, style: TextStyle(color: warning.$2)),
+            if (rackWarning != null)
+              Text(rackWarning.$1, style: TextStyle(color: rackWarning.$2)),
             if (widget.onForceColorMatch case final onForce?
                 when req.slotId > 0)
               Row(

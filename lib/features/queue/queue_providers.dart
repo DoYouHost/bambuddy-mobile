@@ -6,19 +6,10 @@ import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/printer.dart';
-import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-
-/// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
-/// Used by the queue filament-mapping sheet to list loaded AMS filaments.
-final printerStatusOnceProvider = FutureProvider.autoDispose
-    .family<PrinterStatus?, int>(
-      (ref, printerId) =>
-          ref.watch(printersRepositoryProvider).fetchStatus(printerId),
-    );
 
 final queueProvider =
     AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
