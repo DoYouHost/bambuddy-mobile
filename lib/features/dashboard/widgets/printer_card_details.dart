@@ -882,7 +882,12 @@ class _FilamentRow extends StatelessWidget {
             remain: allowRemain ? tray.remain : null,
             spool: spool,
           );
-    final grams = spool == null
+    // A spool reading 0% the AMS still sees filament in has a stale counter,
+    // and the fill came from the AMS — "66% · 0 g" would contradict itself.
+    // Its own percent, not `remainingWeight == 0`: 0.4 g left rounds to both.
+    final staleWeight =
+        (trayFillPercent(spool: spool) ?? 0) == 0 && (fill ?? 0) > 0;
+    final grams = spool == null || staleWeight
         ? null
         : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
     final trailing = [if (fill != null) '$fill%', ?grams].join(' · ');

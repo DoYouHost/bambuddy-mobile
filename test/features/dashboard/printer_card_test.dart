@@ -131,6 +131,20 @@ class _WeighedInventory extends InventoryNotifier {
   );
 }
 
+/// A spool whose counter says it is empty, in the slot the AMS reads at 66%.
+class _SpentInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+    // 0.4 g left: 0% and "0 g" both, without being exactly zero.
+    spools: [
+      Spool(id: 1, material: 'PLA', labelWeight: 1000, weightUsed: 999.6),
+    ],
+    assignmentBySpool: {
+      1: SpoolAssignment(spoolId: 1, printerId: 1, amsId: 0, trayId: 3),
+    },
+  );
+}
+
 /// The tagged spool on the shelf and a different one pinned to the same slot,
 /// for which of the two the slot shows.
 class _PinnedOverTagInventory extends InventoryNotifier {
@@ -763,6 +777,30 @@ void main() {
       // The holder reports no fill of its own, so it had nothing to show
       // until a spool sat on it.
       expect(find.text('50% · 250 g'), findsOneWidget);
+    });
+
+    testWidgets('a spool at 0 g the AMS still sees shows only the AMS fill', (
+      tester,
+    ) async {
+      // Server #676: the counter ran past the spool while filament is still
+      // in the slot. The fill falls back to the AMS's 66%, and "66% · 0 g"
+      // would say two opposite things.
+      await tester.pumpWidget(
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+          ),
+          extra: [inventoryProvider.overrideWith(_SpentInventory.new)],
+        ),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('66%'), findsOneWidget);
+      expect(find.textContaining('0 g'), findsNothing);
     });
 
     testWidgets(

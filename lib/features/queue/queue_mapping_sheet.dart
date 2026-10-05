@@ -16,11 +16,16 @@ import '../inventory/inventory_providers.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
+///
+/// [spoolIn] finds the slot's spool on the shelf the sheet watches, so the
+/// fill is resolved there: the inventory loading later must not re-run this
+/// provider, which would refetch the status and blank the sheet to a spinner.
 typedef _Tray = ({
   int global,
   String? type,
   String? color,
-  int? fill,
+  int? remain,
+  Spool? Function(AssignedSpools) spoolIn,
   bool external,
 });
 
@@ -33,11 +38,9 @@ typedef _Tray = ({
 /// server-side), so mapping save-ahead-of-time still works.
 final printerTraysProvider = FutureProvider.autoDispose
     .family<List<_Tray>, int>((ref, printerId) async {
-      final assigned = ref.watch(assignedSpoolsProvider(printerId));
       try {
         final live = _traysFromStatus(
           await ref.watch(printersRepositoryProvider).fetchStatus(printerId),
-          assigned,
         );
         if (live.isNotEmpty) return live;
       } on AppApiException {
@@ -62,14 +65,15 @@ final printerTraysProvider = FutureProvider.autoDispose
           global: global,
           type: s?.material,
           color: s?.rgba,
-          fill: trayFillPercent(spool: s),
+          remain: null,
+          spoolIn: (_) => s,
           external: a.isExternalSpool,
         ));
       }
       return out;
     });
 
-List<_Tray> _traysFromStatus(PrinterStatus? status, AssignedSpools assigned) {
+List<_Tray> _traysFromStatus(PrinterStatus? status) {
   if (status == null) return const [];
   final out = <_Tray>[];
   final units = status.ams ?? const <AmsUnit>[];
@@ -90,10 +94,8 @@ List<_Tray> _traysFromStatus(PrinterStatus? status, AssignedSpools assigned) {
         global: global,
         type: t.trayType,
         color: t.trayColor,
-        fill: trayFillPercent(
-          remain: t.remain,
-          spool: assigned.inAmsSlot(unitId, t),
-        ),
+        remain: t.remain,
+        spoolIn: (assigned) => assigned.inAmsSlot(unitId, t),
         external: false,
       ));
     }
@@ -106,10 +108,8 @@ List<_Tray> _traysFromStatus(PrinterStatus? status, AssignedSpools assigned) {
       global: global,
       type: e.trayType,
       color: e.trayColor,
-      fill: trayFillPercent(
-        remain: e.remain,
-        spool: assigned.onHolder(status, e),
-      ),
+      remain: e.remain,
+      spoolIn: (assigned) => assigned.onHolder(status, e),
       external: true,
     ));
   }
@@ -224,6 +224,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       )),
     );
     final traysAsync = ref.watch(printerTraysProvider(widget.printerId));
+    // Loads the shelf while the sheet is open, for the picker's fill — a
+    // listen, as nothing on this sheet shows it.
+    ref.listen(assignedSpoolsProvider(widget.printerId), (_, _) {});
 
     return wrap(
       reqsAsync.isLoading || traysAsync.isLoading
@@ -348,22 +351,39 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       context,
       scrollControlled: false,
       builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final t in trays)
-              ListTile(
-                leading: _swatch(theme, t.color, 28),
-                title: Text(_trayLabel(t)),
-                subtitle: Text(
-                  [?t.type, if (t.fill != null) '${t.fill}%'].join(' · '),
-                ),
-                trailing: _selected[slot] == t.global
-                    ? Icon(Icons.check, color: theme.colorScheme.primary)
-                    : null,
-                onTap: () => Navigator.pop(ctx, t.global),
-              ).taggedMaterial('queue_mapping.tray_option', t.type),
-          ],
+        // A Consumer, not the sheet's own ref: this is a route of its own,
+        // which a watch in the sheet would not rebuild.
+        child: Consumer(
+          builder: (context, ref, _) {
+            final assigned = ref.watch(
+              assignedSpoolsProvider(widget.printerId),
+            );
+            return ListView(
+              shrinkWrap: true,
+              children: [
+                for (final t in trays)
+                  ListTile(
+                    leading: _swatch(theme, t.color, 28),
+                    title: Text(_trayLabel(t)),
+                    subtitle: Text(
+                      [
+                        ?t.type,
+                        if (trayFillPercent(
+                              remain: t.remain,
+                              spool: t.spoolIn(assigned),
+                            )
+                            case final fill?)
+                          '$fill%',
+                      ].join(' · '),
+                    ),
+                    trailing: _selected[slot] == t.global
+                        ? Icon(Icons.check, color: theme.colorScheme.primary)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, t.global),
+                  ).taggedMaterial('queue_mapping.tray_option', t.type),
+              ],
+            );
+          },
         ),
       ),
     );
