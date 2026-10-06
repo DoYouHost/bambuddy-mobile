@@ -71,4 +71,7 @@ final _rules = <RefusalRule>[
     ['cost center is required when billing is enabled'],
     (l10n) => l10n.queueBillingUseWeb,
   ),
+  // Start, or an edit clearing `manual_start`, by a user held for review
+  // (#1620) — reached only where `awaitingReviewProvider` could not tell.
+  (['waits for review'], (l10n) => l10n.queueAwaitingReviewRefused),
 ];

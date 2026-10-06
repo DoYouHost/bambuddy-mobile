@@ -5774,6 +5774,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueEditRequireManualStart => 'Require manual start';
 
   @override
+  String get queueBadgeStaged => 'Staged';
+
+  @override
+  String get queueBadgeAwaitingReview => 'Waiting for review';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'This job waits for review: someone who manages the queue has to start it.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Your print waits for review: it starts once someone who manages the queue starts it.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Only start if previous print succeeded';
 

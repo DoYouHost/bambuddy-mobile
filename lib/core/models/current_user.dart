@@ -164,6 +164,18 @@ abstract final class Permissions {
   static const queueUpdateOwn = 'queue:update_own';
   static const queueUpdateAll = 'queue:update_all';
 
+  /// Without it (or [queueUpdateAll]) every job the user queues waits until a
+  /// reviewer starts it, and they may start none themselves (#1620,
+  /// `core/auth.py::queue_review_required_for`). An API key's `can_queue`
+  /// covers it only when the key's owner holds it.
+  static const queueStartUnreviewed = 'queue:start_unreviewed';
+
+  /// What a library folder's rename and delete asked for before the server
+  /// answered per folder (#3201) — the fallback for an older one.
+  static const libraryUpdateAll = 'library:update_all';
+  static const libraryDeleteAll = 'library:delete_all';
+  static const libraryDeleteOwn = 'library:delete_own';
+
   /// Recording an outcome verdict (`PATCH /archives/{id}`): update-own on the
   /// caller's own prints, update-all on anyone's. An API key's
   /// `can_manage_archives` covers both.

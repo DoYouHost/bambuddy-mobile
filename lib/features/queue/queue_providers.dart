@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/available_filament.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/settings/server_profile.dart';
 import '../../data/queue_repository.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
@@ -235,6 +237,60 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 /// whether it's currently online and has smart plug assigned — so UI can mark
 /// OFFLINE printers (bambuddy will wake them before start).
 typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
+
+/// Whether the signed-in user's jobs wait for a reviewer to start them, and
+/// they may start none (#1620) — the web's `needsReview`. No for an unknown
+/// identity and for a server not known to have the gate: the server says so
+/// itself then (`queueWriteMessage`).
+final awaitingReviewProvider = Provider<bool>((ref) {
+  if (!ref.watch(queueReviewGateProvider).orFalse) return false;
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  return me != null &&
+      !me.can(Permissions.queueStartUnreviewed) &&
+      !me.can(Permissions.queueUpdateAll);
+});
+
+/// The job a Start is asked about: who queued it, and the printer it already
+/// has.
+typedef StartTarget = ({int? createdById, int? printerId});
+
+/// Whether starting a job [createdById] queued would claim it: it has no owner
+/// and the user may only touch their own jobs. The server then refuses every
+/// `PATCH` (`print_queue.py::update_queue_item`) until `/start` has made the
+/// job theirs (#1670), so such a start can neither assign a printer nor save a
+/// mapping first — it goes straight to the route, as the web's Play does.
+final startClaimsJobProvider = Provider.family<bool, int?>((ref, createdById) {
+  if (createdById != null) return false;
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  return me != null && !me.can(Permissions.queueUpdateAll);
+});
+
+/// Whether to offer Start on [target] — the server's rule
+/// (`print_queue.py::start_queue_item`, `auth.py::may_start_queue_item`) plus
+/// #1620, not the web's. The web greys Start on a job with no owner unless the
+/// user holds update-all, but the route lets update-own start one and makes
+/// them its owner: jobs from the virtual printer arrive that way (#1670). Only
+/// with a printer already on it — see [startClaimsJobProvider].
+///
+/// An API key is checked against update-all alone
+/// (`require_ownership_permission`), so its owner's own jobs are not enough.
+final mayStartQueueItemProvider = Provider.family<bool, StartTarget>((
+  ref,
+  target,
+) {
+  if (ref.watch(awaitingReviewProvider)) return false;
+  final me = ref.watch(currentUserProvider).valueOrNull;
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return me?.can(Permissions.queueUpdateAll) ?? true;
+  }
+  if (me == null || me.can(Permissions.queueUpdateAll)) return true;
+  if (!me.can(Permissions.queueUpdateOwn)) return false;
+  return target.createdById == me.id ||
+      (target.createdById == null && target.printerId != null);
+});
 
 /// All printers regardless of state, for the Edit Queue Item target picker.
 /// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,

@@ -5848,6 +5848,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get queueEditRequireManualStart => 'Requerir inicio manual';
 
   @override
+  String get queueBadgeStaged => 'Preparado';
+
+  @override
+  String get queueBadgeAwaitingReview => 'Esperando revisión';
+
+  @override
+  String get queueAwaitingReviewRefused =>
+      'Este trabajo espera revisión: tiene que iniciarlo alguien que gestiona la cola.';
+
+  @override
+  String get queueEditAwaitingReviewNote =>
+      'Tu impresión espera revisión: empieza cuando alguien que gestiona la cola la inicie.';
+
+  @override
   String get queueEditRequirePrevious =>
       'Iniciar solo si la impresión anterior tuvo éxito';
 

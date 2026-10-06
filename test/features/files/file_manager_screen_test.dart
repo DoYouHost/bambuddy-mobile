@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/models/library_file.dart';
+import 'package:bambuddy_mobile/core/models/library_folder.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
@@ -647,6 +648,115 @@ void main() {
       await tester.tap(find.byTooltip('Sortuj według'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('folder rights (#3201)', () {
+    const mine = LibraryFolder(id: 1, name: 'Mine');
+    const theirs = LibraryFolder(
+      id: 2,
+      name: 'Theirs',
+      canWrite: false,
+      canRename: false,
+      canDelete: false,
+    );
+    const mount = LibraryFolder(
+      id: 3,
+      name: 'NAS',
+      isExternal: true,
+      externalReadonly: true,
+    );
+    final file = _file();
+    final l10n = lookupAppLocalizations(const Locale('pl'));
+
+    Future<void> pumpAt(WidgetTester tester, {int? folderId}) async {
+      await pumpPhone(
+        tester,
+        const FileManagerScreen(),
+        overrides: [
+          noServerProfileOverride,
+          fileManagerProvider.overrideWith(
+            () => _FakeNotifier(
+              FileManagerState(
+                allFolders: const [mine, theirs, mount],
+                currentFolderId: folderId,
+                files: [file],
+              ),
+            ),
+          ),
+          libraryStatsProvider.overrideWith(
+            (ref) async => const LibraryStats(),
+          ),
+          libraryTagsProvider.overrideWith((ref) async => const []),
+          libraryTagsSupportedProvider.overrideWithValue(
+            const AsyncData(false),
+          ),
+          slicerEnabledProvider.overrideWithValue(const AsyncData(true)),
+          canRunPipelinesProvider.overrideWithValue(const AsyncData(true)),
+          libraryFileExtrasProvider.overrideWithValue(const AsyncData(false)),
+        ],
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a folder the user may not touch offers no actions', (
+      tester,
+    ) async {
+      await pumpAt(tester);
+      Finder actionsOf(String name) => find.descendant(
+        of: find.ancestor(
+          of: find.text(name),
+          matching: byLogId('files.folder'),
+        ),
+        matching: byLogId('files.folder_actions'),
+      );
+      expect(actionsOf('Theirs'), findsNothing);
+      expect(actionsOf('Mine'), findsOneWidget);
+    });
+
+    testWidgets('only writable folders are move targets', (tester) async {
+      await pumpAt(tester);
+      await tester.tap(find.text(file.displayName));
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        byLogId('file_actions.move'),
+        find.byType(BottomSheet),
+        const Offset(0, -60),
+      );
+      await tester.tap(byLogId('file_actions.move'));
+      await tester.pumpAndSettle();
+
+      expect(byLogId('files.move_target'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: byLogId('files.move_target'),
+          matching: find.text('Mine'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.fmRoot), findsWidgets);
+    });
+
+    testWidgets('nothing can be added inside a folder that is not writable', (
+      tester,
+    ) async {
+      await pumpAt(tester, folderId: 2);
+      expect(byLogId('files.create'), findsNothing);
+    });
+
+    testWidgets('a read-only mount takes a subfolder, not an upload', (
+      tester,
+    ) async {
+      await pumpAt(tester, folderId: 3);
+      await tester.tap(byLogId('files.create'));
+      await tester.pumpAndSettle();
+      expect(byLogId('files.new_folder'), findsOneWidget);
+      expect(byLogId('files.upload'), findsNothing);
+    });
+
+    testWidgets('a writable folder keeps the add button', (tester) async {
+      await pumpAt(tester, folderId: 1);
+      expect(byLogId('files.create'), findsOneWidget);
     });
   });
 }

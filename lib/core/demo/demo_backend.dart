@@ -2216,6 +2216,8 @@ class DemoBackend {
       type: 'PLA',
       color: '#FF6A13',
       createdDaysAgo: 0,
+      // Shows the Staged chip; the demo's admin is never held for review.
+      manualStart: true,
     ),
     // Plate-swap job on the one model demo has snippets for: opening it shows
     // the injection checkbox already ticked, with no "nothing will be injected"
@@ -2283,6 +2285,7 @@ class DemoBackend {
     required int createdDaysAgo,
     bool gcodeInjection = false,
     bool confirmOutcome = false,
+    bool manualStart = false,
     String slicedForModel = 'X1C',
     List<Map<String, dynamic>> variants = const [],
     int? batchId,
@@ -2299,7 +2302,7 @@ class DemoBackend {
     'required_filament_types': [type],
     'ams_mapping': const <Object>[],
     'use_ams': true,
-    'manual_start': false,
+    'manual_start': manualStart,
     'auto_off_after': false,
     'require_previous_success': false,
     'gcode_injection': gcodeInjection,

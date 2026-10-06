@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
@@ -121,7 +122,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   ),
                 ],
               ),
-        floatingActionButton: selectionMode
+        // Adding files or a subfolder here would be refused (#3201).
+        floatingActionButton:
+            selectionMode || state?.currentFolder?.canWrite == false
             ? null
             : logTag(
                 'files.create',
@@ -184,6 +187,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ),
       );
     } else {
+      final me = ref.watch(currentUserProvider).valueOrNull;
       content = SliverPadding(
         padding: const EdgeInsets.only(
           top: DashSpace.sm,
@@ -194,6 +198,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             for (final f in folders)
               _FolderTile(
                 folder: f,
+                me: me,
                 onOpen: () => notifier.openFolder(f.id),
                 onRename: () => _renameFolder(f),
                 onDelete: () => _deleteFolder(f),
@@ -314,14 +319,18 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 _createFolder(s);
               },
             ).tagged('files.new_folder'),
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: Text(l10n.fmUpload),
-              onTap: () {
-                Navigator.pop(ctx);
-                _uploadFile(s);
-              },
-            ).tagged('files.upload'),
+            // A read-only mount refuses uploads (`library.py`, 403) whatever
+            // `can_write` says. New folder stays: the server takes it, as a
+            // library-only folder with nothing behind it on the mount.
+            if (s.currentFolder?.externalReadonly != true)
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined),
+                title: Text(l10n.fmUpload),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _uploadFile(s);
+                },
+              ).tagged('files.upload'),
           ],
         ),
       ),
@@ -640,7 +649,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final state = ref.read(fileManagerProvider).valueOrNull;
     if (state == null) return;
     final target = await _pickFolder(state, excludeFolderId: null);
-    if (target == null || !mounted) return; // anulowano
+    if (target == null || !mounted) return; // cancelled
     try {
       await ref.read(libraryRepositoryProvider).moveFiles([
         file.id,
@@ -995,7 +1004,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               ), // Sentinel for root.
             ).tagged('files.move_target_root'),
             for (final f in folders)
-              if (f.id != excludeFolderId && !f.isExternal)
+              if (f.id != excludeFolderId && !f.isExternal && f.canWrite)
                 ListTile(
                   leading: const Icon(Icons.folder_outlined),
                   title: Text(f.name),
@@ -1174,12 +1183,14 @@ class _FilterRow extends ConsumerWidget {
 class _FolderTile extends StatelessWidget {
   const _FolderTile({
     required this.folder,
+    required this.me,
     required this.onOpen,
     required this.onRename,
     required this.onDelete,
   });
 
   final LibraryFolder folder;
+  final CurrentUser? me;
   final VoidCallback onOpen;
   final VoidCallback onRename;
   final VoidCallback onDelete;
@@ -1188,6 +1199,8 @@ class _FolderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final mayRename = folder.mayRename(me);
+    final mayDelete = folder.mayDelete(me);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DashSpace.gutter,
@@ -1241,7 +1254,7 @@ class _FolderTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (!folder.isExternal)
+                  if (!folder.isExternal && (mayRename || mayDelete))
                     logTag(
                       'files.folder_actions',
                       PopupMenuButton<String>(
@@ -1249,20 +1262,22 @@ class _FolderTile extends StatelessWidget {
                         onSelected: (v) =>
                             v == 'rename' ? onRename() : onDelete(),
                         itemBuilder: (ctx) => [
-                          PopupMenuItem(
-                            value: 'rename',
-                            child: logTag(
-                              'files.folder.rename',
-                              Text(l10n.fmRename),
+                          if (mayRename)
+                            PopupMenuItem(
+                              value: 'rename',
+                              child: logTag(
+                                'files.folder.rename',
+                                Text(l10n.fmRename),
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: logTag(
-                              'files.folder.delete',
-                              Text(l10n.fmDelete),
+                          if (mayDelete)
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: logTag(
+                                'files.folder.delete',
+                                Text(l10n.fmDelete),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

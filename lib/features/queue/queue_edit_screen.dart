@@ -138,6 +138,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // Flags
   late bool _requireManualStart;
+
+  /// [awaitingReviewProvider] as [_submit] found it, for the payload builders
+  /// that run past its first `await`.
+  bool _heldForReview = false;
   late bool _requirePreviousSuccess;
   late bool _autoOffAfter;
   late bool _gcodeInjection;
@@ -1224,7 +1228,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             _scheduleTimeRow(l10n, t),
           ],
           const SizedBox(height: DashSpace.sm),
-          if (_scheduleType == QueueScheduleType.queue)
+          // Their jobs always wait, so the switch would only mislead (#1620).
+          if (ref.watch(awaitingReviewProvider))
+            InlineNote(
+              l10n.queueEditAwaitingReviewNote,
+              icon: Icons.pan_tool_outlined,
+              padding: const EdgeInsets.symmetric(vertical: DashSpace.sm),
+            )
+          else if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(
               id: 'queue_edit.require_manual_start',
               icon: Icons.pan_tool_outlined,
@@ -1322,6 +1333,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       return;
     }
 
+    _heldForReview = ref.read(awaitingReviewProvider);
     setState(() => _saving = true);
     _logGcodeInjection();
     _sentMapping = _modelMode ? null : await _matchMapping();
@@ -1542,6 +1554,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     CalibrationOption stored,
   ) => current == stored ? null : current;
 
+  /// The web's `editManualStart`: a user held for review always waits (#1620),
+  /// and an edit keeps a scheduled job's wait rather than clearing it — which
+  /// would start it, and is refused to such a user.
+  bool get _manualStartSent =>
+      _heldForReview ||
+      switch (_scheduleType) {
+        QueueScheduleType.queue => _requireManualStart,
+        QueueScheduleType.scheduled =>
+          !widget._isCreate && widget.item.manualStart,
+        QueueScheduleType.asap => false,
+      };
+
   Future<void> _update(QueueRepository repo) => repo.updateItem(
     widget.item.id,
     printerId: _modelMode ? null : _printerId,
@@ -1558,8 +1582,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     scheduledTime: _scheduledTimeIso,
     requirePreviousSuccess: _requirePreviousSuccess,
     autoOffAfter: _autoOffAfter,
-    manualStart:
-        _scheduleType == QueueScheduleType.queue && _requireManualStart,
+    manualStart: _manualStartSent,
     bedLevelling: _calibrationUpdate(_bedLevelling, widget.item.bedLevelling),
     flowCali: _calibrationUpdate(_flowCali, widget.item.flowCali),
     vibrationCali: _vibrationCali,
@@ -1604,8 +1627,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       scheduledTime: _scheduledTimeIso,
       requirePreviousSuccess: _requirePreviousSuccess,
       autoOffAfter: _autoOffAfter,
-      manualStart:
-          _scheduleType == QueueScheduleType.queue && _requireManualStart,
+      manualStart: _manualStartSent,
       bedLevelling: _bedLevelling,
       flowCali: _flowCali,
       vibrationCali: _vibrationCali,

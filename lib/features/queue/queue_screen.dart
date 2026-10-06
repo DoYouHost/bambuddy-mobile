@@ -187,7 +187,15 @@ class _QueueScreenState extends ConsumerState<QueueScreen>
               ),
           ],
         ),
-        floatingActionButton: firstQueued == null || _onHistory
+        floatingActionButton:
+            firstQueued == null ||
+                _onHistory ||
+                !ref.watch(
+                  mayStartQueueItemProvider((
+                    createdById: firstQueued.createdById,
+                    printerId: firstQueued.printerId,
+                  )),
+                )
             ? null
             : logTag(
                 'queue.start_next',
@@ -462,13 +470,13 @@ class _QueueCard extends ConsumerWidget {
   }
 }
 
-class _Subtitle extends StatelessWidget {
+class _Subtitle extends ConsumerWidget {
   const _Subtitle({required this.item});
 
   final QueueItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final parts = <String>[
@@ -495,7 +503,22 @@ class _Subtitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _StatusChip(item: item),
+        Wrap(
+          spacing: DashSpace.xs,
+          runSpacing: DashSpace.xs,
+          children: [
+            _StatusChip(item: item),
+            // The web's Staged badge, which says who starts the job to a user
+            // held for review (#1620).
+            if (item.manualStart)
+              _Chip(
+                label: ref.watch(awaitingReviewProvider)
+                    ? l10n.queueBadgeAwaitingReview
+                    : l10n.queueBadgeStaged,
+                accent: t.textTertiary,
+              ),
+          ],
+        ),
         if (parts.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: DashSpace.xs),
@@ -538,6 +561,19 @@ class _StatusChip extends StatelessWidget {
       QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
       _ => (item.status, t.textTertiary),
     };
+    return _Chip(label: label, accent: accent);
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label, required this.accent});
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     // Pending/unknown statuses get a subtle neutral pill instead of a
     // colored one — there's nothing actionable to draw the eye to.
     final neutral = accent == t.textTertiary;
@@ -574,6 +610,14 @@ class _QueueActions extends ConsumerWidget {
     final canStart =
         item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
+    final mayStart =
+        canStart &&
+        ref.watch(
+          mayStartQueueItemProvider((
+            createdById: item.createdById,
+            printerId: item.printerId,
+          )),
+        );
     // Which route takes this item out of the queue, and how to word it. The
     // printer's own state only separates "stop the print" from "remove the
     // leftover row": a printer that failed is not printing anything to abort,
@@ -633,7 +677,7 @@ class _QueueActions extends ConsumerWidget {
           await _removeFromQueue(context, notifier, messenger, l10n, removal);
         },
         itemBuilder: (_) => [
-          if (canStart)
+          if (mayStart)
             PopupMenuItem(
               value: 'start',
               child: logTag(
@@ -828,18 +872,22 @@ Future<void> _sendQueuedPrint(
   DetachedHandles handles,
 ) async {
   final (:providers, :messenger) = handles;
+  // Only offered with a printer on the job, so it never reaches the picker.
+  final claims = providers.read(startClaimsJobProvider(item.createdById));
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
     if (printer == null || !context.mounted) return;
     printerId = printer.id;
   }
-  final mapping = await showQueueMappingSheet(
-    context,
-    item: item,
-    printerId: printerId,
-    confirmLabel: l10n.queueStart,
-  );
+  final mapping = claims
+      ? const <int>[]
+      : await showQueueMappingSheet(
+          context,
+          item: item,
+          printerId: printerId,
+          confirmLabel: l10n.queueStart,
+        );
   if (mapping == null) return; // backed out of mapping → abort
 
   // Plate-clear gate: when the scheduler requires it and this printer still has
@@ -888,9 +936,10 @@ Future<void> _sendQueuedPrint(
   // One thing the container does not guarantee: `queueProvider` is autoDispose,
   // so it outlives this row only because the tab badge in `RootScaffold` keeps
   // it listened to.
-  final result = await providers
-      .read(queueProvider.notifier)
-      .startOnPrinter(item, printerId, amsMapping: mapping);
+  final notifier = providers.read(queueProvider.notifier);
+  final result = claims
+      ? await notifier.start(item.id)
+      : await notifier.startOnPrinter(item, printerId, amsMapping: mapping);
   messenger.snack(queueWriteMessage(l10n, result) ?? l10n.queuePrintStarted);
 }
 

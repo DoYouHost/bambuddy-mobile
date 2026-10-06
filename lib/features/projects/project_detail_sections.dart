@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import 'package:app_diagnostics/app_diagnostics.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/models/current_user.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
@@ -108,16 +109,22 @@ class ProjectFilesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final foldersAsync = ref.watch(projectFoldersProvider(projectId));
     final filesAsync = ref.watch(projectFilesProvider(projectId));
+    // Setting or clearing a folder's project is update-all only
+    // (`library.py::update_folder`), as the web's File Manager gates its Link
+    // entry; the web has no such control on the project page at all.
+    final mayLink = ref.watch(permissionProvider(Permissions.libraryUpdateAll));
 
     return SectionCard(
       icon: Icons.folder_open_outlined,
       title: l10n.projectTabFiles,
-      action: sectionCardAction(
-        id: 'project.section_action',
-        icon: Icons.create_new_folder_outlined,
-        label: l10n.projectLinkFolder,
-        onPressed: () => _linkFolder(context, ref),
-      ),
+      action: mayLink
+          ? sectionCardAction(
+              id: 'project.section_action',
+              icon: Icons.create_new_folder_outlined,
+              label: l10n.projectLinkFolder,
+              onPressed: () => _linkFolder(context, ref),
+            )
+          : null,
       child: dashAsyncStrip(
         context,
         foldersAsync,
@@ -138,7 +145,9 @@ class ProjectFilesSection extends ConsumerWidget {
                       if (f.folderId == folder.id) f,
                   ],
                   onPrint: (f) => _print(context, ref, f),
-                  onUnlink: () => _unlink(context, ref, folder),
+                  onUnlink: mayLink
+                      ? () => _unlink(context, ref, folder)
+                      : null,
                 ),
             ],
           );
@@ -166,7 +175,7 @@ class ProjectFilesSection extends ConsumerWidget {
       final tree = await ref.read(libraryRepositoryProvider).listFolders();
       candidates = [
         for (final f in _flatten(tree))
-          if (!linked.contains(f.id) && f.projectName == null) f,
+          if (!linked.contains(f.id) && f.projectId == null) f,
       ];
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.link_folder');
@@ -277,7 +286,7 @@ class _FolderTile extends StatelessWidget {
   final LibraryFolder folder;
   final List<LibraryFile> files;
   final ValueChanged<LibraryFile> onPrint;
-  final VoidCallback onUnlink;
+  final VoidCallback? onUnlink;
 
   @override
   Widget build(BuildContext context) {
@@ -300,11 +309,13 @@ class _FolderTile extends StatelessWidget {
           l10n.projectFolderFileCount(folder.fileCount),
           style: t.labelSoft,
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.link_off, color: t.textSecondary),
-          tooltip: l10n.projectUnlinkFolder,
-          onPressed: onUnlink,
-        ).tagged('project.unlink_folder'),
+        trailing: onUnlink == null
+            ? null
+            : IconButton(
+                icon: Icon(Icons.link_off, color: t.textSecondary),
+                tooltip: l10n.projectUnlinkFolder,
+                onPressed: onUnlink,
+              ).tagged('project.unlink_folder'),
         children: [
           if (files.isEmpty)
             _emptyHint(context, l10n.projectFilesEmpty)

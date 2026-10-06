@@ -18,7 +18,13 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/api/api_client.dart';
 import 'package:bambuddy_mobile/core/api/endpoints.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
+import 'package:bambuddy_mobile/core/models/group_write.dart';
+import 'package:bambuddy_mobile/core/models/user_write.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/account_repository.dart';
+import 'package:bambuddy_mobile/data/groups_repository.dart';
+import 'package:bambuddy_mobile/data/users_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,6 +116,54 @@ Future<Dio> authenticatedDio() async {
 
   dio.options.headers['Authorization'] = 'Bearer $token';
   return dio;
+}
+
+/// A signed-in non-admin, alone in a group holding exactly [permissions], for
+/// a test about what such a user is offered. [admin] creates both and removes
+/// them when the test — or, from `setUpAll`, the group — is over.
+Future<({Dio dio, CurrentUser me})> contractUser(
+  Dio admin,
+  List<String> permissions,
+) async {
+  final stamp = DateTime.now().microsecondsSinceEpoch;
+  final group = await GroupsRepository(
+    admin,
+  ).create(GroupCreateInput(name: 'contract-$stamp', permissions: permissions));
+  addTearDown(() => _quietly(admin.delete(Endpoints.groupById(group.id))));
+  const password = 'Contract-user-1';
+  final user = await UsersRepository(admin).create(
+    UserCreateInput(
+      username: 'contract$stamp',
+      password: password,
+      groupIds: [group.id],
+    ),
+  );
+  // Registered last, so it runs first: the group goes once nobody is in it.
+  addTearDown(
+    () => _quietly(
+      admin.delete(
+        Endpoints.userById(user.id),
+        queryParameters: {'delete_items': true},
+      ),
+    ),
+  );
+  final dio = createBareDio()..options.baseUrl = contractBaseUrl;
+  final login = await dio.post<Map<String, dynamic>>(
+    Endpoints.authLogin,
+    data: {'username': user.username, 'password': password},
+  );
+  final token = login.data?['access_token'];
+  if (token is! String || token.isEmpty) {
+    throw StateError('contract user login answered without access_token');
+  }
+  dio.options.headers['Authorization'] = 'Bearer $token';
+  return (dio: dio, me: await AccountRepository(dio).me());
+}
+
+Future<void> _quietly(Future<Object?> cleanup) async {
+  try {
+    await cleanup;
+  } on DioException catch (_) {}
 }
 
 /// The app's providers on top of [dio], for a test that has to follow a
